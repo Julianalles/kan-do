@@ -800,9 +800,11 @@ export const useTasksStore = defineStore("tasks", () => {
    *   whose `id` equals a fetched `externalId` is that task (a Notion -> Local -> Notion round trip): it
    *   keeps its `id` and local data and takes the source and `externalId` again. `heldTime` maps a local total
    *   to the total the source reads back for it (a unit rounding, `TaskSourceAdapter.timeHolding`): a fetched
-   *   value equal to that is the local total, so it is kept as it is and queues no push (#323).
+   *   value equal to that is the local total, so it is kept as it is and queues no push (#323). `timeWritable: false`
+   *   (`TaskSourceAdapter.timeWritable`, a Notion select time property, #331): the source takes no time write, so
+   *   local time above the fetched value queues no push.
    */
-  function mergeTasks(source: SourceId, fetchedTasks: Task[], options: { replaceOthers?: boolean; heldTime?: (seconds: number) => number } = {}): void {
+  function mergeTasks(source: SourceId, fetchedTasks: Task[], options: { replaceOthers?: boolean; heldTime?: (seconds: number) => number; timeWritable?: boolean } = {}): void {
     const boardStore = useBoardStore();
 
     // A completed switch replaces the Local tasks it adopted; another connected integration's tasks stay (#320)
@@ -889,7 +891,7 @@ export const useTasksStore = defineStore("tasks", () => {
         }
 
         // If effective local (local or pending) is greater than external, ensure pending reflects the highest local value
-        if (effectiveLocal > externalTimeSpent && effectiveLocal > 0 && !heldAsLocal && sourceSyncsTime(source)) {
+        if (effectiveLocal > externalTimeSpent && effectiveLocal > 0 && !heldAsLocal && options.timeWritable !== false && sourceSyncsTime(source)) {
           const existing = mapHelpers.get(pendingTimeUpdates.value, resolvedId);
           if (existing) {
             existing.timeSpentSeconds = Math.max(existing.timeSpentSeconds, effectiveLocal);

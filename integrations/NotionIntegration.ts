@@ -364,6 +364,18 @@ export class NotionIntegration {
   }
 
   /**
+   * Whether the mapped time property takes a number: its schema type is `number` or cannot be told (no data
+   * source, the read failed: the number, as before the detection). A `select` or `rich_text` time property is not
+   * written (#331), so the time it holds is read-only for the app and a fetch must not queue a push for it.
+   * Never rejects.
+   */
+  async timeIsWritable(): Promise<boolean> {
+    if (!this.propertyMapping.timeSpent) return false;
+    const type = await this.schemaPropertyType(this.propertyMapping.timeSpent);
+    return type === null || type === 'number';
+  }
+
+  /**
    * The total a push of `seconds` leaves in the time property, read back as seconds: the unit's 2 decimals (hours:
    * 36 s steps, minutes: 0.6 s steps) round it, up or down (#323). `mergeTasks` compares a fetched value with it
    * (the same arithmetic as the read, so equal values are equal floats): a fetched value that is what the local
@@ -756,18 +768,25 @@ export class NotionIntegration {
       };
 
       // Add time spent if it exists and is mapped, converting to configured unit
+      // Only a number property takes it (the setup also offers a select named like a time, #331): a write of the wrong
+      // shape is a 400 for the whole page, so any other known type is left out (the create path does the same).
       let timeWritten: number | null = null;
-      if (task.timeSpentSeconds && task.timeSpentSeconds > 0 && this.propertyMapping.timeSpent) {
-        const unit = this.propertyMapping.timeSpentUnit; // undefined => seconds (back-compat)
-        const valueToWrite = this.fromSecondsToUnit(task.timeSpentSeconds, unit);
-        timeWritten = valueToWrite;
-        properties[this.propertyMapping.timeSpent] = {
-          number: valueToWrite,
-        };
-      }
-      else if (change.timeEdited && this.propertyMapping.timeSpent) {
-        // The user cleared the total (kd#4): an empty number, not a skipped property
-        properties[this.propertyMapping.timeSpent] = { number: null };
+      const timeWanted = Boolean(this.propertyMapping.timeSpent)
+        && ((task.timeSpentSeconds && task.timeSpentSeconds > 0) || change.timeEdited);
+      const timeWritable = timeWanted && await this.timeIsWritable();
+      if (timeWanted && timeWritable && this.propertyMapping.timeSpent) {
+        if (task.timeSpentSeconds && task.timeSpentSeconds > 0) {
+          const unit = this.propertyMapping.timeSpentUnit; // undefined => seconds (back-compat)
+          const valueToWrite = this.fromSecondsToUnit(task.timeSpentSeconds, unit);
+          timeWritten = valueToWrite;
+          properties[this.propertyMapping.timeSpent] = {
+            number: valueToWrite,
+          };
+        }
+        else {
+          // The user cleared the total (kd#4): an empty number, not a skipped property
+          properties[this.propertyMapping.timeSpent] = { number: null };
+        }
       }
 
       // Add timeBox if it exists and is mapped, converting based on configured unit
@@ -889,6 +908,11 @@ export class NotionIntegration {
       // stays. A value that is not what was written (changed in Notion meanwhile) is taken as it stands.
       if (timeWritten !== null && this.fromSecondsToUnit(syncedTask.timeSpentSeconds, this.propertyMapping.timeSpentUnit) === timeWritten) {
         syncedTask.timeSpentSeconds = task.timeSpentSeconds;
+      }
+      // A time property that takes no number (select, rich_text, #331) was not written: what it reads back is not
+      // the tracked total, so the local total stays (never lower local time from a non-writable property).
+      if (timeWanted && !timeWritable) {
+        syncedTask.timeSpentSeconds = task.timeSpentSeconds || 0;
       }
       
       if (import.meta.dev) {

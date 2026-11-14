@@ -376,8 +376,8 @@ describe('NotionIntegration – priority mapping and time parsing edge cases', (
       timerId: null,
     })
 
-    // updateTask reads the status property type (#312), the page to compare the priority (#678), performs PATCH and then GET to read Notion's current state
-    expect(fetch).toHaveBeenCalledTimes(4)
+    // updateTask reads the status property type (#312), the time property type (#331), the page to compare the priority (#678), performs PATCH and then GET to read Notion's current state
+    expect(fetch).toHaveBeenCalledTimes(5)
     const { body, headers } = parseLastUpdateTaskCall()
     expect(headers['Authorization']).toBe(`Bearer ${token}`)
     expect(body.pageId).toBe('p1')
@@ -1525,6 +1525,101 @@ describe('NotionIntegration: tracked time on create and the unit rounding of the
       const unknown = schemaProxy(undefined)
       await makeSutWithUnit('minutes').createTask({ title: 'T', status: TaskStatus.Open, timeSpentSeconds: 125 } as any)
       expect(createdProperties(unknown)[propertyMapping.timeSpent]).toEqual({ number: 2.08 })
+    })
+  })
+
+  describe('updateTask writes the time property only in a shape its type holds (#331)', () => {
+    const updateProxy = (timeType: string | undefined, { failUpdateOnTime = false, empty = false } = {}) => {
+      const fetchMock = vi.fn((url: string, init?: { body?: string }) => {
+        if (url.startsWith('/api/notion/data-sources?id=')) {
+          const properties = timeType === undefined ? {} : { [propertyMapping.timeSpent]: { type: timeType } }
+          return Promise.resolve({ ok: true, json: () => Promise.resolve({ id: 'ds-123', properties }) })
+        }
+        if (url === '/api/notion/update-task' && failUpdateOnTime && init?.body
+          && JSON.parse(init.body).properties?.[propertyMapping.timeSpent]?.number !== undefined && timeType !== 'number') {
+          // What Notion does with a number written into a select: a 400 for the whole page
+          return Promise.resolve({ ok: false, status: 400, json: () => Promise.resolve({ error: 'validation_error' }) })
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            id: 'p-time',
+            properties: {
+              [propertyMapping.title]: { title: [{ plain_text: 'Timed' }] },
+              [propertyMapping.status]: { select: { name: statusMapping.doing } },
+              [propertyMapping.timeSpent]: timeType === 'select' ? { select: empty ? null : { name: '30 min' } } : { number: 2.08 },
+            },
+          }),
+        })
+      })
+      vi.stubGlobal('fetch', fetchMock)
+      return fetchMock
+    }
+    const updatedProperties = (fetchMock: ReturnType<typeof updateProxy>) =>
+      JSON.parse(fetchMock.mock.calls.find(([u]) => String(u) === '/api/notion/update-task')![1]!.body!).properties
+
+    it.each(['select', 'rich_text'])('a %s time property gets no time in the update, the rest of the page is still written', async (type) => {
+      const fetchMock = updateProxy(type, { failUpdateOnTime: true })
+      const synced = await makeSutWithUnit('minutes').updateTask(timedTask(125))
+      const properties = updatedProperties(fetchMock)
+      expect(properties[propertyMapping.timeSpent]).toBeUndefined()
+      expect(properties[propertyMapping.status].select.name).toBe(statusMapping.doing)
+      expect(synced.status).toBe(TaskStatus.Progress)
+    })
+
+    it.each(['select', 'rich_text'])('a %s time property is not cleared either when the user cleared the total', async (type) => {
+      const fetchMock = updateProxy(type, { failUpdateOnTime: true })
+      await makeSutWithUnit('minutes').updateTask(timedTask(0), { timeEdited: true })
+      expect(updatedProperties(fetchMock)[propertyMapping.timeSpent]).toBeUndefined()
+    })
+
+    it('a select time property keeps the local total in the echo (never lowered from the select)', async () => {
+      updateProxy('select')
+      const synced = await makeSutWithUnit('minutes').updateTask(timedTask(3600))
+      expect(synced.timeSpentSeconds).toBe(3600)
+    })
+
+    it('an empty select time property does not zero the local total either', async () => {
+      updateProxy('select', { empty: true })
+      const synced = await makeSutWithUnit('minutes').updateTask(timedTask(3600))
+      expect(synced.timeSpentSeconds).toBe(3600)
+    })
+
+    it('a number time property is written, and cleared on a user-set 0', async () => {
+      const fetchMock = updateProxy('number')
+      await makeSutWithUnit('minutes').updateTask(timedTask(125))
+      expect(updatedProperties(fetchMock)[propertyMapping.timeSpent]).toEqual({ number: 2.08 })
+
+      const cleared = updateProxy('number')
+      await makeSutWithUnit('minutes').updateTask(timedTask(0), { timeEdited: true })
+      expect(updatedProperties(cleared)[propertyMapping.timeSpent]).toEqual({ number: null })
+    })
+
+    it('an unknown property or a failed schema read writes the number, as before the detection', async () => {
+      const unknown = updateProxy(undefined)
+      await makeSutWithUnit('minutes').updateTask(timedTask(125))
+      expect(updatedProperties(unknown)[propertyMapping.timeSpent]).toEqual({ number: 2.08 })
+
+      resetStatusTypeCache()
+      const failing = vi.fn((url: string, _init?: { body?: string }) => url.startsWith('/api/notion/data-sources?id=')
+        ? Promise.resolve({ ok: false, status: 500, json: () => Promise.resolve({}) })
+        : Promise.resolve({ ok: true, json: () => Promise.resolve({ id: 'p-time', properties: {} }) }))
+      vi.stubGlobal('fetch', failing)
+      await makeSutWithUnit('minutes').updateTask(timedTask(125))
+      expect(JSON.parse(failing.mock.calls.find(([u]) => String(u) === '/api/notion/update-task')![1]!.body!).properties[propertyMapping.timeSpent]).toEqual({ number: 2.08 })
+    })
+
+    it('timeIsWritable: number and unknown yes, select and rich_text no, no mapping no', async () => {
+      updateProxy('number')
+      expect(await makeSut().timeIsWritable()).toBe(true)
+      resetStatusTypeCache()
+      updateProxy('select')
+      expect(await makeSut().timeIsWritable()).toBe(false)
+      resetStatusTypeCache()
+      updateProxy(undefined)
+      expect(await makeSut().timeIsWritable()).toBe(true)
+      const { timeSpent: _unmapped, ...withoutTime } = propertyMapping
+      expect(await makeSut(withoutTime as any).timeIsWritable()).toBe(false)
     })
   })
 

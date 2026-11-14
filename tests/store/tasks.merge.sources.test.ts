@@ -191,6 +191,29 @@ describe('tasks store: mergeTasks(source, fetched) (#326)', () => {
     })
   })
 
+  describe('a source that takes no time write (a Notion select time property, #331)', () => {
+    it('local time above the fetched value queues no push, however often it is fetched', () => {
+      store.setTasks([makeTask({ id: 'n1', timeSpentSeconds: 5400 })])
+      for (let sync = 0; sync < 3; sync++) {
+        store.mergeTasks('notion', [makeTask({ id: 'n1', timeSpentSeconds: 1800 })], { timeWritable: false })
+        expect(store.task('n1')!.timeSpentSeconds).toBe(5400)
+        expect(mapHelpers.get(store.pendingTimeUpdates, 'n1')).toBeUndefined()
+      }
+    })
+
+    it('a fetched value above the local one is still taken', () => {
+      store.setTasks([makeTask({ id: 'n1', timeSpentSeconds: 600 })])
+      store.mergeTasks('notion', [makeTask({ id: 'n1', timeSpentSeconds: 1800 })], { timeWritable: false })
+      expect(store.task('n1')!.timeSpentSeconds).toBe(1800)
+    })
+
+    it('the default (and an explicit true) still queues the push', () => {
+      store.setTasks([makeTask({ id: 'n1', timeSpentSeconds: 5400 })])
+      store.mergeTasks('notion', [makeTask({ id: 'n1', timeSpentSeconds: 1800 })], { timeWritable: true })
+      expect(mapHelpers.get(store.pendingTimeUpdates, 'n1')?.timeSpentSeconds).toBe(5400)
+    })
+  })
+
   it('stamps the merge source on fetched tasks that lack an externalId', () => {
     store.mergeTasks('notion', [{ ...makeTask({ id: 'n1' }), externalId: null }])
     expect(store.task('n1')).toMatchObject({ source: 'notion', externalId: 'n1' })

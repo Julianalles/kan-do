@@ -25,11 +25,12 @@ vi.mock('~/composables/useNotionDataSource', () => ({
 const fetchNotion = vi.fn<() => Promise<Task[]>>()
 const fetchTodoist = vi.fn<() => Promise<Task[]>>()
 // A Notion database in hours: 125 s is held as 0.03 h (108 s)
+const timeWritableNotion = vi.fn(() => Promise.resolve(true))
 const heldTimeNotion = vi.fn((seconds: number) => (Math.round((seconds / 3600) * 100) / 100) * 3600)
 vi.mock('~/composables/useNotionIntegration', () => ({
   useNotionIntegration: () => ({
     isConfigured: { value: true },
-    createInstance: () => ({ fetchActiveBoardTasks: fetchNotion, heldTimeSeconds: (seconds: number) => heldTimeNotion(seconds) }),
+    createInstance: () => ({ fetchActiveBoardTasks: fetchNotion, heldTimeSeconds: (seconds: number) => heldTimeNotion(seconds), timeIsWritable: () => timeWritableNotion() }),
   }),
 }))
 vi.mock('~/store/notionConfig', () => ({
@@ -90,6 +91,8 @@ describe('useIntegrationManager: several sources (#318)', () => {
     resetSyncValidation()
     fetchNotion.mockReset()
     fetchTodoist.mockReset()
+    timeWritableNotion.mockClear()
+    timeWritableNotion.mockResolvedValue(true)
     handleErrorMock.mockReset()
     handleSuccessMock.mockReset()
     vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -417,6 +420,31 @@ describe('useIntegrationManager: several sources (#318)', () => {
 
       expect(useTasksStore().task('n-1')!.timeSpentSeconds).toBe(125)
       expect(useTasksStore().pendingTimeUpdates).toEqual({})
+    })
+  })
+
+  describe('a Notion time property that takes no number (#331)', () => {
+    it('syncing twice keeps the local time and queues no time push for the lower parsed value', async () => {
+      timeWritableNotion.mockResolvedValue(false)
+      useBoardStore().setSources({ connected: ['notion'], default: 'notion' })
+      useTasksStore().setTasks([task('n-1', 'notion', { timeSpentSeconds: 5400 })])
+      fetchNotion.mockResolvedValue([task('n-1', 'notion', { timeSpentSeconds: 1800 })])
+
+      await useIntegrationManager().fetchTasks()
+      await useIntegrationManager().fetchTasks()
+
+      expect(useTasksStore().task('n-1')!.timeSpentSeconds).toBe(5400)
+      expect(useTasksStore().pendingTimeUpdates).toEqual({})
+    })
+
+    it('a number property still queues it (the check is per source, not a blanket skip)', async () => {
+      useBoardStore().setSources({ connected: ['notion'], default: 'notion' })
+      useTasksStore().setTasks([task('n-1', 'notion', { timeSpentSeconds: 5400 })])
+      fetchNotion.mockResolvedValue([task('n-1', 'notion', { timeSpentSeconds: 1800 })])
+
+      await useIntegrationManager().fetchTasks()
+
+      expect(useTasksStore().pendingTimeUpdates['n-1']?.timeSpentSeconds).toBe(5400)
     })
   })
 
