@@ -438,7 +438,8 @@
         "timebox-progress-chip",
         "focus-overlay",
         "statistics-page",
-        "visual-regression"
+        "visual-regression",
+        "jetzt-swap"
       ]
     },
     {
