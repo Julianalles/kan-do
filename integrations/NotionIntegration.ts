@@ -773,7 +773,8 @@ export class NotionIntegration {
       let timeWritten: number | null = null;
       const timeWanted = Boolean(this.propertyMapping.timeSpent)
         && ((task.timeSpentSeconds && task.timeSpentSeconds > 0) || change.timeEdited);
-      if (timeWanted && this.propertyMapping.timeSpent && await this.timeIsWritable()) {
+      const timeWritable = timeWanted && await this.timeIsWritable();
+      if (timeWanted && timeWritable && this.propertyMapping.timeSpent) {
         if (task.timeSpentSeconds && task.timeSpentSeconds > 0) {
           const unit = this.propertyMapping.timeSpentUnit; // undefined => seconds (back-compat)
           const valueToWrite = this.fromSecondsToUnit(task.timeSpentSeconds, unit);
@@ -907,6 +908,11 @@ export class NotionIntegration {
       // stays. A value that is not what was written (changed in Notion meanwhile) is taken as it stands.
       if (timeWritten !== null && this.fromSecondsToUnit(syncedTask.timeSpentSeconds, this.propertyMapping.timeSpentUnit) === timeWritten) {
         syncedTask.timeSpentSeconds = task.timeSpentSeconds;
+      }
+      // A time property that takes no number (select, rich_text, #331) was not written: what it reads back is not
+      // the tracked total, so the local total stays (never lower local time from a non-writable property).
+      if (timeWanted && !timeWritable) {
+        syncedTask.timeSpentSeconds = task.timeSpentSeconds || 0;
       }
       
       if (import.meta.dev) {

@@ -1529,7 +1529,7 @@ describe('NotionIntegration: tracked time on create and the unit rounding of the
   })
 
   describe('updateTask writes the time property only in a shape its type holds (#331)', () => {
-    const updateProxy = (timeType: string | undefined, { failUpdateOnTime = false } = {}) => {
+    const updateProxy = (timeType: string | undefined, { failUpdateOnTime = false, empty = false } = {}) => {
       const fetchMock = vi.fn((url: string, init?: { body?: string }) => {
         if (url.startsWith('/api/notion/data-sources?id=')) {
           const properties = timeType === undefined ? {} : { [propertyMapping.timeSpent]: { type: timeType } }
@@ -1547,7 +1547,7 @@ describe('NotionIntegration: tracked time on create and the unit rounding of the
             properties: {
               [propertyMapping.title]: { title: [{ plain_text: 'Timed' }] },
               [propertyMapping.status]: { select: { name: statusMapping.doing } },
-              [propertyMapping.timeSpent]: timeType === 'select' ? { select: { name: '30 min' } } : { number: 2.08 },
+              [propertyMapping.timeSpent]: timeType === 'select' ? { select: empty ? null : { name: '30 min' } } : { number: 2.08 },
             },
           }),
         })
@@ -1573,10 +1573,16 @@ describe('NotionIntegration: tracked time on create and the unit rounding of the
       expect(updatedProperties(fetchMock)[propertyMapping.timeSpent]).toBeUndefined()
     })
 
-    it('a select time property leaves the local seconds as the push returned them (nothing was written to compare)', async () => {
+    it('a select time property keeps the local total in the echo (never lowered from the select)', async () => {
       updateProxy('select')
       const synced = await makeSutWithUnit('minutes').updateTask(timedTask(3600))
-      expect(synced.timeSpentSeconds).toBe(30 * 60)
+      expect(synced.timeSpentSeconds).toBe(3600)
+    })
+
+    it('an empty select time property does not zero the local total either', async () => {
+      updateProxy('select', { empty: true })
+      const synced = await makeSutWithUnit('minutes').updateTask(timedTask(3600))
+      expect(synced.timeSpentSeconds).toBe(3600)
     })
 
     it('a number time property is written, and cleared on a user-set 0', async () => {
