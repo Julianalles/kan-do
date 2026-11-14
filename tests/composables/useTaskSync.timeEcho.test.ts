@@ -101,6 +101,17 @@ describe('a checkpoint during a push survives the echo (#313)', () => {
     expect(store.pendingTimeUpdates['n1']?.timeSpentSeconds).toBe(115)
   })
 
+  it('a task created offline without a checkpoint during the push takes the echo as before', async () => {
+    const store = useTasksStore()
+    store.setTasks([task('n1', { externalId: null, timeSpentSeconds: 100 })])
+    notion.createTask.mockImplementation(async (t) => ({ ...t, externalId: 'page-new', timeSpentSeconds: 90 })) // the source holds less
+
+    await useTaskSync().syncTaskToIntegration(store.task('n1')!)
+
+    expect(store.task('n1')?.externalId).toBe('page-new')
+    expect(store.task('n1')?.timeSpentSeconds).toBe(90)
+  })
+
   it('without a checkpoint during the push: the echo is applied and the entry and marker are cleared', async () => {
     const store = useTasksStore()
     store.addTrackedSeconds('n1', 5)

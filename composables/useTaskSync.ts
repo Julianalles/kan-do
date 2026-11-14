@@ -383,8 +383,10 @@ export const useTaskSync = () => {
       if (task.externalId === null) {
         // Made while the source was unreachable: it creates the task now and gives it its id
         const created = await adapter.create(task);
+        // Read before `completeCreate`, which drops the revision
+        const timeSuperseded = tasksStore.pendingSyncRevision(task.id) !== revision;
         tasksStore.completeCreate(task.id, created, revision);
-        applySyncedTask(task.id, created, operationVersion, revision);
+        applySyncedTask(task.id, created, operationVersion, timeSuperseded);
       } else {
         // What the source holds comes from the marker (it survives a restart), else from the caller (#344).
         // `Open` only stands for "not completed" here.
@@ -395,7 +397,7 @@ export const useTaskSync = () => {
           // A total the user set (kd#4) is written even at 0; the entry lives until the push carried it
           ...timeEditFlag(task.id),
         });
-        if (synced) applySyncedTask(task.id, synced, operationVersion, revision);
+        if (synced) applySyncedTask(task.id, synced, operationVersion, tasksStore.pendingSyncRevision(task.id) !== revision);
         tasksStore.clearPendingSync(task.id, revision, sentDone);
       }
       restoreSourceAfterPush(task.source);
@@ -449,10 +451,10 @@ export const useTaskSync = () => {
   /**
    * Merges what the source holds after a write (bidirectional sync: changes made directly in Notion,
    * e.g. adding tags, are preserved locally) unless a newer local write superseded this one.
-   * `timerId` is preserved locally, never taken from the source. With the `revision` the write started from, a
-   * change made since (a timer checkpoint, #313) means the echo holds an older total: the larger one stays.
+   * `timerId` is preserved locally, never taken from the source. With `timeSuperseded` (the revision moved since the write started:
+   * a timer checkpoint, #313) the echo holds an older total: the larger one stays.
    */
-  const applySyncedTask = (taskId: string, synced: Task, operationVersion?: number, revision?: number): void => {
+  const applySyncedTask = (taskId: string, synced: Task, operationVersion?: number, timeSuperseded = false): void => {
     const currentVersion = tasksStore.getTaskOperationVersion(taskId);
     if (operationVersion !== undefined && currentVersion !== operationVersion) {
       if (import.meta.dev) {
@@ -466,7 +468,6 @@ export const useTaskSync = () => {
     // A done day the user corrected (kd#131) stays while the source still holds the task as done: a source
     // without a completion date echoes "now"
     const live = tasksStore.task(taskId);
-    const timeSuperseded = revision !== undefined && tasksStore.pendingSyncRevision(taskId) !== revision;
     const doneDayKept = live?.completedAtCorrected === true && live.status === TaskStatus.Done && synced.status === TaskStatus.Done;
     tasksStore.updateTask(taskId, {
       isUnplanned: synced.isUnplanned,
