@@ -361,6 +361,10 @@ test.describe('Sort menu layout', () => {
     await page.goto('/tasks?seed=local');
     await expect(page.locator('.board')).toBeVisible({ timeout: 15000 });
     const button = page.locator('[data-testid="column-sorting-control"] button').first();
+    // A phone board opens on the Jetzt page while a task sits there (kd#191): reach Offen first, or the menu opens
+    // beside a control that is still off screen (x = -140 under load, kd#314).
+    await showColumnPage(page, 0);
+    await waitForStableBox(button);
     // Touch has no hover: reveal the control through focus, then open it with the keyboard.
     await button.focus();
     await button.press('Enter');
