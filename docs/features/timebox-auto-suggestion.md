@@ -11,6 +11,10 @@ Intelligent timebox suggestion system that learns from historic task data to pro
 - Emphasize activity-based suggestions (context-aware)
 - Make suggestions non-intrusive and optional
 
+## Other consumers
+
+The scoring (`lib/timeboxSimilarity.ts`) is shared with the capacity divider (#302): `lib/learnedEstimate.ts` estimates a card **without** a timebox from at least 3 similar records (score >= 0.3, at least 1 min actually spent; best 10, weighted median, rounded to 5 min, clamped to 5-240 min) and falls back to 30 min below that.
+
 ## Data Sources
 
 ### Historic Task Data (taskStatistics Store)

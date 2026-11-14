@@ -10,6 +10,7 @@ import type { ColumnItem } from '~/types/columnItem'
 import { useTasksStore } from '~/store/tasks'
 import { useBoardStore } from '~/store/board'
 import { useSettingsStore } from '~/store/settings'
+import { useTaskStatisticsStore } from '~/store/taskStatistics'
 import { useDayCapacity } from '~/composables/useDayCapacity'
 import { sourceOf } from '../helpers/taskSource'
 
@@ -48,5 +49,45 @@ describe('useDayCapacity with a user-set working day (#306)', () => {
     expect(lineAfterKey.value).toBeNull() // beyond the learned 2-10 h clamp
     settings.setWorkingHoursMinutes(null)
     expect(lineAfterKey.value).toBeNull()
+  })
+})
+
+describe('useDayCapacity with learned estimates (#302)', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  const unboxed = (id: string, title: string, status = TaskStatus.Open): Task => ({ ...makeTask(id, status, null), title, timeBoxSeconds: null })
+  const finished = (n: number, title: string, minutes: number) => Array.from({ length: n }, (_, i) => ({
+    taskId: `done-${title}-${i}`, title, completedAt: new Date(), timeBoxSeconds: null, actualTimeSpentSeconds: minutes * 60,
+    estimationAccuracy: null, topic: null, topicColorCode: null, activity: null, isUnplanned: false,
+  }))
+  const itemsOf = (...tasks: Task[]) => tasks.map((task): ColumnItem => ({ kind: 'card', key: task.id, task }) as ColumnItem)
+
+  it('counts an unboxed card as the time similar finished tasks took, a boxed one as its box', () => {
+    useSettingsStore().setWorkingHoursMinutes(180)
+    const boxed = { ...unboxed('o3', 'Bericht schreiben'), timeBoxSeconds: 3600 }
+    const items = itemsOf(unboxed('o1', 'Bericht schreiben'), unboxed('o2', 'Bericht schreiben'), boxed)
+    const { lineAfterKey } = useDayCapacity(items, true)
+    expect(lineAfterKey.value).toBeNull() // no history: 30 + 30 + 60 min of 3 h
+    useTaskStatisticsStore().completionRecords.push(...finished(3, 'Bericht schreiben', 90))
+    expect(lineAfterKey.value).toBe('o2') // 90 + 90 min fill the 3 h; the boxed card is not touched by the history
+  })
+
+  it('counts Jetzt and Wartet cards without a box the same way', () => {
+    useSettingsStore().setWorkingHoursMinutes(180)
+    useTaskStatisticsStore().completionRecords.push(...finished(3, 'Bericht schreiben', 90))
+    const tasks = useTasksStore()
+    tasks.addTask(unboxed('j1', 'Bericht schreiben', TaskStatus.Progress))
+    useBoardStore().reconcileColumnsWithTasks(tasks.tasks)
+    const { lineAfterKey } = useDayCapacity(itemsOf(unboxed('o1', 'Bericht schreiben'), unboxed('o2', 'Zahnarzt')), true)
+    expect(lineAfterKey.value).toBe('o1') // Jetzt 90 + o1 90 = 180
+  })
+
+  it('reads old stored statistics without completion records as no history', () => {
+    useSettingsStore().setWorkingHoursMinutes(60)
+    const statistics = useTaskStatisticsStore()
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(statistics as any).completionRecords = [null, { title: 'Bericht schreiben' }, 'x']
+    const { lineAfterKey } = useDayCapacity(itemsOf(unboxed('o1', 'Bericht schreiben'), unboxed('o2', 'Bericht schreiben')), true)
+    expect(lineAfterKey.value).toBe('o2') // 30 + 30 = 60: the fallback
   })
 })
