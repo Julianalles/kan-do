@@ -255,6 +255,59 @@ watch(isOpen, async (open) => {
   }
 });
 
+// ── A tap that closes the menu does nothing else (#326) ────────────────────────────────────────────────────────
+// reka dismisses a touch on the click that ends it, and the page is released before that click lands, so it reaches
+// whatever is under the finger (a card: its sheet opens). While the menu is open, a touch that starts outside it
+// arms a one-shot capture guard that swallows that click and closes the menu itself. A touch that becomes a scroll
+// or swipe ends in pointercancel (no click) and disarms it; the guard waits for the release however long the hold.
+
+/** Time from the release to the click it produces: far above the real gap, short enough that a later tap is never eaten */
+const CLICK_AFTER_RELEASE_MS = 400;
+
+function isInsideMenu(target: EventTarget | null) {
+  return target instanceof Element && !!target.closest('[role="menu"]');
+}
+
+let removeTapGuard: (() => void) | null = null;
+
+function armTapGuardOnOutsideTouch(event: PointerEvent) {
+  if (event.pointerType === "mouse" || isInsideMenu(event.target)) return;
+  removeTapGuard?.();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const swallow = (click: Event) => {
+    click.stopPropagation();
+    click.preventDefault();
+    disarm();
+    // the guard keeps the click from reka, which dismisses on it: close the menu here
+    isOpen.value = false;
+  };
+  const onRelease = () => {
+    document.removeEventListener("pointerup", onRelease, true);
+    timer = setTimeout(disarm, CLICK_AFTER_RELEASE_MS);
+  };
+  function disarm() {
+    clearTimeout(timer);
+    document.removeEventListener("click", swallow, true);
+    document.removeEventListener("pointerup", onRelease, true);
+    document.removeEventListener("pointercancel", disarm, true);
+    removeTapGuard = null;
+  }
+  document.addEventListener("click", swallow, true);
+  document.addEventListener("pointerup", onRelease, true);
+  document.addEventListener("pointercancel", disarm, true);
+  removeTapGuard = disarm;
+}
+
+watch(isOpen, (open) => {
+  if (open) document.addEventListener("pointerdown", armTapGuardOnOutsideTouch, true);
+  else document.removeEventListener("pointerdown", armTapGuardOnOutsideTouch, true);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener("pointerdown", armTapGuardOnOutsideTouch, true);
+  removeTapGuard?.();
+});
+
 // ── Close menu when a drag starts ─────────────────────────────────────────────
 // A watcher on dragState covers a drag that begins while the menu is open (keyboard drag, a mouse drag after
 // a right-click); a touch hold no longer opens a menu, so there is no hold-then-drag path (#296).
