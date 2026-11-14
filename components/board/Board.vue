@@ -34,6 +34,7 @@
     <div
       class="board"
       :class="{ 'dragging': isDragging, 'swiping': isSwiping }"
+      :data-drop-ghost="dragState.ghostCount > 0 ? '' : undefined"
       :style="mobileBoardStyle"
       :data-focus="focusEnabledNow ? '' : undefined"
       :data-focus-lit="focusLit ? '' : undefined"
@@ -196,6 +197,9 @@ import { isPhoneNow, useIsPhone } from '~/composables/useIsDesktop';
  */
 defineOptions({ name: "Board" });
 
+/** Root class while a drag runs; `assets/css/dnd.css` sets the grabbing cursor on it */
+const DRAGGING_ROOT_CLASS = "kando-dnd-active";
+
 const tasksStore = useTasksStore();
 const boardStore = useBoardStore();
 const { archiveTasks } = useArchiveDoneTasks();
@@ -220,6 +224,9 @@ function handleDragEnd(event: Parameters<typeof onDragEnd>[0]) {
   if (draggedTaskId) land(draggedTaskId, draggedStack);
 }
 onBeforeUnmount(resetDropMotion);
+onBeforeUnmount(() => {
+  if (import.meta.client) document.documentElement.classList.remove(DRAGGING_ROOT_CLASS);
+});
 
 /** The card the overlay shows: the dragged one, then the one gliding to its slot */
 const previewTaskId = computed(() => dragState.value.draggedTaskId ?? dragState.value.landingTaskId);
@@ -475,7 +482,11 @@ const edgeIndicatorStyle = computed(() =>
 // Attach / detach the pointermove listener only while a drag is active
 watch(isDragging, (dragging) => {
   if (!import.meta.client) return;
+  // What dnd-kit's Cursor and PreventSelection plugins did with injected sheets (#285): `dnd.css` keys the grabbing
+  // cursor on this root class; a selection made before the pick-up is cleared once (the plugin did so too)
+  document.documentElement.classList.toggle(DRAGGING_ROOT_CLASS, dragging);
   if (dragging) {
+    document.getSelection()?.removeAllRanges();
     document.addEventListener('pointermove', handleDragPointerMove, { passive: true });
   } else {
     document.removeEventListener('pointermove', handleDragPointerMove);

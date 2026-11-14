@@ -32,6 +32,7 @@ describe('ColumnDropZone ghost (#372, #379)', () => {
     isDropTarget.value = false
     dragState.value.isDragging = false
     dragState.value.isDropBlocked = false
+    dragState.value.ghostCount = 0
   })
   afterEach(() => {
     wrapper?.unmount()
@@ -78,5 +79,39 @@ describe('ColumnDropZone ghost (#372, #379)', () => {
     dragState.value.isDropBlocked = true
     await flushPromises()
     expect(ghost().exists()).toBe(false)
+  })
+
+  // #285: Board.vue mirrors the count as `data-drop-ghost`, the hook dnd.css keys its empty-target rules on
+  it('publishes its ghost to the drag state, in the same flush, and withdraws it', async () => {
+    mountZone(true, [])
+    await beginDrag()
+    expect(dragState.value.ghostCount).toBe(0)
+    isDropTarget.value = true
+    await flushPromises()
+    expect(dragState.value.ghostCount).toBe(1)
+    isDropTarget.value = false
+    await flushPromises()
+    expect(dragState.value.ghostCount).toBe(0)
+  })
+
+  it('withdraws a showing ghost when the zone unmounts', async () => {
+    mountZone(true, [])
+    await beginDrag()
+    isDropTarget.value = true
+    await flushPromises()
+    expect(dragState.value.ghostCount).toBe(1)
+    wrapper!.unmount()
+    expect(dragState.value.ghostCount).toBe(0)
+  })
+
+  it('does not go below zero when the drag ended before the zone withdrew', async () => {
+    mountZone(true, [])
+    await beginDrag()
+    isDropTarget.value = true
+    await flushPromises()
+    dragState.value.ghostCount = 0 // onDragEnd resets it
+    isDropTarget.value = false
+    await flushPromises()
+    expect(dragState.value.ghostCount).toBe(0)
   })
 })

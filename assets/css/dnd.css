@@ -52,10 +52,12 @@
   /* When hovering an empty target column the ColumnDropZone ghost is the only
      intended drop indicator. Suppress the source placeholder's background so
      only one grey shape is visible (no "double placeholder" confusion).
-     :has(.column-drop-zone__ghost) detects the ghost synchronously in CSS —
-     no JS state tracking needed. The element stays in the DOM for dnd-kit layout. */
-  .board.dragging:has(.column-drop-zone__ghost) .task-wrapper.kando-dnd-dragged .task,
-  .board.dragging:has(.column-drop-zone__ghost) .task-wrapper[data-dnd-dragging] .task {
+     `.board[data-drop-ghost]` (Board.vue, from the zones' ghost count, #285) is set in the render flush that
+     shows the ghost, so it applies in the same frame. It replaces `:has(.column-drop-zone__ghost)`, which kept
+     every card in the `:has()` scope and restyled the whole board at each hover change.
+     The element stays in the DOM for dnd-kit layout. */
+  .board.dragging[data-drop-ghost] .task-wrapper.kando-dnd-dragged .task,
+  .board.dragging[data-drop-ghost] .task-wrapper[data-dnd-dragging] .task {
     background-color: transparent !important;
     border: 0 !important;
     box-shadow: none !important;
@@ -69,7 +71,7 @@
      slot returns with the ghost's removal.
      Only while other cards remain: a list holding just the placeholder shows no gap, and its node
      must stay hit-testable so the pointer coming back over that column restores the slot (#372). */
-  .board.dragging:has(.column-drop-zone__ghost) .task-list:has(> :is(.task-wrapper, .task-stack):not(.kando-dnd-dragged, [data-dnd-dragging])) > :is(.task-wrapper, .task-stack):is(.kando-dnd-dragged, [data-dnd-dragging]) {
+  .board.dragging[data-drop-ghost] .task-list:has(> :is(.task-wrapper, .task-stack):not(.kando-dnd-dragged, [data-dnd-dragging])) > :is(.task-wrapper, .task-stack):is(.kando-dnd-dragged, [data-dnd-dragging]) {
     position: absolute !important;
     width: 0 !important;
     height: 0 !important;
@@ -82,8 +84,8 @@
 
   /* Landing slot in Erledigt (#124): on the green drop wash the placeholder takes a green tint so it
      reads as the slot. Same geometry, class untouched. Skipped while the empty-column ghost shows. */
-  .board.dragging:not(:has(.column-drop-zone__ghost)) .column.is-done-drop-target .task-wrapper.kando-dnd-dragged .task,
-  .board.dragging:not(:has(.column-drop-zone__ghost)) .column.is-done-drop-target .task-wrapper[data-dnd-dragging] .task {
+  .board.dragging:not([data-drop-ghost]) .column.is-done-drop-target .task-wrapper.kando-dnd-dragged .task,
+  .board.dragging:not([data-drop-ghost]) .column.is-done-drop-target .task-wrapper[data-dnd-dragging] .task {
     background-color: color-mix(in oklab, var(--ui-color-success-700) 16%, transparent) !important;
   }
 
@@ -135,13 +137,13 @@
     visibility: hidden !important;
   }
 
-  .board.dragging:has(.column-drop-zone__ghost) .task-stack.kando-dnd-dragged .stacked-task--top.task,
-  .board.dragging:has(.column-drop-zone__ghost) .task-stack[data-dnd-dragging] .stacked-task--top.task {
+  .board.dragging[data-drop-ghost] .task-stack.kando-dnd-dragged .stacked-task--top.task,
+  .board.dragging[data-drop-ghost] .task-stack[data-dnd-dragging] .stacked-task--top.task {
     background-color: transparent !important;
   }
 
-  .board.dragging:not(:has(.column-drop-zone__ghost)) .column.is-done-drop-target .task-stack.kando-dnd-dragged .stacked-task--top.task,
-  .board.dragging:not(:has(.column-drop-zone__ghost)) .column.is-done-drop-target .task-stack[data-dnd-dragging] .stacked-task--top.task {
+  .board.dragging:not([data-drop-ghost]) .column.is-done-drop-target .task-stack.kando-dnd-dragged .stacked-task--top.task,
+  .board.dragging:not([data-drop-ghost]) .column.is-done-drop-target .task-stack[data-dnd-dragging] .stacked-task--top.task {
     background-color: color-mix(in oklab, var(--ui-color-success-700) 16%, transparent) !important;
   }
 
@@ -250,7 +252,29 @@
   }
 
   /* ========================================
+   * Grabbing cursor while a drag runs (#285)
+   * Board.vue sets `kando-dnd-active` on the root. dnd-kit's Cursor plugin did this with `* { cursor: grabbing
+   * !important }` in a `<style>` it prepended to `<head>` at every drag start; that sheet, and any `*` selector under
+   * a toggled ancestor, restyles every element. Inheritance carries the cursor to everything that sets none, and the
+   * list below names what sets its own (the pressable base layer in main.css, the card, the stack, the board's
+   * default, fields): Chromium invalidates by the subject's tag, class or attribute, so only these elements restyle.
+   * ======================================== */
+  :root.kando-dnd-active {
+    cursor: grabbing;
+  }
+
+  :root.kando-dnd-active :is(
+    .board, .task, .task-stack, .task-wrapper,
+    button, a[href], summary, label[for], input, textarea, select,
+    [role='button'], [role='tab'], [role='radio'], [role='checkbox'], [role='switch'], [role='menuitem'], [role='option'],
+    [aria-disabled='true']
+  ) {
+    cursor: grabbing !important;
+  }
+
+  /* ========================================
    * Prevent text selection during drag-and-drop
+   * (dnd-kit's PreventSelection plugin is off, #285: this static rule, and the selection clear in Board.vue, replace it)
    * ======================================== */
   .board-container,
   .board-container * {
