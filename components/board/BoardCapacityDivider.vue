@@ -2,7 +2,7 @@
 @component BoardCapacityDivider
 @kind component
 @category display
-@description The "Kapazität" divider in the Offen list (#132): a wavy red line with the label in its middle at the point where the day's time is used up, a muted helper text under it and an info button that opens a popover saying the estimate learns with use (or, with a working day set in Einstellungen, that it is based on it, #306)
+@description The "Kapazität" divider in the Offen list (#132): a wavy red line with the label in its middle at the point where the day's time is used up, a muted helper text under it and an info button that opens a popover saying the estimate learns with use (or, with a working day set in Einstellungen, that it is based on it, #306) and, in a second paragraph, that a card without a timebox counts as long as similar done tasks took (30 min while too few, #302) and that this steers and improves feedback but is no prerequisite
 @usage Rendered by BoardColumnItem for the `capacity` list item, which BoardColumn inserts behind the card that fills the day (`useDayCapacity`, `withCapacityItem`). Only in the Offen column of the live board.
 @avoid Not an alert and not a limit: it only informs, nothing is blocked (the WIP limit of Jetzt is the rule). Not for another column or a static board; for a note that acknowledges something use BoardColumnYesterdayNote.
 @responsibility
@@ -96,12 +96,16 @@
           :aria-label="t('board.capacity.infoLabel')"
         />
         <template #content>
-          <p
-            class="capacity-divider__pop"
-            data-testid="capacity-info-text"
-          >
-            {{ t(isSet ? 'board.capacity.infoSet' : 'board.capacity.info') }}
-          </p>
+          <div class="capacity-divider__pop">
+            <p
+              data-testid="capacity-info-text"
+            >
+              {{ t(isSet ? 'board.capacity.infoSet' : 'board.capacity.info') }}
+            </p>
+            <p data-testid="capacity-info-estimates">
+              {{ t('board.capacity.infoEstimates') }}
+            </p>
+          </div>
         </template>
       </UPopover>
     </div>
@@ -176,9 +180,16 @@ const patternId = `capacity-wave-${useId()}`
 
 .capacity-divider__pop {
   max-width: 16rem;
-  margin: 0;
   padding: 0.75rem;
   font-size: var(--text-sm);
   line-height: var(--lh-snug);
+}
+
+.capacity-divider__pop p {
+  margin: 0;
+}
+
+.capacity-divider__pop p + p {
+  margin-top: 0.5rem;
 }
 </style>

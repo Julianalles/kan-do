@@ -180,3 +180,28 @@ describe('capacityLineAfter', () => {
     expect(run([b, c, a], 0, 60)).toBe('c')
   })
 })
+
+describe('learned estimates for cards without a box (#302)', () => {
+  const sixty = () => 60
+  const none = () => null
+
+  it('a card without a box counts the learned minutes, minus the time already spent', () => {
+    expect(taskMinutes({ timeBoxSeconds: null, timeSpentSeconds: 0 }, sixty)).toBe(60)
+    expect(taskMinutes({ timeBoxSeconds: null, timeSpentSeconds: 1200 }, sixty)).toBe(40)
+    expect(taskMinutes({ timeBoxSeconds: null, timeSpentSeconds: 7200 }, sixty)).toBe(0)
+  })
+  it('a card with a box keeps its own value, whatever the history says', () => {
+    expect(taskMinutes({ timeBoxSeconds: 1800, timeSpentSeconds: 0 }, sixty)).toBe(30)
+  })
+  it('falls back to 30 minutes, spent time or not, when nothing is learned', () => {
+    expect(taskMinutes({ timeBoxSeconds: null, timeSpentSeconds: 900 }, none)).toBe(30)
+    expect(taskMinutes({ timeBoxSeconds: null, timeSpentSeconds: 900 })).toBe(30)
+  })
+  it('plannedMinutes and capacityLineAfter use the estimate', () => {
+    const cards = [{ timeBoxSeconds: null, timeSpentSeconds: 0 }, { timeBoxSeconds: 1800, timeSpentSeconds: 0 }]
+    expect(plannedMinutes(cards, sixty)).toBe(90)
+    const items = ['a', 'b', 'c'].map(key => ({ kind: 'card' as const, key, task: { timeBoxSeconds: null, timeSpentSeconds: 0 } }))
+    expect(capacityLineAfter(items, { usedMinutes: 0, capacityMinutes: 120 })).toBeNull() // 3 x 30 min
+    expect(capacityLineAfter(items, { usedMinutes: 0, capacityMinutes: 120, estimate: sixty })).toBe('b') // 2 x 60 min
+  })
+})

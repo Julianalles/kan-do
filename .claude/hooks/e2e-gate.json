@@ -176,7 +176,9 @@
       "paths": [
         "components/board/BoardCapacityDivider.vue",
         "composables/useDayCapacity.ts",
-        "lib/dayCapacity.ts"
+        "lib/dayCapacity.ts",
+        "lib/learnedEstimate.ts",
+        "lib/timeboxSimilarity.ts"
       ],
       "specs": [
         "capacity-divider",
@@ -543,6 +545,7 @@
         "components/task/TaskCarryOverDots.vue",
         "composables/useTimeboxSuggestion*",
         "lib/timeboxChipMemory.ts",
+        "lib/timeboxSimilarity.ts",
         "types/timeboxSuggestion.ts",
         "utils/timeboxProgress.ts"
       ],

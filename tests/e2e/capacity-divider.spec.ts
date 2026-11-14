@@ -93,6 +93,35 @@ test.describe('Capacity divider in Offen (#132)', () => {
     await expect.poll(() => layout(page)).toBe('a b | c')
   })
 
+  test('a card without a box counts what similar done tasks took, a boxed card keeps its box (#302)', async ({ context, page }) => {
+    const done = (i: number) => ({
+      taskId: `done-${i}`, title: 'Bericht schreiben', completedAt: NOW, timeBoxSeconds: null, actualTimeSpentSeconds: hours(2),
+      estimationAccuracy: null, topic: null, topicColorCode: null, activity: null, isUnplanned: false,
+    })
+    await context.addInitScript((records) => {
+      localStorage.setItem('taskStatistics', JSON.stringify({ completionRecords: records }))
+    }, [done(1), done(2), done(3)])
+    await seedLocalBoard(context, [
+      task({ id: 'a', title: 'Bericht schreiben', status: 0 }),
+      task({ id: 'b', title: 'Bericht schreiben', status: 0 }),
+      open('c', 1), open('d', 1), open('e', 1),
+    ])
+    await gotoBoard(page, 'a')
+    // 2 h + 2 h (learned) + 1 h + 1 h = 6 h: full after d; with the fixed 30 min the day would not be full at all
+    await expect.poll(() => layout(page)).toBe('a b c d | e')
+  })
+
+  test('without enough history a card without a box stays at 30 minutes (#302)', async ({ context, page }) => {
+    await context.addInitScript(() => {
+      const done = (i: number) => ({ taskId: `done-${i}`, title: 'Bericht schreiben', completedAt: new Date().toISOString(), actualTimeSpentSeconds: 7200 })
+      localStorage.setItem('taskStatistics', JSON.stringify({ completionRecords: [done(1), done(2)] }))
+    })
+    await seedLocalBoard(context, [task({ id: 'a', title: 'Bericht schreiben', status: 0 }), open('b', 3), open('c', 2), open('d', 1), open('e', 1)])
+    await gotoBoard(page, 'a')
+    // 0.5 h + 3 h + 2 h + 1 h = 6.5 h: full after d (learned, a would count 2 h and fill the day after c); two similar tasks are too few
+    await expect.poll(() => layout(page)).toBe('a b c d | e')
+  })
+
   test('the info button is keyboard reachable and opens the popover that says the estimate learns', async ({ context, page }) => {
     await seedLocalBoard(context, [open('a', 6), open('b', 1)])
     await gotoBoard(page, 'a')
@@ -101,6 +130,7 @@ test.describe('Capacity divider in Offen (#132)', () => {
     await expect(info).toBeFocused()
     await page.keyboard.press('Enter')
     await expect(page.getByTestId('capacity-info-text')).toContainText('lernt mit')
+    await expect(page.getByTestId('capacity-info-estimates')).toContainText('Du musst dafür nichts einrichten')
     await page.keyboard.press('Escape')
     await expect(page.getByTestId('capacity-info-text')).toHaveCount(0)
   })

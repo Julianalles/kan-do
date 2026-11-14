@@ -1,11 +1,12 @@
 /**
  * @module lib/dayCapacity
  * @description How much of the day the Offen list uses up (#132). Planned time is the remaining time box of a card
- * (a card without a box counts as `UNBOXED_MINUTES`); the day's capacity is the typical tracked day of the last 8 weeks
+ * (a card without a box counts what similar finished tasks took when an `estimate` knows it, #302, else `UNBOXED_MINUTES`); the day's capacity is the typical tracked day of the last 8 weeks
  * (learned from `taskStatistics.workSessions`, today excluded) minus what was tracked today, with a default while there
  * is too little history; a working day the user sets in Einstellungen (#306) replaces the learned one. `capacityLineAfter` finds the list item after which Jetzt, Wartet and the Offen cards so far
  * fill that capacity. Pure: `now` is passed in, nothing is stored.
  */
+import type { EstimateInput, Estimator } from '~/lib/learnedEstimate'
 import { addDays, startOfDay } from '~/lib/statisticsReview'
 import { deriveWorkRhythm } from '~/lib/workRhythm'
 import { isMeaningfulSession, isWorkSession } from '~/lib/workSessions'
@@ -18,16 +19,22 @@ export const UNBOXED_MINUTES = 30
 /** The day length in minutes: used while the history is too thin, and the bounds of a learned value. */
 export const DAY_MINUTES = { fallback: 360, min: 120, max: 600 } as const
 
-type Timed = Pick<Task, 'timeBoxSeconds' | 'timeSpentSeconds'>
+type Timed = Pick<Task, 'timeBoxSeconds' | 'timeSpentSeconds'> & EstimateInput
 
-/** Minutes a card still needs: its box minus the time spent, never below 0; no box counts as 30 minutes. */
-export function taskMinutes(task: Timed): number {
-  if (!task.timeBoxSeconds || task.timeBoxSeconds <= 0) return UNBOXED_MINUTES
-  return Math.max(task.timeBoxSeconds - (task.timeSpentSeconds || 0), 0) / 60
+/**
+ * Minutes a card still needs: its box minus the time spent, never below 0. A card without a box counts the learned
+ * `estimate` (#302) minus the time spent, never below 0; with no estimate it counts 30 minutes, spent time or not.
+ */
+export function taskMinutes(task: Timed, estimate?: Estimator): number {
+  const spentSeconds = task.timeSpentSeconds || 0
+  if (task.timeBoxSeconds && task.timeBoxSeconds > 0) return Math.max(task.timeBoxSeconds - spentSeconds, 0) / 60
+  const learned = estimate?.(task)
+  return learned == null ? UNBOXED_MINUTES : Math.max(learned - spentSeconds / 60, 0)
 }
 
 /** Minutes the given cards still need. */
-export const plannedMinutes = (tasks: readonly Timed[]): number => tasks.reduce((sum, task) => sum + taskMinutes(task), 0)
+export const plannedMinutes = (tasks: readonly Timed[], estimate?: Estimator): number =>
+  tasks.reduce((sum, task) => sum + taskMinutes(task, estimate), 0)
 
 /** Minutes of tracked work sessions that fall into today (up to `now`). */
 export function workedTodayMinutes(sessions: unknown, now: Date): number {
@@ -79,13 +86,13 @@ type LineItem = Pick<ColumnItem, 'kind' | 'key'> & { task?: Timed; tasks?: reado
  */
 export function capacityLineAfter(
   items: readonly LineItem[],
-  { usedMinutes, capacityMinutes }: { usedMinutes: number; capacityMinutes: number },
+  { usedMinutes, capacityMinutes, estimate }: { usedMinutes: number; capacityMinutes: number; estimate?: Estimator },
 ): string | null {
   let sum = usedMinutes
   for (const item of items) {
     const cards = item.kind === 'stack' ? item.tasks ?? [] : item.kind === 'card' && item.task ? [item.task] : []
     if (cards.length === 0) continue
-    sum += plannedMinutes(cards)
+    sum += plannedMinutes(cards, estimate)
     if (sum >= capacityMinutes) return item.key
   }
   return null
