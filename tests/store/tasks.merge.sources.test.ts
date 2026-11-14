@@ -139,6 +139,58 @@ describe('tasks store: mergeTasks(source, fetched) (#326)', () => {
     expect(mapHelpers.get(store.pendingTimeUpdates, 'n1')?.timeSpentSeconds).toBe(500)
   })
 
+  describe('a source that holds time rounded to its unit (#322, #323)', () => {
+    // What Notion holds for a local total: hours keep 2 decimals (36 s steps), minutes 2 decimals (0.6 s steps)
+    const hours = (seconds: number) => (Math.round((seconds / 3600) * 100) / 100) * 3600
+    const minutes = (seconds: number) => (Math.round((seconds / 60) * 100) / 100) * 60
+
+    it.each([
+      ['hours', hours, 125, 108],
+      ['minutes', minutes, 125, 2.08 * 60],
+    ] as const)('%s: a fetched value that is the local total as the source holds it keeps the local seconds and queues no push', (_unit, heldTime, local, held) => {
+      store.setTasks([makeTask({ id: 'n1', timeSpentSeconds: local })])
+      store.mergeTasks('notion', [makeTask({ id: 'n1', timeSpentSeconds: held })], { heldTime })
+      expect(store.task('n1')!.timeSpentSeconds).toBe(local)
+      expect(mapHelpers.get(store.pendingTimeUpdates, 'n1')).toBeUndefined()
+      // and again, as every sync does
+      store.mergeTasks('notion', [makeTask({ id: 'n1', timeSpentSeconds: held })], { heldTime })
+      expect(store.task('n1')!.timeSpentSeconds).toBe(local)
+      expect(mapHelpers.get(store.pendingTimeUpdates, 'n1')).toBeUndefined()
+    })
+
+    it('without the hook the rounded value is lower than the local total and queues a push (the loop this prevents)', () => {
+      store.setTasks([makeTask({ id: 'n1', timeSpentSeconds: 125 })])
+      store.mergeTasks('notion', [makeTask({ id: 'n1', timeSpentSeconds: 108 })])
+      expect(mapHelpers.get(store.pendingTimeUpdates, 'n1')?.timeSpentSeconds).toBe(125)
+    })
+
+    it('a rounding that went up does not raise the local total either (100 s is held as 108 s)', () => {
+      store.setTasks([makeTask({ id: 'n1', timeSpentSeconds: 100 })])
+      store.mergeTasks('notion', [makeTask({ id: 'n1', timeSpentSeconds: 108 })], { heldTime: hours })
+      expect(store.task('n1')!.timeSpentSeconds).toBe(100)
+      expect(mapHelpers.get(store.pendingTimeUpdates, 'n1')).toBeUndefined()
+    })
+
+    it('a genuinely different fetched value still takes the old rules: higher wins, lower queues a push', () => {
+      store.setTasks([makeTask({ id: 'n1', timeSpentSeconds: 125 })])
+      store.mergeTasks('notion', [makeTask({ id: 'n1', timeSpentSeconds: 3600 })], { heldTime: hours })
+      expect(store.task('n1')!.timeSpentSeconds).toBe(3600)
+      expect(mapHelpers.get(store.pendingTimeUpdates, 'n1')).toBeUndefined()
+
+      store.setTasks([makeTask({ id: 'n2', timeSpentSeconds: 500 })])
+      store.mergeTasks('notion', [makeTask({ id: 'n2', timeSpentSeconds: 300 })], { heldTime: hours })
+      expect(store.task('n2')!.timeSpentSeconds).toBe(500)
+      expect(mapHelpers.get(store.pendingTimeUpdates, 'n2')?.timeSpentSeconds).toBe(500)
+    })
+
+    it('unpushed time on top of the held total is still pushed', () => {
+      store.setTasks([makeTask({ id: 'n1', timeSpentSeconds: 125 + 600 })])
+      store.mergeTasks('notion', [makeTask({ id: 'n1', timeSpentSeconds: 108 })], { heldTime: hours })
+      expect(store.task('n1')!.timeSpentSeconds).toBe(725)
+      expect(mapHelpers.get(store.pendingTimeUpdates, 'n1')?.timeSpentSeconds).toBe(725)
+    })
+  })
+
   it('stamps the merge source on fetched tasks that lack an externalId', () => {
     store.mergeTasks('notion', [{ ...makeTask({ id: 'n1' }), externalId: null }])
     expect(store.task('n1')).toMatchObject({ source: 'notion', externalId: 'n1' })

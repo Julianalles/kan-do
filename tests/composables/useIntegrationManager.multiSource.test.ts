@@ -24,10 +24,12 @@ vi.mock('~/composables/useNotionDataSource', () => ({
 
 const fetchNotion = vi.fn<() => Promise<Task[]>>()
 const fetchTodoist = vi.fn<() => Promise<Task[]>>()
+// A Notion database in hours: 125 s is held as 0.03 h (108 s)
+const heldTimeNotion = vi.fn((seconds: number) => (Math.round((seconds / 3600) * 100) / 100) * 3600)
 vi.mock('~/composables/useNotionIntegration', () => ({
   useNotionIntegration: () => ({
     isConfigured: { value: true },
-    createInstance: () => ({ fetchActiveBoardTasks: fetchNotion }),
+    createInstance: () => ({ fetchActiveBoardTasks: fetchNotion, heldTimeSeconds: (seconds: number) => heldTimeNotion(seconds) }),
   }),
 }))
 vi.mock('~/store/notionConfig', () => ({
@@ -401,6 +403,20 @@ describe('useIntegrationManager: several sources (#318)', () => {
 
       expect(useTasksStore().tasks.map((t) => t.id).sort()).toEqual(['l-1', 'n-1'])
       expect(useIntegrationHealthStore().statusOf('notion')).toBe('degraded')
+    })
+  })
+
+  describe('a source that holds time rounded to its unit (#323)', () => {
+    it('syncing twice keeps the exact local seconds and queues no time push for the rounded value', async () => {
+      useBoardStore().setSources({ connected: ['notion'], default: 'notion' })
+      useTasksStore().setTasks([task('n-1', 'notion', { timeSpentSeconds: 125 })])
+      fetchNotion.mockResolvedValue([task('n-1', 'notion', { timeSpentSeconds: 108 })])
+
+      await useIntegrationManager().fetchTasks()
+      await useIntegrationManager().fetchTasks()
+
+      expect(useTasksStore().task('n-1')!.timeSpentSeconds).toBe(125)
+      expect(useTasksStore().pendingTimeUpdates).toEqual({})
     })
   })
 

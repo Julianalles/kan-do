@@ -130,6 +130,16 @@ export class NotionIntegration {
    * its default shape, as before this detection. The failure is neither reported nor memoized.
    */
   private async labelPropertyType(propertyName: string): Promise<LabelPropertyType | null> {
+    const type = await this.schemaPropertyType(propertyName);
+    return type === 'select' || type === 'multi_select' || type === 'rich_text' ? type : null;
+  }
+
+  /**
+   * The Notion type of a mapped property from the data source schema (one memoized read per data source), or
+   * `null` when it cannot be told (no data source, the read failed, the property is not in the schema). The
+   * failure is neither reported nor memoized.
+   */
+  private async schemaPropertyType(propertyName: string): Promise<string | null> {
     const dataSourceId = this.dataSourceId;
     if (!dataSourceId) return null;
     let pending = schemaTypeCache.get(dataSourceId);
@@ -142,8 +152,7 @@ export class NotionIntegration {
       schemaTypeCache.set(dataSourceId, pending);
     }
     try {
-      const type = (await pending)[propertyName];
-      return type === 'select' || type === 'multi_select' || type === 'rich_text' ? type : null;
+      return (await pending)[propertyName] ?? null;
     } catch (error) {
       if (schemaTypeCache.get(dataSourceId) === pending) schemaTypeCache.delete(dataSourceId);
       if (import.meta.dev) console.warn('[NotionIntegration] Property type unknown, writing the default shape:', error);
@@ -354,6 +363,17 @@ export class NotionIntegration {
     return seconds; // 'seconds' or undefined
   }
 
+  /**
+   * The total a push of `seconds` leaves in the time property, read back as seconds: the unit's 2 decimals (hours:
+   * 36 s steps, minutes: 0.6 s steps) round it, up or down (#323). `mergeTasks` compares a fetched value with it
+   * (the same arithmetic as the read, so equal values are equal floats): a fetched value that is what the local
+   * total is held as is that total, not a different one.
+   */
+  heldTimeSeconds(seconds: number): number {
+    const unit = this.propertyMapping.timeSpentUnit;
+    return this.toSecondsFromUnit(this.fromSecondsToUnit(seconds, unit), unit);
+  }
+
   constructor(
     apiToken: string,
     databaseId: string,
@@ -541,10 +561,15 @@ export class NotionIntegration {
 
     // The total tracked before the page existed (an offline create, a move): the push that creates the page is
     // the only one that carries it, as the queued time entry ends with the create (#322)
+    // Only a number property takes it (the setup also offers a select named like a time): any other known type is
+    // left out, as a write of the wrong shape would be a 400 for the whole page. Unknown type: the number, as the update writes.
     if (this.propertyMapping.timeSpent && task.timeSpentSeconds && task.timeSpentSeconds > 0) {
-      properties[this.propertyMapping.timeSpent] = {
-        number: this.fromSecondsToUnit(task.timeSpentSeconds, this.propertyMapping.timeSpentUnit),
-      };
+      const type = await this.schemaPropertyType(this.propertyMapping.timeSpent);
+      if (type === null || type === 'number') {
+        properties[this.propertyMapping.timeSpent] = {
+          number: this.fromSecondsToUnit(task.timeSpentSeconds, this.propertyMapping.timeSpentUnit),
+        };
+      }
     }
 
     if (this.propertyMapping.topic && task.topic) {

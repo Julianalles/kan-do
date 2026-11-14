@@ -36,6 +36,13 @@ export interface TaskSourceAdapter {
    */
   fetchActive(): Promise<Task[]>
 
+  /**
+   * For a source that holds time rounded to a unit (Notion minutes/hours): maps a local total to the total the
+   * source reads back for it. `mergeTasks` treats a fetched value equal to that as the local total itself, so the
+   * rounding neither queues a push nor changes the local seconds (#323). Absent: values are compared as they are.
+   */
+  timeHolding?(): (seconds: number) => number
+
   /** Creates a task upstream and resolves to it, source and externalId stamped. */
   create(draft: Partial<Task>): Promise<Task>
 

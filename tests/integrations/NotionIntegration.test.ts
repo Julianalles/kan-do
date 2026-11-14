@@ -1494,6 +1494,71 @@ describe('NotionIntegration: tracked time on create and the unit rounding of the
     })
   })
 
+  describe('createTask writes the time property only in a shape its type holds (#322)', () => {
+    const schemaProxy = (timeType: string | undefined) => {
+      const fetchMock = vi.fn((url: string, _init?: { body?: string }) => {
+        if (url.startsWith('/api/notion/data-sources?id=')) {
+          const properties = timeType === undefined ? {} : { [propertyMapping.timeSpent]: { type: timeType } }
+          return Promise.resolve({ ok: true, json: () => Promise.resolve({ id: 'ds-123', properties }) })
+        }
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ success: true, page: { id: 'new-page' } }) })
+      })
+      vi.stubGlobal('fetch', fetchMock)
+      return fetchMock
+    }
+    const createdProperties = (fetchMock: ReturnType<typeof schemaProxy>) =>
+      JSON.parse(fetchMock.mock.calls.find(([u]) => String(u).includes('/api/notion/create-task'))![1]!.body!).properties
+
+    it.each(['select', 'rich_text'])('a %s time property is left out of the create, the page is still created', async (type) => {
+      const fetchMock = schemaProxy(type)
+      await makeSutWithUnit('minutes').createTask({ title: 'T', status: TaskStatus.Open, timeSpentSeconds: 125 } as any)
+      expect(createdProperties(fetchMock)[propertyMapping.timeSpent]).toBeUndefined()
+    })
+
+    it('a number time property is written', async () => {
+      const fetchMock = schemaProxy('number')
+      await makeSutWithUnit('minutes').createTask({ title: 'T', status: TaskStatus.Open, timeSpentSeconds: 125 } as any)
+      expect(createdProperties(fetchMock)[propertyMapping.timeSpent]).toEqual({ number: 2.08 })
+    })
+
+    it('an unknown property in the schema writes the number, as before the detection', async () => {
+      const unknown = schemaProxy(undefined)
+      await makeSutWithUnit('minutes').createTask({ title: 'T', status: TaskStatus.Open, timeSpentSeconds: 125 } as any)
+      expect(createdProperties(unknown)[propertyMapping.timeSpent]).toEqual({ number: 2.08 })
+    })
+  })
+
+  describe('heldTimeSeconds: the total as the time property reads it back (#323)', () => {
+    const page = (number: number) => ({
+      id: 'p1',
+      properties: {
+        [propertyMapping.title]: { title: [{ plain_text: 'Timed' }] },
+        [propertyMapping.status]: { select: { name: statusMapping.doing } },
+        [propertyMapping.timeSpent]: { number },
+      },
+    })
+
+    it.each([
+      ['hours', 125, 108],
+      ['hours', 100, 108],
+      ['hours', 3600, 3600],
+      ['minutes', 125, 2.08 * 60],
+      ['seconds', 125, 125],
+    ] as const)('%s: %i s is held as %d s', (unit, seconds, held) => {
+      expect(makeSutWithUnit(unit).heldTimeSeconds(seconds)).toBe(held)
+    })
+
+    it.each([
+      ['hours', 0.03],
+      ['minutes', 2.08],
+    ] as const)('%s: equals what a fetch reads for the value an update wrote (no float drift)', async (unit, stored) => {
+      mockFetchForTasks([page(stored)])
+      const ni = makeSutWithUnit(unit)
+      const [fetched] = await ni.fetchActiveBoardTasks()
+      expect(fetched!.timeSpentSeconds).toBe(ni.heldTimeSeconds(125))
+    })
+  })
+
   describe('updateTask keeps the local total over a rounded echo (#323)', () => {
     it('hours: 125 s is written as 0.03 and the task keeps 125 s, push after push', async () => {
       stubStoringNotion()
