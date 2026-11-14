@@ -256,11 +256,13 @@ watch(isOpen, async (open) => {
 });
 
 // ── A tap that closes the menu does nothing else (#326) ────────────────────────────────────────────────────────
-// reka dismisses on the touch's pointerdown and releases the page again before the click, so the click lands on
+// reka dismisses a touch on the click that ends it, and the page is released before that click lands, so it reaches
 // whatever is under the finger (a card: its sheet opens). While the menu is open, a touch that starts outside it
-// arms a one-shot capture guard that swallows the click that touch produces.
+// arms a one-shot capture guard that swallows that click and closes the menu itself. A touch that becomes a scroll
+// or swipe ends in pointercancel (no click) and disarms it; the guard waits for the release however long the hold.
 
-const TAP_GUARD_MS = 800;
+/** Time from the release to the click it produces: far above the real gap, short enough that a later tap is never eaten */
+const CLICK_AFTER_RELEASE_MS = 400;
 
 function isInsideMenu(target: EventTarget | null) {
   return target instanceof Element && !!target.closest('[role="menu"]');
@@ -271,20 +273,28 @@ let removeTapGuard: (() => void) | null = null;
 function armTapGuardOnOutsideTouch(event: PointerEvent) {
   if (event.pointerType === "mouse" || isInsideMenu(event.target)) return;
   removeTapGuard?.();
+  let timer: ReturnType<typeof setTimeout> | undefined;
   const swallow = (click: Event) => {
     click.stopPropagation();
     click.preventDefault();
     disarm();
-    // reka dismisses a touch on this very click, which the guard now keeps from it: close the menu here
+    // the guard keeps the click from reka, which dismisses on it: close the menu here
     isOpen.value = false;
   };
-  const timer = setTimeout(() => disarm(), TAP_GUARD_MS);
+  const onRelease = () => {
+    document.removeEventListener("pointerup", onRelease, true);
+    timer = setTimeout(disarm, CLICK_AFTER_RELEASE_MS);
+  };
   function disarm() {
     clearTimeout(timer);
     document.removeEventListener("click", swallow, true);
+    document.removeEventListener("pointerup", onRelease, true);
+    document.removeEventListener("pointercancel", disarm, true);
     removeTapGuard = null;
   }
   document.addEventListener("click", swallow, true);
+  document.addEventListener("pointerup", onRelease, true);
+  document.addEventListener("pointercancel", disarm, true);
   removeTapGuard = disarm;
 }
 

@@ -66,7 +66,8 @@ test.describe('phone (390px, touch)', () => {
     const at = (await card(page, other.id).locator('.task-title-text').boundingBox())!
     await page.touchscreen.tap(at.x + 20, at.y + at.height / 2)
     await expect(menu(page)).toHaveCount(0)
-    await page.waitForTimeout(400)
+    await flushFrames(page)
+    await dwell(page, 300)
     expect(page.url()).not.toContain('/tasks/')
     await expect(page.getByRole('dialog')).toHaveCount(0)
     // one-shot: the following tap opens the sheet as usual
