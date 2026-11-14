@@ -550,7 +550,9 @@ test.describe('Task Detail View', () => {
       await page.getByTestId('time-spent-edit-input').fill('60');
       await page.getByTestId('time-spent-edit-input').press('Enter');
       await expect.poll(() => storedTime(page, 'test-task-1')).toBeGreaterThanOrEqual(3600);
-      await expect.poll(async () => (await storedTime(page, 'test-task-1')) ?? 0).toBeGreaterThan(3600);
+      // #286: the edit discards the collected seconds, so the stored total moves again at the next 10 s checkpoint,
+      // ~10 s after the edit: more than the default 10 s expect timeout leaves (#324)
+      await expect.poll(async () => (await storedTime(page, 'test-task-1')) ?? 0, { timeout: 20_000 }).toBeGreaterThan(3600);
       expect(await storedTime(page, 'test-task-1')).toBeLessThan(3700);
     });
   });
