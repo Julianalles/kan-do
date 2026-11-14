@@ -1,6 +1,6 @@
 <!--
 @component SettingsPage
-@description "Einstellungen" (/settings, #394, #691): three groups behind a tab strip (`UTabs`, the shared tab look of DESIGN.md "Components", as /settings/topics),
+@description "Einstellungen" (/settings, #394, #691): three groups behind a tab strip (`UTabs` `variant="link"`: an underline, lighter than the app bar's toggle, #308; rule candidate #318),
 one shown at a time, the active one in the URL as `?tab=board|sources|manage` (default board, unknown value = board):
 Board (the Fokus option and the working hours of the capacity divider, #306), Aufgabenquellen (the former "Aufgaben-Quellen" page, #324: every source with its health, the default
 for new tasks, repair / configure / connect / disconnect) and Verwaltung (hairline rows to Themen und Aktivitäten, Daten &
@@ -32,6 +32,7 @@ Speicher, and on desktop Updates and GitHub-Zugriff).
           :model-value="tab"
           :items="tabItems"
           :content="false"
+          variant="link"
           class="w-full"
           data-testid="settings-tabs"
           @update:model-value="onTabChange"
