@@ -255,6 +255,49 @@ watch(isOpen, async (open) => {
   }
 });
 
+// ── A tap that closes the menu does nothing else (#326) ────────────────────────────────────────────────────────
+// reka dismisses on the touch's pointerdown and releases the page again before the click, so the click lands on
+// whatever is under the finger (a card: its sheet opens). While the menu is open, a touch that starts outside it
+// arms a one-shot capture guard that swallows the click that touch produces.
+
+const TAP_GUARD_MS = 800;
+
+function isInsideMenu(target: EventTarget | null) {
+  return target instanceof Element && !!target.closest('[role="menu"]');
+}
+
+let removeTapGuard: (() => void) | null = null;
+
+function armTapGuardOnOutsideTouch(event: PointerEvent) {
+  if (event.pointerType === "mouse" || isInsideMenu(event.target)) return;
+  removeTapGuard?.();
+  const swallow = (click: Event) => {
+    click.stopPropagation();
+    click.preventDefault();
+    disarm();
+    // reka dismisses a touch on this very click, which the guard now keeps from it: close the menu here
+    isOpen.value = false;
+  };
+  const timer = setTimeout(() => disarm(), TAP_GUARD_MS);
+  function disarm() {
+    clearTimeout(timer);
+    document.removeEventListener("click", swallow, true);
+    removeTapGuard = null;
+  }
+  document.addEventListener("click", swallow, true);
+  removeTapGuard = disarm;
+}
+
+watch(isOpen, (open) => {
+  if (open) document.addEventListener("pointerdown", armTapGuardOnOutsideTouch, true);
+  else document.removeEventListener("pointerdown", armTapGuardOnOutsideTouch, true);
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener("pointerdown", armTapGuardOnOutsideTouch, true);
+  removeTapGuard?.();
+});
+
 // ── Close menu when a drag starts ─────────────────────────────────────────────
 // A watcher on dragState covers a drag that begins while the menu is open (keyboard drag, a mouse drag after
 // a right-click); a touch hold no longer opens a menu, so there is no hold-then-drag path (#296).

@@ -58,6 +58,22 @@ test.describe('phone (390px, touch)', () => {
     await expect(page.locator('.board.dragging')).toHaveCount(0)
   })
 
+  test('a tap beside the open menu only closes it: no sheet opens, the next tap works (#326)', async ({ page }) => {
+    const other = SEED_TASKS.find(t => t.status === 0 && t.id !== OPEN.id)!
+    await menuButton(page, OPEN.id).tap()
+    await expect(menu(page)).toBeVisible()
+    // a raw touch at the card: the menu's overlay sits on top, which is the point
+    const at = (await card(page, other.id).locator('.task-title-text').boundingBox())!
+    await page.touchscreen.tap(at.x + 20, at.y + at.height / 2)
+    await expect(menu(page)).toHaveCount(0)
+    await page.waitForTimeout(400)
+    expect(page.url()).not.toContain('/tasks/')
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    // one-shot: the following tap opens the sheet as usual
+    await card(page, other.id).locator('.task-title-text').tap()
+    await expect(page).toHaveURL(new RegExp(`/tasks/${other.id}`))
+  })
+
   test('Mark done in the menu moves the card to Erledigt; the menu closes', async ({ page }) => {
     await menuButton(page, OPEN.id).tap()
     await menu(page).getByRole('menuitem', { name: 'Als erledigt markieren' }).tap()
