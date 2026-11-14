@@ -86,7 +86,8 @@
       "label": "Kapazität",
       "help": "So viel schaffst du heute vermutlich. Achte darauf, dass die wichtigsten Aufgaben über dieser Linie stehen; alles darunter kann warten.",
       "infoLabel": "Wie entsteht diese Schätzung?",
-      "info": "Kan-Do lernt mit und passt sich an: je öfter du das Board nutzt, desto treffender wird diese Schätzung."
+      "info": "Kan-Do lernt mit und passt sich an: je öfter du das Board nutzt, desto treffender wird diese Schätzung.",
+      "infoSet": "Diese Schätzung beruht auf der Arbeitszeit, die du in den Einstellungen festgelegt hast. Heute erfasste Arbeit wird abgezogen."
     },
     "sync": {
       "stackCards": "Karten stapeln",
@@ -822,6 +823,11 @@
       "label": "Jetzt-Karte im Fokus",
       "help": "Solange eine Aufgabe in „Jetzt“ liegt, tritt das übrige Board zurück. Eine Mausbewegung oder ein Tippen blendet es wieder ein."
     },
+    "workingHours": {
+      "label": "Arbeitszeit pro Tag",
+      "help": "Danach richtet sich die Kapazitätslinie in Offen. „Automatisch“ nutzt deine bisher erfasste Arbeitszeit.",
+      "auto": "Automatisch"
+    },
     "github": {
       "pageTitle": "GitHub-Zugriff",
       "pageDescription": "Tokens liegen im macOS-Schlüsselbund.",
@@ -1221,22 +1227,22 @@
     "page": {
       "tagline": "Ein ruhiges Board für die Aufgaben des Tages.",
       "version": "Version:",
-      "title": "Wo sind deine Aufgaben heute?",
-      "nowhere": "Noch nirgends",
-      "inNotion": "In Notion",
-      "later": "Weitere Verbindungen kannst du später in den Einstellungen hinzufügen.",
-      "exploreLead": "Willst du erstmal nur schauen?",
-      "samples": "Mit Beispielaufgaben",
-      "samplesHint": "Ein gefülltes Board zum Ausprobieren"
+      "title": "Deine Aufgaben bleiben bei dir",
+      "samples": "Mit Beispielaufgaben starten",
+      "intro": "Standardmäßig liegen sie lokal auf diesem Gerät. Externe Aufgabenlisten wie Notion verbindest du bei der Einrichtung oder jederzeit später.",
+      "start": "Loslegen"
     },
     "flow": {
       "backToChoice": "Zurück zur Auswahl",
       "local": {
         "label": "Lokal starten",
-        "title": "Lokal starten",
-        "intro": "Deine Aufgaben bleiben auf diesem Gerät. Eine Verbindung wie Notion kannst du später in den Einstellungen hinzufügen.",
-        "emptyBoard": "Das Board startet leer. Die erste Aufgabe legst du selbst an.",
-        "confirm": "Los geht’s"
+        "title": "Lokal ist immer dabei",
+        "intro": "Deine Aufgaben liegen standardmäßig auf diesem Gerät, lokale Aufgaben sind jederzeit möglich. Weitere Dienste verbindest du jetzt oder später in den Einstellungen.",
+        "confirm": "Zum Board",
+        "legend": "Zusätzlich verbinden",
+        "notion": "Notion",
+        "todoist": "Todoist (kommt später)",
+        "confirmNotion": "Mit Notion einrichten"
       },
       "samples": {
         "label": "Mit Beispielaufgaben starten",

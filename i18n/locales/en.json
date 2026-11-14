@@ -86,7 +86,8 @@
       "label": "Capacity",
       "help": "This is probably as much as you will manage today. Keep the most important tasks above this line; anything below can wait.",
       "infoLabel": "How is this estimated?",
-      "info": "Kan-Do learns and adapts: the more you use the board, the more helpful this estimate gets."
+      "info": "Kan-Do learns and adapts: the more you use the board, the more helpful this estimate gets.",
+      "infoSet": "This estimate is based on the working hours you set in Settings. Work tracked today is subtracted."
     },
     "sync": {
       "stackCards": "Stack cards",
@@ -822,6 +823,11 @@
       "label": "Now card in focus",
       "help": "While a task sits in “Now”, the rest of the board steps back. A mouse move or a tap brings it back."
     },
+    "workingHours": {
+      "label": "Working hours per day",
+      "help": "The Capacity line in Open follows this. “Automatic” uses the work you have tracked so far.",
+      "auto": "Automatic"
+    },
     "github": {
       "pageTitle": "GitHub access",
       "pageDescription": "Tokens are kept in the macOS Keychain.",
@@ -1221,22 +1227,22 @@
     "page": {
       "tagline": "A quiet board for the day's tasks.",
       "version": "Version:",
-      "title": "Where are your tasks today?",
-      "nowhere": "Nowhere yet",
-      "inNotion": "In Notion",
-      "later": "You can add more connections later in settings.",
-      "exploreLead": "Just want to look around first?",
-      "samples": "With sample tasks",
-      "samplesHint": "A filled board to try things out"
+      "title": "Your tasks stay with you",
+      "samples": "Start with sample tasks",
+      "intro": "By default they live locally on this device. You connect external task lists like Notion during setup or any time later.",
+      "start": "Get started"
     },
     "flow": {
       "backToChoice": "Back to the choice",
       "local": {
         "label": "Start locally",
-        "title": "Start locally",
-        "intro": "Your tasks stay on this device. You can add a connection like Notion later in settings.",
-        "emptyBoard": "The board starts empty. You add the first task yourself.",
-        "confirm": "Let’s go"
+        "title": "Local is always there",
+        "intro": "Your tasks live on this device by default, and local tasks are always possible. You connect further services now or later in Settings.",
+        "confirm": "Go to the board",
+        "legend": "Connect in addition",
+        "notion": "Notion",
+        "todoist": "Todoist (coming later)",
+        "confirmNotion": "Set up Notion"
       },
       "samples": {
         "label": "Start with sample tasks",
