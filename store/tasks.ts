@@ -798,9 +798,11 @@ export const useTasksStore = defineStore("tasks", () => {
    *   set by the fetch that completes a source switch (`pendingSourceSwitch`); the tasks of another
    *   connected integration stay (a connect during a pending switch, #320). A Local task
    *   whose `id` equals a fetched `externalId` is that task (a Notion -> Local -> Notion round trip): it
-   *   keeps its `id` and local data and takes the source and `externalId` again.
+   *   keeps its `id` and local data and takes the source and `externalId` again. `heldTime` maps a local total
+   *   to the total the source reads back for it (a unit rounding, `TaskSourceAdapter.timeHolding`): a fetched
+   *   value equal to that is the local total, so it is kept as it is and queues no push (#323).
    */
-  function mergeTasks(source: SourceId, fetchedTasks: Task[], options: { replaceOthers?: boolean } = {}): void {
+  function mergeTasks(source: SourceId, fetchedTasks: Task[], options: { replaceOthers?: boolean; heldTime?: (seconds: number) => number } = {}): void {
     const boardStore = useBoardStore();
 
     // A completed switch replaces the Local tasks it adopted; another connected integration's tasks stay (#320)
@@ -845,6 +847,9 @@ export const useTasksStore = defineStore("tasks", () => {
         // A total the user set (kd#4) wins over the fetched one, also when it is lower; otherwise the larger value stays
         const userSetTime = pendingUpdate?.absolute === true;
         const effectiveLocal = userSetTime ? localTimeSpent : Math.max(localTimeSpent, pendingLocal);
+        // The source rounds time to its unit: a fetched value that is the local total as it holds it is that total,
+        // not a lower (or higher) one, so the exact local seconds stay and nothing is pushed again (#323)
+        const heldAsLocal = effectiveLocal > 0 && options.heldTime?.(effectiveLocal) === externalTimeSpent;
 
         // A task with unpushed changes (#319) keeps its local state: the fetch is older than the edit, and the
         // push that follows would otherwise send the source's stale copy back. Only the source's id is taken.
@@ -865,7 +870,7 @@ export const useTasksStore = defineStore("tasks", () => {
           id: existingTask.id, // The app-level identity never changes
           createdAt: earlierCreatedAt(existingTask.createdAt, base.createdAt), // A moved task keeps its first creation time
           // Keep the highest value across external and effective local (including pending)
-          timeSpentSeconds: userSetTime ? effectiveLocal : Math.max(effectiveLocal, externalTimeSpent),
+          timeSpentSeconds: userSetTime || heldAsLocal ? effectiveLocal : Math.max(effectiveLocal, externalTimeSpent),
           timerId: existingTask.timerId, // Preserve active timer
         };
 
@@ -884,7 +889,7 @@ export const useTasksStore = defineStore("tasks", () => {
         }
 
         // If effective local (local or pending) is greater than external, ensure pending reflects the highest local value
-        if (effectiveLocal > externalTimeSpent && effectiveLocal > 0 && sourceSyncsTime(source)) {
+        if (effectiveLocal > externalTimeSpent && effectiveLocal > 0 && !heldAsLocal && sourceSyncsTime(source)) {
           const existing = mapHelpers.get(pendingTimeUpdates.value, resolvedId);
           if (existing) {
             existing.timeSpentSeconds = Math.max(existing.timeSpentSeconds, effectiveLocal);

@@ -109,7 +109,7 @@ export const useIntegrationManager = () => {
     // An empty result of a pending switch's source may be a failed fetch: never replace the board with it
     // Only the switch's own source completes it: a source connected meanwhile (#320) must not replace the Local tasks
     const completesSwitch = boardStore.isSourceSwitchPending && source !== 'local' && source === boardStore.defaultSource && tasks.length > 0;
-    tasksStore.mergeTasks(source, tasks, { replaceOthers: completesSwitch });
+    tasksStore.mergeTasks(source, tasks, { replaceOthers: completesSwitch, heldTime: adapter.timeHolding?.() });
     if (completesSwitch) boardStore.clearSourceSwitchPending();
     if (integration) health.recordSuccessfulSync(integration);
 

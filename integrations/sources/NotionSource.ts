@@ -44,6 +44,11 @@ export class NotionSource implements TaskSourceAdapter {
     return this.deps.createInstance().fetchActiveBoardTasks()
   }
 
+  timeHolding(): (seconds: number) => number {
+    const notion = this.deps.createInstance()
+    return (seconds) => notion.heldTimeSeconds(seconds)
+  }
+
   async create(draft: Partial<Task>): Promise<Task> {
     // `createInstance` rejects an unconfigured Notion with the localized setup error the add form shows
     return this.deps.createInstance().createTask(draft)
