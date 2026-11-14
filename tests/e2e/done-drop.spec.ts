@@ -322,6 +322,15 @@ test.describe('Faster than planned (#295)', () => {
     expect(m!.y).toBeGreaterThanOrEqual(l!.y - 1)
     expect(m!.x + m!.width).toBeLessThanOrEqual(l!.x + l!.width + 1)
     expect(m!.y + m!.height).toBeLessThanOrEqual(l!.y + l!.height + 1)
+    // The box above is bounded by max-height by construction: the words themselves must fit it, and the layer
+    // (overflow: hidden) must not hide anything, so no scroll extent exceeds the visible one
+    const extent = (el: Element) => ({ sh: el.scrollHeight, ch: el.clientHeight, sw: el.scrollWidth, cw: el.clientWidth })
+    const me = await msg.evaluate(extent)
+    const le = await layer.evaluate(extent)
+    expect(me.sh).toBeLessThanOrEqual(me.ch + 1)
+    expect(me.sw).toBeLessThanOrEqual(me.cw + 1)
+    expect(le.sh).toBeLessThanOrEqual(le.ch + 1)
+    expect(le.sw).toBeLessThanOrEqual(le.cw + 1)
   })
 
   test('reduced motion shows no message and no burst either', async ({ page }) => {
