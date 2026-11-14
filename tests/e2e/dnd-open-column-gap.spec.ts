@@ -185,3 +185,85 @@ test.describe('Collapsed stack dragged over an empty column (#393)', () => {
     await expect(page.locator('.task-stack.kando-dnd-dragged')).toBeHidden()
   })
 })
+
+/**
+ * #285: a drag no longer restyles the whole board. The ghost is an attribute on `.board` (not a `:has()` over every
+ * card), and dnd-kit's Cursor and PreventSelection plugins, which prepended a universal-selector `<style>` at every
+ * drag start, are replaced by static CSS (`kando-dnd-active` on the root).
+ */
+test.describe('Drag restyle (#285)', () => {
+  const board = (page: Page) => page.locator('.board')
+  const headStyles = (page: Page) => page.evaluate(() => document.head.querySelectorAll('style').length)
+  const cursors = (page: Page) => page.evaluate(() =>
+    [...document.querySelectorAll('button, a[href], .task, .board, h2, summary, [role="button"]')]
+      .filter(el => !(el.closest('.kando-dnd-preview')))
+      .map(el => getComputedStyle(el).cursor))
+
+  test.beforeEach(async ({ context, page }) => {
+    await seedLocalBoard(context, column(0, OFFEN))
+    await gotoBoard(page, 'a')
+  })
+
+  test('the ghost state is data-drop-ghost on the board, set with the ghost and gone after it', async ({ page }) => {
+    await pickUp(page, card(page, 'a'))
+    await expect(board(page)).not.toHaveAttribute('data-drop-ghost', '')
+    await hoverEmptyColumn(page, 'progress')
+    await expect(board(page)).toHaveAttribute('data-drop-ghost', '')
+    await hover(page, card(page, 'c'))
+    await expect(ghost(page)).toHaveCount(0)
+    await expect(board(page)).not.toHaveAttribute('data-drop-ghost', '')
+    await hoverEmptyColumn(page, 'progress')
+    await expect(board(page)).toHaveAttribute('data-drop-ghost', '')
+    await page.mouse.up()
+    await expect(board(page)).not.toHaveClass(/dragging/)
+    await expect(board(page)).not.toHaveAttribute('data-drop-ghost', '')
+  })
+
+  test('a drag leaves no <style> behind and adds none after its first one (the retained feedback sheet)', async ({ page }) => {
+    await pickUp(page, card(page, 'a'))
+    await hover(page, list(page, 'progress'))
+    await page.mouse.up()
+    await expect(board(page)).not.toHaveClass(/dragging/)
+    const settled = await headStyles(page)
+
+    await pickUp(page, card(page, 'b'))
+    await hover(page, list(page, 'waiting'))
+    expect(await headStyles(page)).toBe(settled)
+    await page.mouse.up()
+    await expect(board(page)).not.toHaveClass(/dragging/)
+    expect(await headStyles(page)).toBe(settled)
+  })
+
+  test('the cursor is grabbing over everything while a drag runs and is the normal one after the drop', async ({ page }) => {
+    const resting = await cursors(page)
+    expect(resting).not.toContain('grabbing')
+
+    await pickUp(page, card(page, 'a'))
+    await hover(page, list(page, 'progress'))
+    const during = await cursors(page)
+    expect(during.length).toBeGreaterThan(5)
+    expect(new Set(during)).toEqual(new Set(['grabbing']))
+    await expect(page.locator('html')).toHaveClass(/kando-dnd-active/)
+
+    await page.mouse.up()
+    await expect(board(page)).not.toHaveClass(/dragging/)
+    await expect(page.locator('html')).not.toHaveClass(/kando-dnd-active/)
+    expect(await cursors(page)).not.toContain('grabbing')
+  })
+
+  test('a selection made before the pick-up is cleared, and a drag selects no text', async ({ page }) => {
+    // Text outside the board is selectable (inside it `user-select: none` holds), the plugin cleared that too
+    await page.evaluate(() => {
+      const p = document.createElement('p')
+      p.textContent = 'selectable text'
+      p.style.cssText = 'position:fixed;left:0;bottom:0;margin:0'
+      document.body.append(p)
+      getSelection()?.selectAllChildren(p)
+    })
+    expect(await page.evaluate(() => document.getSelection()?.toString().length ?? 0)).toBeGreaterThan(0)
+    await pickUp(page, card(page, 'a'))
+    await hover(page, list(page, 'progress'))
+    expect(await page.evaluate(() => document.getSelection()?.toString().length ?? 0)).toBe(0)
+    await page.mouse.up()
+  })
+})

@@ -1,4 +1,4 @@
-import { Accessibility, KeyboardSensor, PointerSensor, type DragDropManagerInput } from '@dnd-kit/dom'
+import { Accessibility, Cursor, KeyboardSensor, PointerSensor, PreventSelection, type DragDropManagerInput } from '@dnd-kit/dom'
 import { isSortable } from '@dnd-kit/vue/sortable'
 import { useTasksStore } from '~/store/tasks'
 import { translate } from '~/lib/i18n'
@@ -115,8 +115,12 @@ export function useBoardAnnouncements() {
   type Plugins = Extract<NonNullable<DragDropManagerInput['plugins']>, (...args: never[]) => unknown>
 type Sensors = Extract<NonNullable<DragDropManagerInput['sensors']>, (...args: never[]) => unknown>
 
+  // `Cursor` and `PreventSelection` are left out (#285): each prepends a universal-selector `<style>` to `<head>` at
+  // every drag start and removes it after the drop, and the insertion rebuilds Chromium's style data and restyles every
+  // element twice. `dnd.css` (the `kando-dnd-active` class on the root, set by `Board.vue`) and `.board-container`'s own
+  // `user-select: none` do their jobs statically; `Board.vue` clears an existing selection when a drag starts.
   const plugins: Plugins = defaults => [
-    ...defaults.filter(p => p !== Accessibility),
+    ...defaults.filter(p => p !== Accessibility && p !== Cursor && p !== PreventSelection),
     Accessibility.configure({
       announcements: announcements as never,
       screenReaderInstructions: { draggable: translate('board.dnd.instructions') },

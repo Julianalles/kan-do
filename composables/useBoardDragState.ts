@@ -29,6 +29,13 @@ export interface DragState {
    * ends, and at the end of the drag.
    */
   swapTaskId: string | null
+  /**
+   * How many `ColumnDropZone` ghosts show right now (#285). `Board.vue` mirrors it as `data-drop-ghost` on `.board`, the
+   * one hook `dnd.css` keys its empty-target rules on instead of `:has(.column-drop-zone__ghost)`, which put every
+   * card in the `:has()` scope. A count, not a flag: when the pointer passes from one zone to the next, the order of
+   * the leaving and the entering zone must not matter.
+   */
+  ghostCount: number
   /** After a drop, while the floating preview glides to its slot (kd#181, `useDropMotion`): the card it lands on */
   landingTaskId: string | null
   /** The stack the gliding preview shows; null for a single card */
@@ -46,6 +53,7 @@ const dragState = ref<DragState>({
   hoverTargetStatus: null,
   isDropBlocked: false,
   swapTaskId: null,
+  ghostCount: 0,
   landingTaskId: null,
   landingStack: null,
   setDownTaskId: null,

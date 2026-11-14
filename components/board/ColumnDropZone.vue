@@ -15,7 +15,7 @@ Ghost placeholder visibility:
 - A column whose only card (or stack) is the one being dragged counts as empty once dnd-kit moved that
   node into another column (#372): it is judged by its list's DOM, not by the store, which still holds
   the task. The ghost shows there; the node stays in the other column, its slot made transparent by the
-  same `:has(.column-drop-zone__ghost)` rule as for any empty target (taken out of the layout when other
+  same `.board[data-drop-ghost]` rule (#285) as for any empty target (taken out of the layout when other
   cards remain there, so they leave no gap, #393). The DOM answer is re-read whenever
   the list's children change during a drag (dnd-kit moves the node after the zone became the target)
 - A refused drop (the WIP limit for a card from Erledigt, or any stack into Jetzt, #150) shows no ghost: the slot would promise a landing. A single card from Offen or Wartet over a full Jetzt is not refused (#162): it swaps with the running card, which shows the swap state itself, so the zone shows no ghost there either
@@ -88,6 +88,17 @@ onBeforeUnmount(stopObserving)
 // immediately, preventing a one-frame flash where both card and ghost are visible.
 const showGhost = computed(() =>
   isDropTarget.value && (props.isEmpty || listIsEmpty.value) && !dragState.value.isDropBlocked)
+
+// Tell the board a ghost shows (#285): `.board[data-drop-ghost]` replaces the board-wide `:has(.column-drop-zone__ghost)`.
+// Synchronous, so the attribute lands in the same render flush as the ghost node (one frame, no flash of the source slot).
+let published = false
+const publishGhost = (shown: boolean) => {
+  if (shown === published) return
+  published = shown
+  dragState.value.ghostCount = Math.max(0, dragState.value.ghostCount + (shown ? 1 : -1))
+}
+watch(showGhost, publishGhost, { flush: 'sync', immediate: true })
+onBeforeUnmount(() => publishGhost(false))
 </script>
 
 <template>

@@ -372,6 +372,7 @@ export function useBoardDndKit() {
     dragState.value.sourceStatus = null
     dragState.value.hoverTargetStatus = null
     dragState.value.isDropBlocked = false
+    dragState.value.ghostCount = 0
 
     const origin = dragOrigin
     dragOrigin = null
