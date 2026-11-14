@@ -426,6 +426,8 @@
       "area": "task timers (.claude/rules/task-timers.md): intervals, the Jetzt driver started in app.vue",
       "paths": [
         "lib/taskTimers.ts",
+        "lib/liveTime.ts",
+        "vitest.config.ts",
         "composables/useTaskTimerDriver.ts",
         "composables/useWorkSessionTracking.ts",
         "lib/workSessions.ts",
@@ -433,6 +435,7 @@
       ],
       "specs": [
         "timer-lifecycle",
+        "timebox-progress-chip",
         "focus-overlay",
         "statistics-page"
       ]
