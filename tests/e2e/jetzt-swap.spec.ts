@@ -296,10 +296,14 @@ test.describe('timers across a swap (#162)', () => {
     await page.goto('/tasks')
     await expect(card(page, RUNNING.id)).toBeVisible()
 
-    const spent = (id: string) => page.evaluate((taskId) => {
-      const raw = JSON.parse(localStorage.getItem('tasks-store') ?? '{}') as { tasks?: Array<{ id: string; timeSpentSeconds: number }> }
-      return raw.tasks?.find(t => t.id === taskId)?.timeSpentSeconds ?? -1
-    }, id)
+    // A running timer writes the store only every 10 s (#286): flush the way the page does when it goes away, then read
+    const spent = async (id: string) => {
+      await page.evaluate(() => window.dispatchEvent(new Event('pagehide')))
+      return page.evaluate((taskId) => {
+        const raw = JSON.parse(localStorage.getItem('tasks-store') ?? '{}') as { tasks?: Array<{ id: string; timeSpentSeconds: number }> }
+        return raw.tasks?.find(t => t.id === taskId)?.timeSpentSeconds ?? -1
+      }, id)
+    }
     await pickUp(page, card(page, 'open-1'))
     await hover(page, card(page, RUNNING.id))
     await drop(page)

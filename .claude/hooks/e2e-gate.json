@@ -426,6 +426,7 @@
       "paths": [
         "lib/taskTimers.ts",
         "lib/liveTime.ts",
+        "vitest.config.ts",
         "composables/useTaskTimerDriver.ts",
         "composables/useWorkSessionTracking.ts",
         "lib/workSessions.ts",
