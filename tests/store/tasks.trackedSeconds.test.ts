@@ -69,6 +69,29 @@ describe('addTrackedSeconds (#286)', () => {
     expect(store.pendingTimeUpdates['a']).toMatchObject({ timeSpentSeconds: 605, absolute: true })
   })
 
+  it('bumps the revision of a push in flight, so that push keeps the marker and the queued total (#313)', () => {
+    const store = useTasksStore()
+    store.addTask(task('a', { timeSpentSeconds: 60 }))
+    const started = store.markPendingSync('a') // a push starts
+
+    store.addTrackedSeconds('a', 10)
+
+    expect(store.pendingSyncRevision('a')).toBe(started + 1)
+    expect(store.clearPendingSync('a', started)).toBe(false)
+    expect(store.task('a')?.pendingSync).toBeDefined()
+    expect(store.pendingTimeUpdates['a']?.timeSpentSeconds).toBe(70)
+  })
+
+  it('without a push or marker it sets no marker and bumps nothing (#313)', () => {
+    const store = useTasksStore()
+    store.addTask(task('a', { timeSpentSeconds: 60 }))
+
+    store.addTrackedSeconds('a', 10)
+
+    expect(store.task('a')?.pendingSync).toBeUndefined()
+    expect(store.pendingSyncRevision('a')).toBe(0)
+  })
+
   it('returns false for an unknown task, a zero or a negative count and writes nothing', () => {
     const store = useTasksStore()
     store.addTask(task('a'))
