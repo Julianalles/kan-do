@@ -323,4 +323,16 @@ describe.skipIf(!enabled).each(['select', 'status'] as const)('NotionIntegration
     const cleared = await integration.updateTask({ ...untouched, timeSpentSeconds: 0 }, { timeEdited: true })
     expect(cleared.timeSpentSeconds).toBe(0)
   }, 60_000)
+  // #322: the create carries the tracked time; #323: the push that follows keeps the local seconds
+  it('a task created with tracked time holds it on the page, and a later push returns the local total', async () => {
+    const created = await integration.createTask({ title: `Zeit beim Anlegen ${statusType}`, status: TaskStatus.Open, timeSpentSeconds: 125 })
+    expect(created.timeSpentSeconds).toBe(125)
+    const page = (await notion.pages.retrieve({ page_id: created.id })) as unknown as { properties: Record<string, { number?: number | null }> }
+    const held = Object.values(page.properties).map((property) => property.number).filter((value) => typeof value === 'number')
+    // the sandbox's time property is in minutes: 125 s is held as 2.08
+    expect(held).toContain(2.08)
+
+    const pushed = await integration.updateTask({ ...created, timeSpentSeconds: 125, status: TaskStatus.Progress })
+    expect(pushed.timeSpentSeconds).toBe(125)
+  }, 60_000)
 })

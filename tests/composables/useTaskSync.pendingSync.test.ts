@@ -207,6 +207,32 @@ describe('pending-sync marker sequences (#319)', () => {
     expect(notion.updateTask).not.toHaveBeenCalledWith(expect.objectContaining({ id: 'local_9' }))
   })
 
+  it('a task timed while Notion was unreachable is created with its total (#322); time tracked during the create is pushed next', async () => {
+    const tasksStore = useTasksStore()
+    tasksStore.addTask(task('local_9', 'notion', { externalId: null, title: 'Offline task', status: TaskStatus.Progress }))
+    tasksStore.markPendingSync('local_9')
+    tasksStore.addTrackedSeconds('local_9', 125)
+    let release: (t: Task) => void = () => {}
+    notion.createTask.mockImplementationOnce(() => new Promise<Task>((resolve) => { release = resolve }))
+
+    const sync = useTaskSync().syncPendingChanges()
+    await vi.waitFor(() => expect(notion.createTask).toHaveBeenCalled())
+    // The create carries the total the task holds when it is sent (the adapter writes it, NotionIntegration #322)
+    expect(notion.createTask).toHaveBeenCalledWith(expect.objectContaining({ title: 'Offline task', timeSpentSeconds: 125 }))
+    tasksStore.addTrackedSeconds('local_9', 30) // ticks while the create is in flight
+    release(task('page-new', 'notion', { externalId: 'page-new', title: 'Offline task', timeSpentSeconds: 125 }))
+    await sync
+
+    // The create did not carry the 30 s: its entry survives and the marker stays for the next push
+    expect(tasksStore.task('local_9')).toMatchObject({ externalId: 'page-new', timeSpentSeconds: 155 })
+    expect(tasksStore.pendingTimeUpdates['local_9']?.timeSpentSeconds).toBe(155)
+    expect(tasksStore.task('local_9')?.pendingSync).toBeDefined()
+
+    await useTaskSync().syncPendingChanges()
+    expect(notion.updateTask).toHaveBeenLastCalledWith(expect.objectContaining({ id: 'local_9', timeSpentSeconds: 155 }))
+    expect(mapHelpers.has(tasksStore.pendingTimeUpdates, 'local_9')).toBe(false)
+  })
+
   it('deleting a task that never reached Notion sends nothing upstream', async () => {
     const tasksStore = useTasksStore()
     const created = task('local_9', 'notion', { externalId: null })

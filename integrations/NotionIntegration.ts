@@ -539,6 +539,14 @@ export class NotionIntegration {
       }
     }
 
+    // The total tracked before the page existed (an offline create, a move): the push that creates the page is
+    // the only one that carries it, as the queued time entry ends with the create (#322)
+    if (this.propertyMapping.timeSpent && task.timeSpentSeconds && task.timeSpentSeconds > 0) {
+      properties[this.propertyMapping.timeSpent] = {
+        number: this.fromSecondsToUnit(task.timeSpentSeconds, this.propertyMapping.timeSpentUnit),
+      };
+    }
+
     if (this.propertyMapping.topic && task.topic) {
       // The property's own type (kd#16): a select Thema rejected the former rich_text write with a 400. Unknown type: rich_text, the most flexible
       const type = await this.labelPropertyType(this.propertyMapping.topic);
@@ -723,9 +731,11 @@ export class NotionIntegration {
       };
 
       // Add time spent if it exists and is mapped, converting to configured unit
+      let timeWritten: number | null = null;
       if (task.timeSpentSeconds && task.timeSpentSeconds > 0 && this.propertyMapping.timeSpent) {
         const unit = this.propertyMapping.timeSpentUnit; // undefined => seconds (back-compat)
         const valueToWrite = this.fromSecondsToUnit(task.timeSpentSeconds, unit);
+        timeWritten = valueToWrite;
         properties[this.propertyMapping.timeSpent] = {
           number: valueToWrite,
         };
@@ -848,6 +858,13 @@ export class NotionIntegration {
       
       // Preserve local-only properties that aren't synced to Notion
       syncedTask.timerId = task.timerId; // Active timer state is local-only
+
+      // The property holds the total rounded to the unit's 2 decimals (hours: 36 s steps). What this write put
+      // there reads back as that rounding, which would lower the seconds the timer counted (#323): the local total
+      // stays. A value that is not what was written (changed in Notion meanwhile) is taken as it stands.
+      if (timeWritten !== null && this.fromSecondsToUnit(syncedTask.timeSpentSeconds, this.propertyMapping.timeSpentUnit) === timeWritten) {
+        syncedTask.timeSpentSeconds = task.timeSpentSeconds;
+      }
       
       if (import.meta.dev) {
         console.log('[NotionIntegration] Successfully updated and synced task from Notion:', externalId);

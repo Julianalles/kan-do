@@ -1420,3 +1420,117 @@ describe('NotionIntegration native Status property (#312)', () => {
     })
   })
 })
+
+describe('NotionIntegration: tracked time on create and the unit rounding of the echo (#322, #323)', () => {
+  const timedTask = (seconds: number, extra: Record<string, unknown> = {}) => ({
+    id: 'p-time', source: 'notion', externalId: 'p-time', title: 'Timed', notes: null, status: TaskStatus.Progress, priority: 1,
+    timeBoxSeconds: null, timeSpentSeconds: seconds, topic: null, topicColorCode: null, timerId: null, ...extra,
+  }) as any
+
+  /** A Notion that stores what it is sent: a write of the time property is what the next read returns. */
+  const stubStoringNotion = (read?: (stored: number | null | undefined) => number | null | undefined) => {
+    let stored: number | null | undefined
+    vi.stubGlobal('fetch', vi.fn((url: string, init?: any) => {
+      const body = init?.body ? JSON.parse(init.body) : undefined
+      if (url === '/api/notion/update-task' && body) {
+        const written = body.properties?.[propertyMapping.timeSpent]
+        if (written) stored = written.number
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ ok: true }) })
+      }
+      if (url === '/api/notion/create-task' && body) {
+        const written = body.properties?.[propertyMapping.timeSpent]
+        if (written) stored = written.number
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ id: 'new-page', page: { id: 'new-page' } }) })
+      }
+      const value = read ? read(stored) : stored
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({
+          id: 'p-time',
+          properties: {
+            [propertyMapping.title]: { title: [{ plain_text: 'Timed' }] },
+            [propertyMapping.status]: { select: { name: statusMapping.doing } },
+            ...(value === undefined ? {} : { [propertyMapping.timeSpent]: { number: value } }),
+          },
+        }),
+      })
+    }))
+  }
+  const createBody = (): any => {
+    const [, init] = (fetch as any).mock.calls.find(([u]: [string]) => u.includes('/api/notion/create-task'))
+    return JSON.parse(init.body)
+  }
+
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  describe('createTask writes the tracked time (#322)', () => {
+    it.each([
+      ['seconds', 125, 125],
+      ['minutes', 3600, 60],
+      ['hours', 5400, 1.5],
+    ] as const)('writes the total in the configured unit (%s)', async (unit, seconds, written) => {
+      stubStoringNotion()
+      await makeSutWithUnit(unit).createTask({ title: 'T', status: TaskStatus.Open, timeSpentSeconds: seconds } as any)
+      expect(createBody().properties[propertyMapping.timeSpent]).toEqual({ number: written })
+    })
+
+    it('writes seconds when no unit is configured', async () => {
+      stubStoringNotion()
+      await makeSut().createTask({ title: 'T', status: TaskStatus.Open, timeSpentSeconds: 90 } as any)
+      expect(createBody().properties[propertyMapping.timeSpent]).toEqual({ number: 90 })
+    })
+
+    it('writes no time property for an untimed task or an unmapped time property', async () => {
+      stubStoringNotion()
+      await makeSut().createTask({ title: 'T', status: TaskStatus.Open, timeSpentSeconds: 0 } as any)
+      expect(createBody().properties[propertyMapping.timeSpent]).toBeUndefined()
+
+      const { timeSpent: _unmapped, ...withoutTime } = propertyMapping
+      stubStoringNotion()
+      await makeSut(withoutTime as any).createTask({ title: 'T', status: TaskStatus.Open, timeSpentSeconds: 90 } as any)
+      expect(Object.keys(createBody().properties)).not.toContain(propertyMapping.timeSpent)
+    })
+  })
+
+  describe('updateTask keeps the local total over a rounded echo (#323)', () => {
+    it('hours: 125 s is written as 0.03 and the task keeps 125 s, push after push', async () => {
+      stubStoringNotion()
+      const ni = makeSutWithUnit('hours')
+      const first = await ni.updateTask(timedTask(125))
+      expect(parseLastUpdateTaskBody().properties[propertyMapping.timeSpent]).toEqual({ number: 0.03 })
+      expect(first.timeSpentSeconds).toBe(125)
+      const second = await ni.updateTask(timedTask(first.timeSpentSeconds))
+      expect(second.timeSpentSeconds).toBe(125)
+    })
+
+    it('minutes: 125 s is written as 2.08 and the task keeps 125 s', async () => {
+      stubStoringNotion()
+      const synced = await makeSutWithUnit('minutes').updateTask(timedTask(125))
+      expect(parseLastUpdateTaskBody().properties[propertyMapping.timeSpent]).toEqual({ number: 2.08 })
+      expect(synced.timeSpentSeconds).toBe(125)
+    })
+
+    it('seconds and an unset unit return what Notion holds, unchanged', async () => {
+      stubStoringNotion()
+      expect((await makeSutWithUnit('seconds').updateTask(timedTask(125))).timeSpentSeconds).toBe(125)
+      expect((await makeSut().updateTask(timedTask(125))).timeSpentSeconds).toBe(125)
+    })
+
+    it('a read-back that differs from what was written is taken as Notion holds it', async () => {
+      stubStoringNotion(() => 1)
+      const synced = await makeSutWithUnit('hours').updateTask(timedTask(125))
+      expect(synced.timeSpentSeconds).toBe(3600)
+    })
+
+    it('a total the user cleared (timeEdited at 0) reads back as 0; an ordinary push at 0 returns what Notion holds', async () => {
+      stubStoringNotion(() => 0.5)
+      const ni = makeSutWithUnit('hours')
+      expect((await ni.updateTask(timedTask(0))).timeSpentSeconds).toBe(1800)
+
+      stubStoringNotion()
+      expect((await ni.updateTask(timedTask(0), { timeEdited: true })).timeSpentSeconds).toBe(0)
+    })
+  })
+})
