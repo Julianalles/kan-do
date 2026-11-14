@@ -312,21 +312,28 @@ test.describe('Faster than planned (#295)', () => {
     await page.keyboard.press('Enter')
     const layer = page.locator('.task-confirm')
     await expect(layer).toHaveCount(1)
-    await page.evaluate(() => document.getAnimations().forEach(a => a.pause()))
     const msg = layer.locator('.task-confirm__message')
     await expect(msg).toBeVisible()
-    const l = await layer.boundingBox()
-    const m = await msg.boundingBox()
-    expect(l && m).toBeTruthy()
-    expect(m!.x).toBeGreaterThanOrEqual(l!.x - 1)
-    expect(m!.y).toBeGreaterThanOrEqual(l!.y - 1)
-    expect(m!.x + m!.width).toBeLessThanOrEqual(l!.x + l!.width + 1)
-    expect(m!.y + m!.height).toBeLessThanOrEqual(l!.y + l!.height + 1)
+    // One synchronous read: layer and message are measured in the same frame, with the layer's animation frozen in
+    // its hold (1 s of 2.2 s), so neither the board's settling layout nor the fade can move one between two reads
+    const r = await layer.evaluate((el) => {
+      el.getAnimations().forEach((a) => {
+        a.pause()
+        a.currentTime = 1000
+      })
+      const m = el.querySelector('.task-confirm__message')!
+      const lb = el.getBoundingClientRect()
+      const mb = m.getBoundingClientRect()
+      const ext = (e: Element) => ({ sh: e.scrollHeight, ch: e.clientHeight, sw: e.scrollWidth, cw: e.clientWidth })
+      return { lb, mb, me: ext(m), le: ext(el) }
+    })
+    const { lb: l, mb: m, me, le } = r
+    expect(m.x).toBeGreaterThanOrEqual(l.x - 1)
+    expect(m.y).toBeGreaterThanOrEqual(l.y - 1)
+    expect(m.x + m.width).toBeLessThanOrEqual(l.x + l.width + 1)
+    expect(m.y + m.height).toBeLessThanOrEqual(l.y + l.height + 1)
     // The box above is bounded by max-height by construction: the words themselves must fit it, and the layer
     // (overflow: hidden) must not hide anything, so no scroll extent exceeds the visible one
-    const extent = (el: Element) => ({ sh: el.scrollHeight, ch: el.clientHeight, sw: el.scrollWidth, cw: el.clientWidth })
-    const me = await msg.evaluate(extent)
-    const le = await layer.evaluate(extent)
     expect(me.sh).toBeLessThanOrEqual(me.ch + 1)
     expect(me.sw).toBeLessThanOrEqual(me.cw + 1)
     expect(le.sh).toBeLessThanOrEqual(le.ch + 1)
