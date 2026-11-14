@@ -349,7 +349,8 @@ test.describe('Add slot, desktop', () => {
           return store.tasks?.find((task) => task.title === 'Rückruf Kunde')?.timeSpentSeconds ?? 0;
         });
       expect(await seconds()).toBeGreaterThanOrEqual(2);
-      await expect.poll(seconds, { timeout: 4000 }).toBeGreaterThanOrEqual(4);
+      // The timer writes tasks-store in 10 s checkpoints (#286): wait for the next one, a second-by-second read races it
+      await expect.poll(seconds, { timeout: 15000 }).toBeGreaterThanOrEqual(4);
     });
 
     for (const [name, close] of [
