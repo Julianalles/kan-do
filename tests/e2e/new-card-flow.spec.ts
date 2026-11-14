@@ -133,10 +133,15 @@ for (const { name, viewport, touch } of [
       await expect(step(page)).toHaveAccessibleName('Thema?')
       await page.getByTestId('new-card-options').getByRole('button').first().click()
       await expect(step(page)).toHaveAttribute('data-step', 'activity')
+      // `data-step` sits on the panel, outside the out-in transition: it flips while the Thema step still slides out for
+      // ~140 ms, and a click on its "Mehr" opens a popover that unmounts with the step (kd#221, failed under load).
+      // The Aktivität question is there and the leaving step is gone once exactly one step node is left.
+      await expect(step(page).getByText('Aktivität?', { exact: true })).toBeVisible()
+      await expect(step(page).locator('.ncf__step')).toHaveCount(1)
       // "Alle Optionen": the list (popover on desktop, drawer at 390 px) has every value; a pick continues
       await page.getByTestId('new-card-more').click()
       // Wait for the list itself: `.last()` on the groups named "Aktivität?" resolves at once, and before the list is
-      // there it is the group inside the card, whose last button is not a value (kd#221, failed under load)
+      // there it is the group inside the card, whose last button is not a value (kd#221)
       const all = page.getByTestId('new-card-more-list')
       await expect(all).toBeVisible()
       await all.getByRole('button').last().click()
