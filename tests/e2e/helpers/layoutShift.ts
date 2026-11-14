@@ -59,11 +59,18 @@ export async function keepsRootGutter(page: Page): Promise<boolean> {
 
 export type Box = { x: number, width: number }
 
-/** Tags every element once, so the same elements are compared before and after the page's nodes change. */
-export const tagElements = (page: Page) =>
-  page.evaluate(() => {
-    document.querySelectorAll('body *').forEach((el, i) => el.setAttribute('data-shift-probe', String(i)))
-  })
+/**
+ * Tags every element once, so the same elements are compared before and after the page's nodes change. `ignore` is a
+ * selector for elements (and their descendants) that move on purpose and stay untagged, e.g. the app bar's group while a
+ * task sheet is open (#290).
+ */
+export const tagElements = (page: Page, ignore = '') =>
+  page.evaluate((skip) => {
+    document.querySelectorAll('body *').forEach((el, i) => {
+      if (skip && el.closest(skip)) return
+      el.setAttribute('data-shift-probe', String(i))
+    })
+  }, ignore)
 
 /** Horizontal boxes of every tagged element. */
 export const boxes = (page: Page) =>

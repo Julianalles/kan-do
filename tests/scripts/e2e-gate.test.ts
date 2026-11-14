@@ -350,6 +350,29 @@ describe('selectE2e', () => {
 const sfc = (template: string, script: string, style: string) =>
   `<template>\n${template}\n</template>\n\n<script setup lang="ts">\n${script}\n</script>\n\n<style scoped>\n${style}\n</style>\n`
 
+describe('specs that broke on main without the gate selecting them (#317)', () => {
+  const pick = (files: string[]) =>
+    selectE2e({
+      files, body: '', env: {}, mode: 'quality', config, existingSpecs,
+      isStyleOnlyVueFile: () => ({ styleOnly: false, failed: false }),
+      specsImportingHelper: helpers => specsImportingHelpers(helpers, e2eSources),
+      changedStrings: () => ({ strings: [], failed: [] }),
+      specsMentioning: () => [],
+      cataloguedComponents: () => listCataloguedComponents(root),
+    }).specs
+
+  it.each([
+    // #312: the timer's 10 s checkpoint (#286) moved what a card has stored; add-task-slot reads it after a save
+    ['composables/useTaskTimerDriver.ts', 'add-task-slot'],
+    ['lib/liveTime.ts', 'add-task-slot'],
+    // #290: the task sheet re-centres the app bar; scrollbar-shift watches every element for horizontal moves
+    ['assets/css/board-focus-overlay.css', 'scrollbar-shift'],
+    ['components/nav/AppNav.vue', 'scrollbar-shift'],
+  ])('%s selects %s', (file, spec) => {
+    expect(pick([file, 'tests/store/tasks.test.ts'])).toContain(spec)
+  })
+})
+
 describe('selectE2e in fast testing mode (#693)', () => {
   const fast = (input: { files: string[], body?: string, env?: Record<string, string>, styleOnlyVue?: string[], mode?: string }) =>
     selectE2e({

@@ -19,7 +19,10 @@ import { forceClassicScrollbar, tagElements, boxes, moved, documentScrollbar } f
 
 test.use({ launchOptions: { ignoreDefaultArgs: ['--hide-scrollbars'] } })
 
-const openers: Array<{ name: string, open: (page: Page) => Promise<void> }> = [
+// The task sheet re-centres the app bar's group in the space left of it (#290, a slide over `--sheet-fade-duration`): that
+// shift is the design, not a scrollbar shift, and whether it has started when the dialog shows is a race. The bar's own
+// box (`.app-nav`, `.titlebar`) stays checked, which is where a scrollbar shift shows.
+const openers: Array<{ name: string, ignore?: string, open: (page: Page) => Promise<void> }> = [
   {
     name: 'card context menu',
     open: async (page) => {
@@ -44,6 +47,7 @@ const openers: Array<{ name: string, open: (page: Page) => Promise<void> }> = [
   },
   {
     name: 'task sheet',
+    ignore: '.app-nav-group',
     open: async (page) => {
       await page.locator('.task-wrapper').first().focus()
       await page.keyboard.press('Enter')
@@ -60,7 +64,7 @@ for (const viewport of [{ name: 'desktop', width: 1280, height: 700 }, { name: '
   test.describe(viewport.name, () => {
     test.use({ viewport: { width: viewport.width, height: viewport.height } })
 
-    for (const { name, open } of openers) {
+    for (const { name, ignore, open } of openers) {
       test(`${name} moves no element horizontally`, async ({ page }) => {
         await forceClassicScrollbar(page)
         await page.goto('/tasks')
@@ -68,7 +72,7 @@ for (const viewport of [{ name: 'desktop', width: 1280, height: 700 }, { name: '
         await showColumnPage(page, 0) // the board opens on Jetzt while a task sits there (kd#191)
         // The precondition: a classic scrollbar takes width from the page (not on touch layouts, where the board scrolls inside)
                 if (viewport.width > 767) await expect.poll(() => documentScrollbar(page), { message: 'the document has a classic scrollbar' }).toBeGreaterThan(0)
-        await tagElements(page)
+        await tagElements(page, ignore)
         const before = await boxes(page)
 
         await open(page)

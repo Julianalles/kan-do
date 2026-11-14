@@ -298,6 +298,10 @@
         "plugins/scrollbar-gutter.client.ts",
         "assets/css/utilities.css",
         "assets/css/board.css",
+        "assets/css/board-focus-overlay.css",
+        "assets/css/sheet.css",
+        "assets/css/app-nav.css",
+        "components/nav/AppNav.vue",
         "components/board/Board.vue"
       ],
       "specs": [
@@ -439,7 +443,8 @@
         "focus-overlay",
         "statistics-page",
         "visual-regression",
-        "jetzt-swap"
+        "jetzt-swap",
+        "add-task-slot"
       ]
     },
     {
