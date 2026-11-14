@@ -595,6 +595,7 @@ export const useTasksStore = defineStore("tasks", () => {
    * `updateTaskTimespent` it queues the new total for a source that stores time whatever the task's status is
    * now: the stop flush of a task that just left Jetzt runs after its status changed, and that move must leave the
    * queued entry in place, as the last per-second tick did before the checkpoints.
+   * A push of the task in flight (#313) counts as superseded by it: see `markPendingSync` revisions.
    * @returns false for an unknown task, a count that is not a positive number, or while a batch operation holds updates
    */
   function addTrackedSeconds(taskId: string, seconds: number): boolean {
@@ -605,6 +606,10 @@ export const useTasksStore = defineStore("tasks", () => {
     updateTask(taskId, { timeSpentSeconds: total });
 
     if (sourceSyncsTime(task.source)) {
+      // A push of this task in flight (or a marker from this session) started from the older total: a new revision,
+      // so its echo does not lower the total and its landing keeps this entry (#313). No marker is made here.
+      const revision = pendingSyncRevisions.get(taskId);
+      if (revision !== undefined) pendingSyncRevisions.set(taskId, revision + 1);
       const existing = mapHelpers.get(pendingTimeUpdates.value, taskId);
       if (existing) {
         existing.timeSpentSeconds = total;
