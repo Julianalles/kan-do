@@ -88,7 +88,7 @@
       "infoLabel": "How is this estimated?",
       "info": "Kan-Do learns and adapts: the more you use the board, the more helpful this estimate gets.",
       "infoSet": "This estimate is based on the working hours you set in Settings. Work tracked today is subtracted.",
-      "infoEstimates": "A task without a timebox counts as long as similar tasks you marked done took. With too few of those, it counts 30 minutes. This learning steers and improves feedback like this line, but is no prerequisite."
+      "infoEstimates": "A task without a timebox counts as long as similar tasks you marked done took. With too few of those, it counts 30 minutes. This steers and improves feedback like this line. Nothing needs to be set up for it."
     },
     "sync": {
       "stackCards": "Stack cards",

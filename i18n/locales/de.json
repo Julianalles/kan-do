@@ -88,7 +88,7 @@
       "infoLabel": "Wie entsteht diese Schätzung?",
       "info": "Kan-Do lernt mit und passt sich an: je öfter du das Board nutzt, desto treffender wird diese Schätzung.",
       "infoSet": "Diese Schätzung beruht auf der Arbeitszeit, die du in den Einstellungen festgelegt hast. Heute erfasste Arbeit wird abgezogen.",
-      "infoEstimates": "Eine Aufgabe ohne Timebox zählt so lang wie ähnliche erledigte Aufgaben. Gibt es zu wenige davon, zählt sie 30 Minuten. Dieses Lernen steuert und verbessert Rückmeldungen wie diese Linie. Voraussetzung ist es nicht."
+      "infoEstimates": "Eine Aufgabe ohne Timebox zählt so lang wie ähnliche erledigte Aufgaben. Gibt es zu wenige davon, zählt sie 30 Minuten. Das steuert und verbessert Rückmeldungen wie diese Linie. Du musst dafür nichts einrichten."
     },
     "sync": {
       "stackCards": "Karten stapeln",

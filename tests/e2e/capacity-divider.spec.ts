@@ -130,7 +130,7 @@ test.describe('Capacity divider in Offen (#132)', () => {
     await expect(info).toBeFocused()
     await page.keyboard.press('Enter')
     await expect(page.getByTestId('capacity-info-text')).toContainText('lernt mit')
-    await expect(page.getByTestId('capacity-info-estimates')).toContainText('Voraussetzung ist es nicht')
+    await expect(page.getByTestId('capacity-info-estimates')).toContainText('Du musst dafür nichts einrichten')
     await page.keyboard.press('Escape')
     await expect(page.getByTestId('capacity-info-text')).toHaveCount(0)
   })
