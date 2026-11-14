@@ -43,6 +43,13 @@ export interface TaskSourceAdapter {
    */
   timeHolding?(): (seconds: number) => number
 
+  /**
+   * Whether a push can write the task's time at all. A source whose time property takes no number (a Notion
+   * `select`, #331) says `false`: `mergeTasks` then queues no time push for it, as the write would be skipped and
+   * the next fetch would queue it again. Absent: `true`. Never rejects (an unknown answer is `true`).
+   */
+  timeWritable?(): Promise<boolean>
+
   /** Creates a task upstream and resolves to it, source and externalId stamped. */
   create(draft: Partial<Task>): Promise<Task>
 

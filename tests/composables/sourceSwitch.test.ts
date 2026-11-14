@@ -17,6 +17,7 @@ const createInstance = vi.fn(() => ({
   archiveTask: upstream,
   fetchActiveBoardTasks: fetchNotion,
   heldTimeSeconds: (seconds: number) => seconds,
+  timeIsWritable: () => Promise.resolve(true),
 }))
 const fetchNotion = vi.fn<() => Promise<Task[]>>()
 
