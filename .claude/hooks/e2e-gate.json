@@ -436,7 +436,8 @@
         "timer-lifecycle",
         "timebox-progress-chip",
         "focus-overlay",
-        "statistics-page"
+        "statistics-page",
+        "visual-regression"
       ]
     },
     {

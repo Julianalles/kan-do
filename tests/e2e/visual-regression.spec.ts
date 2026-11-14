@@ -564,6 +564,15 @@ test.describe('pending sync: Notion unreachable', () => {
     await page.route('**/api/notion/**', (route) => route.abort('connectionrefused'))
   })
 
+  // The running Jetzt card queues its tracked time, which the offline source cannot take either. The timer writes the
+  // store only every 10 s (#286), as long as the expect timeout: let the page flush the way it does when it goes away
+  // (`pagehide`) until a collected second is queued.
+  const expectRunningCardQueued = (page: Page) =>
+    expect(async () => {
+      await page.evaluate(() => window.dispatchEvent(new Event('pagehide')))
+      await expect(page.locator('.task-wrapper', { hasText: 'Review Team Updates' }).getByTestId('task-save-pending')).toBeVisible({ timeout: 1_000 })
+    }).toPass()
+
   const SHOTS = [
     { name: 'desktop', viewport: { width: 1280, height: 800 }, file: 'sync-pending' },
     { name: 'mobile 390px', viewport: { width: 390, height: 844 }, file: 'sync-pending-mobile' },
@@ -576,8 +585,7 @@ test.describe('pending sync: Notion unreachable', () => {
       test('card cloud and the status dot on ⋯', async ({ page }) => {
         await page.goto('/tasks')
         await expect(page.locator('.task-wrapper', { hasText: 'Fokusaufgabe vorbereiten' }).getByTestId('task-save-pending')).toBeVisible()
-        // The running Jetzt card queues its tracked time, which the offline source cannot take either
-        await expect(page.locator('.task-wrapper', { hasText: 'Review Team Updates' }).getByTestId('task-save-pending')).toBeVisible()
+        await expectRunningCardQueued(page)
         await expect(moreButton(page)).toHaveAccessibleName('Mehr, Verbindungsproblem')
         await page.mouse.move(0, 0)
         await settle(page)
@@ -587,7 +595,7 @@ test.describe('pending sync: Notion unreachable', () => {
       test('Mehr panel names the source and offers the repair', async ({ page }) => {
         await page.goto('/tasks')
         await expect(moreButton(page)).toHaveAccessibleName('Mehr, Verbindungsproblem')
-        await expect(page.locator('.task-wrapper', { hasText: 'Review Team Updates' }).getByTestId('task-save-pending')).toBeVisible()
+        await expectRunningCardQueued(page)
         const panel = await openMore(page)
         await expect(panel.getByTestId('sync-problem-notion')).toBeVisible()
         await settle(page)
