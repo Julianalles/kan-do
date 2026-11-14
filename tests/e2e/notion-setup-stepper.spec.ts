@@ -359,9 +359,10 @@ test.describe('Notion Setup Stepper', () => {
     test('shows the guide rail on the welcome page (no dialog) with the first step current (#43)', async ({ page, baseURL }) => {
       await page.goto(baseURL! + '/welcome')
 
-      const setupButton = page.getByRole('button', { name: /Notion/i })
-      await expect(setupButton).toBeVisible()
-      await setupButton.click()
+      // Entry since #294: Loslegen -> step 2 -> tick Notion -> "Mit Notion einrichten"
+      await page.getByRole('button', { name: 'Loslegen' }).click()
+      await page.getByRole('checkbox', { name: 'Notion' }).click()
+      await page.getByRole('button', { name: 'Mit Notion einrichten' }).click()
 
       const flow = page.getByTestId('notion-setup-flow')
       await expect(page.getByRole('dialog')).toHaveCount(0)
