@@ -846,6 +846,20 @@ export const useTaskSync = () => {
   };
 
   /**
+   * Plans a task for today (#353): it leaves "not planned" and lands at the end of Offen. The planned state
+   * lives in kan-do only, so no adapter is called and no `pendingSync` is set; the moves still go through here,
+   * so that a later write to a connection has one place. Returns whether anything changed.
+   */
+  const planTask = (taskId: string): boolean => tasksStore.planTask(taskId);
+
+  /**
+   * "Not today" (#353): takes an Offen task off today's board; it stays held with everything it has (time
+   * spent, notes, topic, priority, timebox, its connection, the carried-over count). Refused (`false`) for a task
+   * in any other column. Nothing is written to the task's source, as in `planTask`.
+   */
+  const unplanTask = (taskId: string): boolean => tasksStore.unplanTask(taskId);
+
+  /**
    * Standardized error handling for sync operations
    */
   const handleSyncError = (error: unknown, syncContext: string, source?: SourceId): void => {
@@ -858,6 +872,8 @@ export const useTaskSync = () => {
 
   return {
     createTask,
+    planTask,
+    unplanTask,
     updateTaskStatus,
     updateTaskStatuses,
     setCompletedDay,

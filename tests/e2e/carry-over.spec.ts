@@ -149,3 +149,39 @@ test.describe('Carried-over cue (#99), Notion stub: deferred upstream delete', (
     expect(archiveCalls).toHaveLength(0)
   })
 })
+
+test.describe('A task that is not planned for today (#353)', () => {
+  const OFF: SeedTask = {
+    id: 'seed-off-1', title: 'Angebot Dachfenster', status: 0, priority: 2, timeSpentSeconds: 900, timeBoxSeconds: 1800,
+    topic: 'Baustelle Müller', notes: 'Maße fehlen noch', custom: {}, notPlanned: true,
+  }
+  const OFF_COUNT: SeedCarryOver = { firstOn: dayKey(-6), days: 3, lastOn: dayKey(-2), keptAtDays: null }
+  const openIds = SEED_TASKS.filter(task => task.status === 0).map(task => task.id)
+  const storedTasks = (page: Page) => page.evaluate(() => JSON.parse(localStorage.getItem('tasks-store') ?? '{}'))
+
+  test('is in no column, keeps the other cards in place and is still held after a reload, with its count', async ({ page, context, baseURL }) => {
+    // the not-planned task sits between the seeded cards: the board must look as if it were not there
+    const tasks = [SEED_TASKS[0]!, OFF, ...SEED_TASKS.slice(1)]
+    await seedLocalBoard(context, tasks, { ...CARRY_OVER, [OFF.id]: OFF_COUNT }, undefined, { once: true })
+
+    for (const pass of ['first load', 'after a reload']) {
+      if (pass === 'first load') await page.goto(`${baseURL}/tasks`)
+      else await page.reload()
+      await expect(card(page, 'seed-open-1')).toBeVisible()
+      await expect(card(page, OFF.id), pass).toHaveCount(0)
+      await expect(page.getByText(OFF.title), pass).toHaveCount(0)
+      const offen = page.locator('.column[data-status="open"] .task[data-task-id]')
+      await expect.poll(() => offen.evaluateAll(cards => cards.map(el => el.getAttribute('data-task-id'))), pass).toEqual(openIds)
+
+      // the board load counted today for the cards on the board (a write), and left this task and its count alone
+      await expect.poll(async () => (await storedTasks(page)).carryOverByTaskId?.['seed-progress-1']?.lastOn, pass).toBe(dayKey())
+      const stored = await storedTasks(page)
+      expect(stored.tasks.find((task: SeedTask) => task.id === OFF.id), pass)
+        .toMatchObject({ notPlanned: true, status: 0, timeSpentSeconds: 900, timeBoxSeconds: 1800, topic: 'Baustelle Müller', notes: 'Maße fehlen noch', source: 'local' })
+      expect(stored.carryOverByTaskId[OFF.id], pass).toEqual(OFF_COUNT)
+    }
+    // the seeded column order still named it: reconciling took it out of Offen's order
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('board-store') ?? '{}').columns?.find((column: { taskStatus: number }) => column.taskStatus === 0)?.taskOrder ?? null))
+      .toEqual(openIds)
+  })
+})

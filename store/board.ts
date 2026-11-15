@@ -11,6 +11,7 @@ import { useToday } from "~/composables/useToday";
 import { persistOmitFor } from "~/lib/secrets";
 import { useTasksStore } from "~/store/tasks";
 import { normalizeBoardConfig, singleSource } from "~/lib/taskSources";
+import { isNotPlanned } from "~/lib/taskPlanning";
 import type { SourceId, IntegrationSourceId, TaskSourcesConfig } from "~/types/taskSource";
 
 export interface IUpdateTaskOrderPayload {
@@ -504,6 +505,9 @@ export const useBoardStore = defineStore("board", () => {
     const taskIdsByStatus = new Map<TaskStatus, string[]>();
 
     tasks.forEach((task) => {
+      // A task that is not planned for today (#353) is in no column: it has no place in Offen's order, and
+      // planning it appends it at the end
+      if (isNotPlanned(task)) return;
       const existing = taskIdsByStatus.get(task.status) ?? [];
       existing.push(task.id);
       taskIdsByStatus.set(task.status, existing);

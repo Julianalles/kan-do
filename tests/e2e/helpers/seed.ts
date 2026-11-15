@@ -32,6 +32,8 @@ export interface SeedTask {
   topicColorCode?: string | null
   notes?: string | null
   isUnplanned?: boolean
+  /** Not planned for today (#353): held by kan-do but in no column. Only with `status: 0`. */
+  notPlanned?: true
   custom: Record<string, unknown>
   completedAt?: string | null
   createdAt?: string

@@ -97,6 +97,13 @@ interface Task {
   archivedAt?: Date | null;
   /** Whether this task was unplanned (reactive work vs proactive planning) */
   isUnplanned?: boolean;
+  /**
+   * The task is not planned for today: it is held by kan-do but in no column of the board (#353). Absent =
+   * planned, so data stored before #353 loads as it was. Valid only while `status` is Open; read it through
+   * `isNotPlanned()` (`lib/taskPlanning.ts`), never directly. Lives in kan-do only: no connection stores it, a
+   * fetch never carries it and `mergeTasks` keeps it for a task it already holds. Not `isUnplanned` (ad-hoc work).
+   */
+  notPlanned?: true;
   /** Unpushed local changes (absent = the source holds the task as it is). A Local task never has one. */
   pendingSync?: PendingSync;
   /** A move to another source that did not finish; always together with `pendingSync` */

@@ -100,6 +100,17 @@ describe('useDayCloseData selection', () => {
     expect(inFlight.value.map(t => t.id)).toEqual(['o', 'p', 'w'])
   })
 
+  it('leaves a task that is not planned for today out of the day close (#353)', () => {
+    const store = useTasksStore()
+    store.addTask(makeTask('o', TaskStatus.Open))
+    store.addTask(makeTask('off', TaskStatus.Open, { notPlanned: true, timeSpentSeconds: 500 }))
+    store.addTask(makeTask('p', TaskStatus.Progress))
+    const { inFlight, done, totalSeconds } = useDayCloseData()
+    expect(inFlight.value.map(t => t.id)).toEqual(['o', 'p'])
+    expect(done.value).toEqual([])
+    expect(totalSeconds.value).toBe(0)
+  })
+
   it('lists tasks of every source together, in the same rows and sums (#325)', () => {
     const store = useTasksStore()
     store.addTask(makeTask('n-done', TaskStatus.Done, { source: 'notion', externalId: 'n-done', completedAt: new Date(), timeSpentSeconds: 600 }))

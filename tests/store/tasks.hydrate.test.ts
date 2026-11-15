@@ -152,6 +152,44 @@ describe.each(['web', 'desktop'] as const)('hydrating stored dates (#376, %s)', 
     expect(corrected?.completedAt?.getTime()).toBe(COMPLETED.getTime())
   })
 
+  it('loads tasks stored before #353 as planned and writes nothing back for it', async () => {
+    const stored = {
+      'board-store': { ...BOARD, columns: undefined },
+      'tasks-store': storedTasksStore({
+        tasks: [storedTask({ status: 0, completedAt: null, archivedAt: null }), storedTask({ id: 'page-3', externalId: 'page-3', status: 0, completedAt: null, archivedAt: null })],
+        pendingDeletes: {},
+      }),
+    }
+    const { tasks, setCalls } = await freshPinia(mode, stored)
+    expect(tasks.tasksOpen.map(task => task.id)).toEqual(['page-1', 'page-3'])
+    expect(tasks.tasksNotPlanned).toEqual([])
+    expect((tasks.tasks as Task[]).some(task => 'notPlanned' in task)).toBe(false)
+    expect(setCalls().filter(call => call !== 'set:board-store')).toEqual([])
+  })
+
+  it('keeps a stored not-planned marker across a restart, reads a malformed or stale one as planned, and writes nothing (#353)', async () => {
+    const open = { status: 0, completedAt: null, archivedAt: null }
+    const stored = {
+      'board-store': BOARD,
+      'tasks-store': storedTasksStore({
+        tasks: [
+          storedTask({ ...open, id: 'on', externalId: 'on' }),
+          storedTask({ ...open, id: 'off', externalId: 'off', notPlanned: true, timeSpentSeconds: 420, notes: 'kept' }),
+          storedTask({ ...open, id: 'bad-false', externalId: 'bad-false', notPlanned: false }),
+          storedTask({ ...open, id: 'bad-string', externalId: 'bad-string', notPlanned: 'true' }),
+          storedTask({ id: 'stale-done', externalId: 'stale-done', notPlanned: true }),
+        ],
+        pendingDeletes: {},
+      }),
+    }
+    const { tasks, setCalls } = await freshPinia(mode, stored)
+    expect(tasks.tasksNotPlanned.map(task => task.id)).toEqual(['off'])
+    expect(tasks.task('off')).toMatchObject({ timeSpentSeconds: 420, notes: 'kept', source: 'notion' })
+    expect(tasks.tasksOpen.map(task => task.id)).toEqual(['on', 'bad-false', 'bad-string'])
+    expect(tasks.tasksDone.map(task => task.id)).toEqual(['stale-done'])
+    expect(setCalls().filter(call => call !== 'set:board-store')).toEqual([])
+  })
+
   it('revives the completion records of the statistics store', async () => {
     const records = [{ taskId: 'page-1', title: 'A', completedAt: COMPLETED, timeBoxSeconds: null, actualTimeSpentSeconds: 5, estimationAccuracy: null, topic: null, topicColorCode: null, activity: null, isUnplanned: false }]
     const { statistics } = await freshPinia(mode, {

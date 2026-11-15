@@ -57,6 +57,7 @@
         "lib/doneDay.ts",
         "lib/priority.ts",
         "lib/taskSources.ts",
+        "lib/taskPlanning.ts",
         "utils/mapHelpers.ts",
         "types/taskStatus.ts"
       ],
