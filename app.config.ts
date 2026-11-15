@@ -215,8 +215,8 @@ export default defineAppConfig({
     contextMenu: {
       slots: {
         content: 'rounded-lg shadow-(--shadow-overlay)',
-        // 40 px rows, centred (#296); the hand cursor is explicit, the disabled row keeps Nuxt UI's `not-allowed`
-        item: 'min-h-10 items-center cursor-pointer'
+        // 40 px rows, centred (#296), at least 44 px below `md` (the phone floor, DESIGN.md "Space, size and shape", #342); the hand cursor is explicit, the disabled row keeps Nuxt UI's `not-allowed`
+        item: 'min-h-10 max-md:min-h-11 items-center cursor-pointer'
       },
       variants: {
         // The highlight and the open submenu's parent row take the paper tone of a row's hover (DESIGN.md "Fill on a
@@ -252,8 +252,8 @@ export default defineAppConfig({
       slots: {
         content: 'z-(--z-popover) min-w-40 rounded-lg shadow-(--shadow-overlay)',
         // A row is 32 px (`min-h-8`) whether or not it carries a 20 px icon: its height is explicit, not the 1.3 text line plus padding (kd#190).
-        // Below `md` it is at least 44 px (a floor: description rows reach 48 px), the phone floor of every control (DESIGN.md "Space, size and shape", #336); `items-center` keeps label, icon and check on the row's middle, Nuxt UI's `items-start` leaves them at the top
-        item: 'min-h-8 max-md:min-h-11 items-center text-sm cursor-pointer'
+        // Below `md` it is at least 44 px (a floor: description rows reach 48 px), the phone floor of every control (DESIGN.md "Space, size and shape", #336); `max-md:items-center` keeps label, icon and check on the row's middle in the taller row (Nuxt UI's `items-start` leaves them at the top); from `md` up the row is as tall as its content
+        item: 'min-h-8 max-md:min-h-11 max-md:items-center text-sm cursor-pointer'
       }
     },
     collapsible: {
@@ -291,8 +291,9 @@ export default defineAppConfig({
     select: {
       slots: {
         content: 'rounded-lg shadow-(--shadow-overlay)',
-        // The `lg` item (p-2, text-sm) is 16 + 18.2 = 34.2 px at 1.3; `min-h-9` keeps the 36 px row it had before kd#190
-        item: 'min-h-9',
+        // The `lg` item (p-2, text-sm) is 16 + 18.2 = 34.2 px at 1.3; `min-h-9` keeps the 36 px row it had before kd#190.
+        // Below `md` a row is at least 44 px, centred (the phone floor, #342)
+        item: 'min-h-9 max-md:min-h-11 max-md:items-center',
         base: [
           'h-(--field-h) disabled:cursor-not-allowed disabled:opacity-50'
         ]
@@ -304,8 +305,9 @@ export default defineAppConfig({
     selectMenu: {
       slots: {
         base: 'h-(--field-h) disabled:opacity-50',
-        // The picker's rows keep the `md` item (p-1.5, text-sm) that TaskPropertySelect documents; `lg` would add 2 px
-        item: 'min-h-8 p-1.5',
+        // The picker's rows keep the `md` item (p-1.5, text-sm) that TaskPropertySelect documents; `lg` would add 2 px.
+        // Below `md` a row is at least 44 px, centred (the phone floor, #342)
+        item: 'min-h-8 max-md:min-h-11 max-md:items-center p-1.5',
         content: 'z-(--z-popover) min-w-40 rounded-lg shadow-(--shadow-overlay)'
       },
       variants: {
