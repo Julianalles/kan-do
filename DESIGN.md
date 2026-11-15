@@ -125,7 +125,7 @@ Fraunces 500 (tracking -0.02em) is the display face, Figtree the face for everyt
 | Scale | Values |
 |---|---|
 | Spacing | the 4 px grid; 2 and 6 px are the only half steps |
-| Control height | 32 px regular (buttons, tabs, nav), 36 px for fields, selects, value rows, choice chips and the one main action of a surface; 44 px floor for every control on a phone (48 for the main action), the rows of dropdown, select, context and command-palette menus included (32, 36, 40 and 36 px from `md` up). Fields, value rows and chips take their height from the `--field-h` token (36 px, 44 px on a phone), explicit, never from the text line plus padding |
+| Control height | 32 px regular (buttons, tabs, nav), 36 px for fields, selects, value rows, choice chips and the one main action of a surface; 44 px floor for every control on a phone (48 for the main action), the rows of dropdown, select, context and command-palette menus included (32, 36, 40 and 36 px from `md` up; the palette has no tap entry on a phone, its floor applies when Cmd/Ctrl+K opens it in a window narrower than `md` and covers a later phone entry). Fields, value rows and chips take their height from the `--field-h` token (36 px, 44 px on a phone), explicit, never from the text line plus padding |
 | Radius | 8 px (badges, small controls), 12 px (buttons, fields), 16 px (every sheet), pill, circle |
 | Icon size | 12, 16, 20, 24 px (`lib/icons.ts`) |
 
