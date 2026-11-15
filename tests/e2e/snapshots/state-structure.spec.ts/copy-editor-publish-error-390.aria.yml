@@ -12,5 +12,5 @@
 - text: Not published, your edits are kept
 - paragraph: /the agent did not answer within \d+ s/
 - button "Translate 1 with the agent"
-- button "Push PR" [disabled]
+- button "Publish to main" [disabled]
 - paragraph: "Translate first: you review the drafts before anything is pushed."

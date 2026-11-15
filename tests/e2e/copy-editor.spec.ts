@@ -144,16 +144,24 @@ test.describe('Live copy editor', () => {
     await expect(dialog(page).getByRole('status')).toContainText('No key or text matches')
   })
 
-  test('Publish: the agent drafts the other language for review, then the PR is pushed', async ({ page }) => {
+  test('Publish: the agent drafts the other language for review, then the change lands on main (job with progress)', async ({ page }) => {
     const sent: { translate: unknown, publish: unknown } = { translate: null, publish: null }
     await page.route('**/api/dev/copy/translate', async (route) => {
       sent.translate = route.request().postDataJSON()
       await new Promise(resolve => setTimeout(resolve, 300))
       await route.fulfill({ json: { ok: true, drafts: { 'board.columns.open': { text: 'Still open', problems: [], warnings: [] } } } })
     })
+    const followUp = { rewritten: ['tests/e2e/smoke.spec.ts'], baselines: [], repairs: [{ round: 1, notes: 'updated a regex' }], repairedFiles: ['tests/e2e/smoke.spec.ts'], specs: ['smoke'], tier: 'targeted' }
+    const result = { ok: true, landed: 'main', commit: 'abcdef1234567', branch: null, prUrl: null, note: null, edits: 1, files: 3, warnings: [], followUp, failure: null }
+    let polls = 0
     await page.route('**/api/dev/copy/publish', async (route) => {
       sent.publish = route.request().postDataJSON()
-      await route.fulfill({ json: { ok: true, branch: 'copy/20260101-000000-board', prUrl: 'https://github.com/o/r/pull/9', note: null, edits: 1, files: 2, warnings: [] } })
+      await route.fulfill({ status: 202, json: { ok: true, jobId: 'job-1' } })
+    })
+    // the first poll shows the running stage, the next one the result
+    await page.route('**/api/dev/copy/publish-status', async (route) => {
+      polls++
+      await route.fulfill({ json: { ok: true, job: polls === 1 ? { id: 'job-1', state: 'running', stage: 'specs', notes: ['specs: smoke'], result: null } : { id: 'job-1', state: 'done', stage: 'push', notes: [], result } } })
     })
 
     await enterMode(page)
@@ -172,14 +180,17 @@ test.describe('Live copy editor', () => {
     expect(sent.publish).toBeNull()
 
     await page.getByTestId('copy-editor-push').click()
-    await expect(page.getByTestId('copy-editor-done')).toContainText('https://github.com/o/r/pull/9')
+    await expect(page.getByTestId('copy-editor-progress')).toContainText('running the E2E specs')
+    await expect(page.getByTestId('copy-editor-done')).toContainText('Published 1 edit on main (abcdef1)')
+    await expect(page.getByTestId('copy-editor-done')).toContainText('Agent repair, round 1: updated a regex')
     expect(sent.publish).toEqual({ edits: [{ key: 'board.columns.open', de: 'Noch offen', en: 'Still open', changed: ['de', 'en'] }] })
     await expect(view.getByTestId('copy-editor-clear-published')).toBeVisible()
   })
 
-  test('Publish failures keep the edits: translation failed, then writing the other language myself, then a failed push', async ({ page }) => {
+  test('Publish failures keep the edits: translation failed, then writing the other language myself, then a failed publish', async ({ page }) => {
     await page.route('**/api/dev/copy/translate', route => route.fulfill({ status: 502, json: { ok: false, errors: ['the agent command failed (1): not logged in'] } }))
-    await page.route('**/api/dev/copy/publish', route => route.fulfill({ status: 502, json: { ok: false, step: 'check', errors: ['npm run i18n:check failed', 'FAIL terminology'] } }))
+    await page.route('**/api/dev/copy/publish', route => route.fulfill({ status: 202, json: { ok: true, jobId: 'job-2' } }))
+    await page.route('**/api/dev/copy/publish-status', route => route.fulfill({ json: { ok: true, job: { id: 'job-2', state: 'done', stage: 'check', notes: [], result: { ok: false, step: 'check', errors: ['npm run i18n:check failed', 'FAIL terminology'] } } } }))
 
     await enterMode(page)
     await pickOffen(page)
@@ -200,6 +211,29 @@ test.describe('Live copy editor', () => {
     await expect(page.getByTestId('copy-editor-error')).toContainText('Publish stopped at "check"')
     await expect(page.getByTestId('copy-editor-error')).toContainText('FAIL terminology')
     await expect(page.getByTestId('copy-editor-count')).toContainText('1 edit')
+  })
+
+  test('Publish that cannot land on main ends as a PR with the failed step named, and keeps the edits', async ({ page }) => {
+    const followUp = { rewritten: [], baselines: [], repairs: [], repairedFiles: [], specs: ['smoke'], tier: 'targeted' }
+    const result = { ok: true, landed: 'branch', commit: 'abcdef1234567', branch: 'copy/20260101-000000-board', prUrl: 'https://github.com/o/r/pull/9', note: null, edits: 1, files: 3, warnings: [], followUp, failure: { stage: 'repair', errors: ['needs the owner: asserts no Todoist on the start view'] } }
+    await page.route('**/api/dev/copy/publish', route => route.fulfill({ status: 202, json: { ok: true, jobId: 'job-3' } }))
+    await page.route('**/api/dev/copy/publish-status', route => route.fulfill({ json: { ok: true, job: { id: 'job-3', state: 'done', stage: 'repair', notes: [], result } } }))
+
+    await enterMode(page)
+    await pickOffen(page)
+    await page.getByTestId('copy-editor-text').fill('Noch offen')
+    await page.getByTestId('copy-editor-save').click()
+    await page.getByTestId('copy-editor-tab-publish').click()
+    await page.getByRole('button', { name: 'Edit', exact: true }).first().click()
+    await page.getByTestId('copy-editor-write-other').click()
+    await page.getByTestId('copy-editor-other-text').fill('Still open')
+    await page.getByTestId('copy-editor-save').click()
+    await page.getByTestId('copy-editor-tab-publish').click()
+    await page.getByTestId('copy-editor-push').click()
+    const done = page.getByTestId('copy-editor-done')
+    await expect(done).toContainText('Not on main: the "repair" step failed')
+    await expect(done).toContainText('https://github.com/o/r/pull/9')
+    await expect(done).toContainText('needs the owner: asserts no Todoist')
   })
 
   test('at 390px the bar wraps, the dialog fits and nothing scrolls sideways', async ({ page }) => {

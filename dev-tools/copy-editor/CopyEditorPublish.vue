@@ -1,8 +1,10 @@
 <!--
 @component CopyEditorPublish
 @description The Publish review of the live copy editor (#59, dev only): every collected edit with before and after
-in both languages, the agent drafts marked, then two explicit steps: translate the agent languages, push a PR.
-Loading (translation or push running), error (kept edits, step named) and done (PR link) states are shown here.
+in both languages, the agent drafts marked, then two explicit steps: translate the agent languages, publish. Publish
+(#340) lands the change on main with its tests; the running stage is shown while it works (minutes). Loading (translation or
+publish running, with the stage), error (kept edits, step named), done on main (commit) and done on a `copy/...` PR (the
+failed step named) states are shown here.
 @usage Right pane of CopyEditorDialog in its "publish" view.
 @responsibility Present edits and drive `publish.ts`. Never pushes before the drafts have been shown.
 -->
@@ -37,20 +39,37 @@ Loading (translation or push running), error (kept edits, step named) and done (
       </template>
     </UAlert>
 
-    <UAlert v-if="result" color="success" variant="subtle" :ui="{ root: 'text-success-800', description: 'opacity-100' }" icon="i-ph-check-circle" :title="`Published ${result.edits} ${result.edits === 1 ? 'edit' : 'edits'} on ${result.branch}`" data-testid="copy-editor-done">
+    <UAlert v-if="result && result.landed === 'main'" color="success" variant="subtle" :ui="{ root: 'text-success-800', description: 'opacity-100' }" icon="i-ph-check-circle" :title="`Published ${result.edits} ${result.edits === 1 ? 'edit' : 'edits'} on main (${result.commit?.slice(0, 7)})`" data-testid="copy-editor-done">
       <template #description>
-        <a v-if="result.prUrl" :href="result.prUrl" target="_blank" rel="noopener" class="underline">{{ result.prUrl }}</a>
-        <p v-if="result.note">{{ result.note }}</p>
+        <p>{{ result.files }} files in the commit; the tests follow the new copy.</p>
+        <p v-if="result.followUp.rewritten.length">{{ result.followUp.rewritten.length }} tests and snapshots rewritten.</p>
+        <p v-if="result.followUp.baselines.length">{{ result.followUp.baselines.length }} baselines re-recorded.</p>
+        <p v-for="repair in result.followUp.repairs" :key="repair.round">Agent repair, round {{ repair.round }}: {{ repair.notes }}</p>
         <p v-for="warning in result.warnings" :key="warning">{{ warning }}</p>
       </template>
     </UAlert>
+
+    <UAlert v-else-if="result" color="warning" variant="subtle" :ui="{ root: 'text-warning-800', description: 'opacity-100' }" icon="i-ph-git-pull-request" :title="`Not on main: the &quot;${result.failure?.stage}&quot; step failed, a PR waits for you`" data-testid="copy-editor-done">
+      <template #description>
+        <a v-if="result.prUrl" :href="result.prUrl" target="_blank" rel="noopener" class="underline">{{ result.prUrl }}</a>
+        <p v-else>Branch {{ result.branch }}</p>
+        <p v-if="result.note">{{ result.note }}</p>
+        <p v-for="line in result.failure?.errors ?? []" :key="line" class="whitespace-pre-wrap">{{ line }}</p>
+        <p v-for="warning in result.warnings" :key="warning">{{ warning }}</p>
+      </template>
+    </UAlert>
+
+    <div v-if="phase === 'publishing'" class="rounded-lg border border-default p-3 text-sm" role="status" data-testid="copy-editor-progress">
+      <p>Publishing: {{ progress.stage ? STAGE_LABEL[progress.stage] ?? progress.stage : 'starting' }}…</p>
+      <p v-for="line in progress.notes" :key="line" class="text-muted">{{ line }}</p>
+    </div>
 
     <div v-if="pendingEdits.length" class="flex flex-wrap items-center gap-2">
       <UButton v-if="needsTranslation.length" color="neutral" :loading="phase === 'translating'" :disabled="phase !== 'idle'" icon="i-ph-translate" data-testid="copy-editor-translate" @click="translateDrafts">
         {{ phase === 'translating' ? 'Agent is translating…' : `Translate ${needsTranslation.length} with the agent` }}
       </UButton>
-      <UButton color="primary" :loading="phase === 'publishing'" :disabled="phase !== 'idle' || needsTranslation.length > 0" icon="i-ph-git-pull-request" data-testid="copy-editor-push" @click="pushPullRequest">
-        {{ phase === 'publishing' ? 'Checking and pushing…' : 'Push PR' }}
+      <UButton color="primary" :loading="phase === 'publishing'" :disabled="phase !== 'idle' || needsTranslation.length > 0" icon="i-ph-rocket-launch" data-testid="copy-editor-push" @click="publishEdits">
+        {{ phase === 'publishing' ? 'Publishing…' : 'Publish to main' }}
       </UButton>
       <p v-if="needsTranslation.length" class="text-sm text-muted">Translate first: you review the drafts before anything is pushed.</p>
     </div>
@@ -64,10 +83,20 @@ Loading (translation or push running), error (kept edits, step named) and done (
 
 <script setup lang="ts">
 import { baseValue, clearPublished, needsTranslation, openEditor, pendingEdits, publishedEdits, type Lang } from './edits'
-import { errors, phase, pushPullRequest, result, translateDrafts } from './publish'
+import { errors, phase, progress, publishEdits, result, translateDrafts } from './publish'
 
 defineOptions({ name: 'CopyEditorPublish' })
 
 const LANGS: Lang[] = ['de', 'en']
 const LOCALE_FILES = 'de.json, en.json'
+const STAGE_LABEL: Record<string, string> = {
+  prepare: 'preparing a clean copy of main',
+  check: 'checking the locale files',
+  rewrite: 'updating the tests to the new copy',
+  verify: 'running lint, types and unit tests',
+  specs: 'building the app and running the E2E specs',
+  baselines: 'recording the changed baselines',
+  repair: 'the agent is repairing tests',
+  push: 'pushing to main',
+}
 </script>
