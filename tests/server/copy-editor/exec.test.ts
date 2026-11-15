@@ -16,4 +16,15 @@ describe('copy editor exec', () => {
     expect(result.timedOut).toBe(true)
     expect(Date.now() - started).toBeLessThan(3000)
   })
+
+  it('kills the whole process group on timeout, so a grandchild (the server, the browsers, the agent) does not outlive its job', async () => {
+    const result = await run('sh', ['-c', 'sleep 30 & echo $!; wait'], { timeoutMs: 700 })
+    expect(result.timedOut).toBe(true)
+    const grandchild = Number(result.stdout.trim())
+    expect(grandchild).toBeGreaterThan(1)
+    const alive = () => { try { process.kill(grandchild, 0); return true } catch { return false } }
+    const deadline = Date.now() + 3000
+    while (alive() && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 50))
+    expect(alive()).toBe(false)
+  })
 })

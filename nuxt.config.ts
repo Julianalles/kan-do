@@ -211,6 +211,7 @@ export default defineNuxtConfig({
         handlers: [
           { route: '/api/dev/copy/translate', method: 'post', handler: fileURLToPath(new URL('./server/copy-editor/translate.post.ts', import.meta.url)) },
           { route: '/api/dev/copy/publish', method: 'post', handler: fileURLToPath(new URL('./server/copy-editor/publish.post.ts', import.meta.url)) },
+          { route: '/api/dev/copy/publish-status', method: 'post', handler: fileURLToPath(new URL('./server/copy-editor/publish-status.post.ts', import.meta.url)) },
         ],
       } as Record<string, unknown>
     : {
