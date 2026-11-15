@@ -251,8 +251,9 @@ export default defineAppConfig({
     dropdownMenu: {
       slots: {
         content: 'z-(--z-popover) min-w-40 rounded-lg shadow-(--shadow-overlay)',
-        // A row is 32 px (`min-h-8`) whether or not it carries a 20 px icon: its height is explicit, not the 1.3 text line plus padding (kd#190)
-        item: 'min-h-8 text-sm cursor-pointer'
+        // A row is 32 px (`min-h-8`) whether or not it carries a 20 px icon: its height is explicit, not the 1.3 text line plus padding (kd#190).
+        // Below `md` it is at least 44 px (a floor: description rows reach 48 px), the phone floor of every control (DESIGN.md "Space, size and shape", #336); `items-center` keeps label, icon and check on the row's middle, Nuxt UI's `items-start` leaves them at the top
+        item: 'min-h-8 max-md:min-h-11 items-center text-sm cursor-pointer'
       }
     },
     collapsible: {
