@@ -7,8 +7,8 @@ import type { RouterConfig } from '@nuxt/schema'
 // Store scroll position when navigating away from board to task detail
 let boardScrollPosition = { left: 0, top: 0 };
 
-/** Pages that host the task sheet as a child route (`/tasks/:id`, `/statistics/:id`). */
-const SHEET_HOSTS = ['/tasks', '/statistics'];
+/** Pages that host the task sheet as a child route (`/tasks/:id`, `/all/:id` for the board's planning side (#354), `/statistics/:id`). */
+const SHEET_HOSTS = ['/tasks', '/all', '/statistics'];
 
 /** The sheet host of a path, when the path is the host page or one of its child routes. */
 const sheetHostOf = (path: string) => SHEET_HOSTS.find(host => path === host || path.startsWith(`${host}/`));

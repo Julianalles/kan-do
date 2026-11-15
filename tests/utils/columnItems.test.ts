@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { TaskStatus } from '~/types/taskStatus'
 import type { Task } from '~/types/task'
-import { buildColumnItems, withCapacityItem, groupKeyOfHeaderKey, isStackHeaderKey, orderGaps, stackHeaderKey } from '~/utils/columnItems'
+import { buildColumnItems, capacityLineState, withCapacityItem, groupKeyOfHeaderKey, isStackHeaderKey, orderGaps, stackHeaderKey } from '~/utils/columnItems'
 import { getRenderedTaskOrder, groupTasksByKey } from '~/utils/taskGrouping'
 
 const task = (id: string, topic: string | null): Task =>
@@ -296,5 +296,25 @@ describe('withCapacityItem (#132)', () => {
     const base = build([])
     expect(withCapacityItem(base, null)).toBe(base)
     expect(withCapacityItem(base, 'gone')).toBe(base)
+  })
+})
+
+describe('capacityLineState (#354: what the echo on "Alle" reads from the Offen column)', () => {
+  it('a list without the divider is not full', () => {
+    expect(capacityLineState(build([]))).toEqual({ full: false, below: 0 })
+  })
+
+  it('counts the tasks behind the divider: a card is one, a collapsed stack its members, a header row none', () => {
+    // collapsed: [u1, Design(3), b1, Ops(2)] -> line behind u1: 3 + 1 + 2 below
+    const collapsed = build([])
+    expect(capacityLineState(withCapacityItem(collapsed, collapsed[0]!.key))).toEqual({ full: true, below: 6 })
+    // Design expanded: a header row and three cards instead of the stack: still six tasks
+    const expanded = build(['Design'])
+    expect(capacityLineState(withCapacityItem(expanded, expanded[0]!.key))).toEqual({ full: true, below: 6 })
+  })
+
+  it('the divider behind the last item is full with nothing below', () => {
+    const items = build([])
+    expect(capacityLineState(withCapacityItem(items, items.at(-1)!.key))).toEqual({ full: true, below: 0 })
   })
 })

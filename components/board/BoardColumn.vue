@@ -147,6 +147,8 @@ import type { ColumnItem } from "~/types/columnItem";
 import type { SortField, SortDirection } from "~/types/state";
 import { buildColumnItems, withCapacityItem } from "~/utils/columnItems";
 import { useDayCapacity } from "~/composables/useDayCapacity";
+import { useOpenCapacityLine } from "~/composables/useOpenCapacityLine";
+import { useBoardPlace } from "~/composables/useBoardPlace";
 import {
   getGroupLabel,
   getStackKeys,
@@ -168,6 +170,7 @@ const { t } = useI18n();
 const tasksStore = useTasksStore();
 const boardStore = useBoardStore();
 const { dragState } = useBoardDragState();
+const { basePath } = useBoardPlace();
 
 const isHovering = ref(false);
 const isSortingOpen = ref(false);
@@ -432,6 +435,13 @@ const closeStacks = (keys: string[], restoreFocus: boolean) => {
  */
 const closeStack = (groupKey: string, source: "pointer" | "keyboard") => closeStacks([groupKey], source === "keyboard");
 
+// The live Offen column says where its line sits, for the echo on "Alle" (#354)
+const { publish: publishCapacityLine } = useOpenCapacityLine();
+watch(columnItems, (items) => {
+  if (isOpenColumn.value && !props.staticMode) publishCapacityLine(items);
+}, { immediate: true });
+// (after `groupLabel`: the first run builds the items, which name their groups)
+
 const featureFlags = useFeatureFlags();
 
 /**
@@ -504,7 +514,8 @@ const openTask = (id: string) => {
   if (props.staticMode) {
     return;
   }
-  navigateTo({ path: `/tasks/${id}` });
+  // Under the place that shows (#354): a sheet opened on "Alle" closes back to "Alle"
+  navigateTo({ path: `${basePath.value}/${id}` });
 };
 
 /**

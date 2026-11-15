@@ -19,6 +19,9 @@ is wrapped in this component so it can be dragged and sorted within/across colum
   wired by aria-describedby (#154). The accessible name stays the task title.
 - Mark a member of an expanded stack with data-from-stack="<group key>" (#147): a click on it is not
   an outside click for the column's expanded stacks
+- "Nicht heute" (#354): on the place "Alle" an Offen card carries a round arrow button on the paper left of it (desktop
+  only, shown on hover and keyboard focus, named with the task's title); it takes the card off today's board through
+  `usePlanMoves().notToday`. Its click and keys stay out of the card's own handlers and the drag
 -->
 <script setup lang="ts">
 import { ref, computed, useId } from 'vue'
@@ -29,7 +32,11 @@ import { useDropMotionClasses } from '~/composables/useDropMotion'
 import { useTaskDeletion } from '~/composables/useTaskDeletion'
 import { findCardElement, neighbourCardId } from '~/utils/neighbourCard'
 import { focusFirstAvailable } from '~/utils/focusRecovery'
-import type { TaskStatus } from '~/types/taskStatus'
+import { TaskStatus } from '~/types/taskStatus'
+import { useBoardPlace } from '~/composables/useBoardPlace'
+import { usePlanMoves } from '~/composables/usePlanMoves'
+import { useIsPhone } from '~/composables/useIsDesktop'
+import { ICONS } from '~/lib/icons'
 
 defineOptions({ name: 'SortableTaskWrapper' })
 
@@ -86,6 +93,20 @@ function openDetails(event: KeyboardEvent) {
 
 const { deleteTaskWithUndo } = useTaskDeletion()
 
+// "Nicht heute" (#354): only an Offen card on the place "Alle", and never on a phone (no paper beside the card there)
+const { isAll } = useBoardPlace()
+const { notToday } = usePlanMoves()
+const isPhone = useIsPhone()
+const showNotToday = computed(() => isAll.value && props.taskStatus === TaskStatus.Open && !isPhone.value)
+
+/** Takes the card off today's board. A keyboard user's focus was on the arrow that leaves with it: it goes to the neighbour card. */
+async function putBack(event: MouseEvent) {
+  const hadFocus = document.activeElement === event.currentTarget
+  const neighbour = neighbourCardId(props.taskId)
+  if (!(await notToday(props.taskId)) || !hadFocus) return
+  if (neighbour) focusFirstAvailable([() => findCardElement(neighbour)])
+}
+
 /**
  * Delete (and Backspace, the Mac "delete" key) deletes the focused card (#579). `.self` on the listener keeps a key
  * pressed in a control inside the card out. A held key would delete the neighbour focus just moved to, so repeats are
@@ -120,6 +141,50 @@ function deleteFocusedCard(event: KeyboardEvent) {
     @keydown.delete.self="deleteFocusedCard"
   >
     <slot />
+    <!-- "Nicht heute" (#354): on "Alle" an Offen card has the mirrored arrow on the paper left of it, towards "Nicht
+         geplant". Desktop only; on a phone the card menu does it -->
+    <UTooltip v-if="showNotToday" :text="t('board.notPlanned.notToday')">
+      <UButton
+        class="plan-arrow task-wrapper__not-today"
+        color="neutral"
+        variant="ghost"
+        square
+        :icon="ICONS.stepBack"
+        :aria-label="t('board.notPlanned.notTodayNamed', { title: task?.title ?? '' })"
+        data-testid="not-today-arrow"
+        @pointerdown.stop
+        @click.stop="putBack"
+        @keydown.stop
+      />
+    </UTooltip>
     <span v-if="positionText" :id="positionId" hidden>{{ positionText }}</span>
   </div>
 </template>
+
+<style scoped>
+/* "Nicht heute" (#354): on the paper left of the card, towards "Nicht geplant"; the wrapper spans the list's width and
+   the card is centred in it. Shown under the pointer and on keyboard focus (the pick arrow on the other side is the
+   one a first-time user must find; Offen stays as calm as on Heute). */
+.task-wrapper {
+  position: relative;
+}
+
+.task-wrapper__not-today {
+  position: absolute;
+  top: 50%;
+  right: calc(50% + min(var(--task-card-width), 100%) / 2 + 0.375rem);
+  translate: 0 -50%;
+  opacity: 0;
+}
+
+.task-wrapper:hover > .task-wrapper__not-today,
+.task-wrapper:focus-visible > .task-wrapper__not-today,
+.task-wrapper__not-today:focus-visible {
+  opacity: 1;
+}
+
+/* A dragged card and its placeholder carry no arrow */
+.task-wrapper.kando-dnd-dragged > .task-wrapper__not-today {
+  display: none;
+}
+</style>

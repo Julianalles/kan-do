@@ -13,6 +13,10 @@ vi.mock('nuxt/app', () => ({
 
 describe('placeOfPath: route -> place', () => {
   it.each([
+    ['/all', 'all'], // the planning side of the board page (#354)
+    ['/all/x', 'all'],
+    ['/all/add', 'all'],
+    ['/allx', null],
     ['/tasks', 'board'],
     ['/tasks/add', 'board'],
     ['/tasks/x', 'board'],

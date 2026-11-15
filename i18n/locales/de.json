@@ -140,6 +140,22 @@
       "pillLead": "Fokus:",
       "hidden": "{n} ausgeblendet",
       "end": "Fokus beenden"
+    },
+    "notPlanned": {
+      "title": "Nicht geplant",
+      "plan": "Für heute einplanen",
+      "planNamed": "{title}: für heute einplanen",
+      "notToday": "Nicht heute",
+      "notTodayNamed": "{title}: nicht heute",
+      "continue": "Weiter zu Heute",
+      "continueCount": "Weiter zu Heute · {n}",
+      "empty": "Noch keine weiteren Aufgaben. Alles ist für heute geplant.",
+      "emptyHow": "Mit „Nicht heute“ im Menü einer Karte in Offen legst du eine Aufgabe hierher zurück.",
+      "noMatch": "Keine Aufgaben gefunden.",
+      "planned": "{title} ist für heute geplant.",
+      "unplanned": "{title} ist nicht mehr für heute geplant.",
+      "capacityFull": "Damit ist dein Tag vermutlich voll.",
+      "capacityBelow": "Dein Tag ist vermutlich voll. Eine Aufgabe liegt unter der Linie. | Dein Tag ist vermutlich voll. {n} Aufgaben liegen unter der Linie."
     }
   },
   "nav": {
@@ -158,7 +174,8 @@
     "settings": "Einstellungen",
     "appUpdate": "App-Update",
     "syncNow": "Jetzt synchronisieren",
-    "syncing": "Wird synchronisiert…"
+    "syncing": "Wird synchronisiert…",
+    "all": "Alle"
   },
   "menu": {
     "app": "Kan-Do",
@@ -305,7 +322,8 @@
         "progress": "Jetzt",
         "waiting": "Warten",
         "done": "Erledigt"
-      }
+      },
+      "notToday": "Nicht heute"
     },
     "carryOver": {
       "label": "Tag {n} auf dem Board",
@@ -1303,7 +1321,8 @@
     "checkForUpdates": "Nach Updates suchen",
     "openUpdates": "Version & Updates",
     "sendFeedback": "Feedback senden",
-    "openWhatsNew": "Was ist neu"
+    "openWhatsNew": "Was ist neu",
+    "openAll": "Alle öffnen"
   },
   "recap": {
     "title": "Kurzer Rückblick",

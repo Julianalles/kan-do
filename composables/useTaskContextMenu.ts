@@ -17,6 +17,8 @@ import { useTaskSync } from "~/composables/useTaskSync";
 import { useErrorHandler } from "~/composables/useErrorHandler";
 import { useTaskDeletion } from "~/composables/useTaskDeletion";
 import { useTaskMoveTargets } from "~/composables/useTaskMoveTargets";
+import { boardBasePath } from "~/composables/useBoardPlace";
+import { usePlanMoves } from "~/composables/usePlanMoves";
 import { PRIORITY_OPTIONS, STATUS_OPTIONS, TIMEBOX_PRESETS } from "~/utils/taskMenuOptions";
 
 export interface UseTaskContextMenuOptions {
@@ -42,12 +44,13 @@ export const useTaskContextMenu = (
   const { createTask } = useTaskSync();
   const { handleError } = useErrorHandler();
   const toast = useToast();
+  const { notToday } = usePlanMoves();
 
   /**
    * Opens task details page
    */
   const openDetails = () => {
-    navigateTo(`/tasks/${task.value.id}`);
+    navigateTo(`${boardBasePath()}/${task.value.id}`);
   };
 
   /**
@@ -132,7 +135,7 @@ export const useTaskContextMenu = (
         label: t('board.quickAdd.details'),
         color: 'neutral',
         variant: 'soft',
-        onClick: () => void navigateTo(`/tasks/${created.id}`),
+        onClick: () => void navigateTo(`${boardBasePath()}/${created.id}`),
       }],
     });
   };
@@ -159,6 +162,12 @@ export const useTaskContextMenu = (
         onSelect: () => changeStatus(TaskStatus.Done),
       },
     ];
+
+    // "Nicht heute" (#354): an Offen card can leave today's board for "Nicht geplant" (on both places: Offen is the
+    // same column). Nothing is deleted and nothing is written to the task's source.
+    if (currentTask.status === TaskStatus.Open) {
+      quickGroup.push({ label: t('task.contextMenu.notToday'), onSelect: () => void notToday(currentTask.id) });
+    }
 
     // Group 1: Open details
     const detailsGroup: ContextMenuItem[] = [

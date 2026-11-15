@@ -17,6 +17,7 @@ import { useAppUpdater } from '~/composables/useAppUpdater'
 import { useDayClose } from '~/composables/useDayClose'
 import { useFeedback } from '~/composables/useFeedback'
 import { useWhatsNew } from '~/composables/useWhatsNew'
+import { todayLocation } from '~/composables/useBoardPlace'
 
 export function useNativeMenu(): void {
   if (!isTauri()) return
@@ -29,6 +30,7 @@ export function useNativeMenu(): void {
 
   const handlers = menuActionHandlers({
     navigate: path => navigateTo(path),
+    goToday: () => navigateTo(todayLocation()),
     afterRender: () => nextTick(),
     checkForUpdates: () => appUpdater.checkManually(),
     openDayClose: dayClose.open,

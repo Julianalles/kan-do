@@ -2,11 +2,11 @@
 @component BoardPageDots
 @kind primitive
 @category navigation
-@description Phone page indicator: three dots above the column title, the active one a stretched pill
+@description Phone page indicator: one dot per column page above the column title (three on Heute, two on "Alle", #354), the active one a stretched pill
 @usage Rendered once by Board.vue beside .board (so it does not slide with the pages)
-@avoid Phone only, for the three board pages; not a tab bar or pagination on desktop.
+@avoid Phone only, for the board's column pages; not a tab bar or pagination on desktop.
 @responsibility
-- Says that three pages exist (Offen, Jetzt + Wartet, Erledigt) and which one is showing (kd#26)
+- Says how many pages the place has (Heute: Offen, Jetzt + Wartet, Erledigt; "Alle": "Nicht geplant", Offen; `count`) and which one is showing (kd#26)
 - Follows a live swipe: the pill stretches from one dot to the next with the finger, then settles on the board's own timing
 - Pure indicator: not focusable, not tappable (`pointer-events: none`, `aria-hidden`), so it is no tab bar (#470, ADR 017); the page is
   already exposed by the column headings and `data-mobile-page`, a hidden "page 2 of 3" would say it twice
@@ -17,7 +17,7 @@ Accepted trade-off: dots 6 px (`--page-dot`), active pill 20 px; colours `--ui-b
 <template>
   <div class="page-dots" :class="{ 'page-dots--live': live }" aria-hidden="true" data-testid="page-dots">
     <span
-      v-for="i in PAGE_DOT_COUNT"
+      v-for="i in count"
       :key="i"
       class="page-dot"
       :data-active="i - 1 === page ? '' : undefined"
@@ -32,17 +32,19 @@ import { PAGE_DOT_COUNT, dotWeight, pageProgress } from "~/lib/pageDots";
 
 defineOptions({ name: "BoardPageDots" });
 
-const props = defineProps<{
-  /** Settled page index (0..2) */
+const props = withDefaults(defineProps<{
+  /** Settled page index within the place (0..count-1) */
   page: number;
   /** Live finger offset in px while a swipe is under way */
   offsetPx: number;
   /** True while the finger is down on a swipe: the pill tracks it with no transition */
   live: boolean;
-}>();
+  /** Pages of the place that shows (#354): three on Heute, two on "Alle" */
+  count?: number;
+}>(), { count: PAGE_DOT_COUNT });
 
 const progress = computed(() =>
-  pageProgress(props.page, props.offsetPx, import.meta.client ? window.innerWidth : 0),
+  pageProgress(props.page, props.offsetPx, import.meta.client ? window.innerWidth : 0, props.count),
 );
 </script>
 

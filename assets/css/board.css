@@ -1,5 +1,6 @@
 /**
- * Board layout: desktop 3-column grid, mobile 300% transform layout, column placement, task list,
+ * Board layout: one strip for the two places "Alle" and "Heute" (#354; desktop: five column tracks with three in
+ * view, mobile: four pages moved by a transform), column placement, task list,
  * drag-time header states and z-index stacking. Selectors target .board / #column-* markup from
  * Board.vue and BoardColumn.vue, so this stays global (scoped styles would not reach nested
  * component roots). Imported by main.css; components layer (#43).
@@ -37,9 +38,17 @@
     min-height: calc(100dvh - var(--app-bar-offset-top));
     width: 100%;
     display: grid;
-    /* Tracks cap at --board-column-max and the group centres (#122); minmax(0) lets columns shrink under 200% text (#66) */
-    grid-template-columns: repeat(3, minmax(0, var(--board-column-max)));
-    justify-content: center;
+    /* One strip for both places (#354): "Nicht geplant" (two tracks), Offen, Jetzt + Wartet, Erledigt. Three tracks
+       are in view: "Alle" shows the first three, "Heute" the last three, so Offen is the same column in both. A track
+       caps at --board-column-max (#122) and is a third of the board below that (it shrinks under 200% text, #66).
+       The three tracks in view are centred by the strip's margin (below), not by justify-content. */
+    --strip-track: min(var(--board-column-max), 100% / 3);
+    --strip-inset: calc((100% - 3 * var(--strip-track)) / 2);
+    grid-template-columns: repeat(5, var(--strip-track));
+    justify-content: start;
+    /* Heute: "Nicht geplant" lies two tracks off to the left. A margin, not a transform: the Jetzt focus overlay is
+       position: fixed inside the board. The way between the places is a transform animation on top (Board.vue). */
+    margin-left: calc(var(--strip-inset) - 2 * var(--strip-track));
     grid-template-rows: 1fr;   /* Single row; Progress/Waiting split handled by column-group-mid flex */
     overflow: visible; /* Allow drag shadows to extend beyond grid bounds */
   }
@@ -49,19 +58,48 @@
   @media (--desktop) {
     :where(.board) {
       padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
-      /* The completion burst (#692) flies up to ~310 px sideways past a card; in the right-hand column at the narrowest
-         desktop width that grew the page sideways (a scrollbar while it plays). Clip the x axis at the board edge, like
-         .board-container does on mobile; y stays visible (a drag shadow below the last card, and the burst never grew
-         the page vertically). The cards sit 2.5rem inside the columns, so no shadow reaches the clipped edge. */
+    }
+
+    :where(.board)[data-place='all'] {
+      margin-left: var(--strip-inset);
+    }
+
+    /* The completion burst (#692) flies up to ~310 px sideways past a card; in the right-hand column at the narrowest
+       desktop width that grew the page sideways (a scrollbar while it plays). Clip the x axis at the page edge, like
+       on mobile; y stays visible (a drag shadow below the last card, and the burst never grew the page vertically).
+       The cards sit 2.5rem inside the columns, so no shadow reaches the clipped edge. The container clips, not the
+       board (#354): the strip is wider than the page and moves, so its own box cannot be the clip edge. `clip` makes
+       no scroll container, so the sticky footers and the sticky "Nicht geplant" side keep the window as their port. */
+    .board-container {
       overflow-x: clip;
+    }
+
+    /* "Weiter zu Heute" keeps its place at the foot of Offen, like "Tag abschließen" at the foot of Erledigt */
+    #column-open > .column-footer {
+      margin-top: auto;
+    }
+  }
+
+  /* The move between the places (#354, #334 D8): the app bar's own time and curve (--nav-move, --nav-ease in
+     app-nav.css), so the chip in the bar and the board arrive together. Read by Board.vue; 0ms = no motion. */
+  .board-container {
+    --place-move: 420ms;
+    --place-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .board-container {
+      --place-move: 0ms;
     }
   }
 
   /* ── Mobile: transform-based single-column navigation ── */
   /*
-   * The board is three container widths wide. .board-container clips it to its own width with
+   * The board is three container widths wide (Offen, Jetzt + Wartet, Erledigt), and the "Nicht geplant" page of the
+   * place "Alle" (#354) hangs one container width left of it, outside the board's box, so Heute's pages and their
+   * transforms are what they were. .board-container clips it to its own width with
    * overflow: clip. Vue drives translateX(n * -100% / 3) to show the
-   * active column — no scroll container / scrollTo() needed at all.
+   * active column (n = -1 for "Nicht geplant") — no scroll container / scrollTo() needed at all.
    * Widths are percentages of the layout, never 100vw (#269): 100vw includes the 15 px a classic
    * scroll bar's gutter takes from the layout (html.kando-classic-scrollbar), so a 100vw board overflowed the
    * document sideways and a focus or click scrolled the whole page by the bar's width.
@@ -92,7 +130,8 @@
       display: flex;
       flex-direction: row;
       justify-content: flex-start; /* undo the desktop centring (#122) */
-      width: 300%;            /* 3 column-pages side-by-side */
+      width: 300%;            /* 3 column-pages side-by-side; "Nicht geplant" hangs left of them (below) */
+      margin-left: 0;         /* the desktop strip offset; here the transform places the strip */
       overflow: visible;      /* clipping is handled by .board-container */
       min-height: 100svh;
       /* Smooth column-switch animation driven by the Vue-managed transform */
@@ -111,6 +150,12 @@
       transition: none;
     }
 
+    /* A change of place (#354) travels in one move on the app bar's time and curve, however many pages lie between;
+       a swipe inside the place keeps its 320ms. Never while a finger or a drag owns the transform. */
+    :where(.board)[data-place-moving]:not(.swiping, .dragging) {
+      transition: transform var(--place-move) var(--place-ease);
+    }
+
     /* Reduced motion: column switch is instant, nothing stays promoted */
     @media (prefers-reduced-motion: reduce) {
       :where(.board) {
@@ -120,13 +165,23 @@
     }
 
     /* A classic bar (narrow desktop window) must not shift the cards when a page starts to scroll (#669, utilities.css) */
+    html.kando-classic-scrollbar :where(.board) > #column-not-planned,
     html.kando-classic-scrollbar :where(.board) > #column-open,
     html.kando-classic-scrollbar :where(.board) > .column-group-mid,
     html.kando-classic-scrollbar :where(.board) > #column-done {
       scrollbar-gutter: stable;
     }
 
+    /* "Nicht geplant" (#354): one page left of Offen, out of the flex row (its right edge on the board's left edge) */
+    :where(.board) > #column-not-planned {
+      position: absolute;
+      top: 0;
+      right: 100%;
+      width: calc(100% / 3);
+    }
+
     /* Each "page" fills exactly one container width (never 100vw: the classic-bar gutter, #269) */
+    :where(.board) > #column-not-planned,
     :where(.board) > #column-open,
     :where(.board) > .column-group-mid,
     :where(.board) > #column-done {
@@ -157,6 +212,7 @@
 
     /* The Offen and Erledigt pages scroll inside themselves (not the document) so the Tag-abschließen CTA's
        position: sticky has a scrollport to stick to (#470). */
+    :where(.board) > #column-not-planned,
     :where(.board) > #column-open,
     :where(.board) > #column-done {
       height: 100svh;
@@ -164,10 +220,21 @@
     }
 
     /* Override any grid-specific positioning for these IDs */
+    :where(.board) > #column-not-planned,
     :where(.board) > #column-open,
     :where(.board) > #column-done {
       grid-column: unset;
       grid-row: unset;
+    }
+
+    /* "Alle" (#354): room under the last card of both pages for the fixed "Weiter zu Heute" bar (BoardContinue); the
+       "Nicht geplant" page also for the capacity echo above the button */
+    :where(.board)[data-place='all'] > #column-open {
+      padding-bottom: calc(var(--phone-bar-offset) + 5rem);
+    }
+
+    :where(.board)[data-place='all'] > #column-not-planned {
+      padding-bottom: calc(var(--phone-bar-offset) + 10rem);
     }
 
     /* Mobile task card: fill full column width */
@@ -183,11 +250,14 @@
   }
   
   /* Desktop grid placement */
-  #column-open { grid-column: 1; grid-row: 1; z-index: 1; }
-  .column-group-mid { grid-column: 2; grid-row: 1; z-index: 1; display: flex; flex-direction: column; min-height: 0; }
+  /* Its own box rules live here and not as utilities on the element: a utility (`relative`, `flex`) would outrank
+     this layer. No `position`: the phone block above makes it an absolute page, BoardNotPlanned a sticky side on desktop */
+  #column-not-planned { grid-column: 1 / span 2; grid-row: 1; z-index: 1; display: flex; flex-direction: column; }
+  #column-open { grid-column: 3; grid-row: 1; z-index: 1; }
+  .column-group-mid { grid-column: 4; grid-row: 1; z-index: 1; display: flex; flex-direction: column; min-height: 0; }
   #column-progress { flex: 0 0 auto; overflow: visible; z-index: 1; }
   #column-waiting { flex: 1 1 auto; min-height: 12rem; z-index: 1; }
-  #column-done { grid-column: 3; grid-row: 1; z-index: 1; }
+  #column-done { grid-column: 5; grid-row: 1; z-index: 1; }
 
   :where(.board) :where(.column) {
     min-height: 0;
@@ -290,4 +360,84 @@
   z-index: var(--z-stack-motion); /* above the stack control (500) */
   overflow: visible;
   pointer-events: none;
+}
+
+/**
+ * The two arrows of the place "Alle" (#354): "Für heute einplanen" beside a "Nicht geplant" card (BoardNotPlanned) and
+ * "Nicht heute" beside an Offen card (SortableTaskWrapper). The look of the Offen header's add button
+ * (BoardColumnHeader): round, soft grey on the canvas, one step deeper on hover. Unlayered, so the size beats the
+ * button theme's utilities; each host places its own.
+ */
+.plan-arrow {
+  z-index: var(--z-column-footer);
+  flex: none;
+  width: 2rem;
+  height: 2rem;
+  min-width: 2rem;
+  padding: 0;
+  justify-content: center;
+  border-radius: 9999px;
+  background-color: var(--fill-on-canvas);
+  color: var(--ui-text);
+  cursor: pointer;
+}
+
+.plan-arrow:hover {
+  background-color: var(--fill-on-canvas-hover);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .plan-arrow {
+    transition: background-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard), opacity var(--duration-fast) var(--ease-standard);
+  }
+}
+
+/* Phone: the card menu button's box (TaskCard: 28 px round in the card's corner, its 44 px target around it) */
+@media (--phone) {
+  .plan-arrow {
+    width: 1.75rem;
+    height: 1.75rem;
+    min-width: 0;
+    min-height: 0;
+    color: var(--ui-text-muted);
+  }
+
+  .plan-arrow::after {
+    content: "";
+    position: absolute;
+    inset: -0.5rem;
+  }
+}
+
+/* A card on its way across to the other column (usePlanMoves): above its neighbours while it travels */
+.task.plan-flying {
+  z-index: var(--z-focus-overlay);
+}
+
+/* "Nicht geplant" takes a card that flies in from Offen: its side lies above Offen's and its scroll box does not clip */
+#column-not-planned.is-receiving {
+  z-index: 2;
+}
+
+/**
+ * The side of the strip that is not in view (#354). Unlayered: the columns carry the `flex` utility, which outranks
+ * the components layer. Board.vue sets `data-place-moving` while the strip travels; both sides are painted until then.
+ * Desktop: out of the layout once the strip has arrived, so no pointer, no Tab stop, no reader and no dnd-kit drop
+ * shape reaches it; the tracks are explicit, so nothing else moves when a side leaves or returns.
+ * Phone: the pages keep their width (the flex row's thirds), so visibility and not display; `inert` does the rest.
+ */
+@media (--desktop) {
+  .board[data-place='today']:not([data-place-moving]) > #column-not-planned,
+  .board[data-place='all']:not([data-place-moving]) > .column-group-mid,
+  .board[data-place='all']:not([data-place-moving]) > #column-done {
+    display: none;
+  }
+}
+
+@media (--phone) {
+  .board[data-place='today']:not([data-place-moving]) > #column-not-planned,
+  .board[data-place='all']:not([data-place-moving]) > .column-group-mid,
+  .board[data-place='all']:not([data-place-moving]) > #column-done {
+    visibility: hidden;
+  }
 }

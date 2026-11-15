@@ -37,7 +37,8 @@ const stubs = {
   UIcon: true,
   NuxtLink: {
     props: ['to'],
-    template: '<slot :href="to" :navigate="() => $emit(\'go\', to)" />',
+    // The two board places link by location object (`{ path, force }`, lib/boardPlace): the href is its path
+    template: '<slot :href="typeof to === \'string\' ? to : to.path" :navigate="() => $emit(\'go\', to)" />',
   },
 }
 
@@ -60,7 +61,7 @@ describe('AppNav: the global app bar (#470)', () => {
     document.body.innerHTML = ''
   })
 
-  const place = (w: VueWrapper, id: 'board' | 'statistics') => w.find(`[data-testid="app-nav-place-${id}"]`)
+  const place = (w: VueWrapper, id: 'all' | 'board' | 'statistics') => w.find(`[data-testid="app-nav-place-${id}"]`)
   const more = (w: VueWrapper) => w.find('[data-testid="app-nav-more"]')
   const third = (w: VueWrapper) => w.find('[data-testid="app-nav-place-more"]')
 
@@ -69,8 +70,9 @@ describe('AppNav: the global app bar (#470)', () => {
     expect(render().find('[data-testid="app-nav"]').exists()).toBe(false)
   })
 
-  it('links the brand and Heute to /tasks and Statistik to /statistics; the brand is never current', () => {
+  it('links Alle to /all, the brand and Heute to /tasks and Statistik to /statistics; the brand is never current', () => {
     const w = render()
+    expect(place(w, 'all').attributes('href')).toBe('/all')
     expect(w.find('[data-testid="app-nav-brand"]').attributes('href')).toBe('/tasks')
     expect(w.find('[data-testid="app-nav-brand"]').attributes('aria-current')).toBeUndefined()
     expect(place(w, 'board').attributes('href')).toBe('/tasks')
@@ -78,6 +80,8 @@ describe('AppNav: the global app bar (#470)', () => {
   })
 
   it.each([
+    ['/all', 'all'],
+    ['/all/x', 'all'],
     ['/tasks', 'board'],
     ['/tasks/add', 'board'],
     ['/statistics', 'statistics'],
@@ -89,7 +93,7 @@ describe('AppNav: the global app bar (#470)', () => {
     go(path)
     await nextTick()
     const current = w.findAll('[aria-current="page"]').map(el => el.attributes('data-testid'))
-    const id = { board: 'app-nav-place-board', statistics: 'app-nav-place-statistics', more: 'app-nav-place-more' }[expected as 'board' | 'statistics' | 'more']
+    const id = { all: 'app-nav-place-all', board: 'app-nav-place-board', statistics: 'app-nav-place-statistics', more: 'app-nav-place-more' }[expected as 'all' | 'board' | 'statistics' | 'more']
     expect(current).toEqual([id])
   })
 

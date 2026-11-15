@@ -10,9 +10,16 @@
 - Manages drag-and-drop functionality between columns
 - Handles task status changes and column order updates
 - Provides visual feedback during task interactions
-- Phone: three column pages moved by swipe and drag edge-scroll only (no tabs, #470); the active page is `data-mobile-page`. It opens on Jetzt while a task sits there, else on Offen (kd#191)
-  and focus entering an off-screen page makes it active (the keyboard / screen-reader path the tabs were)
-- Phone: BoardPageDots, a non-interactive three-dot page indicator above the column title (kd#26)
+- Two places, one strip (#354, epic #334): "Alle" (`/all`: BoardNotPlanned beside Offen) and "Heute" (`/tasks`: Offen, Jetzt + Wartet, Erledigt). Both are paths of one page, so this
+  component stays mounted and Offen is the same column in both; `data-place` on `.board` says which shows. A change of place moves the whole strip sideways in one move (420 ms on the app bar's curve,
+  `--place-move` / `--place-ease` in board.css, nothing under reduced motion): desktop a transform animation over the layout change (FLIP, a retarget continues from where the strip is), phone the
+  strip's own transform on that timing. `data-place-moving` is set meanwhile; the side out of view is `inert`, and once the move is over it is out of layout (desktop) or hidden (phone), so
+  neither pointer, keyboard, reader nor a drag reaches it. The Jetzt focus overlay never shows on "Alle" nor during the move
+- "Alle": BoardContinue ("Weiter zu Heute" with the capacity echo) in Offen's footer on desktop and as a fixed bar on the phone; the two planning moves are announced politely (usePlanMoves)
+- Phone: column pages moved by swipe and drag edge-scroll only (no tabs, #470), per place: "Alle" has two ("Nicht geplant", Offen), "Heute" three (Offen, Jetzt + Wartet, Erledigt); a swipe, the
+  edge-scroll and focus never leave the place. The active page within the place is `data-mobile-page`. Heute opens on Jetzt while a task sits there, else on Offen (kd#191), and on Offen when
+  coming from "Alle"; "Alle" opens on "Nicht geplant". Focus entering an off-screen page of the place makes it active (the keyboard / screen-reader path the tabs were)
+- Phone: BoardPageDots, a non-interactive page indicator above the column title (kd#26), one dot per page of the place
 - Erledigt footer: the "Tag abschließen" CTA while something is done today
 -->
 <template>
@@ -26,19 +33,34 @@
   >
     <!-- Stacks opening and closing (TaskStack), read out politely -->
     <div class="sr-only" role="status" aria-live="polite" aria-atomic="true">{{ stackAnnouncement }}</div>
+    <!-- "Für heute einplanen" and "Nicht heute" (#354): the card leaves the list the reader is in, so the move is said -->
+    <div class="sr-only" role="status" aria-live="polite" aria-atomic="true" data-testid="plan-announcement">{{ planAnnouncement }}</div>
     <!-- Phone page indicator (kd#26): fixed to the viewport above the sliding pages, never interactive -->
-    <BoardPageDots :page="activeMobileTab" :offset-px="swipeOffsetPx" :live="isSwiping" />
+    <BoardPageDots :page="placePage" :count="placePageCount" :offset-px="swipeOffsetPx" :live="isSwiping" />
 
     <BoardFocusBar />
+    <!-- Phone, on "Alle" (#354): the way on to Heute and the echo of Offen's capacity line, fixed above the app bar -->
+    <BoardContinue
+      v-if="isAll && isMobile"
+      phone
+      :count="tasksOpen.length"
+      :echo-active="stripPage === NOT_PLANNED_PAGE"
+      :lifted="focusBarShows"
+      :hidden="isDragging"
+      @show-line="showCapacityLineOnPhone"
+    />
 
     <div
+      ref="boardEl"
       class="board"
       :class="{ 'dragging': isDragging, 'swiping': isSwiping }"
+      :data-place="place"
+      :data-place-moving="placeMoving ? '' : undefined"
       :data-drop-ghost="dragState.ghostCount > 0 ? '' : undefined"
       :style="mobileBoardStyle"
       :data-focus="focusEnabledNow ? '' : undefined"
       :data-focus-lit="focusLit ? '' : undefined"
-      :data-mobile-page="activeMobileTab"
+      :data-mobile-page="placePage"
     >
       <!-- Focus overlay (#394): first child, so the layer rules in board-focus-overlay.css apply -->
       <FocusOverlay
@@ -48,6 +70,9 @@
         :touch="focusPointerKind === 'touch'"
         :swallow-tap="focusSwallowTap"
       />
+      <!-- "Nicht geplant" (#354): two tracks left of Offen (phone: a page left of Offen); its cards are in the DOM
+           only while "Alle" shows or the strip travels -->
+      <BoardNotPlanned :active="isAll" :rendered="isAll || placeMoving" />
       <BoardColumn
         :tasks="tasksOpen"
         :task-status="TaskStatus.Open"
@@ -55,9 +80,14 @@
         :mute-others="false"
         :grouping-enabled="groupingEnabled"
         :grouping-key="groupingKey"
-      />
+      >
+        <!-- "Weiter zu Heute" at the foot of Offen on "Alle" (desktop), where Erledigt has "Tag abschließen" -->
+        <template v-if="isAll && !isMobile" #footer>
+          <BoardContinue />
+        </template>
+      </BoardColumn>
       <!-- Progress + Waiting share one scroll-page on mobile -->
-      <div class="column-group-mid">
+      <div class="column-group-mid" :inert="isAll || undefined">
         <BoardColumn
           :tasks="tasksProgress"
           :task-status="TaskStatus.Progress"
@@ -82,6 +112,7 @@
         :mute-others="false"
         :grouping-enabled="groupingEnabled"
         :grouping-key="groupingKey"
+        :inert="isAll || undefined"
         @archive="handleArchiveTasks"
       >
         <!-- "Tag abschließen" under the last card (#470); hidden while nothing is done today (the Mehr panel row stays). Desktop: the
@@ -111,7 +142,7 @@
     <!-- Mobile edge-scroll indicators: appear while dragging near the screen edge -->
     <template v-if="isDragging">
       <div
-        v-if="activeMobileTab > 0"
+        v-if="!isAll && stripPage > firstPage"
         class="edge-indicator edge-indicator--left md:hidden"
         :class="{ 'edge-indicator--charging': edgeDirection === 'left' }"
         :style="edgeIndicatorStyle"
@@ -120,7 +151,7 @@
         <UIcon :name="ICONS.back" class="size-6" />
       </div>
       <div
-        v-if="activeMobileTab < 2"
+        v-if="!isAll && stripPage < lastPage"
         class="edge-indicator edge-indicator--right md:hidden"
         :class="{ 'edge-indicator--charging': edgeDirection === 'right' }"
         :style="edgeIndicatorStyle"
@@ -160,7 +191,7 @@
 
 <script setup lang="ts">
 import { ICONS } from '~/lib/icons'
-import { computed, ref, onMounted, onBeforeUnmount } from "vue";
+import { computed, nextTick, ref, onMounted, onBeforeUnmount } from "vue";
 import { useI18n } from "vue-i18n";
 import { useBoardStore } from "~/store/board";
 import { useTasksStore } from "~/store/tasks";
@@ -180,6 +211,10 @@ import { DragDropProvider, DragOverlay } from "@dnd-kit/vue";
 import TaskCard from "~/components/task/TaskCard.vue";
 import TaskStack from "~/components/task/TaskStack.vue";
 import BoardPageDots from "~/components/board/BoardPageDots.vue";
+import BoardNotPlanned from "~/components/board/BoardNotPlanned.vue";
+import BoardContinue from "~/components/board/BoardContinue.vue";
+import { useBoardPlace } from "~/composables/useBoardPlace";
+import { usePlanMoves } from "~/composables/usePlanMoves";
 import FocusOverlay from "~/components/board/FocusOverlay.vue";
 import { FOCUS_LEAVE_MS, useFocusOverlay } from "~/composables/useFocusOverlay";
 import { arrivedFromAnotherPage } from "~/lib/routeArrival";
@@ -254,7 +289,9 @@ const { effectiveGroupKey: groupingKey } = useBoardGrouping();
 /**
  * Tasks in the Open/Today column.
  */
-const { applyFocus } = useBoardFocus();
+const { applyFocus, focusTopic, chipsOpen } = useBoardFocus();
+/** The topic focus bar shows (its chip row or its pill): on the phone the "Weiter zu Heute" bar steps up above it */
+const focusBarShows = computed(() => focusTopic.value !== null || chipsOpen.value);
 const tasksOpen = computed(() => applyFocus(tasksStore.tasksOpen));
 
 /**
@@ -273,32 +310,142 @@ const tasksWaiting = computed(() => applyFocus(tasksStore.tasksWaiting));
  */
 const tasksDone = computed(() => applyFocus(tasksStore.tasksDoneToday));
 
-// ── Mobile column navigation (transform-based) ───────────────────────────────
-// The board is 300% of its container wide on mobile. .board-container clips it to its own width (never 100vw, #269).
-// activeMobileTab drives translateX so no scroll container is needed. No tabs (#470): a swipe, the drag
-// edge-scroll and focus entering a page move it; it is exposed as data-mobile-page on .board.
+// ── The two places (#354) and the phone's column pages (transform-based) ─────────
+// One strip holds both places: "Nicht geplant" (-1), Offen (0), Jetzt + Wartet (1), Erledigt (2). "Alle" shows -1 and
+// 0, "Heute" 0 to 2; Offen is the page both share. On mobile the board is 300% of its container wide, "Nicht geplant" hangs one
+// page left of it (board.css), and
+// .board-container clips it to its own width (never 100vw, #269); `stripPage` drives translateX so no scroll container
+// is needed. No tabs (#470): a swipe, the drag edge-scroll and focus entering a page move it inside the place; only
+// the app bar and "Weiter zu Heute" change the place.
 
-/**
- * Index of the currently-visible column page on mobile (0=Open, 1=Mid, 2=Done). A phone opens the board on the
- * Jetzt page while a task sits in Jetzt, so the running task and its timebox are there at a glance (kd#191); with an
- * empty Jetzt it opens on Offen, where the next task is picked. Read once at setup (the app is client-rendered: the
- * stores and the media query are there), so the first paint is already that page and nothing slides.
- */
-const activeMobileTab = ref(import.meta.client && isPhoneNow() && tasksProgress.value.length > 0 ? 1 : 0);
+const { place, isAll } = useBoardPlace();
+const { announcement: planAnnouncement } = usePlanMoves();
+
+/** Strip index of the "Nicht geplant" page */
+const NOT_PLANNED_PAGE = -1;
+/** Strip index of the last page (Erledigt) */
+const LAST_STRIP_PAGE = 2;
 
 /** True when the viewport is ≤767 px (updated reactively via MediaQueryList) */
 const isMobile = useIsPhone();
 
-/** Highest column-page index (0=Open, 1=Mid, 2=Done). */
-const LAST_MOBILE_TAB = 2;
+/**
+ * The strip page a phone shows (-1 "Nicht geplant", 0 Offen, 1 Jetzt + Wartet, 2 Erledigt). "Alle" opens on "Nicht
+ * geplant". Heute opens on the Jetzt page while a task sits in Jetzt, so the running task and its timebox are there
+ * at a glance (kd#191); with an empty Jetzt it opens on Offen, where the next task is picked. Read once at setup (the
+ * app is client-rendered: the stores and the media query are there), so the first paint is already that page and
+ * nothing slides.
+ */
+const stripPage = ref(
+  isAll.value ? NOT_PLANNED_PAGE : import.meta.client && isPhoneNow() && tasksProgress.value.length > 0 ? 1 : 0,
+);
 
-/** Navigate to the given column page (0-2). */
+/** First and last strip page of the place that shows */
+const firstPage = computed(() => (isAll.value ? NOT_PLANNED_PAGE : 0));
+const lastPage = computed(() => (isAll.value ? 0 : LAST_STRIP_PAGE));
+/** The page within the place (Heute: 0 to 2 as ever; "Alle": 0 and 1): `data-mobile-page`, the dots and the swipe count from here */
+const placePage = computed(() => stripPage.value - firstPage.value);
+const placePageCount = computed(() => lastPage.value - firstPage.value + 1);
+
+/** Navigate to the given strip page; never beyond the place that shows. */
 const scrollToTab = (index: number) => {
-  activeMobileTab.value = index;
+  stripPage.value = Math.min(Math.max(index, firstPage.value), lastPage.value);
 };
 
-/** Page index (0-2) of a column element: Offen, the Jetzt/Wartet group, Erledigt */
+// ── The move between the places ──
+const boardEl = ref<HTMLElement | null>(null);
+/** The strip travels between the places: both sides are in view and painted until it has arrived */
+const placeMoving = ref(false);
+let placeMove: Animation | null = null;
+let placeFades: Animation[] = [];
+let placeMoveTimer: ReturnType<typeof setTimeout> | undefined;
+/** Bumped per move: the end of a move that was overtaken by a retarget must not settle the strip */
+let placeMoveToken = 0;
+
+/** Length of the place move in ms (`--place-move`, board.css); 0 = reduced motion or no stylesheet */
+function placeMoveMs(): number {
+  if (!boardEl.value) return 0;
+  const raw = getComputedStyle(boardEl.value).getPropertyValue('--place-move').trim();
+  const value = Number.parseFloat(raw);
+  if (Number.isNaN(value)) return 0;
+  return raw.endsWith('ms') ? value : value * 1000;
+}
+
+function endPlaceMove(token: number) {
+  if (token !== placeMoveToken) return;
+  clearTimeout(placeMoveTimer);
+  placeFades.forEach((fade) => fade.cancel());
+  placeFades = [];
+  placeMove = null;
+  placeMoving.value = false;
+}
+
+/** The sides that are in view on one place only: [those of "Alle"], [those of "Heute"] */
+const sidesOf = (el: HTMLElement): [HTMLElement[], HTMLElement[]] => [
+  [...el.querySelectorAll<HTMLElement>(':scope > #column-not-planned')],
+  [...el.querySelectorAll<HTMLElement>(':scope > .column-group-mid, :scope > #column-done')],
+];
+
+// Default (pre) flush: the callback runs before the render that applies the new place, so the strip can be measured
+// where it stands now (mid-move included) and animated from there to where the layout puts it.
+watch(place, async (to) => {
+  const el = boardEl.value;
+  const ms = placeMoveMs();
+  const token = ++placeMoveToken;
+  clearTimeout(placeMoveTimer);
+
+  if (isMobile.value) {
+    // "Alle" opens on "Nicht geplant"; Heute on Offen when coming from "Alle". From Offen on "Alle" to Heute nothing
+    // travels: Offen is the page both places share, only the dots and the bar change.
+    const target = to === 'all' ? NOT_PLANNED_PAGE : Math.max(stripPage.value, 0);
+    const travels = target !== stripPage.value && ms > 0;
+    placeMoving.value = travels;
+    stripPage.value = target;
+    if (travels) placeMoveTimer = setTimeout(() => endPlaceMove(token), ms + 40);
+    return;
+  }
+
+  // Desktop: the place sets the strip's offset by a margin (board.css), which jumps; the strip then travels there
+  if (!el || ms === 0 || typeof el.animate !== 'function') {
+    endPlaceMove(token);
+    return;
+  }
+  const before = el.getBoundingClientRect().left;
+  const [allSides, todaySides] = sidesOf(el);
+  const opacityBefore = new Map([...allSides, ...todaySides].map((side) => [side, Number.parseFloat(getComputedStyle(side).opacity)]));
+  placeMove?.cancel();
+  placeFades.forEach((fade) => fade.cancel());
+  const wasMoving = placeMoving.value;
+  placeMoving.value = true;
+  await nextTick();
+  if (token !== placeMoveToken) return;
+  const from = before - el.getBoundingClientRect().left;
+  const easing = getComputedStyle(el).getPropertyValue('--place-ease').trim() || 'ease';
+  placeMove = el.animate([{ transform: `translateX(${from}px)` }, { transform: 'translateX(0)' }], { duration: ms, easing });
+  // On a window wider than three tracks the paper left and right of them shows the side that comes or goes: it fades
+  const fade = (sides: HTMLElement[], end: number) => sides.map((side) =>
+    side.animate([{ opacity: wasMoving ? (opacityBefore.get(side) ?? 1 - end) : 1 - end }, { opacity: end }], { duration: ms, easing, fill: 'forwards' }));
+  placeFades = [...fade(allSides, to === 'all' ? 1 : 0), ...fade(todaySides, to === 'all' ? 0 : 1)];
+  placeMove.finished.then(() => endPlaceMove(token), () => { /* retargeted: the new move settles the strip */ });
+});
+onBeforeUnmount(() => {
+  placeMoveToken++;
+  clearTimeout(placeMoveTimer);
+  placeMove?.cancel();
+  placeFades.forEach((fade) => fade.cancel());
+});
+
+/** Phone: the echo's tap. Offen is the other page of "Alle": go there, then bring its capacity line into view. */
+function showCapacityLineOnPhone() {
+  scrollToTab(0);
+  void nextTick(() => {
+    document.querySelector('#column-open [data-testid="capacity-divider"]')?.scrollIntoView({ block: 'center', behavior: 'auto' });
+  });
+}
+
+/** Strip page of a column element: "Nicht geplant", Offen, the Jetzt/Wartet group, Erledigt */
 const pageOf = (el: Element): number | null => {
+  if (el.closest('#column-not-planned')) return NOT_PLANNED_PAGE;
   if (el.closest('#column-open')) return 0;
   if (el.closest('.column-group-mid')) return 1;
   if (el.closest('#column-done')) return 2;
@@ -312,7 +459,7 @@ const pageOf = (el: Element): number | null => {
 const onBoardFocusIn = (event: FocusEvent) => {
   if (!isMobile.value || isDragging.value || !(event.target instanceof Element)) return;
   const page = pageOf(event.target);
-  if (page !== null && page !== activeMobileTab.value) scrollToTab(page);
+  if (page !== null && page !== stripPage.value) scrollToTab(page);
 };
 
 // ── Focus overlay (#394) ───────────────────────────────────────────────────────
@@ -320,7 +467,7 @@ const settingsStore = useSettingsStore();
 const { layerOpen } = useOpenLayer();
 /** The new-day recap (#385) is a Teleport overlay without Reka's body lock, so `layerOpen` does not see it */
 const { isOpen: recapOpen } = useNewDayRecap();
-/** Setting on, a card in Jetzt, nothing dragged, no sheet, layer, new-day recap or in-card new-task form open, and (phone) the Jetzt page is the visible one */
+/** Setting on, a card in Jetzt, Heute showing and the strip at rest (#354), nothing dragged, no sheet, layer, new-day recap or in-card new-task form open, and (phone) the Jetzt page is the visible one */
 const focusEnabledNow = computed(
   () =>
     settingsStore.focusEnabled &&
@@ -330,7 +477,9 @@ const focusEnabledNow = computed(
     !layerOpen.value &&
     !recapOpen.value &&
     !inCardAdding.value &&
-    (!isMobile.value || activeMobileTab.value === 1),
+    !isAll.value &&
+    !placeMoving.value &&
+    (!isMobile.value || stripPage.value === 1),
 );
 /** Reached from another page (statistics, settings): the overlay waits its return delay, so the whole board is seen first (kd#133) */
 const { shown: focusShown, pointerKind: focusPointerKind, swallowTap: focusSwallowTap } = useFocusOverlay(focusEnabledNow, {
@@ -382,10 +531,11 @@ const {
   isSwiping,
   onPointerDown: onSwipePointerDown,
 } = useBoardSwipe({
-  activeTab: activeMobileTab,
-  lastTab: LAST_MOBILE_TAB,
+  // The pages of the place that shows: a swipe at its edge meets resistance and never leads to the other place
+  activeTab: placePage,
+  lastTab: () => placePageCount.value - 1,
   isEnabled: () => isMobile.value && !isDragging.value,
-  onCommit: scrollToTab,
+  onCommit: (page) => scrollToTab(page + firstPage.value),
 });
 
 /**
@@ -396,7 +546,7 @@ const {
 const mobileBoardStyle = computed<{ transform?: string }>(() => {
   if (!isMobile.value) return {};
   const offset = swipeOffsetPx.value !== 0 ? ` + ${Math.round(swipeOffsetPx.value)}px` : '';
-  return { transform: `translateX(calc(${-activeMobileTab.value} * 100% / 3${offset}))` };
+  return { transform: `translateX(calc(${-stripPage.value} * 100% / 3${offset}))` };
 });
 
 // ── Mobile edge-scroll during drag ────────────────────────────────────────────
@@ -423,11 +573,12 @@ const clearEdgeTimer = () => {
 };
 
 const fireEdgeScroll = (direction: 'left' | 'right') => {
-  if (edgeScrollCooldown) return;
+  // "Alle" has no second page a dragged card could go to: "Nicht geplant" takes no drop (drag between the sides: #355)
+  if (edgeScrollCooldown || isAll.value) return;
   const target = direction === 'right'
-    ? Math.min(activeMobileTab.value + 1, 2)
-    : Math.max(activeMobileTab.value - 1, 0);
-  if (target === activeMobileTab.value) return;
+    ? Math.min(stripPage.value + 1, lastPage.value)
+    : Math.max(stripPage.value - 1, firstPage.value);
+  if (target === stripPage.value) return;
 
   scrollToTab(target);
   refreshDroppableShapes();
@@ -472,8 +623,8 @@ const handleDragPointerMove = (event: PointerEvent) => {
 const COLUMN_PAGE_SELECTORS = ['#column-open', '.column-group-mid', '#column-done'];
 const { top: edgeIndicatorTopPx } = useEdgeIndicatorTop({
   isActive: computed(() => isDragging.value && isMobile.value),
-  activeTab: activeMobileTab,
-  getPage: tab => document.querySelector<HTMLElement>(COLUMN_PAGE_SELECTORS[tab] ?? ''),
+  activeTab: stripPage,
+  getPage: tab => document.querySelector<HTMLElement>(COLUMN_PAGE_SELECTORS[tab] ?? '#column-not-planned'),
 });
 const edgeIndicatorStyle = computed(() =>
   edgeIndicatorTopPx.value === null ? undefined : { '--edge-indicator-top': `${edgeIndicatorTopPx.value}px` },
