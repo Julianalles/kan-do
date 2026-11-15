@@ -1,9 +1,9 @@
 <!--
 @component CopyEditorHost
 @description Mount point of the live copy editor (#59, dev only; `app.vue` renders it only when `__COPY_EDITOR__`).
-Registers the one command-bar entry "Edit UI copy: text selection mode"; while the mode is on it shows the mode bar and
-the hover outline, listens for ⌥K and Esc, runs the picker and applies saved edits to the running app through
-vue-i18n, so the page shows them live.
+Registers the one command-bar entry "Edit UI copy: text selection mode" and the ⌥⇧K toggle, which also reaches the
+pages without a command bar (/welcome, #337); while the mode is on it shows the mode bar and the hover outline, listens
+for ⌥K and Esc, runs the picker and applies saved edits to the running app through vue-i18n, so the page shows them live.
 @usage <component :is="CopyEditorHost" /> in app.vue.
 @responsibility Wire mode, picker, shortcuts and live apply. Everything else sits in the bar, dialog and `edits.ts`.
 -->
@@ -14,7 +14,7 @@ vue-i18n, so the page shows them live.
         v-if="hoverRect"
         data-kando-copy-editor
         aria-hidden="true"
-        class="pointer-events-none fixed z-40 rounded-sm outline-2 outline-offset-1 outline-primary"
+        class="pointer-events-none fixed z-(--z-bar) rounded-sm outline-2 outline-offset-1 outline-primary"
         :style="{ top: `${hoverRect.top}px`, left: `${hoverRect.left}px`, width: `${hoverRect.width}px`, height: `${hoverRect.height}px` }"
       />
       <CopyEditorBar :count="pendingEdits.length" :message="pickMessage" @search="openSearch" @publish="openPublish" @leave="leave" />
@@ -67,6 +67,14 @@ function openPublish() {
 }
 
 function onKeydown(event: KeyboardEvent) {
+  // ⌥⇧K toggles the mode on every page (#337): /welcome and the other pages without an app bar have no command bar,
+  // and a click in the mode picks instead of acting, so a setup step is reached by toggling off, clicking, toggling on.
+  if (event.altKey && event.shiftKey && !event.metaKey && !event.ctrlKey && event.code === 'KeyK') {
+    event.preventDefault()
+    event.stopImmediatePropagation()
+    if (!event.repeat) (mode.value ? leave : enterMode)()
+    return
+  }
   if (!mode.value) return
   if (event.altKey && event.code === 'KeyK') {
     event.preventDefault()
@@ -84,7 +92,7 @@ onMounted(() => {
   unregister = registerPaletteExtension(() => [{
     id: 'copy-editor',
     label: 'Developer',
-    items: [{ id: 'copy-editor-mode', label: 'Edit UI copy: text selection mode', icon: 'i-ph-cursor-text', onSelect: enterMode }],
+    items: [{ id: 'copy-editor-mode', label: 'Edit UI copy: text selection mode', icon: 'i-ph-cursor-text', kbds: ['alt', 'shift', 'K'], onSelect: enterMode }],
   }])
   stopPicker = startPicker(keys => openEditor(keys[0] ?? null, keys), () => !mode.value || dialogOpen.value)
   window.addEventListener('keydown', onKeydown, true)
