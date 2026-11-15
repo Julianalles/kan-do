@@ -48,6 +48,29 @@ test.describe('Live copy editor', () => {
     await expect(dialog(page)).toHaveCount(0)
   })
 
+  test('Alt+Shift+K toggles the mode where there is no command bar: the welcome screen (#337)', async ({ page }) => {
+    await page.goto('/welcome')
+    const choice = page.getByTestId('welcome-choice-local')
+    await expect(choice).toBeVisible()
+    await page.keyboard.press('Control+k')
+    await expect(page.getByRole('option', { name: /Edit UI copy/ })).toHaveCount(0)
+
+    await page.keyboard.press('Alt+Shift+KeyK')
+    await expect(bar(page)).toBeVisible()
+    // A click picks the text instead of opening the setup
+    await choice.click()
+    await expect(dialog(page)).toBeVisible()
+    await expect(page.getByTestId('copy-editor-key')).toHaveText('onboarding.page.start')
+    await page.keyboard.press('Escape')
+    await expect(dialog(page)).toHaveCount(0)
+
+    // Off again, the click acts: the setup opens
+    await page.keyboard.press('Alt+Shift+KeyK')
+    await expect(bar(page)).toHaveCount(0)
+    await choice.click()
+    await expect(choice).toHaveCount(0)
+  })
+
   test('hover outlines editable text, a click picks its key instead of acting, task text is not editable', async ({ page }) => {
     await enterMode(page)
     await page.getByText('Offen', { exact: true }).first().hover()
