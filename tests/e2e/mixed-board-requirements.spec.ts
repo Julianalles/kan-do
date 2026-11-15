@@ -2,7 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { test, expect, type Page } from '@playwright/test'
 import { seedMixedBoard, DEFAULT_NOTION_SEED_CONFIG, MIXED_SEED_TASKS } from './helpers/seed'
-import { closeMore, goToPlace, moreButton, openDayClose, openMore, openSettings } from './helpers/appNav'
+import { closeMore, goToPlace, moreButton, openDayClose, openMore, openSettings, sourceAction } from './helpers/appNav'
 import { openAddSheet } from './helpers/addSheet'
 
 /**
@@ -68,11 +68,11 @@ test('requirements sections 1-10 hold on one mixed board', async ({ context, pag
   await expect(page).toHaveURL(/\/settings(\?tab=sources)?$/)
   await expect(page.getByTestId('source-default-notion')).toBeVisible()
   await expect(page.getByTestId('source-row-local')).toBeVisible()
-  await page.getByRole('button', { name: /Lokal als Standard festlegen|Als Standard festlegen/ }).first().click()
+  await sourceAction(page, 'local', 'Als Standard festlegen')
   await expect.poll(() => storedSources(page)).toEqual({ connected: ['notion'], default: 'local' })
 
   // 1. Disconnecting states the count and what stays; cancel changes nothing
-  await page.getByTestId('source-disconnect-notion').click()
+  await sourceAction(page, 'notion', 'Trennen')
   await expect(page.getByTestId('disconnect-dialog')).toContainText(/\d+ Aufgaben? verlassen? das Board/)
   await page.getByTestId('disconnect-cancel').click()
   await expect(page.getByTestId('disconnect-dialog')).toHaveCount(0)

@@ -300,7 +300,7 @@ test('Loslegen -> Notion ticked -> setup on the stub -> Notion is connected and 
 
   await openSettings(page, 'sources')
   await expect(page.getByTestId('source-default-notion')).toBeVisible()
-  await expect(page.getByTestId('source-set-default-local')).toBeVisible()
+  await expect(page.getByTestId('source-actions-local')).toBeVisible() // holds „Als Standard festlegen“
   await expect(page.getByTestId('source-more-notion')).toHaveCount(0)
 })
 

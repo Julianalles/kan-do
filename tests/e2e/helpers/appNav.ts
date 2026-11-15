@@ -70,6 +70,16 @@ export async function openSettings(page: Page, tab?: SettingsTab): Promise<void>
   }
 }
 
+/** The actions of a connected source on Einstellungen › Aufgabenquellen sit behind the row's "…" menu (#333). */
+export type SourceActionName = 'Als Standard festlegen' | 'Notion-Einstellungen' | 'Trennen'
+export const sourceActionsButton = (page: Page, id: string): Locator => page.getByTestId(`source-actions-${id}`)
+
+/** Opens the row's menu and picks one action. */
+export async function sourceAction(page: Page, id: string, action: SourceActionName): Promise<void> {
+  await sourceActionsButton(page, id).click()
+  await page.getByRole('menuitem', { name: action }).click()
+}
+
 /** ⋯ -> Papierkorb (n): lands on `/trash`. Already on `/trash`: the page is in the bar, nothing to do. */
 export async function openTrash(page: Page): Promise<void> {
   if (/\/trash(\/|$)/.test(new URL(page.url()).pathname)) return
