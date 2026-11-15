@@ -26,6 +26,7 @@ Applies every time you create or change a UI element: lane work and ad-hoc edits
    Pattern: none (<why no element does a user job here: copy fix, spacing, bug fix>)
    ```
    `<Element>` is a component name or a DESIGN.md Components heading. Lane work: the lines go in the PR body (the PR guard `wf_pr_body_check` requires them when the diff touches these paths). Ad-hoc work: in your final report.
+   After a new or changed component run `npx vitest run tests/config` before the screenshots: the ratchets (raw button, call-site `:ui` look, size xs) fail otherwise only in the Stop hook.
 5. **A `diverged from` line is also a design reason**: run skill `design-rule` on it (challenge, verdict, proposal; it never writes a rule). The PR body then carries `Rule candidate: #<n>` or `Rule candidate: none (<reason>)`.
 
 Profile: `.claude/issue-workflow.md` "Pattern check".
