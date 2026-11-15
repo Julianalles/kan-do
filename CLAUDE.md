@@ -18,11 +18,9 @@ npm run test:e2e -- tests/e2e/task-detail.spec.ts --reporter=list    # Single E2
 npm run lint          # ESLint; `kan-do/no-taskstatus-truthiness`: `TaskStatus.Open` is 0, so compare a status explicitly, never `if (status)`
 npm run typecheck     # nuxt typecheck (run before merging)
 
-# Impeccable detector: source scan and rendered scan (element rules: contrast, undersized text)
+# Impeccable detector: source scan and rendered scan (contrast, undersized text); one URL: IMPECCABLE_BROWSER=<repo chromium> npx impeccable detect <url> (running dev server)
 npm run design:detect   # source; also runs in `npm run verify` and the Stop hook
 PORT=3101 npm run test:e2e -- tests/e2e/design-detect.spec.ts tests/e2e/state-structure.spec.ts   # rendered matrix + ARIA state snapshots (pre-merge gate on UI paths)
-IMPECCABLE_BROWSER="$(node -e "console.log(require('playwright').chromium.executablePath())")" \
-  npx impeccable detect "http://localhost:3000/tasks?seed=local"   # needs a running dev server
 
 # Visual regression baselines (after intentional UI changes); recorded from the production build, never against a dev server
 PORT=3101 npm run test:e2e -- tests/e2e/visual-regression.spec.ts --update-snapshots   # PORT = a free port, never :3000 beside a dev server

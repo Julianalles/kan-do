@@ -59,9 +59,12 @@ wf_pr_body_check() {
   bad=$(grep '^E2E-specs:' "$1" | sed 's/^E2E-specs://' | tr ' ' '\n' | grep -Ev '^[A-Za-z0-9_-]*$' | head -1)
   [ -z "$bad" ] || { echo "the 'E2E-specs:' line holds only spec basenames separated by spaces; '$bad' is not one (put results on another line)"; return 1; }
   base=$(git merge-base HEAD origin/main 2>/dev/null) || return 0
-  git diff --name-only "$base" HEAD 2>/dev/null | grep -Eq '^(components/.*\.vue|pages/.*\.vue|layouts/|app\.vue$)' || return 0
+  local changed; changed=$(git diff --name-only "$base" HEAD 2>/dev/null)
+  # Theme and CSS changes (app.config.ts, assets/) are UI too: the design review is a hard gate for them (#342 skipped it).
+  printf '%s\n' "$changed" | grep -Eq '^(components/.*\.vue|pages/.*\.vue|layouts/|app\.vue$|app\.config\.ts$|assets/)' || return 0
   local grammar="Pattern grammar (.claude/rules/ui-patterns.md): 'Pattern: <user job> → reused <Element>' | '→ aligned with <Element>' | '→ diverged from <Element>: <reason>' | '→ new (no existing pattern; searched: <terms>)' | 'Pattern: none (<why>)'"
   grep -Eqi '^#+ *Design review' "$1" || { echo "this PR touches UI source files but the body has no '## Design review' section with the review's findings or the concrete error (hard gate, profile 'Design quality')"; return 1; }
+  printf '%s\n' "$changed" | grep -Eq '^(components/.*\.vue|pages/.*\.vue|layouts/|app\.vue$)' || return 0
   lines=$(grep -E '^[-* ]*Pattern:' "$1")
   [ -n "$lines" ] || { echo "this PR touches UI source files but the body has no 'Pattern:' line (Pattern check, #586). $grammar"; return 1; }
   bad=$(printf '%s\n' "$lines" | grep -Ev '^[-* ]*Pattern: (none \(.+\)|.+ (→|->) (reused .+|aligned with .+|diverged from .+: *[^ ].*|new \(.+\)))$' | head -1)
