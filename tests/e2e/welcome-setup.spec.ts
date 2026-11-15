@@ -42,16 +42,15 @@ async function openNotion(page: Page) {
 const storedSources = (page: Page) =>
   page.evaluate(() => (JSON.parse(localStorage.getItem('board-store') ?? '{}') as { boardConfig?: { sources?: unknown } }).boardConfig?.sources ?? null)
 
-test('welcome start: one filled green "Loslegen", the sample start as a quiet second way, no Todoist and no choice rows (#294)', async ({ page, baseURL }) => {
+test('welcome start: one filled green "Loslegen", the sample start as a quiet second way, no choice rows (#294)', async ({ page, baseURL }) => {
   await page.goto(baseURL! + '/welcome')
 
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Deine Aufgaben bleiben bei dir')
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('Richte dein Board ein')
   const start = page.getByRole('button', { name: 'Loslegen' })
   const samples = page.getByRole('button', { name: 'Mit Beispielaufgaben starten' })
   await expect(start).toBeVisible()
   await expect(samples).toBeVisible()
-  await expect(page.getByText(/Standardmäßig liegen sie lokal auf diesem Gerät/)).toBeVisible()
-  await expect(page.getByText(/Todoist/i)).toHaveCount(0)
+  await expect(page.getByText(/Du kannst Aufgaben lokal auf diesem Gerät speichern/)).toBeVisible()
   await expect(page.getByRole('button', { name: 'In Notion' })).toHaveCount(0)
   await expect(page.locator('main.bg-page')).toBeVisible()
 
@@ -61,7 +60,7 @@ test('welcome start: one filled green "Loslegen", the sample start as a quiet se
   await expect(samples).not.toHaveClass(/bg-primary/)
   const [a, b] = await Promise.all([start, samples].map((el) => el.boundingBox()))
   expect(b!.y).toBeGreaterThan(a!.y + a!.height)
-  await expectContrast(page, page.getByText(/Standardmäßig liegen sie lokal/), 4.5)
+  await expectContrast(page, page.getByText(/Du kannst Aufgaben lokal auf diesem Gerät speichern/), 4.5)
 })
 
 test('welcome has no horizontal overflow at 390px, the headline stays within two lines and the sheet is lower than the old three-row one (#294)', async ({ page, baseURL }) => {
@@ -307,9 +306,9 @@ test('Loslegen -> Notion ticked -> setup on the stub -> Notion is connected and 
 test('welcome: the small texts on the sheet keep AA contrast (kd#14)', async ({ page, baseURL }) => {
   await page.goto(baseURL! + '/welcome')
   await expect(page.getByTestId('welcome-photo')).toHaveCSS('opacity', '1')
-  await expectContrast(page, page.getByText(/Standardmäßig liegen sie lokal/), 4.5)
+  await expectContrast(page, page.getByText(/Du kannst Aufgaben lokal auf diesem Gerät speichern/), 4.5)
   await expectContrast(page, page.getByText(/^Version:/), 4.5)
-  await expectContrast(page, page.getByText('Ein ruhiges Board für die Aufgaben des Tages.'), 4.5)
+  await expectContrast(page, page.getByText('Dein fokussiertes Personal Kanban Board für die Aufgaben des Tages.'), 4.5)
 })
 
 test('welcome sheet pads its bottom by the safe-area inset on a phone, 40px on desktop', async ({ page, baseURL }) => {
