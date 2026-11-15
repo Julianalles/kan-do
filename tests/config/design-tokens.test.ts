@@ -77,6 +77,6 @@ describe('design tokens', () => {
       expect(css, `--text-${size}--line-height`).toMatch(new RegExp(`--text-${size}--line-height:`))
     }
     const config = readFileSync(join(root, 'app.config.ts'), 'utf8')
-    expect(config).toMatch(/select: \{[^]*?item: 'min-h-9'/)
+    expect(config).toMatch(/select: \{[^]*?item: 'min-h-9[ ']/)
   })
 })

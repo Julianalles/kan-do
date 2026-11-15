@@ -65,6 +65,13 @@ describe('menus, popovers and toasts are 16 px sheets with the warm shadow (kd#1
 describe('dropdown menu rows keep the phone floor (#336)', () => {
   it('a row is 32 px from md up and at least 44 px below it', () => {
     const item = themeBlock('dropdownMenu').match(/^\s*item: '([^']+)'/m)?.[1] ?? ''
-    expect(item.split(' ')).toEqual(expect.arrayContaining(['min-h-8', 'max-md:min-h-11', 'items-center']))
+    expect(item.split(' ')).toEqual(expect.arrayContaining(['min-h-8', 'max-md:min-h-11', 'max-md:items-center']))
+    expect(item.split(' ')).not.toContain('items-center')
+  })
+
+  it.each([['select', 'min-h-9'], ['selectMenu', 'min-h-8'], ['contextMenu', 'min-h-10']])('%s rows keep their desktop height and take the floor below md (#342)', (slot, desktop) => {
+    const item = themeBlock(slot).match(/^\s*item: '([^']+)'/m)?.[1] ?? ''
+    expect(item.split(' ')).toEqual(expect.arrayContaining([desktop, 'max-md:min-h-11']))
+    expect(item.split(' ')).toContain(slot === 'contextMenu' ? 'items-center' : 'max-md:items-center')
   })
 })
