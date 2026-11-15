@@ -1,5 +1,5 @@
 import { test, expect, type BrowserContext } from '@playwright/test'
-import { moreButton, openSettings } from './helpers/appNav'
+import { moreButton, openSettings, sourceAction } from './helpers/appNav'
 import stubSchema from '../fixtures/notion/database-schema.json' with { type: 'json' }
 
 // Minimal E2E: Stepper presence and steps per mode (settings vs setup)
@@ -54,7 +54,7 @@ test.describe('Notion Setup Stepper', () => {
       await expect(moreButton(page)).toBeVisible({ timeout: 7000 })
       await openSettings(page, 'sources')
       await expect(page).toHaveURL(/\/settings(\?tab=sources)?$/)
-      await page.getByTestId('source-settings-notion').click()
+      await sourceAction(page, 'notion', 'Notion-Einstellungen')
 
       await expect(page).toHaveURL(/\/settings\/notion/)
 

@@ -454,17 +454,21 @@ export default defineAppConfig({
         // Phone: every tab is a 44px target (DESIGN.md "Space, size and shape"), like the button floor above; no call site sets it
         trigger: 'max-md:min-h-11 max-md:min-w-11 disabled:opacity-50'
       },
-      // A tab is 32 px (24, 28 and 36 for the sizes no template uses) whatever the text line is: the height is explicit,
+      // A tab is 32 px (24, 28 and 36 for the sizes no template uses; `xl` is the 44 px page navigation) whatever the text line is: the height is explicit,
       // never the 1.3 line of the interface role plus padding (kd#190; DESIGN.md "Space, size and shape")
       variants: {
         size: {
           xs: { trigger: 'h-6' },
           sm: { trigger: 'h-7' },
           md: { trigger: 'h-8' },
-          lg: { trigger: 'h-9' }
+          lg: { trigger: 'h-9' },
+          // The navigation of a page (Einstellungen, #333): 16 px labels, 44 px at every width
+          xl: { trigger: 'h-11' }
         }
       },
       compoundVariants: [
+        // ...and its underline is 2 px, so the strip reads as the page's navigation, not as a detail
+        { orientation: 'horizontal', variant: 'link', size: 'xl', class: { indicator: 'h-0.5' } },
         {
           color: 'neutral',
           variant: 'pill',

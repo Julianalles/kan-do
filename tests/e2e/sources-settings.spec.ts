@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test'
 import { seedLocalBoard, seedMixedBoard } from './helpers/seed'
 import { completeNotionWizard } from './helpers/notionWizard'
 import { contrastRatio, type Rgb } from './helpers/contrast'
-import { closeMore, goToPlace, moreButton, morePanel, openMore, openSettings, resync } from './helpers/appNav'
+import { closeMore, goToPlace, moreButton, morePanel, openMore, openSettings, resync, sourceAction } from './helpers/appNav'
 
 /**
  * The "Verbindungen" page (#324, epic #264 section 6) on the Notion stub: the list with its states, the
@@ -96,7 +96,7 @@ test.describe('Local only', () => {
     await expect(local.getByRole('button')).toHaveCount(0)
     await expect(page.getByTestId('sources-connected').locator('li')).toHaveCount(1)
 
-    await expect(page.getByRole('heading', { level: 2, name: 'Weitere Verbindungen' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 3, name: 'Weitere Verbindungen' })).toBeVisible()
     await expect(page.getByTestId('source-more-notion').getByRole('button', { name: 'Notion verbinden' })).toBeVisible()
     const todoist = page.getByTestId('source-more-todoist')
     await expect(todoist).toContainText('bald verfügbar')
@@ -116,10 +116,10 @@ test.describe('Local only', () => {
     await expect(page.getByTestId('source-status-notion')).toContainText('Synchronisiert')
     await expect(page.getByRole('button', { name: 'Notion verbinden' })).toHaveCount(0)
 
-    await page.getByRole('button', { name: 'Notion als Standard festlegen' }).click()
+    await sourceAction(page, 'notion', 'Als Standard festlegen')
     await expect(page.getByTestId('source-default-notion')).toBeVisible()
     await expect(page.getByTestId('source-default-local')).toHaveCount(0)
-    await expect(page.getByRole('button', { name: 'Lokal als Standard festlegen' })).toBeVisible()
+    await expect(page.getByTestId('source-actions-local')).toBeVisible() // Local can take the default back
     await expect.poll(() => sourcesFromStorage(page)).toEqual({ connected: ['notion'], default: 'notion' })
 
     await goToPlace(page, 'Heute')
@@ -143,18 +143,19 @@ test.describe('Local and Notion connected', () => {
 
     await expect(page.getByTestId('source-default-notion')).toBeVisible()
     await expect(page.getByTestId('source-status-notion')).toContainText('Synchronisiert · ')
-    await expect(page.getByTestId('source-set-default-local')).toHaveAccessibleName('Lokal als Standard festlegen')
+    await expect(page.getByTestId('source-actions-local')).toHaveAccessibleName('Aktionen für Lokal')
+    await expect(page.getByTestId('source-actions-notion')).toBeVisible() // settings and disconnect; the default offers no „Als Standard festlegen“
     await expect(page.getByTestId('source-more-notion')).toHaveCount(0)
 
-    await page.getByRole('button', { name: 'Lokal als Standard festlegen' }).click()
+    await sourceAction(page, 'local', 'Als Standard festlegen')
     await expect(page.getByTestId('source-default-local')).toBeVisible()
     await expect(page.getByTestId('source-default-notion')).toHaveCount(0)
-    await expect(page.getByRole('button', { name: 'Notion als Standard festlegen' })).toBeVisible()
+    await expect(page.getByTestId('source-actions-local')).toHaveCount(0) // the default Local has no action left
     await expect.poll(() => sourcesFromStorage(page)).toEqual({ connected: ['notion'], default: 'local' })
 
     await page.reload()
     await expect(page.getByTestId('source-default-local')).toBeVisible()
-    await page.getByRole('button', { name: 'Notion als Standard festlegen' }).click()
+    await sourceAction(page, 'notion', 'Als Standard festlegen')
     await expect(page.getByTestId('source-default-notion')).toBeVisible()
     await expect.poll(() => sourcesFromStorage(page)).toEqual({ connected: ['notion'], default: 'notion' })
   })
@@ -162,7 +163,7 @@ test.describe('Local and Notion connected', () => {
   test('"Notion-Einstellungen" opens the Notion settings page', async ({ context, page, baseURL }) => {
     await seedMixedBoard(context, undefined, { once: true })
     await openFromBoard(page, baseURL)
-    await page.getByRole('button', { name: 'Notion-Einstellungen' }).click()
+    await sourceAction(page, 'notion', 'Notion-Einstellungen')
     await expect(page).toHaveURL(/\/settings\/notion$/)
     await expect(page.getByRole('heading', { name: 'Notion-Einstellungen' })).toBeVisible()
     await expect(page.getByTestId('notion-disconnect')).toHaveCount(0) // disconnecting lives on the Verbindungen page
@@ -173,8 +174,8 @@ test.describe('Local and Notion connected', () => {
     await openFromBoard(page, baseURL)
     await expect(page.getByTestId('source-default-notion')).toBeVisible()
 
-    const trigger = page.getByRole('button', { name: 'Notion trennen' })
-    await trigger.click()
+    const trigger = page.getByTestId('source-actions-notion')
+    await sourceAction(page, 'notion', 'Trennen')
     const dialog = page.getByTestId('disconnect-dialog')
     await expect(dialog).toContainText('4 Aufgaben verlassen das Board')
     await expect(page.getByTestId('disconnect-default-note')).toHaveText('Neue Aufgaben werden danach lokal gespeichert.')
@@ -185,7 +186,7 @@ test.describe('Local and Notion connected', () => {
     await expect(trigger).toBeFocused()
     await expect.poll(() => sourcesFromStorage(page)).toEqual({ connected: ['notion'], default: 'notion' })
 
-    await trigger.click()
+    await sourceAction(page, 'notion', 'Trennen')
     await page.getByTestId('disconnect-anyway').click()
     await expect(page).toHaveURL(/\/settings(\?tab=sources)?$/)
     await expect(row(page, 'notion')).toHaveCount(0)
@@ -197,7 +198,7 @@ test.describe('Local and Notion connected', () => {
   test('disconnecting a Notion that is not the default keeps Lokal as the default', async ({ context, page, baseURL }) => {
     await seedMixedBoard(context, undefined, { defaultSource: 'local', once: true })
     await openFromBoard(page, baseURL)
-    await page.getByRole('button', { name: 'Notion trennen' }).click()
+    await sourceAction(page, 'notion', 'Trennen')
     await expect(page.getByTestId('disconnect-default-note')).toHaveCount(0)
     await page.getByTestId('disconnect-anyway').click()
     await expect(row(page, 'notion')).toHaveCount(0)
@@ -283,7 +284,7 @@ test.describe('Notion that needs attention', () => {
     await page.goto(`${baseURL}/tasks`)
     await openSettings(page, 'sources')
     await expect(page.getByTestId('source-status-notion')).toHaveText('Verbindung prüfen')
-    await page.getByRole('button', { name: 'Notion trennen' }).click()
+    await sourceAction(page, 'notion', 'Trennen')
     await expect(page.getByTestId('disconnect-sync-first')).toHaveCount(0) // unreachable: no "sync first"
     await page.getByTestId('disconnect-anyway').click()
     await expect(row(page, 'notion')).toHaveCount(0)
@@ -318,7 +319,7 @@ test.describe('Notion that is merely offline', () => {
 test.describe('at 390px', () => {
   test.use({ viewport: { width: 390, height: 844 } })
 
-  test('rows wrap their actions under the name, nothing overflows and every button is 44px high', async ({ context, page, baseURL }) => {
+  test('name and menu button share a line, only the repair takes the line below, nothing overflows and every button is 44px high (#333)', async ({ context, page, baseURL }) => {
     await seedMixedBoard(context, undefined, { defaultSource: 'local', notionConfig: { token: `notion_test_stub:fail=401:${crypto.randomUUID()}` } })
     await openFromBoard(page, baseURL)
     await expect(page.getByTestId('source-status-notion')).toHaveText('Verbindung prüfen')
@@ -329,12 +330,21 @@ test.describe('at 390px', () => {
     const notion = row(page, 'notion')
     const nameBox = (await notion.locator('p').first().boundingBox())!
     const buttons = notion.getByRole('button')
-    await expect(buttons).toHaveCount(4) // set default, repair, settings, disconnect
+    await expect(buttons).toHaveCount(2) // repair, and the menu with set default, settings and disconnect
     for (const button of await buttons.all()) {
       const box = (await button.boundingBox())!
       expect(box.height).toBeGreaterThanOrEqual(44)
-      expect(box.y).toBeGreaterThan(nameBox.y + nameBox.height - 1) // wrapped under the name
       expect(box.x + box.width).toBeLessThanOrEqual(390)
     }
+    const menuBox = (await page.getByTestId('source-actions-notion').boundingBox())!
+    const menuCentre = menuBox.y + menuBox.height / 2
+    const statusBox = (await page.getByTestId('source-status-notion').boundingBox())!
+    expect(menuCentre).toBeGreaterThan(nameBox.y) // beside name and status, not under them
+    expect(menuCentre).toBeLessThan(statusBox.y + statusBox.height)
+    const repairBox = (await page.getByTestId('source-repair-notion').boundingBox())!
+    expect(repairBox.y).toBeGreaterThan(statusBox.y + statusBox.height - 1) // the one part on a second line
+
+    // The default Local has no action, so no button at all
+    await expect(row(page, 'local').getByRole('button')).toHaveCount(0)
   })
 })

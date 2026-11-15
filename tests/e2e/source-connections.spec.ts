@@ -1,6 +1,6 @@
 import { test, expect, type Page, type BrowserContext } from '@playwright/test'
 import { seedMixedBoard, fillerTasks, buildBoardStore, buildTasksStore, DEFAULT_NOTION_SEED_CONFIG, notionStubSessionToken, SEED_TASKS } from './helpers/seed'
-import { goToPlace, openSettings } from './helpers/appNav'
+import { goToPlace, openSettings, sourceAction } from './helpers/appNav'
 
 /**
  * Connect and disconnect task sources (#320, epic #264 section 1) on the Notion stub. Disconnect is the "Trennen"
@@ -59,7 +59,7 @@ async function parkJetzt(page: Page) {
 /** From the board to the Verbindungen page by the gear (client-side, so a running timer keeps ticking). */
 async function openDisconnectDialog(page: Page) {
   await openSettings(page, 'sources')
-  await page.getByTestId('source-disconnect-notion').click()
+  await sourceAction(page, 'notion', 'Trennen')
   await expect(dialog(page)).toBeVisible()
 }
 
@@ -123,7 +123,7 @@ test.describe('disconnect Notion (#320)', () => {
     await openDisconnectDialog(page)
     await page.getByTestId('disconnect-cancel').click()
     await expect(dialog(page)).toHaveCount(0)
-    await expect(page.getByTestId('source-disconnect-notion')).toBeFocused() // focus returns to the trigger
+    await expect(page.getByTestId('source-actions-notion')).toBeFocused() // focus returns to the row's menu button
     await expect.poll(() => storedSources(page)).toEqual({ connected: ['notion'], default: 'notion' })
   })
 
@@ -179,7 +179,7 @@ test.describe('disconnect Notion (#320)', () => {
     await page.getByTestId('disconnect-cancel').click()
     await expect.poll(() => storedSources(page)).toEqual({ connected: ['notion'], default: 'notion' }) // never removed on its own
 
-    await page.getByTestId('source-disconnect-notion').click()
+    await sourceAction(page, 'notion', 'Trennen')
     await page.getByTestId('disconnect-anyway').click()
     await backToBoard(page)
     await expect.poll(() => storedSources(page)).toEqual({ connected: [], default: 'local' })

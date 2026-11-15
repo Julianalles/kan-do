@@ -1187,6 +1187,7 @@
       "settings": "{source} settings",
       "disconnect": "Disconnect",
       "disconnectNamed": "Disconnect {source}",
+      "actionsNamed": "Actions for {source}",
       "connect": "Connect",
       "connectNamed": "Connect {source}"
     },

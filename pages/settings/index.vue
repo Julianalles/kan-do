@@ -1,6 +1,7 @@
 <!--
 @component SettingsPage
-@description "Einstellungen" (/settings, #394, #691): three groups behind a tab strip (`UTabs` `variant="link"`: an underline, lighter than the app bar's toggle, #308; rule candidate #318),
+@description "Einstellungen" (/settings, #394, #691): three groups behind a tab strip (`UTabs` `variant="link"`: an underline, lighter than the app bar's toggle, #308; rule candidate #318;
+sized up to read as the page's navigation, #333: `size="xl"`, which the theme draws with 16 px labels, 44 px high at every width and a 2 px indicator; the other tab strips keep `md`),
 one shown at a time, the active one in the URL as `?tab=board|sources|manage` (default board, unknown value = board):
 Board (the Fokus option and the working hours of the capacity divider, #306), Aufgabenquellen (the former "Aufgaben-Quellen" page, #324: every source with its health, the default
 for new tasks, repair / configure / connect / disconnect) and Verwaltung (hairline rows to Themen und Aktivitäten, Daten &
@@ -9,7 +10,8 @@ Speicher, and on desktop Updates and GitHub-Zugriff).
 @usage Board gear, command palette "Einstellungen", the sync popover's "Verbindung reparieren"
 @responsibility
 - "Fokus": one switch row, "Jetzt-Karte im Fokus" (`settingsStore.focusEnabled`); takes effect on the board at once; on phone the 36×20 switch has a 44 px hit area (an invisible `::after`, kd#27)
-- List Lokal (always) and the connected integrations as hairline rows; the default carries the "Standard" badge
+- Aufgabenquellen is one sheet (#333: one concern): "Deine Verbindungen" (h2), the lead, the connected rows, then a separator and "Weitere Verbindungen" a level below (h3, the `sub` role); separator and heading drop out when nothing is left to connect
+- List Lokal (always) and the connected integrations as hairline rows; the default carries the "Standard" badge; a row's name and actions share one line at every width (`SourceRow`: the "…" menu)
 - "Als Standard festlegen" changes the default at once (`boardStore.setDefaultSource`)
 - Repair of a broken Notion (rejected token, missing config) opens the Notion setup at the token step
   (`force-setup`, so a new token can be entered); a merely degraded one opens it in settings mode.
@@ -33,6 +35,7 @@ Speicher, and on desktop Updates and GitHub-Zugriff).
           :items="tabItems"
           :content="false"
           variant="link"
+          size="xl"
           class="w-full"
           data-testid="settings-tabs"
           @update:model-value="onTabChange"
@@ -78,7 +81,7 @@ Speicher, and on desktop Updates and GitHub-Zugriff).
           </PageSheet>
 
           <template v-else-if="tab === 'sources'">
-            <PageSheet tag="section" aria-labelledby="sources-connected-heading" class="space-y-1">
+            <PageSheet tag="section" aria-labelledby="sources-connected-heading" class="space-y-1" data-testid="sources-sheet">
               <SectionHeader id="sources-connected-heading" tag="h2">
                 {{ t('sources.page.connectedHeading') }}
               </SectionHeader>
@@ -89,6 +92,7 @@ Speicher, and on desktop Updates and GitHub-Zugriff).
                 <SourceRow
                   v-for="row in connected"
                   :key="row.id"
+                  :ref="(el) => setRowRef(row.id, el)"
                   :row="row"
                   @set-default="onSetDefault"
                   @repair="onRepair"
@@ -96,35 +100,36 @@ Speicher, and on desktop Updates and GitHub-Zugriff).
                   @disconnect="onDisconnect"
                 />
               </ul>
-            </PageSheet>
 
-            <PageSheet tag="section" aria-labelledby="sources-more-heading" class="space-y-1">
-              <SectionHeader id="sources-more-heading" tag="h2">
-                {{ t('sources.page.moreHeading') }}
-              </SectionHeader>
-              <ul class="divide-y divide-default" data-testid="sources-more">
-                <ListRow
-                  v-for="row in more"
-                  :key="row.id"
-                  class="gap-y-3"
-                  :data-testid="`source-more-${row.id}`"
-                >
-                  <UIcon :name="row.icon" class="size-5 shrink-0 text-muted" aria-hidden="true" />
-                  <p class="min-w-0 flex-1 basis-40 text-default">{{ row.name }}</p>
-                  <UButton
-                    v-if="row.state === 'connectable'"
-                    color="neutral"
-                    variant="soft"
-                    :aria-label="t('sources.row.connectNamed', { source: row.name })"
-                    :loading="isConnecting"
-                    :data-testid="`source-connect-${row.id}`"
-                    @click="onConnect"
+              <!-- One sheet, one concern (#333): what can still be connected follows a separator, a level below -->
+              <template v-if="more.length">
+                <SectionHeader id="sources-more-heading" tag="h3" size="sub" class="mt-6 border-t border-default pt-6">
+                  {{ t('sources.page.moreHeading') }}
+                </SectionHeader>
+                <ul class="divide-y divide-default" aria-labelledby="sources-more-heading" data-testid="sources-more">
+                  <ListRow
+                    v-for="row in more"
+                    :key="row.id"
+                    class="gap-y-3"
+                    :data-testid="`source-more-${row.id}`"
                   >
-                    {{ t('sources.row.connect') }}
-                  </UButton>
-                  <span v-else class="text-sm text-muted">{{ t('sources.page.soon') }}</span>
-                </ListRow>
-              </ul>
+                    <UIcon :name="row.icon" class="size-5 shrink-0 text-muted" aria-hidden="true" />
+                    <p class="min-w-0 flex-1 text-default">{{ row.name }}</p>
+                    <UButton
+                      v-if="row.state === 'connectable'"
+                      color="neutral"
+                      variant="soft"
+                      :aria-label="t('sources.row.connectNamed', { source: row.name })"
+                      :loading="isConnecting"
+                      :data-testid="`source-connect-${row.id}`"
+                      @click="onConnect"
+                    >
+                      {{ t('sources.row.connect') }}
+                    </UButton>
+                    <span v-else class="text-sm text-muted">{{ t('sources.page.soon') }}</span>
+                  </ListRow>
+                </ul>
+              </template>
             </PageSheet>
           </template>
 
@@ -157,7 +162,7 @@ Speicher, and on desktop Updates and GitHub-Zugriff).
 <script setup lang="ts">
 import SectionHeader from '~/components/ui/SectionHeader.vue'
 import PageSheet from '~/components/ui/PageSheet.vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { navigateTo } from 'nuxt/app'
 import { useRoute, useRouter } from 'vue-router'
@@ -288,6 +293,19 @@ const onDisconnect = (id: SourceId) => {
   disconnectTarget.value = id
   isDisconnectOpen.value = true
 }
+
+// The disconnect dialog opens from a menu item that is gone when it closes: focus goes back to the row's menu button
+type RowHandle = { focusMenu: () => void }
+const rowRefs: Partial<Record<SourceId, RowHandle>> = {}
+const setRowRef = (id: SourceId, el: unknown) => {
+  if (el) rowRefs[id] = el as RowHandle
+  else Reflect.deleteProperty(rowRefs, id)
+}
+watch(isDisconnectOpen, async (open) => {
+  if (open || !disconnectTarget.value) return
+  await nextTick()
+  rowRefs[disconnectTarget.value]?.focusMenu()
+})
 
 const onConnect = () => {
   openSetup('connect', true)

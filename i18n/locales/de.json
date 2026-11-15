@@ -1187,6 +1187,7 @@
       "settings": "{source}-Einstellungen",
       "disconnect": "Trennen",
       "disconnectNamed": "{source} trennen",
+      "actionsNamed": "Aktionen für {source}",
       "connect": "Verbinden",
       "connectNamed": "{source} verbinden"
     },

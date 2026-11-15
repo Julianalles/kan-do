@@ -11,9 +11,14 @@
 - Status line: muted, warning tone for "Verbindung prüfen" (never an error colour, never a toast); the time
   text is plain, a separate visually hidden live region announces only the warning, so the 30 s refresh of
   "vor 3 Min." never interrupts a screen reader
-- Offer repair / settings / disconnect only where the row data allows them (Local has none)
-- Actions sit right-aligned and wrap under the name on a phone; every button is 44px high there
-- Every button name contains the source ("Notion als Standard festlegen") so rows are told apart
+- Name and actions share one line at every width (#333): the name column shrinks (`min-w-0 flex-1`, no basis), nothing wraps under it
+- "Als Standard festlegen", "<Source>-Einstellungen" and "Trennen" sit behind one "…" menu button (`UDropdownMenu`, a ghost
+  icon-only trigger named "Aktionen für <Source>"), on phone and desktop alike; only what the row data allows (Local as the
+  default has no action and no menu button). Accepted trade-off: these actions are one tap further away
+- "Verbindung reparieren" stays a visible button before the menu button: a broken connection is the one thing the row asks for.
+  On a phone it is the one part that takes a second line (under the name): 165 px of button do not fit beside name, badge and status in 310 px
+- The "…" glyph ends on the sheet's right edge like "Verbinden" below it (negative end margin, the hit area stays); `focusMenu()` is exposed so the page returns focus to the button when the disconnect dialog closes
+- Pattern: several secondary actions behind one trigger → reused UDropdownMenu (as the task sheet's move menu)
 -->
 <template>
   <ListRow
@@ -21,7 +26,7 @@
     :data-testid="`source-row-${row.id}`"
   >
     <UIcon :name="row.icon" class="size-5 shrink-0 text-muted" aria-hidden="true" />
-    <div class="min-w-0 flex-1 basis-40">
+    <div class="min-w-0 flex-1">
       <p class="flex items-center gap-2 text-default">
         {{ row.name }}
         <UBadge
@@ -42,19 +47,9 @@
       </p>
       <span class="sr-only" role="status">{{ announcement }}</span>
     </div>
-    <div v-if="hasActions" class="flex flex-wrap gap-2">
+    <!-- Phone: the repair cannot share 310 px with name, badge and status, so it takes the line below (under the name) -->
+    <div v-if="row.canRepair" class="max-md:order-1 max-md:basis-full max-md:ps-9">
       <UButton
-        v-if="row.canSetDefault"
-        color="neutral"
-        :variant="row.canRepair ? 'ghost' : 'soft'"
-        :aria-label="t('sources.row.setDefaultNamed', { source: row.name })"
-        :data-testid="`source-set-default-${row.id}`"
-        @click="emit('setDefault', row.id)"
-      >
-        {{ t('sources.row.setDefault') }}
-      </UButton>
-      <UButton
-        v-if="row.canRepair"
         color="neutral"
         variant="soft"
         :aria-label="t('sources.row.repairNamed', { source: row.name })"
@@ -63,33 +58,26 @@
       >
         {{ t('sources.row.repair') }}
       </UButton>
-      <UButton
-        v-if="row.canConfigure"
-        color="neutral"
-        variant="ghost"
-        :data-testid="`source-settings-${row.id}`"
-        @click="emit('openSettings', row.id)"
-      >
-        {{ t('sources.row.settings', { source: row.name }) }}
-      </UButton>
-      <UButton
-        v-if="row.canConfigure"
-        color="neutral"
-        variant="ghost"
-        :aria-label="t('sources.row.disconnectNamed', { source: row.name })"
-        :data-testid="`source-disconnect-${row.id}`"
-        @click="emit('disconnect', row.id)"
-      >
-        {{ t('sources.row.disconnect') }}
-      </UButton>
     </div>
+    <UDropdownMenu v-if="menuItems.length" :items="menuItems" :content="{ align: 'end', sideOffset: 4 }">
+      <UButton
+        ref="menuButton"
+        color="neutral"
+        variant="ghost"
+        icon="i-ph-dots-three-bold"
+        class="-me-2 shrink-0 max-md:-me-3.5"
+        :aria-label="t('sources.row.actionsNamed', { source: row.name })"
+        :data-testid="`source-actions-${row.id}`"
+      />
+    </UDropdownMenu>
   </ListRow>
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import ListRow from '~/components/ui/ListRow.vue'
 import { useI18n } from 'vue-i18n'
+import type { DropdownMenuItem } from '@nuxt/ui'
 import type { ConnectedSourceRow } from '~/composables/useSourceList'
 import type { SourceId } from '~/types/taskSource'
 
@@ -110,5 +98,22 @@ const { t } = useI18n()
 /** Only a warning is announced: the live region changes on a real status change, not when "vor 3 Min." counts up */
 const announcement = computed(() => (props.row.statusTone === 'warning' ? props.row.statusText : ''))
 
-const hasActions = computed(() => props.row.canSetDefault || props.row.canRepair || props.row.canConfigure)
+/** The row's secondary actions, in the order the buttons had, "Trennen" in a group of its own below a divider; the row names the source, so the items do not repeat it */
+const menuItems = computed<DropdownMenuItem[][]>(() => {
+  const { id, name } = props.row
+  const items: DropdownMenuItem[] = []
+  const leaving: DropdownMenuItem[] = []
+  if (props.row.canSetDefault) {
+    items.push({ label: t('sources.row.setDefault'), icon: 'i-ph-check-circle', onSelect: () => emit('setDefault', id) })
+  }
+  if (props.row.canConfigure) {
+    items.push({ label: t('sources.row.settings', { source: name }), icon: 'i-ph-gear', onSelect: () => emit('openSettings', id) })
+    leaving.push({ label: t('sources.row.disconnect'), icon: 'i-ph-plugs', onSelect: () => emit('disconnect', id) })
+  }
+  return [items, leaving].filter((group) => group.length)
+})
+
+/** The host returns focus here when a dialog the menu opened closes (the menu item it came from is gone by then) */
+const menuButton = ref<{ $el: HTMLElement } | null>(null)
+defineExpose({ focusMenu: () => menuButton.value?.$el?.focus() })
 </script>
