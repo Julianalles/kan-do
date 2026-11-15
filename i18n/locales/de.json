@@ -1227,11 +1227,11 @@
   },
   "onboarding": {
     "page": {
-      "tagline": "Ein ruhiges Board für die Aufgaben des Tages.",
+      "tagline": "Dein fokussiertes Personal Kanban Board für die Aufgaben des Tages.",
       "version": "Version:",
-      "title": "Deine Aufgaben bleiben bei dir",
+      "title": "Richte dein Board ein",
       "samples": "Mit Beispielaufgaben starten",
-      "intro": "Standardmäßig liegen sie lokal auf diesem Gerät. Externe Aufgabenlisten wie Notion verbindest du bei der Einrichtung oder jederzeit später.",
+      "intro": "Du kannst Aufgaben lokal auf diesem Gerät speichern oder externe Aufgaben-Apps wie Notion oder Todoist nutzen.",
       "start": "Loslegen"
     },
     "flow": {

@@ -1,8 +1,8 @@
 - main:
   - paragraph: kan-do
-  - paragraph: Ein ruhiges Board für die Aufgaben des Tages.
-  - heading "Deine Aufgaben bleiben bei dir" [level=1]
-  - paragraph: Standardmäßig liegen sie lokal auf diesem Gerät. Externe Aufgabenlisten wie Notion verbindest du bei der Einrichtung oder jederzeit später.
+  - paragraph: Dein fokussiertes Personal Kanban Board für die Aufgaben des Tages.
+  - heading "Richte dein Board ein" [level=1]
+  - paragraph: Du kannst Aufgaben lokal auf diesem Gerät speichern oder externe Aufgaben-Apps wie Notion oder Todoist nutzen.
   - button "Loslegen"
   - button "Mit Beispielaufgaben starten"
-  - paragraph: "/Version: \\d+\\.\\d+\\.\\d+/"
+  - paragraph: "/Version: \\d+\\.\\d+\\.0/"

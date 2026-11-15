@@ -1227,11 +1227,11 @@
   },
   "onboarding": {
     "page": {
-      "tagline": "A quiet board for the day's tasks.",
+      "tagline": "Your focused personal Kanban board for the day's tasks.",
       "version": "Version:",
-      "title": "Your tasks stay with you",
+      "title": "Set up your board",
       "samples": "Start with sample tasks",
-      "intro": "By default they live locally on this device. You connect external task lists like Notion during setup or any time later.",
+      "intro": "You can save tasks locally on this device or use external task apps like Notion or Todoist.",
       "start": "Get started"
     },
     "flow": {

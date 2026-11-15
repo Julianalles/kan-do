@@ -9,6 +9,6 @@ test('app boots and shows the welcome page for a browser without sources', async
   await page.goto(baseURL!)
 
   await expect(page).toHaveURL(/\/welcome/)
-  await expect(page.getByRole('heading', { level: 1, name: 'Deine Aufgaben bleiben bei dir' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 1, name: 'Richte dein Board ein' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Loslegen' })).toBeVisible()
 })
