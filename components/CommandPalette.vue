@@ -5,8 +5,8 @@
 @description Cmd/Ctrl+K command palette: app-wide commands in four groups (Aktionen, Gehe zu, Daten & Speicher, and on desktop App;
 #234) plus actions for the card that held keyboard focus when the palette opened (issue #101, Direction B; on every page since #224).
 The row that would navigate to the page the user is already on is left out (`buildCommandGroups`, `currentPath`).
-@usage Mounted once in app.vue while the app bar shows (not on /welcome); open with Cmd/Ctrl+K or the ⋯ panel's "Befehle". Desktop/keyboard only (no entry point on mobile).
-@avoid Not for pointer navigation (AppNav, MorePanel); desktop and keyboard only, there is no entry point on a phone.
+@usage Mounted once in app.vue while the app bar shows (not on /welcome); open with Cmd/Ctrl+K or the ⋯ panel's "Befehle". No tap entry on a phone (MorePanel hides "Befehle" there); the keyboard opens it on any width.
+@avoid Not for pointer navigation (AppNav, MorePanel); there is no tap entry on a phone. Rows keep the 44 px floor below md for Cmd/Ctrl+K in a narrow window and for a later phone entry (#345).
 @responsibility
 - Render UCommandPalette inside UModal; Esc closes and focus returns to the card
 - Show the shortcut hints of the commands (`kbds`) and the palette's own keys in the footer
@@ -103,7 +103,8 @@ const paletteUi = {
   // The stock highlight (bg-elevated/50) is invisible on the bg-elevated (white) modal, and so is bg-muted (~1.07:1); use the
   // canvas fill's hover step, the same warm tint as every other state fill (main.css `--fill-on-canvas-hover`).
   // Disabled rows keep full opacity so the reason suffix stays AA; only the label is dimmed.
-  item: 'min-h-9 px-3 py-2 text-sm before:rounded-lg data-disabled:opacity-100 data-highlighted:not-data-disabled:before:bg-(--fill-on-canvas-hover)',
+  // 36 px from md up, at least 44 px below it (DESIGN.md "Control height", #345), content on the row's middle there.
+  item: 'min-h-9 max-md:min-h-11 max-md:items-center px-3 py-2 text-sm before:rounded-lg data-disabled:opacity-100 data-highlighted:not-data-disabled:before:bg-(--fill-on-canvas-hover)',
   itemLabelBase: 'group-data-disabled:text-dimmed',
   itemLeadingIcon: 'group-data-disabled:text-dimmed',
   itemLabelSuffix: 'text-muted',

@@ -20,10 +20,12 @@ test.describe('Command palette', () => {
     await expect(palette(page)).toBeVisible()
     await expect(palette(page).getByText('Verschieben nach Erledigt')).toBeVisible()
 
+    await expect(palette(page).getByRole('textbox')).toBeFocused()
     await page.keyboard.type('statis')
     await expect(palette(page).getByText('Statistik öffnen')).toBeVisible()
     await expect(palette(page).getByText('Verschieben nach Erledigt')).toHaveCount(0)
 
+    await expect(palette(page).getByRole('textbox')).toBeFocused()
     await page.keyboard.type('zzzzqq')
     await expect(palette(page).getByRole('status')).toContainText('Keine Befehle')
 
@@ -67,6 +69,8 @@ test.describe('Command palette', () => {
 
   test('Statistik öffnen goes to the statistics page', async ({ page }) => {
     await page.keyboard.press('ControlOrMeta+k')
+    // keys typed before the search input has focus are lost and the list stays unfiltered (flaked 1 in 10 on main too, #345)
+    await expect(palette(page).getByRole('textbox')).toBeFocused()
     await page.keyboard.type('statis')
     // Enter runs the highlighted row: wait for the filter to settle on it (a half-typed term can highlight an earlier group's row)
     await expect(palette(page).locator('[role="option"][data-highlighted]')).toHaveText(/Statistik öffnen/)
@@ -93,6 +97,7 @@ test.describe('Command palette', () => {
   test('moves the focused card to Erledigt (with undo toast) via keyboard', async ({ page }) => {
     await card(page, 'Dokumentation lesen').focus()
     await page.keyboard.press('ControlOrMeta+k')
+    await expect(palette(page).getByRole('textbox')).toBeFocused()
     await page.keyboard.type('erledigt')
     await page.keyboard.press('Enter')
     await expect(palette(page)).toBeHidden()
@@ -122,6 +127,7 @@ test.describe('Command palette', () => {
   test('delete from the palette is undoable', async ({ page }) => {
     await card(page, 'Dokumentation lesen').focus()
     await page.keyboard.press('ControlOrMeta+k')
+    await expect(palette(page).getByRole('textbox')).toBeFocused()
     await page.keyboard.type('löschen')
     await page.keyboard.press('Enter')
     await expect(card(page, 'Dokumentation lesen')).toHaveCount(0)
@@ -133,6 +139,7 @@ test.describe('Command palette', () => {
 
   test('Add task opens the existing form', async ({ page }) => {
     await page.keyboard.press('ControlOrMeta+k')
+    await expect(palette(page).getByRole('textbox')).toBeFocused()
     await page.keyboard.type('hinzufügen')
     await page.keyboard.press('Enter')
     await expect(page).toHaveURL(/\/tasks\/add/)
@@ -183,6 +190,7 @@ test.describe('Command palette', () => {
   test('a single filter result is highlighted so Enter runs it', async ({ page }) => {
     await card(page, 'Dokumentation lesen').focus()
     await page.keyboard.press('ControlOrMeta+k')
+    await expect(palette(page).getByRole('textbox')).toBeFocused()
     await page.keyboard.type('Details')
     await expect(palette(page).getByRole('option')).toHaveCount(1)
     await expect(palette(page).locator('[role="option"][data-highlighted]')).toHaveCount(1)
@@ -245,6 +253,7 @@ test.describe('Command palette off the board (kd#224)', () => {
     await expect(palette(page).getByRole('option', { name: 'Tag abschließen' })).toBeVisible()
     await expect(palette(page).getByRole('option', { name: 'App zurücksetzen…' })).toBeVisible()
     // search still finds the remaining rows
+    await expect(palette(page).getByRole('textbox')).toBeFocused()
     await page.keyboard.type('papier')
     await expect(palette(page).getByRole('option', { name: 'Papierkorb öffnen' })).toBeVisible()
   })
@@ -269,6 +278,7 @@ test.describe('Command palette off the board (kd#224)', () => {
     await expect(page.getByTestId('app-nav')).toBeVisible()
     await page.keyboard.press('ControlOrMeta+k')
     await expect(palette(page)).toBeVisible()
+    await expect(palette(page).getByRole('textbox')).toBeFocused()
     await page.keyboard.type('Papierkorb')
     await expect(palette(page).locator('[role="option"][data-highlighted]')).toHaveText(/Papierkorb öffnen/)
     await page.keyboard.press('Enter')
@@ -277,6 +287,7 @@ test.describe('Command palette off the board (kd#224)', () => {
     await expect(page.getByTestId('app-nav')).toBeVisible()
     await page.keyboard.press('ControlOrMeta+k')
     await expect(palette(page)).toBeVisible()
+    await expect(palette(page).getByRole('textbox')).toBeFocused()
     await page.keyboard.type('Heute')
     await expect(palette(page).locator('[role="option"][data-highlighted]')).toHaveText(/Heute öffnen/)
     await page.keyboard.press('Enter')
@@ -288,6 +299,7 @@ test.describe('Command palette off the board (kd#224)', () => {
     await expect(page.getByTestId('app-nav')).toBeVisible()
     await page.keyboard.press('ControlOrMeta+k')
     await expect(palette(page)).toBeVisible()
+    await expect(palette(page).getByRole('textbox')).toBeFocused()
     await page.keyboard.type('abschließen')
     await page.keyboard.press('Enter')
     await expect(page).toHaveURL(/\/tasks$/)

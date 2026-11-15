@@ -75,3 +75,12 @@ describe('dropdown menu rows keep the phone floor (#336)', () => {
     expect(item.split(' ')).toContain(slot === 'contextMenu' ? 'items-center' : 'max-md:items-center')
   })
 })
+
+describe('command palette rows keep the phone floor (#345)', () => {
+  it('a row is 36 px from md up and at least 44 px below it, content centred below md', () => {
+    const src = readFileSync(join(root, 'components/CommandPalette.vue'), 'utf8')
+    const item = src.match(/^\s*item: '([^']+)'/m)?.[1] ?? ''
+    expect(item.split(' ')).toEqual(expect.arrayContaining(['min-h-9', 'max-md:min-h-11', 'max-md:items-center']))
+    expect(item.split(' ')).not.toContain('items-center')
+  })
+})
