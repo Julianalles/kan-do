@@ -103,7 +103,8 @@ const paletteUi = {
   // The stock highlight (bg-elevated/50) is invisible on the bg-elevated (white) modal, and so is bg-muted (~1.07:1); use the
   // canvas fill's hover step, the same warm tint as every other state fill (main.css `--fill-on-canvas-hover`).
   // Disabled rows keep full opacity so the reason suffix stays AA; only the label is dimmed.
-  item: 'min-h-9 px-3 py-2 text-sm before:rounded-lg data-disabled:opacity-100 data-highlighted:not-data-disabled:before:bg-(--fill-on-canvas-hover)',
+  // 36 px from md up, at least 44 px below it (DESIGN.md "Control height", #345), content on the row's middle there.
+  item: 'min-h-9 max-md:min-h-11 max-md:items-center px-3 py-2 text-sm before:rounded-lg data-disabled:opacity-100 data-highlighted:not-data-disabled:before:bg-(--fill-on-canvas-hover)',
   itemLabelBase: 'group-data-disabled:text-dimmed',
   itemLeadingIcon: 'group-data-disabled:text-dimmed',
   itemLabelSuffix: 'text-muted',
