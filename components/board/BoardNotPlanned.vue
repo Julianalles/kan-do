@@ -34,7 +34,8 @@
         {{ t('board.notPlanned.empty') }} {{ t('board.notPlanned.emptyHow') }}
       </EmptyNote>
 
-      <TransitionGroup tag="ul" name="not-planned-item" class="not-planned__grid">
+      <!-- Not in the reader's tree while it holds nothing: an empty list says "0 items" beside the note -->
+      <TransitionGroup v-show="shown.length > 0" tag="ul" name="not-planned-item" class="not-planned__grid">
         <li v-for="task in shown" :key="task.id" class="not-planned__item" :data-not-planned-id="task.id">
           <div
             class="not-planned__card"

@@ -52,6 +52,26 @@ async function atRest(page: Page) {
   await settleAnimations(page)
 }
 
+/**
+ * Whether `.board` carries `data-place-moving` at any time from now until the place has changed and the flag is
+ * down again. Start it before the click: the flag is a 420 ms window, too short to poll for under load.
+ */
+function sawMoveFlag(page: Page): Promise<boolean> {
+  return page.evaluate(() => new Promise<boolean>((resolve) => {
+    const el = document.querySelector('.board')!
+    const from = el.getAttribute('data-place')
+    let seen = false
+    const done = () => { observer.disconnect(); resolve(seen) }
+    const observer = new MutationObserver(() => {
+      if (el.hasAttribute('data-place-moving')) seen = true
+      // Settled on the other place: with motion the flag has come and gone, without it it never came
+      else if (el.getAttribute('data-place') !== from) requestAnimationFrame(() => requestAnimationFrame(() => { if (!el.hasAttribute('data-place-moving')) done() }))
+    })
+    observer.observe(el, { attributes: true })
+    setTimeout(done, 5000)
+  }))
+}
+
 async function gotoAll(page: Page) {
   await page.goto('/all')
   await expect(board(page)).toHaveAttribute('data-place', 'all')
@@ -94,10 +114,12 @@ test.describe('The place "Alle" (#354), desktop', () => {
     // Mark the live DOM node and scroll state a remount would lose
     await page.locator('#column-open').evaluate((el) => { (el as HTMLElement & { __same?: boolean }).__same = true })
 
+    // The move flag is up for 420 ms only: record it from before the click instead of racing it
+    const travelled = sawMoveFlag(page)
     await placeLink(page, 'all').click()
     await expect(board(page)).toHaveAttribute('data-place', 'all')
-    // The move is under way (motion is on in this project): both sides are painted while it travels
-    await expect(board(page)).toHaveAttribute('data-place-moving', '')
+    // Motion is on in this project: both sides were painted while the strip travelled
+    expect(await travelled).toBe(true)
     await atRest(page)
     expect(await page.locator('#column-open').evaluate(el => (el as HTMLElement & { __same?: boolean }).__same)).toBe(true)
     expect(await page.locator('.column-group-mid').evaluate(el => getComputedStyle(el).display)).toBe('none')
@@ -124,13 +146,7 @@ test.describe('The place "Alle" (#354), desktop', () => {
     await seedLocalBoard(context, BOARD)
     await page.goto('/tasks')
     await expect(openCard(page, 'open-1')).toBeVisible()
-    const flagged = page.evaluate(() => new Promise<boolean>((resolve) => {
-      const el = document.querySelector('.board')!
-      let seen = false
-      const observer = new MutationObserver(() => { if (el.hasAttribute('data-place-moving')) seen = true })
-      observer.observe(el, { attributes: true })
-      setTimeout(() => { observer.disconnect(); resolve(seen) }, 600)
-    }))
+    const flagged = sawMoveFlag(page)
     await placeLink(page, 'all').click()
     await expect(notPlanned(page)).toBeVisible()
     expect(await flagged).toBe(false)

@@ -136,7 +136,7 @@ function deleteFocusedCard(event: KeyboardEvent) {
     :aria-label="task?.title"
     :aria-describedby="positionText ? positionId : undefined"
     :aria-roledescription="t('board.dnd.roleDescription')"
-    :class="[{ 'kando-dnd-dragged': isDragging }, dropMotionClasses]"
+    :class="[{ 'kando-dnd-dragged': isDragging, 'task-wrapper--not-today': showNotToday }, dropMotionClasses]"
     @keydown.enter.self="openDetails"
     @keydown.delete.self="deleteFocusedCard"
   >
@@ -165,7 +165,9 @@ function deleteFocusedCard(event: KeyboardEvent) {
 /* "Nicht heute" (#354): on the paper left of the card, towards "Nicht geplant"; the wrapper spans the list's width and
    the card is centred in it. Shown under the pointer and on keyboard focus (the pick arrow on the other side is the
    one a first-time user must find; Offen stays as calm as on Heute). */
-.task-wrapper {
+/* Only while the arrow is there: a positioned wrapper on every card changes how the board is layered, which moved
+   the Wartet headline's glyphs by a sub-pixel on Heute (visual baselines) */
+.task-wrapper--not-today {
   position: relative;
 }
 

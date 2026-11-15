@@ -1,0 +1,14 @@
+- region "Nicht geplant":
+  - heading "Nicht geplant" [level=2]
+  - list:
+    - listitem:
+      - group "Konzept ausarbeiten":
+        - paragraph: Design
+        - paragraph: Konzept ausarbeiten
+      - 'button "Konzept ausarbeiten: für heute einplanen"'
+    - listitem:
+      - group "Dokumentation lesen":
+        - paragraph: Dokumentation lesen
+        - 'progressbar /Timebox: <1 min von \d+ min/': /<1 min \d+ min/
+        - text: Hoch
+      - 'button "Dokumentation lesen: für heute einplanen"'

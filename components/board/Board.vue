@@ -408,12 +408,16 @@ watch(place, async (to) => {
   }
 
   stripPage.value = target;
-  // Desktop: the place sets the strip's offset by a margin (board.css), which jumps; the strip then travels there
+  // Desktop: the place sets the strip's offset by a margin (board.css), which jumps; the strip then travels there.
+  // Heute at rest is the plain three-column grid; it becomes the strip for the length of the move.
   if (!el || ms === 0 || typeof el.animate !== 'function') {
     endPlaceMove(token);
     return;
   }
-  const before = el.getBoundingClientRect().left;
+  // Offen is the column both places show: where it stands says where the strip stands, also while Heute rests in its
+  // own three-track grid (board.css lays the strip out only for "Alle" and for the move)
+  const offen = () => el.querySelector(':scope > #column-open')?.getBoundingClientRect().left ?? 0;
+  const before = offen();
   const [allSides, todaySides] = sidesOf(el);
   const opacityBefore = new Map([...allSides, ...todaySides].map((side) => [side, Number.parseFloat(getComputedStyle(side).opacity)]));
   placeMove?.cancel();
@@ -422,7 +426,7 @@ watch(place, async (to) => {
   placeMoving.value = true;
   await nextTick();
   if (token !== placeMoveToken) return;
-  const from = before - el.getBoundingClientRect().left;
+  const from = before - offen();
   const easing = getComputedStyle(el).getPropertyValue('--place-ease').trim() || 'ease';
   placeMove = el.animate([{ transform: `translateX(${from}px)` }, { transform: 'translateX(0)' }], { duration: ms, easing });
   // On a window wider than three tracks the paper left and right of them shows the side that comes or goes: it fades
