@@ -61,3 +61,10 @@ describe('menus, popovers and toasts are 16 px sheets with the warm shadow (kd#1
     expect(readFileSync(join(root, '.nuxt/ui/toast.ts'), 'utf8')).toMatch(/"root": "[^"]*\brounded-lg\b/)
   })
 })
+
+describe('dropdown menu rows keep the phone floor (#336)', () => {
+  it('a row is 32 px from md up and at least 44 px below it', () => {
+    const item = themeBlock('dropdownMenu').match(/^\s*item: '([^']+)'/m)?.[1] ?? ''
+    expect(item.split(' ')).toEqual(expect.arrayContaining(['min-h-8', 'max-md:min-h-11', 'items-center']))
+  })
+})
