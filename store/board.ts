@@ -64,6 +64,15 @@ export function sanitizeFocus(raw: unknown): BoardFocus | null {
   return { topic, day };
 }
 
+/**
+ * A persisted `notPlannedOrder` (#354) that is not a list of ids reads as empty (older data has none); entries that
+ * are not a non-empty string and repeats are left out.
+ */
+export function sanitizeNotPlannedOrder(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return [...new Set(raw.filter((id): id is string => typeof id === 'string' && id !== ''))];
+}
+
 /** Key-order-insensitive JSON form, so two structurally equal configs compare equal. */
 function stableJson(value: unknown): string {
   return JSON.stringify(value, (_key, v: unknown) =>
@@ -112,6 +121,12 @@ export const useBoardStore = defineStore("board", () => {
   
   /** The topic focus (#161), persisted; null = no focus. Read it through `activeFocusTopic`, which ends it with its day. */
   const focus = ref<BoardFocus | null>(null);
+  /**
+   * The order of "Nicht geplant" (#354), persisted: the ids of the tasks put back by hand, newest first. A
+   * not-planned task that is not listed (it never was on the board) follows them in stored order
+   * (`tasksStore.tasksNotPlanned`). `reconcileColumnsWithTasks` drops an id that is no longer not planned.
+   */
+  const notPlannedOrder = ref<string[]>([]);
 
   // Transient state for scroll persistence
   const scrollPosition = ref({ top: 0, left: 0 });
@@ -501,19 +516,34 @@ export const useBoardStore = defineStore("board", () => {
     }
   }
 
+  /** "Nicht heute" (#354): the task goes to the top of "Nicht geplant". */
+  function noteNotPlanned(taskId: string) {
+    notPlannedOrder.value = [taskId, ...notPlannedOrder.value.filter(id => id !== taskId)];
+  }
+
   function reconcileColumnsWithTasks(tasks: Task[]): boolean {
     const taskIdsByStatus = new Map<TaskStatus, string[]>();
+    const notPlannedIds = new Set<string>();
 
     tasks.forEach((task) => {
       // A task that is not planned for today (#353) is in no column: it has no place in Offen's order, and
       // planning it appends it at the end
-      if (isNotPlanned(task)) return;
+      if (isNotPlanned(task)) {
+        notPlannedIds.add(task.id);
+        return;
+      }
       const existing = taskIdsByStatus.get(task.status) ?? [];
       existing.push(task.id);
       taskIdsByStatus.set(task.status, existing);
     });
 
     let hasChanges = false;
+
+    // A task that was planned, moved on or removed leaves the order of "Nicht geplant" (#354)
+    if (notPlannedOrder.value.some(id => !notPlannedIds.has(id))) {
+      notPlannedOrder.value = notPlannedOrder.value.filter(id => notPlannedIds.has(id));
+      hasChanges = true;
+    }
 
     columns.value = columns.value.map((column) => {
       const validTaskIds = taskIdsByStatus.get(column.taskStatus) ?? [];
@@ -613,18 +643,22 @@ export const useBoardStore = defineStore("board", () => {
     insertTaskBetween,
     rebalanceColumnPositions,
     reconcileColumnsWithTasks,
+    notPlannedOrder,
+    noteNotPlanned,
   };
 }, {
   persist: {
     key: 'board-store',
-    pick: ['boardConfig', 'columns', 'grouping', 'focus'],
+    pick: ['boardConfig', 'columns', 'grouping', 'focus', 'notPlannedOrder'],
     // The Todoist token lives in the Keychain on desktop (ADR 007).
     omit: persistOmitFor('board-store'),
-    afterHydrate: (ctx: { store: { boardConfig: IBoardConfig; focus: unknown; $persist: () => void } }) => {
+    afterHydrate: (ctx: { store: { boardConfig: IBoardConfig; focus: unknown; notPlannedOrder: unknown; $persist: () => void } }) => {
       // The focus (#161) of older data is missing; a malformed one reads as none. In memory only: the next
       // mutation persists it (hydration must not write by itself, below). An earlier day's focus stays until then
       // and `activeFocusTopic` ignores it.
       ctx.store.focus = sanitizeFocus(ctx.store.focus);
+      // The order of "Nicht geplant" (#354) follows the same rule: missing or malformed reads as empty, no write
+      ctx.store.notPlannedOrder = sanitizeNotPlannedOrder(ctx.store.notPlannedOrder);
       const hydrated = ctx.store.boardConfig;
       const sanitised = sanitizeBoardConfig(hydrated);
       ctx.store.boardConfig = sanitised;

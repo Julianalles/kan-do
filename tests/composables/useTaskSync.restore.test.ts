@@ -103,6 +103,32 @@ describe('useTaskSync: restoring from the trash (#422)', () => {
     expect(calls).toEqual([`restore:local:null:${TaskStatus.Waiting}`])
   })
 
+  it('a not-planned task returns to "Nicht geplant", on top, and takes no place in Offen\'s order (#354)', async () => {
+    const off = makeTask({ id: 'off', notPlanned: true })
+    tasksStore.setTasks([off, makeTask({ id: 'held', notPlanned: true }), makeTask({ id: 'open' })])
+    useBoardStore().reconcileColumnsWithTasks(tasksStore.tasks)
+    trashed(off)
+
+    await useTaskSync().restoreTask(trash.entry('off')!)
+
+    expect(tasksStore.tasksNotPlanned.map(task => task.id)).toEqual(['off', 'held'])
+    expect(useBoardStore().columnByTaskStatus(TaskStatus.Open)?.taskOrder).toEqual(['open'])
+    // Planned afterwards, it lands at the end of Offen, not at a place the restore reserved
+    tasksStore.planTask('off')
+    expect(tasksStore.tasksOpen.map(task => task.id)).toEqual(['open', 'off'])
+  })
+
+  it('a Jetzt snapshot with a stale not-planned marker comes back visible in Offen (#354)', async () => {
+    const running = makeTask({ id: 'run', status: TaskStatus.Progress, notPlanned: true })
+    tasksStore.setTasks([running])
+    trashed(running, TaskStatus.Progress)
+
+    await useTaskSync().restoreTask(trash.entry('run')!)
+
+    expect(tasksStore.tasksOpen.map(task => task.id)).toEqual(['run'])
+    expect(tasksStore.tasksNotPlanned).toEqual([])
+  })
+
   it('a restore takes the task\'s discarded time out of the statistics (#537)', async () => {
     const task = makeTask({ id: 'disc' })
     trashed(task)

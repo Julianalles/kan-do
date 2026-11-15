@@ -222,8 +222,17 @@ export const useTasksStore = defineStore("tasks", () => {
   const tasksProgress = createTasksByStatusGetter(TaskStatus.Progress, tasks);
   const tasksWaiting = createTasksByStatusGetter(TaskStatus.Waiting, tasks);
   const tasksDone = createTasksByStatusGetter(TaskStatus.Done, tasks);
-  /** The tasks kan-do holds that are not planned for today (#353): in no column, in the order they are stored. */
-  const tasksNotPlanned = computed(() => tasks.value.filter((task: Task) => isNotPlanned(task)));
+  /**
+   * The tasks kan-do holds that are not planned for today (#353), in no column. Order (#354): the tasks put back
+   * by hand first, newest first (`boardStore.notPlannedOrder`), then the rest in the order they are stored.
+   */
+  const tasksNotPlanned = computed(() => {
+    const held = tasks.value.filter((task: Task) => isNotPlanned(task));
+    const rank = new Map(useBoardStore().notPlannedOrder.map((id, index) => [id, index]));
+    if (rank.size === 0) return held;
+    // Array.prototype.sort is stable: unlisted tasks keep their stored order behind the listed ones
+    return [...held].sort((a, b) => (rank.get(a.id) ?? Infinity) - (rank.get(b.id) ?? Infinity) || 0);
+  });
 
   /** Reactive local start of today: a board left open overnight re-evaluates the day split */
   const { today: todayRef } = useToday();
@@ -560,14 +569,16 @@ export const useTasksStore = defineStore("tasks", () => {
 
   /**
    * "Not today" (#353): takes an Offen task off the board. It stays in `tasks` with its time, notes, topic,
-   * priority, timebox, source and carried-over count, and leaves Offen's order. Only an Open task can be taken
+   * priority, timebox, source and carried-over count, leaves Offen's order and goes to the top of "Nicht geplant" (#354). Only an Open task can be taken
    * off: any other status is refused (`false`), as is a task that is already not planned.
    */
   function unplanTask(taskId: string): boolean {
     const target = tasks.value.find((el) => el.id === taskId);
     if (!target || target.status !== TaskStatus.Open || isNotPlanned(target)) return false;
     target.notPlanned = true;
-    useBoardStore().reconcileColumnsWithTasks(tasks.value);
+    const boardStore = useBoardStore();
+    boardStore.noteNotPlanned(taskId);
+    boardStore.reconcileColumnsWithTasks(tasks.value);
     return true;
   }
 
