@@ -9,7 +9,7 @@
  * is the flow before #340. The worktree and the local branch are removed afterwards, success or not.
  * @responsibility The git/gh sequence, its stages and error steps. Git, gh, the checks and the agent run through the injected `Runner`.
  */
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, symlinkSync, writeFileSync } from 'node:fs'
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readlinkSync, rmSync, statSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { getLeaf, type MessageTree } from '../../lib/copy-editor/messages'
@@ -194,14 +194,23 @@ export async function publish(input: unknown, deps: PublishDeps): Promise<Publis
     if (!checked.ok) return { ok: false, step: 'check', errors: ['npm run i18n:check failed', checked.output] }
 
     stage('rewrite')
-    const rewrite = rewriteTests(wt, base, edits)
-    note(`rewrite: ${rewrite.files.length} files${rewrite.skipped.length ? `, ${rewrite.skipped.length} values left to the checks` : ''}`)
+    // From here the edits exist in the tree: whatever goes wrong (a failed step or a thrown error) ends on the copy branch, never as a lost job.
+    let failure: Failure | null = null
+    let rewrite: ReturnType<typeof rewriteTests> = { files: [], skipped: [], changes: [] }
+    try {
+      rewrite = rewriteTests(wt, base, edits)
+      note(`rewrite: ${rewrite.files.length} files${rewrite.skipped.length ? `, ${rewrite.skipped.length} values left to the checks` : ''}`)
+    } catch (error) {
+      failure = { stage: 'rewrite', errors: [error instanceof Error ? error.message : String(error)] }
+      await git(['checkout', 'HEAD', '--', 'tests'], wt) // a half-written rewrite is not a follow-up
+      await git(['clean', '-fdq', '--', 'tests'], wt)
+    }
 
     let committed = false
     const commit = async () => {
       const add = await git(['add', '-A', '--', 'tests', 'i18n/locales'], wt)
       if (add.code !== 0) throw new Error(`git add failed: ${tail(add.stderr, 5)}`)
-      const stray = (await git(['status', '--porcelain', '-z', '--untracked-files=no'], wt)).stdout.split('\0').filter(Boolean).map(line => line.slice(3)).filter(file => !isAllowedPath(file))
+      const stray = await strayFiles()
       if (stray.length) throw new Error(`unexpected changes outside tests/ and the locale files: ${stray.join(', ')}`)
       const result = committed
         ? await git(['commit', '--amend', '--no-edit', '--allow-empty'], wt)
@@ -210,11 +219,29 @@ export async function publish(input: unknown, deps: PublishDeps): Promise<Publis
       committed = true
       return (await git(['rev-parse', 'HEAD'], wt)).stdout.trim()
     }
+    const strayFiles = async () => (await git(['status', '--porcelain', '-z', '--untracked-files=no'], wt)).stdout.split('\0').filter(Boolean).map(line => line.slice(3)).filter(file => !isAllowedPath(file))
     const changedFiles = async () => (await git(['status', '--porcelain', '-z', '--untracked-files=all'], wt)).stdout.split('\0').filter(Boolean).map(line => line.slice(3))
     const diffFiles = async () => (await git(['diff', '--name-only', `origin/${BASE_BRANCH}`, 'HEAD'], wt)).stdout.split('\n').filter(Boolean)
     const revert = async () => {
       await git(['reset', '--hard', 'HEAD'], wt)
       await git(['clean', '-fd', '--', 'tests', 'i18n/locales'], wt)
+    }
+    // The shared packages are the designer's real `node_modules`, git-ignored and so invisible to the tests/-only check:
+    // the repair agent works without the link, which is put back afterwards.
+    const withoutSharedPackages = async <T>(fn: () => Promise<T>): Promise<T> => {
+      const link = join(wt, 'node_modules')
+      let target: string | null = null
+      try {
+        if (lstatSync(link).isSymbolicLink()) { target = readlinkSync(link); unlinkSync(link) }
+      } catch { /* no link in this tree */ }
+      try {
+        return await fn()
+      } finally {
+        if (target) {
+          try { unlinkSync(link) } catch { /* nothing was put there */ }
+          symlinkSync(target, link)
+        }
+      }
     }
 
     const ctx: FollowUpContext = {
@@ -229,18 +256,34 @@ export async function publish(input: unknown, deps: PublishDeps): Promise<Publis
       changedFiles,
       diffFiles,
       revert,
+      withoutSharedPackages,
     }
-    const outcome = await (deps.followUp ?? runFollowUp)(ctx)
-    await commit() // whatever the follow-up left uncommitted (it normally commits itself)
-    const report: FollowUpReport = outcome.report
+    let report: FollowUpReport = { tier: '', specs: [], baselines: [], repairs: [], repairedFiles: [] }
+    try {
+      if (!failure) {
+        const outcome = await (deps.followUp ?? runFollowUp)(ctx)
+        report = outcome.report
+        if (!outcome.ok) failure = { stage: outcome.stage, errors: outcome.errors }
+      }
+      await commit() // whatever the follow-up left uncommitted (it normally commits itself)
+    } catch (error) {
+      failure ??= { stage: 'commit', errors: [] }
+      failure.errors.push(error instanceof Error ? error.message : String(error))
+      // Keep the work that is allowed (tests/, locale files), drop strays, and commit it so there is something to push to the branch.
+      try {
+        for (const file of await strayFiles()) await git(['checkout', 'HEAD', '--', file], wt)
+        await commit()
+      } catch (salvage) {
+        return { ok: false, step: 'commit', errors: [`nothing could be committed for a copy branch: ${salvage instanceof Error ? salvage.message : String(salvage)}`, ...failure.errors] }
+      }
+    }
     const summary: FollowUpSummary = { ...emptySummary(), ...report, rewritten: rewrite.files, skipped: rewrite.skipped }
-    // The commit message carries what the follow-up did, not only the title.
+    // The commit message carries what the follow-up did, not only the title (cosmetic: a failed amend keeps the verified commit).
     const amended = await git(['commit', '--amend', '-m', prTitle(edits), '-m', commitBody(summary)], wt)
-    if (amended.code !== 0) throw new Error(`git commit failed: ${tail(amended.stderr || amended.stdout, 5)}`)
+    if (amended.code !== 0) note(`commit message not extended: ${tail(amended.stderr || amended.stdout, 3)}`)
     const fileCount = (await diffFiles()).length
     const head = (await git(['rev-parse', 'HEAD'], wt)).stdout.trim()
 
-    let failure: Failure | null = outcome.ok ? null : { stage: outcome.stage, errors: outcome.errors }
     if (!failure) {
       stage('push')
       // Straight to main, never forced: the verified tree is the one that lands, and a moved main is a rejection, not a rebase.

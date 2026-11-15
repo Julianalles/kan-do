@@ -19,12 +19,33 @@ const GIT_LOCAL_ENV = [
   'GIT_REPLACE_REF_BASE', 'GIT_PREFIX', 'GIT_SHALLOW_FILE', 'GIT_COMMON_DIR',
 ]
 
+/** Process groups of the running children: a dev server that exits takes them down with it (they are detached). */
+const groups = new Set<number>()
+let exitHookSet = false
+
+/** SIGKILL for the child's whole process group (its `npm`, Playwright, server, browsers and agent children), else just the child. */
+function killTree(pid: number | undefined, fallback: () => void) {
+  if (pid && process.platform !== 'win32') {
+    try { process.kill(-pid, 'SIGKILL'); return } catch { /* the group is already gone, or never formed: fall through */ }
+  }
+  try { fallback() } catch { /* already exited */ }
+}
+
 export const run: Runner = (cmd, args, { cwd, input, timeoutMs, env }) => new Promise((resolve) => {
   const merged = Object.fromEntries(
     Object.entries({ ...process.env, ...env }).filter(([name]) => !GIT_LOCAL_ENV.includes(name)),
   ) as Record<string, string | undefined>
   merged.GIT_TERMINAL_PROMPT = '0'
-  const child = spawn(cmd, [...args], { cwd, env: merged as NodeJS.ProcessEnv, stdio: ['pipe', 'pipe', 'pipe'] })
+  // `detached` makes the child the leader of its own process group, so a timeout can end the whole tree and not only `npm`.
+  const child = spawn(cmd, [...args], { cwd, env: merged as NodeJS.ProcessEnv, stdio: ['pipe', 'pipe', 'pipe'], detached: process.platform !== 'win32' })
+  const pid = child.pid
+  if (pid) {
+    groups.add(pid)
+    if (!exitHookSet) {
+      exitHookSet = true
+      process.on('exit', () => { for (const group of groups) killTree(group, () => {}) })
+    }
+  }
   // Chunks are collected as Buffers and decoded once: a chunk boundary can fall inside a multibyte character.
   const out: Buffer[] = []
   const err: Buffer[] = []
@@ -35,11 +56,12 @@ export const run: Runner = (cmd, args, { cwd, input, timeoutMs, env }) => new Pr
   const finish = (code: number | null, extra = '') => {
     if (settled) return
     settled = true
+    if (pid) groups.delete(pid)
     clearTimeout(timer)
     resolve({ code, stdout: Buffer.concat(out).toString('utf8'), stderr: Buffer.concat(err).toString('utf8') + extra, timedOut })
   }
   // Settle right away: an orphaned grandchild that keeps the pipes open would otherwise hold `close` (and the caller's lock).
-  const timer = setTimeout(() => { timedOut = true; child.kill('SIGKILL'); finish(null) }, timeoutMs)
+  const timer = setTimeout(() => { timedOut = true; killTree(pid, () => child.kill('SIGKILL')); finish(null) }, timeoutMs)
   child.stdout.on('data', (chunk: Buffer) => { if (outSize < MAX_OUTPUT) { out.push(chunk); outSize += chunk.length } })
   child.stderr.on('data', (chunk: Buffer) => { if (errSize < MAX_OUTPUT) { err.push(chunk); errSize += chunk.length } })
   child.on('error', error => finish(null, String(error.message)))

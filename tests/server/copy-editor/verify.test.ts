@@ -130,6 +130,17 @@ describe('copy publish: follow-up loop', () => {
     expect(e2eCalls(calls)).toHaveLength(1)
   })
 
+  it('runs the repair agent inside the shield that hides the shared packages, and always restores them', async () => {
+    const { ctx, calls } = setup({ verify: [1, 0], changed: [['tests/store/a.test.ts']] })
+    const events: string[] = []
+    const inner = ctx.run
+    ctx.run = async (cmd, args, options) => { if (cmd === 'claude') events.push('agent'); return inner(cmd, args, options) }
+    ctx.withoutSharedPackages = async (fn) => { events.push('hide'); try { return await fn() } finally { events.push('restore') } }
+    expect(await runFollowUp(ctx)).toMatchObject({ ok: true })
+    expect(events).toEqual(['hide', 'agent', 'restore'])
+    expect(calls.some(call => call.cmd === 'claude')).toBe(true)
+  })
+
   it('re-records only the failing baseline tests and commits them', async () => {
     const { ctx, calls, stages, commits } = setup({ runs: [[visual]], update: [], changed: [[`${SNAP}/a.png`, `${SNAP}/b.png`]] })
     const outcome = await runFollowUp(ctx)

@@ -146,16 +146,40 @@ describe('copy editor publish', () => {
     expect(git(remote, 'branch', '--list').replace(/[\s*]+/g, ' ').trim()).toBe('copy/20261109-123005-b main')
   })
 
-  it('refuses a commit that touches anything but tests/ and the locale files', async () => {
+  it('lands on a copy branch instead of failing when the agent changed a file outside tests/: the stray change is dropped, nothing reaches main', async () => {
     const followUp = async (ctx: FollowUpContext): Promise<FollowUpOutcome> => {
       writeFileSync(join(ctx.worktree, 'README.md'), 'changed by the agent\n')
       return greenFollowUp(ctx)
     }
     const mainBefore = git(remote, 'rev-parse', 'main')
-    const result = await publish({ edits }, { root: clone, run: withGh(null), terms, ...base({ followUp }) })
-    expect(result).toMatchObject({ ok: false, step: 'internal', errors: [expect.stringContaining('README.md')] })
+    const result = await publish({ edits }, { root: clone, run: withGh('https://github.com/o/r/pull/10'), terms, ...base({ followUp }), now: () => new Date(2026, 10, 9, 12, 30, 5) })
+    expect(result).toMatchObject({ ok: true, landed: 'branch', branch: 'copy/20261109-123005-b', prUrl: 'https://github.com/o/r/pull/10', failure: { stage: 'commit', errors: [expect.stringContaining('README.md')] } })
     expect(git(remote, 'rev-parse', 'main')).toBe(mainBefore)
-    expect(git(remote, 'branch', '--list').replace(/[\s*]+/g, '')).toBe('main')
+    expect(git(remote, 'diff', '--name-only', 'main', 'copy/20261109-123005-b').trim().split('\n').sort()).toEqual(['i18n/locales/de.json', 'i18n/locales/en.json', 'tests/e2e/a.spec.ts'])
+    expect(git(clone, 'worktree', 'list').trim().split('\n')).toHaveLength(1)
+  })
+
+  it('lands on a copy branch when the follow-up itself throws', async () => {
+    const followUp = async (): Promise<FollowUpOutcome> => { throw new Error('the E2E gate selection failed: boom') }
+    const mainBefore = git(remote, 'rev-parse', 'main')
+    const result = await publish({ edits }, { root: clone, run: withGh(null), terms, ...base({ followUp }), now: () => new Date(2026, 10, 9, 12, 30, 5) })
+    expect(result).toMatchObject({ ok: true, landed: 'branch', failure: { stage: 'commit', errors: [expect.stringContaining('boom')] } })
+    expect(git(remote, 'rev-parse', 'main')).toBe(mainBefore)
+    expect(git(remote, 'diff', '--name-only', 'main', 'copy/20261109-123005-b').trim().split('\n').sort()).toContain('i18n/locales/de.json')
+  })
+
+  it('keeps the shared packages out of the agent\'s reach: the symlink is gone while the shield runs and back afterwards, even when it throws', async () => {
+    const seen: boolean[] = []
+    const followUp = async (ctx: FollowUpContext): Promise<FollowUpOutcome> => {
+      const link = join(ctx.worktree, 'node_modules')
+      await ctx.withoutSharedPackages!(async () => { seen.push(existsSync(link)) })
+      seen.push(lstatSync(link).isSymbolicLink())
+      await ctx.withoutSharedPackages!(async () => { throw new Error('agent crashed') }).catch(() => {})
+      seen.push(lstatSync(link).isSymbolicLink())
+      return greenFollowUp(ctx)
+    }
+    await publish({ edits }, { root: clone, run: withGh(null), terms, ...base({ followUp }) })
+    expect(seen).toEqual([false, true, true])
   })
 
   it('keeps the pushed branch and reports a note when the pull request cannot be created', async () => {

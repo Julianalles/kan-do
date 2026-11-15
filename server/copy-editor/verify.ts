@@ -53,6 +53,12 @@ export interface FollowUpContext {
   diffFiles: () => Promise<string[]>
   /** Drops every uncommitted change. */
   revert: () => Promise<void>
+  /**
+   * Runs `fn` with the shared, git-ignored packages (the designer's real `node_modules`, linked into the tree) out of
+   * reach. The tests/-only check reads `git status`, which never lists ignored or symlinked paths, so the repair agent
+   * must not be able to write there at all.
+   */
+  withoutSharedPackages?: <T>(fn: () => Promise<T>) => Promise<T>
 }
 
 const stripAnsi = (text: string) => text.replace(/\u001B\[[0-9;]*m/g, '') // eslint-disable-line no-control-regex
@@ -217,7 +223,8 @@ export async function runFollowUp(ctx: FollowUpContext): Promise<FollowUpOutcome
 
     if (round >= MAX_REPAIR_ROUNDS) return fail(failures[0]!.stage, failures.map(failure => `${failure.name}\n${failure.detail}`))
     ctx.stage('repair')
-    const repair = await runRepair({ run: ctx.run, agentCmd: ctx.agentCmd, worktree: ctx.worktree, changes: ctx.changes, failures })
+    const agent = () => runRepair({ run: ctx.run, agentCmd: ctx.agentCmd, worktree: ctx.worktree, changes: ctx.changes, failures })
+    const repair = await (ctx.withoutSharedPackages ? ctx.withoutSharedPackages(agent) : agent())
     const changed = await ctx.changedFiles()
     const outside = outsideTests(changed)
     if (outside.length > 0) {
