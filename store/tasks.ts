@@ -13,6 +13,7 @@ import type { SortField, SortDirection } from "~/types/state";
 import { mapHelpers, setHelpers } from "~/utils/mapHelpers";
 import type { CarryOverEntry } from "~/utils/carryOver";
 import { advanceCarryOverEntry, createCarryOverEntry } from "~/utils/carryOver";
+import { isNotPlanned } from "~/lib/taskPlanning";
 import { isKnownSource } from "~/utils/sourceMeta";
 import type { IntegrationSourceId, SourceId } from "~/types/taskSource";
 import { disarmTaskTimer } from "~/lib/taskTimers";
@@ -166,7 +167,8 @@ const createTasksByStatusGetter = (status: TaskStatus, tasks: Ref<Task[]>) => co
   const order = column?.taskOrder ?? [];
   const sorting = column?.sorting;
   
-  const filtered = tasks.value.filter((task: Task) => task.status === status);
+  // A task that is not planned for today (#353) is in no column; only an Open task can be one
+  const filtered = tasks.value.filter((task: Task) => task.status === status && !isNotPlanned(task));
   return sortTasks(filtered, sorting, order);
 });
 
@@ -220,6 +222,8 @@ export const useTasksStore = defineStore("tasks", () => {
   const tasksProgress = createTasksByStatusGetter(TaskStatus.Progress, tasks);
   const tasksWaiting = createTasksByStatusGetter(TaskStatus.Waiting, tasks);
   const tasksDone = createTasksByStatusGetter(TaskStatus.Done, tasks);
+  /** The tasks kan-do holds that are not planned for today (#353): in no column, in the order they are stored. */
+  const tasksNotPlanned = computed(() => tasks.value.filter((task: Task) => isNotPlanned(task)));
 
   /** Reactive local start of today: a board left open overnight re-evaluates the day split */
   const { today: todayRef } = useToday();
@@ -349,7 +353,11 @@ export const useTasksStore = defineStore("tasks", () => {
 
     if (task) {
       const wasInDone = task.status === TaskStatus.Done;
+      const wasOpen = task.status === TaskStatus.Open;
       Object.assign(task, updates);
+      // "Not planned" (#353) exists only for a task that stays Open: any other status, before or after the
+      // change, puts the task on the board (a marker an older app version left on a moved task never hides it)
+      if (task.notPlanned !== undefined && !(wasOpen && task.status === TaskStatus.Open)) delete task.notPlanned;
       // A completion time written by anything but the user's correction (reopening, completing again, an undo)
       // is no longer the corrected one (kd#131)
       if ('completedAt' in updates && !('completedAtCorrected' in updates)) delete task.completedAtCorrected;
@@ -535,6 +543,32 @@ export const useTasksStore = defineStore("tasks", () => {
 
   function addTask(task: Task) {
     tasks.value.push(task);
+  }
+
+  /**
+   * Plans a task for today (#353): drops its `notPlanned` marker, so it shows in Offen, at the end of the column's
+   * stored order. Nothing else about the task changes (no `updatedAt`, no `pendingSync`: no connection holds the
+   * marker). Returns whether the task was not planned before.
+   */
+  function planTask(taskId: string): boolean {
+    const target = tasks.value.find((el) => el.id === taskId);
+    if (!target || !isNotPlanned(target)) return false;
+    delete target.notPlanned;
+    useBoardStore().reconcileColumnsWithTasks(tasks.value);
+    return true;
+  }
+
+  /**
+   * "Not today" (#353): takes an Offen task off the board. It stays in `tasks` with its time, notes, topic,
+   * priority, timebox, source and carried-over count, and leaves Offen's order. Only an Open task can be taken
+   * off: any other status is refused (`false`), as is a task that is already not planned.
+   */
+  function unplanTask(taskId: string): boolean {
+    const target = tasks.value.find((el) => el.id === taskId);
+    if (!target || target.status !== TaskStatus.Open || isNotPlanned(target)) return false;
+    target.notPlanned = true;
+    useBoardStore().reconcileColumnsWithTasks(tasks.value);
+    return true;
   }
 
   function removeTask(id: string) {
@@ -883,6 +917,11 @@ export const useTasksStore = defineStore("tasks", () => {
           mergedTask.completedAt = statusLock.completedAt;
         }
 
+        // "Not planned" (#353) is kan-do's own state: the fetch never carries it, so the held task's marker stays,
+        // but only while the task is still Open after the merge (the source moved it on: it is on the board)
+        if (isNotPlanned(existingTask) && mergedTask.status === TaskStatus.Open) mergedTask.notPlanned = true;
+        else delete mergedTask.notPlanned;
+
         // A done day the user corrected (kd#131) outlives the fetch while both sides hold the task as done: a
         // source without a completion date would report "now", one with a date may still hold the old day
         if (existingTask.completedAtCorrected && existingTask.completedAt && existingTask.status === TaskStatus.Done && mergedTask.status === TaskStatus.Done) {
@@ -1143,7 +1182,9 @@ export const useTasksStore = defineStore("tasks", () => {
       const currentTask = newTasks[i];
       if (currentTask && taskIdsSet.has(currentTask.id)) {
         const task: Task = { ...currentTask, status };
-        
+        // "Not planned" (#353) only survives Open -> Open, as in `updateTask`
+        if (task.notPlanned !== undefined && !(status === TaskStatus.Open && currentTask.status === TaskStatus.Open)) delete task.notPlanned;
+
         // Track completion timestamp when moved to Done
         if (status === TaskStatus.Done && currentTask.status !== TaskStatus.Done) {
           task.completedAt = new Date();
@@ -1206,6 +1247,12 @@ export const useTasksStore = defineStore("tasks", () => {
     for (const current of tasks.value) {
       if (current.status === TaskStatus.Done || archivedTaskIds.value.includes(current.id)) continue;
       const entry = mapHelpers.get(carryOverByTaskId.value, current.id);
+      // A day a task is not planned (#353) is no board day: its count is kept as it is and runs on once it is
+      // planned again; a task that was never on the board has none yet
+      if (isNotPlanned(current)) {
+        if (entry) next[current.id] = entry;
+        continue;
+      }
       next[current.id] = entry ? advanceCarryOverEntry(entry, today) : createCarryOverEntry(today);
     }
     carryOverByTaskId.value = next;
@@ -1316,6 +1363,7 @@ export const useTasksStore = defineStore("tasks", () => {
     tasksProgress,
     tasksWaiting,
     tasksDone,
+    tasksNotPlanned,
     tasksDoneToday,
     tasksDonePrevious,
     archivableTaskCount,
@@ -1344,6 +1392,8 @@ export const useTasksStore = defineStore("tasks", () => {
     releaseMove,
     isMoveHeld,
     addTask,
+    planTask,
+    unplanTask,
     removeTask,
     replaceTasksWith,
     updateTaskTimespent,

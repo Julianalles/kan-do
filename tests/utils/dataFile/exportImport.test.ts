@@ -56,6 +56,14 @@ describe('buildExport', () => {
     for (const path of SECRET_STATE_PATHS) expect(valueAt(parsed.stores, path), path).toBeUndefined()
   })
 
+  it('carries a task\'s not-planned marker through export and import unchanged (#353)', () => {
+    const tasks = [{ id: 'a', status: 0 }, { id: 'b', status: 0, notPlanned: true, timeSpentSeconds: 90 }]
+    const built = buildExport({ stores: { 'tasks-store': { tasks } }, deviceId: 'device-1', appVersion: '0.1.0' }, now)
+    const parsed = parseImport(built.text)
+    expect(parsed).toMatchObject({ ok: true, taskCount: 2, schemaVersion: CURRENT_SCHEMA_VERSION })
+    if (parsed.ok) expect(JSON.parse(parsed.text).stores['tasks-store'].tasks).toEqual(tasks)
+  })
+
   it('round-trips through parseImport', () => {
     const built = buildExport({ stores: stateWithEverySecret(), deviceId: 'device-1', appVersion: '0.1.0' }, now)
     const parsed = parseImport(built.text)

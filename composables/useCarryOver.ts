@@ -11,6 +11,7 @@ import { TaskStatus } from '~/types/taskStatus'
 import type { Task } from '~/types/task'
 import { carryOverDisplayDay, isCarryOverNudgeDue, isCarryOverVisible, localDateKey } from '~/utils/carryOver'
 import { mapHelpers } from '~/utils/mapHelpers'
+import { isNotPlanned } from '~/lib/taskPlanning'
 
 /** Mount once on the board page. Counts the current day for every not-done card. */
 export function useCarryOverTracking(now: () => Date = () => new Date()) {
@@ -19,7 +20,8 @@ export function useCarryOverTracking(now: () => Date = () => new Date()) {
   const record = () => tasksStore.recordCarryOver(localDateKey(now()))
 
   // A merge, add, delete or status change alters this signature; the record call is idempotent per day.
-  const signature = () => tasksStore.tasks.map(t => `${t.id}:${t.status}`).join('|')
+  // The planned state is part of it (#353): a task planned again counts its day at once
+  const signature = () => tasksStore.tasks.map(t => `${t.id}:${t.status}:${isNotPlanned(t) ? 0 : 1}`).join('|')
   watch(signature, record)
 
   const onVisibilityChange = () => {

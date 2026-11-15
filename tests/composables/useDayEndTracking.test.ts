@@ -93,6 +93,18 @@ describe('useDayEndTracking (#537)', () => {
     expect(stats.dayEndInFlight).toEqual({ '2026-11-03': 1 })
   })
 
+  it('never counts a task that is not planned for today, and follows the two moves (#353)', async () => {
+    tasks.setTasks([task('a', TaskStatus.Open), { ...task('n', TaskStatus.Open), notPlanned: true }, task('d', TaskStatus.Done)])
+    mountTracker()
+    expect(stats.dayEndInFlight).toEqual({ '2026-11-03': 1 })
+    tasks.planTask('n')
+    await nextTick()
+    expect(stats.dayEndInFlight).toEqual({ '2026-11-03': 2 })
+    tasks.unplanTask('a')
+    await nextTick()
+    expect(stats.dayEndInFlight).toEqual({ '2026-11-03': 1 })
+  })
+
   it('a board with everything done records 0 (a real value, not a missing one)', () => {
     tasks.setTasks([task('d', TaskStatus.Done)])
     mountTracker()

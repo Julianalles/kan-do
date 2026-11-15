@@ -17,6 +17,7 @@ import { dataState } from '~/lib/dataStorage'
 import { isDemoTaskId } from '~/lib/demoIds'
 import { TaskStatus } from '~/types/taskStatus'
 import { dayKey } from '~/utils/recapDay'
+import { isNotPlanned } from '~/lib/taskPlanning'
 
 /** Mount once on the board page, next to `useCarryOverTracking`. */
 export function useDayEndTracking(now: () => Date = () => new Date()) {
@@ -27,7 +28,8 @@ export function useDayEndTracking(now: () => Date = () => new Date()) {
   function record(): void {
     if (boardStore.boardConfig.sources === null) return
     if (dataState.available && dataState.status !== 'ok') return
-    const real = tasksStore.tasks.filter(task => !isDemoTaskId(task.id))
+    // In flight = on the board: a task that is not planned for today (#353) is neither counted nor a reason to record
+    const real = tasksStore.tasks.filter(task => !isDemoTaskId(task.id) && !isNotPlanned(task))
     if (real.length === 0) return
     const inFlight = real.filter(task => task.status === TaskStatus.Open || task.status === TaskStatus.Progress || task.status === TaskStatus.Waiting).length
     const day = dayKey(now())
@@ -35,7 +37,7 @@ export function useDayEndTracking(now: () => Date = () => new Date()) {
     statisticsStore.recordDayEnd(day, inFlight)
   }
 
-  const signature = () => tasksStore.tasks.map(task => `${task.id}:${task.status}`).join('|')
+  const signature = () => tasksStore.tasks.map(task => `${task.id}:${task.status}:${isNotPlanned(task) ? 0 : 1}`).join('|')
   watch(signature, record)
 
   const onVisibilityChange = () => {
