@@ -62,7 +62,7 @@ test.describe('Command palette', () => {
     await expect(palette(page).getByRole('group').nth(1)).toContainText('Gehe zu')
     await expect(palette(page).getByRole('group').nth(2)).toContainText('Daten & Speicher')
     await expect(palette(page).getByRole('group', { name: 'Aktionen' }).getByRole('option')).toHaveText([/Aufgabe hinzufügen/, /Tag abschließen/])
-    await expect(palette(page).getByRole('group', { name: 'Gehe zu' }).getByRole('option')).toHaveText([/Statistik öffnen/, /Papierkorb öffnen/, /Einstellungen öffnen/])
+    await expect(palette(page).getByRole('group', { name: 'Gehe zu' }).getByRole('option')).toHaveText([/Alle öffnen/, /Statistik öffnen/, /Papierkorb öffnen/, /Einstellungen öffnen/])
     await expect(palette(page).getByRole('group', { name: 'Daten & Speicher' }).getByRole('option')).toHaveText([/Daten exportieren\/importieren/, /App zurücksetzen/])
     await expect(palette(page).getByRole('option', { name: 'Heute öffnen' })).toHaveCount(0)
   })

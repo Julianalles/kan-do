@@ -139,6 +139,9 @@ async function pick(id: string, event: MouseEvent) {
 }
 
 .not-planned__note {
+  /* A reading measure, centred: the side is two tracks wide on desktop */
+  max-width: 28rem;
+  margin-inline: auto;
   padding: 0 1.5rem;
   text-align: center;
 }
@@ -162,9 +165,10 @@ async function pick(id: string, event: MouseEvent) {
   text-align: start;
 }
 
+/* The board's one focus ring (board-focus.css: the tokens of DESIGN.md "Focus"), drawn on the card box */
 .not-planned__card:focus-visible {
-  outline: 2px solid var(--ui-primary);
-  outline-offset: 2px;
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
 }
 
 /* The pick button on the paper right of the card, towards Offen. Quiet at rest, full under the pointer and on focus. */

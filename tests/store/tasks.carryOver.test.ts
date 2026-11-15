@@ -151,6 +151,23 @@ describe('useTaskCarryOver', () => {
     expect(open.isNudgeDue.value).toBe(false)
     expect(open.displayDay.value).toBe(8)
   })
+
+  it('never nudges a task that is not planned: the count stays, the question comes back once it is planned again (#354)', async () => {
+    const { useTaskCarryOver } = await import('~/composables/useCarryOver')
+    const store = useTasksStore()
+    store.setTasks([makeTask('a')])
+    for (let day = 1; day <= 8; day++) store.recordCarryOver(`2026-10-0${day}`)
+    const cue = useTaskCarryOver(() => store.task('a'))
+    expect(cue.isNudgeDue.value).toBe(true)
+
+    store.unplanTask('a')
+    expect(cue.isNudgeDue.value).toBe(false)
+    expect(cue.displayDay.value).toBe(8)
+    expect(cue.isVisible.value).toBe(true)
+
+    store.planTask('a')
+    expect(cue.isNudgeDue.value).toBe(true)
+  })
 })
 
 describe('carry-over display day (#121)', () => {

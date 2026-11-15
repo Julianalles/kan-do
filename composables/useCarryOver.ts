@@ -52,10 +52,14 @@ export function useTaskCarryOver(task: MaybeRefOrGetter<Task | null | undefined>
   /** Whether the cue shows at all (day 2+); the single visibility rule for every template. */
   const isVisible = computed(() => isCarryOverVisible(displayDay.value))
 
-  /** Nudge only for Offen/Jetzt: waiting on someone else is legitimate. */
+  /**
+   * Nudge only for Offen/Jetzt: waiting on someone else is legitimate. Never for a task that is not planned
+   * (#354): "Nicht geplant" is where the user put it to take it off the day, so the sheet must not ask whether a
+   * task that has been "planned for n days" should be deleted. The count itself is kept and shown (#334 D9).
+   */
   const isNudgeDue = computed(() => {
     const current = toValue(task)
-    if (!current || current.status === TaskStatus.Waiting || current.status === TaskStatus.Done) return false
+    if (!current || current.status === TaskStatus.Waiting || current.status === TaskStatus.Done || isNotPlanned(current)) return false
     return isCarryOverNudgeDue(entry.value)
   })
 

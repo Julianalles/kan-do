@@ -394,10 +394,12 @@ watch(place, async (to) => {
   const token = ++placeMoveToken;
   clearTimeout(placeMoveTimer);
 
+  // "Alle" opens on "Nicht geplant"; Heute on Offen when coming from "Alle". Kept on desktop too, where no page
+  // shows it: a window narrowed to phone width afterwards stands on a page of the place that shows.
+  const target = to === 'all' ? NOT_PLANNED_PAGE : Math.max(stripPage.value, 0);
+
   if (isMobile.value) {
-    // "Alle" opens on "Nicht geplant"; Heute on Offen when coming from "Alle". From Offen on "Alle" to Heute nothing
-    // travels: Offen is the page both places share, only the dots and the bar change.
-    const target = to === 'all' ? NOT_PLANNED_PAGE : Math.max(stripPage.value, 0);
+    // From Offen on "Alle" to Heute nothing travels: Offen is the page both places share, only the dots and the bar change.
     const travels = target !== stripPage.value && ms > 0;
     placeMoving.value = travels;
     stripPage.value = target;
@@ -405,6 +407,7 @@ watch(place, async (to) => {
     return;
   }
 
+  stripPage.value = target;
   // Desktop: the place sets the strip's offset by a margin (board.css), which jumps; the strip then travels there
   if (!el || ms === 0 || typeof el.animate !== 'function') {
     endPlaceMove(token);

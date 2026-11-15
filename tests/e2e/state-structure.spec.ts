@@ -39,6 +39,29 @@ test.describe('empty states', () => {
   })
 })
 
+test.describe('the place "Alle" (#354)', () => {
+  async function gotoAll(page: Page) {
+    await page.goto('/all')
+    await expect(page.locator('.board')).toHaveAttribute('data-place', 'all')
+    await expect(page.locator('#column-open')).toBeVisible()
+    await settleAnimations(page)
+  }
+
+  test('empty "Nicht geplant": everything is planned, and how a task gets here (1280)', async ({ context, page }) => {
+    await seedLocalBoard(context)
+    await gotoAll(page)
+    await expect(page.getByTestId('not-planned')).toMatchAriaSnapshot({ name: 'not-planned-empty-1280.aria.yml' })
+  })
+
+  test('"Nicht geplant" with tasks: each card a named group with its pick button (390)', async ({ context, page }) => {
+    await page.setViewportSize(MOBILE)
+    const held: SeedTask[] = SEED_TASKS.filter(task => task.status === 0).map(task => ({ ...task, notPlanned: true as const }))
+    await seedLocalBoard(context, [...held, ...SEED_TASKS.filter(task => task.status !== 0)])
+    await gotoAll(page)
+    await expect(page.getByTestId('not-planned')).toMatchAriaSnapshot({ name: 'not-planned-tasks-390.aria.yml' })
+  })
+})
+
 test.describe('Offen add button (#248)', () => {
   test('the header button at rest and while a draft is open: named, then disabled in place (1280)', async ({ context, page }) => {
     await seedLocalBoard(context)

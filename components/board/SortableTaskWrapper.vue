@@ -183,6 +183,14 @@ function deleteFocusedCard(event: KeyboardEvent) {
   opacity: 1;
 }
 
+/* A touch-only device at desktop width has no hover to reveal the arrow, and an invisible target that takes a card off
+   the day must not exist: there the card's menu button (TaskCard, shown under the same query) carries "Nicht heute" */
+@media (hover: none) {
+  .task-wrapper__not-today {
+    display: none;
+  }
+}
+
 /* A dragged card and its placeholder carry no arrow */
 .task-wrapper.kando-dnd-dragged > .task-wrapper__not-today {
   display: none;

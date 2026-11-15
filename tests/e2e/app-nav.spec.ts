@@ -7,6 +7,8 @@ import { appNav, closeMore, goToPlace, moreButton, morePanel, openMore, openSett
  * bottom). The binding rule is tested as sequences: the selected state follows the route only, an open panel is an
  * overlay and never replaces it.
  */
+/** "Alle" (#354): the first place of the pill, the planning side of the board page */
+const alle = (page: Page) => page.getByTestId('app-nav-place-all')
 const heute = (page: Page) => page.getByTestId('app-nav-place-board')
 const statistik = (page: Page) => page.getByTestId('app-nav-place-statistics')
 
@@ -500,8 +502,10 @@ for (const { label, size } of VIEWPORTS) {
         await page.keyboard.press('Tab')
       } else {
         await expect(appNav(page).getByTestId('app-nav-brand')).toBeHidden() // no wordmark on a phone (kd#24)
-        await heute(page).focus()
+        await alle(page).focus()
       }
+      await expect(alle(page)).toBeFocused() // the first place (#354)
+      await page.keyboard.press('Tab')
       await expect(heute(page)).toBeFocused()
       await page.keyboard.press('Tab')
       await expect(statistik(page)).toBeFocused()
@@ -541,7 +545,7 @@ for (const { label, size } of VIEWPORTS) {
       await expect(page.locator('.board')).toBeVisible()
       await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
       await page.keyboard.press('Tab')
-      await expect(label === '1280' ? appNav(page).getByTestId('app-nav-brand') : heute(page)).toBeFocused()
+      await expect(label === '1280' ? appNav(page).getByTestId('app-nav-brand') : alle(page)).toBeFocused()
     })
 
     test('a rejected source puts a dot on ⋯ and the panel says why; with healthy sources ⋯ stays silent', async ({ context, page }) => {
@@ -686,7 +690,7 @@ for (const { label, size } of VIEWPORTS) {
     expect(focused.outline).toBe('solid')
     expect(focused.shadow).not.toBe('none')
     if (label === '1280') {
-      await appNav(page).getByRole('link', { name: 'Heute' }).focus()
+      await appNav(page).getByRole('link', { name: 'Alle', exact: true }).focus()
       await page.keyboard.press('Shift+Tab')
       await expect(appNav(page).getByTestId('app-nav-brand')).toBeFocused()
       expect(await appNav(page).getByTestId('app-nav-brand').evaluate(el => getComputedStyle(el).outlineStyle)).toBe('solid')
