@@ -4,13 +4,17 @@
 @usage Copy to components/prototype/PrototypeSwitcher.vue on a proto branch, edit GROUPS only (key `o` = today's look), mount once in the host page. One group = one question: a single issue keeps the one `variant` group; a design batch adds a group per independent question (its own query key, e.g. `v162`), so the user can combine the answers freely. Questions that depend on each other stay one group with combined variants.
 -->
 <template>
-  <div v-if="shown" class="proto-switcher" role="group" aria-label="Variant switcher">
-    <div v-for="(group, key) in GROUPS" :key="key" class="proto-switcher__row" :class="{ 'is-active': key === active }" @pointerdown="active = key">
-      <button type="button" :aria-label="`Previous: ${group.title}`" @click="step(key, -1)">‹</button>
-      <span><i v-if="MANY">{{ group.title }}</i> <b>{{ value(key).toUpperCase() }}</b> {{ group.labels[value(key)] }}</span>
-      <button type="button" :aria-label="`Next: ${group.title}`" @click="step(key, 1)">›</button>
+  <!-- Teleported to <body>: the host page's <main> is `inert` while the recap or the planning step is open, and an
+       inert ancestor swallows every pointer click on the pill (the window-level arrow keys still worked). -->
+  <Teleport to="body">
+    <div v-if="shown" class="proto-switcher" role="group" aria-label="Variant switcher">
+      <div v-for="(group, key) in GROUPS" :key="key" class="proto-switcher__row" :class="{ 'is-active': key === active }" @pointerdown="active = key">
+        <button type="button" :aria-label="`Previous: ${group.title}`" @click="step(key, -1)">‹</button>
+        <span><i v-if="MANY">{{ group.title }}</i> <b>{{ value(key).toUpperCase() }}</b> {{ group.labels[value(key)] }}</span>
+        <button type="button" :aria-label="`Next: ${group.title}`" @click="step(key, 1)">›</button>
+      </div>
     </div>
-  </div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -59,7 +63,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 
 <style>
 .proto-switcher {
-  position: fixed; z-index: 3000; left: 1rem; bottom: 1rem;
+  position: fixed; z-index: 3000; left: 1rem; bottom: 1rem; pointer-events: auto; /* an open modal sets body { pointer-events: none } */
   display: flex; flex-direction: column; gap: .125rem;
   padding: .25rem .5rem; border-radius: 1rem;
   background: #111; color: #fff; font: 500 .8125rem/1 system-ui, sans-serif;
