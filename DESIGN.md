@@ -173,7 +173,7 @@ One answer per state, on every control, whoever built it.
 
 ## Layout
 
-- **Sheets on a desk.** Everything entered or edited sits on a white sheet; a page is a column of sheets on the canvas (settings sections, statistics tiles) and a heading names each sheet. Inside a sheet, type, space and hairlines group content. No card in a card.
+- **Sheets on a desk.** Everything entered or edited sits on a white sheet; a page is a column of sheets on the canvas (settings sections, statistics tiles) and a heading names each sheet. One concern is one sheet: its parts are separated inside the sheet by a hairline and a lower-level heading, never by a second sheet (owner, 2026-11-15, #333). Inside a sheet, type, space and hairlines group content. No card in a card.
 - **Board (desktop):** three equal columns, Offen | Jetzt with Wartet below it | Erledigt, centred on wide screens. Cards are fixed-size sheets. The Jetzt slot is always one card tall, filled or empty.
 - **Board (phone):** one column page per screen, moved by a swipe (`.claude/rules/mobile-board.md`).
 - **Groups of cards** collapse into a stack; no lines, boxes or tints around a group.
