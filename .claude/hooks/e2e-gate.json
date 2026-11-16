@@ -472,6 +472,16 @@
       ]
     },
     {
+      "area": "route preload and navigation wait bar (#376)",
+      "paths": [
+        "plugins/route-preload.client.ts"
+      ],
+      "specs": [
+        "route-preload",
+        "statistics-page"
+      ]
+    },
+    {
       "area": "new-day recap and day close",
       "paths": [
         "components/recap/**",
