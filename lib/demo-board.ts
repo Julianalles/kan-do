@@ -31,18 +31,18 @@ import { demoTaskId, newDemoLoadId } from '~/lib/demoIds'
 
 const HOUR_MS = 3_600_000
 
-/** Backlog for `options.backlog`: [key, title, topic, activity, priority, timebox minutes, created days ago] */
-const DEMO_BACKLOG: Array<[string, string, string | undefined, string | undefined, number, number | undefined, number]> = [
-  ['b1', 'Pflasterarbeiten Zufahrt Familie Koch planen', 'Baustelle Müller', 'Büro', 2, 60, 9],
-  ['b2', 'Angebot Dachbegrünung Reihenhäuser nachfassen', 'Angebote', 'Telefonat', 2, 20, 12],
-  ['b3', 'Winterdienst-Verträge für Bestandskunden prüfen', 'Angebote', 'Büro', 1, 90, 14],
-  ['b4', 'Urlaubsplanung Team für Dezember abstimmen', 'Personal', 'Büro', 2, 30, 6],
-  ['b5', 'Bewerbung Landschaftsgärtner sichten', 'Personal', 'Büro', 3, 45, 4],
-  ['b6', 'Hänger vor dem TÜV-Termin durchsehen', 'Fuhrpark', 'Vor Ort', 2, 30, 8],
-  ['b7', 'Winterreifen für den Transporter bestellen', 'Fuhrpark', 'Telefonat', 1, 15, 11],
-  ['b8', 'Umsatzsteuer-Voranmeldung vorbereiten', 'Buchhaltung', 'Büro', 3, 60, 5],
-  ['b9', 'Belege Baumschule einsortieren', 'Buchhaltung', 'Büro', 1, undefined, 15],
-  ['b10', 'Pflanzenbestellung Frühjahr zusammenstellen', undefined, 'Büro', 1, 45, 10],
+/** Backlog for `options.backlog`: [title, topic, activity, priority, timebox minutes, created days ago] */
+const DEMO_BACKLOG: Array<[string, string | undefined, string | undefined, number, number | undefined, number]> = [
+  ['Pflasterarbeiten Zufahrt Familie Koch planen', 'Baustelle Müller', 'Büro', 2, 60, 9],
+  ['Angebot Dachbegrünung Reihenhäuser nachfassen', 'Angebote', 'Telefonat', 2, 20, 12],
+  ['Winterdienst-Verträge für Bestandskunden prüfen', 'Angebote', 'Büro', 1, 90, 14],
+  ['Urlaubsplanung Team für Dezember abstimmen', 'Personal', 'Büro', 2, 30, 6],
+  ['Bewerbung Landschaftsgärtner sichten', 'Personal', 'Büro', 3, 45, 4],
+  ['Hänger vor dem TÜV-Termin durchsehen', 'Fuhrpark', 'Vor Ort', 2, 30, 8],
+  ['Winterreifen für den Transporter bestellen', 'Fuhrpark', 'Telefonat', 1, 15, 11],
+  ['Umsatzsteuer-Voranmeldung vorbereiten', 'Buchhaltung', 'Büro', 3, 60, 5],
+  ['Belege Baumschule einsortieren', 'Buchhaltung', 'Büro', 1, undefined, 15],
+  ['Pflanzenbestellung Frühjahr zusammenstellen', undefined, 'Büro', 1, 45, 10],
 ]
 
 /** Colour and symbol per topic name (the `topic-styles` store, #431). */
@@ -293,7 +293,7 @@ export function buildDemoBoard(
   ]
 
   if (options.backlog) {
-    DEMO_BACKLOG.forEach(([_key, title, topic, activity, priority, timeBox, days], index) =>
+    DEMO_BACKLOG.forEach(([title, topic, activity, priority, timeBox, days], index) =>
       tasks.push(task({ id: id(`backlog-${index + 1}`), title, status: Open, priority, topic, activity, timeBox, createdDaysAgo: days, notPlanned: true })),
     )
   }

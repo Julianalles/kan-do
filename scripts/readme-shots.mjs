@@ -106,11 +106,10 @@ async function compose(browser, name, body, width) {
 const browser = await chromium.launch()
 try {
   for (const shot of [...SHOTS, STATS]) {
-    if (only && shot.key !== only) continue
-    if (only === undefined || shot.key === only || !existsSync(join(rawDir, `${shot.key}.png`))) {
-      console.log(`capture ${shot.key}`)
-      await capture(browser, shot)
-    }
+    // `--only=<key>` recaptures that shot and any shot without a cached raw; the rest come from the cache
+    if (only && shot.key !== only && existsSync(join(rawDir, `${shot.key}.png`))) continue
+    console.log(`capture ${shot.key}`)
+    await capture(browser, shot)
   }
   const cells = SHOTS.map((s, i) => `<div class="cell">${win(s.key)}<p class="cap"><b>${i + 1} · ${esc(s.title)}</b> — ${esc(s.text)}</p></div>`).join('')
   await compose(browser, 'readme-day.png', `<div class="grid">${cells}</div>`, 1928)
