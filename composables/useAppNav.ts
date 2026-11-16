@@ -3,7 +3,7 @@
  * @description Which place of the app bar the current route belongs to (#470, ADR 017). A pure function of the
  * route: the open state of the Mehr panel is never an input, so an open panel can never replace the selected place.
  * @responsibility
- * - `placeOfPath`: `/tasks*` -> board (Heute), `/statistics` -> statistics, `/trash` and `/settings*` -> more (the third
+ * - `placeOfPath`: `/all*` -> all (Alle, #354: the planning side of the board page), `/tasks*` -> board (Heute), `/statistics` -> statistics, `/trash` and `/settings*` -> more (the third
  *   segment of the pill, #583: ⋯ itself is never selected), else none
  * - `thirdItemOfPath` / `thirdItem`: the page behind ⋯ the route is on (Papierkorb on `/trash*`, Einstellungen on
  *   `/settings*`, linking `/settings`), shown as a third segment in the pill and left out of the Mehr panel meanwhile
@@ -15,14 +15,15 @@
 import { computed } from 'vue'
 import { useRouter } from 'nuxt/app'
 
-/** The places of the bar: Heute (board), Statistik (statistics) and `more` (a page behind ⋯, shown as the third segment) */
-export type AppNavPlace = 'board' | 'statistics' | 'more'
+/** The places of the bar: Alle (all, #354), Heute (board), Statistik (statistics) and `more` (a page behind ⋯, shown as the third segment) */
+export type AppNavPlace = 'all' | 'board' | 'statistics' | 'more'
 
 /** True when `path` is `base` itself or below it (`/tasks`, `/tasks/add`, but not `/tasksfoo`) */
 const isUnder = (path: string, base: string): boolean => path === base || path.startsWith(`${base}/`)
 
 /** Route path -> place. Query and hash are not part of `route.path`. */
 export function placeOfPath(path: string): AppNavPlace | null {
+  if (isUnder(path, '/all')) return 'all'
   if (isUnder(path, '/tasks')) return 'board'
   if (isUnder(path, '/statistics')) return 'statistics'
   if (isUnder(path, '/trash') || isUnder(path, '/settings')) return 'more'
@@ -62,8 +63,8 @@ export function useAppNav() {
   const currentPlace = computed<AppNavPlace | null>(() => (showsBar.value ? placeOfPath(route.value.path) : null))
   /** The page behind ⋯ the pill shows as its third segment; null on a primary page, a route without place or without bar */
   const thirdItem = computed<ThirdItem | null>(() => (showsBar.value ? thirdItemOfPath(route.value.path) : null))
-  /** The board is the current place: the Ansicht options and "Tag abschließen" exist only then */
-  const onBoard = computed(() => currentPlace.value === 'board')
+  /** The board page shows (Heute or Alle, one page, #354): the Ansicht options, "Tag abschließen" and the topic funnel exist only then */
+  const onBoard = computed(() => currentPlace.value === 'board' || currentPlace.value === 'all')
 
   return { showsBar, currentPlace, onBoard, thirdItem }
 }

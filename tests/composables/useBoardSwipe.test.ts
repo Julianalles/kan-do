@@ -125,6 +125,28 @@ describe('useBoardSwipe', () => {
     scope.stop()
   })
 
+  it('reads the last page when the swipe happens: a place with fewer pages never commits past its edge (#354)', () => {
+    scope.stop()
+    const last = ref(2)
+    scope = effectScope()
+    scope.run(() => {
+      swipe = useBoardSwipe({ activeTab: tab, lastTab: () => last.value, isEnabled: () => enabled.value, onCommit })
+    })
+    // "Alle": two pages, the finger is on the last one and pulls towards a third that is not there
+    last.value = 1
+    down(300, 300, 0)
+    move(100, 302, 16)
+    expect(swipe.offsetPx.value).toBeGreaterThan(-200) // resistance at the edge
+    up(100, 302, 32)
+    expect(onCommit).not.toHaveBeenCalled()
+    // "Heute": three pages, the same swipe from the middle page reaches the last one
+    last.value = 2
+    down(300, 300, 100)
+    move(100, 302, 116)
+    up(100, 302, 132)
+    expect(onCommit).toHaveBeenCalledWith(2)
+  })
+
   it.each(['input', 'textarea', 'select', 'button', 'a'])('ignores a touch starting on <%s>', (tag) => {
     down(300, 300, 0, {}, document.createElement(tag))
     move(240, 302, 16)

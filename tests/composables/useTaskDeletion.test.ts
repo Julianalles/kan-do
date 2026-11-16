@@ -233,6 +233,19 @@ describe('useTaskDeletion (upstream-aware delete with deferred commit)', () => {
     expect(tasksStore.tasks.filter(task => task.status === TaskStatus.Progress).map(task => task.id)).toEqual(['b'])
   })
 
+  it('Undo into Offen drops a stale not-planned marker of the Jetzt snapshot, so the task is not hidden (#354)', () => {
+    useService('local')
+    tasksStore.updateTask('a', { status: TaskStatus.Progress })
+    // What an older app version leaves behind: the marker on a task it moved on
+    tasksStore.task('a')!.notPlanned = true
+    const { deleteTaskWithUndo, undoDelete } = useTaskDeletion()
+    deleteTaskWithUndo('a')
+    tasksStore.updateTask('b', { status: TaskStatus.Progress })
+    undoDelete('a')
+    expect(tasksStore.tasksOpen.map(task => task.id)).toContain('a')
+    expect(tasksStore.tasksNotPlanned).toEqual([])
+  })
+
   it('deletes the Todoist task after the undo window', async () => {
     useService('todoist')
     const { deleteTaskWithUndo } = useTaskDeletion()

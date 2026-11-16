@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useTasksStore } from '~/store/tasks'
 import { useBoardStore } from '~/store/board'
-import { isNotPlanned, plannedTasks } from '~/lib/taskPlanning'
+import { inStatus, isNotPlanned, plannedTasks } from '~/lib/taskPlanning'
 import type { Task } from '~/types/task'
 import type { SourceId } from '~/types/taskSource'
 import { TaskStatus } from '~/types/taskStatus'
@@ -44,6 +44,19 @@ describe('isNotPlanned: the single reader of the marker (#353)', () => {
   it('plannedTasks keeps the tasks on the board', () => {
     const tasks = [makeTask('a'), makeTask('b', { notPlanned: true }), makeTask('c', { status: TaskStatus.Done })]
     expect(plannedTasks(tasks).map(t => t.id)).toEqual(['a', 'c'])
+  })
+})
+
+describe('inStatus: a snapshot put into another column (#354)', () => {
+  it('keeps the marker only on a task that was Open and stays Open', () => {
+    expect(inStatus(makeTask('a', { notPlanned: true }), TaskStatus.Open).notPlanned).toBe(true)
+    expect('notPlanned' in inStatus(makeTask('a', { notPlanned: true }), TaskStatus.Waiting)).toBe(false)
+  })
+
+  it('drops a stale marker of a Jetzt snapshot that returns to Offen, so the task is not hidden', () => {
+    const back = inStatus(makeTask('a', { notPlanned: true, status: TaskStatus.Progress }), TaskStatus.Open)
+    expect(back.status).toBe(TaskStatus.Open)
+    expect(isNotPlanned(back)).toBe(false)
   })
 })
 
@@ -298,6 +311,47 @@ describe('tasks store: a task that is not planned for today (#353)', () => {
       store.mergeTasks('notion', [makeTask('x', { source: 'notion', externalId: 'x' })])
       store.recordCarryOver('2026-11-03')
       expect(mapHelpers.get(store.carryOverByTaskId, 'x')).toEqual({ firstOn: '2026-10-20', days: 5, lastOn: '2026-11-01', keptAtDays: 4 })
+    })
+  })
+
+  describe('the order of "Nicht geplant" (#354)', () => {
+    const notPlanned = () => store.tasksNotPlanned.map(t => t.id)
+
+    it('a task put back goes to the top, newest first; tasks that never were on the board follow in stored order', () => {
+      store.setTasks([makeTask('n1', { notPlanned: true }), makeTask('a'), makeTask('b'), makeTask('n2', { notPlanned: true })])
+      expect(notPlanned()).toEqual(['n1', 'n2'])
+      store.unplanTask('a')
+      store.unplanTask('b')
+      expect(notPlanned()).toEqual(['b', 'a', 'n1', 'n2'])
+      expect(board.notPlannedOrder).toEqual(['b', 'a'])
+    })
+
+    it('planning takes the task out of the order, and putting it back again puts it on top (A -> B -> A)', () => {
+      store.setTasks([makeTask('a'), makeTask('b')])
+      store.unplanTask('a')
+      store.unplanTask('b')
+      store.planTask('a')
+      expect(board.notPlannedOrder).toEqual(['b'])
+      store.unplanTask('a')
+      expect(notPlanned()).toEqual(['a', 'b'])
+    })
+
+    it('survives a merge that returns the source\'s tasks in another order', () => {
+      store.setTasks([makeTask('x', { source: 'notion' }), makeTask('y', { source: 'notion' }), makeTask('z', { source: 'notion' })])
+      store.unplanTask('x')
+      store.unplanTask('z')
+      store.mergeTasks('notion', [makeTask('x', { source: 'notion' }), makeTask('y', { source: 'notion' }), makeTask('z', { source: 'notion' })])
+      expect(notPlanned()).toEqual(['z', 'x'])
+    })
+
+    it('forgets a task that left "Nicht geplant" another way (moved on by status, removed)', () => {
+      store.setTasks([makeTask('a'), makeTask('b'), makeTask('c')])
+      store.unplanTask('a')
+      store.unplanTask('b')
+      store.updateTask('a', { status: TaskStatus.Waiting })
+      store.removeTask('b')
+      board.reconcileColumnsWithTasks(store.tasks)
+      expect(board.notPlannedOrder).toEqual([])
     })
   })
 })

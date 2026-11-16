@@ -40,11 +40,15 @@ import { paletteExtensionGroups } from '~/lib/paletteExtensions'
 import { openOnBoard } from '~/lib/nativeMenu'
 import { useAppReset } from '~/composables/useAppReset'
 import { useLiveRoute } from '~/composables/useAppNav'
+import { boardBasePath, todayLocation } from '~/composables/useBoardPlace'
+import { boardPlaceLocation } from '~/lib/boardPlace'
 
 type Translate = (key: string, ...args: unknown[]) => string
 
 export interface PaletteActions {
   addTask: () => void
+  /** The planning side of the board (`/all`, "Alle", #354). */
+  openAll: () => void
   /** The board (`/tasks`, "Heute"). */
   openToday: () => void
   openStatistics: () => void
@@ -172,6 +176,7 @@ export function buildCommandGroups({ t, task, canMove, moveTargets = [], current
     cmd('day-close', t('commandPalette.dayClose'), 'i-ph-sun-horizon', actions.openDayClose),
   ]
   const placeRows: GlobalRow[] = [
+    nav('all', t('commandPalette.openAll'), 'i-ph-list-checks', '/all', actions.openAll),
     nav('today', t('commandPalette.openToday'), 'i-ph-kanban', '/tasks', actions.openToday),
     nav('statistics', t('commandPalette.openStatistics'), 'i-ph-chart-bar', '/statistics', actions.openStatistics),
     nav('trash', t('commandPalette.openTrash'), ICONS.delete, '/trash', actions.openTrash),
@@ -302,8 +307,10 @@ export function useCommandPalette() {
   }
 
   const actions: PaletteActions = {
-    addTask: run(() => { void navigateTo('/tasks/add') }, { navigates: true }),
-    openToday: run(() => { void navigateTo('/tasks') }, { navigates: true }),
+    // Under the place that shows (#354): a sheet opened on "Alle" closes back to "Alle"
+    addTask: run(() => { void navigateTo(`${boardBasePath()}/add`) }, { navigates: true }),
+    openAll: run(() => { void navigateTo(boardPlaceLocation('all')) }, { navigates: true }),
+    openToday: run(() => { void navigateTo(todayLocation()) }, { navigates: true }),
     openStatistics: run(() => { void navigateTo('/statistics') }, { navigates: true }),
     openTrash: run(() => { void navigateTo('/trash') }, { navigates: true }),
     openSettings: run(() => { void navigateTo('/settings') }, { navigates: true }),
@@ -325,7 +332,7 @@ export function useCommandPalette() {
       : { openDataTransfer: run(() => { void navigateTo('/settings/data') }, { navigates: true }) }),
     // The confirmation is asked in place on the data page, with the export section right above it: go there with the question open
     resetApp: run(() => { appReset.open(); void navigateTo('/settings/data') }, { navigates: true }),
-    openDetails: id => run(() => { void navigateTo(`/tasks/${id}`) }, { navigates: true })(),
+    openDetails: id => run(() => { void navigateTo(`${boardBasePath()}/${id}`) }, { navigates: true })(),
     moveTo: (id, status) => run(() => { void moveOrSwapToStatus(id, status) })(),
     setTimebox: (id, seconds) => run(() => tasksStore.updateTask(id, { timeBoxSeconds: seconds }))(),
     setPriority: (id, priority) => run(() => tasksStore.updateTask(id, { priority }))(),

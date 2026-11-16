@@ -71,8 +71,9 @@ export function resolveSwipeTarget({ dx, velocity, viewportWidth, tab, lastTab }
 
 interface UseBoardSwipeOptions {
   /** Settled page; stays the single source of truth, the live offset is transient. */
-  activeTab: Ref<number>
-  lastTab: number
+  activeTab: Readonly<Ref<number>>
+  /** Index of the last page; a getter when the page count changes (#354: "Alle" has two pages, "Heute" three) */
+  lastTab: number | (() => number)
   /** False on desktop and while a dnd-kit drag is active: the tracker then ignores/aborts touches. */
   isEnabled: () => boolean
   /** Called once on release with the page to settle on, only when it differs from `activeTab`. */
@@ -95,7 +96,8 @@ interface Tracking {
  * horizontal exposes `offsetPx` so the board follows the finger and commits on release by
  * distance or velocity. Never calls preventDefault, so dnd-kit can still take over a held touch.
  */
-export function useBoardSwipe({ activeTab, lastTab, isEnabled, onCommit }: UseBoardSwipeOptions) {
+export function useBoardSwipe({ activeTab, lastTab: lastTabOption, isEnabled, onCommit }: UseBoardSwipeOptions) {
+  const lastTab = () => (typeof lastTabOption === 'function' ? lastTabOption() : lastTabOption)
   /** Transient pixel offset added to the settled translateX while a horizontal swipe is live. */
   const offsetPx = ref(0)
   /** True while locked horizontal; drives the class that disables the board transition. */
@@ -168,7 +170,7 @@ export function useBoardSwipe({ activeTab, lastTab, isEnabled, onCommit }: UseBo
       state.axis = resolveSwipeAxis(dx, dy)
       if (state.axis === 'x') isSwiping.value = true
     }
-    if (state.axis === 'x') offsetPx.value = applySwipeResistance(dx, activeTab.value, lastTab)
+    if (state.axis === 'x') offsetPx.value = applySwipeResistance(dx, activeTab.value, lastTab())
   }
 
   function onPointerUp(event: PointerEvent) {
@@ -182,7 +184,7 @@ export function useBoardSwipe({ activeTab, lastTab, isEnabled, onCommit }: UseBo
         velocity: velocityOf(state.samples),
         viewportWidth: window.innerWidth,
         tab: activeTab.value,
-        lastTab,
+        lastTab: lastTab(),
       })
       : activeTab.value
     const changed = settled !== activeTab.value

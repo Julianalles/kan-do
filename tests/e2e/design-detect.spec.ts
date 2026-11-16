@@ -69,6 +69,17 @@ const SURFACES: Surface[] = [
     },
   },
   {
+    // The place "Alle" (#354): "Nicht geplant" with cards beside Offen (at 390 its own page, which "Alle" opens on)
+    name: 'alle',
+    open: async (page, context) => {
+      const [first, ...rest] = SEED_TASKS.filter(task => task.status === 0)
+      await seedLocalBoard(context, [{ ...first!, notPlanned: true }, ...rest, ...SEED_TASKS.filter(task => task.status !== 0)])
+      await page.goto('/all')
+      await expect(page.locator('.board')).toHaveAttribute('data-place', 'all')
+      await expect(page.getByTestId('not-planned').locator('.task')).toBeVisible()
+    },
+  },
+  {
     name: 'task detail sheet',
     open: async (page, context) => {
       await seedLocalBoard(context)

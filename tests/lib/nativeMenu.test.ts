@@ -38,6 +38,12 @@ describe('menuActionHandlers', () => {
     expect(calls).toEqual(['navigate /tasks/add'])
   })
 
+  it('app.new-task opens the add sheet under the showing place (#354)', async () => {
+    const { d, calls } = deps({ boardBase: () => '/all' })
+    await menuActionHandlers(d)['app.new-task']()
+    expect(calls).toEqual(['navigate /all/add'])
+  })
+
   it('navigates even while a dialog is open (the target replaces it)', async () => {
     const { d, calls } = deps({ dialogOpen: () => true })
     await menuActionHandlers(d)['app.settings']()

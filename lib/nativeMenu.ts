@@ -48,6 +48,10 @@ export function isMenuActionId(value: unknown): value is MenuActionId {
 /** What the handlers need from the app; injected so the mapping is testable without Nuxt. */
 export interface MenuDeps {
   navigate: (path: string) => Promise<unknown> | unknown
+  /** "Heute" from anywhere: from "Alle" (`/all`, an alias of the board page, #354) a plain `/tasks` is a redundant navigation */
+  goToday?: () => Promise<unknown> | unknown
+  /** Where the add sheet opens: under the place that is showing (`/all` on "Alle", #354), `/tasks` by default */
+  boardBase?: () => string
   /** Runs after a navigation has rendered, so a dialog mounted by the target page exists. */
   afterRender: () => Promise<void>
   checkForUpdates: () => Promise<void> | void
@@ -82,8 +86,8 @@ export function menuActionHandlers(deps: MenuDeps): Record<MenuActionId, () => P
   return {
     'app.settings': go('/settings'),
     // A child route of the board: an open day-close, recap or palette dialog would stay mounted under the sheet.
-    'app.new-task': dialog(async () => { await deps.navigate('/tasks/add') }),
-    'app.go-today': go('/tasks'),
+    'app.new-task': dialog(async () => { await deps.navigate(`${deps.boardBase ? deps.boardBase() : '/tasks'}/add`) }),
+    'app.go-today': async () => { await (deps.goToday ? deps.goToday() : deps.navigate('/tasks')) },
     'app.go-statistics': go('/statistics'),
     'app.go-trash': go('/trash'),
     'app.check-updates': dialog(() => deps.checkForUpdates()),

@@ -223,6 +223,47 @@ test.describe('mobile 390px board pages', () => {
   }
 })
 
+// ---------------------------------------------------------------------------
+// The place "Alle" (#354): "Nicht geplant" beside Offen
+// ---------------------------------------------------------------------------
+
+test.describe('the place "Alle" (#354)', () => {
+  // Two tasks held off the board (one put back from Jetzt's seed neighbours), the rest of the seed as it is
+  const HELD: SeedTask[] = [
+    { id: 'vr-held-1', title: 'Angebot kalkulieren', status: 0, priority: 3, activity: null, topic: 'Design', topicColorCode: '#6366f1', notes: null, timeSpentSeconds: 0, timeBoxSeconds: 2700, custom: {}, createdAt: FIXED_NOW, updatedAt: FIXED_NOW, notPlanned: true },
+    { id: 'vr-held-2', title: 'Belege sortieren', status: 0, priority: 1, activity: null, topic: null, topicColorCode: null, notes: null, timeSpentSeconds: 0, timeBoxSeconds: null, custom: {}, createdAt: FIXED_NOW, updatedAt: FIXED_NOW, notPlanned: true },
+    { id: 'vr-held-3', title: 'Werkstatt-Termin vereinbaren', status: 0, priority: 2, activity: null, topic: null, topicColorCode: null, notes: null, timeSpentSeconds: 0, timeBoxSeconds: 900, custom: {}, createdAt: FIXED_NOW, updatedAt: FIXED_NOW, notPlanned: true },
+  ]
+
+  async function gotoAll(page: Page, context: BrowserContext, held: SeedTask[]) {
+    await seedLocalBoard(context, [...held, ...SEED])
+    await page.goto('/all')
+    await expect(page.locator('.board')).toHaveAttribute('data-place', 'all')
+    await expect(page.locator('#column-open-list')).toBeVisible()
+    await page.mouse.move(0, 0)
+    await settle(page)
+  }
+
+  test('desktop 1280: cards in two columns beside Offen, "Weiter zu Heute" at its foot', async ({ context, page }) => {
+    await gotoAll(page, context, HELD)
+    await expect(page).toHaveScreenshot('alle-1280.png', { animations: 'disabled' })
+  })
+
+  test('desktop 1280: empty "Nicht geplant"', async ({ context, page }) => {
+    await gotoAll(page, context, [])
+    await expect(page).toHaveScreenshot('alle-empty-1280.png', { animations: 'disabled' })
+  })
+
+  test.describe('mobile 390px', () => {
+    test.use({ viewport: { width: 390, height: 844 } })
+
+    test('the "Nicht geplant" page with the bar above the app bar', async ({ context, page }) => {
+      await gotoAll(page, context, HELD)
+      await expect(page).toHaveScreenshot('alle-390.png', { animations: 'disabled' })
+    })
+  })
+})
+
 /** Presses on `source`, moves past the drag threshold and on to (tx, ty); leaves the mouse down. */
 async function dragTo(page: Page, source: Locator, tx: number, ty: number) {
   const box = (await source.boundingBox())!

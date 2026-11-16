@@ -165,7 +165,7 @@ function revealSavedWhenReady(id: string, frame = 0) {
 
 // The sheet (palette, nav, menu) takes over: the unsaved card gives way. A drag does not: the card keeps its box, hidden, and comes back after the drop (#248)
 watch(() => route.path, (path) => {
-  if (flowOpen.value && path.startsWith('/tasks/add')) flowOpen.value = false;
+  if (flowOpen.value && /^\/(tasks|all)\/add/.test(path)) flowOpen.value = false;
 });
 /** Neither button nor draft: nothing to reserve the card box for */
 const isEmpty = computed(() => !props.showButton && !isDrafting.value);

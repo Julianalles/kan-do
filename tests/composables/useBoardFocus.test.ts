@@ -2,7 +2,7 @@
  * The read side of the topic focus (#161): what stays visible, what the chips count and what the pill says.
  * Real Pinia stores.
  */
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { TaskStatus } from '~/types/taskStatus'
 import type { Task } from '~/types/task'
@@ -10,6 +10,7 @@ import { useTasksStore } from '~/store/tasks'
 import { useBoardStore } from '~/store/board'
 import { applyTopicFocus, useBoardFocus } from '~/composables/useBoardFocus'
 import { sourceOf } from '../helpers/taskSource'
+import { setCurrentBoardPath } from '~/lib/boardPlace'
 
 const makeTask = (id: string, status: TaskStatus, topic: string | null, extra: Partial<Task> = {}): Task => ({
   id, ...sourceOf(id),
@@ -66,6 +67,29 @@ describe('useBoardFocus', () => {
       makeTask('run', TaskStatus.Progress, 'Garten'),
     ].forEach(task => tasksStore.addTask(task))
     boardStore.reconcileColumnsWithTasks(tasksStore.tasks)
+  })
+
+  afterEach(() => setCurrentBoardPath('/tasks'))
+
+  it('on "Alle" it counts and hides what that place shows: "Nicht geplant" and Offen, not Wartet or Erledigt (#354)', () => {
+    tasksStore.addTask(makeTask('n1', TaskStatus.Open, 'Garten', { notPlanned: true }))
+    tasksStore.addTask(makeTask('n2', TaskStatus.Open, 'Büro', { notPlanned: true }))
+    setCurrentBoardPath('/all')
+    const focus = useBoardFocus()
+    expect(focus.topicChoices.value).toEqual([
+      { topic: 'Baustelle', count: 2 },
+      { topic: 'Büro', count: 2 },
+      { topic: 'Garten', count: 1 },
+    ])
+    focus.setFocus('Büro')
+    // o1, o2, o4 and n1 are hidden; the same state filters both lists
+    expect(focus.hiddenCount.value).toBe(4)
+    expect(focus.applyFocus(tasksStore.tasksNotPlanned).map(task => task.id)).toEqual(['n2'])
+    expect(focus.applyFocus(tasksStore.tasksOpen).map(task => task.id)).toEqual(['o3'])
+    // Back on Heute the focus is the same one, counted over Heute's columns
+    setCurrentBoardPath('/tasks')
+    expect(focus.focusTopic.value).toBe('Büro')
+    expect(focus.hiddenCount.value).toBe(4) // o1, o2, o4, d1
   })
 
   it('counts the topics of Offen, Wartet and Erledigt, Jetzt left out, most cards first', () => {

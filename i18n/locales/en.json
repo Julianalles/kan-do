@@ -140,6 +140,22 @@
       "pillLead": "Focus:",
       "hidden": "{n} hidden",
       "end": "End focus"
+    },
+    "notPlanned": {
+      "title": "Not planned",
+      "plan": "Plan for today",
+      "planNamed": "{title}: plan for today",
+      "notToday": "Not today",
+      "notTodayNamed": "{title}: not today",
+      "continue": "Continue to Today",
+      "continueCount": "Continue to Today · {n}",
+      "empty": "No more tasks yet. Everything is planned for today.",
+      "emptyHow": "“Not today” in the menu of a card in Open puts a task back here.",
+      "noMatch": "No tasks found.",
+      "planned": "{title} is planned for today.",
+      "unplanned": "{title} is no longer planned for today.",
+      "capacityFull": "With this your day is probably full.",
+      "capacityBelow": "Your day is probably full. One task is below the line. | Your day is probably full. {n} tasks are below the line."
     }
   },
   "nav": {
@@ -158,7 +174,8 @@
     "settings": "Settings",
     "appUpdate": "App update",
     "syncNow": "Sync now",
-    "syncing": "Syncing…"
+    "syncing": "Syncing…",
+    "all": "All"
   },
   "menu": {
     "app": "Kan-Do",
@@ -305,7 +322,8 @@
         "progress": "Now",
         "waiting": "Waiting",
         "done": "Done"
-      }
+      },
+      "notToday": "Not today"
     },
     "carryOver": {
       "label": "Day {n} on the board",
@@ -1303,7 +1321,8 @@
     "checkForUpdates": "Check for updates",
     "openUpdates": "Version & updates",
     "sendFeedback": "Send feedback",
-    "openWhatsNew": "What's new"
+    "openWhatsNew": "What's new",
+    "openAll": "Open All"
   },
   "recap": {
     "title": "Quick look back",

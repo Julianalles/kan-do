@@ -7,6 +7,7 @@
  * - Only the board's column lists and the drag order are filtered; the store's getters, statistics, day close, the
  *   recap and the WIP rule keep seeing every task
  * - Chip counts and the hidden number leave Jetzt out, so they count what the focus can keep or hide
+ * - One state for both places of the board (#354): on "Alle" it filters and counts "Nicht geplant" and Offen
  * @responsibility Filter, counts and the chip row's open state; never mutates tasks
  */
 import { computed, ref } from 'vue'
@@ -14,6 +15,7 @@ import { useBoardStore } from '~/store/board'
 import { useTasksStore } from '~/store/tasks'
 import type { Task } from '~/types/task'
 import { TaskStatus } from '~/types/taskStatus'
+import { useBoardPlace } from '~/composables/useBoardPlace'
 
 /** The chip row (the funnel's open state): transient, shared by the funnel in the app bar and the row on the board */
 const chipsOpen = ref(false)
@@ -37,8 +39,14 @@ export function useBoardFocus() {
 
   const focusTopic = computed(() => boardStore.activeFocusTopic ?? null)
 
-  /** The cards the focus can keep or hide: Offen, Wartet and today's Erledigt (Jetzt is never hidden) */
-  const filterable = computed(() => [...tasksStore.tasksOpen, ...tasksStore.tasksWaiting, ...tasksStore.tasksDoneToday])
+  /**
+   * The cards the focus can keep or hide, which are the cards the place shows: on Heute Offen, Wartet and today's
+   * Erledigt (Jetzt is never hidden), on "Alle" (#354) "Nicht geplant" and Offen
+   */
+  const { isAll } = useBoardPlace()
+  const filterable = computed(() => (isAll.value
+    ? [...tasksStore.tasksNotPlanned, ...tasksStore.tasksOpen]
+    : [...tasksStore.tasksOpen, ...tasksStore.tasksWaiting, ...tasksStore.tasksDoneToday]))
 
   /** The topics on those cards with their card count, most cards first, then by name */
   const topicChoices = computed<TopicChoice[]>(() => {

@@ -176,13 +176,16 @@
       "risk": true,
       "paths": [
         "components/board/BoardCapacityDivider.vue",
+        "components/board/BoardCapacityEcho.vue",
         "composables/useDayCapacity.ts",
+        "composables/useOpenCapacityLine.ts",
         "lib/dayCapacity.ts",
         "lib/learnedEstimate.ts",
         "lib/timeboxSimilarity.ts"
       ],
       "specs": [
         "capacity-divider",
+        "all-place",
         "drag-and-drop",
         "dnd-open-column-gap",
         "grouped-dnd",
@@ -665,6 +668,9 @@
         "composables/useColumnStackCollapse*",
         "composables/useHeldWhileDragging*",
         "composables/useEdgeIndicatorTop*",
+        "composables/usePlanMoves.ts",
+        "lib/boardPlace.ts",
+        "plugins/board-place.client.ts",
         "lib/quickAddSuggestions.ts",
         "lib/pageDots.ts",
         "utils/carryOver.ts",
@@ -682,6 +688,7 @@
       ],
       "specs": [
         "done-drop",
+        "all-place",
         "grouped-dnd",
         "sorting",
         "carry-over",
@@ -932,6 +939,7 @@
         "add-task-slot",
         "add-task-source",
         "add-task-visible",
+        "all-place",
         "app-nav",
         "archive-feature",
         "board-wide-layout",

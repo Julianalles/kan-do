@@ -18,6 +18,7 @@ import { useTrashStore } from '~/store/trash';
 import type { TrashEntry } from '~/types/trash';
 import { completedAtForDay } from '~/lib/doneDay';
 import { isWritesFrozen } from '~/lib/dataStorage';
+import { inStatus, isNotPlanned } from '~/lib/taskPlanning';
 
 /** Where a source's setup problems are reported (the context picks the localized message). */
 const setupContextOf = (source: SourceId) => (source === 'todoist' ? 'todoist_setup' : 'notion_setup') as 'todoist_setup' | 'notion_setup';
@@ -683,7 +684,8 @@ export const useTaskSync = () => {
     if (deletesInFlight.has(taskId)) throw new Error('The delete is still being sent to the source, try again in a moment');
 
     const status = entry.fromStatus === TaskStatus.Progress ? TaskStatus.Open : entry.fromStatus;
-    const base: Task = { ...entry.task, status, timerId: null };
+    // A Jetzt snapshot returns to Offen: a stale not-planned marker must not hide it there (#354)
+    const base: Task = { ...inStatus(entry.task, status), timerId: null };
     const queued = mapHelpers.get(tasksStore.pendingDeletes, taskId);
 
     let restored: Task;
@@ -704,8 +706,14 @@ export const useTaskSync = () => {
     tasksStore.undeleteTask(taskId, restored.externalId, entry.task.externalId);
     if (!tasksStore.task(taskId)) tasksStore.addTask({ ...restored, id: taskId, status, timerId: null });
     tasksStore.guardRestoredTask(taskId);
-    // The column's order still names the task where it stood: take it out there, then it goes to the end
-    boardStore.updateTaskPosition(taskId, status, entry.fromStatus);
+    const back = tasksStore.task(taskId);
+    if (back && isNotPlanned(back)) {
+      // A task that was not planned returns to "Nicht geplant", on top: it has no place in Offen's order (#354)
+      boardStore.noteNotPlanned(taskId);
+    } else {
+      // The column's order still names the task where it stood: take it out there, then it goes to the end
+      boardStore.updateTaskPosition(taskId, status, entry.fromStatus);
+    }
     tasksStore.restoreCarryOver(taskId, entry.carryOver);
     trashStore.remove(taskId);
     // The time lives on the task again (#537)

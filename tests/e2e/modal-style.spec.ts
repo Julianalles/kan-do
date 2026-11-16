@@ -112,7 +112,7 @@ test.describe('state language and fonts (kd#195)', () => {
       }
     })
     await page.goto('/tasks')
-    await expect(page.locator('h2').first()).toBeVisible()
+    await expect(page.locator('#column-open h2')).toBeVisible()
     // Ask for the face outright: the load proves the file is served and decodes, whatever the page happens to render
     expect(await page.evaluate(async () => (await document.fonts.load('500 36px Fraunces')).length)).toBeGreaterThan(0)
     await expect.poll(() => page.evaluate(() => [...document.fonts].some((face) => face.family.includes('Fraunces') && face.status === 'loaded'))).toBe(true)

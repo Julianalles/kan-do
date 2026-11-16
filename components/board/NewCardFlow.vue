@@ -225,6 +225,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } fro
 import { useI18n } from 'vue-i18n';
 import { useToast } from '#imports';
 import { navigateTo } from 'nuxt/app';
+import { boardBasePath } from '~/composables/useBoardPlace';
 import TaskCard from '~/components/task/TaskCard.vue';
 import NewCardOptionList from '~/components/board/NewCardOptionList.vue';
 import ChoiceChip from '~/components/ui/ChoiceChip.vue';
@@ -635,7 +636,7 @@ async function save() {
           label: t('board.quickAdd.details'),
           color: 'neutral',
           variant: 'soft',
-          onClick: () => void navigateTo(`/tasks/${created.id}`),
+          onClick: () => void navigateTo(`${boardBasePath()}/${created.id}`),
         },
       ],
     });

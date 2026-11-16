@@ -27,6 +27,7 @@ import { deriveGroupKeyForTask, shouldTaskBeGrouped } from '~/utils/taskGrouping
 import { mapHelpers } from '~/utils/mapHelpers'
 import { TaskStatus } from '~/types/taskStatus'
 import type { Task } from '~/types/task'
+import { inStatus, isNotPlanned } from '~/lib/taskPlanning'
 
 export const DELETE_UNDO_WINDOW_MS = 5000
 
@@ -156,7 +157,7 @@ export function useTaskDeletion() {
     // Back in Jetzt only while Jetzt is free: it holds one card (WIP limit)
     const jetztTaken = pending.task.status === TaskStatus.Progress
       && tasksStore.tasks.some(other => other.status === TaskStatus.Progress)
-    if (!tasksStore.task(taskId)) tasksStore.addTask(jetztTaken ? { ...pending.task, status: TaskStatus.Open } : pending.task)
+    if (!tasksStore.task(taskId)) tasksStore.addTask(jetztTaken ? inStatus(pending.task, TaskStatus.Open) : pending.task)
     if (jetztTaken) {
       boardStore.updateTaskPosition(taskId, TaskStatus.Open, TaskStatus.Progress)
       void updateTaskStatus({ taskId, status: TaskStatus.Open, skipLocalUpdate: true })
@@ -333,7 +334,8 @@ export function useTaskDeletion() {
       state: 'waiting',
       requestedAt: Date.now(),
       fromStatus: task.status,
-      slot,
+      // A task that is not planned (#354) stands in no column: no gap for it in Offen. Undo (⌘Z) still works in its window.
+      slot: isNotPlanned(task) ? undefined : slot,
       orderIndex,
     })
     tasksStore.removeTask(taskId)
