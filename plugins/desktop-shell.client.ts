@@ -11,6 +11,7 @@
 import { isTauri } from '~/utils/isTauri'
 import { isLayerDragStart } from '~/lib/windowDrag'
 import { shouldBlockContextMenu } from '~/lib/nativeContextMenu'
+import { isApplePlatform } from '~/composables/usePlatformShortcut'
 import { isBrowserShortcut } from '~/lib/nativeShortcuts'
 
 export default defineNuxtPlugin(() => {
@@ -44,8 +45,9 @@ export default defineNuxtPlugin(() => {
     })
     // No reload, print or page zoom either (#398): the window is not a browser tab. Never stops propagation, so the app's
     // own chords still arrive.
+    const mac = isApplePlatform()
     document.addEventListener('keydown', (event) => {
-      if (isBrowserShortcut(event)) event.preventDefault()
+      if (isBrowserShortcut(event, mac)) event.preventDefault()
     })
   }
 })

@@ -107,26 +107,31 @@ test.describe('Native feel (desktop)', () => {
   test('reload, print and zoom chords are cancelled, editing and the app\'s own chords are not (#398)', async ({ page }) => {
     await page.goto('/tasks/add')
     await expect(page.getByRole('textbox').first()).toBeVisible()
+    // Cmd on macOS, Ctrl elsewhere (the engine here decides); the other modifier is a text binding and passes
+    const mac = await page.evaluate(() => /mac|iphone|ipad/i.test(navigator.platform))
+    const mod = mac ? 'metaKey' : 'ctrlKey'
+    const other = mac ? 'ctrlKey' : 'metaKey'
     for (const chord of [
       { key: 'F5' },
-      { key: 'r', metaKey: true },
-      { key: 'R', metaKey: true, shiftKey: true },
-      { key: 'r', ctrlKey: true },
-      { key: 'p', metaKey: true },
-      { key: '=', metaKey: true },
-      { key: '+', metaKey: true },
-      { key: '-', ctrlKey: true },
-      { key: '0', metaKey: true },
+      { key: 'r', [mod]: true },
+      { key: 'R', [mod]: true, shiftKey: true },
+      { key: 'p', [mod]: true },
+      { key: '=', [mod]: true },
+      { key: '+', [mod]: true },
+      { key: '-', [mod]: true },
+      { key: '0', [mod]: true },
     ]) {
       expect(await keydownCancelled(page, chord), JSON.stringify(chord)).toBe(true)
     }
     for (const chord of [
-      { key: 'z', metaKey: true },
-      { key: 'c', metaKey: true },
-      { key: 'v', ctrlKey: true },
-      { key: 'a', metaKey: true },
-      { key: 'n', metaKey: true },
-      { key: '1', metaKey: true },
+      { key: 'z', [mod]: true },
+      { key: 'c', [mod]: true },
+      { key: 'v', [mod]: true },
+      { key: 'a', [mod]: true },
+      { key: 'n', [mod]: true },
+      { key: '1', [mod]: true },
+      { key: 'p', [other]: true }, // macOS Ctrl+P is "up one line" in a text field
+      { key: 'r', [other]: true },
       { key: 'r' },
       { key: '-' },
     ]) {
@@ -178,6 +183,18 @@ test.describe('Native feel (desktop)', () => {
     expect(await cursorOf(page, '<button type="button">x</button>', true)).toBe('not-allowed')
     expect(await cursorOf(page, '<p data-selectable><a href="https://example.com">x</a></p>')).toBe('pointer')
   })
+
+  test('the task card shows the arrow, a control with a deliberate cursor keeps it (#393)', async ({ page }) => {
+    await page.goto('/tasks')
+    const card = page.locator('.task-wrapper[data-task-id="seed-open-1"] .task')
+    await expect(card).toBeVisible()
+    // the card's own scoped `.task { cursor: pointer }` does not bring the hand back
+    expect(await card.evaluate(el => getComputedStyle(el).cursor)).toBe('default')
+    // a control that sets its own cursor (text, grab, not-allowed) is not overridden by the arrow rule
+    expect(await cursorOf(page, '<button type="button" class="cursor-text">x</button>')).toBe('text')
+    expect(await cursorOf(page, '<button type="button" class="cursor-grab">x</button>')).toBe('grab')
+    expect(await cursorOf(page, '<button type="button" class="choice-chip--field">x</button>')).not.toBe('default')
+  })
 })
 
 test.describe('Native feel (web)', () => {
@@ -188,6 +205,7 @@ test.describe('Native feel (web)', () => {
     expect(await contextMenuCancelled(page, 'body')).toBe(false)
     // #398, #393: the browser keeps reload, print, zoom, the link drag and the hand cursor
     expect(await keydownCancelled(page, { key: 'r', metaKey: true })).toBe(false)
+    expect(await keydownCancelled(page, { key: 'r', ctrlKey: true })).toBe(false)
     expect(await keydownCancelled(page, { key: 'p', ctrlKey: true })).toBe(false)
     expect(await keydownCancelled(page, { key: '=', metaKey: true })).toBe(false)
     expect(await dragstartCancelled(page, '<a href="https://example.com">link</a>')).toBe(false)
