@@ -229,7 +229,7 @@ test.describe('connect Notion (#320)', () => {
     await expect(column(page, 'open').getByText('Fokusaufgabe vorbereiten', { exact: true })).toBeVisible()
     await expect(column(page, 'progress').getByText('Review Team Updates', { exact: true })).toBeVisible()
     await expect(column(page, 'waiting').getByText('Blocker klären', { exact: true })).toBeVisible()
-    await expect(page.getByText('Sync-Warnung')).toHaveCount(0)
+    await expect(page.getByText('Kurz prüfen')).toHaveCount(0)
     // The existing cards keep their order; the new ones sit behind them
     const openAfter = await column(page, 'open').locator('.task-wrapper').allInnerTexts()
     expect(openAfter.slice(0, openBefore.length)).toEqual(openBefore)

@@ -969,5 +969,15 @@
     "avoidEn": [],
     "status": "proposed",
     "note": "The user's own wording of 2026-11-16 (#367; the user's `npm run terms:approve` makes it decided), the same words as the add form's submit button (task.form.submit). The column header's icon button stays \"Aufgabe hinzufügen\" (board.addTask). The empty state beside it reads \"Keine weiteren Aufgaben vorhanden.\", also the user's wording."
+  },
+  {
+    "id": "keep-board",
+    "concept": "The answer to the sync question \"Was trifft zu?\" (#369) that leaves the board as it is and drops the fetched result; the footer button of that answer",
+    "de": "Board behalten",
+    "en": "Keep the board",
+    "avoidDe": [],
+    "avoidEn": [],
+    "status": "proposed",
+    "note": "The other footer button of the same dialog is \"Änderung übernehmen\" / \"Apply the change\" (the term `apply`). The dialog's title is \"Kurz prüfen\" / \"Quick check\": the design copy said \"Bitte kurz prüfen\", which the voice rule \"No 'Bitte'\" rules out."
   }
 ]

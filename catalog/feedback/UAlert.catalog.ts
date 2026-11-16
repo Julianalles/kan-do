@@ -20,11 +20,11 @@ export default {
   },
   variants: [
     { id: 'failure', label: 'failure line (subtle error)', props: { color: 'error', variant: 'subtle', icon: 'i-ph-x-circle', role: 'alert', description: { $t: 'feedback.screenshot.failed' } } },
-    { id: 'title-description', label: 'title and description', props: { color: 'warning', variant: 'subtle', icon: 'i-ph-warning', title: { $t: 'sync.warning.alertTitle' }, description: { $t: 'settings.data.backups.loadFailed' } } },
+    { id: 'title-description', label: 'title and description', props: { color: 'warning', variant: 'subtle', icon: 'i-ph-warning', title: { $t: 'sync.warning.title' }, description: { $t: 'settings.data.backups.loadFailed' } } },
   ],
   states: [
     { id: 'error', state: 'error', props: { color: 'error', variant: 'subtle', icon: 'i-ph-x-circle', role: 'alert', description: { $t: 'settings.data.backups.loadFailed' } } },
-    { id: 'long-text', state: 'long-text', label: 'long German text', props: { color: 'warning', variant: 'subtle', icon: 'i-ph-warning', title: { $t: 'sync.warning.alertTitle' }, description: { $t: 'board.dropToComplete' } } },
-    { id: 'actions', state: 'icon-only', label: 'with actions and close', props: { color: 'warning', variant: 'subtle', orientation: 'horizontal', icon: 'i-ph-warning', title: { $t: 'sync.warning.alertTitle' }, close: true, actions: [{ label: { $t: 'common.close' }, color: 'neutral', variant: 'outline', size: 'xs' }] } },
+    { id: 'long-text', state: 'long-text', label: 'long German text', props: { color: 'warning', variant: 'subtle', icon: 'i-ph-warning', title: { $t: 'sync.warning.title' }, description: { $t: 'board.dropToComplete' } } },
+    { id: 'actions', state: 'icon-only', label: 'with actions and close', props: { color: 'warning', variant: 'subtle', orientation: 'horizontal', icon: 'i-ph-warning', title: { $t: 'sync.warning.title' }, close: true, actions: [{ label: { $t: 'common.close' }, color: 'neutral', variant: 'outline', size: 'xs' }] } },
   ],
 } satisfies CatalogEntry
