@@ -25,6 +25,7 @@ vi.mock('~/composables/useNotionDataSource', () => ({
 
 /* eslint-disable import/first -- order-sensitive: mocks must be registered before the SUT is imported */
 import { isNewDayDue, useNewDay } from '~/composables/useNewDay'
+import { syncToday } from '~/composables/useToday'
 import { useDayClose } from '~/composables/useDayClose'
 import { useTaskTimerDriver } from '~/composables/useTaskTimerDriver'
 import { useTasksStore } from '~/store/tasks'
@@ -356,7 +357,7 @@ describe('useNewDay: the pass (#356)', () => {
     })
   })
 
-  describe('the Jetzt task\'s time (D2, point 2c): only what its timer counted after the midnight that starts the new day goes', () => {
+  describe('the Jetzt task\'s time (D2, point 2c, the user\'s decision of 2026-11-16): the pass removes none; the time its timer counted after midnight while the user was away goes only when the user takes it off', () => {
     let driver: ReturnType<typeof useTaskTimerDriver>
     const stored = (id: string) => useTasksStore().task(id)!.timeSpentSeconds
 
@@ -375,12 +376,16 @@ describe('useNewDay: the pass (#356)', () => {
     }
     afterEach(() => driver?.stop())
 
-    it('app left open over midnight while the user is away: the time until midnight stays, the time after it is taken off', () => {
+    it('app left open over midnight while the user is away: the pass removes no time; "Zeit abziehen" takes the time after midnight off, the time until midnight stays', () => {
       const { tasks, newDay } = running(at(21, 23, 50))
       // 10 min before midnight, 20 min after it, the user away from 23:50; the return to the app runs the pass
       vi.advanceTimersByTime(30 * 60 * 1000)
       expect(tasks.validAfterMidnight).toMatchObject({ taskId: 'j', day: TODAY })
       newDay.run()
+      // nothing silent: the whole stretch is still on the card, and a question asks what to do with the 20 minutes
+      expect(stored('j')).toBe(600 + 30 * 60)
+      expect(newDay.timeOffer.value).toEqual({ taskId: 'j', title: 'Task j', seconds: 20 * 60 })
+      expect(newDay.takeOffTime()).toBe(20 * 60)
       expect(stored('j')).toBe(600 + 10 * 60)
       expect(tasks.task('j')).toMatchObject({ status: TaskStatus.Open, notPlanned: true, timerId: null })
       expect(armedTaskTimerIds()).toEqual([])
@@ -390,12 +395,14 @@ describe('useNewDay: the pass (#356)', () => {
       expect(stored('j')).toBe(600 + 10 * 60)
     })
 
-    it('the second that crosses midnight counts as before it', () => {
+    it('the second that crosses midnight counts as before it; a stretch under a minute is not asked about and stays', () => {
       const { newDay } = running(at(21, 23, 50))
       vi.advanceTimersByTime((10 * 60 + 5) * 1000)
       newDay.run()
-      // the ticks up to and with the one at 00:00:00 belong to yesterday, the five after them are taken off
-      expect(stored('j')).toBe(600 + 10 * 60)
+      // the ticks up to and with the one at 00:00:00 belong to yesterday; the five after them are below the minute
+      expect(newDay.timeOffer.value).toBeNull()
+      expect(newDay.takeOffTime()).toBe(0)
+      expect(stored('j')).toBe(600 + 10 * 60 + 5)
     })
 
     it('other tasks keep their time, also an Offen task with time spent', () => {
@@ -421,6 +428,9 @@ describe('useNewDay: the pass (#356)', () => {
       // open from the 20th, 23:50 until the 22nd, 00:20: 10 min + a whole day + 20 min
       vi.advanceTimersByTime((10 + 24 * 60 + 20) * 60 * 1000)
       newDay.run()
+      // the offer covers only the 20 minutes after the last midnight
+      expect(newDay.timeOffer.value?.seconds).toBe(20 * 60)
+      newDay.takeOffTime()
       expect(stored('j')).toBe(600 + (10 + 24 * 60) * 60)
     })
 
@@ -443,6 +453,7 @@ describe('useNewDay: the pass (#356)', () => {
       vi.setSystemTime(MORNING)
       driver.start()
       newDay.run()
+      newDay.takeOffTime()
       expect(stored('j')).toBe(600 + 10 * 60)
     })
 
@@ -501,8 +512,10 @@ describe('useNewDay: the pass (#356)', () => {
       vi.setSystemTime(at(22, 3, 0)) // the clock jumps ahead; nothing was counted "after midnight" yet
       vi.advanceTimersByTime(3000)
       newDay.run()
-      // the first tick after the jump is the crossing second (kept), the next two are taken off
-      expect(stored('j')).toBe(600 + 60 + 1)
+      // the first tick after the jump is the crossing second; only the two after it were counted after the jump,
+      // and that is under a minute: nothing is asked, nothing goes
+      expect(newDay.timeOffer.value).toBeNull()
+      expect(stored('j')).toBe(600 + 60 + 3)
     })
 
     it('a count noted for an earlier day is not used by a later pass', () => {
@@ -530,6 +543,7 @@ describe('useNewDay: the pass (#356)', () => {
       const { newDay } = running(at(21, 23, 50))
       vi.advanceTimersByTime((10 + 8 * 60) * 60 * 1000) // 08:00 the next morning
       newDay.run()
+      newDay.takeOffTime()
       expect(stored('j')).toBe(600 + 10 * 60)
     })
 
@@ -539,6 +553,7 @@ describe('useNewDay: the pass (#356)', () => {
       leaveWindow()
       vi.advanceTimersByTime(7 * 60 * 60 * 1000 + 40 * 60 * 1000) // away until 08:00
       newDay.run()
+      newDay.takeOffTime()
       // 600 s before midnight, 1200 s after it in the window, and the 59 seconds of the grace in which the user still counts as present
       expect(stored('j')).toBe(600 + 600 + 1200 + 59)
     })
@@ -560,6 +575,8 @@ describe('useNewDay: the pass (#356)', () => {
       // the page's handler: the return follows a real absence, so it runs the pass
       expect(returnedAfterAbsence()).toBe(true)
       newDay.run()
+      expect(newDay.timeOffer.value?.seconds).toBe(10 * 60)
+      newDay.takeOffTime()
       expect(stored('j')).toBe(600 + 10 * 60)
       expect(tasks.task('j')).toMatchObject({ status: TaskStatus.Open, notPlanned: true, timerId: null })
       expect(armedTaskTimerIds()).toEqual([])
@@ -580,6 +597,9 @@ describe('useNewDay: the pass (#356)', () => {
         const { newDay } = running(at(21, 23, 50))
         vi.advanceTimersByTime((10 + 8 * 60) * 60 * 1000)
         newDay.run()
+        // the question is open: the sessions are whole until the user answers
+        expect(sessions()).toEqual([[yesterdayAfternoon.start, yesterdayAfternoon.end], [ms(21, 23, 50), ms(22, 8, 0)]])
+        newDay.takeOffTime()
         expect(sessions()).toEqual([[yesterdayAfternoon.start, yesterdayAfternoon.end], [ms(21, 23, 50), ms(22, 0)]])
         // the card kept 600 s of the night, the session 600 s: they agree
         expect(stored('j') - 600).toBe(600)
@@ -591,6 +611,7 @@ describe('useNewDay: the pass (#356)', () => {
         leaveWindow()
         vi.advanceTimersByTime(7 * 60 * 60 * 1000 + 40 * 60 * 1000)
         newDay.run()
+        newDay.takeOffTime()
         // the 59 seconds of the grace count as present: the session keeps them with the card's 600 + 1200 + 59 s
         expect(sessions()).toEqual([[ms(21, 23, 50), ms(22, 0, 20, 59)]])
         expect(stored('j') - 600).toBe((ms(22, 0, 20, 59) - ms(21, 23, 50)) / 1000)
@@ -608,6 +629,7 @@ describe('useNewDay: the pass (#356)', () => {
         const { newDay } = running(at(21, 23, 50))
         vi.advanceTimersByTime(20 * 60 * 1000)
         newDay.run()
+        newDay.takeOffTime()
         expect(sessions()).toEqual([[ms(21, 23, 50), ms(22, 0)]])
         expect(stored('j')).toBe(600 + 10 * 60)
       })
@@ -616,17 +638,148 @@ describe('useNewDay: the pass (#356)', () => {
         const { newDay } = running(at(21, 23, 50))
         vi.advanceTimersByTime((10 + 8 * 60) * 60 * 1000)
         newDay.run()
+        newDay.takeOffTime()
         const after = sessions()
+        const timeAfter = stored('j')
+        // a second answer, a second pass and a stopped timer cut and take off nothing more
+        expect(newDay.takeOffTime()).toBe(0)
         newDay.run()
         vi.advanceTimersByTime(60 * 60 * 1000)
         expect(sessions()).toEqual(after)
-        expect(useTasksStore().afterMidnightSpans('j', TODAY)).toEqual([])
+        expect(stored('j')).toBe(timeAfter)
+        expect(useTasksStore().takeAfterMidnight('j', TODAY)).toBeNull()
       })
 
       it('never time before midnight: a span noted from before it is clipped to it', () => {
         useTasksStore().setTasks([task('j', TaskStatus.Progress, { timeSpentSeconds: 600 })])
         useTasksStore().afterMidnight = { taskId: 'j', day: TODAY, seconds: 120, spans: [[ms(21, 23, 58), ms(22, 0, 2)]] }
-        expect(useTasksStore().afterMidnightSpans('j', TODAY)).toEqual([[ms(22, 0), ms(22, 0, 2)]])
+        expect(useTasksStore().takeAfterMidnight('j', TODAY)?.spans).toEqual([[ms(22, 0), ms(22, 0, 2)]])
+      })
+    })
+
+    describe('the question after midnight: the user decides (the user\'s decision of 2026-11-16)', () => {
+      const away = (start = at(21, 23, 50)) => {
+        const context = running(start)
+        vi.advanceTimersByTime((10 + 50) * 60 * 1000) // 50 minutes after midnight, the user away
+        return context
+      }
+      const sessions = () => useTaskStatisticsStore().workSessions.map(({ start, end }) => [start, end])
+      const ms = (day: number, hour: number, minute = 0, second = 0) => at(day, hour, minute, second).getTime()
+
+      it('no silent removal: after the pass the card and the Statistik sessions are whole, and the question names the stretch and the task', () => {
+        const { newDay, tasks, recap } = away()
+        newDay.run()
+        expect(stored('j')).toBe(600 + 60 * 60)
+        expect(sessions()).toEqual([[ms(21, 23, 50), ms(22, 0, 50)]])
+        expect(newDay.timeOffer.value).toEqual({ taskId: 'j', title: 'Task j', seconds: 50 * 60 })
+        // the pass still sends the task back and stops its timer
+        expect(tasks.task('j')).toMatchObject({ status: TaskStatus.Open, notPlanned: true, timerId: null })
+        expect(recap.validTimeOffer).toMatchObject({ taskId: 'j', day: TODAY, seconds: 50 * 60 })
+      })
+
+      it('"Zeit abziehen": card and Statistik session lose the same stretch, once', () => {
+        const { newDay } = away()
+        newDay.run()
+        expect(newDay.takeOffTime()).toBe(50 * 60)
+        expect(stored('j')).toBe(600 + 10 * 60)
+        expect(sessions()).toEqual([[ms(21, 23, 50), ms(22, 0)]])
+        expect(stored('j') - 600).toBe((sessions()[0]![1]! - sessions()[0]![0]!) / 1000)
+        expect(newDay.timeOffer.value).toBeNull()
+        expect(newDay.takeOffTime()).toBe(0)
+        expect(stored('j')).toBe(600 + 10 * 60)
+      })
+
+      it('"Zeit behalten": everything stays as recorded and the question is gone', () => {
+        const { newDay } = away()
+        newDay.run()
+        newDay.keepTime()
+        expect(newDay.timeOffer.value).toBeNull()
+        expect(newDay.takeOffTime()).toBe(0)
+        expect(stored('j')).toBe(600 + 60 * 60)
+        expect(sessions()).toEqual([[ms(21, 23, 50), ms(22, 0, 50)]])
+      })
+
+      it('unanswered the time stays, and the question survives a reload that day', () => {
+        const { newDay, recap } = away()
+        newDay.run()
+        vi.advanceTimersByTime(3 * 60 * 60 * 1000) // later that day
+        expect(stored('j')).toBe(600 + 60 * 60)
+        const storedOffer = JSON.parse(JSON.stringify(recap.timeOffer))
+        const storedTasks = JSON.parse(JSON.stringify(useTasksStore().tasks))
+        // a reload: fresh stores, the same persisted values
+        setActivePinia(createPinia())
+        const again = setup({ tasks: storedTasks, lastNewDay: TODAY, lastShownDay: TODAY })
+        again.recap.timeOffer = storedOffer
+        expect(again.newDay.timeOffer.value).toEqual({ taskId: 'j', title: 'Task j', seconds: 50 * 60 })
+        expect(again.newDay.takeOffTime()).toBe(50 * 60)
+        expect(useTasksStore().task('j')!.timeSpentSeconds).toBe(600 + 10 * 60)
+      })
+
+      it('the question ends with its day: the next day it is not shown, the next pass drops it, and nothing was removed', () => {
+        const { newDay, recap } = away()
+        newDay.run()
+        vi.setSystemTime(at(23, 9, 0))
+        syncToday() // the shared "today" moves on (the page's timer and every return)
+        expect(newDay.timeOffer.value).toBeNull() // before any write: it follows the shared "today"
+        newDay.run()
+        expect(recap.timeOffer).toBeNull()
+        expect(newDay.takeOffTime()).toBe(0)
+        expect(stored('j')).toBe(600 + 60 * 60)
+      })
+
+      it('reads nothing malformed as a question, and a deleted task has none', () => {
+        const { newDay, recap, tasks } = setup()
+        recap.timeOffer = { taskId: 'j', day: TODAY, seconds: -5, spans: [] }
+        expect(newDay.timeOffer.value).toBeNull()
+        recap.timeOffer = { taskId: 'j', day: 'soon', seconds: 500, spans: [] }
+        expect(newDay.timeOffer.value).toBeNull()
+        recap.timeOffer = 'x' as never
+        expect(newDay.timeOffer.value).toBeNull()
+        recap.timeOffer = { taskId: 'gone', day: TODAY, seconds: 500, spans: [] }
+        expect(newDay.timeOffer.value).toBeNull()
+        recap.timeOffer = { taskId: 'j', day: TODAY, seconds: 500, spans: [] }
+        expect(newDay.timeOffer.value).toMatchObject({ taskId: 'j', seconds: 500 })
+        tasks.setTasks([task('o1', TaskStatus.Open)])
+        expect(newDay.timeOffer.value).toBeNull()
+      })
+
+      it('never takes more than the card holds: below zero never', () => {
+        const { newDay, recap } = setup()
+        recap.timeOffer = { taskId: 'j', day: TODAY, seconds: 5000, spans: [] }
+        expect(newDay.takeOffTime()).toBe(600)
+        expect(stored('j')).toBe(0)
+      })
+
+      it('the answer waits while writes are blocked (desktop data status), the question stays', () => {
+        const { newDay, recap } = setup()
+        recap.timeOffer = { taskId: 'j', day: TODAY, seconds: 500, spans: [] }
+        Object.assign(dataState, emptyDataStatus({ status: 'conflict' }), { available: true })
+        expect(newDay.takeOffTime()).toBe(0)
+        newDay.keepTime()
+        expect(newDay.timeOffer.value).not.toBeNull()
+        expect(stored('j')).toBe(600)
+      })
+
+      it('after the card was planned and started again, the seconds its running timer has not written yet are not lost', () => {
+        const { newDay, tasks } = away()
+        newDay.run()
+        tasks.updateTask('j', { status: TaskStatus.Progress, notPlanned: undefined })
+        vi.setSystemTime(at(22, 9, 0))
+        vi.advanceTimersByTime(4000) // four collected seconds, below the 10 s checkpoint
+        expect(newDay.takeOffTime()).toBe(50 * 60)
+        expect(stored('j')).toBe(600 + 60 * 60 + 4 - 50 * 60)
+      })
+
+      it('a connected task: the lowered time goes to the connection only when the user takes it off', async () => {
+        const { tasks, board, newDay } = running(at(21, 23, 50), { tasks: [task('nj', TaskStatus.Progress, { source: 'notion', timeSpentSeconds: 600 })] })
+        board.setSources({ connected: ['notion'], default: 'notion' })
+        useIntegrationHealthStore().recordSuccessfulSync('notion')
+        vi.advanceTimersByTime(60 * 60 * 1000)
+        newDay.run()
+        const queued = tasks.pendingTimeUpdates.nj?.timeSpentSeconds
+        expect(queued).toBe(stored('nj'))
+        newDay.takeOffTime()
+        expect(tasks.pendingTimeUpdates.nj).toMatchObject({ timeSpentSeconds: 600 + 10 * 60, absolute: true })
       })
     })
 
@@ -636,6 +789,9 @@ describe('useNewDay: the pass (#356)', () => {
       useIntegrationHealthStore().recordSuccessfulSync('notion')
       vi.advanceTimersByTime(30 * 60 * 1000)
       newDay.run()
+      // the question is open: the time is as recorded until the user answers
+      expect(stored('nj')).toBe(2400)
+      newDay.takeOffTime()
       expect(stored('nj')).toBe(1200)
       expect(tasks.pendingTimeUpdates.nj).toMatchObject({ timeSpentSeconds: 1200, absolute: true })
       // a fetch that lands before the push still holds the higher total

@@ -170,6 +170,14 @@
       "planAll": "Plan all again",
       "close": "Close",
       "planned": "One task is planned for today again. | {n} tasks are planned for today again."
+    },
+    "newDayTimeNote": {
+      "title": "Timer ran on for {duration} after midnight",
+      "description": "Kan-Do was not in focus. The time is still on the task.",
+      "takeOff": "Subtract time",
+      "keep": "Keep time",
+      "tookOff": "{duration} subtracted from the task.",
+      "kept": "The time stays on the task."
     }
   },
   "nav": {

@@ -106,6 +106,57 @@ describe('day recap store', () => {
       expect(store.validSentBack).toEqual({ day: '2026-10-22', ids: ['a', 'b'] })
     })
 
+    describe('the question about time after midnight (the user\'s decision of 2026-11-16)', () => {
+      const offer = { taskId: 'a', day: '2026-10-22', seconds: 900, spans: [[new Date(2026, 9, 22, 0, 5).getTime(), new Date(2026, 9, 22, 0, 20).getTime()] as [number, number]] }
+
+      it('belongs to its pass: the pass stores it, the next pass replaces it, answering clears it', () => {
+        const store = useDayRecapStore()
+        expect(store.validTimeOffer).toBeNull()
+        store.markNewDay('2026-10-22', ['a'], offer)
+        expect(store.validTimeOffer).toEqual(offer)
+        store.resolveTimeOffer()
+        expect(store.validTimeOffer).toBeNull()
+        store.markNewDay('2026-10-23', ['a'], { ...offer, day: '2026-10-23' })
+        store.markNewDay('2026-10-24', ['a'])
+        expect(store.timeOffer).toBeNull()
+      })
+
+      it('a pass that is ignored (a clock set back) leaves the question alone', () => {
+        const store = useDayRecapStore()
+        store.markNewDay('2026-10-22', ['a'], offer)
+        store.markNewDay('2026-10-21', ['a'])
+        expect(store.validTimeOffer).toEqual(offer)
+      })
+
+      it('reads a malformed stored question as none and does not write it back at hydration', async () => {
+        for (const bad of ['yes', { taskId: 1, day: '2026-10-22', seconds: 5 }, { taskId: 'a', day: 'x', seconds: 5 }, { taskId: 'a', day: '2026-10-22', seconds: -1 }, { taskId: 'a', day: '2026-10-22', seconds: 0 }, ['a']]) {
+          localStorage.setItem('day-recap-store', JSON.stringify({ timeOffer: bad }))
+          const before = localStorage.getItem('day-recap-store')
+          freshPinia()
+          const store = useDayRecapStore()
+          await nextTick()
+          expect(store.validTimeOffer).toBeNull()
+          expect(localStorage.getItem('day-recap-store')).toBe(before)
+        }
+      })
+
+      it('data stored without the field loads with no question; spans are clipped to the midnight and a missing list reads as none', () => {
+        const store = useDayRecapStore()
+        store.timeOffer = { taskId: 'a', day: '2026-10-22', seconds: 60 } as never
+        expect(store.validTimeOffer).toEqual({ taskId: 'a', day: '2026-10-22', seconds: 60, spans: [] })
+        store.timeOffer = { taskId: 'a', day: '2026-10-22', seconds: 60, spans: [[new Date(2026, 9, 21, 23, 58).getTime(), new Date(2026, 9, 22, 0, 2).getTime()]] }
+        expect(store.validTimeOffer?.spans).toEqual([[new Date(2026, 9, 22, 0, 0).getTime(), new Date(2026, 9, 22, 0, 2).getTime()]])
+      })
+
+      it('survives a restart', async () => {
+        const store = useDayRecapStore()
+        store.markNewDay('2026-10-22', ['a'], offer)
+        await nextTick()
+        freshPinia()
+        expect(useDayRecapStore().validTimeOffer).toEqual(offer)
+      })
+    })
+
     it('persists the pass, the group and the note across a restart', async () => {
       const store = useDayRecapStore()
       store.markNewDay('2026-10-22', ['a', 'b'])

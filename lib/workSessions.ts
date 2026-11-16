@@ -63,7 +63,7 @@ export function extendSession(sessions: WorkSession[], start: number, at: number
 }
 
 /**
- * Takes spans of wall-clock time out of the sessions (#356, the new day's time removal): a session that a span
+ * Takes spans of wall-clock time out of the sessions (#356, the user's "Zeit abziehen" after a new day): a session that a span
  * covers wholly is dropped, one it overlaps is cut at the span's edge, one it lies inside is split in two. Spans
  * are `[from, to]` in epoch ms; a span that is not finite or has `to <= from` is ignored.
  * @returns the same list when nothing is cut

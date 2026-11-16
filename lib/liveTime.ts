@@ -22,14 +22,14 @@ export const liveAwaySecondsState = reactive<Record<string, number>>({})
 /**
  * The wall-clock spans (`[from, to]`, epoch ms) in which those away seconds were counted, runtime only like the
  * seconds. Consecutive away ticks extend one span (a throttled tab ticks rarely, the span still runs through); a tick
- * with the user in the window closes it. They go to the store with the seconds, so a new day's time removal can take
+ * with the user in the window closes it. They go to the store with the seconds, so the user's "Zeit abziehen" after a new day can take
  * the same stretch out of the work sessions (#356, D3 h).
  */
 const awaySpans = new Map<string, { spans: Array<[number, number]>; open: boolean }>()
 
 /**
  * Adds one second to a task and returns the seconds collected for it now. `away`: the user was away from the window
- * when it was counted (`lib/appPresence`); only such seconds can be taken off again by a new day (#356). `now` is the
+ * when it was counted (`lib/appPresence`); only such seconds are offered to be taken off again after a new day (#356). `now` is the
  * tick's time.
  */
 export function addLiveSecond(taskId: string, away = false, now: number = Date.now()): number {

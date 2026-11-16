@@ -478,6 +478,7 @@
         "composables/useNewDay.ts",
         "lib/appPresence.ts",
         "components/board/NewDayNote.vue",
+        "components/board/NewDayTimeNote.vue",
         "composables/useSwipeDeck.ts",
         "composables/useToday.ts",
         "utils/recapDay.ts"

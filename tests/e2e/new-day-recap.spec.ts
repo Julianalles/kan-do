@@ -4,7 +4,7 @@ import { settleAnimations } from './helpers/settle'
 import { appNav, goToPlace, openSettings } from './helpers/appNav'
 import { expectContrast } from './helpers/contrast'
 import {
-  MIXED_SEED_TASKS, atDaysAgo, dayKeyDaysAgo, newDayBackTasks, newDayTasks, seedDayRecapStore, seedMixedBoard, seedNewDayBoard,
+  MIXED_SEED_TASKS, atDaysAgo, dayKeyDaysAgo, newDayBackTasks, newDayTasks, seedAfterMidnight, seedDayRecapStore, seedMixedBoard, seedNewDayBoard,
   type SeedTask,
 } from './helpers/seed'
 
@@ -995,6 +995,100 @@ test.describe('A new day sends unfinished cards back (#356)', () => {
     await expect.poll(() => openIds(page)).toEqual(['nd-open-1'])
     // the last card of the first group hands on to the first card below the heading
     await expect(pick('nd-held-1')).toBeFocused()
+  })
+
+  /**
+   * The user's decision of 2026-11-16: nothing is removed silently. A timer that ran on after midnight while the
+   * user was away leaves a question, not a removal ("Präsentation vorbereiten" has 30 min recorded; 10 or 75 of
+   * them were counted after midnight).
+   */
+  test.describe('the question about time after midnight', () => {
+    const timeNote = (page: Page) => page.getByTestId('new-day-time-note')
+    const takeOff = (page: Page) => page.getByTestId('new-day-time-note-take-off')
+    const keep = (page: Page) => page.getByTestId('new-day-time-note-keep')
+
+    async function openBoard(page: Page, context: Parameters<typeof seedNewDayBoard>[0], seconds: number, options: { firstPass?: boolean } = {}) {
+      await seedNewDayBoard(context, { tasks: newDayBackTasks(), ...options })
+      await seedAfterMidnight(context, { taskId: 'nd-now-1', seconds })
+      await page.goto('/tasks')
+      await continueButton(page).click()
+      await settled(page)
+    }
+
+    test('names the stretch and the task, removes nothing by itself, and survives a reload; "Zeit behalten" ends it', async ({ page, context }) => {
+      await openBoard(page, context, 4500)
+      await expect(timeNote(page)).toBeVisible()
+      await expect(timeNote(page)).toHaveAttribute('role', 'status')
+      await expect(timeNote(page)).toContainText('Timer lief nach Mitternacht 1 h 15 min weiter')
+      await expect(page.getByTestId('new-day-time-note-task')).toHaveText('Präsentation vorbereiten')
+      await expect(page.getByTestId('new-day-time-note-task')).toHaveAttribute('data-private', '')
+      // the cards went back all the same, the time is whole
+      expect(await storedTask(page, 'nd-now-1')).toMatchObject({ status: 0, notPlanned: true, timeSpentSeconds: 1800 })
+      // an "Alle" visit and a reload keep the question; the board stays usable
+      await goToPlace(page, 'Alle')
+      await expect(timeNote(page)).toBeVisible()
+      await page.reload()
+      await expect(board(page)).toBeVisible()
+      await expect(timeNote(page)).toBeVisible()
+      expect(await storedTask(page, 'nd-now-1')).toMatchObject({ timeSpentSeconds: 1800 })
+
+      await keep(page).click()
+      await expect(timeNote(page)).toHaveCount(0)
+      await expect(page.getByTestId('plan-announcement')).toHaveText('Die Zeit bleibt an der Aufgabe.')
+      expect(await storedTask(page, 'nd-now-1')).toMatchObject({ timeSpentSeconds: 1800 })
+      await page.reload()
+      await expect(board(page)).toBeVisible()
+      await expect(timeNote(page)).toHaveCount(0)
+    })
+
+    test('"Zeit abziehen" takes exactly that time off the card, once, and the question does not come back', async ({ page, context }) => {
+      await openBoard(page, context, 600)
+      await expect(timeNote(page)).toContainText('Timer lief nach Mitternacht 10 min weiter')
+      await takeOff(page).click()
+      await expect(timeNote(page)).toHaveCount(0)
+      await expect(page.getByTestId('plan-announcement')).toHaveText('10 min von der Aufgabe abgezogen.')
+      expect(await storedTask(page, 'nd-now-1')).toMatchObject({ status: 0, notPlanned: true, timeSpentSeconds: 1200 })
+      await page.reload()
+      await expect(board(page)).toBeVisible()
+      await expect(timeNote(page)).toHaveCount(0)
+      expect(await storedTask(page, 'nd-now-1')).toMatchObject({ timeSpentSeconds: 1200 })
+    })
+
+    test('a stretch under a minute is not asked about', async ({ page, context }) => {
+      await openBoard(page, context, 40)
+      await expect(sentence(page)).toBeVisible()
+      await expect(timeNote(page)).toHaveCount(0)
+      expect(await storedTask(page, 'nd-now-1')).toMatchObject({ timeSpentSeconds: 1800 })
+    })
+
+    test('on the first morning it is its own note below the one-time note; each is answered on its own', async ({ page, context }) => {
+      await openBoard(page, context, 4500, { firstPass: true })
+      await expect(note(page)).toBeVisible()
+      await expect(timeNote(page)).toBeVisible()
+      const one = (await note(page).boundingBox())!
+      const two = (await timeNote(page).boundingBox())!
+      expect(two.y).toBeGreaterThanOrEqual(one.y + one.height)
+      // the time question is answered: the one-time note stays
+      await takeOff(page).click()
+      await expect(timeNote(page)).toHaveCount(0)
+      await expect(note(page)).toBeVisible()
+      expect(await storedTask(page, 'nd-now-1')).toMatchObject({ timeSpentSeconds: 0 })
+      await page.getByTestId('new-day-note-close').click()
+      await expect(note(page)).toHaveCount(0)
+    })
+
+    test.describe('390px', () => {
+      test.use({ viewport: { width: 390, height: 844 }, hasTouch: true })
+
+      test('the actions sit below the text, 44 px high, and nothing scrolls sideways', async ({ page, context }) => {
+        await openBoard(page, context, 4500)
+        const text = (await timeNote(page).getByText('Timer lief nach Mitternacht 1 h 15 min weiter').boundingBox())!
+        const action = (await takeOff(page).boundingBox())!
+        expect(action.y).toBeGreaterThan(text.y + text.height)
+        expect(action.height).toBeGreaterThanOrEqual(44)
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+      })
+    })
   })
 
   test.describe('390px', () => {

@@ -4,7 +4,7 @@
  * turns hidden or the window loses the focus, and lasts until it is shown or focused again. A glance at another
  * window is not leaving: the user counts as away only once the absence has lasted `AWAY_GRACE_MS`.
  * Two readers: the timer driver tags each counted second with it (a second counted while away is the only kind a
- * new day takes off again), and the board page asks whether a return followed a real absence (the new day starts
+ * new day asks about), and the board page asks whether a return followed a real absence (the new day starts
  * on the app's start and on such a return, never while the user works in the window).
  * Runtime only, plain TypeScript, no store.
  */

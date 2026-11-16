@@ -84,11 +84,9 @@ describe('time counted after midnight (#356)', () => {
     store.addTrackedSeconds('a', 10, 10, [[t(2), t(2, 30)], [t(3), t(3)], [Number.NaN, 4] as never])
     store.addTrackedSeconds('a', 10, 0, [[t(5), t(6)]]) // no away seconds: its span is not noted
     expect(store.afterMidnight!.spans).toEqual([[t(0), t(0, 9)], [t(2), t(2, 30)]])
-    expect(store.afterMidnightSpans('a', DAY)).toEqual([[t(0), t(0, 9)], [t(2), t(2, 30)]])
-    expect(store.afterMidnightSpans('b', DAY)).toEqual([])
-    expect(store.afterMidnightSpans('a', '2026-10-23')).toEqual([])
-    store.removeTimeAfterMidnight('a', DAY)
-    expect(store.afterMidnightSpans('a', DAY)).toEqual([])
+    expect(store.takeAfterMidnight('a', DAY)).toMatchObject({ taskId: 'a', seconds: 30, spans: [[t(0), t(0, 9)], [t(2), t(2, 30)]] })
+    expect(store.afterMidnight).toBeNull() // handed out once: the note is dropped
+    expect(store.takeAfterMidnight('a', DAY)).toBeNull()
   })
 
   it('a note stored without spans (or with a malformed list) loads with none; it is the same count', () => {
@@ -111,41 +109,45 @@ describe('time counted after midnight (#356)', () => {
     expect(store.afterMidnight).toEqual({ taskId: 'a', day: '2026-10-23', seconds: 7, spans: [] })
   })
 
-  it('removes exactly the noted seconds, once', () => {
+  it('hands out the noted seconds once and changes no time: the pass asks the user instead of removing', () => {
     store.beginAfterMidnight('a', DAY)
     store.addTrackedSeconds('a', 400, 400)
-    expect(store.removeTimeAfterMidnight('a', DAY)).toBe(400)
-    expect(store.task('a')!.timeSpentSeconds).toBe(1000)
+    expect(store.takeAfterMidnight('a', DAY)).toEqual({ taskId: 'a', day: DAY, seconds: 400, spans: [] })
+    expect(store.task('a')!.timeSpentSeconds).toBe(1400)
     expect(store.afterMidnight).toBeNull()
-    expect(store.removeTimeAfterMidnight('a', DAY)).toBe(0)
-    expect(store.task('a')!.timeSpentSeconds).toBe(1000)
+    expect(store.takeAfterMidnight('a', DAY)).toBeNull()
   })
 
-  it('removes nothing for another task, another day or without a note, and drops the note', () => {
+  it('hands out nothing for another task, another day or without a note, and drops the note', () => {
     store.beginAfterMidnight('a', DAY)
     store.addTrackedSeconds('a', 400, 400)
-    expect(store.removeTimeAfterMidnight('b', DAY)).toBe(0)
+    expect(store.takeAfterMidnight('b', DAY)).toBeNull()
     expect(store.afterMidnight).toBeNull()
     store.beginAfterMidnight('a', DAY)
     store.addTrackedSeconds('a', 50, 50)
-    expect(store.removeTimeAfterMidnight('a', '2026-10-23')).toBe(0)
-    expect(store.removeTimeAfterMidnight('a', DAY)).toBe(0)
+    expect(store.takeAfterMidnight('a', '2026-10-23')).toBeNull()
+    expect(store.takeAfterMidnight('a', DAY)).toBeNull()
     expect(store.task('a')!.timeSpentSeconds).toBe(1450)
     expect(store.task('b')!.timeSpentSeconds).toBe(1000)
   })
 
-  it('never goes below zero, even when the stored note says more than the task holds', () => {
-    store.afterMidnight = { taskId: 'a', day: DAY, seconds: 5000, spans: [] }
-    expect(store.removeTimeAfterMidnight('a', DAY)).toBe(1000)
-    expect(store.task('a')!.timeSpentSeconds).toBe(0)
+  it('a malformed stored note hands out nothing', () => {
+    store.afterMidnight = { taskId: 'a', day: DAY, seconds: -300, spans: [] }
+    expect(store.takeAfterMidnight('a', DAY)).toBeNull()
+    store.afterMidnight = { taskId: 'a', day: DAY, seconds: 'all', spans: [] } as never
+    expect(store.takeAfterMidnight('a', DAY)).toBeNull()
+    expect(store.task('a')!.timeSpentSeconds).toBe(1000)
   })
 
-  it('a malformed stored note removes nothing', () => {
-    store.afterMidnight = { taskId: 'a', day: DAY, seconds: -300, spans: [] }
-    expect(store.removeTimeAfterMidnight('a', DAY)).toBe(0)
-    store.afterMidnight = { taskId: 'a', day: DAY, seconds: 'all', spans: [] } as never
-    expect(store.removeTimeAfterMidnight('a', DAY)).toBe(0)
-    expect(store.task('a')!.timeSpentSeconds).toBe(1000)
+  it('takeOffSeconds lowers the time by exactly that much and never below zero', () => {
+    expect(store.takeOffSeconds('a', 400)).toBe(400)
+    expect(store.task('a')!.timeSpentSeconds).toBe(600)
+    expect(store.takeOffSeconds('a', 5000)).toBe(600)
+    expect(store.task('a')!.timeSpentSeconds).toBe(0)
+    expect(store.takeOffSeconds('a', 10)).toBe(0)
+    expect(store.takeOffSeconds('a', Number.NaN)).toBe(0)
+    expect(store.takeOffSeconds('nobody', 10)).toBe(0)
+    expect(store.task('b')!.timeSpentSeconds).toBe(1000)
   })
 
   it('the user\'s own time edit drops the note of that task only', () => {
@@ -155,7 +157,7 @@ describe('time counted after midnight (#356)', () => {
     expect(store.afterMidnight).not.toBeNull()
     store.setTimeSpent('a', 900)
     expect(store.afterMidnight).toBeNull()
-    expect(store.removeTimeAfterMidnight('a', DAY)).toBe(0)
+    expect(store.takeAfterMidnight('a', DAY)).toBeNull()
     expect(store.task('a')!.timeSpentSeconds).toBe(900)
   })
 

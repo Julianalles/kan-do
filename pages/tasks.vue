@@ -11,9 +11,13 @@
   <main data-task-sheet-return :inert="recap.isOpen.value || undefined">
     <h1 class="sr-only">{{ t('board.pageHeading') }}</h1>
     <DataStorageNotice class="relative z-10 mx-auto mt-3 w-auto max-w-3xl" />
-    <!-- Once, on the first morning a new day sent cards back (#356) -->
-    <!-- On a phone it starts below the page dots -->
-    <NewDayNote class="relative z-10 mx-3 mt-8 w-auto max-w-3xl md:mx-auto md:mt-3" />
+    <!-- The new day's two notes (#356): the one-time note of the first morning, and the question about time the timer
+         counted after midnight. They stack when both apply; the first one shown takes the top margin (a phone: it
+         starts below the page dots) -->
+    <div class="relative z-10 mx-3 flex max-w-3xl flex-col gap-2 md:mx-auto">
+      <NewDayNote class="first:mt-8 md:first:mt-3" />
+      <NewDayTimeNote class="first:mt-8 md:first:mt-3" />
+    </div>
 
     <Board />
 
@@ -47,6 +51,7 @@ import { useIntegrationManager } from "~/composables/useIntegrationManager";
 import { useKeychainStatus } from "~/composables/useKeychainStatus";
 import DataStorageNotice from "~/components/settings/DataStorageNotice.vue";
 import NewDayNote from "~/components/board/NewDayNote.vue";
+import NewDayTimeNote from "~/components/board/NewDayTimeNote.vue";
 import { useRoute, navigateTo } from "nuxt/app";
 import { useSyncValidation, resetSyncValidation } from "~/composables/useSyncValidation";
 import { useCarryOverTracking } from "~/composables/useCarryOver";

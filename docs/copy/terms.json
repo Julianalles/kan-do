@@ -929,5 +929,15 @@
     "avoidEn": [],
     "status": "proposed",
     "note": "The user's own wording in the answer to D2 of #356."
+  },
+  {
+    "id": "take-off-time",
+    "concept": "The question on the morning after a night in which the Jetzt timer ran on while Kan-Do was not in focus: take that time off the task again, or keep it (#356, the user's decision of 2026-11-16)",
+    "de": "Zeit abziehen / Zeit behalten",
+    "en": "Subtract time / Keep time",
+    "avoidDe": [],
+    "avoidEn": [],
+    "status": "proposed",
+    "note": "Proposed wording from the user's decision. Not \"Entfernen\": that term is for a value or element taken away; here a counted amount is subtracted from the total. Recorded time only changes when the user says so."
   }
 ]

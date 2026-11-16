@@ -1,5 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test'
-import { newDayBackTasks, seedLocalBoard, seedMixedBoard, seedNewDayBoard, SEED_TASKS, type SeedTask } from './helpers/seed'
+import { newDayBackTasks, seedAfterMidnight, seedLocalBoard, seedMixedBoard, seedNewDayBoard, SEED_TASKS, type SeedTask } from './helpers/seed'
 import { openDayClose, openMore } from './helpers/appNav'
 import { pinClock, pinnedNow } from './helpers/clock'
 import { settleAnimations } from './helpers/settle'
@@ -86,6 +86,13 @@ test.describe('a new day (#356)', () => {
     await seedNewDayBoard(context, { tasks: board(), firstPass: true })
     await gotoBoard(page)
     await expect(page.getByTestId('new-day-note')).toMatchAriaSnapshot({ name: 'new-day-note-1280.aria.yml' })
+  })
+
+  test('the question about time after midnight: a status with the task, the stretch and its two actions (1280)', async ({ context, page }) => {
+    await seedNewDayBoard(context, { tasks: board() })
+    await seedAfterMidnight(context, { taskId: 'nd-now-1', seconds: 4500 })
+    await gotoBoard(page)
+    await expect(page.getByTestId('new-day-time-note')).toMatchAriaSnapshot({ name: 'new-day-time-note-1280.aria.yml' })
   })
 })
 

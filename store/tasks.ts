@@ -18,7 +18,7 @@ import { isValidDayKey } from "~/utils/recapDay";
 import { isKnownSource } from "~/utils/sourceMeta";
 import type { IntegrationSourceId, SourceId } from "~/types/taskSource";
 import { disarmTaskTimer } from "~/lib/taskTimers";
-import { discardLiveSeconds } from "~/lib/liveTime";
+import { discardLiveSeconds, liveSecondsOf } from "~/lib/liveTime";
 import { generateTaskId, legacyTaskSource, normalizePendingDeletes, normalizeTasks, sourceSyncsTime } from "~/lib/taskSources";
 import { normalizePriority } from "~/lib/priority";
 import { renameField, type NameKind } from "~/lib/topicNames";
@@ -250,7 +250,7 @@ export const useTasksStore = defineStore("tasks", () => {
    * The seconds a Jetzt timer counted after the local midnight it ran across (#356), persisted so a reload keeps
    * it: one entry, for the one task whose timer crossed the last midnight. Written by the timer driver
    * (`beginAfterMidnight` at the crossing, then every checkpoint through `addTrackedSeconds`), read once by the new
-   * day's pass (`removeTimeAfterMidnight`). Additive: older data has none (null); read it through
+   * day's pass (`takeAfterMidnight`, which turns it into the question of the day-recap store). Additive: older data has none (null); read it through
    * `validAfterMidnight`.
    */
   const afterMidnight = ref<AfterMidnightCount | null>(null);
@@ -831,34 +831,37 @@ export const useTasksStore = defineStore("tasks", () => {
   }
 
   /**
-   * The wall-clock spans the noted seconds of `taskId` were counted in, for the new day `day` (empty for another
-   * task or day). Read before `removeTimeAfterMidnight`, which drops the note: the pass takes the same stretch out of
-   * the Statistik work sessions (D3 h) so the card's time, the rhythm and the day capacity agree.
+   * The new day's pass (#356): hands out the seconds the timer of `taskId` counted after the local midnight that
+   * starts `day` while the user was away (with the wall-clock spans they were counted in) and drops the note, whatever
+   * it held, so a second call returns nothing. Changes no time: the user decides what happens to them (the
+   * question of `useNewDay`, the user's decision of 2026-11-16: nothing is removed silently). Call it after the timer
+   * was stopped (the stop writes the collected seconds).
+   * @returns the count, or null for another task or day, no note or a malformed one
    */
-  function afterMidnightSpans(taskId: string, day: string): Array<[number, number]> {
+  function takeAfterMidnight(taskId: string, day: string): AfterMidnightCount | null {
     const counted = validAfterMidnight.value;
-    return counted && counted.taskId === taskId && counted.day === day ? counted.spans.map(([from, to]) => [from, to]) : [];
+    clearAfterMidnight();
+    if (!counted || counted.taskId !== taskId || counted.day !== day || !tasks.value.some((el) => el.id === taskId)) return null;
+    return { ...counted, spans: counted.spans.map(([from, to]) => [from, to] as [number, number]) };
   }
 
   /**
-   * The new day's pass (#356, the user's decision D2): takes the time the Jetzt task's timer counted after the
-   * local midnight that starts `day` off its time spent again. Only what was noted for exactly this task and this
-   * day is removed, never more than the task holds (never below zero), and the note is dropped whatever happens,
-   * so a second call removes nothing. The lowered total is written like a user's time edit (`setTimeSpent`), so a
-   * connection that stores time receives it and a fetch cannot bring the higher one back. Call it after the
-   * timer was stopped (the stop writes the collected seconds). The work sessions are cut by the caller (`afterMidnightSpans`).
-   * @returns the seconds removed
+   * "Zeit abziehen" (#356): takes `seconds` off the task's time spent again, never more than the task holds (never
+   * below zero). The lowered total is written like a user's time edit (`setTimeSpent`), so a connection that stores
+   * time receives it and a fetch cannot bring the higher one back. The caller makes it happen once (the offer is
+   * cleared first) and cuts the work sessions.
+   * @returns the seconds taken off
    */
-  function removeTimeAfterMidnight(taskId: string, day: string): number {
-    const counted = validAfterMidnight.value;
-    clearAfterMidnight();
+  function takeOffSeconds(taskId: string, seconds: number): number {
     const task = tasks.value.find((el) => el.id === taskId);
-    if (!counted || !task || counted.taskId !== taskId || counted.day !== day) return 0;
-    const before = Number.isFinite(task.timeSpentSeconds) ? Math.max(0, task.timeSpentSeconds) : 0;
-    const removed = Math.min(Math.floor(counted.seconds), before);
+    if (!task || !Number.isFinite(seconds)) return 0;
+    // The answer can come after the task was planned and started again: what its running timer has collected but
+    // not written yet belongs to the total (`setTimeSpent` discards it and writes the new total)
+    const before = (Number.isFinite(task.timeSpentSeconds) ? Math.max(0, task.timeSpentSeconds) : 0) + liveSecondsOf(taskId);
+    const removed = Math.min(Math.floor(seconds), before);
     if (removed <= 0) return 0;
     if (!setTimeSpent(taskId, before - removed)) return 0;
-    return before - task.timeSpentSeconds;
+    return removed;
   }
 
   /**
@@ -1581,8 +1584,8 @@ export const useTasksStore = defineStore("tasks", () => {
     setTimeSpent,
     beginAfterMidnight,
     clearAfterMidnight,
-    removeTimeAfterMidnight,
-    afterMidnightSpans,
+    takeAfterMidnight,
+    takeOffSeconds,
     setCompletedAt,
     clearPendingTimeUpdate,
     clearAllPendingTimeUpdates,

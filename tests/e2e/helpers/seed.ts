@@ -674,6 +674,35 @@ export async function seedNewDayBoard(
   await seedDayRecapStore(context, { lastShownDay: dayKeyDaysAgo(daysAgo + 1), ...options, once })
 }
 
+/**
+ * The seconds a Jetzt timer counted after this morning's midnight while the user was away (#356): a note in
+ * `tasks-store`, which the new day's pass turns into the question "Zeit abziehen / Zeit behalten". Register it after
+ * the board's seed (it patches the stored `tasks-store`); `once` as the board's.
+ */
+export async function seedAfterMidnight(context: BrowserContext, options: { taskId: string, seconds: number, once?: boolean }): Promise<void> {
+  await context.addInitScript(
+    ({ taskId, seconds, once }) => {
+      if (once) {
+        try {
+          if (sessionStorage.getItem('e2e-seeded:after-midnight')) return
+          sessionStorage.setItem('e2e-seeded:after-midnight', '1')
+        } catch {
+          // sessionStorage unavailable: patch every load
+        }
+      }
+      const raw = localStorage.getItem('tasks-store')
+      if (!raw) return
+      const midnight = new Date(); midnight.setHours(0, 0, 0, 0)
+      const pad = (n: number) => String(n).padStart(2, '0')
+      const day = `${midnight.getFullYear()}-${pad(midnight.getMonth() + 1)}-${pad(midnight.getDate())}`
+      const state = JSON.parse(raw)
+      state.afterMidnight = { taskId, day, seconds, spans: [[midnight.getTime(), midnight.getTime() + seconds * 1000]] }
+      localStorage.setItem('tasks-store', JSON.stringify(state))
+    },
+    { taskId: options.taskId, seconds: options.seconds, once: options.once ?? true },
+  )
+}
+
 // ---------------------------------------------------------------------------
 // Trash (#422)
 // ---------------------------------------------------------------------------

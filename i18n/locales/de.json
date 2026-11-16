@@ -170,6 +170,14 @@
       "planAll": "Alle wieder einplanen",
       "close": "Schließen",
       "planned": "Eine Aufgabe ist wieder für heute geplant. | {n} Aufgaben sind wieder für heute geplant."
+    },
+    "newDayTimeNote": {
+      "title": "Timer lief nach Mitternacht {duration} weiter",
+      "description": "Kan-Do war dabei nicht im Vordergrund. Die Zeit steht noch an der Aufgabe.",
+      "takeOff": "Zeit abziehen",
+      "keep": "Zeit behalten",
+      "tookOff": "{duration} von der Aufgabe abgezogen.",
+      "kept": "Die Zeit bleibt an der Aufgabe."
     }
   },
   "nav": {

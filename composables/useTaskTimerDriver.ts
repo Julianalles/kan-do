@@ -14,7 +14,7 @@
  * - Midnight (#356): each tick knows its local day. The first tick of a timer on a later day than its previous one
  *   means the timer ran across midnight: the seconds collected so far are written (they belong to the day before,
  *   the crossing second included), and from then on the store notes what the timer counts while the user is away
- *   from the window (`lib/appPresence`, `beginAfterMidnight`), for the new day's pass to take off again. Each tick
+ *   from the window (`lib/appPresence`, `beginAfterMidnight`), for the new day's pass to ask the user about (it removes nothing itself). Each tick
  *   is tagged away or present; a second counted with the user in the window is never noted. The wall-clock stretch of the away ticks (`lib/liveTime` spans) goes to the store with the seconds, for the Statistik work sessions to be cut by it. A task that enters Jetzt anew starts without such a note
  * - `stopTaskTimer` is the one explicit stop (day close, delete, disconnect); `resumeTaskTimer` undoes it for a
  *   task that stayed in Jetzt because the operation that stopped it failed
@@ -173,7 +173,7 @@ export function useTaskTimerDriver() {
         // Compared with the previous ids, not the registry: an explicit stop of a task that stays in Jetzt stays stopped
         for (const id of now) {
           if (before.has(id)) continue
-          // Entered Jetzt by the user's hand: whatever an earlier run counted after midnight is no longer taken off (#356)
+          // Entered Jetzt by the user's hand: whatever an earlier run counted after midnight is no longer asked about (#356)
           tasksStore.clearAfterMidnight(id)
           armJetztTask(id)
         }
