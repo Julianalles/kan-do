@@ -11,7 +11,7 @@
 - Drag (#355): a card can be carried onto Offen with the board's own drag (it is planned and lands where it is dropped). The side is one dnd-kit droppable (`data.notPlannedZone`) for a card or stack from Offen: while one is held over it the side shows a wash and "Hier ablegen: nicht heute" under the headline, and the drop takes it off today's board, on top of this list. The cards never make room for one another: no sorting here
 - Pick: a round button per card ("Für heute einplanen", named with the task's title). Desktop: on the paper right of the card, towards Offen, hidden at rest and shown on hover and keyboard focus, as "Nicht heute" is in the Heute column (#373; it was quiet at rest so a first-time user found it, #354 D1e; a touch-only device keeps it visible). Phone: in the card's top right corner, where a board card has its menu button. The move is `usePlanMoves().planForToday`; keyboard focus goes on to the next card's button
 - Order: `tasksStore.tasksNotPlanned` (put back by hand first, newest first); the topic focus filters it like a column (`useBoardFocus`)
-- A new day (#356, #387): the Jetzt and Offen tasks the user's fresh start of today took off the board (`useNewDay().groupIds`) stand on top as the group "Gestern geplant, noch offen", for that one day only. Below it the tasks a fresh start took out of Wartet stand in their own category "Zuletzt in Wartet" (`waitingIds`), so the user still knows they were waiting; that category lasts until each task is planned again. Every other task follows under "Weitere Aufgaben". The first shown category's `h3` sits in the row under the headline; a category the topic focus leaves empty is not shown, and without the first two there are no headings at all. Pick, drag and the focus hand-over work across the headings
+- A new day (#356, #387): the Jetzt and Offen tasks the user's fresh start of today took off the board (`useNewDay().groupIds`) stand on top as the group "Gestern geplant, noch offen", for that one day only. Below it the tasks a fresh start took out of Wartet stand in their own category "Zuletzt in Wartet" (`waitingIds`), so the user still knows they were waiting; that category lasts until each task is planned again. Every other task follows under "Weitere Aufgaben". The first shown category's `h3` sits in the row under the headline; on desktop every heading starts on the left edge of the card pair (the add button's line, #404), on a phone it is centred; a category the topic focus leaves empty is not shown, and without the first two there are no headings at all. Pick, drag and the focus hand-over work across the headings
 - Limit (#357): when Notion holds more "not planned" pages than a sync loads (`notionConfig.notPlannedLimited`, the most recently edited 500), one muted line under the list says so
 - Empty: one muted note. Nothing held here: "Keine weiteren Aufgaben vorhanden." and the soft button "Aufgabe erstellen" (#367, the user's wording), which opens the sheet's add form under `/all/add`; a task made while "Planung" shows is not planned, so it lands here; a focus without a match: "Keine Aufgaben gefunden."; a board without any task stays blank
 - Many items: on desktop the side is as tall as the window and its list scrolls inside it, so Offen and the capacity echo stay in view; on a phone the page scrolls like every column page
@@ -382,6 +382,16 @@ async function pick(id: string, event: MouseEvent) {
     grid-template-columns: repeat(2, minmax(0, calc(var(--task-card-width) + 1.5rem)));
     column-gap: 3rem;
     justify-content: center;
+  }
+
+  /* A category heading (#404) starts on the left edge of the card pair, the line the add button and the first card
+     share, so it stands over its first card however many cards the category has; centred over two tracks it hung
+     beside a single card. The pair's width is the add row's; a phone (one track) keeps its centred headings. */
+  .not-planned__group {
+    justify-content: flex-start;
+    width: min(var(--add-row-width), 100%);
+    margin-inline: auto;
+    text-align: start;
   }
 }
 
