@@ -22,6 +22,7 @@ The wording rules of the Kan-Do UI. The registry `docs/copy/terms.json` is the v
 - **Voice.** The app has no speaker: no "wir" / "we"; passive, or "the app" as subject.
 - **Names and full stops.** "Kan-Do" in running text (the lowercase `kan-do` is only the wordmark in the app bar, `nav.brand`); German compounds with a brand name take a hyphen ("Notion-Datenbank"). A description or hint that is a sentence ends with a full stop; a noun phrase or list does not.
 - **Characters.** One ellipsis character `…` (not three dots) for loading and truncated actions. Quotes are „…“ in de and “…” in en. `{named}` placeholders only, never string concatenation of translated fragments.
+- **No middle dots.** The middle dot `·` is never used in UI copy: not as a separator between facts ("Synchronisiert · vor 2 Min."), not in a caption, tooltip or aria text, not as a decorative separator element in a template, and not in images made for users (README screenshots and their captions). Write a sentence, use a comma, or give each fact its own element (owner rule, 2026-11-16).
 - **Plurals.** vue-i18n pipe syntax, one branch per form (`{n} Aufgabe | {n} Aufgaben`); a literal pipe is written `{'|'}`. Never "(s)" or "Aufgabe(n)".
 - **Statistik verdicts.** A verdict is a plain sentence relative to the user's own last 4 weeks ("Es läuft besser als sonst"), never an absolute target, never red, never praise; a harder week is stated plainly (#469).
 
