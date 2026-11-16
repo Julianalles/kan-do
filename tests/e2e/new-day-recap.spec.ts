@@ -567,12 +567,14 @@ test.describe('New-day recap (#385)', () => {
     await seedNewDayBoard(context)
     await page.goto('/tasks')
     await expect(recap(page)).toBeVisible()
+    // Hold the curtain long enough to assert its mid-motion states on a loaded runner (#350): the component reads the duration from this variable (parsed as milliseconds)
+    await page.addStyleTag({ content: '.recap-stage { --recap-curtain-duration: 4000ms; }' })
     await continueButton(page).click()
     await expect(board(page)).not.toHaveAttribute('inert', '')
     // while the curtain runs the stage no longer takes pointer input and only its photo layer carries the transform
     await expect(recap(page)).toHaveAttribute('data-closing', 'true')
     await expect(recap(page)).toHaveCSS('pointer-events', 'none')
-    await expect(recap(page)).toBeHidden({ timeout: 5000 })
+    await expect(recap(page)).toBeHidden({ timeout: 15_000 })
     await expect(board(page)).toBeFocused()
   })
 
