@@ -1,7 +1,7 @@
 /**
  * @module quickAddSuggestions
  * @description Pure suggestion logic of the guided new-card flow (#649, kd#16): which values a step offers as pills and
- * which stay behind "all options" (three pills and a fourth cell on every step: Mehr with a search and "Neu" on Thema and Aktivität, "···" on Timebox, kd#119). No Pinia here, so the rules are testable on their own; `NewCardFlow` feeds
+ * which stay behind "all options" (three pills and a fourth cell on every step: Mehr with a search and "Neu" on Thema and Aktivität, the dots icon on Timebox, kd#119). No Pinia here, so the rules are testable on their own; `NewCardFlow` feeds
  * it the tasks and the option pools.
  *
  * Rule: a value is ranked by how often tasks use it (ties keep the pool's order), values that no task uses follow
@@ -15,7 +15,7 @@ export const SUGGESTION_COUNT = 2
 /** Pills shown on Thema and Aktivität (kd#16): the fourth grid cell is Mehr, which opens the rest with a search */
 export const ENTRY_PILL_COUNT = 3
 
-/** Pills shown on Timebox (kd#119): as many as Thema and Aktivität, the fourth grid cell is "···" */
+/** Pills shown on Timebox (kd#119): as many as Thema and Aktivität, the fourth grid cell is the dots icon */
 export const TIMEBOX_PILL_COUNT = ENTRY_PILL_COUNT
 
 /** The full timebox list behind "all options", in minutes */
@@ -29,7 +29,7 @@ export interface SuggestionStep {
   /** The pills (the step's first values) */
   suggestions: string[]
   /**
-   * What the list behind the pills holds. Timebox ("···"): all values, the pills stay in it. Thema and Aktivität (Mehr, kd#16): only the values that are not pills.
+   * What the list behind the pills holds. Timebox (the dots icon): all values, the pills stay in it. Thema and Aktivität (Mehr, kd#16): only the values that are not pills.
    */
   rest: string[]
 }
@@ -77,7 +77,7 @@ export function timeboxStep(suggested: number | null): SuggestionStep {
   const lead = suggested && suggested > 0 ? [suggested] : []
   const all = [...new Set([...lead, ...TIMEBOX_PRESETS, ...TIMEBOX_MINUTES])].map(String)
   const pills = [...new Set([...lead, ...TIMEBOX_PRESETS])].slice(0, TIMEBOX_PILL_COUNT).map(String)
-  // Behind "···": the full list in ascending order, with a history value in its place
+  // Behind the dots icon: the full list in ascending order, with a history value in its place
   const list = [...new Set([...TIMEBOX_MINUTES, ...lead])].sort((a, b) => a - b).map(String)
   return { all, suggestions: pills, rest: list }
 }

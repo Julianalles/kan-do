@@ -602,7 +602,7 @@ test.describe('guided new card, keyboard and steps (desktop)', () => {
 })
 
 test.describe('guided new card, steps without values', () => {
-  test('a board without topics and activities starts at Timebox with three values and "···" (kd#119)', async ({ context, page }) => {
+  test('a board without topics and activities starts at Timebox with three values and the dots icon (kd#119)', async ({ context, page }) => {
     await seedLocalBoard(context, [])
     await page.goto('/tasks')
     await openCard(page)

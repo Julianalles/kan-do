@@ -53,14 +53,14 @@ const { active, candidate, label, cancel } = useElementPicker()
 
 const box = ref<{ top: number, left: number, width: number, height: number } | null>(null)
 // Chip = what is outlined: the component the candidate belongs to, plus the tag when it is a part inside it
-// ("TaskCard · p"), so the chip and the outline never disagree.
+// ("TaskCard p"), so the chip and the outline never disagree.
 const name = computed(() => {
   const el = candidate.value
   if (!el) return ''
   const component = componentChain(el)[0]
   const ownRoot = !!component && (el.getAttribute(COMPONENT_ATTR) ?? '').split(' ').includes(component)
   const tag = el.tagName.toLowerCase()
-  return component ? (ownRoot ? component : `${component} · ${tag}`) : tag
+  return component ? (ownRoot ? component : `${component} ${tag}`) : tag
 })
 
 // The candidate can scroll or resize under a still pointer: follow it every frame while picking.

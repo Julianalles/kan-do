@@ -36,3 +36,4 @@ What a check guarantees. The rules above say when a term or form is right; these
 | No uppercase class in components or pages | `tests/config/design-patterns.test.ts` |
 | Every key is in `de.json` and `en.json` with the same placeholders and the same number of plural branches | `npm run i18n:check` |
 | No hardcoded string in a template | ESLint `no-raw-text` |
+| No middle dot `·` in a locale value or in the literals and template text of components, pages, layouts, composables, lib and `app.vue` (comments and doc blocks excluded) | `tests/config/no-middle-dots.test.ts` |

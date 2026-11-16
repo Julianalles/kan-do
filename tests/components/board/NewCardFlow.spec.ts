@@ -361,7 +361,7 @@ describe('NewCardFlow (#649)', () => {
     expect(sync.createTask.mock.calls[0]![0]).toMatchObject({ topic: 'Design', topicColorCode: null })
   })
 
-  it('kd#16: Thema and Aktivität show up to three pills and the Mehr cell (key 4); Timebox shows three pills and "···" (key 4, kd#119)', async () => {
+  it('kd#16: Thema and Aktivität show up to three pills and the Mehr cell (key 4); Timebox shows three pills and the dots icon (key 4, kd#119)', async () => {
     mountFlow()
     await confirmTitle()
     const pills = () => w.get('[data-testid="new-card-options"]').findAll('button.ncf__pill:not(.ncf__pill--more)')

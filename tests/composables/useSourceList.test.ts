@@ -33,7 +33,7 @@ describe('useSourceList (#324)', () => {
     const [local, notion] = connected.value
     expect(local).toMatchObject({ id: 'local', isDefault: false, canSetDefault: true, canConfigure: false })
     expect(notion).toMatchObject({
-      id: 'notion', isDefault: true, statusText: 'Synchronisiert · vor 5 Min.', statusTone: 'muted',
+      id: 'notion', isDefault: true, statusText: 'Synchronisiert vor 5 Min.', statusTone: 'muted',
       canSetDefault: false, canRepair: false, canConfigure: true,
     })
     expect(more.value.map((row) => row.id)).toEqual(['todoist'])
@@ -60,7 +60,7 @@ describe('useSourceList (#324)', () => {
     health.recordSuccessfulSync('notion', minutesAgo(12))
     health.markOffline('notion', 'Network error')
 
-    expect(useSourceList().connected.value[1]).toMatchObject({ statusText: 'Synchronisiert · vor 12 Min.', statusTone: 'muted', canRepair: false })
+    expect(useSourceList().connected.value[1]).toMatchObject({ statusText: 'Synchronisiert vor 12 Min.', statusTone: 'muted', canRepair: false })
   })
 
   it('before a first successful sync the status is the neutral "Wird geprüft…"', () => {
@@ -74,11 +74,11 @@ describe('useSourceList (#324)', () => {
     const { connected } = useSourceList()
     const line = () => connected.value[1]?.statusText
     health.recordSuccessfulSync('notion', Date.now() - 10_000)
-    expect(line()).toBe('Synchronisiert · gerade eben')
+    expect(line()).toBe('Synchronisiert gerade eben')
     health.recordSuccessfulSync('notion', minutesAgo(125))
-    expect(line()).toBe('Synchronisiert · vor 2 Std.')
+    expect(line()).toBe('Synchronisiert vor 2 Std.')
     health.recordSuccessfulSync('notion', minutesAgo(60 * 24 * 3 + 1))
-    expect(line()).toBe('Synchronisiert · vor 3 T.')
+    expect(line()).toBe('Synchronisiert vor 3 T.')
   })
 
   it('English wording', () => {
@@ -87,7 +87,7 @@ describe('useSourceList (#324)', () => {
     useIntegrationHealthStore().recordSuccessfulSync('notion', minutesAgo(5))
     const { connected } = useSourceList()
     expect(connected.value[0]?.statusText).toBe('Stored on this device')
-    expect(connected.value[1]?.statusText).toBe('Synced · 5 min ago')
+    expect(connected.value[1]?.statusText).toBe('Synced 5 min ago')
   })
 
   it('a disconnect sequence: the default falls back to Local and Notion is offered again', () => {

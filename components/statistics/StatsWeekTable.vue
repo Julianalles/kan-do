@@ -15,11 +15,11 @@
   <ul class="divide-y divide-default text-sm" data-testid="stats-week-list">
     <li v-for="(week, index) in rows" :key="week.start.getTime()" class="flex flex-col gap-1 py-2 md:flex-row md:items-baseline md:justify-between md:gap-6">
       <span class="text-default">{{ index === 0 ? t('statistics.trend.table.current') : range(week) }}</span>
-      <span class="text-muted tabular-nums">
-        {{ t('statistics.patterns.sample', { n: week.tasks }, week.tasks) }}
-        · {{ t('statistics.trend.table.inTimebox') }} {{ week.inTimeboxShare === null ? '–' : `${Math.round(week.inTimeboxShare)} %` }}
-        · {{ formatDuration(week.seconds, 'spaced') }}
-        · <span class="whitespace-nowrap" data-testid="stats-week-day-end">{{ week.dayEndOpen === null ? t('statistics.trend.table.dayEndNone') : t('statistics.trend.table.dayEnd', { n: count(week.dayEndOpen) }) }}</span>
+      <span class="flex flex-wrap gap-x-3 text-muted tabular-nums">
+        <span>{{ t('statistics.patterns.sample', { n: week.tasks }, week.tasks) }}</span>
+        <span>{{ t('statistics.trend.table.inTimebox') }} {{ week.inTimeboxShare === null ? '–' : `${Math.round(week.inTimeboxShare)} %` }}</span>
+        <span>{{ formatDuration(week.seconds, 'spaced') }}</span>
+        <span class="whitespace-nowrap" data-testid="stats-week-day-end">{{ week.dayEndOpen === null ? t('statistics.trend.table.dayEndNone') : t('statistics.trend.table.dayEnd', { n: count(week.dayEndOpen) }) }}</span>
       </span>
     </li>
   </ul>

@@ -17,7 +17,7 @@
 - Phone: fades out and ignores pointers while a card is dragged (no drop target is covered); the pills and the veil fade (the veil also steps back while the new-day recap stage is mounted, #262: the photo runs behind the bar)
 - The topic focus funnel (#161, BoardFocusTrigger) sits right of ⋯ on the board page only (Heute and Planung), outside the group's flow (`.app-nav-focus`), so the pills do not re-centre when it appears. Phone (#381): out of the flow it was cut off at the right edge of a 360px screen, so while it shows (`has-focus`) the group shifts left by half of funnel and gap, on the nav timeline: group and funnel are centred together and the funnel lies inside the bar's side room. Desktop keeps the centre
 - "Planung" (#373): the pill is one green link "Weiter zum Board" (`app-nav-pill--continue`, to Heute) instead of the three places; Heute and Statistik are rows of the ⋯ panel meanwhile, and no segment carries `aria-current` (the indicator hides)
-- Desktop ⋯ tooltip "Mehr · Befehle ⌘K" on every page (the palette is mounted once in app.vue, #224); no tooltip on touch
+- Desktop ⋯ tooltip "Mehr, Befehle ⌘K" on every page (the palette is mounted once in app.vue, #224); no tooltip on touch
 -->
 <template>
   <nav

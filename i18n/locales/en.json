@@ -64,7 +64,7 @@
     "emptyWaitingSuffix": "?",
     "dropToComplete": "Drop here to mark the task as done",
     "stack": {
-      "caption": "{group} · {n} task | {group} · {n} tasks",
+      "caption": "{group}, {n} task | {group}, {n} tasks",
       "label": "{title}, {group}, {n} task | {title}, {group}, {n} tasks",
       "labelUntitled": "{group}, {n} task | {group}, {n} tasks",
       "closeLabel": "Close group {group}",
@@ -131,7 +131,7 @@
     },
     "swap": {
       "title": "Task switched",
-      "description": "“{running}” is running · “{waiting}” is waiting"
+      "description": "“{running}” is running, “{waiting}” is waiting"
     },
     "focus": {
       "trigger": "Focus",
@@ -189,7 +189,7 @@
     "more": "More",
     "moreProblem": "More, connection problem",
     "commands": "Commands",
-    "moreWithCommands": "More · {commands}",
+    "moreWithCommands": "More, {commands}",
     "view": "View",
     "dayClose": "Close the day",
     "trash": "Trash",
@@ -250,9 +250,9 @@
       "failed": "Move failed",
       "failedDescription": "“{title}” stays in {source}.",
       "retry": "Try again",
-      "hintLost": "{n} field is lost | {n} fields are lost",
-      "hintAttention": "Check connection · saved later",
-      "hintPending": "Saving"
+      "hintLost": "{n} field is lost. | {n} fields are lost.",
+      "hintAttention": "Check connection. Saved later.",
+      "hintPending": "Saving."
     },
     "completed": "Done",
     "completedMany": "{n} task done | {n} tasks done",
@@ -318,7 +318,7 @@
       "start": "Start",
       "saveIn": "Save to",
       "saveInDefault": "Default",
-      "saveInAttention": "Check connection · saved later"
+      "saveInAttention": "Check connection. Saved later."
     },
     "contextMenu": {
       "startNow": "Start now",
@@ -513,7 +513,7 @@
       "unfinishedDiscarded": "Not included: {deleted} on deleted tasks (last 4 weeks).",
       "labelTopic": "Time by topic, last 4 weeks: {values}",
       "labelActivity": "Time by activity, last 4 weeks: {values}",
-      "row": "{time} · {share}%"
+      "row": "{time}, {share}%"
     },
     "allTasks": "All done tasks ({n})",
     "rhythm": {
@@ -938,8 +938,8 @@
       "chooseFolder": "Choose folder…",
       "reveal": "Show in Finder",
       "startFresh": "Start fresh here",
-      "lastSaved": "Last saved {time} · schema {version}",
-      "notSavedYet": "Not saved yet · schema {version}",
+      "lastSaved": "Last saved {time}, schema {version}",
+      "notSavedYet": "Not saved yet, schema {version}",
       "problemHeading": "Saving is not possible right now",
       "state": {
         "newerSchema": "This folder holds data from a newer version. Update the app; until then nothing is written.",
@@ -1247,10 +1247,10 @@
       "local": "Stored on this device",
       "checking": "Checking…",
       "needsAttention": "Check connection",
-      "syncedNow": "Synced · just now",
-      "syncedMinutes": "Synced · {n} min ago",
-      "syncedHours": "Synced · {n} h ago",
-      "syncedDays": "Synced · {n} d ago"
+      "syncedNow": "Synced just now",
+      "syncedMinutes": "Synced {n} min ago",
+      "syncedHours": "Synced {n} h ago",
+      "syncedDays": "Synced {n} d ago"
     }
   },
   "sync": {
@@ -1538,7 +1538,7 @@
     "sentToast": "Thanks, your feedback is now issue #{number}.",
     "picker": {
       "region": "Element picker",
-      "hint": "Click an element · ↑ larger · ↓ smaller · Esc cancels",
+      "hint": "Click an element. ↑ larger, ↓ smaller, Esc cancels",
       "cancel": "Cancel"
     },
     "screenshot": {

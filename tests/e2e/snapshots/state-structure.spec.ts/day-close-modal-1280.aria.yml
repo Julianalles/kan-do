@@ -10,11 +10,11 @@
   - list "2 heute erledigte Aufgaben":
     - listitem:
       - paragraph: Angebot schreiben
-      - paragraph: /Erledigt · \d+ Min über der Timebox/
+      - paragraph: /Erledigt \. \d+ Min über der Timebox/
       - text: /1 h \d+ min/
     - listitem:
       - paragraph: Steuerunterlagen sortieren
-      - paragraph: /Erledigt · \d+ Min unter der Timebox/
+      - paragraph: /Erledigt \. \d+ Min unter der Timebox/
       - text: /\d+ min/
   - region "Für morgen":
     - heading "Für morgen" [level=3]
@@ -23,11 +23,11 @@
       - text: Offene Aufgaben
       - list "Offene Aufgaben, die auf dem Board bleiben":
         - listitem:
-          - checkbox "Konzept ausarbeiten Offen · Kommt in den Papierkorb"
-          - text: Konzept ausarbeiten Offen · Kommt in den Papierkorb
+          - checkbox "Konzept ausarbeiten Offen . Kommt in den Papierkorb"
+          - text: Konzept ausarbeiten Offen . Kommt in den Papierkorb
         - listitem:
-          - checkbox "Review schreiben Jetzt · Geht zurück nach Offen" [checked]
-          - text: Review schreiben Jetzt · Geht zurück nach Offen
+          - checkbox "Review schreiben Jetzt . Geht zurück nach Offen" [checked]
+          - text: Review schreiben Jetzt . Geht zurück nach Offen
         - listitem:
           - checkbox "Blocker klären Wartet" [checked]
           - text: Blocker klären Wartet

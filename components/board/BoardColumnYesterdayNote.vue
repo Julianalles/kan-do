@@ -46,7 +46,7 @@
               aria-hidden="true"
             />
             <span class="min-w-0 truncate">
-              {{ headline }}<span class="text-muted"><span aria-hidden="true"> · </span>{{ tasks.length }}</span>
+              {{ headline }}<span class="text-muted ml-1.5">{{ tasks.length }}</span>
             </span>
             <UIcon
               name="i-ph-caret-down"

@@ -81,7 +81,7 @@ test.describe('swap on drop (#162)', () => {
     expect(await ids(page, 'progress')).toEqual(['open-1'])
     expect(await ids(page, 'waiting')).toContain(RUNNING.id)
     expect(await ids(page, 'open')).toEqual(['open-2'])
-    await expect(toast(page)).toContainText('„Konzept ausarbeiten“ läuft · „Review schreiben“ wartet')
+    await expect(toast(page)).toContainText('„Konzept ausarbeiten“ läuft, „Review schreiben“ wartet')
 
     await undoButton(page).click()
     expect(await ids(page, 'progress')).toEqual([RUNNING.id])
@@ -177,7 +177,7 @@ test.describe('swap by keyboard and the task sheet (#162)', () => {
     await page.getByTestId('task-status-select').click()
     await page.getByRole('option', { name: 'Jetzt', exact: true }).click()
 
-    await expect(toast(page)).toContainText('„Dokumentation lesen“ läuft · „Review schreiben“ wartet')
+    await expect(toast(page)).toContainText('„Dokumentation lesen“ läuft, „Review schreiben“ wartet')
     await expect(page.getByText('Verschieben nicht möglich')).toHaveCount(0)
     await expect(page.getByTestId('task-status-select')).toContainText('Jetzt')
     await expect(page).toHaveURL(/\/tasks\/open-2/)
@@ -215,7 +215,7 @@ test.describe('swap from the context menu and the command palette (#241)', () =>
 
     await expect.poll(() => ids(page, 'progress')).toEqual(['open-1'])
     expect(await ids(page, 'waiting')).toContain(RUNNING.id)
-    await expect(toast(page)).toContainText('„Konzept ausarbeiten“ läuft · „Review schreiben“ wartet')
+    await expect(toast(page)).toContainText('„Konzept ausarbeiten“ läuft, „Review schreiben“ wartet')
 
     await undoButton(page).click()
     await expect.poll(() => ids(page, 'progress')).toEqual([RUNNING.id])
@@ -270,7 +270,7 @@ test.describe('swap from the context menu and the command palette (#241)', () =>
     await expect(palette(page)).toBeHidden()
     await expect.poll(() => ids(page, 'progress')).toEqual(['open-1'])
     expect(await ids(page, 'waiting')).toContain(RUNNING.id)
-    await expect(toast(page)).toContainText('„Konzept ausarbeiten“ läuft · „Review schreiben“ wartet')
+    await expect(toast(page)).toContainText('„Konzept ausarbeiten“ läuft, „Review schreiben“ wartet')
     await expect(card(page, 'open-1')).toBeFocused()
 
     await undoButton(page).click()

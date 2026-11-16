@@ -77,7 +77,7 @@ describe('useTaskContextMenu: move to another source (#322)', () => {
     expect(entry.children![0]).toMatchObject({ label: 'Notion', disabled: false })
     expect(entry.children![0]!.icon).toBeUndefined()
     // Notion without a property mapping holds neither priority nor topic
-    expect(entry.children![0]!.description).toBe('2 Felder gehen verloren')
+    expect(entry.children![0]!.description).toBe('2 Felder gehen verloren.')
   })
 
   it('from Notion the Local child is offered, and a child without anything to say has no description', () => {
@@ -91,7 +91,7 @@ describe('useTaskContextMenu: move to another source (#322)', () => {
     useBoardStore().setSources({ connected: ['notion'], default: 'local' })
     useIntegrationHealthStore().recordFailure('notion', Object.assign(new Error('Network error'), { statusCode: 0 }))
     const entry = groupsOf(makeTask()).flat().find(i => i.label === 'Verschieben nach …')!
-    expect(entry.children![0]!.description).toBe('Verbindung prüfen · wird später gespeichert')
+    expect(entry.children![0]!.description).toBe('Verbindung prüfen. Wird später gespeichert.')
     entry.children![0]!.onSelect!()
     expect(moveTaskToSource).toHaveBeenCalledWith('a', 'notion')
   })
@@ -100,7 +100,7 @@ describe('useTaskContextMenu: move to another source (#322)', () => {
     setTestLocale('en')
     useBoardStore().setSources({ connected: ['notion'], default: 'local' })
     const entry = groupsOf(makeTask({ priority: 3 })).flat().find(i => i.label === 'Move to …')!
-    expect(entry.children![0]!.description).toBe('1 field is lost')
+    expect(entry.children![0]!.description).toBe('1 field is lost.')
   })
 
   it('is disabled with "Wird gespeichert" while a move is outstanding', () => {
@@ -109,6 +109,6 @@ describe('useTaskContextMenu: move to another source (#322)', () => {
       source: 'notion', externalId: null, pendingSync: { since: 1, attempts: 0, lastError: null },
       pendingMove: { fromSource: 'local', fromExternalId: null, toSource: 'notion' },
     })).flat().find(i => i.label === 'Verschieben nach …')!
-    expect(entry.children![0]).toMatchObject({ label: 'Lokal', disabled: true, description: 'Wird gespeichert' })
+    expect(entry.children![0]).toMatchObject({ label: 'Lokal', disabled: true, description: 'Wird gespeichert.' })
   })
 })

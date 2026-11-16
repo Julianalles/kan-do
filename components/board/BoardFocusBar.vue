@@ -2,7 +2,7 @@
 @component BoardFocusBar
 @kind compound
 @category layout
-@description The two things the topic focus shows on the board (#161): the chip row to pick a topic (each with its card count) and, while a focus is on, the pill "Fokus: <topic> · n ausgeblendet" with its ✕. Never both at once, and nothing at rest.
+@description The two things the topic focus shows on the board (#161): the chip row to pick a topic (each with its card count) and, while a focus is on, the pill "Fokus: <topic>, n ausgeblendet" with its ✕. Never both at once, and nothing at rest.
 @usage `<BoardFocusBar />` once in Board.vue, before the columns; it reads `useBoardFocus` and is opened by BoardFocusTrigger.
 @avoid Not a filter toolbar: one property (topic), one row, shown only on demand. The pill is a status, not a control bar; its ✕ is the only control.
 @responsibility
@@ -39,7 +39,7 @@
     </div>
     <div v-else-if="focusTopic !== null" class="board-focus-bar__pill" data-testid="focus-pill">
       <p class="board-focus-bar__text" role="status" aria-live="polite" data-testid="focus-pill-text">
-        {{ t('board.focus.pillLead') }} <span class="board-focus-bar__topic" data-private>{{ focusTopic }}</span> · {{ t('board.focus.hidden', { n: hiddenCount }) }}
+        {{ t('board.focus.pillLead') }} <span class="board-focus-bar__topic" data-private>{{ focusTopic }}</span>, {{ t('board.focus.hidden', { n: hiddenCount }) }}
       </p>
       <UButton
         icon="i-ph-x-bold"
