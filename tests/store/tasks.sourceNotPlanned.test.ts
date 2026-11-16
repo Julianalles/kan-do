@@ -212,6 +212,22 @@ describe('mergeTasks follows a source only when its planning state changes (#357
       expect(again.tasks.map(t => t.id).sort()).toEqual(['in-list', 'new'])
     })
 
+    it('a capped list read before a task\'s push went through does not drop that task; a list read after it decides', () => {
+      const store = seed()
+      const fetchStartedAt = Date.now() - 1000
+      // the user planned 'past-cap' and the write reached Notion while the fetch was on its way: the page was
+      // still past the cap when the list was read, and is in neither query's answer
+      store.planTasks(['past-cap'])
+      store.setSourceNotPlanned('past-cap', undefined)
+      store.clearPendingSync('past-cap')
+      store.mergeTasks('notion', fetched(), { ...PARTIAL, fetchStartedAt })
+      expect(store.task('past-cap')).toMatchObject({ timeSpentSeconds: 900, title: 'Lokal umbenannt' })
+      expect(isNotPlanned(store.task('past-cap')!)).toBe(false)
+      // a list read after the push says what Notion holds: without the page, it is gone there
+      store.mergeTasks('notion', fetched(), { ...PARTIAL, fetchStartedAt: Date.now() + 1 })
+      expect(store.task('past-cap')).toBeNull()
+    })
+
     it('a kept task is matched again once the list has it, and follows Notion from there', () => {
       const store = seed()
       store.mergeTasks('notion', fetched(), PARTIAL)

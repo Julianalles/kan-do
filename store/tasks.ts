@@ -269,6 +269,12 @@ export const useTasksStore = defineStore("tasks", () => {
    * task instead of dropping it, and releases the guard once a merge contains it or after `RESTORE_GUARD_MS`.
    */
   const restoreGuard = new Map<string, number>();
+  /**
+   * Transient (never persisted): when each task's last push went through (task id -> epoch ms). A capped fetch
+   * (#357) that began before that may lack a task its source holds: the page was past the cap when the list was
+   * read, and the push (a plan) took it out of there. `mergeTasks` keeps such a task (`fetchStartedAt`).
+   */
+  const pushedAt = new Map<string, number>();
   let nextStatusLockToken = 0;
   /**
    * Transient (never persisted) revision of each task's `pendingSync`, bumped by every change that needs a
@@ -503,7 +509,10 @@ export const useTasksStore = defineStore("tasks", () => {
       return false;
     }
     const target = tasks.value.find((el) => el.id === taskId);
-    if (target) delete target.pendingSync;
+    if (target) {
+      delete target.pendingSync;
+      pushedAt.set(taskId, Date.now());
+    }
     pendingSyncRevisions.delete(taskId);
     mapHelpers.delete(pendingTimeUpdates.value, taskId);
     return true;
@@ -711,6 +720,7 @@ export const useTasksStore = defineStore("tasks", () => {
 
   function removeTask(id: string) {
     restoreGuard.delete(id);
+    pushedAt.delete(id);
     const taskIndex = tasks.value.findIndex((el) => el.id === id);
     if (taskIndex !== -1) {
       const [removed] = tasks.value.splice(taskIndex, 1);
@@ -1048,9 +1058,10 @@ export const useTasksStore = defineStore("tasks", () => {
    *   starts not planned; a task already held is never moved by it (#387: the app moves no card by itself).
    *   `partialNotPlanned` (`FetchedTasks.partialNotPlanned`, Notion's capped "not planned" list, #357): for a task
    *   held as one of these values `fetchedTasks` is only a part of what the source holds. Such a task that the list
-   *   lacks stays as it is, and so does a task with unpushed changes; every other task the list lacks is dropped.
+   *   lacks stays as it is, and so does a task with unpushed changes or one whose push went through after the fetch
+   *   began (`fetchStartedAt`, epoch ms); every other task the list lacks is dropped.
    */
-  function mergeTasks(source: SourceId, fetchedTasks: Task[], options: { replaceOthers?: boolean; heldTime?: (seconds: number) => number; timeWritable?: boolean; holdsOnlyOpenDone?: boolean; startsNotPlanned?: boolean; partialNotPlanned?: readonly string[] } = {}): void {
+  function mergeTasks(source: SourceId, fetchedTasks: Task[], options: { replaceOthers?: boolean; heldTime?: (seconds: number) => number; timeWritable?: boolean; holdsOnlyOpenDone?: boolean; startsNotPlanned?: boolean; partialNotPlanned?: readonly string[]; fetchStartedAt?: number } = {}): void {
     const boardStore = useBoardStore();
 
     // A completed switch replaces the Local tasks it adopted; another connected integration's tasks stay (#320)
@@ -1208,14 +1219,17 @@ export const useTasksStore = defineStore("tasks", () => {
     // A task held in one of its statuses that the list lacks may only be past the cap: it stays as it is, with its
     // unpushed changes and what only kan-do holds (time, order, the carried-over count). A task with unpushed
     // changes stays too: its page may be past the cap while the change that takes it out of there (a plan) is
-    // still on its way. Everything else the list lacks is gone at the source (the board query is never capped).
+    // still on its way, and so does one whose push went through after this fetch began: the list was read before
+    // it. Everything else the list lacks is gone at the source (the board query is never capped).
     const partial = options.partialNotPlanned ?? [];
     if (partial.length > 0) {
       const mergedIds = new Set(mergedTasks.map(merged => merged.id));
+      const fetchStartedAt = options.fetchStartedAt;
       for (const local of tasks.value) {
         if (local.source !== source || local.externalId === null || mergedIds.has(local.id)) continue;
         const heldPastCap = local.sourceNotPlanned !== undefined && partial.includes(local.sourceNotPlanned);
-        if (heldPastCap || local.pendingSync) mergedTasks.push(local);
+        const pushedSinceFetch = fetchStartedAt !== undefined && (pushedAt.get(local.id) ?? 0) >= fetchStartedAt;
+        if (heldPastCap || local.pendingSync || pushedSinceFetch) mergedTasks.push(local);
       }
     }
 
