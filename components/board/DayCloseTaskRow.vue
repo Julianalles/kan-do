@@ -13,7 +13,7 @@
   <ListRow data-testid="day-close-done-row" :data-task-id="task.id">
     <div class="min-w-0 flex-1 basis-40">
       <p class="text-sm wrap-break-word text-default" data-private>{{ task.title }}</p>
-      <p class="flex flex-wrap gap-x-2 text-xs text-muted" data-testid="day-close-done-subline"><template v-for="part in subline" :key="part"><span>{{ part }}</span>{{ ' ' }}</template></p>
+      <p class="flex flex-wrap gap-x-2 text-xs text-muted" data-testid="day-close-done-subline"><template v-for="(part, index) in subline" :key="part"><span>{{ part }}<span v-if="index < subline.length - 1" class="sr-only">.</span></span>{{ ' ' }}</template></p>
     </div>
     <span v-if="task.timeSpentSeconds > 0" class="shrink-0 text-sm text-toned tabular-nums" data-testid="day-close-done-time">
       {{ formatDuration(task.timeSpentSeconds, 'spaced') }}

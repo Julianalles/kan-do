@@ -20,7 +20,7 @@
     >
       <template #label>
         <span class="block text-sm font-normal wrap-break-word text-default" data-private>{{ task.title }}</span>
-        <span class="flex flex-wrap gap-x-2 text-xs font-normal text-muted" data-testid="day-close-open-subline"><template v-for="part in subline" :key="part"><span>{{ part }}</span>{{ ' ' }}</template></span>
+        <span class="flex flex-wrap gap-x-2 text-xs font-normal text-muted" data-testid="day-close-open-subline"><template v-for="(part, index) in subline" :key="part"><span>{{ part }}<span v-if="index < subline.length - 1" class="sr-only">.</span></span>{{ ' ' }}</template></span>
       </template>
     </UCheckbox>
   </ListRow>

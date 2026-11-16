@@ -9,11 +9,11 @@
   - list "2 heute erledigte Aufgaben":
     - listitem:
       - paragraph: Angebot schreiben
-      - paragraph: /Erledigt \d+ Min über der Timebox/
+      - paragraph: /Erledigt \. \d+ Min über der Timebox/
       - text: /1 h \d+ min/
     - listitem:
       - paragraph: Steuerunterlagen sortieren
-      - paragraph: /Erledigt \d+ Min unter der Timebox/
+      - paragraph: /Erledigt \. \d+ Min unter der Timebox/
       - text: /\d+ min/
   - paragraph: Nichts mehr offen.
   - button "Zusammenfassung kopieren"
