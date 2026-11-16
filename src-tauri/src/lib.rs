@@ -110,7 +110,7 @@ pub fn run() {
         // Closing the window flushes pending edits; the debounce would otherwise hold them for 400 ms. The Now window
         // goes with it: a hidden window left alive would keep the app running with no way back in (#383).
         WindowEvent::CloseRequested { .. } => {
-          overlay::destroy(window.app_handle());
+          overlay::close(window.app_handle());
           window.state::<data_file::DataFile>().flush_on_exit(false)
         }
         // A change made on another device is usually noticed before the next edit (#224).

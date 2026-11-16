@@ -71,6 +71,22 @@ struct Inner {
     /// The spot waiting to be written, and whether a writer thread is already waiting for it.
     pending_save: Option<(i32, i32)>,
     saver_waiting: bool,
+    /// The main window is closing: the pill must not come back (a `Focused(false)` or a late `overlay_sync` still
+    /// arrives while it closes, and a recreated pill would keep the process alive with no way back in).
+    closing: bool,
+}
+
+impl Inner {
+    /// Whether a pill window may exist at all: the setting is on and the app is not closing.
+    fn wanted(&self) -> bool {
+        self.enabled && !self.closing
+    }
+
+    /// The main window is closing: nothing recreates the pill from here on.
+    fn begin_close(&mut self) {
+        self.closing = true;
+        self.ready = false;
+    }
 }
 
 /// Managed state of the pill window.
@@ -216,12 +232,12 @@ fn main_focused<R: Runtime>(app: &AppHandle<R>) -> bool {
 /// Brings the window in line with the state: created when wanted, destroyed when the setting is off, shown while the
 /// main window is not in front, told the snapshot.
 fn apply<R: Runtime>(app: &AppHandle<R>) {
-    let (enabled, snapshot, ready) = {
+    let (wanted, snapshot, ready) = {
         let state = app.state::<OverlayState>();
         let inner = state.lock();
-        (inner.enabled, inner.snapshot.clone(), inner.ready)
+        (inner.wanted(), inner.snapshot.clone(), inner.ready)
     };
-    if !enabled {
+    if !wanted {
         destroy(app);
         return;
     }
@@ -250,6 +266,12 @@ fn apply<R: Runtime>(app: &AppHandle<R>) {
         log::info!("overlay: hidden (ready {ready}, main focused {})", main_focused(app));
         let _ = window.hide();
     }
+}
+
+/// The main window is closing: destroys the pill and keeps it from being recreated by the events that follow.
+pub fn close<R: Runtime>(app: &AppHandle<R>) {
+    app.state::<OverlayState>().lock().begin_close();
+    destroy(app);
 }
 
 /// Destroys the pill window (setting off, main window closing). Safe when there is none.
@@ -383,6 +405,23 @@ mod tests {
     const SIZE: (u32, u32) = (324, 64);
     const MAIN: Rect = Rect { x: 0, y: 25, width: 2560, height: 1375 };
     const SIDE: Rect = Rect { x: 2560, y: 0, width: 1920, height: 1080 };
+
+    #[test]
+    fn closing_the_main_window_keeps_the_pill_from_coming_back() {
+        let mut inner = Inner { enabled: true, ready: true, ..Inner::default() };
+        assert!(inner.wanted());
+        inner.begin_close();
+        assert!(!inner.ready);
+        // the `Focused(false)` and a late `overlay_sync` of the closing window re-run `apply`
+        assert!(!inner.wanted());
+        inner.enabled = true;
+        assert!(!inner.wanted());
+    }
+
+    #[test]
+    fn a_disabled_setting_wants_no_pill() {
+        assert!(!Inner::default().wanted());
+    }
 
     #[test]
     fn default_is_bottom_right_of_the_primary_work_area() {
