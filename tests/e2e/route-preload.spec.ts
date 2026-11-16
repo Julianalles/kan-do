@@ -15,9 +15,13 @@ test.describe('Statistik first open (#376)', () => {
 
   test('a fast navigation shows no bar', async ({ page, context }) => {
     await seedLocalBoard(context);
+    const assets: string[] = [];
+    page.on('request', r => assets.push(r.url()));
     await page.goto('/tasks');
     await expect(page.getByTestId('app-nav-place-statistics')).toBeVisible();
-    await page.waitForTimeout(2500);
+    // The idle preload must be done: its statistics-only stylesheet is the last asset of the route
+    await expect.poll(() => assets.some(u => /TasksTable[^/]*\.css/.test(u)), { timeout: 15_000 }).toBe(true);
+    await page.waitForTimeout(1000);
     await page.evaluate(() => {
       const el = document.querySelector<HTMLElement>('[data-testid="nav-loading"]')!;
       (window as unknown as { __barSeen: boolean }).__barSeen = false;
@@ -37,7 +41,6 @@ test.describe('Statistik first open (#376)', () => {
     await page.goto('/tasks');
     await expect(page.getByTestId('app-nav-place-statistics')).toBeVisible();
     await page.waitForTimeout(500);
-    await page.route('**/_nuxt/**/*.js', async (route) => { await new Promise(r => setTimeout(r, 700)); await route.continue(); });
     await page.route('**/_nuxt/*.js', async (route) => { await new Promise(r => setTimeout(r, 700)); await route.continue(); });
     await page.getByTestId('app-nav-place-statistics').click();
     const bar = page.getByTestId('nav-loading');

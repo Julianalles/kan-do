@@ -22,7 +22,7 @@
     <!-- The global app bar (#470): beside the layout, so it survives page transitions; the nav comes before <main> in reading order -->
     <AppNav />
     <!-- Wait feedback (#376): a thin bar for a navigation that still waits (first load of a route not preloaded yet); `throttle` keeps fast navigations free of it -->
-    <NuxtLoadingIndicator color="var(--ui-primary)" :height="3" :throttle="150" aria-hidden="true" data-testid="nav-loading" />
+    <NuxtLoadingIndicator color="var(--ui-primary)" :height="3" :throttle="150" aria-hidden="true" class="nav-loading-bar" data-testid="nav-loading" />
     <!-- No default layout exists, so this renders only the page; sub-pages opt into
          layouts/sub-page.vue themselves (layout: false + <NuxtLayout name="sub-page">). -->
     <NuxtLayout>

@@ -474,7 +474,8 @@
     {
       "area": "route preload and navigation wait bar (#376)",
       "paths": [
-        "plugins/route-preload.client.ts"
+        "plugins/route-preload.client.ts",
+        "app.vue"
       ],
       "specs": [
         "route-preload",
