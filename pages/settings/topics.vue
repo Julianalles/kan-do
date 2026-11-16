@@ -1,7 +1,7 @@
 <!--
 @component SettingsTopicsPage
 @description "Themen und Aktivitäten" (/settings/topics, #430, #431): the home of topic management. Every topic and
-activity as a hairline row (mark, name, task count, "aus Notion" / "ungenutzt"), used or not, in two `UTabs` (the shared tab look, #557). A row opens the
+activity as a hairline row (mark, name, task count, "aus Notion" / "ungenutzt"), used or not, in two `UTabs` (`variant="link"`, the light underline of an in-page view switch, #318, #368). A row opens the
 shared TopicEditor: an inline panel under the row at >=768px, a bottom drawer at 390px. One row is open at a time.
 @usage Einstellungen -> "Themen und Aktivitäten", the task sheet picker's "Themen verwalten" row
 @responsibility
@@ -17,6 +17,7 @@ shared TopicEditor: an inline panel under the row at >=768px, a bottom drawer at
         <UTabs
           v-model="kind"
           :items="tabs"
+          variant="link"
           :ui="{ content: 'pt-6' }"
           @update:model-value="open = null"
         >

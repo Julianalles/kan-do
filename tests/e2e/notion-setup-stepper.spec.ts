@@ -105,8 +105,8 @@ test.describe('Notion Setup Stepper', () => {
       const panel = page.getByRole('tabpanel')
       await expect(panel).toBeVisible()
       expect((await panel.boundingBox())!.width).toBeGreaterThanOrEqual(340)
-      // The list sits above the panel
-      expect((await list.boundingBox())!.y + (await list.boundingBox())!.height).toBeLessThanOrEqual((await panel.boundingBox())!.y)
+      // The list sits above the panel (the light tab style's 1px bottom border overlaps it by `-mb-px`, #368)
+      expect((await list.boundingBox())!.y + (await list.boundingBox())!.height - 1).toBeLessThanOrEqual((await panel.boundingBox())!.y)
       // No sideways page scroll; the tabs that do not fit scroll inside the list
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
       // Not stuck at the viewport top (the phone bar is at the bottom, there is no offset to stick at)
@@ -114,6 +114,11 @@ test.describe('Notion Setup Stepper', () => {
       await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
       await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100)
       expect((await list.boundingBox())!.y).toBeLessThan(0)
+      // The selected tab's underline is visible: the scrolling list must not clip it (#368)
+      const indicator = list.locator('[data-slot="indicator"]')
+      const [lb, ib] = [await list.evaluate(el => el.getBoundingClientRect().bottom - parseFloat(getComputedStyle(el).borderBottomWidth)), await indicator.boundingBox()]
+      expect(ib!.y + ib!.height).toBeLessThanOrEqual(lb + 0.5)
+      expect(await list.evaluate(el => el.scrollHeight <= el.clientHeight)).toBe(true)
       // 44px hit areas
       expect((await list.getByRole('tab').first().boundingBox())!.height).toBeGreaterThanOrEqual(44)
     })
