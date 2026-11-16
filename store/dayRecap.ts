@@ -93,8 +93,12 @@ export const useDayRecapStore = defineStore('dayRecap', () => {
     backNoteClosed.value = true
   }
 
-  /** The question was answered (either way): it is not asked again. */
-  function resolveTimeOffer(): void {
+  /**
+   * The question was answered (either way): it is not asked again. With a `taskId` only that task's question ends
+   * (the user typed its time in the sheet: the typed total is the truth, "Zeit abziehen" must not lower it).
+   */
+  function resolveTimeOffer(taskId?: string): void {
+    if (taskId !== undefined && timeOffer.value?.taskId !== taskId) return
     timeOffer.value = null
   }
 

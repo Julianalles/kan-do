@@ -121,6 +121,15 @@ describe('day recap store', () => {
         expect(store.timeOffer).toBeNull()
       })
 
+      it('resolving for a task ends only that task\'s question (the user typed its time)', () => {
+        const store = useDayRecapStore()
+        store.markNewDay('2026-10-22', ['a'], offer)
+        store.resolveTimeOffer('b')
+        expect(store.validTimeOffer).toEqual(offer)
+        store.resolveTimeOffer('a')
+        expect(store.validTimeOffer).toBeNull()
+      })
+
       it('a pass that is ignored (a clock set back) leaves the question alone', () => {
         const store = useDayRecapStore()
         store.markNewDay('2026-10-22', ['a'], offer)
