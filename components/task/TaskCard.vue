@@ -17,8 +17,8 @@
 - Handles visual states for different task statuses
 - Done (#124): regular sheet, struck toned title, green corner check, and the
   in-card confirmation after a drop into Erledigt (board store `confirmingTaskIds`): a green layer with a bold check,
-  1.3 s. A task finished below its timebox (`lib/completionPace`, board store `fasterThanPlanTaskIds`, #295) shows a
-  rocket and "Sehr gut! Schneller als geplant." on the layer instead of the check, 2.2 s (recorded exception to "no
+  2.5 s (#400). A task finished below its timebox (`lib/completionPace`, board store `fasterThanPlanTaskIds`, #295) shows a
+  rocket and "Sehr gut! Schneller als geplant." on the layer instead of the check, 3.4 s (recorded exception to "no
   praise text", owner, #295); decoration only, `aria-hidden`
 - Done check spring (#611): the corner check springs in once, as the confirmation layer fades out, when a user action
   (drop, menu, sheet, palette: all set `confirmingTaskIds`) brought the card into Erledigt; never on load, sync or
@@ -174,7 +174,7 @@ import { TaskStatus } from "~/types/taskStatus";
 import type { Task } from "~/types/task";
 import { useI18n } from "vue-i18n";
 import { useLocaleFormat } from "~/composables/useLocaleFormat";
-import { useBoardStore, DONE_CONFIRMATION_MS, FASTER_CONFIRMATION_MS } from "~/store/board";
+import { useBoardStore, DONE_CONFIRMATION_MS, FASTER_CONFIRMATION_MS, CONFIRMATION_FADE_OUT_MS } from "~/store/board";
 import { useStackExpansion } from "~/composables/useStackExpansion";
 import { useSheetSpotlight } from "~/composables/useSheetSpotlight";
 import { useBoardDragState } from "~/composables/useBoardDragState";
@@ -269,11 +269,11 @@ const isFasterThanPlan = computed(() => boardStore.fasterThanPlanTaskIds.include
 /**
  * The layer's animation runs exactly as long as the store flag (one source: DONE_CONFIRMATION_MS, or
  * FASTER_CONFIRMATION_MS for the message). `--done-confirm-fade-at` is where the fade-out starts (the layer's last
- * 220 ms): the corner check's spring waits for it.
+ * CONFIRMATION_FADE_OUT_MS): the corner check's spring waits for it.
  */
 function confirmStyleOf(faster: boolean) {
   const duration = faster ? FASTER_CONFIRMATION_MS : DONE_CONFIRMATION_MS;
-  return { "--done-confirm-duration": `${duration}ms`, "--done-confirm-fade-at": `${duration - 220}ms` };
+  return { "--done-confirm-duration": `${duration}ms`, "--done-confirm-fade-at": `${duration - CONFIRMATION_FADE_OUT_MS}ms` };
 }
 const confirmStyle = computed(() => confirmStyleOf(isFasterThanPlan.value));
 /**
@@ -565,7 +565,7 @@ const openDetails = (event: MouseEvent) => {
 }
 
 /* Done check spring (#611): after a user action brought the card into Erledigt, the corner check springs in once.
-   It waits for the confirmation layer to start fading out (--done-confirm-fade-at, the layer's last 220 ms) so it
+   It waits for the confirmation layer to start fading out (--done-confirm-fade-at, the layer's last 400 ms) so it
    lands in the corner as the layer dissolves, instead of playing hidden under it; `backwards`
    keeps it invisible during the wait. The spring is a linear() easing (damping ratio 0.45, ~20 % overshoot,
    settles inside 480 ms) on scale 0.3 -> 1 plus opacity; transform and opacity only, so the card never reflows.
@@ -583,8 +583,8 @@ const openDetails = (event: MouseEvent) => {
   .task-done-check--pop { animation: none; }
 }
 
-/* In-card done confirmation (#124, #295): a light green layer with a bold check fades in (180ms), holds (900ms), then
-   fades out (220ms) to reveal the card. The faster-than-planned layer holds 1800ms for the message. Opacity only;
+/* In-card done confirmation (#124, #295, #400): a light green layer with a bold check fades in (180ms), holds (1900ms),
+   then fades out (400ms) to reveal the card. The faster-than-planned layer holds 2800ms for the message. Opacity only;
    the card itself never moves or scales. --done-confirm-duration and --done-confirm-fade-at are set inline from
    DONE_CONFIRMATION_MS / FASTER_CONFIRMATION_MS (store/board.ts); the keyframe stops below are those lengths as
    percentages (keep in step). */
@@ -643,14 +643,14 @@ const openDetails = (event: MouseEvent) => {
     opacity: 0;
     animation-timing-function: var(--ease-emphasized);
   }
-  13.85% { /* 180ms of 1300 */
+  7.26% { /* 180ms of 2480 */
     opacity: 1;
   }
-  83.08% { /* hold 900ms */
+  83.87% { /* hold 1900ms */
     opacity: 1;
     animation-timing-function: var(--ease-standard);
   }
-  100% { /* 220ms out */
+  100% { /* 400ms out */
     opacity: 0;
   }
 }
@@ -660,14 +660,14 @@ const openDetails = (event: MouseEvent) => {
     opacity: 0;
     animation-timing-function: var(--ease-emphasized);
   }
-  8.18% { /* 180ms of 2200 */
+  5.33% { /* 180ms of 3380 */
     opacity: 1;
   }
-  90% { /* hold 1800ms */
+  88.17% { /* hold 2800ms */
     opacity: 1;
     animation-timing-function: var(--ease-standard);
   }
-  100% { /* 220ms out */
+  100% { /* 400ms out */
     opacity: 0;
   }
 }

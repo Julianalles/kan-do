@@ -14,7 +14,7 @@ green pieces that flies out of the card's check, around and over the card, and f
   Rule", DESIGN.md "Earned celebration"); raspberry (error) and the topic hues stay out.
 - Plays once, 1200 ms (a piece may start up to 100 ms late), animates only `transform` and `opacity`, so the card and the
   board never reflow. It sits above neighbouring cards and takes no pointer events: the next drag works while it plays.
-- Owns its lifetime: independent of the store flag behind the in-card confirmation (1.3 s, 2.2 s with the message).
+- Owns its lifetime: independent of the store flag behind the in-card confirmation (2.5 s, 3.4 s with the message).
   It emits `done` after its last piece ends (a timer is the fallback when no animation event comes).
 - Decorative: `aria-hidden`, no focus, no text. Reduced motion: the card does not mount it and the CSS hides it.
 - Pieces extend over neighbouring cards and clip at the edge of the screen: `.board-container` on mobile, `.board` on

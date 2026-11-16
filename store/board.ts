@@ -19,17 +19,27 @@ export interface IUpdateTaskOrderPayload {
   taskOrder: Array<string>;
 }
 
-/**
- * Length of the in-card done confirmation (#124, #295): 180ms in, 900ms hold, 220ms out. Single source:
- * TaskCard sets `--done-confirm-duration` on the layer from it, so the animation and the flag end together.
- */
-export const DONE_CONFIRMATION_MS = 1300;
+/** The in-card done confirmation fades in over this long (#124) */
+export const CONFIRMATION_FADE_IN_MS = 180;
 
 /**
- * Length of the confirmation that carries the "faster than planned" message (#295): the same 180ms in and 220ms out,
- * a 1800ms hold so the sentence can be read. TaskCard picks this one for a card in `fasterThanPlanTaskIds`.
+ * The in-card done confirmation fades out over this long (#124, #400: 220ms before). The corner check's spring
+ * starts with it (TaskCard `--done-confirm-fade-at`), and the keyframe stops in TaskCard's style are derived from it.
  */
-export const FASTER_CONFIRMATION_MS = 2200;
+export const CONFIRMATION_FADE_OUT_MS = 400;
+
+/**
+ * Length of the in-card done confirmation (#124, #295, #400): 180ms in, 1900ms hold, 400ms out. Single source:
+ * TaskCard sets `--done-confirm-duration` on the layer from it, so the animation and the flag end together.
+ */
+export const DONE_CONFIRMATION_MS = 2480;
+
+/**
+ * Length of the confirmation that carries the "faster than planned" message (#295, #400): the same 180ms in and 400ms
+ * out, a 2800ms hold so the sentence can be read and the layer stays the longer one. TaskCard picks this one for a card
+ * in `fasterThanPlanTaskIds`.
+ */
+export const FASTER_CONFIRMATION_MS = 3380;
 
 /**
  * Length of the timebox nudge's countdown (#389): the hairline drains over this long, then the layer

@@ -56,7 +56,7 @@ test.describe('Drag between columns uses the shared status change (#104)', () =>
     await expect.poll(async () => (await persistedTask(page, 'seed-open-2'))?.completedAt ?? null).not.toBeNull()
 
     // No undo toast on the drag path (#136): the reverse drag is the undo and drops the record again
-    await expect(page.locator('.task-confirm')).toHaveCount(0, { timeout: 2000 })
+    await expect(page.locator('.task-confirm')).toHaveCount(0, { timeout: 4000 })
     await dragCardTo(page, 'Dokumentation lesen', column(page, 'open').locator('.task-wrapper').first())
     await expect(column(page, 'open').getByText('Dokumentation lesen')).toBeVisible()
     await expect.poll(() => completionTaskIds(page)).not.toContain('seed-open-2')
