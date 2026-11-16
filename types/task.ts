@@ -55,6 +55,8 @@ export interface PendingMove {
   fromSource: SourceId;
   fromExternalId: string | null;
   toSource: SourceId;
+  /** `Task.sourceNotPlanned` as the origin held it (#357), put back when the move is undone or reverted. */
+  fromSourceNotPlanned?: string;
 }
 
 interface Task {
@@ -100,10 +102,20 @@ interface Task {
   /**
    * The task is not planned for today: it is held by kan-do but in no column of the board (#353). Absent =
    * planned, so data stored before #353 loads as it was. Valid only while `status` is Open; read it through
-   * `isNotPlanned()` (`lib/taskPlanning.ts`), never directly. Lives in kan-do only: no connection stores it, a
-   * fetch never carries it and `mergeTasks` keeps it for a task it already holds. Not `isUnplanned` (ad-hoc work).
+   * `isNotPlanned()` (`lib/taskPlanning.ts`), never directly. kan-do's own state: a fetch never carries it, and
+   * `mergeTasks` keeps it for a task it already holds unless the source's own planning state changed
+   * (`sourceNotPlanned`, #357). Not `isUnplanned` (ad-hoc work).
    */
   notPlanned?: true;
+  /**
+   * What the task's source holds it as while the source holds it as not planned (#357): the Notion status name
+   * (one of the mapped "not planned" statuses). Absent = the source holds it as planned, or holds no planning at
+   * all (Local, Todoist). Set by a fetch and by the user's own plan / put-back of a task whose source stores
+   * planning (`useTaskSync`), dropped by every status write that drops the marker (`markerSurvives`: that write
+   * tells the source the column). `mergeTasks` changes `notPlanned` only when the fetched value's presence differs
+   * from this one, so kan-do's own moves survive a sync. Additive: older data has none.
+   */
+  sourceNotPlanned?: string;
   /** Unpushed local changes (absent = the source holds the task as it is). A Local task never has one. */
   pendingSync?: PendingSync;
   /** A move to another source that did not finish; always together with `pendingSync` */

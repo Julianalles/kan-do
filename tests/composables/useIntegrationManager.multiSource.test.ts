@@ -34,7 +34,7 @@ vi.mock('~/composables/useNotionIntegration', () => ({
   }),
 }))
 vi.mock('~/store/notionConfig', () => ({
-  useNotionConfigStore: () => ({ isConfigured: true, hasDataSourceSelected: true, config: { token: 't', statusMapping: { archive: null } } }),
+  useNotionConfigStore: () => ({ isConfigured: true, hasDataSourceSelected: true, setNotPlannedLimited: () => {}, config: { token: 't', statusMapping: { archive: null } } }),
 }))
 vi.mock('~/integrations/TodoistIntegration', () => ({
   TodoistIntegration: vi.fn().mockImplementation(function () {

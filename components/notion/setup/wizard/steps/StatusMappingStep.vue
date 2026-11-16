@@ -7,8 +7,10 @@
 @avoid Only a step of the Notion setup wizard.
 @responsibility
 - Allows mapping of Today, Doing, Done (mandatory) and Waiting (optional) to Notion select options
-- Validates mapping configuration
+- "Nicht geplant" (#357, optional): any number of statuses whose pages load under "Meine Aufgaben" (a multi-select like the priority levels of PriorityMappingStep); never suggested by name, so it stays empty until the user fills it, and kan-do writes the first one back when a task is put back
+- Validates mapping configuration: a status mapped twice (also between "Nicht geplant" and a column) blocks the save
 - Provides save functionality for completing setup
+- Emits `change` with the current mapping after the user's own edit (the name suggestions never count), so the settings tab knows it has something to save
 -->
 <template>
   <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
@@ -84,6 +86,25 @@
       />
     </UFormField>
 
+    <!-- Not planned (optional, #357): several statuses, the first is written back -->
+    <UFormField
+      :label="t('notion.statusMap.notPlanned.label')"
+      :help="t('notion.statusMap.notPlanned.help', { n: NOT_PLANNED_PAGE_LIMIT })"
+      class="md:col-span-2"
+    >
+      <USelectMenu
+        :model-value="mapping.notPlanned ?? []"
+        multiple
+        value-key="value"
+        :items="notPlannedOptions"
+        :search-input="false"
+        :placeholder="t('notion.statusMap.notPlanned.placeholder')"
+        class="w-full"
+        data-testid="status-map-not-planned"
+        @update:model-value="mapping.notPlanned = [...$event]"
+      />
+    </UFormField>
+
     <UAlert
       v-if="duplicateStatuses.length > 0"
       color="warning"
@@ -99,9 +120,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, nextTick } from "vue";
 import { useI18n } from "vue-i18n";
 import type { NotionDatabaseSchema, NotionStatusMapping } from "~/types/notion";
+import { NOT_PLANNED_PAGE_LIMIT } from "~/lib/notionLimits";
 
 defineOptions({ name: 'NotionStatusMappingStep' });
 
@@ -121,8 +143,8 @@ const props = defineProps<{
 }>();
 
 const emit = defineEmits<{
-  /** Emitted when mapping is saved and validated */
-  (e: "saved", mapping: NotionStatusMapping): void;
+  /** `saved`: the mapping was validated and is to be stored. `change`: the current mapping after the user changed a field (never for a name suggestion) */
+  (e: "saved" | "change", mapping: NotionStatusMapping): void;
 }>();
 
 const { t } = useI18n();
@@ -132,12 +154,14 @@ const mapping = ref<NotionStatusMapping>(
     ...props.defaultMapping,
     waiting: props.defaultMapping.waiting || null,
     archive: props.defaultMapping.archive || null,
+    notPlanned: [...(props.defaultMapping.notPlanned ?? [])],
   } : {
     today: "",
     doing: "",
     done: "",
     waiting: null,
     archive: null,
+    notPlanned: [],
   },
 );
 
@@ -162,6 +186,12 @@ const computeStatusOptions = (): Array<{ label: string; value: string }> => {
 
 const statusOptions = computed(computeStatusOptions);
 
+/** "Nicht geplant" offers only the statuses no column uses: a status mapped twice is an error the menu can prevent. */
+const notPlannedOptions = computed(() => {
+  const used = new Set([mapping.value.today, mapping.value.doing, mapping.value.done, mapping.value.waiting, mapping.value.archive].filter(Boolean));
+  return statusOptions.value.filter((option) => !used.has(option.value) || (mapping.value.notPlanned ?? []).includes(option.value));
+});
+
 // Check for duplicate status mappings
 /**
  * Computes a list of duplicate status values from the current mapping.
@@ -174,6 +204,7 @@ const computeDuplicateStatuses = (): string[] => {
   if (mapping.value.archive) {
     values.push(mapping.value.archive);
   }
+  values.push(...(mapping.value.notPlanned ?? []));
 
   const duplicates: string[] = [];
   const seen = new Set<string>();
@@ -250,7 +281,33 @@ const handleStatusOptionsChange = (
   }
 };
 
-watch(statusOptions, handleStatusOptionsChange, { immediate: true });
+// A name suggestion is not the user's edit: it is applied silently, so it never marks the form as changed
+let suggesting = false;
+watch(statusOptions, (options) => {
+  suggesting = true;
+  handleStatusOptionsChange(options);
+  void nextTick(() => { suggesting = false; });
+}, { immediate: true });
+
+// A new default (a save, or the settings tab's Cancel) replaces what is shown, and is not an edit either
+watch(() => props.defaultMapping, (value) => {
+  if (!value) return;
+  suggesting = true;
+  mapping.value = { ...value, waiting: value.waiting || null, archive: value.archive || null, notPlanned: [...(value.notPlanned ?? [])] };
+  void nextTick(() => { suggesting = false; });
+});
+
+/** The mapping as it is saved: empty optional fields left out. */
+const cleaned = (value: NotionStatusMapping): NotionStatusMapping => ({
+  ...value,
+  waiting: value.waiting || undefined,
+  archive: value.archive || undefined,
+  notPlanned: value.notPlanned && value.notPlanned.length > 0 ? [...value.notPlanned] : undefined,
+});
+
+watch(mapping, (value) => {
+  if (!suggesting) emit("change", cleaned(value));
+}, { deep: true });
 
 /**
  * Validates if the mapping contains all required fields
@@ -264,13 +321,7 @@ const isMappingValid = (mapping: NotionStatusMapping): boolean => {
  */
 const save = () => {
   if (isMappingValid(mapping.value)) {
-    // Clean up waiting if it's empty
-    const cleanMapping = {
-      ...mapping.value,
-      waiting: mapping.value.waiting || undefined,
-      archive: mapping.value.archive || undefined,
-    };
-    emit("saved", cleanMapping);
+    emit("saved", cleaned(mapping.value));
   }
 };
 

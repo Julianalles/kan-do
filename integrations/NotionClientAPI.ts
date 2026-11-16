@@ -261,13 +261,14 @@ export class NotionClientAPI {
     // POST/PATCH routes send token via Authorization header, not in body
     if (endpoint.startsWith('/data_sources/') && endpoint.endsWith('/query')) {
       const dsId = endpoint.replace('/data_sources/', '').replace('/query', '');
-      const queryBody = body as { filter?: unknown; page_size?: number; start_cursor?: string };
+      const queryBody = body as { filter?: unknown; sorts?: unknown; page_size?: number; start_cursor?: string };
       return {
         method: 'POST',
         headers: authHeaders,
         body: JSON.stringify({
           dataSourceId: dsId,
           filter: queryBody?.filter,
+          sorts: queryBody?.sorts,
           page_size: queryBody?.page_size,
           start_cursor: queryBody?.start_cursor,
         }),
@@ -362,24 +363,34 @@ export class NotionClientAPI {
    * call and browser proxy) see every match. A failure on any page rejects the whole
    * call: a truncated list would make `mergeTasks` delete tasks. The cursor is only
    * valid within one run; never keep it across syncs.
+   *
+   * `maxResults` (#357) is for a list that is allowed to be a part: reading stops once that many rows are in, and
+   * `limited` says whether Notion has more. Pass `sorts` with it, so the part is a defined one. Never for a list
+   * `mergeTasks` treats as complete: the caller hands the merge what the list is a part of
+   * (`FetchedTasks.partialNotPlanned`).
    */
   async queryDataSource(
     dataSourceId: string,
-    options: { filter?: unknown; page_size?: number } = {}
-  ): Promise<{ results: unknown[] }> {
-    const pageSize = options.page_size ?? 100;
+    options: { filter?: unknown; sorts?: unknown; page_size?: number; maxResults?: number } = {}
+  ): Promise<{ results: unknown[]; limited?: boolean }> {
+    const pageSize = Math.min(options.page_size ?? 100, options.maxResults ?? Infinity);
     const results: unknown[] = [];
     let cursor: string | undefined;
 
     for (let page = 1; page <= MAX_QUERY_PAGES; page++) {
       const response = await this.queryDataSourcePage(dataSourceId, {
         filter: options.filter,
+        ...(options.sorts ? { sorts: options.sorts } : {}),
         page_size: pageSize,
         start_cursor: cursor,
       });
       results.push(...response.results);
 
-      if (!response.has_more) return { results };
+      if (options.maxResults !== undefined && results.length >= options.maxResults) {
+        const limited = results.length > options.maxResults || response.has_more === true;
+        return { results: results.slice(0, options.maxResults), limited };
+      }
+      if (!response.has_more) return { results, ...(options.maxResults !== undefined ? { limited: false } : {}) };
 
       const next = response.next_cursor;
       if (!next || next === cursor) {
@@ -400,7 +411,7 @@ export class NotionClientAPI {
   /** One page of a data-source query. */
   private queryDataSourcePage(
     dataSourceId: string,
-    body: { filter?: unknown; page_size: number; start_cursor?: string }
+    body: { filter?: unknown; sorts?: unknown; page_size: number; start_cursor?: string }
   ): Promise<{ results: unknown[]; has_more?: boolean; next_cursor?: string | null }> {
     return this.request('POST', `/data_sources/${dataSourceId}/query`, body);
   }

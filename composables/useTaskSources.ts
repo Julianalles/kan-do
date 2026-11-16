@@ -36,6 +36,12 @@ export const useTaskSources = () => {
           },
           createInstance: () => useNotionIntegration().createInstance(),
           archiveStatus: () => notionConfig.config?.statusMapping?.archive || null,
+          notPlannedStatus: () => {
+            // Stored data: anything but a list of names reads as "none mapped"
+            const mapped: unknown = notionConfig.config?.statusMapping?.notPlanned
+            return Array.isArray(mapped) ? mapped.find((name): name is string => typeof name === 'string' && name !== '') ?? null : null
+          },
+          onNotPlannedLimit: (limited) => notionConfig.setNotPlannedLimited(limited),
           health: () => health.statusOf('notion'),
         })
       case 'todoist':

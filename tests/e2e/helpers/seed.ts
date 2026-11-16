@@ -20,7 +20,7 @@ import { NOTION_STUB_API_KEY } from './constants'
 export interface SeedTask {
   id: string
   /** Where the task lives (#326); `buildTasksStore` fills it from the board's source when missing. */
-  source?: 'local' | 'notion'
+  source?: 'local' | 'notion' | 'todoist'
   externalId?: string | null
   title: string
   status: 0 | 1 | 2 | 3

@@ -39,6 +39,10 @@ function loadIntegration() {
 export class TodoistSource implements TaskSourceAdapter {
   readonly id = 'todoist' as const
   readonly syncsTime = false
+  /** Todoist knows open and completed only: Jetzt and Wartet are kan-do's (#357). */
+  readonly holdsOnlyOpenDone = true
+  /** A Todoist task kan-do sees for the first time starts under "Meine Aufgaben" (#357); a card it already holds stays where it is (#387). */
+  readonly startsNotPlanned = true
 
   constructor(private readonly deps: TodoistSourceDeps) {}
 
@@ -65,6 +69,11 @@ export class TodoistSource implements TaskSourceAdapter {
 
   async fetchActive(): Promise<Task[]> {
     return (await this.load(this.token())).fetchActiveBoardTasks()
+  }
+
+  /** The plan lives in kan-do only (the user's decision of 2026-11-16): nothing about it is written to Todoist. */
+  notPlannedHold(): null {
+    return null
   }
 
   create(): Promise<Task> {

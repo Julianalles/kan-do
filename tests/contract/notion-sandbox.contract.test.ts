@@ -335,4 +335,29 @@ describe.skipIf(!enabled).each(['select', 'status'] as const)('NotionIntegration
     const pushed = await integration.updateTask({ ...created, timeSpentSeconds: 125, status: TaskStatus.Progress })
     expect(pushed.timeSpentSeconds).toBe(125)
   }, 60_000)
+
+  // #357: a status mapped as "not planned" (here the sandbox's "Archiv", with no archive mapping). Confirms with
+  // real Notion the second query (status filter + `sorts` by last edit through the proxy) and both write shapes.
+  it('a "not planned" status: put-back writes it, the sorted query loads the page as held not planned, a plan writes "today"', async () => {
+    const config = notionSandboxConfig(creds!.token, db)
+    const { archive: _archive, ...columns } = config.statusMapping
+    const planning = new NotionIntegration(
+      config.token, config.databaseId, config.propertyMapping, { ...columns, notPlanned: ['Archiv'] }, config.priorityMapping, config.dataSourceId,
+    )
+    const created = await planning.createTask({ title: `Nicht geplant ${statusType}`, status: TaskStatus.Open })
+    const statusOf = async () => summarizePage((await notion.pages.retrieve({ page_id: created.id })) as unknown as Record<string, unknown>).status
+
+    const back = await planning.updateTask({ ...created, notPlanned: true, sourceNotPlanned: 'Archiv' })
+    expect(await statusOf()).toBe('Archiv')
+    expect(back).toMatchObject({ status: TaskStatus.Open, sourceNotPlanned: 'Archiv' })
+
+    const fetched = (await planning.fetchActiveBoardTasks()).find((task) => task.id === created.id)
+    expect(fetched).toMatchObject({ status: TaskStatus.Open, sourceNotPlanned: 'Archiv' })
+    expect(planning.notPlannedLimited).toBe(false)
+
+    const planned = await planning.updateTask({ ...created })
+    expect(await statusOf()).toBe('Today')
+    expect(planned.sourceNotPlanned).toBeUndefined()
+    expect((await planning.fetchActiveBoardTasks()).find((task) => task.id === created.id)?.sourceNotPlanned).toBeUndefined()
+  }, 60_000)
 })

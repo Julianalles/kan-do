@@ -9,6 +9,11 @@ import { useErrorHandler } from '~/composables/useErrorHandler';
 export const useNotionConfigStore = defineStore("notionConfig", () => {
   // State
   const config = ref<NotionConfig | null>(null);
+  /**
+   * Whether the last Notion fetch left "not planned" pages out, because Notion holds more than the limit (#357,
+   * `NOT_PLANNED_PAGE_LIMIT`): "Meine Aufgaben" then says so. Additive: older data has none and reads as `false`.
+   */
+  const notPlannedLimited = ref(false);
 
   // Getters
   const isConfigured = computed(() => {
@@ -115,9 +120,15 @@ export const useNotionConfigStore = defineStore("notionConfig", () => {
     console.log(`[NotionConfig] Updated unplanned mapping propertyType to: ${propertyType}`);
   }
 
+  function setNotPlannedLimited(limited: boolean) {
+    if (notPlannedLimited.value !== limited) notPlannedLimited.value = limited;
+  }
+
   return {
     // State
     config,
+    notPlannedLimited,
+    setNotPlannedLimited,
     
     // Getters
     isConfigured,

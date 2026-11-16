@@ -226,6 +226,7 @@
               :database-schema="databaseSchema"
               :status-property-name="localPropertyMapping?.status || ''"
               :default-mapping="localStatusMapping || undefined"
+              @change="draftStatusMapping = $event"
               @saved="handleStatusMappingSaved"
             />
           </NotionSettingsSection>
@@ -441,7 +442,13 @@ const hasPriorityChanges = computed(() =>
   draftPriorityMapping.value !== null
   && !samePriorityMapping(draftPriorityMapping.value, normalizePriorityMapping(notionConfig.config?.priorityMapping)),
 );
-const hasStatusChanges = ref(false);
+// The status tab had no change detection (its Save stayed disabled): the step now reports the user's edits (#357)
+const draftStatusMapping = ref<NotionStatusMapping | null>(null);
+const statusMappingKey = (mapping: NotionStatusMapping | null | undefined) => JSON.stringify([
+  mapping?.today ?? '', mapping?.doing ?? '', mapping?.done ?? '', mapping?.waiting || '', mapping?.archive || '', mapping?.notPlanned ?? [],
+]);
+const hasStatusChanges = computed(() =>
+  draftStatusMapping.value !== null && statusMappingKey(draftStatusMapping.value) !== statusMappingKey(notionConfig.config?.statusMapping));
 
 // Initialize local state from config
 const initializeFromConfig = () => {
@@ -697,7 +704,7 @@ const saveStatusMapping = () => {
 
 const resetStatusMapping = () => {
   localStatusMapping.value = notionConfig.config?.statusMapping ? { ...notionConfig.config.statusMapping } : null;
-  hasStatusChanges.value = false;
+  draftStatusMapping.value = null;
 };
 
 const handleStatusMappingSaved = (mapping: NotionStatusMapping) => {
@@ -708,7 +715,7 @@ const handleStatusMappingSaved = (mapping: NotionStatusMapping) => {
       statusMapping: mapping,
     });
     localStatusMapping.value = mapping;
-    hasStatusChanges.value = false;
+    draftStatusMapping.value = null;
     integrationHealth.markHealthy('notion');
   } finally {
     isSavingStatus.value = false;

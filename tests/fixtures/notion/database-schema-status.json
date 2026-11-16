@@ -14,7 +14,9 @@
         { "id": "status-today", "name": "Today", "color": "blue" },
         { "id": "status-doing", "name": "Doing", "color": "orange" },
         { "id": "status-waiting", "name": "Waiting", "color": "yellow" },
-        { "id": "status-done", "name": "Done", "color": "green" }
+        { "id": "status-done", "name": "Done", "color": "green" },
+        { "id": "status-backlog", "name": "Backlog", "color": "gray" },
+        { "id": "status-someday", "name": "Someday", "color": "gray" }
       ]
     }
   },

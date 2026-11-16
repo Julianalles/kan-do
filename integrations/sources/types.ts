@@ -22,6 +22,18 @@ export class SourceNotConfiguredError extends Error {
   }
 }
 
+/** A source's active tasks together with what the list leaves out (`TaskSourceAdapter.fetchActiveList`). */
+export interface FetchedTasks {
+  tasks: Task[]
+  /**
+   * The values of `Task.sourceNotPlanned` for which `tasks` is only a part of what the source holds (#357: Notion
+   * loads the most recently edited pages of its "not planned" statuses up to a limit). Empty: the list is
+   * complete. `mergeTasks` keeps a held task with one of these values that the list lacks; every other task the
+   * list lacks is gone at the source, as with a complete list.
+   */
+  partialNotPlanned: readonly string[]
+}
+
 export interface TaskSourceAdapter {
   readonly id: SourceId
   /** Whether time spent is written upstream (Notion). Todoist has no such field, Local has no upstream. */
@@ -37,6 +49,13 @@ export interface TaskSourceAdapter {
   fetchActive(): Promise<Task[]>
 
   /**
+   * `fetchActive` for a source whose list can be a part of what it holds (Notion's capped "not planned" pages,
+   * #357): the same tasks, plus what the list leaves out. The integration manager fetches through it when it
+   * exists, so the answer belongs to exactly that fetch. Absent: `fetchActive` is always complete.
+   */
+  fetchActiveList?(): Promise<FetchedTasks>
+
+  /**
    * For a source that holds time rounded to a unit (Notion minutes/hours): maps a local total to the total the
    * source reads back for it. `mergeTasks` treats a fetched value equal to that as the local total itself, so the
    * rounding neither queues a push nor changes the local seconds (#323). Absent: values are compared as they are.
@@ -49,6 +68,28 @@ export interface TaskSourceAdapter {
    * the next fetch would queue it again. Absent: `true`. Never rejects (an unknown answer is `true`).
    */
   timeWritable?(): Promise<boolean>
+
+  /**
+   * What the source holds a task as that the user puts back to "Meine Aufgaben" (#357): the Notion status a
+   * put-back is written as (the first mapped "not planned" status). `null` or absent: the source stores no
+   * planning, so plan and put-back stay in kan-do (Local, Todoist, Notion without such a status). `useTaskSync`
+   * writes a plan or a put-back upstream only when this answers a value.
+   */
+  notPlannedHold?(): string | null
+
+  /**
+   * `true` for a source that only knows open and completed (Todoist): a task it reports as open keeps the board
+   * column kan-do holds it in (Jetzt, Wartet), instead of going back to Offen with every fetch (#357).
+   */
+  readonly holdsOnlyOpenDone?: boolean
+
+  /**
+   * `true` for a source without a planning state of its own whose tasks start not planned (#357, the user's
+   * decision of 2026-11-16: Todoist, whatever the due date): an Open task kan-do sees for the first time starts
+   * under "Meine Aufgaben". A task kan-do already holds is never moved by a fetch (#387: the app moves no card by
+   * itself), so the cards an existing board had before the rule stay where they are.
+   */
+  readonly startsNotPlanned?: boolean
 
   /** Creates a task upstream and resolves to it, source and externalId stamped. */
   create(draft: Partial<Task>): Promise<Task>

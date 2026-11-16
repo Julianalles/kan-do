@@ -31,7 +31,7 @@ export const useIntegrationManager = () => {
   const { handleSuccess } = useErrorHandler();
   const { validateAndConfirm } = useSyncValidation();
   const { adapterFor } = useTaskSources();
-  const { syncPendingChanges } = useTaskSync();
+  const { syncPendingChanges, isPushing } = useTaskSync();
   const fetchGenerations = fetchGenerationsByStore.get(tasksStore) ?? new Map<SourceId, number>();
   fetchGenerationsByStore.set(tasksStore, fetchGenerations);
 
@@ -73,8 +73,13 @@ export const useIntegrationManager = () => {
     const integration: IntegrationSourceId | null = isIntegrationSourceId(source) ? source : null;
 
     let tasks: Task[];
+    // The statuses a capped list holds only in part (#357): the merge must not read it as complete for them.
+    // Nor may it drop a task written since this fetch began: the list may have been read before the write
+    let partialNotPlanned: readonly string[] = [];
+    const fetchStartedAt = Date.now();
     try {
-      tasks = await adapter.fetchActive();
+      if (adapter.fetchActiveList) ({ tasks, partialNotPlanned } = await adapter.fetchActiveList());
+      else tasks = await adapter.fetchActive();
     } catch (error) {
       console.error(`[IntegrationManager] Fetching ${source} failed:`, error);
       if (!ticket.isStale() && integration) {
@@ -113,7 +118,16 @@ export const useIntegrationManager = () => {
     const timeWritable = adapter.timeWritable ? await adapter.timeWritable().catch(() => true) : true;
     // The schema read took a while: the board can have moved on
     if (ticket.isStale()) return [];
-    tasksStore.mergeTasks(source, tasks, { replaceOthers: completesSwitch, heldTime: adapter.timeHolding?.(), timeWritable });
+    tasksStore.mergeTasks(source, tasks, {
+      replaceOthers: completesSwitch,
+      heldTime: adapter.timeHolding?.(),
+      timeWritable,
+      holdsOnlyOpenDone: adapter.holdsOnlyOpenDone === true,
+      startsNotPlanned: adapter.startsNotPlanned === true,
+      partialNotPlanned,
+      fetchStartedAt,
+      pushing: isPushing,
+    });
     if (completesSwitch) boardStore.clearSourceSwitchPending();
     if (integration) health.recordSuccessfulSync(integration);
 

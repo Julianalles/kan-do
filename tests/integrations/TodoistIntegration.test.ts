@@ -561,3 +561,50 @@ describe('TodoistIntegration timeouts (#159)', () => {
     }
   })
 })
+
+describe('every open task loads (#357)', () => {
+  const sdk = (id: string, checked = false) => ({ id, content: id, description: '', checked, priority: 1, labels: [], projectId: 'p1' })
+  beforeEach(() => {
+    ;[getLabelsMock, getProjectsMock, getTasksMock, getCompletedMock].forEach((mock) => mock.mockReset())
+    getLabelsMock.mockResolvedValue({ results: [] })
+    getProjectsMock.mockResolvedValue({ results: [] })
+    getCompletedMock.mockResolvedValue({ items: [sdk('done', true)], nextCursor: null })
+  })
+
+  it('follows the cursor to the last page', async () => {
+    getTasksMock
+      .mockResolvedValueOnce({ results: [sdk('a'), sdk('b')], nextCursor: 'c1' })
+      .mockResolvedValueOnce({ results: [sdk('c')], nextCursor: 'c2' })
+      .mockResolvedValueOnce({ results: [sdk('d')], nextCursor: null })
+    const tasks = await new TodoistIntegration('token').fetchActiveBoardTasks()
+    expect(tasks.map((task) => task.id)).toEqual(['done', 'a', 'b', 'c', 'd'])
+    expect(getTasksMock.mock.calls.map(([args]) => args)).toEqual([
+      { cursor: null, limit: 200 }, { cursor: 'c1', limit: 200 }, { cursor: 'c2', limit: 200 },
+    ])
+  })
+
+  it('a failing later page rejects the whole fetch: a part is never shown', async () => {
+    getTasksMock
+      .mockResolvedValueOnce({ results: [sdk('a')], nextCursor: 'c1' })
+      .mockRejectedValueOnce(new TypeError('Failed to fetch'))
+    await expect(new TodoistIntegration('token').fetchActiveBoardTasks()).rejects.toThrow('Failed to fetch')
+  })
+
+  it('a cursor that repeats or never ends rejects the fetch', async () => {
+    getTasksMock.mockResolvedValue({ results: [sdk('a')], nextCursor: 'same' })
+    await expect(new TodoistIntegration('token').fetchActiveBoardTasks()).rejects.toThrow(/did not advance/)
+    let page = 0
+    getTasksMock.mockReset()
+    getTasksMock.mockImplementation(async () => ({ results: [], nextCursor: `c${++page}` }))
+    await expect(new TodoistIntegration('token').fetchActiveBoardTasks()).rejects.toThrow(/did not end after 100 pages/)
+    expect(getTasksMock).toHaveBeenCalledTimes(100)
+  })
+
+  it('delivers no planning state: where a task starts is the merge\'s rule for a task seen for the first time', async () => {
+    getTasksMock.mockResolvedValue({ results: [sdk('a')], nextCursor: null })
+    const tasks = await new TodoistIntegration('token').fetchActiveBoardTasks()
+    expect(tasks.map((task) => [task.id, task.status, task.sourceNotPlanned, task.notPlanned])).toEqual([
+      ['done', TaskStatus.Done, undefined, undefined], ['a', TaskStatus.Open, undefined, undefined],
+    ])
+  })
+})

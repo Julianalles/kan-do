@@ -36,7 +36,7 @@ vi.mock('~/store/taskStatistics', () => ({
 vi.mock('~/store/notionConfig', () => ({
   useNotionConfigStore: () => ({
     isConfigured: true,
-    hasDataSourceSelected: true,
+    hasDataSourceSelected: true, setNotPlannedLimited: () => {},
     config: { token: 't', databaseId: 'db', statusMapping: { archive: null } },
   }),
 }))

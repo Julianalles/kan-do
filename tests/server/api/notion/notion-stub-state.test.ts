@@ -285,7 +285,7 @@ describe('Notion stub page state', () => {
       expect((getStubbedDataSource('ds-123', STUB).properties['Status'] as { type: string }).type).toBe('select')
       const native = getStubbedDataSource('ds-123', NATIVE).properties['Status'] as { type: string; status: { options: Array<{ name: string }> } }
       expect(native.type).toBe('status')
-      expect(native.status.options.map((option) => option.name)).toEqual(['Today', 'Doing', 'Waiting', 'Done'])
+      expect(native.status.options.map((option) => option.name)).toEqual(['Today', 'Doing', 'Waiting', 'Done', 'Backlog', 'Someday'])
     })
 
     it('serves native Status pages, including filler pages', async () => {

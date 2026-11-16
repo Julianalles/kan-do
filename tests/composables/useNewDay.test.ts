@@ -347,6 +347,32 @@ describe('useNewDay: the pass (#356)', () => {
       expect(tasks.task('nj')!.pendingSync).toBeUndefined()
     })
 
+    it('with a Notion "not planned" status mapped the pass still writes nothing for the cards it sends back (#357, D1)', async () => {
+      const mapping = notionConfig.config.statusMapping as { archive: string | null; notPlanned?: string[] }
+      mapping.notPlanned = ['Backlog']
+      try {
+        const { tasks, board, newDay } = setup({ tasks: [
+          task('nj', TaskStatus.Progress, { source: 'notion' }), task('no', TaskStatus.Open, { source: 'notion' }),
+        ] })
+        board.setSources({ connected: ['notion'], default: 'notion' })
+        useIntegrationHealthStore().recordSuccessfulSync('notion')
+        newDay.run()
+        await vi.runAllTimersAsync()
+        expect(notPlannedIds()).toEqual(['nj', 'no'])
+        // only the Jetzt task's own status write; neither card is noted as held "not planned" by Notion
+        expect(notion.updateTask.mock.calls.map(([sent]) => sent.id)).toEqual(['nj'])
+        expect(tasks.task('nj')!.sourceNotPlanned).toBeUndefined()
+        expect(tasks.task('no')!.sourceNotPlanned).toBeUndefined()
+        expect(tasks.task('no')!.pendingSync).toBeUndefined()
+        // "Alle wieder einplanen" has nothing to write either: Notion never held them as not planned
+        newDay.planAllAgain()
+        await vi.runAllTimersAsync()
+        expect(notion.updateTask).toHaveBeenCalledTimes(1)
+      } finally {
+        delete mapping.notPlanned
+      }
+    })
+
     it('a fetch after the pass keeps the marker, also for a task its connection still reports as open', () => {
       const { tasks, board, newDay } = setup({ tasks: [task('no', TaskStatus.Open, { source: 'notion' })] })
       board.setSources({ connected: ['notion'], default: 'notion' })
