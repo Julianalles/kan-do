@@ -1,7 +1,7 @@
 /**
  * #357: the user's plan and put-back are written to a source that stores planning (Notion with a "not planned"
- * status mapped), never to Local or Todoist and never for kan-do's own moves (`local: true`); and an existing
- * Todoist board's first sync after the update is noted once for its put-back note.
+ * status mapped), never to Local or Todoist and never for kan-do's own moves (`local: true`); and a Todoist sync
+ * moves no card kan-do already holds (#387), only a task seen for the first time starts not planned.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
@@ -50,7 +50,6 @@ import { useIntegrationHealthStore } from '~/store/integrationHealth'
 import { isNotPlanned } from '~/lib/taskPlanning'
 /* eslint-enable import/first */
 
-const HELD = 'todoist:open'
 function task(id: string, source: Task['source'], overrides: Partial<Task> = {}): Task {
   return {
     id, source, externalId: source === 'local' ? null : `page-${id}`,
@@ -91,7 +90,7 @@ describe('plan and put-back are written to a source that stores planning (#357)'
 
   it('put-back writes the first mapped status, plan writes today; Local and Todoist tasks get no write', async () => {
     const store = useTasksStore()
-    store.setTasks([task('n1', 'notion'), task('l1', 'local'), task('t1', 'todoist', { sourceNotPlanned: HELD })])
+    store.setTasks([task('n1', 'notion'), task('l1', 'local'), task('t1', 'todoist')])
     const sync = useTaskSync()
 
     expect(sync.unplanTasks(['n1', 'l1', 't1'])).toEqual(['n1', 'l1', 't1'])
@@ -108,8 +107,8 @@ describe('plan and put-back are written to a source that stores planning (#357)'
     await settle()
     expect(sentToNotion()).toEqual([['n1', true, 'Backlog'], ['n1', false, undefined]])
     expect(store.task('n1')!.sourceNotPlanned).toBeUndefined()
-    // Todoist keeps its constant: the plan lives in kan-do only
-    expect(store.task('t1')).toMatchObject({ sourceNotPlanned: HELD })
+    // Todoist: the plan lives in kan-do only, nothing is noted for the source
+    expect(store.task('t1')!.sourceNotPlanned).toBeUndefined()
     expect(isNotPlanned(store.task('t1')!)).toBe(false)
   })
 
@@ -180,7 +179,7 @@ describe('plan and put-back are written to a source that stores planning (#357)'
   })
 })
 
-describe('an existing Todoist board, first sync after the update (#357)', () => {
+describe('a Todoist sync moves no card kan-do already holds (#357, #387)', () => {
   beforeEach(() => {
     localStorage.clear()
     setActivePinia(createPinia())
@@ -192,9 +191,9 @@ describe('an existing Todoist board, first sync after the update (#357)', () => 
     board.setTodoistApiToken('token')
   })
   afterEach(() => vi.restoreAllMocks())
-  const fetched = (id: string, overrides: Partial<Task> = {}) => task(id, 'todoist', { externalId: id, sourceNotPlanned: HELD, ...overrides })
+  const fetched = (id: string, overrides: Partial<Task> = {}) => task(id, 'todoist', { externalId: id, ...overrides })
 
-  it('the Offen cards are noted once, in Offen order; Jetzt stays; a new task is not part of the note; later syncs add nothing', async () => {
+  it('existing board, first sync after the update: Offen, Jetzt and their order stay; only the task seen for the first time starts not planned; nothing is written', async () => {
     const store = useTasksStore()
     const board = useBoardStore()
     store.setTasks([
@@ -206,26 +205,23 @@ describe('an existing Todoist board, first sync after the update (#357)', () => 
     fetchTodoist.mockResolvedValue([fetched('a'), fetched('b'), fetched('j'), fetched('new')])
 
     await useIntegrationManager().fetchTasks()
-    expect(board.sourceBackNotes).toEqual({ todoist: { ids: ['b', 'a'], closed: false } })
-    expect(store.tasksOpen).toEqual([])
+    expect(store.tasksOpen.map(t => t.id)).toEqual(['b', 'a'])
     expect(store.task('j')!.status).toBe(TaskStatus.Progress)
-    expect(isNotPlanned(store.task('new')!)).toBe(true)
+    expect(store.tasksNotPlanned.map(t => t.id)).toEqual(['new'])
 
-    // "Alle wieder einplanen": back at the end of Offen in the old order, nothing is written to Todoist
-    useTaskSync().planTasks(board.sourceBackNotes.todoist!.ids)
-    board.closeSourceBackNote('todoist')
-    expect(store.tasksOpen.map(t => t.id)).toEqual(['b', 'a'])
-    expect(store.pendingSyncTasks).toEqual([])
-
+    // the user's own plan and put-back stay across the next sync, and nothing is written to Todoist
+    useTaskSync().planTasks(['new'])
+    useTaskSync().unplanTasks(['b'])
     await useIntegrationManager().fetchTasks()
-    expect(store.tasksOpen.map(t => t.id)).toEqual(['b', 'a'])
-    expect(board.sourceBackNotes.todoist).toEqual({ ids: ['b', 'a'], closed: true })
+    expect(store.tasksOpen.map(t => t.id)).toEqual(['a', 'new'])
+    expect(store.tasksNotPlanned.map(t => t.id)).toEqual(['b'])
+    expect(store.pendingSyncTasks).toEqual([])
   })
 
-  it('a new connection (no task held before) shows no note', async () => {
-    fetchTodoist.mockResolvedValue([fetched('a'), fetched('b')])
+  it('a new connection (no task held before): every open task starts not planned', async () => {
+    fetchTodoist.mockResolvedValue([fetched('a'), fetched('b'), fetched('d', { status: TaskStatus.Done })])
     await useIntegrationManager().fetchTasks()
     expect(useTasksStore().tasksNotPlanned.map(t => t.id)).toEqual(['a', 'b'])
-    expect(useBoardStore().sourceBackNotes).toEqual({})
+    expect(useTasksStore().task('d')!.status).toBe(TaskStatus.Done)
   })
 })

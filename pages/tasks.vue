@@ -17,8 +17,6 @@
     <div class="relative z-10 mx-3 flex max-w-3xl flex-col gap-2 md:mx-auto">
       <NewDayNote class="first:mt-8 md:first:mt-3" />
       <NewDayTimeNote class="first:mt-8 md:first:mt-3" />
-      <!-- A connection's first sync that took its cards out of Offen (#357): once per connection -->
-      <SourceBackNote class="first:mt-8 md:first:mt-3" />
     </div>
 
     <Board />
@@ -53,7 +51,6 @@ import { useIntegrationManager } from "~/composables/useIntegrationManager";
 import { useKeychainStatus } from "~/composables/useKeychainStatus";
 import DataStorageNotice from "~/components/settings/DataStorageNotice.vue";
 import NewDayNote from "~/components/board/NewDayNote.vue";
-import SourceBackNote from "~/components/board/SourceBackNote.vue";
 import NewDayTimeNote from "~/components/board/NewDayTimeNote.vue";
 import { useRoute, navigateTo } from "nuxt/app";
 import { useSyncValidation, resetSyncValidation } from "~/composables/useSyncValidation";

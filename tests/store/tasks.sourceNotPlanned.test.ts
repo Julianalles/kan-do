@@ -1,13 +1,13 @@
 /**
- * #357: a connection may have a planning state of its own (Notion with "not planned" statuses mapped; Todoist, where
- * every task starts not planned). `Task.sourceNotPlanned` holds what the source said last; `mergeTasks` changes
- * kan-do's marker only when that answer changes, so kan-do's own moves survive a sync.
+ * #357: a connection may have a planning state of its own (Notion with "not planned" statuses mapped).
+ * `Task.sourceNotPlanned` holds what the source said last; `mergeTasks` changes kan-do's marker only when that
+ * answer changes, so kan-do's own moves survive a sync. A source without one whose tasks start not planned
+ * (Todoist) decides only for a task kan-do sees for the first time: a fetch never moves a card it already holds (#387).
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useTasksStore } from '~/store/tasks'
-import { useBoardStore, sanitizeSourceBackNotes } from '~/store/board'
-import { isNotPlanned, sourceMarker } from '~/lib/taskPlanning'
+import { isNotPlanned } from '~/lib/taskPlanning'
 import type { Task } from '~/types/task'
 import { TaskStatus } from '~/types/taskStatus'
 
@@ -23,25 +23,9 @@ function makeTask(id: string, overrides: Partial<Task> = {}): Task {
     ...overrides,
   }
 }
-const HELD = 'todoist:open'
-const todoist = (id: string, overrides: Partial<Task> = {}) => makeTask(id, { source: 'todoist', sourceNotPlanned: HELD, ...overrides })
-
-describe('sourceMarker', () => {
-  it('a task seen for the first time starts where its source holds it', () => {
-    expect(sourceMarker(false, undefined, 'Backlog', true)).toBe(true)
-    expect(sourceMarker(false, undefined, undefined, true)).toBe(false)
-  })
-  it('the same answer as last time leaves the local marker alone', () => {
-    expect(sourceMarker(true, undefined, undefined)).toBe(true)
-    expect(sourceMarker(false, 'Backlog', 'Backlog')).toBe(false)
-    // another "not planned" status is no move
-    expect(sourceMarker(false, 'Backlog', 'Someday')).toBe(false)
-  })
-  it('a change at the source wins', () => {
-    expect(sourceMarker(false, undefined, 'Backlog')).toBe(true)
-    expect(sourceMarker(true, 'Backlog', undefined)).toBe(false)
-  })
-})
+const todoist = (id: string, overrides: Partial<Task> = {}) => makeTask(id, { source: 'todoist', ...overrides })
+/** How the integration manager merges a Todoist fetch (`TodoistSource.startsNotPlanned`, `holdsOnlyOpenDone`) */
+const TODOIST = { startsNotPlanned: true, holdsOnlyOpenDone: true }
 
 describe('mergeTasks follows a source only when its planning state changes (#357)', () => {
   beforeEach(() => setActivePinia(createPinia()))
@@ -49,16 +33,15 @@ describe('mergeTasks follows a source only when its planning state changes (#357
   it('a task without the field (data stored before #357) merges as before: planned stays planned, held stays held', () => {
     const store = useTasksStore()
     store.setTasks([makeTask('a'), makeTask('b', { notPlanned: true })])
-    expect(store.mergeTasks('notion', [makeTask('a'), makeTask('b')])).toEqual([])
+    store.mergeTasks('notion', [makeTask('a'), makeTask('b')])
     expect(isNotPlanned(store.task('a')!)).toBe(false)
     expect(isNotPlanned(store.task('b')!)).toBe(true)
     expect(store.task('a')!.sourceNotPlanned).toBeUndefined()
   })
 
-  it('a new task starts not planned when its source holds it so, and is not reported as taken off the board', () => {
+  it('a new task starts not planned when its source holds it so', () => {
     const store = useTasksStore()
-    const taken = store.mergeTasks('notion', [makeTask('n', { sourceNotPlanned: 'Backlog' }), makeTask('p'), makeTask('d', { status: TaskStatus.Done, sourceNotPlanned: 'Backlog' })])
-    expect(taken).toEqual([])
+    store.mergeTasks('notion', [makeTask('n', { sourceNotPlanned: 'Backlog' }), makeTask('p'), makeTask('d', { status: TaskStatus.Done, sourceNotPlanned: 'Backlog' })])
     expect(isNotPlanned(store.task('n')!)).toBe(true)
     expect(store.tasksNotPlanned.map(t => t.id)).toEqual(['n'])
     expect(store.tasksOpen.map(t => t.id)).toEqual(['p'])
@@ -71,11 +54,10 @@ describe('mergeTasks follows a source only when its planning state changes (#357
     expect(isNotPlanned(store.task('x')!)).toBe(false)
   })
 
-  it('Notion moved a task into a "not planned" status: it leaves the board, also from Jetzt, and is reported only from Offen', () => {
+  it('Notion moved a task into a "not planned" status: it leaves the board, also from Jetzt', () => {
     const store = useTasksStore()
     store.setTasks([makeTask('o'), makeTask('j', { status: TaskStatus.Progress })])
-    const taken = store.mergeTasks('notion', [makeTask('o', { sourceNotPlanned: 'Backlog' }), makeTask('j', { sourceNotPlanned: 'Backlog' })])
-    expect(taken).toEqual(['o'])
+    store.mergeTasks('notion', [makeTask('o', { sourceNotPlanned: 'Backlog' }), makeTask('j', { sourceNotPlanned: 'Backlog' })])
     expect(store.tasksNotPlanned.map(t => t.id).sort()).toEqual(['j', 'o'])
     expect(store.task('o')!.sourceNotPlanned).toBe('Backlog')
   })
@@ -98,17 +80,27 @@ describe('mergeTasks follows a source only when its planning state changes (#357
     expect(isNotPlanned(store.task('a')!)).toBe(true)
   })
 
-  it('a task the user planned while the source still holds it as not planned stays planned (a stale fetch, Todoist always)', () => {
+  it('another "not planned" status is no move: a task planned in kan-do while Notion goes from Backlog to Someday stays planned', () => {
     const store = useTasksStore()
-    store.mergeTasks('todoist', [todoist('t')])
+    store.setTasks([makeTask('a', { sourceNotPlanned: 'Backlog' })])
+    store.mergeTasks('notion', [makeTask('a', { sourceNotPlanned: 'Someday' })])
+    expect(isNotPlanned(store.task('a')!)).toBe(false)
+    expect(store.task('a')!.sourceNotPlanned).toBe('Someday')
+  })
+
+  it('a Todoist task seen for the first time starts not planned; planned by the user it stays planned, put back it stays back', () => {
+    const store = useTasksStore()
+    store.mergeTasks('todoist', [todoist('t'), todoist('done', { status: TaskStatus.Done })], TODOIST)
     expect(isNotPlanned(store.task('t')!)).toBe(true)
+    expect(store.task('done')!.notPlanned).toBeUndefined()
+    // nothing about planning is stored for the source: the plan is kan-do's alone
+    expect(store.task('t')!.sourceNotPlanned).toBeUndefined()
     store.planTasks(['t'])
-    store.mergeTasks('todoist', [todoist('t')])
-    store.mergeTasks('todoist', [todoist('t')])
+    store.mergeTasks('todoist', [todoist('t')], TODOIST)
+    store.mergeTasks('todoist', [todoist('t')], TODOIST)
     expect(isNotPlanned(store.task('t')!)).toBe(false)
-    // put back again by hand: stays back
     store.unplanTasks(['t'])
-    store.mergeTasks('todoist', [todoist('t')])
+    store.mergeTasks('todoist', [todoist('t')], TODOIST)
     expect(isNotPlanned(store.task('t')!)).toBe(true)
   })
 
@@ -121,33 +113,40 @@ describe('mergeTasks follows a source only when its planning state changes (#357
     expect(store.task('a')!.sourceNotPlanned).toBe('Backlog')
   })
 
-  it('existing Todoist board, first fetch after the update: Offen moves once, Jetzt, Wartet and Erledigt stay, what was held stays held', () => {
+  // #387 (the user, 2026-11-16): the app never moves cards by itself. The cards an existing Todoist user has on the
+  // board at the update stay there; only a task kan-do sees for the first time starts under "Meine Aufgaben"
+  it('existing Todoist board, first fetch after the update: every card stays where it is, only the task seen for the first time starts not planned', () => {
     const store = useTasksStore()
-    const before = (id: string, overrides: Partial<Task> = {}) => makeTask(id, { source: 'todoist', ...overrides })
     store.setTasks([
-      before('o1'), before('o2'), before('held', { notPlanned: true }),
-      before('j', { status: TaskStatus.Progress }), before('w', { status: TaskStatus.Waiting }), before('d', { status: TaskStatus.Done }),
+      todoist('o1'), todoist('o2'), todoist('held', { notPlanned: true }),
+      todoist('j', { status: TaskStatus.Progress }), todoist('w', { status: TaskStatus.Waiting }), todoist('d', { status: TaskStatus.Done }),
     ])
-    const fetched = [todoist('o1'), todoist('o2'), todoist('held'), todoist('j'), todoist('w'), todoist('d', { status: TaskStatus.Done })]
-    const taken = store.mergeTasks('todoist', fetched, { holdsOnlyOpenDone: true })
-    expect(taken).toEqual(['o1', 'o2'])
-    expect(store.tasksOpen).toEqual([])
-    expect(store.tasksNotPlanned.map(t => t.id).sort()).toEqual(['held', 'o1', 'o2'])
+    const fetched = [todoist('o1'), todoist('o2'), todoist('held'), todoist('j'), todoist('w'), todoist('d', { status: TaskStatus.Done }), todoist('new')]
+    store.mergeTasks('todoist', fetched, TODOIST)
+    expect(store.tasksOpen.map(t => t.id)).toEqual(['o1', 'o2'])
+    expect(store.tasksNotPlanned.map(t => t.id).sort()).toEqual(['held', 'new'])
     expect(store.task('j')!.status).toBe(TaskStatus.Progress)
     expect(store.task('w')!.status).toBe(TaskStatus.Waiting)
     expect(store.task('d')!.status).toBe(TaskStatus.Done)
 
-    // the second fetch moves nothing: a card planned again stays, a Jetzt task moved back to Offen stays on the board
-    store.planTasks(['o1'])
+    // later fetches move nothing either: a Jetzt task moved back to Offen stays on the board, a card put back stays back
     store.updateTask('j', { status: TaskStatus.Open })
-    expect(store.mergeTasks('todoist', fetched, { holdsOnlyOpenDone: true })).toEqual([])
+    store.unplanTasks(['o2'])
+    store.mergeTasks('todoist', fetched, TODOIST)
     expect(store.tasksOpen.map(t => t.id).sort()).toEqual(['j', 'o1'])
+    expect(store.tasksNotPlanned.map(t => t.id).sort()).toEqual(['held', 'new', 'o2'])
+  })
+
+  it('a source without the rule (Local, Notion without a mapping) starts every task on the board', () => {
+    const store = useTasksStore()
+    store.mergeTasks('notion', [makeTask('a')])
+    expect(isNotPlanned(store.task('a')!)).toBe(false)
   })
 
   it('a source that only knows open and done keeps Jetzt and Wartet, and still follows a completion', () => {
     const store = useTasksStore()
     store.setTasks([todoist('j', { status: TaskStatus.Progress }), todoist('w', { status: TaskStatus.Waiting })])
-    store.mergeTasks('todoist', [todoist('j'), todoist('w', { status: TaskStatus.Done })], { holdsOnlyOpenDone: true })
+    store.mergeTasks('todoist', [todoist('j'), todoist('w', { status: TaskStatus.Done })], TODOIST)
     expect(store.task('j')!.status).toBe(TaskStatus.Progress)
     expect(store.task('w')!.status).toBe(TaskStatus.Done)
     // without the option (Notion) the source's status wins as before
@@ -158,36 +157,14 @@ describe('mergeTasks follows a source only when its planning state changes (#357
 
   it('a move to another source drops the value and its undo brings it back', () => {
     const store = useTasksStore()
-    store.setTasks([todoist('t')])
+    store.setTasks([makeTask('t', { notPlanned: true, sourceNotPlanned: 'Backlog' })])
     const previous = store.reassignSource('t', 'local')
     expect(store.task('t')!.sourceNotPlanned).toBeUndefined()
     store.restoreMoveOrigin('t', previous!)
-    expect(store.task('t')!.sourceNotPlanned).toBe(HELD)
+    expect(store.task('t')!.sourceNotPlanned).toBe('Backlog')
     // so the next fetch does not read the task as changed at the source
-    store.mergeTasks('todoist', [todoist('t')])
+    store.planTasks(['t'])
+    store.mergeTasks('notion', [makeTask('t', { sourceNotPlanned: 'Backlog' })])
     expect(isNotPlanned(store.task('t')!)).toBe(false)
-  })
-})
-
-describe('the one-time note of a source (#357)', () => {
-  beforeEach(() => setActivePinia(createPinia()))
-
-  it('is written once per source and closed for good', () => {
-    const board = useBoardStore()
-    board.noteSourceBack('todoist', [])
-    expect(board.sourceBackNotes).toEqual({})
-    board.noteSourceBack('todoist', ['a', 'b'])
-    board.noteSourceBack('todoist', ['c'])
-    expect(board.sourceBackNotes).toEqual({ todoist: { ids: ['a', 'b'], closed: false } })
-    board.closeSourceBackNote('todoist')
-    board.noteSourceBack('todoist', ['c'])
-    expect(board.sourceBackNotes).toEqual({ todoist: { ids: ['a', 'b'], closed: true } })
-  })
-
-  it('older or malformed stored data reads as no note', () => {
-    for (const raw of [undefined, null, 'x', 3, [], { todoist: null }, { todoist: { ids: 'a' } }]) {
-      expect(sanitizeSourceBackNotes(raw)).toEqual({})
-    }
-    expect(sanitizeSourceBackNotes({ todoist: { ids: ['a', 1, '', 'a'], closed: 'yes' } })).toEqual({ todoist: { ids: ['a'], closed: false } })
   })
 })

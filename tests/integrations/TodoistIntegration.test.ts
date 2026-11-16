@@ -33,7 +33,6 @@ import {
   isTodoistTimeoutError,
   TODOIST_TIMEOUT_MS,
   createTimeoutFetch,
-  TODOIST_NOT_PLANNED,
 } from '~/integrations/TodoistIntegration'
 // eslint-disable-next-line import/first -- order-sensitive: mocks must be defined before importing SUT
 import { isNetworkError } from '~/lib/errorMessages'
@@ -563,7 +562,7 @@ describe('TodoistIntegration timeouts (#159)', () => {
   })
 })
 
-describe('every open task loads, and each starts not planned (#357)', () => {
+describe('every open task loads (#357)', () => {
   const sdk = (id: string, checked = false) => ({ id, content: id, description: '', checked, priority: 1, labels: [], projectId: 'p1' })
   beforeEach(() => {
     ;[getLabelsMock, getProjectsMock, getTasksMock, getCompletedMock].forEach((mock) => mock.mockReset())
@@ -601,14 +600,11 @@ describe('every open task loads, and each starts not planned (#357)', () => {
     expect(getTasksMock).toHaveBeenCalledTimes(100)
   })
 
-  it('every task, open or completed, is held as not planned by its source, and a restored one too', async () => {
+  it('delivers no planning state: where a task starts is the merge\'s rule for a task seen for the first time', async () => {
     getTasksMock.mockResolvedValue({ results: [sdk('a')], nextCursor: null })
     const tasks = await new TodoistIntegration('token').fetchActiveBoardTasks()
-    expect(tasks.map((task) => [task.id, task.status, task.sourceNotPlanned])).toEqual([
-      ['done', TaskStatus.Done, TODOIST_NOT_PLANNED], ['a', TaskStatus.Open, TODOIST_NOT_PLANNED],
+    expect(tasks.map((task) => [task.id, task.status, task.sourceNotPlanned, task.notPlanned])).toEqual([
+      ['done', TaskStatus.Done, undefined, undefined], ['a', TaskStatus.Open, undefined, undefined],
     ])
-    addTaskMock.mockResolvedValue({ id: 'new' })
-    const restored = await new TodoistIntegration('token').createTask({ ...tasks[1]!, sourceNotPlanned: undefined })
-    expect(restored.sourceNotPlanned).toBe(TODOIST_NOT_PLANNED)
   })
 })

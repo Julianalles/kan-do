@@ -172,11 +172,6 @@
       "close": "Schließen",
       "planned": "Eine Aufgabe ist wieder für heute geplant. | {n} Aufgaben sind wieder für heute geplant."
     },
-    "sourceBackNote": {
-      "title": "Neu: Aufgaben aus {source} beginnen unter „Nicht geplant“.",
-      "description": "Eine Aufgabe aus Offen liegt jetzt unter „Alle“ bei „Nicht geplant“. Dort planst du sie für heute ein. | {n} Aufgaben aus Offen liegen jetzt unter „Alle“ bei „Nicht geplant“. Dort planst du sie für heute ein.",
-      "planAll": "Aufgabe wieder einplanen | {n} Aufgaben wieder einplanen"
-    },
     "newDayTimeNote": {
       "title": "Timer lief nach Mitternacht {duration} weiter",
       "description": "Kan-Do war dabei nicht im Vordergrund. Die Zeit steht noch an der Aufgabe.",
@@ -705,7 +700,7 @@
       },
       "notPlanned": {
         "label": "Nicht geplant",
-        "help": "Status in Notion, die „nicht geplant“ bedeuten. Solche Aufgaben stehen unter „Alle“ bei „Nicht geplant“. Stellst du eine Aufgabe zurück, setzt Kan-Do den zuerst gewählten Status. Geladen werden die {n} zuletzt bearbeiteten.",
+        "help": "Status in Notion, die „nicht geplant“ bedeuten. Solche Aufgaben stehen unter „Planung“ bei „Meine Aufgaben“. Stellst du eine Aufgabe zurück, setzt Kan-Do den zuerst gewählten Status. Geladen werden die {n} zuletzt bearbeiteten.",
         "placeholder": "Status auswählen"
       },
       "duplicates": "Die folgenden Status-Werte sind mehrfach zugeordnet: {values}"

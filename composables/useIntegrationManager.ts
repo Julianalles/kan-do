@@ -113,17 +113,13 @@ export const useIntegrationManager = () => {
     const timeWritable = adapter.timeWritable ? await adapter.timeWritable().catch(() => true) : true;
     // The schema read took a while: the board can have moved on
     if (ticket.isStale()) return [];
-    // Offen as it stood: the cards a source takes off the board keep that order for the note's put-back (#357)
-    const offenBefore = tasksStore.tasksOpen.map((el) => el.id);
-    const takenOff = tasksStore.mergeTasks(source, tasks, {
+    tasksStore.mergeTasks(source, tasks, {
       replaceOthers: completesSwitch,
       heldTime: adapter.timeHolding?.(),
       timeWritable,
       holdsOnlyOpenDone: adapter.holdsOnlyOpenDone === true,
+      startsNotPlanned: adapter.startsNotPlanned === true,
     });
-    if (adapter.announcesFirstBack && takenOff.length > 0) {
-      boardStore.noteSourceBack(source, offenBefore.filter((id) => takenOff.includes(id)));
-    }
     if (completesSwitch) boardStore.clearSourceSwitchPending();
     if (integration) health.recordSuccessfulSync(integration);
 

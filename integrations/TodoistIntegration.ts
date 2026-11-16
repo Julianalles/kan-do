@@ -19,13 +19,6 @@ const OPEN_PAGE_SIZE = 200;
 /** Guard against a cursor that never ends: 100 pages are 20 000 open tasks. Reaching it fails the fetch, a part is never shown. */
 const OPEN_PAGE_CAP = 100;
 
-/**
- * `Task.sourceNotPlanned` of every Todoist task (#357, the user's decision of 2026-11-16): Todoist has no "planned
- * for today" kan-do follows, so every task starts under "Nicht geplant", whatever its due date, and the plan lives
- * in kan-do only. The value never changes, so after a task's first fetch a sync never moves it again.
- */
-export const TODOIST_NOT_PLANNED = 'todoist:open';
-
 type SdkTask = Awaited<ReturnType<TodoistApi['getTask']>>;
 
 const TIMEOUT_MESSAGE_PREFIX = 'Todoist request timeout after';
@@ -106,7 +99,8 @@ export class TodoistIntegration {
 
   /**
    * Retrieves the tasks kan-do holds for Todoist: every open task of the account, whatever its due date (#357:
-   * each starts under "Nicht geplant", `TODOIST_NOT_PLANNED`), and the tasks completed today.
+   * one kan-do sees for the first time starts under "Meine Aufgaben", `TodoistSource.startsNotPlanned`), and the
+   * tasks completed today.
    * Completed tasks from previous days are not included.
    *
    * @returns The open tasks and the ones completed today
@@ -224,8 +218,7 @@ export class TodoistIntegration {
         if (import.meta.dev) console.warn('Todoist restore: the task was created but not completed', error);
       }
     }
-    // Held like every Todoist task, so the next fetch does not read the new task as a change and move it
-    return { ...task, id: todoistId, externalId: todoistId, source: 'todoist', sourceNotPlanned: TODOIST_NOT_PLANNED };
+    return { ...task, id: todoistId, externalId: todoistId, source: 'todoist' };
   }
 
   /**
@@ -344,8 +337,6 @@ export class TodoistIntegration {
         timerId: null,
         isUnplanned: false, // TODO: Implement unplanned detection via labels or custom fields
         source: "todoist" as const,
-        // Completed tasks carry it too: reopening one must not read as a change at the source
-        sourceNotPlanned: TODOIST_NOT_PLANNED,
       };
     });
   }

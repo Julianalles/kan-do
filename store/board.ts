@@ -73,28 +73,6 @@ export function sanitizeNotPlannedOrder(raw: unknown): string[] {
   return [...new Set(raw.filter((id): id is string => typeof id === 'string' && id !== ''))];
 }
 
-/** The one-time note of a source's first move of cards to "Nicht geplant" (#357): which cards, and whether it was answered. */
-export interface SourceBackNote {
-  ids: string[];
-  closed: boolean;
-}
-
-/**
- * Persisted `sourceBackNotes` (#357) as a trusted value: anything that is not a map of `{ ids, closed }` reads as
- * empty (older data has none), a malformed entry is left out, so its note is simply not shown.
- */
-export function sanitizeSourceBackNotes(raw: unknown): Record<string, SourceBackNote> {
-  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return {};
-  const notes: Record<string, SourceBackNote> = {};
-  for (const [source, value] of Object.entries(raw as Record<string, unknown>)) {
-    if (!value || typeof value !== 'object') continue;
-    const { ids, closed } = value as Record<string, unknown>;
-    if (!Array.isArray(ids)) continue;
-    notes[source] = { ids: sanitizeNotPlannedOrder(ids), closed: closed === true };
-  }
-  return notes;
-}
-
 /** Key-order-insensitive JSON form, so two structurally equal configs compare equal. */
 function stableJson(value: unknown): string {
   return JSON.stringify(value, (_key, v: unknown) =>
@@ -149,12 +127,6 @@ export const useBoardStore = defineStore("board", () => {
    * (`tasksStore.tasksNotPlanned`). `reconcileColumnsWithTasks` drops an id that is no longer not planned.
    */
   const notPlannedOrder = ref<string[]>([]);
-  /**
-   * Per source, the cards its first fetch after #357 took out of Offen (Todoist: every task starts under "Nicht
-   * geplant" now), persisted: the board shows one note for them with "Alle wieder einplanen" (`SourceBackNote.vue`).
-   * An entry is written once per source and never replaced, so the note cannot come a second time.
-   */
-  const sourceBackNotes = ref<Record<string, SourceBackNote>>({});
 
   // Transient state for scroll persistence
   const scrollPosition = ref({ top: 0, left: 0 });
@@ -550,19 +522,6 @@ export const useBoardStore = defineStore("board", () => {
     notPlannedOrder.value = [...ids, ...notPlannedOrder.value.filter(id => !ids.includes(id))];
   }
 
-  /** A source took `taskIds` out of Offen for the first time (#357): remembered for its one-time note. Later calls for the same source change nothing. */
-  function noteSourceBack(source: SourceId, taskIds: readonly string[]) {
-    if (taskIds.length === 0 || sourceBackNotes.value[source]) return;
-    sourceBackNotes.value = { ...sourceBackNotes.value, [source]: { ids: [...taskIds], closed: false } };
-  }
-
-  /** The note of `source` was answered ("Alle wieder einplanen" or "Schließen"): it is not shown again. */
-  function closeSourceBackNote(source: SourceId) {
-    const note = sourceBackNotes.value[source];
-    if (!note || note.closed) return;
-    sourceBackNotes.value = { ...sourceBackNotes.value, [source]: { ...note, closed: true } };
-  }
-
   /** Puts ids that are in a column's order at its end, in the order given (#356: several tasks planned at once). */
   function moveToEndOfColumn(taskStatus: TaskStatus, taskIds: readonly string[]) {
     const column = columns.value.find(c => c.taskStatus === taskStatus);
@@ -696,26 +655,21 @@ export const useBoardStore = defineStore("board", () => {
     reconcileColumnsWithTasks,
     notPlannedOrder,
     noteNotPlanned,
-    sourceBackNotes,
-    noteSourceBack,
-    closeSourceBackNote,
     moveToEndOfColumn,
   };
 }, {
   persist: {
     key: 'board-store',
-    pick: ['boardConfig', 'columns', 'grouping', 'focus', 'notPlannedOrder', 'sourceBackNotes'],
+    pick: ['boardConfig', 'columns', 'grouping', 'focus', 'notPlannedOrder'],
     // The Todoist token lives in the Keychain on desktop (ADR 007).
     omit: persistOmitFor('board-store'),
-    afterHydrate: (ctx: { store: { boardConfig: IBoardConfig; focus: unknown; notPlannedOrder: unknown; sourceBackNotes: unknown; $persist: () => void } }) => {
+    afterHydrate: (ctx: { store: { boardConfig: IBoardConfig; focus: unknown; notPlannedOrder: unknown; $persist: () => void } }) => {
       // The focus (#161) of older data is missing; a malformed one reads as none. In memory only: the next
       // mutation persists it (hydration must not write by itself, below). An earlier day's focus stays until then
       // and `activeFocusTopic` ignores it.
       ctx.store.focus = sanitizeFocus(ctx.store.focus);
       // The order of "Meine Aufgaben" (#354) follows the same rule: missing or malformed reads as empty, no write
       ctx.store.notPlannedOrder = sanitizeNotPlannedOrder(ctx.store.notPlannedOrder);
-      // The sources' one-time notes (#357): the same rule
-      ctx.store.sourceBackNotes = sanitizeSourceBackNotes(ctx.store.sourceBackNotes);
       const hydrated = ctx.store.boardConfig;
       const sanitised = sanitizeBoardConfig(hydrated);
       ctx.store.boardConfig = sanitised;
