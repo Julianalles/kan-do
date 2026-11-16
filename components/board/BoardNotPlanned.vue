@@ -384,12 +384,24 @@ async function pick(id: string, event: MouseEvent) {
     justify-content: center;
   }
 
-  /* A category heading (#404) starts on the left edge of the card pair, the line the add button and the first card
+  /* A category heading (#404) starts on the left edge of the first card, the line the add button and the first card
      share, so it stands over its first card however many cards the category has; centred over two tracks it hung
-     beside a single card. The pair's width is the add row's; a phone (one track) keeps its centred headings. */
+     beside a single card. It is as wide as the grid and indented by the free space beside the card in its track, so
+     the edge holds while the tracks shrink on a narrow desktop (the side is the container: its width less the body's
+     2 x 1rem margins and the 3rem gap, halved, is a track). A phone (one track) keeps its centred headings. */
+  .not-planned {
+    container-type: inline-size;
+  }
+
   .not-planned__group {
+    --track: min(calc(var(--task-card-width) + 1.5rem), calc((100cqw - 5rem) / 2));
+    /* the free space beside the card in its track */
+    --inset: calc((var(--track) - min(var(--task-card-width), var(--track) - 1.5rem)) / 2);
+    position: relative;
+    inset-inline-start: calc(var(--inset) / 2);
     justify-content: flex-start;
-    width: min(var(--add-row-width), 100%);
+    width: calc(2 * var(--track) + 3rem - var(--inset));
+    max-width: 100%;
     margin-inline: auto;
     text-align: start;
   }

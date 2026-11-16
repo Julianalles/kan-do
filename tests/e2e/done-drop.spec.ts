@@ -2,6 +2,12 @@ import { test, expect, type Locator, type Page } from '@playwright/test'
 import { seedLocalBoard, type SeedTask } from './helpers/seed'
 import { pickUp, hover, edgeDwell, showColumnPage } from './helpers/dnd'
 
+// Lengths of the done layer (store/board.ts DONE_CONFIRMATION_MS, FASTER_CONFIRMATION_MS, #400; pinned by the store test).
+// Every wait for the layer's end adds LOAD_MARGIN_MS, so gate load cannot flake a wait that is about as long as the layer.
+const PLAIN_MS = 2480
+const FASTER_MS = 3380
+const LOAD_MARGIN_MS = 2500
+
 /**
  * Dropping a card into Erledigt (#124): a light teal wash under the list and a one-line hint
  * while a card from another column hovers it; the card lands at the index the landing slot
@@ -101,7 +107,7 @@ test.describe('Drop into Erledigt (#124)', () => {
     await expect(dropped).toHaveClass(/task--confirming/)
     await expect(dropped.locator('.task-confirm')).toHaveAttribute('aria-hidden', 'true')
     await expect(doneList(page).locator('.task-confirm')).toHaveCount(1)
-    await expect(dropped.locator('.task-confirm')).toHaveCount(0, { timeout: 4000 }) // layer: 2.5 s (#400)
+    await expect(dropped.locator('.task-confirm')).toHaveCount(0, { timeout: PLAIN_MS + LOAD_MARGIN_MS }) // layer: 2.48 s (#400)
     await expect(dropped).toHaveClass(/task-done/)
 
     // The wash fades out; no praise copy and no toast (#136)
@@ -240,7 +246,7 @@ test.describe('Drop into Erledigt (#124)', () => {
     await expect(live).toContainText('abgelegt')
     // The same burst as for a mouse drop (#692)
     await expect(doneList(page).locator(`[data-task-id="${OPEN.id}"] [data-testid="completion-burst"]`)).toHaveCount(1)
-    await expect(page.locator('.task-confirm')).toHaveCount(0, { timeout: 4000 })
+    await expect(page.locator('.task-confirm')).toHaveCount(0, { timeout: PLAIN_MS + LOAD_MARGIN_MS })
     await expect(page.getByTestId('completion-burst')).toHaveCount(0, { timeout: 2000 })
     await expect(toasts(page)).toHaveCount(0)
   })
@@ -277,10 +283,10 @@ test.describe('Faster than planned (#295)', () => {
     // The burst plays with it
     await expect(page.getByTestId('completion-burst')).toHaveCount(1)
 
-    // It holds longer than the plain check (2.5 s) and is gone by 3.4 s (#400)
-    await page.waitForTimeout(2700)
+    // It holds longer than the plain check (2.48 s) and is gone by 3.38 s (#400)
+    await page.waitForTimeout(PLAIN_MS + 200)
     await expect(layer).toHaveCount(1)
-    await expect(layer).toHaveCount(0, { timeout: 3000 })
+    await expect(layer).toHaveCount(0, { timeout: FASTER_MS + LOAD_MARGIN_MS })
     await expect(toasts(page)).toHaveCount(0)
   })
 
@@ -294,7 +300,7 @@ test.describe('Faster than planned (#295)', () => {
       await expect(layer.locator('.task-confirm__icon')).toBeVisible()
       await expect(layer.locator('.task-confirm__message')).toHaveCount(0)
       await expect(page.getByText('Sehr gut! Schneller als geplant.')).toHaveCount(0)
-      await expect(layer).toHaveCount(0, { timeout: 2500 })
+      await expect(layer).toHaveCount(0, { timeout: PLAIN_MS + LOAD_MARGIN_MS })
     })
   }
 
@@ -315,7 +321,7 @@ test.describe('Faster than planned (#295)', () => {
     const msg = layer.locator('.task-confirm__message')
     await expect(msg).toBeVisible()
     // One synchronous read: layer and message are measured in the same frame, with the layer's animation frozen in
-    // its hold (1 s of 2.2 s), so neither the board's settling layout nor the fade can move one between two reads
+    // its hold (1 s of 3.4 s), so neither the board's settling layout nor the fade can move one between two reads
     const r = await layer.evaluate((el) => {
       el.getAnimations().forEach((a) => {
         a.pause()
@@ -573,7 +579,7 @@ test.describe('Done check spring (#611)', () => {
     await expect(dropped).toHaveClass(/task-done-check--pop/)
     expect(await animationOf(dropped)).toMatch(/^done-check-pop/) // scoped CSS suffixes the keyframes name
     // Once played it rests as the static check, and the other done cards never moved
-    await expect(dropped).not.toHaveClass(/task-done-check--pop/, { timeout: 3000 })
+    await expect(dropped).not.toHaveClass(/task-done-check--pop/, { timeout: PLAIN_MS + LOAD_MARGIN_MS })
     await expect(dropped).toBeVisible()
     await expect(checkOf(page, 'done-2')).not.toHaveClass(/task-done-check--pop/)
   })
@@ -586,7 +592,7 @@ test.describe('Done check spring (#611)', () => {
     await page.keyboard.press('Enter')
 
     await expect(checkOf(page, OPEN.id)).toHaveClass(/task-done-check--pop/)
-    await expect(checkOf(page, OPEN.id)).not.toHaveClass(/task-done-check--pop/, { timeout: 3000 })
+    await expect(checkOf(page, OPEN.id)).not.toHaveClass(/task-done-check--pop/, { timeout: PLAIN_MS + LOAD_MARGIN_MS })
 
     // A reload mounts every done card fresh and flags none (the seed puts the task back into Offen)
     await page.reload()

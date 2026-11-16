@@ -18,7 +18,7 @@ export async function center(target: Locator) {
 
 /**
  * Resolves once the previous drop has settled, so the next press is a fresh gesture: no `.board.dragging`,
- * no `.task--confirming` (the ~800 ms in-card done confirmation after a drop into Erledigt, #124) and no
+ * no `.task--confirming` (the in-card done confirmation (about 2.5 s, 3.4 s with the message) after a drop into Erledigt, #124) and no
  * running finite animation (the drop's own motion on cards, stacks and pills, transitions included). A press
  * during any of these silently does not start a drag (#408). The timebox nudge's 8 s countdown is not a drop
  * motion and is left out. Never call it mid-drag: a held drag pauses animations that would then never finish.
