@@ -1,6 +1,7 @@
 import { test, expect, type BrowserContext, type Page, type Request } from '@playwright/test'
 import stubSchema from '../fixtures/notion/database-schema.json' with { type: 'json' }
 import { buildSettingsStore, buildTasksStore, seedNotionBoard, DEFAULT_NOTION_SEED_CONFIG, type SeedTask } from './helpers/seed'
+import { goToPlace } from './helpers/appNav'
 
 /**
  * #357: what a connection brings in as "not planned".
@@ -98,8 +99,8 @@ test.describe('Todoist: a task seen for the first time starts under "Meine Aufga
     await page.reload()
     await expect(column(page, 'open').locator('.task-wrapper')).toHaveText([/Angebot schreiben/, /Rechnung prüfen/, /Neu aus Todoist/])
     await expect(notPlanned(page).locator('[data-not-planned-id]')).toHaveCount(0)
-    // "Planung" shows Offen only: Jetzt and Wartet are checked on Heute
-    await page.getByRole('link', { name: 'Heute' }).click()
+    // "Planung" shows Offen only: Jetzt and Wartet are checked on Heute (the bar's pill "Weiter zum Board", #373)
+    await goToPlace(page, 'Heute')
     await expect(column(page, 'progress').getByText('Plan zeichnen')).toBeVisible()
     await expect(column(page, 'waiting').getByText('Rückruf abwarten')).toBeVisible()
     expect(requests.filter((request) => !request.startsWith('GET '))).toEqual([])
