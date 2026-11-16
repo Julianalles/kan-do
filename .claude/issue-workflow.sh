@@ -58,6 +58,12 @@ wf_pr_body_check() {
   local base lines bad
   bad=$(grep '^E2E-specs:' "$1" | sed 's/^E2E-specs://' | tr ' ' '\n' | grep -Ev '^[A-Za-z0-9_-]*$' | head -1)
   [ -z "$bad" ] || { echo "the 'E2E-specs:' line holds only spec basenames separated by spaces; '$bad' is not one (put results on another line)"; return 1; }
+  local root; root=$(git rev-parse --show-toplevel 2>/dev/null)
+  if [ -n "$root" ] && [ -d "$root/tests/e2e" ]; then
+    for bad in $(grep '^E2E-specs:' "$1" | sed 's/^E2E-specs://'); do
+      [ -n "$(find "$root/tests/e2e" -name "$bad.spec.ts" -print -quit)" ] || { echo "the 'E2E-specs:' line names '$bad', but no tests/e2e/**/$bad.spec.ts exists (a name written from memory escaped three PRs, wave 3)"; return 1; }
+    done
+  fi
   base=$(git merge-base HEAD origin/main 2>/dev/null) || return 0
   local changed; changed=$(git diff --name-only "$base" HEAD 2>/dev/null)
   # Theme and CSS changes (app.config.ts, assets/) are UI too: the design review is a hard gate for them (#342 skipped it).
