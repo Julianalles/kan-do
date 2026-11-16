@@ -36,6 +36,10 @@ export interface DragState {
    * the leaving and the entering zone must not matter.
    */
   ghostCount: number
+  /** The drag started on a card under "Nicht geplant" (#355); `sourceStatus` is null then */
+  fromNotPlanned: boolean
+  /** The "Nicht geplant" side is the drop target right now (#355): it shows its wash for a card from Offen, and the placeholder leaves Offen's layout */
+  overNotPlanned: boolean
   /** After a drop, while the floating preview glides to its slot (kd#181, `useDropMotion`): the card it lands on */
   landingTaskId: string | null
   /** The stack the gliding preview shows; null for a single card */
@@ -54,6 +58,8 @@ const dragState = ref<DragState>({
   isDropBlocked: false,
   swapTaskId: null,
   ghostCount: 0,
+  fromNotPlanned: false,
+  overNotPlanned: false,
   landingTaskId: null,
   landingStack: null,
   setDownTaskId: null,

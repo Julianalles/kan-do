@@ -154,6 +154,10 @@
       "noMatch": "Keine Aufgaben gefunden.",
       "planned": "{title} ist für heute geplant.",
       "unplanned": "{title} ist nicht mehr für heute geplant.",
+      "unplannedStack": "Stapel „{title}“ ist nicht mehr für heute geplant.",
+      "dropHere": "Hier ablegen: nicht heute",
+      "dragOver": "„{title}“ über Nicht geplant. Beim Ablegen ist die Aufgabe nicht mehr für heute geplant.",
+      "dragBack": "„{title}“ bleibt in Nicht geplant.",
       "capacityFull": "Damit ist dein Tag vermutlich voll.",
       "capacityBelow": "Dein Tag ist vermutlich voll. Eine Aufgabe liegt unter der Linie. | Dein Tag ist vermutlich voll. {n} Aufgaben liegen unter der Linie."
     }

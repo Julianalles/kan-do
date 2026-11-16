@@ -137,10 +137,13 @@
         "composables/useStack*.ts",
         "components/board/SortableTaskWrapper.vue",
         "components/board/ColumnDropZone.vue",
+        "components/board/BoardNotPlannedItem.vue",
+        "utils/planDrop.ts",
         "components/task/TaskStack*.vue"
       ],
       "specs": [
         "drag-and-drop",
+        "all-place",
         "card-click-open",
         "dnd-double-placeholder",
         "done-drop",
@@ -669,6 +672,7 @@
         "composables/useHeldWhileDragging*",
         "composables/useEdgeIndicatorTop*",
         "composables/usePlanMoves.ts",
+        "utils/planDrop.ts",
         "lib/boardPlace.ts",
         "plugins/board-place.client.ts",
         "lib/quickAddSuggestions.ts",

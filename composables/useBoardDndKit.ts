@@ -13,6 +13,7 @@ import { useBoardGrouping } from '~/composables/useBoardGrouping'
 import { useBoardFocus } from '~/composables/useBoardFocus'
 import { isSortable } from '@dnd-kit/vue/sortable'
 import { isColumnItemNode } from '~/utils/columnItems'
+import { NOT_PLANNED_GROUP, isNotPlannedZone, resolvePlanDrop } from '~/utils/planDrop'
 
 /**
  * Central dnd-kit event handler for the board.
@@ -32,13 +33,18 @@ import { isColumnItemNode } from '~/utils/columnItems'
  *   Dropping it moves every member as one block: members are snapshotted at drag start, a block of
  *   2+ never fits Jetzt, and a block completed in Erledigt gets ONE undo toast (the deliberate
  *   exception to #136: after a merge the reverse drag would also move tasks done before)
+ * - The place "Alle" (#355): a card under "Nicht geplant" is a sortable of the group `NOT_PLANNED_GROUP`, the side one
+ *   droppable (`data.notPlannedZone`). Dropped on Offen the card is planned (`planTask`) and placed in the previewed slot;
+ *   an Offen card or stack dropped on the side is taken off today's board (`unplanTask`); a "Nicht geplant" card
+ *   dropped anywhere else goes back. The rule is `resolvePlanDrop`; these drops never change a status, so the WIP
+ *   limit is not in play, and a "Nicht geplant" card is kept out of every column but Offen in `onDragOver`
  */
 
 export function useBoardDndKit() {
   const tasksStore = useTasksStore()
   const boardStore = useBoardStore()
   const { dragState } = useBoardDragState()
-  const { updateTaskStatus, updateTaskStatuses, handleSyncError } = useTaskSync()
+  const { updateTaskStatus, updateTaskStatuses, handleSyncError, planTask, unplanTask } = useTaskSync()
   const { captureCompletionSnapshots, notifyCompletedBlock } = useCompletionUndo()
   const { swapIntoProgress } = useTaskSwap()
   const stacks = useStackExpansion()
@@ -87,6 +93,8 @@ export function useBoardDndKit() {
     list: Element | null
     taskId: string
     status: TaskStatus | undefined
+    /** The drag started under "Nicht geplant" (#355): `list` is that side's list and `status` is undefined */
+    fromNotPlanned: boolean
   }
   let dragOrigin: DragOrigin | null = null
   /** The stack picked up at drag start (#150): the members it moves are the ones it had then */
@@ -156,6 +164,10 @@ export function useBoardDndKit() {
    */
   function restoreDraggedElement(origin: DragOrigin | null) {
     if (!origin) return
+    if (origin.fromNotPlanned) {
+      restoreNotPlannedElement(origin)
+      return
+    }
     const { element, list, taskId, status } = origin
     const order = status === undefined ? null : getRenderedOrder(status)
     if (!order || !list || !order.draggableIds.includes(taskId)) {
@@ -184,6 +196,27 @@ export function useBoardDndKit() {
       return
     }
     list.insertBefore(element, list.querySelector(':scope > .column-drop-zone'))
+  }
+
+  /**
+   * The same for a card of "Nicht geplant" (#355), whose node dnd-kit moved into Offen's list to preview a slot:
+   * back before the next card the side renders (`tasksNotPlanned` under the topic focus), else to the end of its
+   * list; removed when the side no longer renders the task or Vue already rendered a fresh node for it. A node that
+   * is leaving the list (TransitionGroup) names a task the side no longer renders, so it is never an anchor.
+   */
+  function restoreNotPlannedElement(origin: DragOrigin) {
+    const { element, list, taskId } = origin
+    const ids = applyFocus(tasksStore.tasksNotPlanned).map(t => t.id)
+    const idOf = (el: Element) => el.getAttribute('data-not-planned-id')
+    const siblings = list ? [...list.children].filter(child => child !== element && idOf(child) !== null) : []
+    if (!list || !ids.includes(taskId) || siblings.some(el => idOf(el) === taskId)) {
+      if (element.isConnected) element.remove()
+      return
+    }
+    const laterIds = ids.slice(ids.indexOf(taskId) + 1)
+    const next = laterIds.map(id => siblings.find(el => idOf(el) === id)).find(Boolean) ?? null
+    if (element.parentNode === list && element.nextElementSibling === next) return
+    list.insertBefore(element, next)
   }
 
   /**
@@ -283,13 +316,18 @@ export function useBoardDndKit() {
     const element = source.element
     const taskId = String(source.id)
     boardStore.endTimeboxNudge(taskId) // a drag ends the card's nudge (#389)
-    dragOrigin = element ? { element, list: element.parentElement, taskId, status: source.group as TaskStatus | undefined } : null
+    const fromNotPlanned = source.group === NOT_PLANNED_GROUP
+    dragOrigin = element
+      ? { element, list: element.parentElement, taskId, status: fromNotPlanned ? undefined : source.group as TaskStatus | undefined, fromNotPlanned }
+      : null
     dragStack = readStack(source)
     dragManager = (source as { manager?: DragManager }).manager ?? null
     dragState.value.isDragging = true
     dragState.value.draggedTaskId = taskId
     dragState.value.draggedStack = dragStack ? { ...dragStack, taskIds: [...dragStack.taskIds] } : null
-    dragState.value.sourceStatus = (source.group as TaskStatus) ?? null
+    dragState.value.sourceStatus = fromNotPlanned ? null : (source.group as TaskStatus) ?? null
+    dragState.value.fromNotPlanned = fromNotPlanned
+    dragState.value.overNotPlanned = false
     dragState.value.hoverTargetStatus = null
     dragState.value.isDropBlocked = false
     dragState.value.swapTaskId = null
@@ -301,6 +339,14 @@ export function useBoardDndKit() {
 
     // The swap state (#162) lasts only while the pointer is over Jetzt: no target at all ends it too
     if (!target) dragState.value.swapTaskId = null
+    // The "Nicht geplant" side as target (#355): it answers itself (BoardNotPlanned), no column is hovered
+    dragState.value.overNotPlanned = isNotPlannedZone(target)
+    if (dragState.value.overNotPlanned) {
+      dragState.value.hoverTargetStatus = null
+      dragState.value.isDropBlocked = false
+      dragState.value.swapTaskId = null
+      return
+    }
     if (!isSortable(source as never) || !target) return
 
     // Resolve target column status from sortable group or ColumnDropZone data
@@ -313,7 +359,19 @@ export function useBoardDndKit() {
       targetGroup = targetData?.taskStatus
     }
 
+    const fromNotPlanned = (source as { initialGroup?: unknown }).initialGroup === NOT_PLANNED_GROUP
+    // Its own slot under "Nicht geplant" is no column
+    if ((targetGroup as unknown) === NOT_PLANNED_GROUP) targetGroup = undefined
     dragState.value.hoverTargetStatus = targetGroup ?? null
+
+    // A "Nicht geplant" card goes to Offen only (#355). The other columns are out of reach on "Alle" (inert, out of
+    // layout); should one be hit all the same, the card must not be sorted into it
+    if (fromNotPlanned && targetGroup !== undefined && targetGroup !== TaskStatus.Open) {
+      dragState.value.isDropBlocked = false
+      dragState.value.swapTaskId = null
+      event.preventDefault()
+      return
+    }
 
     // Reset drop-blocked when not hovering Progress
     if (targetGroup !== TaskStatus.Progress) {
@@ -373,6 +431,8 @@ export function useBoardDndKit() {
     dragState.value.hoverTargetStatus = null
     dragState.value.isDropBlocked = false
     dragState.value.ghostCount = 0
+    dragState.value.fromNotPlanned = false
+    dragState.value.overNotPlanned = false
 
     const origin = dragOrigin
     dragOrigin = null
@@ -402,6 +462,35 @@ export function useBoardDndKit() {
     }
 
     const { id, initialIndex, index, initialGroup, group } = sortable
+
+    // Between "Nicht geplant" and Offen (#355): no status changes, so this ends before the column logic and the WIP check
+    const planDrop = resolvePlanDrop(sortable, target)
+    if (planDrop !== null) {
+      // The slot the card previews in Offen, read before the node goes back
+      const slotNextId = planDrop === 'plan' ? readNextItemId(sortable.element, TaskStatus.Open) : undefined
+      restoreDraggedElement(origin)
+      if (planDrop === 'plan') {
+        const taskId = String(id)
+        if (!planTask(taskId)) return
+        // Not in Offen's list: the drop went on the column's drop zone, below the cards
+        saveRenderedOrder(TaskStatus.Open, [taskId], { nextId: slotNextId === undefined ? null : slotNextId, index: 0, downward: false })
+        if (import.meta.dev) console.log('[DnD] plan', { taskId, before: slotNextId })
+      } else if (planDrop === 'unplan') {
+        const members = stack ?? readStack(sortable)
+        const taskIds = members ? members.taskIds : [String(id)]
+        // Each task goes on top of "Nicht geplant": last member first, so a stack keeps its order there
+        let taken = false
+        for (const taskId of [...taskIds].reverse()) taken = unplanTask(taskId) || taken
+        // The card lands on top: a scrolled list shows its start, so the drop glide ends on a card in view
+        // (the arrow's move does the same, usePlanMoves)
+        if (taken && origin?.list) {
+          const body = document.querySelector<HTMLElement>('#column-not-planned .not-planned__body')
+          if (body) body.scrollTop = 0
+        }
+        if (import.meta.dev) console.log('[DnD] unplan', { taskIds })
+      }
+      return
+    }
     const srcStatus = initialGroup as TaskStatus | undefined
 
     // Determine target status. A ColumnDropZone target (plain droppable with data.taskStatus) is
