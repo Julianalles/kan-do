@@ -12,6 +12,7 @@
 - Pick: a round button per card ("Für heute einplanen", named with the task's title). Desktop: on the paper right of the card, towards Offen, quiet at rest and full on hover and focus, so a first-time user finds it (#354 D1e). Phone: in the card's top right corner, where a board card has its menu button. The move is `usePlanMoves().planForToday`; keyboard focus goes on to the next card's button
 - Order: `tasksStore.tasksNotPlanned` (put back by hand first, newest first); the topic focus filters it like a column (`useBoardFocus`)
 - A new day (#356): the tasks today's pass sent back (`useNewDay().groupIds`) stand on top as the group "Gestern geplant, noch offen" (its `h3` in the row under the headline), every other task below under "Weitere Aufgaben". For that one day only; a group the topic focus leaves empty is not shown, and without the first group there are no headings at all. Pick, drag and the focus hand-over work across the heading
+- Limit (#357): when Notion holds more "not planned" pages than a sync loads (`notionConfig.notPlannedLimited`, the most recently edited 500), one muted line under the list says so
 - Empty: one muted note. Nothing held here: "Keine weiteren Aufgaben vorhanden." and the soft button "Aufgabe erstellen" (#367, the user's wording), which opens the sheet's add form under `/all/add`; a task made while "Alle" shows is not planned, so it lands here; a focus without a match: "Keine Aufgaben gefunden."; a board without any task stays blank
 - Many items: on desktop the side is as tall as the window and its list scrolls inside it, so Offen and "Tag starten" stay in view; on a phone the page scrolls like every column page
 - Out of view (`active` false) the side is `inert`; Board.vue's CSS takes it out of layout or view once the move is over
@@ -113,6 +114,10 @@
           @pick="pick"
         />
       </TransitionGroup>
+      <!-- Notion holds more "not planned" pages than one sync loads (#357): said here, so the list never reads as complete -->
+      <EmptyNote v-if="notionLimited && held.length > 0" class="not-planned__note mt-6" data-testid="not-planned-limit">
+        {{ t('board.notPlanned.notionLimit', { n: NOT_PLANNED_PAGE_LIMIT }) }}
+      </EmptyNote>
     </div>
   </section>
 </template>
@@ -134,6 +139,9 @@ import { useNewDay } from '~/composables/useNewDay'
 import { useBoardDragState } from '~/composables/useBoardDragState'
 import { notPlannedZoneAccepts } from '~/utils/planDrop'
 import { TaskStatus } from '~/types/taskStatus'
+import { useNotionConfigStore } from '~/store/notionConfig'
+import { useBoardStore } from '~/store/board'
+import { NOT_PLANNED_PAGE_LIMIT } from '~/lib/notionLimits'
 
 defineOptions({ name: 'BoardNotPlanned' })
 
@@ -168,6 +176,8 @@ const isDropTarget = computed(() => dragState.value.isDragging && dragState.valu
 
 /** Everything that is not on today's board */
 const held = computed(() => tasksStore.tasksNotPlanned)
+// Notion left "not planned" pages out of the last sync (#357); only while Notion is a connection of this board
+const notionLimited = computed(() => useNotionConfigStore().notPlannedLimited === true && useBoardStore().isIntegrationConnected('notion'))
 /** What the topic focus leaves of it (the funnel in the app bar filters this side like a column) */
 const shown = computed(() => applyFocus(held.value))
 /**

@@ -151,6 +151,7 @@
       "empty": "No more tasks.",
       "create": "Create task",
       "noMatch": "No tasks found.",
+      "notionLimit": "The {n} most recently edited tasks are loaded from Notion. You find the others in Notion.",
       "planned": "{title} is planned for today.",
       "unplanned": "{title} is no longer planned for today.",
       "unplannedStack": "Stack “{title}” is no longer planned for today.",
@@ -698,6 +699,11 @@
         "label": "Archived",
         "help": "Optional status Kan-Do sets in Notion when you put done tasks away with “Seen”.",
         "placeholder": "Select status for archived tasks"
+      },
+      "notPlanned": {
+        "label": "Not planned",
+        "help": "Notion statuses that mean “not planned”. These tasks are under “All”, in “Not planned”. When you put a task back, Kan-Do sets the first status. The {n} most recently edited are loaded.",
+        "placeholder": "Select statuses for “Not planned”"
       },
       "duplicates": "The following status values are mapped more than once: {values}"
     },

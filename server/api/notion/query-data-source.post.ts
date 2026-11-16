@@ -12,7 +12,7 @@ export default defineEventHandler(async (event) => {
   try {
     const token = getTokenFromEvent(event)
     const body = await readBody(event)
-    const { dataSourceId, filter, page_size, start_cursor } = body
+    const { dataSourceId, filter, sorts, page_size, start_cursor } = body
 
     if (!token || !dataSourceId) {
       throwApiError(
@@ -38,6 +38,8 @@ export default defineEventHandler(async (event) => {
       path: `data_sources/${dataSourceId}/query`,
       body: {
         filter,
+        // The order of a capped list (#357: the most recently edited "not planned" pages); Notion rejects a non-array
+        ...(Array.isArray(sorts) && sorts.length > 0 ? { sorts } : {}),
         page_size: page_size ?? 100,
         // Only forwarded when set; the client loops over has_more / next_cursor (see NotionClientAPI.queryDataSource)
         ...(start_cursor ? { start_cursor } : {}),

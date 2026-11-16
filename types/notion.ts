@@ -147,6 +147,13 @@ export interface NotionStatusMapping {
   waiting?: string | null;
   /** Optional Notion status to apply when tasks are archived locally */
   archive?: string | null;
+  /**
+   * The Notion statuses that mean "not planned" (#357, the user's decision of 2026-11-16). Empty or absent (every
+   * config stored before): nothing is loaded or written for it. Set: pages in these statuses load under "Nicht
+   * geplant" (the most recently edited `NOT_PLANNED_PAGE_LIMIT`), and a task the user puts back is written as the
+   * first one; a planned task is written as `today`.
+   */
+  notPlanned?: string[] | null;
 }
 
 /**

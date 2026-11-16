@@ -75,11 +75,15 @@ describe('NotionSource', () => {
   let configured: boolean
   let dataSource: boolean
   let archive: string | null
+  const notPlannedStatus: string | null = null
+  const limitReports: boolean[] = []
   const build = () => new NotionSource({
     isConfigured: () => configured,
     ensureDataSource: async () => dataSource,
     createInstance: () => integration as unknown as NotionIntegration,
     archiveStatus: () => archive,
+    notPlannedStatus: () => notPlannedStatus,
+    onNotPlannedLimit: (limited) => { limitReports.push(limited) },
     health: () => 'offline',
   })
 

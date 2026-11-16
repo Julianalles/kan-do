@@ -151,6 +151,7 @@
       "empty": "Keine weiteren Aufgaben vorhanden.",
       "create": "Aufgabe erstellen",
       "noMatch": "Keine Aufgaben gefunden.",
+      "notionLimit": "Aus Notion sind die {n} zuletzt bearbeiteten Aufgaben geladen. Weitere findest du in Notion.",
       "planned": "{title} ist für heute geplant.",
       "unplanned": "{title} ist nicht mehr für heute geplant.",
       "unplannedStack": "Stapel „{title}“ ist nicht mehr für heute geplant.",
@@ -698,6 +699,11 @@
         "label": "Archiviert",
         "help": "Optionaler Status, den Kan-Do in Notion setzt, wenn du erledigte Aufgaben mit „Gesehen“ ablegst.",
         "placeholder": "Status für archivierte Aufgaben auswählen"
+      },
+      "notPlanned": {
+        "label": "Nicht geplant",
+        "help": "Status in Notion, die „nicht geplant“ bedeuten. Solche Aufgaben stehen unter „Alle“ bei „Nicht geplant“. Stellst du eine Aufgabe zurück, setzt Kan-Do den ersten Status. Geladen werden die {n} zuletzt bearbeiteten.",
+        "placeholder": "Status für „Nicht geplant“ auswählen"
       },
       "duplicates": "Die folgenden Status-Werte sind mehrfach zugeordnet: {values}"
     },

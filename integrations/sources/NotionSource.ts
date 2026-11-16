@@ -16,6 +16,10 @@ export interface NotionSourceDeps {
   createInstance: () => NotionIntegration
   /** The Notion status an archived task is written as; `null` when none is mapped. */
   archiveStatus: () => string | null
+  /** The Notion status a put-back is written as (#357: the first mapped "not planned" status); `null` when none is mapped. */
+  notPlannedStatus: () => string | null
+  /** Told after every fetch whether Notion holds more "not planned" pages than were loaded. */
+  onNotPlannedLimit?: (limited: boolean) => void
   health: () => IntegrationHealth
 }
 
@@ -41,7 +45,15 @@ export class NotionSource implements TaskSourceAdapter {
     if (!(await this.deps.ensureDataSource())) {
       throw new Error('Notion data source is not configured')
     }
-    return this.deps.createInstance().fetchActiveBoardTasks()
+    const notion = this.deps.createInstance()
+    const tasks = await notion.fetchActiveBoardTasks()
+    this.deps.onNotPlannedLimit?.(notion.notPlannedLimited)
+    return tasks
+  }
+
+  /** Planning is written to Notion only once the user mapped a "not planned" status (#357). */
+  notPlannedHold(): string | null {
+    return this.deps.isConfigured() ? this.deps.notPlannedStatus() : null
   }
 
   timeHolding(): (seconds: number) => number {

@@ -28,7 +28,7 @@ const notion = {
   createTask: vi.fn<(draft: Partial<Task>) => Promise<Task>>(),
   archiveTask: vi.fn<(externalId: string) => Promise<void>>(),
 }
-const notionConfig = { isConfigured: true, hasDataSourceSelected: true, config: { token: 't', statusMapping: { archive: null as string | null } } }
+const notionConfig = { isConfigured: true, hasDataSourceSelected: true, setNotPlannedLimited: () => {}, config: { token: 't', statusMapping: { archive: null as string | null } } }
 vi.mock('~/composables/useNotionIntegration', () => ({
   useNotionIntegration: () => ({ isConfigured: { value: true }, createInstance: () => notion }),
 }))

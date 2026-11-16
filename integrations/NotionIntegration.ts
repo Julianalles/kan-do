@@ -1,4 +1,5 @@
 import type { Task, TaskCustomEntry, TaskCustomValue } from "~/types/task";
+import { NOT_PLANNED_PAGE_LIMIT } from '~/lib/notionLimits';
 import { TaskStatus } from "~/types/task";
 import type {
   NotionPropertyMapping,
@@ -209,6 +210,28 @@ export class NotionIntegration {
   private statusValue(type: StatusPropertyType, name: string): { select: { name: string } } | { status: { name: string } } {
     return type === 'status' ? { status: { name } } : { select: { name } };
   }
+
+  /** The mapped "not planned" statuses (#357); empty when none is set, which is every config stored before. */
+  private notPlannedStatuses(): string[] {
+    const mapped = this.statusMapping.notPlanned;
+    return Array.isArray(mapped) ? mapped.filter((name): name is string => typeof name === 'string' && name !== '') : [];
+  }
+
+  /**
+   * The Notion status a task is written as. An Offen task kan-do holds as not planned AND whose page is held in a
+   * still-mapped "not planned" status (`sourceNotPlanned`: read by a fetch, or set by the user's own put-back) keeps
+   * exactly that status, so a page from the second mapped status is not rewritten to the first. Every other Open
+   * task is written as `today`, also one kan-do put back by itself (the new day): only the user's own move changes
+   * a page's planning (#357).
+   */
+  private statusNameFor(task: Pick<Task, 'status' | 'notPlanned' | 'sourceNotPlanned'>): string {
+    const held = task.sourceNotPlanned;
+    if (task.status === TaskStatus.Open && task.notPlanned === true && held !== undefined && this.notPlannedStatuses().includes(held)) return held;
+    return this.mapStatusToNotion(task.status);
+  }
+
+  /** Whether the last `fetchActiveBoardTasks` left "not planned" pages out because Notion has more than the limit. */
+  notPlannedLimited = false;
 
   private mapNotionStatus(notionStatus: string): TaskStatus {
     const statusMap: Record<string, TaskStatus> = {
@@ -537,7 +560,7 @@ export class NotionIntegration {
       // Status
       [this.propertyMapping.status]: this.statusValue(
         statusType,
-        task.status !== undefined ? this.mapStatusToNotion(task.status) : this.statusMapping.today,
+        this.statusNameFor({ status: task.status ?? TaskStatus.Open, notPlanned: task.notPlanned, sourceNotPlanned: task.sourceNotPlanned }),
       ),
     };
 
@@ -763,7 +786,7 @@ export class NotionIntegration {
           statusType,
           (task.archivedAt && this.statusMapping.archive)
             ? this.statusMapping.archive
-            : this.mapStatusToNotion(task.status),
+            : this.statusNameFor(task),
         ),
       };
 
@@ -1017,8 +1040,36 @@ export class NotionIntegration {
     const response = await this.api.queryDataSource(this.dataSourceId, {
       filter: { or: statusFilters },
     });
+    const pages = response.results as NotionPage[];
 
-    return (response.results as NotionPage[]).map((page) => this.parseNotionPageToTask(page));
+    // The pages in a "not planned" status (#357), only once the user mapped one: a list of its own, because it may
+    // be an archive. It is capped at the most recently edited `NOT_PLANNED_PAGE_LIMIT`; the board query above is
+    // never capped. A page both queries return (its status changed in between) is taken once.
+    this.notPlannedLimited = false;
+    const notPlanned = this.notPlannedStatuses();
+    if (notPlanned.length > 0) {
+      const held = await this.api.queryDataSource(this.dataSourceId, {
+        filter: { or: notPlanned.map((name) => this.statusFilter(statusType, name)) },
+        sorts: [{ timestamp: 'last_edited_time', direction: 'descending' }],
+        maxResults: NOT_PLANNED_PAGE_LIMIT,
+      });
+      this.notPlannedLimited = held.limited === true;
+      const seen = new Set(pages.map((page) => page.id));
+      for (const page of held.results as NotionPage[]) {
+        // Only what the filter asked for: a transport that ignores it must not double the board
+        if (seen.has(page.id) || !notPlanned.includes(this.statusNameOf(page))) continue;
+        seen.add(page.id);
+        pages.push(page);
+      }
+    }
+
+    return pages.map((page) => this.parseNotionPageToTask(page));
+  }
+
+  /** The page's status name as Notion holds it (select or native Status); empty when it has none. */
+  private statusNameOf(page: NotionPage): string {
+    const property = (page.properties ?? ({} as NotionPage['properties']))[this.propertyMapping.status];
+    return property?.select?.name || property?.status?.name || '';
   }
 
   /**
@@ -1031,10 +1082,10 @@ export class NotionIntegration {
     const properties = page.properties ?? ({} as NotionPage['properties']);
 
     // Extract status first for use in other property calculations
-    const statusPropName = this.propertyMapping.status;
-    const status = this.mapNotionStatus(
-      properties[statusPropName]?.select?.name || properties[statusPropName]?.status?.name || this.statusMapping.today,
-    );
+    const statusName = this.statusNameOf(page);
+    const status = this.mapNotionStatus(statusName || this.statusMapping.today);
+    // A page in a mapped "not planned" status (#357): an Open task whose source holds it as not planned
+    const heldNotPlanned = this.notPlannedStatuses().includes(statusName);
 
     const task: Task = {
       id: page.id,
@@ -1100,6 +1151,7 @@ export class NotionIntegration {
       archivedAt: null, // Never set from integration
       isUnplanned: this.extractUnplannedFlag(page),
       custom: {},
+      ...(heldNotPlanned ? { sourceNotPlanned: statusName } : {}),
     } as Task;
 
     // Parse enabled custom properties

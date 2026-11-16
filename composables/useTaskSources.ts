@@ -36,6 +36,8 @@ export const useTaskSources = () => {
           },
           createInstance: () => useNotionIntegration().createInstance(),
           archiveStatus: () => notionConfig.config?.statusMapping?.archive || null,
+          notPlannedStatus: () => notionConfig.config?.statusMapping?.notPlanned?.find((name) => typeof name === 'string' && name !== '') ?? null,
+          onNotPlannedLimit: (limited) => notionConfig.setNotPlannedLimited(limited),
           health: () => health.statusOf('notion'),
         })
       case 'todoist':
