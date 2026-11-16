@@ -12,12 +12,15 @@
  *   ?seed=newday[-all][&daysago=n] — Local source, first start on a new day (#385): four tasks done n days ago (default 1),
  *                   not archived, plus an open and a waiting card; `newday-all` has nothing open. Writes `day-recap-store`
  *                   with `lastShownDay` n+1 days back, so the recap opens (`&daysago=3` reads "am Montag"-style copy).
- *                   The new day's pass (#356) runs too and sends the open card back to "Meine Aufgaben"; the store says
- *                   an earlier pass already happened, so the one-time note stays away
- *   ?seed=newday-back[&first=1] — the new day in full (#356): like `newday`, plus a card in Jetzt (with time spent), a
- *                   second Offen card and a task that was not planned before. After the recap "Planung" shows the group
- *                   "Gestern geplant, noch offen" above "Weitere Aufgaben" and Heute an empty Offen with its sentence.
- *                   `&first=1`: no earlier pass is stored, so the one-time note with "Alle wieder einplanen" shows
+ *                   Nothing moves by itself (#387): "Tag planen" in the recap is the fresh start, "Direkt zum Board"
+ *                   keeps the board and shows the notice that offers it. `&nomarker=1` (every new-day seed) stores
+ *                   no `lastNewDay`: the data of a version before the fresh start (the update from v0.16.0)
+ *   ?seed=newday-back — the new day in full (#356, #387): like `newday`, plus a card in Jetzt (with time spent), a
+ *                   second Offen card and a task that was not planned before. After "Tag planen" "Planung" shows the
+ *                   group "Gestern geplant, noch offen", the category "Zuletzt in Wartet" and "Weitere Aufgaben", and
+ *                   Heute an empty Offen with its sentence
+ *   ?seed=newday-notice — `newday-back` without the done tasks: no recap is due, so the board shows as it was left
+ *                   and the notice that offers the fresh start is on it
  *   ?seed=demo    — Local source, the realistic demo board (#527, lib/demo-board.ts): a landscaping business owner's
  *                   offers, building sites, staff and bookkeeping. Offen has topics, activities and priorities that form
  *                   stacks under every grouping option, Jetzt a timebox with time spent, Wartet notes and carry-over,
@@ -202,13 +205,14 @@ export default defineNuxtPlugin((nuxtApp) => {
   }
 
   // Seeds keep the Fokus overlay off unless asked for (`&focus=1`); the app default is on
-  if (['local', 'demo', 'dayclose', 'notion', 'mixed', 'notion-sandbox'].includes(seed)) {
+  // (the new-day seeds too since #387: their Jetzt card stays on the board until the user starts the day fresh)
+  if (['local', 'demo', 'dayclose', 'newday', 'newday-all', 'newday-back', 'newday-notice', 'notion', 'mixed', 'notion-sandbox'].includes(seed)) {
     localStorage.setItem('settings-store', JSON.stringify({ focusEnabled: url.searchParams.get('focus') === '1' }))
     url.searchParams.delete('focus')
   }
 
   // A seeded board starts with an empty trash (#422), so the dock shows no trash icon until a task is deleted
-  if (['local', 'demo', 'dayclose', 'newday', 'newday-all', 'newday-back', 'notion', 'mixed', 'notion-sandbox'].includes(seed)) {
+  if (['local', 'demo', 'dayclose', 'newday', 'newday-all', 'newday-back', 'newday-notice', 'notion', 'mixed', 'notion-sandbox'].includes(seed)) {
     localStorage.removeItem('trash-store')
     // ... and no topic colours or symbols left over from a previous seed (#431)
     localStorage.removeItem('topic-styles')
@@ -232,16 +236,20 @@ export default defineNuxtPlugin((nuxtApp) => {
     const list = allDone ? dayCloseTasks.filter(task => task.status === 3) : dayCloseTasks
     localStorage.setItem('board-store', JSON.stringify(buildBoardStore('local', list)))
     localStorage.setItem('tasks-store', JSON.stringify(tasksStoreFor('local', list, { carryOverByTaskId: allDone ? {} : dayCloseCarryOver })))
-  } else if (seed === 'newday' || seed === 'newday-all' || seed === 'newday-back') {
-    const list = seed === 'newday-all' ? newDayAllDone : seed === 'newday' ? [...newDayDone, ...newDayUndone] : [...newDayDone, ...newDayBack, ...newDayUndone]
+  } else if (seed === 'newday' || seed === 'newday-all' || seed === 'newday-back' || seed === 'newday-notice') {
+    const list = seed === 'newday-all'
+      ? newDayAllDone
+      : seed === 'newday'
+        ? [...newDayDone, ...newDayUndone]
+        : [...(seed === 'newday-notice' ? [] : newDayDone), ...newDayBack, ...newDayUndone]
     const lastShown = new Date(); lastShown.setDate(lastShown.getDate() - daysAgo - 1)
-    // `&first=1` (newday-back): the first morning after the update, no pass is on record yet (#356)
-    const first = seed === 'newday-back' && url.searchParams.get('first') === '1'
-    url.searchParams.delete('first')
-    const earlierPass = first ? {} : { lastNewDay: dayKey(lastShown), firstBackDay: dayKey(lastShown) }
+    // The day was last started fresh on the day of the marker: today is a day the user has not planned yet (#387)
     localStorage.setItem('board-store', JSON.stringify(buildBoardStore('local', list.filter(task => !('notPlanned' in task)))))
     localStorage.setItem('tasks-store', JSON.stringify(tasksStoreFor('local', list, { carryOverByTaskId: seed === 'newday-all' ? {} : newDayCarryOver })))
-    localStorage.setItem('day-recap-store', JSON.stringify({ lastShownDay: dayKey(lastShown), archiveDone: true, ...earlierPass }))
+    // `&nomarker=1`: no `lastNewDay` at all, the stored state of a version before the fresh start (the update from v0.16.0)
+    const noMarker = url.searchParams.get('nomarker') === '1'
+    url.searchParams.delete('nomarker')
+    localStorage.setItem('day-recap-store', JSON.stringify({ lastShownDay: dayKey(lastShown), archiveDone: true, ...(noMarker ? {} : { lastNewDay: dayKey(lastShown) }) }))
   } else if (seed === 'notion') {
     localStorage.setItem('board-store', JSON.stringify(buildBoardStore('notion')))
     localStorage.setItem('tasks-store', JSON.stringify(tasksStoreFor('notion')))

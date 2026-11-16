@@ -207,6 +207,7 @@ v-if="logTail" v-model="draft.include.log" :label="t('feedback.review.itemLog')"
             :aria-label="previewHeading"
             class="max-h-64 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs wrap-break-word whitespace-pre-wrap text-toned"
             tabindex="0"
+            data-selectable
             data-testid="feedback-body-preview"
           >{{ body }}</pre>
         </section>

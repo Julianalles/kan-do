@@ -98,7 +98,7 @@
       @focusout="handleFocusOut"
     >
       <!-- Offen is empty on Heute while yesterday's cards wait under "Planung" (#356): one muted sentence with the way there.
-           The app took the cards off the board itself, so this one empty column is not blank (#334, Pattern line) -->
+           The fresh start took them off the board in one go (the user's click, #387), so this one empty column is not blank (#334, Pattern line) -->
       <p
         v-if="showYesterdayNote"
         class="open-yesterday-note text-body text-muted"
@@ -199,7 +199,7 @@ const props = defineProps({
     type: String,
     default: undefined,
   },
-  /** Offen only (#356): how many tasks the new day sent back still wait under "Planung"; 0 for every other column. */
+  /** Offen only (#356, #387): how many tasks of today's fresh start (from Jetzt and Offen) still wait under "Planung"; 0 for every other column. */
   yesterdayWaiting: {
     type: Number,
     default: 0,

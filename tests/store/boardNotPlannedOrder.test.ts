@@ -7,6 +7,8 @@ import { createPinia, setActivePinia } from 'pinia'
 import { createApp, nextTick } from 'vue'
 import { createPersistedState } from 'pinia-plugin-persistedstate'
 import { sanitizeNotPlannedOrder, useBoardStore } from '~/store/board'
+import { TaskStatus } from '~/types/taskStatus'
+import type { Task } from '~/types/task'
 
 const sources = { boardConfig: { sources: { connected: [], default: 'local' } } }
 
@@ -59,5 +61,70 @@ describe('board store: notPlannedOrder (#354)', () => {
     const setItem = vi.spyOn(Storage.prototype, 'setItem')
     hydrate(undefined)
     expect(setItem).not.toHaveBeenCalled()
+  })
+})
+
+/**
+ * The category of the tasks a fresh start took out of Wartet (#387): `board-store.notPlannedFromWaiting`, an additive
+ * persisted list of ids beside `notPlannedOrder`, pruned by the same reconcile.
+ */
+describe('board store: notPlannedFromWaiting (#387)', () => {
+  const task = (id: string, status: TaskStatus, notPlanned = false): Task => ({
+    id, source: 'local', externalId: null, title: id, notes: null, status, priority: 1, timeBoxSeconds: null, timeSpentSeconds: 0,
+    topic: null, topicColorCode: null, activity: null, timerId: null, ...(notPlanned ? { notPlanned: true as const } : {}),
+  })
+
+  beforeEach(() => localStorage.clear())
+  afterEach(() => {
+    vi.restoreAllMocks()
+    localStorage.clear()
+  })
+
+  it('data stored before #387 hydrates to an empty list and keeps its order of "Meine Aufgaben"', () => {
+    const store = hydrate({ ...sources, notPlannedOrder: ['a', 'b'] })
+    expect(store.notPlannedFromWaiting).toEqual([])
+    expect(store.notPlannedOrder).toEqual(['a', 'b'])
+  })
+
+  it.each([
+    ['null', null],
+    ['a string', 'a,b'],
+    ['an object', { a: 1 }],
+    ['a number', 3],
+  ])('%s hydrates to an empty list without throwing', (_label, notPlannedFromWaiting) => {
+    expect(hydrate({ ...sources, notPlannedFromWaiting }).notPlannedFromWaiting).toEqual([])
+  })
+
+  it('hydration alone writes nothing back, also for a malformed list', () => {
+    localStorage.setItem('board-store', JSON.stringify({ ...sources, notPlannedFromWaiting: 'broken' }))
+    const setItem = vi.spyOn(Storage.prototype, 'setItem')
+    hydrate(undefined)
+    expect(setItem.mock.calls.filter(([key]) => key === 'board-store')).toEqual([])
+  })
+
+  it('a noted list survives a reload, in the order given, without repeats', async () => {
+    const first = hydrate(sources)
+    first.noteFromWaiting(['w1', 'w2'])
+    first.noteFromWaiting(['w2', 'w3'])
+    await nextTick()
+    expect(JSON.parse(localStorage.getItem('board-store') ?? '{}').notPlannedFromWaiting).toEqual(['w1', 'w2', 'w3'])
+    expect(hydrate(undefined).notPlannedFromWaiting).toEqual(['w1', 'w2', 'w3'])
+  })
+
+  it('the reconcile drops a task that is planned again, moved on or gone, and keeps the ones still held', () => {
+    const store = hydrate(sources)
+    store.noteFromWaiting(['held', 'planned', 'moved', 'gone'])
+    store.reconcileColumnsWithTasks([
+      task('held', TaskStatus.Open, true), task('planned', TaskStatus.Open), task('moved', TaskStatus.Waiting, true),
+    ])
+    expect(store.notPlannedFromWaiting).toEqual(['held'])
+  })
+
+  it('a task put back by hand later is no longer "from Wartet": it comes from Offen now', () => {
+    const store = hydrate(sources)
+    store.noteFromWaiting(['w1', 'w2'])
+    store.noteNotPlanned('w1')
+    expect(store.notPlannedFromWaiting).toEqual(['w2'])
+    expect(store.notPlannedOrder).toEqual(['w1'])
   })
 })

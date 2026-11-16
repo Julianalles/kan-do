@@ -19,7 +19,7 @@ UpdateDialog.
           {{ t('settings.updates.versionHeading') }}
         </SectionHeader>
         <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <p class="font-mono text-sm text-highlighted" data-testid="updates-version">
+          <p class="font-mono text-sm text-highlighted" data-selectable data-testid="updates-version">
             {{ t('settings.updates.versionLine', { version: state.appVersion ?? '…' }) }}
           </p>
           <div class="flex items-center gap-3">
@@ -75,7 +75,7 @@ UpdateDialog.
           {{ t('settings.updates.logHeading') }}
         </SectionHeader>
         <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-          <p class="min-w-0 font-mono text-sm break-all text-highlighted" data-testid="updates-log-path">{{ logPath }}</p>
+          <p class="min-w-0 font-mono text-sm break-all text-highlighted" data-selectable data-testid="updates-log-path">{{ logPath }}</p>
           <UButton variant="ghost" color="neutral" icon="i-ph-folder-open" data-testid="updates-log-reveal" @click="onRevealLog">
             {{ t('settings.updates.revealLog') }}
           </UButton>

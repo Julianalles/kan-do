@@ -112,3 +112,24 @@ html[data-shell="desktop"],
 html[data-shell="desktop"] * {
   overscroll-behavior: none;
 }
+
+/* Desktop app (#370): chrome is inert text, content stays selectable, as in a native app. A double click on a tab, button or
+   column name used to highlight its label like page text. Everything under the desktop marker is `user-select: none`; the
+   allow-list is text entry (input, textarea, contenteditable) and anything marked `data-selectable` (task title and notes,
+   error details, ids, paths: what the user may copy). The board keeps its own `none` on every element (dnd.css, #285: a
+   drag selects nothing, and its inputs set `text` themselves), so the allow-list skips `.board-container *`. `-webkit-user-select` for WKWebView, which
+   also makes a field unusable when it inherits `none`: fields and the marked content set `text` explicitly, descendants too.
+   The web build and dev builds are untouched (the marker is set by `plugins/desktop-shell.client.ts`). */
+html[data-shell="desktop"] body {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+html[data-shell="desktop"] :is(
+  input, textarea,
+  [contenteditable]:not([contenteditable="false"]), [contenteditable]:not([contenteditable="false"]) *,
+  [data-selectable], [data-selectable] *
+):not(.board-container *) {
+  -webkit-user-select: text;
+  user-select: text;
+}

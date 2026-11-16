@@ -63,15 +63,20 @@ test.describe('the place "Planung" (#354)', () => {
   })
 })
 
-test.describe('a new day (#356)', () => {
-  // No done task: no recap opens, the pass sends Jetzt and Offen back at once
+test.describe('a new day (#356, #387)', () => {
+  // No done task: no recap opens, the board shows as it was left and the notice offers the fresh start
   const board = () => newDayBackTasks().filter(task => task.status !== 3)
-
-  test('"Meine Aufgaben" in two groups: "Gestern geplant, noch offen" above "Weitere Aufgaben", each a heading with its list (1280)', async ({ context, page }) => {
-    await seedNewDayBoard(context, { tasks: board() })
-    await page.goto('/all')
+  const startFresh = async (page: Page) => {
+    await page.getByTestId('new-day-note-start').click()
+    await expect(page).toHaveURL(/\/all$/)
     await expect(page.getByTestId('not-planned-group-others')).toBeVisible()
     await settleAnimations(page)
+  }
+
+  test('"Meine Aufgaben" after the fresh start: "Gestern geplant, noch offen", "Zuletzt in Wartet" and "Weitere Aufgaben", each a heading with its list (1280)', async ({ context, page }) => {
+    await seedNewDayBoard(context, { tasks: board() })
+    await page.goto('/all')
+    await startFresh(page)
     await expect(page.getByTestId('not-planned')).toMatchAriaSnapshot({ name: 'not-planned-new-day-groups-1280.aria.yml' })
   })
 
@@ -79,14 +84,25 @@ test.describe('a new day (#356)', () => {
     await page.setViewportSize(MOBILE)
     await seedNewDayBoard(context, { tasks: board() })
     await gotoBoard(page)
+    await startFresh(page)
+    await page.getByTestId('app-nav-continue').click()
+    await expect(page).toHaveURL(/\/tasks$/)
     await expect(page.getByTestId('open-yesterday-note')).toBeVisible()
+    await settleAnimations(page)
     await expect(page.locator('#column-open')).toMatchAriaSnapshot({ name: 'open-yesterday-note-390.aria.yml' })
   })
 
-  test('the one-time note of the first morning: a status with its two actions (1280)', async ({ context, page }) => {
-    await seedNewDayBoard(context, { tasks: board(), firstPass: true })
+  test('the notice of a day that was not started fresh: a status with its two actions (1280)', async ({ context, page }) => {
+    await seedNewDayBoard(context, { tasks: board() })
     await gotoBoard(page)
     await expect(page.getByTestId('new-day-note')).toMatchAriaSnapshot({ name: 'new-day-note-1280.aria.yml' })
+  })
+
+  test('the notice of a day that was not started fresh (390)', async ({ context, page }) => {
+    await page.setViewportSize(MOBILE)
+    await seedNewDayBoard(context, { tasks: board() })
+    await page.goto('/tasks')
+    await expect(page.getByTestId('new-day-note')).toMatchAriaSnapshot({ name: 'new-day-note-390.aria.yml' })
   })
 
   test('the question about time after midnight: a status with the task, the stretch and its two actions (1280)', async ({ context, page }) => {

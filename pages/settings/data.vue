@@ -21,7 +21,7 @@ export/import (#224, ADR 011). Mostly text; the path is shown because choosing t
             {{ t('settings.data.folderHeading') }}
           </SectionHeader>
           <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-            <p class="min-w-0 font-mono text-sm break-all text-highlighted" :title="state.folder" data-testid="data-folder-path">
+            <p class="min-w-0 font-mono text-sm break-all text-highlighted" :title="state.folder" data-selectable data-testid="data-folder-path">
               <span aria-hidden="true">{{ shortFolder }}</span>
               <span class="sr-only">{{ state.folder }}</span>
             </p>
@@ -32,7 +32,7 @@ export/import (#224, ADR 011). Mostly text; the path is shown because choosing t
           <p class="text-sm text-muted" data-testid="data-folder-saved">{{ savedLine }}</p>
           <div v-if="cloudLine" class="space-y-1" data-testid="data-folder-cloud">
             <p class="text-body text-muted">{{ cloudLine }}</p>
-            <p v-if="state.cloudSync?.state === 'error' && state.cloudSync.message" class="font-mono text-xs wrap-break-word text-muted">{{ state.cloudSync.message }}</p>
+            <p v-if="state.cloudSync?.state === 'error' && state.cloudSync.message" data-selectable class="font-mono text-xs wrap-break-word text-muted">{{ state.cloudSync.message }}</p>
           </div>
           <UButton variant="ghost" color="neutral" icon="i-ph-folder-open" data-testid="data-folder-reveal" @click="onReveal">
             {{ t('settings.data.reveal') }}
@@ -47,7 +47,7 @@ export/import (#224, ADR 011). Mostly text; the path is shown because choosing t
             role="status"
             :description="problemText"
           />
-          <p v-if="isFailure && state.error" class="font-mono text-xs wrap-break-word text-muted">{{ state.error }}</p>
+          <p v-if="isFailure && state.error" data-selectable class="font-mono text-xs wrap-break-word text-muted">{{ state.error }}</p>
           <div v-if="problemActions" class="flex flex-wrap gap-2">
             <UButton v-if="status === 'missing-file'" variant="soft" color="neutral" data-testid="data-folder-start-fresh" @click="onStartFresh">
               {{ t('settings.data.startFresh') }}

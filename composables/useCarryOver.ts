@@ -2,7 +2,9 @@
  * @composable useCarryOver
  * @description Carried-over cue (#99). `useCarryOverTracking` counts board days (on board load,
  * after every task-set or status change, e.g. a merge, and when the tab becomes visible again;
- * no timers; not before the new day's pass has run, #356). `useTaskCarryOver` exposes one task's count, the display day (#121) and the nudge state.
+ * no timers). A day counts for every not-done card that is on the board that day, also when the user skipped
+ * planning (#387); the user's fresh start takes the day back for the cards it takes off
+ * (`tasksStore.takeBackCarryOver`), so it counts only for what is planned again. `useTaskCarryOver` exposes one task's count, the display day (#121) and the nudge state.
  * @responsibility Counter bookkeeping and derived display state; never deletes or moves tasks.
  */
 import { computed, onBeforeUnmount, onMounted, toValue, watch, type MaybeRefOrGetter } from 'vue'
@@ -12,19 +14,13 @@ import type { Task } from '~/types/task'
 import { carryOverDisplayDay, isCarryOverNudgeDue, isCarryOverVisible, localDateKey } from '~/utils/carryOver'
 import { mapHelpers } from '~/utils/mapHelpers'
 import { isNotPlanned } from '~/lib/taskPlanning'
-import { isNewDayDue } from '~/composables/useNewDay'
 
 /** Mount once on the board page. Counts the current day for every not-done card. */
 export function useCarryOverTracking(now: () => Date = () => new Date()) {
   const tasksStore = useTasksStore()
 
-  // A day counts as planned only for what is on the board after the new day's pass (#356): until it has run
-  // (it runs on the page's own triggers, and its change of the planned state calls this again) nothing is counted,
-  // so a card the pass sends back does not gain a day it was never planned on
-  const record = () => {
-    if (isNewDayDue(now())) return
-    tasksStore.recordCarryOver(localDateKey(now()))
-  }
+  // A card that is on the board today counts today (#387): nothing waits for a fresh start, which the user may skip
+  const record = () => tasksStore.recordCarryOver(localDateKey(now()))
 
   // A merge, add, delete or status change alters this signature; the record call is idempotent per day.
   // The planned state is part of it (#353): a task planned again counts its day at once

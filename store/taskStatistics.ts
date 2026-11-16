@@ -295,8 +295,9 @@ export const useTaskStatisticsStore = defineStore("taskStatistics", () => {
   }
 
   /**
-   * Takes spans of wall-clock time out of the work sessions (#356): the time a new day's pass removes from the Jetzt
-   * task is removed here too, so the card, the "Wann arbeite ich?" rhythm and the learned day capacity agree.
+   * Takes spans of wall-clock time out of the work sessions (#356): the time the user takes off the Jetzt task after
+   * a night ("Zeit abziehen") is removed here too. Call it through `useWorkSessionTracking.cutWorkSessions`, which
+   * re-anchors a session that is still open (#387), so the card, the "Wann arbeite ich?" rhythm and the learned day capacity agree.
    */
   function cutWorkSessions(spans: ReadonlyArray<readonly [number, number]>): void {
     const next = cutSessions(workSessions.value, spans);

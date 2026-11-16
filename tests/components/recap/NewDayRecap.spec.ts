@@ -15,6 +15,9 @@ import type { Task } from '~/types/task'
 
 const navigateTo = vi.hoisted(() => vi.fn())
 vi.mock('nuxt/app', () => ({ navigateTo }))
+// The fresh start itself is covered in tests/composables/useNewDay.test.ts: here only who calls it, and when
+const freshStart = vi.hoisted(() => vi.fn(() => [] as string[]))
+vi.mock('~/composables/useNewDay', () => ({ useNewDay: () => ({ freshStart }) }))
 vi.mock('~/composables/useTaskSync', () => ({ useTaskSync: () => ({ syncArchiveStatusForTasks: vi.fn().mockResolvedValue(undefined) }) }))
 vi.mock('~/store/taskStatistics', () => ({
   useTaskStatisticsStore: () => ({ syncExistingDoneTasks: vi.fn(), updateTaskRecord: vi.fn() }),
@@ -354,6 +357,7 @@ describe('NewDayRecap', () => {
   describe('two ways out (#356)', () => {
     beforeEach(() => {
       navigateTo.mockClear()
+      freshStart.mockClear()
       setCurrentBoardPath('/tasks')
     })
     afterEach(() => setCurrentBoardPath('/tasks'))
@@ -370,21 +374,28 @@ describe('NewDayRecap', () => {
       setTestLocale('de')
     })
 
-    it('"Tag planen" leaves the recap and leads to "Planung"', async () => {
+    it('"Tag planen" leaves the recap, leads to "Planung" and is the fresh start (#387): once, after the recap is left', async () => {
       await open([doneAt(1, 'a')])
+      freshStart.mockImplementationOnce(() => {
+        // the recap is left (archive, marker) before the cards move
+        expect(useNewDayRecap().isOpen.value).toBe(false)
+        expect(useDayRecapStore().lastShownDay).toBe('2026-10-22')
+        return []
+      })
       q('[data-testid="recap-plan"]').click()
       expect(navigateTo).toHaveBeenCalledTimes(1)
       expect(navigateTo).toHaveBeenCalledWith({ path: '/all', force: true })
       expect(useNewDayRecap().isOpen.value).toBe(false)
       expect(useDayRecapStore().lastShownDay).toBe('2026-10-22')
+      expect(freshStart).toHaveBeenCalledTimes(1)
     })
 
-    it('"Direkt zum Board" leaves the recap and stays on Heute', async () => {
+    it('"Direkt zum Board" leaves the recap, stays on Heute and starts nothing fresh: the board stays as it is', async () => {
       await open([doneAt(1, 'a')])
       q('[data-testid="recap-continue"]').click()
       expect(navigateTo).not.toHaveBeenCalled()
       expect(useNewDayRecap().isOpen.value).toBe(false)
-
+      expect(freshStart).not.toHaveBeenCalled()
     })
 
     it('"Direkt zum Board" on "Planung" goes to Heute', async () => {
@@ -401,14 +412,16 @@ describe('NewDayRecap', () => {
       pressEscape()
       expect(useNewDayRecap().isOpen.value).toBe(false)
       expect(navigateTo).not.toHaveBeenCalled()
+      expect(freshStart).not.toHaveBeenCalled()
     })
 
-    it('a second click during the curtain neither navigates nor leaves again', async () => {
+    it('a second click during the curtain neither navigates, leaves nor starts fresh again', async () => {
       await open([doneAt(1, 'a')])
       q('[data-testid="recap-plan"]').click()
       q('[data-testid="recap-plan"]').click()
       q('[data-testid="recap-continue"]').click()
       expect(navigateTo).toHaveBeenCalledTimes(1)
+      expect(freshStart).toHaveBeenCalledTimes(1)
     })
   })
 

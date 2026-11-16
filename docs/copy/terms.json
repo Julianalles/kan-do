@@ -902,17 +902,17 @@
   },
   {
     "id": "plan-the-day",
-    "concept": "The primary way out of the new-day recap: it leads to \"Alle\", where the day is planned (#356, epic #334)",
+    "concept": "The fresh start of a new day (#387): the user's click that takes what was planned and not finished (Jetzt, Offen, Wartet) off the board, onto \"Meine Aufgaben\", and leads to \"Planung\", where the day is planned. The primary way out of the new-day recap (#356, epic #334) and the button of the notice on a board that was not started fresh",
     "de": "Tag planen",
     "en": "Plan the day",
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Approved by the user on 2026-11-16 (#367); the user's `npm run terms:approve` makes it decided. Proposed in the design of #334. The second way out is \"Direkt zum Board\"."
+    "note": "Approved by the user on 2026-11-16 (#367) as the recap's button; the user's `npm run terms:approve` makes it decided. Since #387 it is the fresh start itself and also the notice's button (the same action gets the same name; the working name \"Frisch starten\" of #387 is not used, decision D1 d there). The second way out is \"Direkt zum Board\"."
   },
   {
     "id": "straight-to-board",
-    "concept": "The secondary way out of the new-day recap: it skips planning and leads to the board (#356, #367)",
+    "concept": "The secondary way out of the new-day recap: it skips planning, leads to the board and keeps it as it is (#356, #367, #387)",
     "de": "Direkt zum Board",
     "en": "Straight to the board",
     "avoidDe": [],
@@ -922,7 +922,7 @@
   },
   {
     "id": "planned-yesterday",
-    "concept": "The group on top of \"Nicht geplant\" for one day: what was planned the day before and not finished, sent back by the new day (#356)",
+    "concept": "The group on top of \"Meine Aufgaben\" for one day: what was in Jetzt and Offen when the user started the day fresh (#356, #387)",
     "de": "Gestern geplant, noch offen",
     "en": "Planned yesterday, still open",
     "avoidDe": [],
@@ -931,28 +931,28 @@
     "note": "Approved by the user on 2026-11-16 (#367); the user's `npm run terms:approve` makes it decided. Proposed in the design of #334. \"Gestern\" also when the last board day was longer ago: the group names the last plan, not a date."
   },
   {
+    "id": "was-waiting",
+    "concept": "The category of \"Meine Aufgaben\" for the tasks a fresh start took out of Wartet (#387): the earlier waiting stays known until the task is planned again",
+    "de": "Zuletzt in Wartet",
+    "en": "Last in Waiting",
+    "avoidDe": [],
+    "avoidEn": [],
+    "status": "proposed",
+    "note": "Proposed in Specify of #387 (decision D1 d). Not \"Gestern in Wartet\": the category lasts beyond the day of the fresh start. \"Wartet\" / \"Waiting\" is the column name (column-waiting)."
+  },
+  {
     "id": "more-tasks",
-    "concept": "The second group of \"Nicht geplant\" while the group \"Gestern geplant, noch offen\" shows: every other task that is not planned (#356)",
+    "concept": "The last group of \"Meine Aufgaben\" while a category shows above it (\"Gestern geplant, noch offen\", \"Zuletzt in Wartet\"): every other task that is not planned (#356, #387)",
     "de": "Weitere Aufgaben",
     "en": "More tasks",
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Approved by the user on 2026-11-16 (#367); the user's `npm run terms:approve` makes it decided. Proposed in the design of #334. Shown only together with the first group."
-  },
-  {
-    "id": "plan-all-again",
-    "concept": "The one button of the one-time note on the first morning the new day sent cards back: it plans all of them for today again (#356, the user's decision D2)",
-    "de": "Alle wieder einplanen",
-    "en": "Plan all again",
-    "avoidDe": [],
-    "avoidEn": [],
-    "status": "proposed",
-    "note": "The user's own wording in the answer to D2 of #356."
+    "note": "Approved by the user on 2026-11-16 (#367); the user's `npm run terms:approve` makes it decided. Proposed in the design of #334. Shown only together with a category above it."
   },
   {
     "id": "take-off-time",
-    "concept": "The question on the morning after a night in which the Jetzt timer ran on while Kan-Do was not in focus: take that time off the task again, or keep it (#356, the user's decision of 2026-11-16)",
+    "concept": "The question on the app's start or return after a night in which the Jetzt timer ran on while Kan-Do was not in focus: take that time off the task again, or keep it (#356, the user's decision of 2026-11-16)",
     "de": "Zeit abziehen / Zeit behalten",
     "en": "Subtract time / Keep time",
     "avoidDe": [],
