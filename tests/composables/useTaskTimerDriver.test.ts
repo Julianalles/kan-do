@@ -3,7 +3,7 @@ import { toRaw } from 'vue'
 import { setActivePinia, createPinia } from 'pinia'
 import { useTaskTimerDriver, stopTaskTimer } from '~/composables/useTaskTimerDriver'
 import { useTasksStore } from '~/store/tasks'
-import { armedTaskTimerIds, disarmAllTaskTimers } from '~/lib/taskTimers'
+import { armedTaskTimerIds, disarmAllTaskTimers, isResumeEntry, withResumeEntry } from '~/lib/taskTimers'
 import { clearAllLiveSeconds, liveTimeSpent, LIVE_CHECKPOINT_SECONDS } from '~/lib/liveTime'
 import { TaskStatus } from '~/types/taskStatus'
 import type { Task } from '~/types/task'
@@ -385,6 +385,23 @@ describe('useTaskTimerDriver (#352)', () => {
       tasksStore.afterMidnight = { taskId: 'a', day: '2026-10-22', seconds: 300, spans: [] }
       tasksStore.updateTask('a', { status: TaskStatus.Progress })
       vi.advanceTimersByTime(20 * 1000)
+      expect(tasksStore.afterMidnight).toBeNull()
+    })
+
+    it('midnight (#356, #405): a resume of the Now window\'s pause keeps the note, the next entry is a fresh one again', () => {
+      vi.setSystemTime(new Date(2026, 9, 22, 0, 10))
+      tasksStore.setTasks([makeTask('a', { status: TaskStatus.Waiting })])
+      driver.start()
+      const note = { taskId: 'a', day: '2026-10-22', seconds: 300, spans: [] }
+      tasksStore.afterMidnight = { ...note }
+      withResumeEntry('a', () => tasksStore.updateTask('a', { status: TaskStatus.Progress }))
+      expect(tasksStore.afterMidnight).toEqual(note)
+      expect(armedTaskTimerIds()).toEqual(['a'])
+      expect(isResumeEntry('a')).toBe(false)
+
+      // leaves Jetzt and comes back by the user's hand (a drag, the menu): fresh entry, the note goes
+      tasksStore.updateTask('a', { status: TaskStatus.Waiting })
+      tasksStore.updateTask('a', { status: TaskStatus.Progress })
       expect(tasksStore.afterMidnight).toBeNull()
     })
 

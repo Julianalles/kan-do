@@ -20,7 +20,7 @@
  *   task that stayed in Jetzt because the operation that stopped it failed
  */
 import { watch, type WatchStopHandle } from 'vue'
-import { armTaskTimer, disarmAllTaskTimers, disarmTaskTimer, isTaskTimerArmed } from '~/lib/taskTimers'
+import { armTaskTimer, disarmAllTaskTimers, disarmTaskTimer, isResumeEntry, isTaskTimerArmed } from '~/lib/taskTimers'
 import { LIVE_CHECKPOINT_SECONDS, addLiveSecond, discardLiveSeconds, forgetLiveAwaySpans, liveAwaySecondsOf, liveAwaySpansOf, liveSecondsOf, settleLiveAwaySpans, unsavedLiveSecondsIds } from '~/lib/liveTime'
 import { isAway, startPresence, stopPresence } from '~/lib/appPresence'
 import { useTasksStore } from '~/store/tasks'
@@ -181,8 +181,9 @@ export function useTaskTimerDriver() {
         // Compared with the previous ids, not the registry: an explicit stop of a task that stays in Jetzt stays stopped
         for (const id of now) {
           if (before.has(id)) continue
-          // Entered Jetzt by the user's hand: whatever an earlier run counted after midnight is no longer asked about (#356)
-          tasksStore.clearAfterMidnight(id)
+          // Entered Jetzt by the user's hand: whatever an earlier run counted after midnight is no longer asked about (#356).
+          // A resume of the Now window's pause (#405) is the same run going on: its note stays
+          if (!isResumeEntry(id)) tasksStore.clearAfterMidnight(id)
           armJetztTask(id)
         }
       },
