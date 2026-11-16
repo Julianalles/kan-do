@@ -17,6 +17,7 @@ shared TopicEditor: an inline panel under the row at >=768px, a bottom drawer at
         <UTabs
           v-model="kind"
           :items="tabs"
+          variant="link"
           :ui="{ content: 'pt-6' }"
           @update:model-value="open = null"
         >

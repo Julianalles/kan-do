@@ -41,6 +41,7 @@
         ref="tabsRef"
         v-model="activeTab"
         :items="tabItems"
+        variant="link"
         :orientation="isDesktopWidth ? 'vertical' : 'horizontal'"
         :ui="tabsUi"
         :class="isDesktopWidth ? 'flex items-start gap-8' : 'gap-0'"
