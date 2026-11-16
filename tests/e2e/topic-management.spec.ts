@@ -240,6 +240,8 @@ for (const vp of VIEWPORTS) {
       await page.goto('/tasks/tm-open')
       await openEditorFromPicker(page, 'Home')
       const trigger = editor(page).getByTestId('topic-symbol-trigger')
+      // The editor takes focus into the Name on the next frame; moving focus before that lets it steal it back (#361)
+      await expect(editor(page).getByTestId('topic-name-input')).toBeFocused()
       await trigger.focus()
       await page.keyboard.press('Enter')
       await expect(trigger).toHaveAttribute('aria-expanded', 'true')
