@@ -57,6 +57,8 @@ block2 = "0.6"
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-single-instance = "2"
 tauri-plugin-updater = "2"
+# The main window opens where and how the user left it (#393); Rust-only, JS gets no `window-state:*` permission.
+tauri-plugin-window-state = "2"
 
 [dev-dependencies]
 tempfile = "3"

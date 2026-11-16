@@ -34,4 +34,17 @@ describe('desktop window chrome', () => {
     expect(ids).toContain('core:window:allow-start-dragging')
     expect(ids).toContain('core:default')
   })
+
+  // #398: Tauri's default is already `false` (macOS gets no zoom polyfill); pinned so a later change is a decision.
+  it('keeps the page-zoom hotkeys off', () => {
+    expect(main.zoomHotkeysEnabled).toBe(false)
+  })
+
+  // #393: the window state is saved and restored by Rust; JS gets no `window-state:*` permission, like the updater.
+  it('remembers the window in Rust only', () => {
+    const ids = capability.permissions.map(p => (typeof p === 'string' ? p : p.identifier))
+    expect(ids.filter(id => id.startsWith('window-state'))).toEqual([])
+    const cargo = readFileSync(resolve(root, 'src-tauri/Cargo.toml'), 'utf8')
+    expect(cargo).toMatch(/^tauri-plugin-window-state = /m)
+  })
 })

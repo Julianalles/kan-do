@@ -338,6 +338,7 @@
         "lib/nativeMenu.ts",
         "lib/windowDrag.ts",
         "lib/nativeContextMenu.ts",
+        "lib/nativeShortcuts.ts",
         "composables/useNativeMenu.ts",
         "plugins/desktop-shell.client.ts"
       ],
