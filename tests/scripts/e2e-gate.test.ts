@@ -455,6 +455,13 @@ describe('selectE2e in fast testing mode (#693)', () => {
     expect(result.specs).not.toContain('design-detect')
   })
 
+  // #399: PR 397 added the navigation wait bar to app.vue; its fast gate ran 19 specs and missed scrollbar-shift, which reads the bar as a moved element
+  it('runs the layout-shift spec for the navigation wait bar files', () => {
+    for (const file of ['app.vue', 'plugins/route-preload.client.ts']) {
+      expect(fast({ files: [file] }).specs, file).toEqual(expect.arrayContaining(['scrollbar-shift', 'route-preload', 'statistics-page']))
+    }
+  })
+
   it('adds the touched specs, the helper importers and the E2E-specs line, and still flags unknown names', () => {
     const result = fast({ files: ['utils/middleEllipsis.ts', 'tests/e2e/a11y.spec.ts', 'tests/e2e/helpers/notionWizard.ts'], body: 'E2E-specs: trash nope' })
     expect(result.specs).toEqual(expect.arrayContaining(['a11y', 'trash', 'sources-settings', 'welcome-setup']))
