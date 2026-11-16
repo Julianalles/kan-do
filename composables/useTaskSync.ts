@@ -867,6 +867,10 @@ export const useTaskSync = () => {
    */
   const unplanTask = (taskId: string): boolean => tasksStore.unplanTask(taskId);
 
+  /** Several tasks at once (#356): the new day's pass and "Alle wieder einplanen". Same rules, one board update; returns the ids that changed. */
+  const planTasks = (taskIds: readonly string[]): string[] => tasksStore.planTasks(taskIds);
+  const unplanTasks = (taskIds: readonly string[]): string[] => tasksStore.unplanTasks(taskIds);
+
   /**
    * Standardized error handling for sync operations
    */
@@ -882,6 +886,8 @@ export const useTaskSync = () => {
     createTask,
     planTask,
     unplanTask,
+    planTasks,
+    unplanTasks,
     updateTaskStatus,
     updateTaskStatuses,
     setCompletedDay,

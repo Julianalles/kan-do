@@ -13,20 +13,20 @@ describe('TaskCarryOverDots (#99, #121)', () => {
     expect(render(day, true).find('[data-testid="carry-over-dots"]').exists()).toBe(false)
   })
 
-  it('day 2: two dots, no numeral below the cap, accessible name and tooltip "Tag 2 auf dem Board"', () => {
+  it('day 2: two dots, no numeral below the cap, accessible name and tooltip "An 2 Tagen eingeplant"', () => {
     setTestLocale('de')
     const wrapper = render(2)
     const dots = wrapper.get('[data-testid="carry-over-dots"]')
     expect(dots.findAll('.carry-over-dot')).toHaveLength(2)
     expect(dots.find('[data-testid="carry-over-count"]').exists()).toBe(false)
-    expect(dots.attributes('aria-label')).toBe('Tag 2 auf dem Board')
+    expect(dots.attributes('aria-label')).toBe('An 2 Tagen eingeplant')
     expect(dots.attributes('tabindex')).toBeUndefined() // not a tab stop (kd#27)
-    expect(wrapper.get('.tooltip').attributes('data-text')).toBe('Tag 2 auf dem Board')
+    expect(wrapper.get('.tooltip').attributes('data-text')).toBe('An 2 Tagen eingeplant')
   })
 
   it('has an English label', () => {
     setTestLocale('en')
-    expect(render(3).get('[data-testid="carry-over-dots"]').attributes('aria-label')).toBe('Day 3 on the board')
+    expect(render(3).get('[data-testid="carry-over-dots"]').attributes('aria-label')).toBe('Planned on 3 days')
     setTestLocale('de')
   })
 

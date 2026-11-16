@@ -1,0 +1,4 @@
+- status:
+  - text: "Neu: Jeder Tag beginnt mit einem leeren Plan. 3 Aufgaben aus Offen und Jetzt liegen jetzt unter „Alle“ bei „Nicht geplant“. Dort planst du sie für heute ein."
+  - button "Alle wieder einplanen"
+  - button "Schließen"

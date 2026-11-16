@@ -159,7 +159,17 @@
       "dragOver": "„{title}“ über Nicht geplant. Beim Ablegen ist die Aufgabe nicht mehr für heute geplant.",
       "dragBack": "„{title}“ bleibt in Nicht geplant.",
       "capacityFull": "Damit ist dein Tag vermutlich voll.",
-      "capacityBelow": "Dein Tag ist vermutlich voll. Eine Aufgabe liegt unter der Linie. | Dein Tag ist vermutlich voll. {n} Aufgaben liegen unter der Linie."
+      "capacityBelow": "Dein Tag ist vermutlich voll. Eine Aufgabe liegt unter der Linie. | Dein Tag ist vermutlich voll. {n} Aufgaben liegen unter der Linie.",
+      "groupYesterday": "Gestern geplant, noch offen",
+      "groupOthers": "Weitere Aufgaben"
+    },
+    "yesterdayUnderAll": "Eine Aufgabe von gestern liegt unter {all}. | {n} Aufgaben von gestern liegen unter {all}.",
+    "newDayNote": {
+      "title": "Neu: Jeder Tag beginnt mit einem leeren Plan.",
+      "description": "Eine Aufgabe aus Offen und Jetzt liegt jetzt unter „Alle“ bei „Nicht geplant“. Dort planst du sie für heute ein. | {n} Aufgaben aus Offen und Jetzt liegen jetzt unter „Alle“ bei „Nicht geplant“. Dort planst du sie für heute ein.",
+      "planAll": "Alle wieder einplanen",
+      "close": "Schließen",
+      "planned": "Eine Aufgabe ist wieder für heute geplant. | {n} Aufgaben sind wieder für heute geplant."
     }
   },
   "nav": {
@@ -330,8 +340,8 @@
       "notToday": "Nicht heute"
     },
     "carryOver": {
-      "label": "Tag {n} auf dem Board",
-      "nudgeTitle": "Immer noch da: Tag {n} auf dem Board.",
+      "label": "An {n} Tagen eingeplant",
+      "nudgeTitle": "Immer noch da: an {n} Tagen eingeplant.",
       "keep": "Behalten",
       "smaller": "Kleiner machen",
       "smallerHint": "Was ist der erste kleine Schritt?",
@@ -1354,7 +1364,8 @@
       "label": "Anzeige wählen"
     },
     "archiveToggle": "Erledigte archivieren",
-    "continue": "Weiter zum Board"
+    "continue": "Direkt zu Heute",
+    "plan": "Tag planen"
   },
   "dayClose": {
     "title": "Tag abschließen",
@@ -1372,10 +1383,9 @@
       "over": "{n} Min über der Timebox"
     },
     "tomorrowHeading": "Für morgen",
-    "tomorrow": "Keine Aufgabe bleibt auf dem Board. | Eine Aufgabe bleibt auf dem Board. Du kannst sie abwählen. | {n} Aufgaben bleiben auf dem Board. Du kannst sie einzeln abwählen.",
+    "tomorrow": "Keine Aufgabe geht zurück nach „Nicht geplant“. | Eine Aufgabe geht zurück nach „Nicht geplant“. Morgen planst du sie neu ein. Du kannst sie abwählen. | {n} Aufgaben gehen zurück nach „Nicht geplant“. Morgen planst du sie neu ein. Du kannst sie einzeln abwählen.",
     "showOpen": "Offene Aufgaben anzeigen",
-    "openListLabel": "Offene Aufgaben, die auf dem Board bleiben",
-    "backToOpen": "Geht zurück nach Offen",
+    "openListLabel": "Offene Aufgaben für morgen",
     "trash": {
       "local": "Kommt in den Papierkorb",
       "notion": "Kommt in den Papierkorb, auch in Notion",
@@ -1393,7 +1403,9 @@
       "nothingDone": "Heute noch nichts erledigt.",
       "inFlight": "Noch nicht erledigt",
       "nothingInFlight": "Nichts mehr offen."
-    }
+    },
+    "backToNotPlanned": "Geht zurück nach „Nicht geplant“",
+    "staysWaiting": "Bleibt in Wartet"
   },
   "secrets": {
     "unavailableTitle": "Schlüsselbund nicht erreichbar",

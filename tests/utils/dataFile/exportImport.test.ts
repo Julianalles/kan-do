@@ -64,6 +64,17 @@ describe('buildExport', () => {
     if (parsed.ok) expect(JSON.parse(parsed.text).stores['tasks-store'].tasks).toEqual(tasks)
   })
 
+  it('carries the new day\'s state through export and import unchanged (#356)', () => {
+    const stores = {
+      'tasks-store': { tasks: [{ id: 'a', status: 0, notPlanned: true }], afterMidnight: { taskId: 'a', day: '2026-10-22', seconds: 40 } },
+      'day-recap-store': { lastShownDay: '2026-10-22', archiveDone: true, closedTaskIds: [], lastNewDay: '2026-10-22', sentBack: { day: '2026-10-22', ids: ['a'] }, firstBackDay: '2026-10-22', backNoteClosed: false },
+    }
+    const built = buildExport({ stores, deviceId: 'device-1', appVersion: '0.1.0' }, now)
+    const parsed = parseImport(built.text)
+    expect(parsed).toMatchObject({ ok: true, taskCount: 1 })
+    if (parsed.ok) expect(JSON.parse(parsed.text).stores).toEqual(stores)
+  })
+
   it('round-trips through parseImport', () => {
     const built = buildExport({ stores: stateWithEverySecret(), deviceId: 'device-1', appVersion: '0.1.0' }, now)
     const parsed = parseImport(built.text)

@@ -516,9 +516,19 @@ export const useBoardStore = defineStore("board", () => {
     }
   }
 
-  /** "Nicht heute" (#354): the task goes to the top of "Nicht geplant". */
-  function noteNotPlanned(taskId: string) {
-    notPlannedOrder.value = [taskId, ...notPlannedOrder.value.filter(id => id !== taskId)];
+  /** "Nicht heute" (#354): the task goes to the top of "Nicht geplant"; a list (#356, the new day) keeps its order there. */
+  function noteNotPlanned(taskIds: string | readonly string[]) {
+    const ids = typeof taskIds === 'string' ? [taskIds] : [...new Set(taskIds)];
+    notPlannedOrder.value = [...ids, ...notPlannedOrder.value.filter(id => !ids.includes(id))];
+  }
+
+  /** Puts ids that are in a column's order at its end, in the order given (#356: several tasks planned at once). */
+  function moveToEndOfColumn(taskStatus: TaskStatus, taskIds: readonly string[]) {
+    const column = columns.value.find(c => c.taskStatus === taskStatus);
+    if (!column) return;
+    const moved = taskIds.filter(id => column.taskOrder.includes(id));
+    if (moved.length === 0) return;
+    column.taskOrder = [...column.taskOrder.filter(id => !moved.includes(id)), ...moved];
   }
 
   function reconcileColumnsWithTasks(tasks: Task[]): boolean {
@@ -645,6 +655,7 @@ export const useBoardStore = defineStore("board", () => {
     reconcileColumnsWithTasks,
     notPlannedOrder,
     noteNotPlanned,
+    moveToEndOfColumn,
   };
 }, {
   persist: {

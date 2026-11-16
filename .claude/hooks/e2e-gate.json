@@ -475,6 +475,8 @@
       "paths": [
         "components/recap/**",
         "composables/useNewDayRecap.ts",
+        "composables/useNewDay.ts",
+        "components/board/NewDayNote.vue",
         "composables/useSwipeDeck.ts",
         "composables/useToday.ts",
         "utils/recapDay.ts"

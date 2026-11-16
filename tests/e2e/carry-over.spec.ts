@@ -33,7 +33,7 @@ test.describe('Carried-over cue (#99), local tasks', () => {
       await page.goto(`${baseURL}/tasks`)
 
       await expect(dots(page, 'seed-open-1').locator('.carry-over-dot')).toHaveCount(6)
-      await expect(dots(page, 'seed-open-1')).toHaveAttribute('aria-label', 'Tag 6 auf dem Board')
+      await expect(dots(page, 'seed-open-1')).toHaveAttribute('aria-label', 'An 6 Tagen eingeplant')
       await expect(dots(page, 'seed-open-2').locator('.carry-over-dot')).toHaveCount(3)
       // Fresh in this run (no seed entry) and Done cards: no dots
       await expect(dots(page, 'seed-progress-1')).toHaveCount(0)
@@ -49,7 +49,7 @@ test.describe('Carried-over cue (#99), local tasks', () => {
     await page.goto(`${baseURL}/tasks`)
     await expect(dots(page, 'seed-open-2')).not.toHaveAttribute('tabindex', /.*/)
     await dots(page, 'seed-open-2').hover()
-    await expect(page.getByRole('tooltip')).toContainText('Tag 3 auf dem Board')
+    await expect(page.getByRole('tooltip')).toContainText('An 3 Tagen eingeplant')
   })
 
   test('the sheet asks one question past 4 days; Keep turns it into a confirmation and leaves the dots (#247)', async ({ page, baseURL }) => {
@@ -62,7 +62,7 @@ test.describe('Carried-over cue (#99), local tasks', () => {
     await expect(triage.getByRole('status')).toContainText('Die Aufgabe bleibt auf deinem Board')
     await expect(triage.getByRole('status')).toContainText('Tipp: Plane zunächst den kleinstmöglichen, ersten Schritt.')
     await expect(triage.getByRole('button')).toHaveCount(0)
-    await expect(page.getByTestId('carry-over-line')).toContainText('Tag 6 auf dem Board')
+    await expect(page.getByTestId('carry-over-line')).toContainText('An 6 Tagen eingeplant')
     await expect(page.locator('[data-testid="task-detail-header"] [role="button"]').first()).toBeFocused()
 
     await page.keyboard.press('Escape')
@@ -71,7 +71,7 @@ test.describe('Carried-over cue (#99), local tasks', () => {
 
   test('Wartet cards get the line but never the nudge', async ({ page, baseURL }) => {
     await page.goto(`${baseURL}/tasks/seed-waiting-1`)
-    await expect(page.getByTestId('carry-over-line')).toContainText('Tag 6 auf dem Board')
+    await expect(page.getByTestId('carry-over-line')).toContainText('An 6 Tagen eingeplant')
     await expect(page.getByTestId('carry-over-triage')).toHaveCount(0)
   })
 

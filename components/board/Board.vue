@@ -79,6 +79,7 @@
       <BoardColumn
         :tasks="tasksOpen"
         :task-status="TaskStatus.Open"
+        :yesterday-waiting="yesterdayIds.length"
         :is-dragging="isDragging"
         :mute-others="false"
         :grouping-enabled="groupingEnabled"
@@ -219,6 +220,7 @@ import BoardPageDots from "~/components/board/BoardPageDots.vue";
 import BoardNotPlanned from "~/components/board/BoardNotPlanned.vue";
 import BoardContinue from "~/components/board/BoardContinue.vue";
 import { useBoardPlace } from "~/composables/useBoardPlace";
+import { useNewDay } from "~/composables/useNewDay";
 import { usePlanMoves } from "~/composables/usePlanMoves";
 import FocusOverlay from "~/components/board/FocusOverlay.vue";
 import { FOCUS_LEAVE_MS, useFocusOverlay } from "~/composables/useFocusOverlay";
@@ -327,6 +329,8 @@ const tasksDone = computed(() => applyFocus(tasksStore.tasksDoneToday));
 // the app bar and "Weiter zu Heute" change the place.
 
 const { place, isAll } = useBoardPlace();
+// The tasks the new day sent back that still wait under "Alle" (#356): Offen says so while it is empty on Heute
+const { groupIds: yesterdayIds } = useNewDay();
 const { announcement: planAnnouncement } = usePlanMoves();
 
 /** Strip index of the "Nicht geplant" page */

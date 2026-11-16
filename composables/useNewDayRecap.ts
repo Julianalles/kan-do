@@ -5,14 +5,16 @@
  * module-level so the page, the overlay and the board share it.
  * @responsibility
  * - `check(routeName)`: called by `pages/tasks.vue` on mount and on every return to the app (`listenForReturn`: window focus,
- *   tab visible; #242), never awaited. It syncs the shared "today" first. Opens the recap when the board is
+ *   tab visible; #242), never awaited, each time after the new day's pass (`useNewDay().run()`, #356). It syncs the shared "today" first. Opens the recap when the board is
  *   onboarded, the data status does not block writes, `lastShownDay` is a day before today and there are
  *   done-before-today tasks. A missing or malformed marker is the baseline: write today once, show nothing
  *   (skipped while the data status blocks, ADR 011). The day key is computed once here, so a midnight
  *   crossed while the window stays focused never opens it; the next return does.
  * - Tasks a day close archived (`dayRecap.closedTaskIds`, #292) count as done before today, so closing the day does not
  *   cancel the next morning's recap; the marker moving clears them.
- * - The snapshot is a copy taken at open: a fetch landing later changes nothing in the page.
+ * - The snapshot is a copy taken at open: a fetch landing later changes nothing in the page. Its still-open deck is
+ *   yesterday's board: what today's pass sent back to "Nicht geplant" (Jetzt first, then Offen) and what is on the board
+ *   now (#356), so the recap looks the same whether it opens right after the pass or after a reload.
  * - `leave()` (button, Escape): archives the snapshot ids still done before today when "Erledigte archivieren" is on
  *   (shared path with the board button; no toast, no undo, #463), moves the marker to the day the recap opened on, closes.
  * - `finishLeave()` after the fade-out: drops the snapshot and hands focus to the board, never to <body>.
@@ -64,6 +66,18 @@ export function useNewDayRecap() {
   /** Desktop only: nothing is written or archived while the data file is in conflict or unavailable. */
   const writesBlocked = () => dataState.available && dataState.status !== 'ok'
 
+  /** Yesterday's unfinished tasks: what today's pass took off the board and is still not done, then the board as it is. */
+  function stillOpen(todayKey: string): Task[] {
+    const sentBack = recapStore.validSentBack
+    const backIds = sentBack && sentBack.day === todayKey ? sentBack.ids : []
+    const back = backIds
+      .map(id => tasksStore.task(id))
+      .filter((task): task is Task => !!task && task.status !== TaskStatus.Done)
+    const seen = new Set(back.map(task => task.id))
+    const onBoard = [...tasksStore.tasksProgress, ...tasksStore.tasksOpen, ...tasksStore.tasksWaiting].filter(task => !seen.has(task.id))
+    return [...back, ...onBoard]
+  }
+
   function check(routeName: unknown): void {
     // never modal on modal: an evening day-close dialog still open waits for the next return
     if (isOpen.value || routeName !== 'tasks' || dayClose.isOpen.value) return
@@ -95,7 +109,7 @@ export function useNewDayRecap() {
 
     snapshot.value = {
       done,
-      undone: [...tasksStore.tasksProgress, ...tasksStore.tasksOpen, ...tasksStore.tasksWaiting].map(copyTask),
+      undone: stillOpen(todayKey).map(copyTask),
       when: recapWhen(newest, now),
       dayKey: todayKey,
     }
@@ -103,13 +117,12 @@ export function useNewDayRecap() {
   }
 
   /**
-   * Runs `check` whenever the app is shown or focused again (#242): a hidden desktop window or a restored tab does not
+   * Runs `onReturn` (the page's day check: the new day's pass, then `check`) whenever the app is shown or focused again (#242): a hidden desktop window or a restored tab does not
    * remount the page, so the first return on a new day would otherwise wait for a click or navigation. A window that
    * stays focused across midnight is never interrupted. Returns the function that removes the listeners.
    */
-  function listenForReturn(routeName: () => unknown): () => void {
+  function listenForReturn(onReturn: () => void): () => void {
     if (typeof window === 'undefined') return () => {}
-    const onReturn = () => check(routeName())
     const onVisible = () => {
       if (document.visibilityState !== 'hidden') onReturn()
     }

@@ -11,6 +11,9 @@
   <main data-task-sheet-return :inert="recap.isOpen.value || undefined">
     <h1 class="sr-only">{{ t('board.pageHeading') }}</h1>
     <DataStorageNotice class="relative z-10 mx-auto mt-3 w-auto max-w-3xl" />
+    <!-- Once, on the first morning a new day sent cards back (#356) -->
+    <!-- On a phone it starts below the page dots -->
+    <NewDayNote class="relative z-10 mx-3 mt-8 w-auto max-w-3xl md:mx-auto md:mt-3" />
 
     <Board />
 
@@ -43,6 +46,7 @@ import { useTasksStore } from "~/store/tasks";
 import { useIntegrationManager } from "~/composables/useIntegrationManager";
 import { useKeychainStatus } from "~/composables/useKeychainStatus";
 import DataStorageNotice from "~/components/settings/DataStorageNotice.vue";
+import NewDayNote from "~/components/board/NewDayNote.vue";
 import { useRoute, navigateTo } from "nuxt/app";
 import { useSyncValidation, resetSyncValidation } from "~/composables/useSyncValidation";
 import { useCarryOverTracking } from "~/composables/useCarryOver";
@@ -54,6 +58,7 @@ import { usePropertyOptionsSync } from "~/composables/usePropertyOptionsSync";
 import SyncWarningModal from "~/components/sync/SyncWarningModal.vue";
 import TaskSheetHost from "~/components/task/TaskSheetHost.vue";
 import { useNewDayRecap } from "~/composables/useNewDayRecap";
+import { useNewDay } from "~/composables/useNewDay";
 import { useDayClose } from "~/composables/useDayClose";
 import { useFeedback } from "~/composables/useFeedback";
 import { useElementPicker } from "~/composables/useElementPicker";
@@ -71,7 +76,7 @@ const { fetchTasks, isIntegrationConfigured } = useIntegrationManager();
 const { unavailable: keychainUnavailable } = useKeychainStatus();
 
 // Carried-over cue (#99): count board days on load, after merges and when the tab returns
-useCarryOverTracking();
+const { record: recordCarryOver } = useCarryOverTracking();
 // Tasks in flight at the last look of each day, for the Statistik page (#537)
 useDayEndTracking();
 
@@ -91,6 +96,17 @@ const handleOnline = () => {
 const { ensureOptionsAvailable } = usePropertyOptionsSync();
 const syncValidation = useSyncValidation();
 const recap = useNewDayRecap();
+const newDay = useNewDay();
+/**
+ * The day check: first the new day's pass (unfinished cards go back to "Nicht geplant", #356; on Heute and on "Alle",
+ * with a sheet open too), then the recap's own check. Both do nothing unless a day has passed.
+ */
+const checkDay = () => {
+  newDay.run();
+  // The count waited for the pass (a card it sent back is not planned today); a pass that moved nothing triggers no count by itself
+  recordCarryOver();
+  recap.check(route.name);
+};
 const dayCloseOpened = useOpenedOnce(useDayClose().isOpen);
 const recapOpened = useOpenedOnce(recap.isOpen);
 const feedback = useFeedback();
@@ -186,12 +202,12 @@ async function initializeTasksPageOnMount() {
 onMounted(() => {
   // The page init starts its fetch before the first await, so the recap opens over a board that is already loading (#385)
   void initializeTasksPageOnMount();
-  recap.check(route.name);
-  stopRecapReturn = recap.listenForReturn(() => route.name);
+  checkDay();
+  stopRecapReturn = recap.listenForReturn(checkDay);
 });
 let stopRecapReturn = () => {};
 // A task sheet open overnight swallows the return check (route is not `tasks`): closing it must run it (#242)
-watch(() => route.name, name => recap.check(name));
+watch(() => route.name, checkDay);
 
 // Watch for task updates to track when they happen
 /** Source accessor for tasks array to drive the watcher. */

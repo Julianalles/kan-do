@@ -13,7 +13,8 @@ import type { SortField, SortDirection } from "~/types/state";
 import { mapHelpers, setHelpers } from "~/utils/mapHelpers";
 import type { CarryOverEntry } from "~/utils/carryOver";
 import { advanceCarryOverEntry, createCarryOverEntry } from "~/utils/carryOver";
-import { isNotPlanned } from "~/lib/taskPlanning";
+import { isNotPlanned, markerSurvives } from "~/lib/taskPlanning";
+import { isValidDayKey } from "~/utils/recapDay";
 import { isKnownSource } from "~/utils/sourceMeta";
 import type { IntegrationSourceId, SourceId } from "~/types/taskSource";
 import { disarmTaskTimer } from "~/lib/taskTimers";
@@ -158,6 +159,22 @@ const sortTasks = (
   });
 };
 
+/** Seconds a Jetzt timer counted after the local midnight (the start of `day`) it ran across (#356). */
+export interface AfterMidnightCount {
+  taskId: string
+  /** Local day (`YYYY-MM-DD`) that midnight starts */
+  day: string
+  seconds: number
+}
+
+/** A stored `afterMidnight` as a trusted value: anything malformed reads as null (nothing is ever taken off for it). */
+export function sanitizeAfterMidnight(raw: unknown): AfterMidnightCount | null {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const { taskId, day, seconds } = raw as { taskId?: unknown; day?: unknown; seconds?: unknown };
+  if (typeof taskId !== 'string' || !isValidDayKey(day) || typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds < 0) return null;
+  return { taskId, day, seconds };
+}
+
 /**
  * Factory function to create task getters by status
  */
@@ -187,6 +204,15 @@ export const useTasksStore = defineStore("tasks", () => {
   const carryOverByTaskId = ref<Record<string, CarryOverEntry>>({});
   /** Deletes whose upstream call has not been committed yet (#99), keyed by task id. */
   const pendingDeletes = ref<Record<string, PendingTaskDelete>>({});
+  /**
+   * The seconds a Jetzt timer counted after the local midnight it ran across (#356), persisted so a reload keeps
+   * it: one entry, for the one task whose timer crossed the last midnight. Written by the timer driver
+   * (`beginAfterMidnight` at the crossing, then every checkpoint through `addTrackedSeconds`), read once by the new
+   * day's pass (`removeTimeAfterMidnight`). Additive: older data has none (null); read it through
+   * `validAfterMidnight`.
+   */
+  const afterMidnight = ref<AfterMidnightCount | null>(null);
+  const validAfterMidnight = computed(() => sanitizeAfterMidnight(afterMidnight.value));
   /**
    * Transient (never persisted, per Pinia instance) status locks: while a locally-initiated
    * status change (e.g. undoing a completion) is still being written upstream, a concurrent
@@ -362,11 +388,11 @@ export const useTasksStore = defineStore("tasks", () => {
 
     if (task) {
       const wasInDone = task.status === TaskStatus.Done;
-      const wasOpen = task.status === TaskStatus.Open;
+      const statusBefore = task.status;
       Object.assign(task, updates);
       // "Not planned" (#353) exists only for a task that stays Open: any other status, before or after the
       // change, puts the task on the board (a marker an older app version left on a moved task never hides it)
-      if (task.notPlanned !== undefined && !(wasOpen && task.status === TaskStatus.Open)) delete task.notPlanned;
+      if (task.notPlanned !== undefined && !markerSurvives(statusBefore, task.status)) delete task.notPlanned;
       // A completion time written by anything but the user's correction (reopening, completing again, an undo)
       // is no longer the corrected one (kd#131)
       if ('completedAt' in updates && !('completedAtCorrected' in updates)) delete task.completedAtCorrected;
@@ -560,11 +586,28 @@ export const useTasksStore = defineStore("tasks", () => {
    * marker). Returns whether the task was not planned before.
    */
   function planTask(taskId: string): boolean {
-    const target = tasks.value.find((el) => el.id === taskId);
-    if (!target || !isNotPlanned(target)) return false;
-    delete target.notPlanned;
-    useBoardStore().reconcileColumnsWithTasks(tasks.value);
-    return true;
+    return planTasks([taskId]).length > 0;
+  }
+
+  /**
+   * Plans several tasks at once (#356, "Alle wieder einplanen"): they land at the end of Offen in the order given,
+   * with one reconcile for the whole list. Ids that are unknown or already planned are skipped.
+   * @returns the ids that were planned
+   */
+  function planTasks(taskIds: readonly string[]): string[] {
+    const planned: string[] = [];
+    for (const taskId of taskIds) {
+      const target = tasks.value.find((el) => el.id === taskId);
+      if (!target || !isNotPlanned(target) || planned.includes(taskId)) continue;
+      delete target.notPlanned;
+      planned.push(taskId);
+    }
+    if (planned.length === 0) return planned;
+    const boardStore = useBoardStore();
+    // The reconcile appends in stored order: put the list at the end of Offen in the order asked for
+    boardStore.reconcileColumnsWithTasks(tasks.value);
+    boardStore.moveToEndOfColumn(TaskStatus.Open, planned);
+    return planned;
   }
 
   /**
@@ -573,13 +616,28 @@ export const useTasksStore = defineStore("tasks", () => {
    * off: any other status is refused (`false`), as is a task that is already not planned.
    */
   function unplanTask(taskId: string): boolean {
-    const target = tasks.value.find((el) => el.id === taskId);
-    if (!target || target.status !== TaskStatus.Open || isNotPlanned(target)) return false;
-    target.notPlanned = true;
+    return unplanTasks([taskId]).length > 0;
+  }
+
+  /**
+   * Takes several Offen tasks off the board at once (#356, the new day's pass): they go to the top of "Nicht
+   * geplant" in the order given, with one reconcile for the whole list. The rule per task is `unplanTask`'s: only
+   * an Open task that is still planned; every other id is skipped. Nothing else about a task changes.
+   * @returns the ids that were taken off
+   */
+  function unplanTasks(taskIds: readonly string[]): string[] {
+    const taken: string[] = [];
+    for (const taskId of taskIds) {
+      const target = tasks.value.find((el) => el.id === taskId);
+      if (!target || target.status !== TaskStatus.Open || isNotPlanned(target)) continue;
+      target.notPlanned = true;
+      taken.push(taskId);
+    }
+    if (taken.length === 0) return taken;
     const boardStore = useBoardStore();
-    boardStore.noteNotPlanned(taskId);
+    boardStore.noteNotPlanned(taken);
     boardStore.reconcileColumnsWithTasks(tasks.value);
-    return true;
+    return taken;
   }
 
   function removeTask(id: string) {
@@ -649,6 +707,9 @@ export const useTasksStore = defineStore("tasks", () => {
 
     const total = task.timeSpentSeconds + seconds;
     updateTask(taskId, { timeSpentSeconds: total });
+    // A timer that ran across midnight: what it counts from there on is noted for the new day's pass (#356)
+    const counted = validAfterMidnight.value;
+    if (counted && counted.taskId === taskId) afterMidnight.value = { ...counted, seconds: counted.seconds + seconds };
 
     if (sourceSyncsTime(task.source)) {
       // A push of this task in flight (or a marker from this session) started from the older total: a new revision,
@@ -681,6 +742,8 @@ export const useTasksStore = defineStore("tasks", () => {
     // The edit is the new total: the seconds a running timer has collected but not written (#286) are not added on top
     discardLiveSeconds(taskId);
     updateTask(taskId, { timeSpentSeconds: seconds });
+    // The user's total is the truth from here on: nothing counted before it is taken off by a new day (#356)
+    clearAfterMidnight(taskId);
 
     if (sourceSyncsTime(task.source)) {
       // A new revision, so a push already in flight does not clear this edit's entry when it lands
@@ -694,6 +757,44 @@ export const useTasksStore = defineStore("tasks", () => {
       }
     }
     return true;
+  }
+
+  /**
+   * The timer of `taskId` ran across the local midnight that starts `day` (#356): what it counts from now on is
+   * noted. Replaces an older entry (another task, or an earlier midnight: only the last one counts).
+   */
+  function beginAfterMidnight(taskId: string, day: string): void {
+    if (!isValidDayKey(day) || !tasks.value.some((el) => el.id === taskId)) return;
+    const current = validAfterMidnight.value;
+    if (current && current.taskId === taskId && current.day === day) return;
+    afterMidnight.value = { taskId, day, seconds: 0 };
+  }
+
+  /** Drops the noted seconds: of one task (it entered Jetzt anew, the user set its time) or, without an id, any. */
+  function clearAfterMidnight(taskId?: string): void {
+    if (afterMidnight.value === null) return;
+    if (taskId === undefined || validAfterMidnight.value?.taskId === taskId || validAfterMidnight.value === null) afterMidnight.value = null;
+  }
+
+  /**
+   * The new day's pass (#356, the user's decision D2): takes the time the Jetzt task's timer counted after the
+   * local midnight that starts `day` off its time spent again. Only what was noted for exactly this task and this
+   * day is removed, never more than the task holds (never below zero), and the note is dropped whatever happens,
+   * so a second call removes nothing. The lowered total is written like a user's time edit (`setTimeSpent`), so a
+   * connection that stores time receives it and a fetch cannot bring the higher one back. Call it after the
+   * timer was stopped (the stop writes the collected seconds). Work sessions are not touched.
+   * @returns the seconds removed
+   */
+  function removeTimeAfterMidnight(taskId: string, day: string): number {
+    const counted = validAfterMidnight.value;
+    clearAfterMidnight();
+    const task = tasks.value.find((el) => el.id === taskId);
+    if (!counted || !task || counted.taskId !== taskId || counted.day !== day) return 0;
+    const before = Number.isFinite(task.timeSpentSeconds) ? Math.max(0, task.timeSpentSeconds) : 0;
+    const removed = Math.min(Math.floor(counted.seconds), before);
+    if (removed <= 0) return 0;
+    if (!setTimeSpent(taskId, before - removed)) return 0;
+    return before - task.timeSpentSeconds;
   }
 
   /**
@@ -930,7 +1031,7 @@ export const useTasksStore = defineStore("tasks", () => {
 
         // "Not planned" (#353) is kan-do's own state: the fetch never carries it, so the held task's marker stays,
         // but only while the task is still Open after the merge (the source moved it on: it is on the board)
-        if (isNotPlanned(existingTask) && mergedTask.status === TaskStatus.Open) mergedTask.notPlanned = true;
+        if (existingTask.notPlanned === true && markerSurvives(existingTask.status, mergedTask.status)) mergedTask.notPlanned = true;
         else delete mergedTask.notPlanned;
 
         // A done day the user corrected (kd#131) outlives the fetch while both sides hold the task as done: a
@@ -1194,7 +1295,7 @@ export const useTasksStore = defineStore("tasks", () => {
       if (currentTask && taskIdsSet.has(currentTask.id)) {
         const task: Task = { ...currentTask, status };
         // "Not planned" (#353) only survives Open -> Open, as in `updateTask`
-        if (task.notPlanned !== undefined && !(status === TaskStatus.Open && currentTask.status === TaskStatus.Open)) delete task.notPlanned;
+        if (task.notPlanned !== undefined && !markerSurvives(currentTask.status, status)) delete task.notPlanned;
 
         // Track completion timestamp when moved to Done
         if (status === TaskStatus.Done && currentTask.status !== TaskStatus.Done) {
@@ -1367,8 +1468,10 @@ export const useTasksStore = defineStore("tasks", () => {
     taskOperationVersions,
     carryOverByTaskId,
     pendingDeletes,
+    afterMidnight,
     
     // Getters
+    validAfterMidnight,
     task,
     tasksOpen,
     tasksProgress,
@@ -1404,12 +1507,17 @@ export const useTasksStore = defineStore("tasks", () => {
     isMoveHeld,
     addTask,
     planTask,
+    planTasks,
     unplanTask,
+    unplanTasks,
     removeTask,
     replaceTasksWith,
     updateTaskTimespent,
     addTrackedSeconds,
     setTimeSpent,
+    beginAfterMidnight,
+    clearAfterMidnight,
+    removeTimeAfterMidnight,
     setCompletedAt,
     clearPendingTimeUpdate,
     clearAllPendingTimeUpdates,
