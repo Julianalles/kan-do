@@ -9,6 +9,7 @@ mod overlay;
 mod relaunch;
 mod secrets;
 mod updater;
+mod window_state;
 
 use std::ffi::OsStr;
 use tauri::{Manager, RunEvent, WindowEvent};
@@ -56,6 +57,10 @@ pub fn run() {
   // Driven from Rust only: the capabilities carry no `updater:*` permission, so JS cannot call the plugin (#225).
   #[cfg(desktop)]
   let builder = builder.plugin(tauri_plugin_updater::Builder::new().build());
+
+  // Size, position and screen mode of the main window between launches (#393); desktop only like the updater.
+  #[cfg(desktop)]
+  let builder = builder.plugin(window_state::plugin());
 
   let app = builder
     .plugin(tauri_plugin_http::init())
