@@ -104,6 +104,10 @@ test.describe('timebox progress chip (#388)', () => {
   })
 
   test('a timer tick sets the fill at once, an edit of the spent time still eases it (#275: tick -> tick -> jump -> tick)', async ({ context, page }) => {
+    // The store gets the ticked seconds once per checkpoint (LIVE_CHECKPOINT_SECONDS = 10, lib/liveTime.ts), so a poll on the stored value
+    // needs a budget above that interval (#385); the three waits can each take one interval
+    const CHECKPOINT_WAIT = 20_000
+    test.setTimeout(90_000)
     await seedLocalBoard(context, withJetztSpent(1800))
     await page.goto('/tasks')
     await expectBar(page, JETZT_ID)
@@ -123,7 +127,7 @@ test.describe('timebox progress chip (#388)', () => {
     })
 
     // The app's own timer ticks once a second: two ticks later the fill has moved without one ease
-    await expect.poll(spent, { timeout: 10_000 }).toBeGreaterThanOrEqual(1802)
+    await expect.poll(spent, { timeout: CHECKPOINT_WAIT }).toBeGreaterThanOrEqual(1802)
     await expect(fill).toHaveCSS('transition-duration', /^0s/)
     expect(await eases()).toBe(0)
 
@@ -138,9 +142,9 @@ test.describe('timebox progress chip (#388)', () => {
     // Ticks after the ease has ended are steps again: no further ease (a tick inside the ease retargets it, which counts as one more)
     await settleAnimations(page)
     const before = await spent()
-    await expect.poll(spent, { timeout: 10_000 }).toBeGreaterThanOrEqual(before + 1)
+    await expect.poll(spent, { timeout: CHECKPOINT_WAIT }).toBeGreaterThanOrEqual(before + 1)
     const easesAfterJump = await eases()
-    await expect.poll(spent, { timeout: 10_000 }).toBeGreaterThanOrEqual(before + 3)
+    await expect.poll(spent, { timeout: CHECKPOINT_WAIT }).toBeGreaterThanOrEqual(before + 3)
     await expect(fill).toHaveCSS('transition-duration', /^0s/)
     expect(await eases()).toBe(easesAfterJump)
   })

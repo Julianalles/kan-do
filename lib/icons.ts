@@ -22,7 +22,7 @@ export const ICONS = {
   stepBack: 'i-ph-arrow-left',
   /** Step forward / skip. */
   forward: 'i-ph-caret-right',
-  /** "Go on" affordance of a row or CTA; a different job than stepping. Also "Für heute einplanen" and "Tag starten" (#354, #367). */
+  /** "Go on" affordance of a row or CTA; a different job than stepping. Also "Für heute einplanen" and the app bar's "Weiter zum Board" (#354, #373). */
   goOn: 'i-ph-arrow-right',
   /** Close a surface, clear a value. */
   close: 'i-ph-x',

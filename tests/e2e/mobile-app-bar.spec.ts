@@ -69,8 +69,10 @@ test.describe('Mobile app bar', () => {
     const more = (await moreButton(page).boundingBox())!;
     // No wordmark on a phone (kd#24): the group starts at the pill
     await expect(page.getByTestId('app-nav-brand')).toBeHidden();
+    // With the topic focus funnel (#381) group and funnel are centred together
+    const funnel = await page.getByTestId('focus-trigger').boundingBox();
     const left = pill.x;
-    const right = 390 - (more.x + more.width);
+    const right = 390 - (funnel ? funnel.x + funnel.width : more.x + more.width);
     expect(Math.abs(left - right)).toBeLessThanOrEqual(2); // the group is centred
     expect(pill.height).toBeCloseTo(52, 0); // 3.25rem
     expect(Math.abs(pill.y - more.y)).toBeLessThanOrEqual(1); // same row

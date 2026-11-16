@@ -86,7 +86,10 @@ for (const { label, size } of VIEWPORTS) {
       const group = (await appNav(page).locator('.app-nav-group').boundingBox())!
       const pill = (await appNav(page).locator('.app-nav-pill').boundingBox())!
       const more = (await moreButton(page).boundingBox())!
-      expect(Math.abs(group.x + group.width / 2 - size.width / 2)).toBeLessThanOrEqual(2) // centred
+      // Centred; on a phone with the topic focus funnel (#381) group and funnel are centred together
+      const funnel = size.width < 768 ? await page.getByTestId('focus-trigger').boundingBox() : null
+      const right = funnel ? funnel.x + funnel.width : group.x + group.width
+      expect(Math.abs((group.x + right) / 2 - size.width / 2)).toBeLessThanOrEqual(2)
       if (size.width >= 768) {
         expect(pill.y).toBeLessThan(size.height / 4)
         expect(pill.height).toBeCloseTo(36, 0)

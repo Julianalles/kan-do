@@ -473,8 +473,11 @@ const featureFlags = useFeatureFlags();
  */
 const showAddSlot = computed(() => isOpenColumn.value && !props.staticMode);
 
-/** The header's round add button: the flag gates it, not a draft opened another way */
-const showAddButton = computed(() => showAddSlot.value && featureFlags.openColumnAddButton);
+/**
+ * The header's round add button: the flag gates it, not a draft opened another way. Not on the place "Planung" (#380):
+ * a task made there is not planned and lands under "Meine Aufgaben", so that side's header has the button.
+ */
+const showAddButton = computed(() => showAddSlot.value && featureFlags.openColumnAddButton && place.value !== 'all');
 
 const headerRef = ref<{ addButtonEl: () => HTMLElement | null } | null>(null);
 const addSlotRef = ref<{ open: () => void; isDrafting: boolean } | null>(null);

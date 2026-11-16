@@ -18,7 +18,7 @@
 - One-off (owner, #351, 2026-11-16): "Planung" and "Heute" show Offen with the same look and vertical position, so the way between them reads as one sideways move of the board; no general rule for other places
 - "Planung", drag (#355): a card is carried between "Meine Aufgaben" and Offen with the board's own drag (useBoardDndKit); `data-over-not-planned` on `.board` while that side is the drop
   target (dnd.css takes the placeholder out of Offen's layout). Phone: the edge scroll and its arrows work on the two pages of "Planung" as on Heute's three
-- "Planung": BoardContinue ("Tag starten" with the capacity echo) in Offen's footer on desktop and as a fixed bar on the phone; the two planning moves are announced politely (usePlanMoves)
+- "Planung": BoardCapacityDock (the capacity echo) in Offen's footer on desktop and as a fixed bar on the phone (the way on to Heute is the app bar's green pill, #373); the two planning moves are announced politely (usePlanMoves)
 - Phone: column pages moved by swipe and drag edge-scroll only (no tabs, #470), per place: "Planung" has two ("Meine Aufgaben", Offen), "Heute" three (Offen, Jetzt + Wartet, Erledigt); a swipe, the
   edge-scroll and focus never leave the place. The active page within the place is `data-mobile-page`. Heute opens on Jetzt while a task sits there, else on Offen (kd#191), and on Offen when
   coming from "Planung"; "Planung" opens on "Meine Aufgaben". Focus entering an off-screen page of the place makes it active (the keyboard / screen-reader path the tabs were)
@@ -42,8 +42,8 @@
     <BoardPageDots :page="placePage" :count="placePageCount" :offset-px="swipeOffsetPx" :live="isSwiping" />
 
     <BoardFocusBar />
-    <!-- Phone, on "Planung" (#354): the way on to Heute and the echo of Offen's capacity line, fixed above the app bar -->
-    <BoardContinue
+    <!-- Phone, on "Planung" (#354): the echo of Offen's capacity line, fixed above the app bar (the way on to Heute is the app bar's green pill, #373) -->
+    <BoardCapacityDock
       v-if="isAll && isMobile"
       phone
       :echo-active="stripPage === NOT_PLANNED_PAGE"
@@ -85,9 +85,9 @@
         :grouping-enabled="groupingEnabled"
         :grouping-key="groupingKey"
       >
-        <!-- "Tag starten" at the foot of Offen on "Planung" (desktop), where Erledigt has "Tag abschließen" -->
+        <!-- The capacity echo at the foot of Offen on "Planung" (desktop), where Erledigt has "Tag abschließen" -->
         <template v-if="isAll && !isMobile" #footer>
-          <BoardContinue />
+          <BoardCapacityDock />
         </template>
       </BoardColumn>
       <!-- Progress + Waiting share one scroll-page on mobile -->
@@ -218,7 +218,7 @@ import TaskCard from "~/components/task/TaskCard.vue";
 import TaskStack from "~/components/task/TaskStack.vue";
 import BoardPageDots from "~/components/board/BoardPageDots.vue";
 import BoardNotPlanned from "~/components/board/BoardNotPlanned.vue";
-import BoardContinue from "~/components/board/BoardContinue.vue";
+import BoardCapacityDock from "~/components/board/BoardCapacityDock.vue";
 import { useBoardPlace } from "~/composables/useBoardPlace";
 import { readPlaceMove } from "~/lib/boardPlace";
 import { useNewDay } from "~/composables/useNewDay";
@@ -301,7 +301,7 @@ const { effectiveGroupKey: groupingKey } = useBoardGrouping();
  * Tasks in the Open/Today column.
  */
 const { applyFocus, focusTopic, chipsOpen } = useBoardFocus();
-/** The topic focus bar shows (its chip row or its pill): on the phone the "Tag starten" bar steps up above it */
+/** The topic focus bar shows (its chip row or its pill): on the phone the capacity echo bar steps up above it */
 const focusBarShows = computed(() => focusTopic.value !== null || chipsOpen.value);
 const tasksOpen = computed(() => applyFocus(tasksStore.tasksOpen));
 
@@ -327,7 +327,7 @@ const tasksDone = computed(() => applyFocus(tasksStore.tasksDoneToday));
 // page left of it (board.css), and
 // .board-container clips it to its own width (never 100vw, #269); `stripPage` drives translateX so no scroll container
 // is needed. No tabs (#470): a swipe, the drag edge-scroll and focus entering a page move it inside the place; only
-// the app bar and "Tag starten" change the place.
+// the app bar changes the place.
 
 const { place, isAll } = useBoardPlace();
 // The tasks the new day sent back that still wait under "Planung" (#356): Offen says so while it is empty on Heute. The
