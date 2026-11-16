@@ -433,8 +433,12 @@ export const useTasksStore = defineStore("tasks", () => {
       const statusBefore = task.status;
       Object.assign(task, updates);
       // "Not planned" (#353) exists only for a task that stays Open: any other status, before or after the
-      // change, puts the task on the board (a marker an older app version left on a moved task never hides it)
-      if (task.notPlanned !== undefined && !markerSurvives(statusBefore, task.status)) delete task.notPlanned;
+      // change, puts the task on the board (a marker an older app version left on a moved task never hides it).
+      // What the source held it as (#357) ends with it: the write of this status tells the source the column
+      if (!markerSurvives(statusBefore, task.status)) {
+        if (task.notPlanned !== undefined) delete task.notPlanned;
+        if (task.sourceNotPlanned !== undefined) delete task.sourceNotPlanned;
+      }
       // A completion time written by anything but the user's correction (reopening, completing again, an undo)
       // is no longer the corrected one (kd#131)
       if ('completedAt' in updates && !('completedAtCorrected' in updates)) delete task.completedAtCorrected;
@@ -1409,8 +1413,11 @@ export const useTasksStore = defineStore("tasks", () => {
       const currentTask = newTasks[i];
       if (currentTask && taskIdsSet.has(currentTask.id)) {
         const task: Task = { ...currentTask, status };
-        // "Not planned" (#353) only survives Open -> Open, as in `updateTask`
-        if (task.notPlanned !== undefined && !markerSurvives(currentTask.status, status)) delete task.notPlanned;
+        // "Not planned" (#353) only survives Open -> Open, and what the source held it as (#357) with it, as in `updateTask`
+        if (!markerSurvives(currentTask.status, status)) {
+          delete task.notPlanned;
+          delete task.sourceNotPlanned;
+        }
 
         // Track completion timestamp when moved to Done
         if (status === TaskStatus.Done && currentTask.status !== TaskStatus.Done) {

@@ -123,6 +123,26 @@ describe('plan and put-back are written to a source that stores planning (#357)'
     expect(sentToNotion().at(-1)).toEqual(['n2', false, undefined])
   })
 
+  // Review of PR 384: the value outlived the status move, the put-back read it as "Notion already holds it so",
+  // wrote nothing, and the next sync put the card back into Offen
+  it('a status move ends what Notion held: from its second "not planned" status to Jetzt, to Offen, then "Nicht heute" writes the first mapped status', async () => {
+    const store = useTasksStore()
+    store.setTasks([task('n4', 'notion', { notPlanned: true, sourceNotPlanned: 'Irgendwann' })])
+    const sync = useTaskSync()
+    await sync.updateTaskStatus({ taskId: 'n4', status: TaskStatus.Progress })
+    expect(sentToNotion().at(-1)).toEqual(['n4', false, undefined])
+    await sync.updateTaskStatus({ taskId: 'n4', status: TaskStatus.Open })
+    await settle()
+    sent.length = 0
+
+    expect(sync.unplanTask('n4')).toBe(true)
+    await settle()
+    expect(sentToNotion()).toEqual([['n4', true, 'Backlog']])
+    // Notion answers what kan-do holds, so the next fetch moves nothing
+    store.mergeTasks('notion', [task('n4', 'notion', { sourceNotPlanned: 'Backlog' })])
+    expect(isNotPlanned(store.task('n4')!)).toBe(true)
+  })
+
   it('`local: true` and a Notion without the mapping change kan-do only', async () => {
     const store = useTasksStore()
     store.setTasks([task('n1', 'notion'), task('n3', 'notion')])

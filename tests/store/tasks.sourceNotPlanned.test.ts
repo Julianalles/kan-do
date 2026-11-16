@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useTasksStore } from '~/store/tasks'
-import { isNotPlanned } from '~/lib/taskPlanning'
+import { inStatus, isNotPlanned } from '~/lib/taskPlanning'
 import type { Task } from '~/types/task'
 import { TaskStatus } from '~/types/taskStatus'
 
@@ -102,6 +102,21 @@ describe('mergeTasks follows a source only when its planning state changes (#357
     store.unplanTasks(['t'])
     store.mergeTasks('todoist', [todoist('t')], TODOIST)
     expect(isNotPlanned(store.task('t')!)).toBe(true)
+  })
+
+  // Review of PR 384: a status write sends the column's status to the source, so the held value ends with the marker
+  it('a status write that ends the marker ends the held value too: single move, batch move, a snapshot put into a column', () => {
+    const store = useTasksStore()
+    const held = (id: string) => makeTask(id, { notPlanned: true, sourceNotPlanned: 'Backlog' })
+    store.setTasks([held('single'), held('batch'), held('stays')])
+    store.updateTask('single', { status: TaskStatus.Progress })
+    store.batchUpdateTaskStatus(['batch'], TaskStatus.Waiting)
+    store.updateTask('stays', { title: 'Neuer Titel' })
+    expect(store.task('single')!.sourceNotPlanned).toBeUndefined()
+    expect(store.task('batch')!.sourceNotPlanned).toBeUndefined()
+    expect(store.task('stays')).toMatchObject({ notPlanned: true, sourceNotPlanned: 'Backlog' })
+    expect(inStatus(held('x'), TaskStatus.Progress)).not.toHaveProperty('sourceNotPlanned')
+    expect(inStatus(held('x'), TaskStatus.Open)).toMatchObject({ notPlanned: true, sourceNotPlanned: 'Backlog' })
   })
 
   it('a task with an unpushed change keeps its local planning state and value', () => {
