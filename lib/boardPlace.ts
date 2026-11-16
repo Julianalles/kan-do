@@ -1,6 +1,6 @@
 /**
  * @module lib/boardPlace
- * @description The two places of the board (#354, epic #334): "Alle" (`/all`, planning: "Nicht geplant" beside
+ * @description The two places of the board (#354, epic #334): "Planung" (`/all`, planning: "Meine Aufgaben" beside
  * Offen) and "Heute" (`/tasks`, the board). Both are paths of one page (`pages/tasks.vue`, `alias: ['/all']`), so
  * the board stays mounted and Offen is the same column in both. Path helpers plus the current path as module state:
  * `plugins/board-place.client.ts` mirrors the live router route into it (sync, so it changes in the same tick as the
@@ -41,11 +41,33 @@ const path = ref<string>(BOARD_PLACE_PATHS.today)
 export const currentBoardPath = readonly(path)
 
 /**
- * A task made now starts as not planned (#367): the place "Alle" shows, also under its sheet (`/all/add`). Every
+ * A task made now starts as not planned (#367): the place "Planung" shows, also under its sheet (`/all/add`). Every
  * caller of `useTaskSync().createTask` that adds a new task to Offen passes this as the draft's `notPlanned`.
  */
 export function newTaskStartsNotPlanned(): boolean {
   return boardPlaceOfPath(path.value) === 'all'
+}
+
+/**
+ * Locale key of the Offen column's name on a place (#375): "Heute" on "Planung" (there the only question is whether a
+ * task is for today), "Offen" on "Heute". The headline and the drag announcements both read it, so the visible and the
+ * spoken name of the column never disagree on one place. The status itself is "Offen" everywhere (`taskStatus.open`).
+ */
+export function openColumnTitleKey(place: BoardPlace | null = boardPlaceOfPath(path.value)): string {
+  return place === 'all' ? 'board.columns.openPlanning' : 'board.columns.open'
+}
+
+/**
+ * Time and curve of the move between the places, as board.css sets them on `.board-container` (`--place-move`,
+ * `--place-ease`) and any element inside it inherits them. `ms` 0 = reduced motion, or no stylesheet (a unit test).
+ */
+export function readPlaceMove(el: Element | null): { ms: number, easing: string } {
+  if (!el) return { ms: 0, easing: 'ease' }
+  const style = getComputedStyle(el)
+  const raw = style.getPropertyValue('--place-move').trim()
+  const value = Number.parseFloat(raw)
+  const ms = Number.isNaN(value) ? 0 : raw.endsWith('ms') ? value : value * 1000
+  return { ms, easing: style.getPropertyValue('--place-ease').trim() || 'ease' }
 }
 
 /** Called by `plugins/board-place.client.ts` on every route change (and by tests that pose as a place). */

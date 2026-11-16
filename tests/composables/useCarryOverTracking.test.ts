@@ -1,6 +1,6 @@
 /**
  * #356: the carried-over count means "planned for the n-th day". A day only counts for what is on the board after
- * the new day's pass, so nothing is counted while that pass is still due; days under "Nicht geplant" never count.
+ * the new day's pass, so nothing is counted while that pass is still due; days under "Meine Aufgaben" never count.
  */
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
@@ -69,7 +69,7 @@ describe('useCarryOverTracking and the new day (#356)', () => {
     expect(days('b')).toBe(0)
   })
 
-  it('a task that waits under "Nicht geplant" for days keeps its count and goes on from it when planned again', async () => {
+  it('a task that waits under "Meine Aufgaben" for days keeps its count and goes on from it when planned again', async () => {
     mountTracker()
     for (const day of [22, 23, 24]) {
       now = new Date(2026, 9, day, 9, 0)

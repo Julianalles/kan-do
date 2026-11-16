@@ -6,6 +6,7 @@ import { stackAccessibleName } from '~/utils/stackAccessibleName'
 import { TaskStatus } from '~/types/taskStatus'
 import { canSwapIntoProgress } from '~/utils/wipGuard'
 import { NOT_PLANNED_GROUP, isNotPlannedZone, resolvePlanDrop } from '~/utils/planDrop'
+import { openColumnTitleKey } from '~/lib/boardPlace'
 
 /** Minimal shapes of the dnd-kit entities the announcements read (avoids `any`). */
 interface AnnouncedStack { key: string, label: string, taskIds: string[] }
@@ -16,7 +17,6 @@ interface AnnouncementEvent {
 }
 
 const COLUMN_KEYS: Partial<Record<TaskStatus, string>> = {
-  [TaskStatus.Open]: 'board.columns.open',
   [TaskStatus.Progress]: 'board.columns.progress',
   [TaskStatus.Waiting]: 'board.columns.waiting',
   [TaskStatus.Done]: 'board.columns.done',
@@ -34,9 +34,9 @@ const COLUMN_KEYS: Partial<Record<TaskStatus, string>> = {
  *   dragging at once for a mouse, and a plain click must still expand
  * - a single card over a Jetzt that holds one task announces the swap (#162): the drop switches them and
  *   the running task moves to Wartet; the drop then names both
- * - the place "Alle" (#355): "Nicht geplant" is named like a column; an Offen card over that side hears what the
+ * - the place "Planung" (#355): "Meine Aufgaben" is named like a column; an Offen card over that side hears what the
  *   drop does, and the drop says the result once ("… ist für heute geplant." / "… ist nicht mehr für heute geplant.",
- *   the lines of the arrows), by the rule the drop handler uses (`resolvePlanDrop`). A "Nicht geplant" card's handle
+ *   the lines of the arrows), by the rule the drop handler uses (`resolvePlanDrop`). A "Meine Aufgaben" card's handle
  *   needs the same drag threshold as a stack's control: a plain click opens its sheet
  * Announcements are pure reads; store updates stay in `useBoardDndKit().onDragEnd`.
  */
@@ -54,7 +54,8 @@ export function useBoardAnnouncements() {
 
   const columnName = (status: TaskStatus | typeof NOT_PLANNED_GROUP | undefined) => {
     if (status === NOT_PLANNED_GROUP) return translate('board.notPlanned.title')
-    const key = status === undefined ? undefined : COLUMN_KEYS[status]
+    // Offen is named as its headline reads on the place that shows (#375): "Heute" on "Planung"
+    const key = status === undefined ? undefined : status === TaskStatus.Open ? openColumnTitleKey() : COLUMN_KEYS[status]
     return key ? translate(key) : ''
   }
 
@@ -161,7 +162,7 @@ type Sensors = Extract<NonNullable<DragDropManagerInput['sensors']>, (...args: n
               typeof defaultConstraints === 'function' ? defaultConstraints(e, source) : defaultConstraints
             const constraints = defaultsFor(event)
             // dnd-kit starts a mouse drag on a handle without any constraint: not on a stack's
-            // control, where a click expands, nor on a "Nicht geplant" card, where it opens the sheet (#355). The drag then needs what a drag off the handle needs
+            // control, where a click expands, nor on a "Meine Aufgaben" card, where it opens the sheet (#355). The drag then needs what a drag off the handle needs
             // (read from the defaults with an event that is not on the handle, so the values follow
             // dnd-kit), whichever pointer type came without a constraint.
             const data = source.data as { stack?: unknown, notPlannedCard?: unknown } | undefined

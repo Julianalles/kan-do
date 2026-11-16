@@ -331,9 +331,12 @@
       bottom: 0.1875rem;
     }
 
+    /* 0.625rem a side (#375, was 1rem): "Planung" is 35px wider than "Alle" was, and the group is centred, so the
+       funnel right of ⋯ left a 390px screen by 16px. The tighter segments put its right edge where it was (388px);
+       every segment stays 44px high and wider than that. */
     .app-nav-place {
       min-height: 2.75rem;
-      padding-inline: 1rem;
+      padding-inline: 0.625rem;
       font-size: var(--text-title);
       transition: color var(--duration-fast) ease, background-color var(--duration-fast) ease, padding var(--nav-move) var(--nav-ease);
     }
@@ -353,9 +356,10 @@
       display: none;
     }
 
-    /* Four segments (#354: Alle, Heute, Statistik and the page behind ⋯) must fit a 360px screen: with the third
-       segment the segments tighten to 0.5rem a side, the bar's side room and the gap to ⋯ step down with them. The
-       labels keep their size and every segment stays 44px high and at least as wide. */
+    /* Four segments (#354: Planung, Heute, Statistik and the page behind ⋯) must fit a 360px screen: with the third
+       segment the places tighten to 0.25rem a side and the third label to 0.375rem (#375: "Planung" is wider than
+       "Alle" was; 0.5rem each before), the bar's side room and the gap to ⋯ step down with them. The labels keep their
+       size and every segment stays 44px high and at least as wide. */
     .app-nav.has-third {
       padding-inline: max(0.5rem, env(safe-area-inset-left, 0px)) max(0.5rem, env(safe-area-inset-right, 0px));
     }
@@ -365,7 +369,7 @@
     }
 
     .app-nav.has-third .app-nav-place {
-      padding-inline: 0.5rem;
+      padding-inline: 0.25rem;
     }
 
     .app-nav.has-third .app-nav-third-link {
@@ -373,7 +377,7 @@
     }
 
     .app-nav.has-third .app-nav-third-label {
-      padding-inline: 0.5rem;
+      padding-inline: 0.375rem;
     }
 
     /* While a card is dragged the bar fades out and takes no pointer, so no drop target is covered */

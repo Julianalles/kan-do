@@ -17,8 +17,8 @@
   picker's footer ("Bearbeiten" / "Fertig") lists one button row per option, and a row closes the picker and opens the shared
   TopicEditorHost under the property row (#430, #431, #443); topics also get a "Themen verwalten" row
 - Host the carried-over triage block and line (#99)
-- Status row (#359): five choices in the order of the places, "Nicht geplant" first, then Offen, Jetzt, Wartet, Erledigt. A task
-  that is not planned reads "Nicht geplant" (never "Offen", the name of the other column on "Alle"); picking a column plans it,
+- Status row (#359): five choices in the order of the places, "Nicht geplant" (the state of a task in the column "Meine Aufgaben", #375) first, then Offen, Jetzt, Wartet, Erledigt. A task
+  that is not planned reads "Nicht geplant" (never "Offen", the name of the other column on "Planung"); picking a column plans it,
   picking "Nicht geplant" takes a task off today's board from any column (`useTaskStatusActions.chooseStatus`)
 - Guard against drift (#161, kd#4): at most six always-visible standard rows (Status, Priorität, Thema, Aktivität, Timebox,
   Aufgewendete Zeit),
@@ -407,7 +407,7 @@ const { targets: moveTargets, move: moveToSource } = useTaskMoveTargets(() => (p
 // so a resize while open cannot disagree with the layout the sheet actually shows (#199).
 const pinMetadata = useOverlayIsDesktop();
 
-// Five choices in the order of the places (#359): "Nicht geplant" first, as on "Alle", then the four columns
+// Five choices in the order of the places (#359): "Nicht geplant" (the state of a task under "Meine Aufgaben") first, as on "Planung", then the four columns
 const statusItems = computed<{ label: string; value: StatusChoice; icon: string }[]>(() => [
   { label: t(NOT_PLANNED_CONFIG.labelKey), value: NOT_PLANNED_CHOICE, icon: NOT_PLANNED_CONFIG.icon },
   ...Object.entries(TASK_STATUS_CONFIG)

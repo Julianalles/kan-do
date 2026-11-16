@@ -39,7 +39,7 @@ test.describe('empty states', () => {
   })
 })
 
-test.describe('the place "Alle" (#354)', () => {
+test.describe('the place "Planung" (#354)', () => {
   async function gotoAll(page: Page) {
     await page.goto('/all')
     await expect(page.locator('.board')).toHaveAttribute('data-place', 'all')
@@ -47,13 +47,13 @@ test.describe('the place "Alle" (#354)', () => {
     await settleAnimations(page)
   }
 
-  test('empty "Nicht geplant": everything is planned, and how a task gets here (1280)', async ({ context, page }) => {
+  test('empty "Meine Aufgaben": everything is planned, and how a task gets here (1280)', async ({ context, page }) => {
     await seedLocalBoard(context)
     await gotoAll(page)
     await expect(page.getByTestId('not-planned')).toMatchAriaSnapshot({ name: 'not-planned-empty-1280.aria.yml' })
   })
 
-  test('"Nicht geplant" with tasks: each card a named group with its pick button (390)', async ({ context, page }) => {
+  test('"Meine Aufgaben" with tasks: each card a named group with its pick button (390)', async ({ context, page }) => {
     await page.setViewportSize(MOBILE)
     const held: SeedTask[] = SEED_TASKS.filter(task => task.status === 0).map(task => ({ ...task, notPlanned: true as const }))
     await seedLocalBoard(context, [...held, ...SEED_TASKS.filter(task => task.status !== 0)])
@@ -66,7 +66,7 @@ test.describe('a new day (#356)', () => {
   // No done task: no recap opens, the pass sends Jetzt and Offen back at once
   const board = () => newDayBackTasks().filter(task => task.status !== 3)
 
-  test('"Nicht geplant" in two groups: "Gestern geplant, noch offen" above "Weitere Aufgaben", each a heading with its list (1280)', async ({ context, page }) => {
+  test('"Meine Aufgaben" in two groups: "Gestern geplant, noch offen" above "Weitere Aufgaben", each a heading with its list (1280)', async ({ context, page }) => {
     await seedNewDayBoard(context, { tasks: board() })
     await page.goto('/all')
     await expect(page.getByTestId('not-planned-group-others')).toBeVisible()
@@ -74,7 +74,7 @@ test.describe('a new day (#356)', () => {
     await expect(page.getByTestId('not-planned')).toMatchAriaSnapshot({ name: 'not-planned-new-day-groups-1280.aria.yml' })
   })
 
-  test('an empty Offen on Heute says how many tasks of yesterday wait under "Alle", with a link (390)', async ({ context, page }) => {
+  test('an empty Offen on Heute says how many tasks of yesterday wait under "Planung", with a link (390)', async ({ context, page }) => {
     await page.setViewportSize(MOBILE)
     await seedNewDayBoard(context, { tasks: board() })
     await gotoBoard(page)

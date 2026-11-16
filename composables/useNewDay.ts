@@ -1,6 +1,6 @@
 /**
  * @composable useNewDay
- * @description A new day sends what was planned and not finished back to "Nicht geplant" (#356, epic #334): one
+ * @description A new day sends what was planned and not finished back to "Meine Aufgaben" (#356, epic #334): one
  * pass per local day over Jetzt and Offen, run when the app is opened or returned to after an absence on a later
  * day (never while the user works in the window: not at midnight, not on a route change), with or without a recap. It changes kan-do's own state only, except for
  * the one Jetzt task, whose status is written to its connection like the day close's "Fertig" does.
@@ -13,7 +13,7 @@
  *   (an existing board on its first morning after the update); otherwise today is the baseline and nothing moves.
  * - The pass: the Jetzt task stops its timer and moves to Offen through the shared move path; then Jetzt and Offen
  *   (board order, Jetzt first, demo tasks excluded) are taken off the board in one store action and stand on top of
- *   "Nicht geplant". Wartet and Erledigt stay. Nothing is deleted; title, notes, topic, priority, time box, source and
+ *   "Meine Aufgaben". Wartet and Erledigt stay. Nothing is deleted; title, notes, topic, priority, time box, source and
  *   the carried-over entry are untouched. It removes NO time by itself (the user's decision of 2026-11-16: nothing is
  *   removed silently): the time its timer counted after the local midnight that starts today while the user was away
  *   from the window (`tasksStore.takeAfterMidnight`, D3 o) becomes a question (`timeOffer`).

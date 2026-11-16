@@ -2,13 +2,13 @@
 @component BoardContinue
 @kind component
 @category action
-@description The way on from the place "Alle" to the board (#354, epic #334): the primary button "Tag starten" (#367, without a count) and, above it, the echo of Offen's capacity line while that line is out of view
-@usage Board.vue renders it twice, never both at once: on desktop in the footer slot of the Offen column (where Erledigt has "Tag abschließen"), on a phone (`phone`) as a bar fixed above the app bar on both pages of "Alle".
-@avoid The page's one primary button, only on "Alle"; "Tag abschließen" on Heute keeps its own footer in Board.vue. Not a navigation bar: the places are in AppNav.
+@description The way on from the place "Planung" to the board (#354, epic #334): the primary button "Tag starten" (#367, without a count) and, above it, the echo of Offen's capacity line while that line is out of view
+@usage Board.vue renders it twice, never both at once: on desktop in the footer slot of the Offen column (where Erledigt has "Tag abschließen"), on a phone (`phone`) as a bar fixed above the app bar on both pages of "Planung".
+@avoid The page's one primary button, only on "Planung"; "Tag abschließen" on Heute keeps its own footer in Board.vue. Not a navigation bar: the places are in AppNav.
 @responsibility
 - The button is a link to Heute (`boardPlaceLocation('today')`), so the board travels there as with the app bar
 - Desktop: the echo follows the window (`watch-window`); a click scrolls the real line into view
-- Phone: the echo shows on the "Nicht geplant" page (`echo-active`); a tap emits `show-line`, and the board goes to the Offen page. `lifted` moves the bar above the topic focus pill, `hidden` fades it out while a card is dragged (like the app bar)
+- Phone: the echo shows on the "Meine Aufgaben" page (`echo-active`); a tap emits `show-line`, and the board goes to the Offen page. `lifted` moves the bar above the topic focus pill, `hidden` fades it out while a card is dragged (like the app bar)
 - The button sits on a page-coloured backing: on desktop the footer is sticky above the cards
 -->
 <template>
@@ -44,7 +44,7 @@ defineOptions({ name: 'BoardContinue' })
 const props = withDefaults(defineProps<{
   /** The phone bar (fixed above the app bar) instead of the column footer */
   phone?: boolean
-  /** Phone: the "Nicht geplant" page shows, so Offen's line is out of view */
+  /** Phone: the "Meine Aufgaben" page shows, so Offen's line is out of view */
   echoActive?: boolean
   /** Phone: the topic focus pill floats above the app bar; the bar steps up above it */
   lifted?: boolean

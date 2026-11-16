@@ -1,5 +1,5 @@
 /**
- * The drag between "Nicht geplant" and Offen (#355): a card of the side dropped on Offen is planned in the previewed
+ * The drag between "Meine Aufgaben" and Offen (#355): a card of the side dropped on Offen is planned in the previewed
  * slot, an Offen card or stack dropped on the side is taken off the board, everything else puts the card back.
  * Real Pinia stores and real useTaskSync; only the integrations and UI are mocked.
  */
@@ -39,7 +39,7 @@ const makeTask = (overrides: Partial<Task>): Task => ({
 const zone = { id: 'not-planned-zone', data: { notPlannedZone: true } }
 const openZone = { id: 'column-drop-zone-0', data: { taskStatus: TaskStatus.Open } }
 
-describe('useBoardDndKit: between "Nicht geplant" and Offen (#355)', () => {
+describe('useBoardDndKit: between "Meine Aufgaben" and Offen (#355)', () => {
   let tasksStore: ReturnType<typeof useTasksStore>
   let side: HTMLElement
   let openList: HTMLElement
@@ -164,7 +164,7 @@ describe('useBoardDndKit: between "Nicht geplant" and Offen (#355)', () => {
     expect(element.parentElement).toBe(side)
   })
 
-  it('never lets a "Nicht geplant" card into another column, and marks the side only while it is the target', () => {
+  it('never lets a "Meine Aufgaben" card into another column, and marks the side only while it is the target', () => {
     seed(['h1'], ['o1'])
     tasksStore.addTask(makeTask({ id: 'w1', status: TaskStatus.Waiting }))
     const { kit, source } = pickUpHeld('h1')

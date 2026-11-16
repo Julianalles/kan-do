@@ -1,8 +1,8 @@
 /**
  * @composable usePlanMoves
- * @description The two moves of the place "Alle" (#354, epic #334) as the user sees them: "Für heute einplanen"
- * (a "Nicht geplant" card lands at the end of Offen) and "Nicht heute" (an Offen card goes back to the top of
- * "Nicht geplant"). The state change is `useTaskSync.planTask` / `unplanTask`; this adds the motion and the
+ * @description The two moves of the place "Planung" (#354, epic #334) as the user sees them: "Für heute einplanen"
+ * (a "Meine Aufgaben" card lands at the end of Offen) and "Nicht heute" (an Offen card goes back to the top of
+ * "Meine Aufgaben"). The state change is `useTaskSync.planTask` / `unplanTask`; this adds the motion and the
  * screen-reader line.
  * @responsibility
  * - Desktop: the card travels from where it was to where it now is (FLIP on the card, 360 ms on the bar's curve)
@@ -55,7 +55,7 @@ async function fly(from: DOMRect | null, find: () => HTMLElement | null): Promis
   await nextTick()
   const el = find()
   if (!el || typeof el.animate !== 'function') return
-  // A card put back flies into "Nicht geplant": that side lifts above Offen and stops clipping meanwhile (board.css).
+  // A card put back flies into "Meine Aufgaben": that side lifts above Offen and stops clipping meanwhile (board.css).
   // It lands on top, so the list is scrolled to its start before the card's box is read.
   const side = el.closest<HTMLElement>('#column-not-planned')
   const body = side?.querySelector<HTMLElement>('.not-planned__body')
@@ -78,7 +78,7 @@ async function fly(from: DOMRect | null, find: () => HTMLElement | null): Promis
 
 export function usePlanMoves() {
   async function move(id: string, kind: 'plan' | 'unplan'): Promise<boolean> {
-    // Resolved per move, not per caller: every Offen card on "Alle" holds this composable for its arrow
+    // Resolved per move, not per caller: every Offen card on "Planung" holds this composable for its arrow
     const { planTask, unplanTask } = useTaskSync()
     const task = useTasksStore().task(id)
     if (!task || leaving.has(id)) return false
@@ -106,7 +106,7 @@ export function usePlanMoves() {
 
   /** "Für heute einplanen": the task lands at the end of Offen. */
   const planForToday = (id: string) => move(id, 'plan')
-  /** "Nicht heute": the Offen task goes to the top of "Nicht geplant". */
+  /** "Nicht heute": the Offen task goes to the top of "Meine Aufgaben". */
   const notToday = (id: string) => move(id, 'unplan')
 
   return { planForToday, notToday, announcement }

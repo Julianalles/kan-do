@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { isValidDayKey } from '~/utils/recapDay'
 import { sanitizeAfterMidnight, type AfterMidnightCount } from '~/store/tasks'
 
-/** What a new day's pass sent back to "Nicht geplant" (#356): the local day it ran on and the task ids, in board order. */
+/** What a new day's pass sent back to "Meine Aufgaben" (#356): the local day it ran on and the task ids, in board order. */
 export interface SentBack {
   day: string
   ids: string[]
@@ -21,7 +21,7 @@ export function sanitizeSentBack(raw: unknown): SentBack | null {
  * Day marker and toggle of the new-day recap (#385). Persisted under `day-recap-store` through
  * `appStorage`, so both travel with the data file (export/import, cloud-synced folder) like every other store.
  *
- * Since #356 it also holds the new day's own state: the day the pass "unfinished cards go back to Nicht geplant" last
+ * Since #356 it also holds the new day's own state: the day the pass "unfinished cards go back to Meine Aufgaben" last
  * ran on (`lastNewDay`), what it sent back (`sentBack`, the group "Gestern geplant, noch offen" of that one day) and
  * the one-time note of the first pass that ever moved a card (`firstBackDay`, `backNoteClosed`), and the open question
  * about the time a Jetzt timer ran on after midnight while the user was away (`timeOffer`, the user's decision of

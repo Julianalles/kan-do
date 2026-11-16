@@ -18,7 +18,7 @@
       - text: /\d+ min/
   - region "Für morgen":
     - heading "Für morgen" [level=3]
-    - paragraph: Eine Aufgabe geht zurück nach „Nicht geplant“. Morgen planst du sie neu ein. Du kannst sie abwählen.
+    - paragraph: Eine Aufgabe geht zurück nach „Meine Aufgaben“. Morgen planst du sie neu ein. Du kannst sie abwählen.
     - group:
       - text: Offene Aufgaben anzeigen
       - list "Offene Aufgaben für morgen":
@@ -26,8 +26,8 @@
           - checkbox "Konzept ausarbeiten Offen · Kommt in den Papierkorb"
           - text: Konzept ausarbeiten Offen · Kommt in den Papierkorb
         - listitem:
-          - checkbox "Review schreiben Jetzt · Geht zurück nach „Nicht geplant“" [checked]
-          - text: Review schreiben Jetzt · Geht zurück nach „Nicht geplant“
+          - checkbox "Review schreiben Jetzt · Geht zurück nach „Meine Aufgaben“" [checked]
+          - text: Review schreiben Jetzt · Geht zurück nach „Meine Aufgaben“
         - listitem:
           - checkbox "Blocker klären Wartet · Bleibt in Wartet" [checked]
           - text: Blocker klären Wartet · Bleibt in Wartet

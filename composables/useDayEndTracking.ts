@@ -29,7 +29,7 @@ export function useDayEndTracking(now: () => Date = () => new Date()) {
     if (boardStore.boardConfig.sources === null) return
     if (dataState.available && dataState.status !== 'ok') return
     // In flight = on the board: a task that is not planned for today (#353) is not counted. It is still a real task
-    // kan-do holds, so a board whose every task was put back to "Nicht geplant" records 0 instead of keeping the
+    // kan-do holds, so a board whose every task was put back to "Meine Aufgaben" records 0 instead of keeping the
     // count from before (#354)
     const real = tasksStore.tasks.filter(task => !isDemoTaskId(task.id))
     if (real.length === 0) return

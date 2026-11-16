@@ -70,7 +70,7 @@ export function focusFirstAvailable(candidates: Array<() => HTMLElement | null>)
  * for a card that joined a collapsed stack (#147), the stack's control (`data-task-id` names only the top card).
  */
 export function findSavedCardElement(taskId: string): HTMLElement | null {
-  // A task made on the place "Alle" is under "Nicht geplant" (#367): its card box there is focusable by itself
+  // A task made on the place "Planung" is under "Meine Aufgaben" (#367): its card box there is focusable by itself
   const notPlanned = document.querySelector<HTMLElement>(`[data-not-planned-id="${CSS.escape(taskId)}"] .not-planned__card`)
   if (notPlanned) return notPlanned
   const wrapper = document.querySelector<HTMLElement>(`.task-wrapper[data-task-id="${CSS.escape(taskId)}"]`)

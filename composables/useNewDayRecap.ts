@@ -15,7 +15,7 @@
  * - Tasks a day close archived (`dayRecap.closedTaskIds`, #292) count as done before today, so closing the day does not
  *   cancel the next morning's recap; the marker moving clears them.
  * - The snapshot is a copy taken at open: a fetch landing later changes nothing in the page. Its still-open deck is
- *   yesterday's board: what today's pass sent back to "Nicht geplant" (Jetzt first, then Offen) and what is on the board
+ *   yesterday's board: what today's pass sent back to "Meine Aufgaben" (Jetzt first, then Offen) and what is on the board
  *   now (#356), so the recap looks the same whether it opens right after the pass or after a reload.
  * - `leave()` (button, Escape): archives the snapshot ids still done before today when "Erledigte archivieren" is on
  *   (shared path with the board button; no toast, no undo, #463), moves the marker to the day the recap opened on, closes.

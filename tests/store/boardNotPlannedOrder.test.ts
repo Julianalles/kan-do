@@ -1,5 +1,5 @@
 /**
- * The order of "Nicht geplant" (#354): `board-store.notPlannedOrder`, an additive persisted field. Data stored
+ * The order of "Meine Aufgaben" (#354): `board-store.notPlannedOrder`, an additive persisted field. Data stored
  * before it loads unchanged, a malformed value reads as empty, and hydration never writes.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'

@@ -14,7 +14,7 @@
 - Provides header with status information
 - Enables task addition for the Open column (#248): the header's round add button asks the add slot, the draft host at the start of the list, to open; the draft card enters at the top (#125). Cancel returns focus to the header button
 - Handles visual states for different statuses and empty states
-- Offen on Heute, empty while tasks of today's group "Gestern geplant, noch offen" wait under "Alle" (#356): one muted sentence with a link to "Alle"; every other empty column stays blank
+- Offen on Heute, empty while tasks of today's group "Gestern geplant, noch offen" wait under "Planung" (#356): one muted sentence with a link to "Planung"; every other empty column stays blank
 - Erledigt drop target (#124): a light green wash under the list and a one-line hint while a card
   from another column hovers it
 -->
@@ -31,6 +31,7 @@
     <board-column-header
       ref="headerRef"
       :title="computedHeadline"
+      :title-fade-key="taskStatus === TaskStatus.Open ? place : undefined"
       :status="taskStatus"
       :task-count="tasks.length"
       :is-empty="isEmpty && !hasGaps"
@@ -96,7 +97,7 @@
       @focusin="handleFocusIn"
       @focusout="handleFocusOut"
     >
-      <!-- Offen is empty on Heute while yesterday's cards wait under "Alle" (#356): one muted sentence with the way there.
+      <!-- Offen is empty on Heute while yesterday's cards wait under "Planung" (#356): one muted sentence with the way there.
            The app took the cards off the board itself, so this one empty column is not blank (#334, Pattern line) -->
       <p
         v-if="showYesterdayNote"
@@ -164,7 +165,7 @@ import { buildColumnItems, withCapacityItem } from "~/utils/columnItems";
 import { useDayCapacity } from "~/composables/useDayCapacity";
 import { useOpenCapacityLine } from "~/composables/useOpenCapacityLine";
 import { useBoardPlace } from "~/composables/useBoardPlace";
-import { boardPlaceLocation } from "~/lib/boardPlace";
+import { boardPlaceLocation, openColumnTitleKey } from "~/lib/boardPlace";
 import {
   getGroupLabel,
   getStackKeys,
@@ -186,7 +187,7 @@ const { t } = useI18n();
 const tasksStore = useTasksStore();
 const boardStore = useBoardStore();
 const { dragState } = useBoardDragState();
-const { basePath, isAll } = useBoardPlace();
+const { basePath, isAll, place } = useBoardPlace();
 const allLocation = boardPlaceLocation('all');
 
 const isHovering = ref(false);
@@ -198,7 +199,7 @@ const props = defineProps({
     type: String,
     default: undefined,
   },
-  /** Offen only (#356): how many tasks the new day sent back still wait under "Alle"; 0 for every other column. */
+  /** Offen only (#356): how many tasks the new day sent back still wait under "Planung"; 0 for every other column. */
   yesterdayWaiting: {
     type: Number,
     default: 0,
@@ -457,7 +458,7 @@ const closeStacks = (keys: string[], restoreFocus: boolean) => {
  */
 const closeStack = (groupKey: string, source: "pointer" | "keyboard") => closeStacks([groupKey], source === "keyboard");
 
-// The live Offen column says where its line sits, for the echo on "Alle" (#354)
+// The live Offen column says where its line sits, for the echo on "Planung" (#354)
 const { publish: publishCapacityLine } = useOpenCapacityLine();
 watch(columnItems, (items) => {
   if (isOpenColumn.value && !props.staticMode) publishCapacityLine(items);
@@ -510,7 +511,8 @@ const computeHeadline = (): string => {
  */
 const defaultHeadline = (): string => {
   switch (props.taskStatus) {
-    case TaskStatus.Open: return t("board.columns.open");
+    // "Heute" on "Planung", "Offen" on "Heute" (#375); the header fades between the two with the place move
+    case TaskStatus.Open: return t(openColumnTitleKey(place.value));
     case TaskStatus.Progress: return t("board.columns.progress");
     case TaskStatus.Waiting: return t("board.columns.waiting");
     case TaskStatus.Done: return t("board.columns.done");
@@ -529,11 +531,11 @@ const computeIsEmpty = (): boolean => props.tasks.length < 1;
 
 const isEmpty = computed(computeIsEmpty);
 
-/** Tasks of today's group "Gestern geplant, noch offen" that still wait under "Alle" (#356); Board.vue hands it to Offen. */
+/** Tasks of today's group "Gestern geplant, noch offen" that still wait under "Planung" (#356); Board.vue hands it to Offen. */
 const yesterdayCount = computed(() => props.yesterdayWaiting);
 /**
  * The sentence in an empty Offen on Heute: only while the column holds no card (and no deleted-card gap, no draft, no
- * drag) and tasks of today's group are left. On "Alle" the group itself is beside the column, so Offen stays blank.
+ * drag) and tasks of today's group are left. On "Planung" the group itself is beside the column, so Offen stays blank.
  */
 const showYesterdayNote = computed(() =>
   isOpenColumn.value && !props.staticMode && !isAll.value && isEmpty.value && !hasGaps.value
@@ -546,7 +548,7 @@ const openTask = (id: string) => {
   if (props.staticMode) {
     return;
   }
-  // Under the place that shows (#354): a sheet opened on "Alle" closes back to "Alle"
+  // Under the place that shows (#354): a sheet opened on "Planung" closes back to "Planung"
   navigateTo({ path: `${basePath.value}/${id}` });
 };
 

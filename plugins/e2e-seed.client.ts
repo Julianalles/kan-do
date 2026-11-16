@@ -12,10 +12,10 @@
  *   ?seed=newday[-all][&daysago=n] — Local source, first start on a new day (#385): four tasks done n days ago (default 1),
  *                   not archived, plus an open and a waiting card; `newday-all` has nothing open. Writes `day-recap-store`
  *                   with `lastShownDay` n+1 days back, so the recap opens (`&daysago=3` reads "am Montag"-style copy).
- *                   The new day's pass (#356) runs too and sends the open card back to "Nicht geplant"; the store says
+ *                   The new day's pass (#356) runs too and sends the open card back to "Meine Aufgaben"; the store says
  *                   an earlier pass already happened, so the one-time note stays away
  *   ?seed=newday-back[&first=1] — the new day in full (#356): like `newday`, plus a card in Jetzt (with time spent), a
- *                   second Offen card and a task that was not planned before. After the recap "Alle" shows the group
+ *                   second Offen card and a task that was not planned before. After the recap "Planung" shows the group
  *                   "Gestern geplant, noch offen" above "Weitere Aufgaben" and Heute an empty Offen with its sentence.
  *                   `&first=1`: no earlier pass is stored, so the one-time note with "Alle wieder einplanen" shows
  *   ?seed=demo    — Local source, the realistic demo board (#527, lib/demo-board.ts): a landscaping business owner's

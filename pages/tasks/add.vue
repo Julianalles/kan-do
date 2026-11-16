@@ -216,7 +216,7 @@ async function handleSave(taskData: Partial<Task>) {
       });
     }
     
-    // On the place "Alle" a new task is not planned (#367); add-and-start always goes to the board
+    // On the place "Planung" a new task is not planned (#367); add-and-start always goes to the board
     const notPlanned = !isAdHocMode.value && newTaskStartsNotPlanned();
     createdTaskId = (await createTask(notPlanned ? { ...taskData, notPlanned: true } : taskData, saveSource.value)).id;
   } catch (error) {
