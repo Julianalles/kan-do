@@ -32,6 +32,12 @@ export interface FetchedTasks {
    * list lacks is gone at the source, as with a complete list.
    */
   partialNotPlanned: readonly string[]
+  /**
+   * The list was assembled from more than one read (Notion: the board query, then the "not planned" query, #392), so a
+   * page that moved between the reads is in none. `mergeTasks` then keeps a task the list lacks once and drops it when
+   * the next list lacks it too. Absent or false: one read, a task the list lacks is gone.
+   */
+  readInParts?: boolean
 }
 
 export interface TaskSourceAdapter {

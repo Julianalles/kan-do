@@ -76,9 +76,10 @@ export const useIntegrationManager = () => {
     // The statuses a capped list holds only in part (#357): the merge must not read it as complete for them.
     // Nor may it drop a task written since this fetch began: the list may have been read before the write
     let partialNotPlanned: readonly string[] = [];
+    let readInParts = false;
     const fetchStartedAt = Date.now();
     try {
-      if (adapter.fetchActiveList) ({ tasks, partialNotPlanned } = await adapter.fetchActiveList());
+      if (adapter.fetchActiveList) ({ tasks, partialNotPlanned, readInParts = false } = await adapter.fetchActiveList());
       else tasks = await adapter.fetchActive();
     } catch (error) {
       console.error(`[IntegrationManager] Fetching ${source} failed:`, error);
@@ -125,6 +126,7 @@ export const useIntegrationManager = () => {
       holdsOnlyOpenDone: adapter.holdsOnlyOpenDone === true,
       startsNotPlanned: adapter.startsNotPlanned === true,
       partialNotPlanned,
+      readInParts,
       fetchStartedAt,
       pushing: isPushing,
     });
