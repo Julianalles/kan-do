@@ -200,6 +200,35 @@
     color: var(--ui-text-highlighted);
   }
 
+  /* "Planung" (#373): the pill is one green way on to the board, the app bar's one suggested next step. The places it
+     leaves out are rows of the ⋯ panel. It keeps the pill's shadow and size rules (content-sized, #616) and has no
+     indicator (nothing carries aria-current). */
+  .app-nav-pill--continue {
+    background: var(--ui-primary);
+  }
+
+  .app-nav-pill--continue:hover {
+    background: var(--ui-color-primary-700);
+  }
+
+  .app-nav-place.app-nav-continue,
+  .app-nav-place.app-nav-continue:hover {
+    gap: 0.375rem;
+    padding-inline: 1.125rem 0.875rem;
+    color: var(--ui-text-inverted);
+  }
+
+  .app-nav-continue-icon {
+    width: 1rem;
+    height: 1rem;
+    flex: none;
+  }
+
+  /* The ring sits outside the green pill, on the paper: the pill is the focus target's shape */
+  .app-nav-continue:focus-visible {
+    outline-offset: 0.125rem;
+  }
+
   /* The third segment (#583): a wrapper whose width AppNav.vue animates; the link clips its label while it is narrow */
   .app-nav-third {
     display: flex;
@@ -292,6 +321,17 @@
       transition: opacity var(--duration-fast) ease;
     }
 
+    /* The funnel (#161) hangs off the group's right edge, out of the flow, and was cut off at the edge of a 360px screen
+       (#381). While it shows, group and funnel are centred together: the group steps left by half of the funnel (its
+       box is 2.75rem wide) and the gap, on the bar's timeline (none under reduced motion, --nav-move is 0 there) */
+    .app-nav.has-focus .app-nav-group {
+      translate: calc((2.75rem + var(--nav-group-gap)) / -2) 0;
+    }
+
+    .app-nav-group {
+      transition: translate var(--nav-move) var(--nav-ease);
+    }
+
     .app-nav-more,
     .app-nav-focus {
       transition: color var(--duration-fast) ease, background-color var(--duration-fast) ease, opacity var(--duration-fast) ease;
@@ -347,6 +387,10 @@
 
     .app-nav-third-label {
       padding-inline: 0.75rem;
+    }
+
+    .app-nav-place.app-nav-continue {
+      padding-inline: 1.25rem 1rem;
     }
 
     /* The wordmark has no backing on a phone and would print over the cards scrolling under the bar (kd#24): it is not

@@ -47,6 +47,8 @@ const openIds = (page: Page) =>
 const item = (page: Page, id: string) => notPlanned(page).locator(`[data-not-planned-id="${id}"]`)
 const openCard = (page: Page, id: string) => page.locator(`#column-open .task-wrapper[data-task-id="${id}"]`)
 const placeLink = (page: Page, place: 'all' | 'board') => page.getByTestId(`app-nav-place-${place}`)
+/** #373: on "Planung" the app bar's pill is one green link on to Heute (the places it leaves out are rows of ⋯) */
+const toHeute = (page: Page) => page.getByTestId('app-nav-continue')
 
 /** The strip has arrived: no move flag, no running animation */
 async function atRest(page: Page) {
@@ -112,8 +114,10 @@ test.describe('The place "Planung" (#354), desktop', () => {
 
     await placeLink(page, 'all').click()
     await expect(page).toHaveURL(/\/all$/)
-    await expect(placeLink(page, 'all')).toHaveAttribute('aria-current', 'page')
-    await expect(placeLink(page, 'board')).not.toHaveAttribute('aria-current', 'page')
+    // #373: the pill is now the one way on to Heute; no segment is current
+    await expect(appNav(page).locator('.app-nav-place')).toHaveText(['Weiter zum Board'])
+    await expect(toHeute(page)).toHaveAttribute('href', '/tasks')
+    await expect(appNav(page).locator('[aria-current="page"]')).toHaveCount(0)
     await atRest(page)
     await expect(notPlanned(page).getByRole('heading', { name: 'Meine Aufgaben' })).toBeVisible()
     await expect(page.locator('#column-open')).toBeVisible()
@@ -146,7 +150,7 @@ test.describe('The place "Planung" (#354), desktop', () => {
     // No sideways scroll from the strip that is wider than the page
     expect(await page.evaluate(() => { window.scrollTo(15, 0); return window.scrollX })).toBe(0)
 
-    await page.getByTestId('board-continue').click()
+    await toHeute(page).click()
     await expect(page).toHaveURL(/\/tasks$/)
     await atRest(page)
     expect(await page.locator('#column-open').evaluate(el => (el as HTMLElement & { __same?: boolean }).__same)).toBe(true)
@@ -189,7 +193,7 @@ test.describe('The place "Planung" (#354), desktop', () => {
     await expect(notPlanned(page).getByRole('heading', { level: 2 })).toHaveText('Meine Aufgaben')
 
     outgoing = sawOutgoingTitle(page)
-    await page.getByTestId('board-continue').click()
+    await toHeute(page).click()
     await expect(heading).toHaveAccessibleName('Offen')
     expect(await outgoing).toBe('Heute')
     await atRest(page)
@@ -198,7 +202,7 @@ test.describe('The place "Planung" (#354), desktop', () => {
 
     // Two changes in a row: the title of the place that shows is left, alone
     await placeLink(page, 'all').click()
-    await placeLink(page, 'board').click()
+    await toHeute(page).click()
     await placeLink(page, 'all').click()
     await atRest(page)
     await expect(page.locator('.column-header__outgoing')).toHaveCount(0)
@@ -223,7 +227,7 @@ test.describe('The place "Planung" (#354), desktop', () => {
 
     await item(page, 'np-1').getByRole('button', { name: 'Angebot kalkulieren: für heute einplanen' }).click()
     await expect.poll(() => openIds(page)).toEqual(['open-1', 'open-2', 'np-1'])
-    expect(await notPlannedIds(page)).toEqual(['np-2'])
+    await expect.poll(() => notPlannedIds(page)).toEqual(['np-2'])
     await expect(page.getByTestId('plan-announcement')).toHaveText('Angebot kalkulieren ist für heute geplant.')
 
     // The mirrored arrow beside an Offen card shows under the pointer
@@ -280,7 +284,7 @@ test.describe('The place "Planung" (#354), desktop', () => {
     const sheet = page.getByRole('dialog')
     await expect(sheet).toBeVisible()
     await expect(sheet).toContainText('Belege sortieren')
-    await expect(placeLink(page, 'all')).toHaveAttribute('aria-current', 'page')
+    await expect(toHeute(page)).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(page).toHaveURL(/\/all$/)
     await expect(sheet).toBeHidden()
@@ -313,7 +317,7 @@ test.describe('The place "Planung" (#354), desktop', () => {
     await expect.poll(() => openIds(page)).toEqual(['open-1'])
 
     // The same focus on Heute
-    await placeLink(page, 'board').click()
+    await toHeute(page).click()
     await atRest(page)
     await expect(page.getByTestId('focus-pill')).toBeVisible()
     expect(await openIds(page)).toEqual(['open-1'])
@@ -354,13 +358,15 @@ test.describe('The place "Planung" (#354), desktop', () => {
     await gotoAll(page)
     const titles = () => notPlanned(page).locator('[data-not-planned-id] .task-title-text').allTextContents()
 
-    // Offen's add button: the in-card flow
-    await page.locator('#column-open [data-testid="add-task-header-button"]').click()
-    await page.getByTestId('new-card-title').fill('Aus der Karte')
-    await page.keyboard.press('ControlOrMeta+Enter')
-    await expect(page.getByTestId('new-card-flow')).toHaveCount(0)
-    await expect.poll(async () => (await titles())[0]).toContain('Aus der Karte')
+    // #380: the add button is in the header of "Meine Aufgaben", where the task lands; Offen's header has none here
+    await expect(page.locator('#column-open [data-testid="add-task-header-button"]')).toHaveCount(0)
+    await page.getByTestId('not-planned-add').click()
+    await expect(page).toHaveURL(/\/all\/add$/)
+    const sheet = page.getByRole('dialog')
+    await sheet.getByPlaceholder('Aufgabe benennen…').fill('Aus der Karte')
+    await sheet.getByRole('button', { name: 'Aufgabe erstellen' }).click()
     await expect(page).toHaveURL(/\/all$/)
+    await expect.poll(async () => (await titles())[0]).toContain('Aus der Karte')
     expect(await openIds(page)).toEqual(['open-1', 'open-2'])
 
     // The command palette: the sheet's add form under /all
@@ -376,7 +382,7 @@ test.describe('The place "Planung" (#354), desktop', () => {
     expect(await openIds(page)).toEqual(['open-1', 'open-2'])
 
     // Heute: as before, the new card is in Offen
-    await placeLink(page, 'board').click()
+    await toHeute(page).click()
     await atRest(page)
     await page.locator('#column-open [data-testid="add-task-header-button"]').click()
     await page.getByTestId('new-card-title').fill('Für heute')
@@ -437,10 +443,38 @@ test.describe('The place "Planung" (#354), desktop', () => {
     await gotoAll(page)
     await expect(page.getByTestId('not-planned-empty')).toHaveCount(0)
     await expect(notPlanned(page).locator('[data-not-planned-id]')).toHaveCount(0)
-    await expect(page.getByTestId('add-task-header-button')).toBeEnabled()
+    await expect(page.getByTestId('not-planned-add')).toBeEnabled()
   })
 
-  test('many items: "Meine Aufgaben" scrolls inside itself; Offen and "Tag starten" stay in view', async ({ context, page }) => {
+  test('#373: the arrow beside a "Meine Aufgaben" card shows on hover and keyboard focus only; Heute and Statistik are rows of ⋯', async ({ context, page }) => {
+    await seedLocalBoard(context, BOARD)
+    await gotoAll(page)
+    const pick = item(page, 'np-1').getByTestId('not-planned-pick')
+    const opacity = () => pick.evaluate(el => getComputedStyle(el).opacity)
+    await settleAnimations(page)
+    expect(await opacity()).toBe('0')
+    await item(page, 'np-1').locator('.task').hover()
+    await expect.poll(opacity).toBe('1')
+    await page.mouse.move(5, 400)
+    await expect.poll(opacity).toBe('0')
+    // The keyboard finds it too: focus on the card, or on the arrow itself
+    await page.keyboard.press('Tab')
+    await item(page, 'np-1').getByRole('group', { name: 'Angebot kalkulieren' }).focus()
+    await expect.poll(opacity).toBe('1')
+    await item(page, 'np-2').getByRole('group', { name: 'Belege sortieren' }).focus()
+    await expect.poll(opacity).toBe('0')
+    await pick.focus()
+    await expect.poll(opacity).toBe('1')
+    // The pill leaves out Heute and Statistik: they are rows in ⋯
+    await appNav(page).getByTestId('app-nav-more').click()
+    const panel = page.getByTestId('more-panel')
+    await expect(panel.getByTestId('more-today')).toBeVisible()
+    await panel.getByTestId('more-statistics').click()
+    await expect(page).toHaveURL(/\/statistics$/)
+    await expect(page.getByTestId('app-nav-place-statistics')).toHaveAttribute('aria-current', 'page')
+  })
+
+  test('many items: "Meine Aufgaben" scrolls inside itself; Offen and the app bar\'s way on stay in view', async ({ context, page }) => {
     const many = Array.from({ length: 30 }, (_, i) => held(`many-${i}`, `Vorrat ${i}`))
     await seedLocalBoard(context, [...many, open('open-1', 'Rechnung schicken')])
     await gotoAll(page)
@@ -450,7 +484,7 @@ test.describe('The place "Planung" (#354), desktop', () => {
     await expect(item(page, 'many-29')).toBeInViewport()
     expect(await page.evaluate(() => window.scrollY)).toBe(0)
     await expect(openCard(page, 'open-1')).toBeInViewport()
-    await expect(page.getByTestId('board-continue')).toBeInViewport()
+    await expect(toHeute(page)).toBeInViewport()
   })
 
   test('desktop: a place change keeps the window scroll (Offen survives the move)', async ({ context, page }) => {
@@ -460,7 +494,7 @@ test.describe('The place "Planung" (#354), desktop', () => {
     await page.evaluate(() => window.scrollTo(0, 600))
     const before = await page.evaluate(() => window.scrollY)
     test.skip(before === 0, 'the page does not scroll in this viewport')
-    await appNav(page).locator('.app-nav-place', { hasText: 'Heute' }).click()
+    await toHeute(page).click()
     await expect(page).toHaveURL(/\/tasks$/)
     expect(await page.evaluate(() => window.scrollY)).toBe(before)
     await appNav(page).locator('.app-nav-place', { hasText: 'Planung' }).click()
@@ -468,7 +502,7 @@ test.describe('The place "Planung" (#354), desktop', () => {
     expect(await page.evaluate(() => window.scrollY)).toBe(before)
   })
 
-  test('capacity: the line shows in Offen as on Heute; its echo sits above "Tag starten" while the line is below the window, and a click shows the line', async ({ context, page }) => {
+  test('capacity: the line shows in Offen as on Heute; its echo sits at the foot of Offen while the line is below the window, and a click shows the line', async ({ context, page }) => {
     // 6 h day (no history): nine 1 h cards put the line behind the sixth, below an 800 px window
     const cards = Array.from({ length: 9 }, (_, i) => open(`cap-${i}`, `Karte ${i}`, null, 1))
     await seedLocalBoard(context, [...cards, held('np-1', 'Angebot kalkulieren')])
@@ -556,7 +590,7 @@ test.describe('The place "Planung" (#354), phone', () => {
     expect(await pageOf(page)).toBe('0')
 
     // Heute: three pages, and its first page is Offen; a swipe right there never shows "Meine Aufgaben"
-    await placeLink(page, 'board').tap()
+    await toHeute(page).tap()
     await expect(page).toHaveURL(/\/tasks$/)
     await pageAtRest(page)
     await expect(dots(page)).toHaveCount(3)
@@ -569,18 +603,19 @@ test.describe('The place "Planung" (#354), phone', () => {
     await expect(notPlanned(page)).toBeHidden()
   })
 
-  test('"Tag starten" (no count, #367) and the app bar lead across; Heute opens on Offen, "Planung" on "Meine Aufgaben"', async ({ context, page }) => {
+  test('the app bar\'s green "Weiter zum Board" (#373) and the places lead across; Heute opens on Offen, "Planung" on "Meine Aufgaben"; no footer bar', async ({ context, page }) => {
     await seedLocalBoard(context, BOARD)
     await gotoAll(page)
-    const go = page.getByTestId('board-continue')
-    await expect(go).toHaveText('Tag starten')
+    const go = toHeute(page)
+    await expect(go).toHaveText('Weiter zum Board')
+    await expect(page.getByTestId('board-continue')).toHaveCount(0)
 
     await go.tap()
     await expect(page).toHaveURL(/\/tasks$/)
     await pageAtRest(page)
     expect(await pageOf(page)).toBe('0')
     await expect(page.locator('#column-open h2')).toBeInViewport()
-    await expect(page.getByTestId('board-continue-bar')).toHaveCount(0)
+    await expect(toHeute(page)).toHaveCount(0)
 
     // From Erledigt (Heute's last page) back to "Planung": one move, however many pages lie between
     await swipe(page, 'left')
@@ -597,6 +632,35 @@ test.describe('The place "Planung" (#354), phone', () => {
     await expect(page.locator('#column-done')).toBeHidden()
   })
 
+  test('#365/#378: scrolled to the end, the last card of both pages lies fully above the app bar and the echo', async ({ context, page }) => {
+    // Nine 1 h cards fill the 6 h day: the echo shows on the "Meine Aufgaben" page, the tallest case
+    const cards = Array.from({ length: 9 }, (_, i) => open(`cap-${i}`, `Karte ${i}`, null, 1))
+    const many = Array.from({ length: 12 }, (_, i) => held(`many-${i}`, `Vorrat ${i}`))
+    await seedLocalBoard(context, [...cards, ...many])
+    await gotoAll(page)
+    const barTop = async () => {
+      const tops = [(await page.getByTestId('app-nav-pill').boundingBox())!.y]
+      const echoEl = page.getByTestId('capacity-echo')
+      if (await echoEl.isVisible()) tops.push((await echoEl.boundingBox())!.y)
+      return Math.min(...tops)
+    }
+    await expect(page.getByTestId('capacity-echo')).toBeVisible()
+    await notPlanned(page).evaluate((el) => { el.scrollTop = el.scrollHeight })
+    const lastHeld = item(page, 'many-11').locator('.task')
+    await expect(lastHeld).toBeInViewport()
+    const lastHeldBox = (await lastHeld.boundingBox())!
+    expect(lastHeldBox.y + lastHeldBox.height).toBeLessThanOrEqual(await barTop())
+
+    await swipe(page, 'left')
+    await expect.poll(() => pageOf(page)).toBe('1')
+    await pageAtRest(page)
+    await page.locator('#column-open').evaluate((el) => { el.scrollTop = el.scrollHeight })
+    const lastOpen = openCard(page, 'cap-8')
+    await expect(lastOpen).toBeInViewport()
+    const opened = (await lastOpen.boundingBox())!
+    expect(opened.y + opened.height).toBeLessThanOrEqual(await barTop())
+  })
+
   test('a planned card leaves to the right and Offen counts it; "Nicht heute" in the card menu puts it back', async ({ context, page }) => {
     await seedLocalBoard(context, BOARD)
     await gotoAll(page)
@@ -609,7 +673,6 @@ test.describe('The place "Planung" (#354), phone', () => {
 
     await pick.tap()
     await expect.poll(() => notPlannedIds(page)).toEqual(['np-2'])
-    await expect(page.getByTestId('board-continue')).toHaveText('Tag starten')
 
     await swipe(page, 'left')
     await expect.poll(() => pageOf(page)).toBe('1')
@@ -633,8 +696,8 @@ test.describe('The place "Planung" (#354), phone', () => {
     await expect(echo).toBeVisible()
     await expect(echo).toContainText('Dein Tag ist vermutlich voll. Eine Aufgabe liegt unter der Linie.')
     const echoBox = (await echo.boundingBox())!
-    const goBox = (await page.getByTestId('board-continue').boundingBox())!
-    expect(echoBox.y + echoBox.height).toBeLessThanOrEqual(goBox.y)
+    const barBox = (await page.getByTestId('app-nav-pill').boundingBox())!
+    expect(echoBox.y + echoBox.height).toBeLessThanOrEqual(barBox.y)
 
     await echo.tap()
     await expect.poll(() => pageOf(page)).toBe('1')
@@ -861,8 +924,6 @@ test.describe('Drag between "Meine Aufgaben" and Offen (#355), 390', () => {
     await pickUp(page, openCard(page, 'open-2'))
     await expect(page.locator('.edge-indicator--left')).toBeVisible()
     await expect(page.locator('.edge-indicator--right')).toHaveCount(0)
-    // The left arrow sits where Offen's add button is: the button steps out for the drag
-    await expect(page.locator('#column-open [data-testid="add-task-header-button"]')).toBeHidden()
     await edgeDwell(page, 'left')
     await expect(side(page)).toHaveClass(/is-drop-target/)
     await expect(dropHint(page)).toBeVisible()
@@ -889,4 +950,22 @@ test.describe('The app bar with "Planung" on a small phone (#354)', () => {
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(360)
   })
+
+  // #381: the funnel hung off the group's right edge and was cut off by the screen at 360 px
+  for (const path of ['/tasks', '/all']) {
+    test(`the topic focus funnel lies inside the screen on ${path}, clear of ⋯, with its 44 px target`, async ({ context, page }) => {
+      await seedLocalBoard(context, BOARD)
+      await page.goto(path)
+      const funnel = page.getByTestId('focus-trigger')
+      await expect(funnel).toBeVisible()
+      await expect(appNav(page)).not.toHaveAttribute('data-moving', 'true')
+      await settleAnimations(page)
+      const box = (await funnel.boundingBox())!
+      const more = (await page.getByTestId('app-nav-more').boundingBox())!
+      expect(box.x + box.width).toBeLessThanOrEqual(360 - 12)
+      expect(box.x).toBeGreaterThanOrEqual(more.x + more.width)
+      expect(box.width).toBeGreaterThanOrEqual(44)
+      expect(box.height).toBeGreaterThanOrEqual(44)
+    })
+  }
 })

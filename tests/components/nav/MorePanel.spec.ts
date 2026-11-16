@@ -23,7 +23,7 @@ const stubs = {
   UButton: {
     props: ['icon', 'to', 'loading', 'disabled', 'color', 'variant'],
     inheritAttrs: false,
-    template: '<component :is="to ? \'a\' : \'button\'" :data-icon="icon" :href="to" :disabled="disabled || undefined" :data-variant="variant" v-bind="$attrs"><slot /></component>',
+    template: '<component :is="to ? \'a\' : \'button\'" :data-icon="icon" :href="typeof to === \'string\' ? to : to?.path" :disabled="disabled || undefined" :data-variant="variant" v-bind="$attrs"><slot /></component>',
   },
   USwitch: { props: ['modelValue', 'label'], emits: ['update:modelValue'], template: '<button role="switch" :aria-checked="modelValue" v-bind="$attrs" @click="$emit(\'update:modelValue\', !modelValue)">{{ label }}</button>' },
   UFormField: { template: '<div><slot /></div>' },
@@ -94,6 +94,28 @@ describe('MorePanel: the Mehr panel (#470)', () => {
     route.path = '/statistics'
     await nextTick()
     expect(w.find('[data-testid="more-settings"]').exists()).toBe(true)
+  })
+
+  // #373: on Planung the pill is only "Weiter zum Board", so the places it leaves out are rows of the panel
+  it.each(['/all', '/all/x'])('on %s Heute and Statistik are rows (above Ansicht) and lead to their pages', async (path) => {
+    route.path = path
+    const w = render()
+    const today = w.find('[data-testid="more-today"]')
+    const statistics = w.find('[data-testid="more-statistics"]')
+    expect(today.text()).toBe('Heute')
+    expect(today.attributes('href')).toBe('/tasks')
+    expect(statistics.text()).toBe('Statistik')
+    expect(statistics.attributes('href')).toBe('/statistics')
+    expect(w.text().indexOf('Statistik')).toBeLessThan(w.text().indexOf('Ansicht'))
+    await today.trigger('click')
+    expect(w.emitted('close')).toHaveLength(1)
+  })
+
+  it.each(['/tasks', '/statistics', '/trash', '/settings'])('on %s the places are the pill\'s segments: no Heute and Statistik rows', (path) => {
+    route.path = path
+    const w = render()
+    expect(w.find('[data-testid="more-today"]').exists()).toBe(false)
+    expect(w.find('[data-testid="more-statistics"]').exists()).toBe(false)
   })
 
   it('does not offer Fokus: it lives only in Einstellungen', () => {

@@ -148,7 +148,6 @@
       "planNamed": "{title}: plan for today",
       "notToday": "Not today",
       "notTodayNamed": "{title}: not today",
-      "continue": "Start the day",
       "empty": "No more tasks.",
       "create": "Create task",
       "noMatch": "No tasks found.",
@@ -197,7 +196,8 @@
     "appUpdate": "App update",
     "syncNow": "Sync now",
     "syncing": "Syncing…",
-    "all": "Planning"
+    "all": "Planning",
+    "continue": "Continue to the board"
   },
   "menu": {
     "app": "Kan-Do",

@@ -7,7 +7,7 @@
 @avoid Not a board card: no status, no card menu, no delete key, never a drop target for another card (SortableTaskWrapper is the card of a column). Not for a static list of cards (trash, recap).
 @responsibility
 - Card: TaskCard as the board shows it, always with the source icon; a click, a tap or Enter on the focused card opens its sheet (`open`)
-- Pick: a round button ("Für heute einplanen", named with the task's title; `pick`). Desktop: on the paper right of the card, towards Offen, quiet at rest and full on hover and focus. Phone: in the card's top right corner. A press on it never starts a drag
+- Pick: a round button ("Für heute einplanen", named with the task's title; `pick`). Desktop: on the paper right of the card, towards Offen, hidden at rest and shown on hover and keyboard focus (#373; touch-only devices keep it visible). Phone: in the card's top right corner. A press on it never starts a drag
 - Drag (#355): the `li` is a dnd-kit sortable of the group `NOT_PLANNED_GROUP` that accepts only itself, so the cards of this side never make room for one another; the card box is the handle (pointer, touch hold, Space). dnd-kit moves the `li` into Offen's list while it previews a slot there; `useBoardDndKit` puts it back before it stores anything
 - Named for assistive tech like a board card: role=group, the task's title, the board's role description
 -->
@@ -142,19 +142,18 @@ function openFromKey(event: KeyboardEvent) {
   display: none;
 }
 
-@media (hover: hover) {
-  .not-planned__pick:not(:hover, :focus-visible) {
-    background-color: transparent;
-    color: var(--ui-text-muted);
+/* Desktop with a pointer (#373): hidden at rest, as "Nicht heute" beside an Offen card (SortableTaskWrapper); shown
+   under the pointer and on keyboard focus of the card or the arrow. Opacity, not display: the arrow stays in the tab
+   order. A touch-only device keeps it visible (no hover to find it with); a phone has it in the card's corner. */
+@media (--desktop) and (hover: hover) {
+  .not-planned__pick {
+    opacity: 0;
   }
 
-  .not-planned__item:hover .not-planned__pick {
-    background-color: var(--fill-on-canvas);
-    color: var(--ui-text);
-  }
-
-  .not-planned__item:hover .not-planned__pick:hover {
-    background-color: var(--fill-on-canvas-hover);
+  .not-planned__item:hover .not-planned__pick,
+  .not-planned__item:has(.not-planned__card:focus-visible) .not-planned__pick,
+  .not-planned__pick:focus-visible {
+    opacity: 1;
   }
 }
 

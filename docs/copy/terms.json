@@ -891,14 +891,14 @@
     "note": "Approved by the user on 2026-11-16 (#367); the user's `npm run terms:approve` makes it decided. Card menu entry and name of the mirrored arrow. Proposed in the design of #334 (D4)."
   },
   {
-    "id": "start-the-day",
-    "concept": "The button on \"Alle\" that leads on to the board once planning is done (#354, #367)",
-    "de": "Tag starten",
-    "en": "Start the day",
+    "id": "continue-to-board",
+    "concept": "The one green pill of the app bar on \"Planung\" that leads on to the board (#373; replaces the footer button \"Tag starten\" of #367)",
+    "de": "Weiter zum Board",
+    "en": "Continue to the board",
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "The user's own wording of 2026-11-16 (#367; the user's `npm run terms:approve` makes it decided), shown without a count; it replaces the proposed \"Weiter zu Heute\" / \"Continue to Today\" (entry continue-to-today). The one primary button of \"Alle\". English by the copy-writer skill, beside \"Plan the day\" and \"Close the day\"."
+    "note": "The user's own German wording of 2026-11-16 (#373), English by the copy-writer skill; the user's `npm run terms:approve` makes it decided. It replaces \"Tag starten\" / \"Start the day\" (entry start-the-day, removed with the footer button), which had replaced the proposed \"Weiter zu Heute\". Key nav.continue. \"Board\" is the user's word here, as in \"Direkt zum Board\" (straight-to-board)."
   },
   {
     "id": "plan-the-day",

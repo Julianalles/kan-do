@@ -90,7 +90,7 @@
       overflow-x: clip;
     }
 
-    /* "Tag starten" keeps its place at the foot of Offen, like "Tag abschließen" at the foot of Erledigt */
+    /* The capacity echo keeps its place at the foot of Offen, like "Tag abschließen" at the foot of Erledigt */
     #column-open > .column-footer {
       margin-top: auto;
     }
@@ -243,14 +243,11 @@
       grid-row: unset;
     }
 
-    /* "Planung" (#354): room under the last card of both pages for the fixed "Tag starten" bar (BoardContinue); the
-       "Meine Aufgaben" page also for the capacity echo above the button */
-    :where(.board)[data-place='all'] > #column-open {
-      padding-bottom: calc(var(--phone-bar-offset) + 5rem);
-    }
-
+    /* "Planung" (#354, #373): the "Meine Aufgaben" page has room under its last card for the fixed capacity echo
+       (BoardCapacityDock: 0.5rem above the app bar, about 4.7rem tall, shown only while the day is full). The Offen
+       page needs none: the echo shows on the other page only, and the way on to Heute is the app bar's pill. */
     :where(.board)[data-place='all'] > #column-not-planned {
-      padding-bottom: calc(var(--phone-bar-offset) + 10rem);
+      padding-bottom: calc(var(--phone-bar-offset) + 7rem);
     }
 
     /* Mobile task card: fill full column width */
@@ -310,12 +307,6 @@
   :where(.board.dragging) :where(.dragover) h2 { opacity: 1; }
   /* "Meine Aufgaben" as the drop target (#355) names itself like a hovered column */
   :where(.board.dragging) :where(.not-planned.is-drop-target) h2 { opacity: 1; }
-
-  /* Phone, "Planung" (#355): Offen is the second page there, so the left edge arrow of a drag sits where Offen's add
-     button is. The button cannot be used mid-drag: it steps out, its place stays */
-  @media (--phone) {
-    :where(.board.dragging[data-place='all']) .column-header__add { visibility: hidden; }
-  }
 
   :where(.waiting-header.empty:not(.dragover)) h2 {
     transform: translateY(30vh);
