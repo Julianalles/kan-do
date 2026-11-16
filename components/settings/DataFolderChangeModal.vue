@@ -23,7 +23,7 @@ stays), a folder that already holds data offers "use the data already there" (th
       <div v-if="choice" class="space-y-4">
         <div class="space-y-1">
           <p class="text-body text-muted">{{ t('settings.data.modal.target') }}</p>
-          <p class="font-mono text-sm break-all text-highlighted" data-testid="data-folder-target">{{ choice.folder }}</p>
+          <p class="font-mono text-sm break-all text-highlighted" data-selectable data-testid="data-folder-target">{{ choice.folder }}</p>
         </div>
 
         <UAlert

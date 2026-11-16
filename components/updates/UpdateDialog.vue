@@ -29,7 +29,7 @@ current version, says that data is backed up first and the app restarts, and ins
           <p id="update-notes-label" class="text-body text-default" data-testid="update-notes-label">
             {{ t('updates.dialog.sinceVersion', { version: update.currentVersion }) }}
           </p>
-          <ul aria-labelledby="update-notes-label" class="list-disc space-y-1.5 pl-5 text-sm text-default" data-testid="update-notes">
+          <ul aria-labelledby="update-notes-label" class="list-disc space-y-1.5 pl-5 text-sm text-default" data-selectable data-testid="update-notes">
             <li v-for="(bullet, index) in notes" :key="`${index}-${bullet.title}`">
               <strong class="font-semibold text-highlighted">{{ bullet.title }}</strong> {{ bullet.text }}
             </li>

@@ -327,11 +327,13 @@
         "utils/isTauri.ts",
         "lib/nativeMenu.ts",
         "lib/windowDrag.ts",
+        "lib/nativeContextMenu.ts",
         "composables/useNativeMenu.ts",
         "plugins/desktop-shell.client.ts"
       ],
       "specs": [
         "native-menu",
+        "desktop-native-feel",
         "data-safety",
         "data-settings",
         "web-data-transfer",
