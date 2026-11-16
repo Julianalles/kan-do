@@ -71,6 +71,7 @@ describe('AppNav: the global app bar (#470)', () => {
   })
 
   it('links Planung to /all, the brand and Heute to /tasks and Statistik to /statistics; the brand is never current', () => {
+    go('/tasks')
     const w = render()
     expect(place(w, 'all').attributes('href')).toBe('/all')
     expect(w.find('[data-testid="app-nav-brand"]').attributes('href')).toBe('/tasks')
@@ -80,8 +81,6 @@ describe('AppNav: the global app bar (#470)', () => {
   })
 
   it.each([
-    ['/all', 'all'],
-    ['/all/x', 'all'],
     ['/tasks', 'board'],
     ['/tasks/add', 'board'],
     ['/statistics', 'statistics'],
@@ -95,6 +94,35 @@ describe('AppNav: the global app bar (#470)', () => {
     const current = w.findAll('[aria-current="page"]').map(el => el.attributes('data-testid'))
     const id = { all: 'app-nav-place-all', board: 'app-nav-place-board', statistics: 'app-nav-place-statistics', more: 'app-nav-place-more' }[expected as 'all' | 'board' | 'statistics' | 'more']
     expect(current).toEqual([id])
+  })
+
+  // #373: on Planung the pill is one green way on to the board; the places it leaves out are rows of the ⋯ panel
+  it.each(['/all', '/all/x', '/all/add'])('on %s the pill is the one link "Weiter zum Board" to /tasks, with no segment and nothing current', async (path) => {
+    go(path)
+    const w = render()
+    await nextTick()
+    const link = w.find('[data-testid="app-nav-continue"]')
+    expect(link.exists()).toBe(true)
+    expect(link.text()).toBe('Weiter zum Board')
+    expect(link.attributes('href')).toBe('/tasks')
+    expect(w.find('[data-testid="app-nav-pill"]').classes()).toContain('app-nav-pill--continue')
+    expect(place(w, 'all').exists()).toBe(false)
+    expect(place(w, 'board').exists()).toBe(false)
+    expect(place(w, 'statistics').exists()).toBe(false)
+    expect(w.findAll('[aria-current="page"]')).toHaveLength(0)
+  })
+
+  it('leaving Planung brings the three places back and the continue link goes', async () => {
+    go('/all')
+    const w = render()
+    await nextTick()
+    expect(w.find('[data-testid="app-nav-continue"]').exists()).toBe(true)
+    go('/tasks')
+    await nextTick()
+    expect(w.find('[data-testid="app-nav-continue"]').exists()).toBe(false)
+    expect(w.find('[data-testid="app-nav-pill"]').classes()).not.toContain('app-nav-pill--continue')
+    expect(place(w, 'all').attributes('href')).toBe('/all')
+    expect(place(w, 'board').attributes('aria-current')).toBe('page')
   })
 
   it('no control is current on an unknown route', async () => {

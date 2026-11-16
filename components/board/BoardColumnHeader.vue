@@ -12,7 +12,7 @@
 - Offen's title fade (#375, `titleFadeKey`): the column is headed "Heute" on the place "Planung" and "Offen" on "Heute". When the place changes, the old title fades out over the new
   one, which fades in, for the length and on the curve of the board's sideways move (`--place-move` 420 ms, `--place-ease`, board.css): one clock for strip, app-bar chip and title. A second
   change mid-fade continues from the opacity the titles stand at. The outgoing title is `aria-hidden` and in the DOM only meanwhile. Reduced motion (`--place-move: 0ms`): no fade, the title just changes
-- Offen only (`showAdd`, #248, moved left #264): a round soft icon-only add button at the start of the card-width track (the
+- Offen (`showAdd`, #248, moved left #264; on the place "Planung" "Meine Aufgaben" has it instead, #380: the task it makes lands there): a round soft icon-only add button at the start of the card-width track (the
   cards' left edge), vertically centred on the title line; the title stays centred exactly like the other columns' (the
   button is out of the flow, so it never moves the title). A tooltip names it on hover and focus (UTooltip, off on the
   phone layout like AppNav's: no hover there, and a tap focuses the button). Click, Enter or Space emits `add`; while a draft is open (`addDisabled`) the button stays in place but is
@@ -39,7 +39,7 @@
             variant="ghost"
             square
             icon="i-ph-plus"
-            data-testid="add-task-header-button"
+            :data-testid="addTestId ?? 'add-task-header-button'"
             :aria-label="t('board.addTask')"
             :disabled="addDisabled"
             @click="emit('add')"
@@ -86,6 +86,8 @@ const props = defineProps<{
   showAdd?: boolean;
   /** A draft is open: the button stays in place but does nothing */
   addDisabled?: boolean;
+  /** Test id of the add button; "Meine Aufgaben" sets its own, so the two headers of "Planung" never share one (#380) */
+  addTestId?: string;
   /** Offen only (#375): the place that shows. A title that changes together with it fades; any other title change (a locale, Wartet's "?") is plain */
   titleFadeKey?: string;
 }>();
@@ -252,8 +254,9 @@ const isWaiting = computed(() => props.status === TaskStatus.Waiting);
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    width: min(var(--task-card-width), 100%);
-    max-width: var(--task-card-max-width);
+    /* A host with a wider card area ("Meine Aufgaben": two card columns, #380) sets --add-row-width and --add-row-max */
+    width: min(var(--add-row-width, var(--task-card-width)), 100%);
+    max-width: var(--add-row-max, var(--task-card-max-width));
     margin-inline: auto;
     margin-top: 1.75rem; /* the h2's margin-top */
     height: calc(var(--text-display) * var(--lh-tight)); /* the h2's line box: the button centres on the title line */

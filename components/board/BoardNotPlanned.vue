@@ -3,17 +3,17 @@
 @kind block
 @category layout
 @description The "Meine Aufgaben" side of the place "Planung" (#354, epic #334): every task kan-do holds that is not on today's board, as cards under a column headline, each with the arrow that plans it for today
-@usage Rendered once by Board.vue as the first child of `.board`, left of Offen (desktop: two column tracks wide, cards in two columns; phone: a swipe page of its own left of Offen). `active` says whether the place "Planung" shows, `rendered` whether the cards are in the DOM (also while the board travels to Heute).
+@usage Rendered once by Board.vue as the first child of `.board`, left of Offen (desktop: two column tracks wide, the cards in two columns close together and centred in it, #373; phone: a swipe page of its own left of Offen). `active` says whether the place "Planung" shows, `rendered` whether the cards are in the DOM (also while the board travels to Heute).
 @avoid Not a board column: no status, no sorting and no slot inside it (BoardColumn). Not for the trash or another static list of cards.
 @responsibility
-- Headline: BoardColumnHeader with the same 40 px row below it as every column, so the first card sits level with Offen's first
+- Headline: BoardColumnHeader with the same 40 px row below it as every column, so the first card sits level with Offen's first. It carries the round add button (#380): a task made on "Planung" is not planned and lands here, so the button sits where the task appears (the sheet's add form under `/all/add`, as "Aufgabe erstellen" in the empty note); Offen's header has none on "Planung"
 - Cards: TaskCard as the board shows it, always with the source icon (the question here is where a task comes from); a click, a tap or Enter on the focused card opens its sheet under `/all/:id`, so closing returns to "Planung". No card menu. Each card is a BoardNotPlannedItem
 - Drag (#355): a card can be carried onto Offen with the board's own drag (it is planned and lands where it is dropped). The side is one dnd-kit droppable (`data.notPlannedZone`) for a card or stack from Offen: while one is held over it the side shows a wash and "Hier ablegen: nicht heute" under the headline, and the drop takes it off today's board, on top of this list. The cards never make room for one another: no sorting here
-- Pick: a round button per card ("Für heute einplanen", named with the task's title). Desktop: on the paper right of the card, towards Offen, quiet at rest and full on hover and focus, so a first-time user finds it (#354 D1e). Phone: in the card's top right corner, where a board card has its menu button. The move is `usePlanMoves().planForToday`; keyboard focus goes on to the next card's button
+- Pick: a round button per card ("Für heute einplanen", named with the task's title). Desktop: on the paper right of the card, towards Offen, hidden at rest and shown on hover and keyboard focus, as "Nicht heute" is in the Heute column (#373; it was quiet at rest so a first-time user found it, #354 D1e; a touch-only device keeps it visible). Phone: in the card's top right corner, where a board card has its menu button. The move is `usePlanMoves().planForToday`; keyboard focus goes on to the next card's button
 - Order: `tasksStore.tasksNotPlanned` (put back by hand first, newest first); the topic focus filters it like a column (`useBoardFocus`)
 - A new day (#356): the tasks today's pass sent back (`useNewDay().groupIds`) stand on top as the group "Gestern geplant, noch offen" (its `h3` in the row under the headline), every other task below under "Weitere Aufgaben". For that one day only; a group the topic focus leaves empty is not shown, and without the first group there are no headings at all. Pick, drag and the focus hand-over work across the heading
 - Empty: one muted note. Nothing held here: "Keine weiteren Aufgaben vorhanden." and the soft button "Aufgabe erstellen" (#367, the user's wording), which opens the sheet's add form under `/all/add`; a task made while "Planung" shows is not planned, so it lands here; a focus without a match: "Keine Aufgaben gefunden."; a board without any task stays blank
-- Many items: on desktop the side is as tall as the window and its list scrolls inside it, so Offen and "Tag starten" stay in view; on a phone the page scrolls like every column page
+- Many items: on desktop the side is as tall as the window and its list scrolls inside it, so Offen and the capacity echo stay in view; on a phone the page scrolls like every column page
 - Out of view (`active` false) the side is `inert`; Board.vue's CSS takes it out of layout or view once the move is over
 -->
 <template>
@@ -26,7 +26,16 @@
     :inert="!active || undefined"
     data-testid="not-planned"
   >
-    <BoardColumnHeader :title="t('board.notPlanned.title')" :status="TaskStatus.Open" :task-count="shown.length" />
+    <!-- The add button (#380): a task made on "Planung" is not planned and lands here, so the button sits where the task appears -->
+    <BoardColumnHeader
+      :title="t('board.notPlanned.title')"
+      :status="TaskStatus.Open"
+      :task-count="shown.length"
+      :show-add="true"
+      :add-disabled="draftTask !== null"
+      add-test-id="not-planned-add"
+      @add="createTask"
+    />
     <!-- The 40 px row every column has under its title (the sorting control's), so the cards start on Offen's line.
          While an Offen card is held over the side it says what a drop does (#355), where Erledigt has its drop line -->
     <div class="relative flex h-10 shrink-0 items-center justify-center">
@@ -131,6 +140,7 @@ import { useBoardFocus } from '~/composables/useBoardFocus'
 import { useBoardPlace } from '~/composables/useBoardPlace'
 import { usePlanMoves } from '~/composables/usePlanMoves'
 import { useNewDay } from '~/composables/useNewDay'
+import { useTaskDraft } from '~/composables/useTaskDraft'
 import { useBoardDragState } from '~/composables/useBoardDragState'
 import { notPlannedZoneAccepts } from '~/utils/planDrop'
 import { TaskStatus } from '~/types/taskStatus'
@@ -175,6 +185,7 @@ const shown = computed(() => applyFocus(held.value))
  * had on the board (Jetzt first), and every other task. Without a first group there is one plain list, as on any other day.
  */
 const { groupIds } = useNewDay()
+const { draftTask } = useTaskDraft()
 const yesterday = computed(() => {
   const byId = new Map(shown.value.map(task => [task.id, task]))
   return groupIds.value.map(id => byId.get(id)).filter(task => task !== undefined)
@@ -305,12 +316,29 @@ async function pick(id: string, event: MouseEvent) {
     overflow: visible;
   }
 
+  /* Two card columns close together and centred in the side (#373): a cell is a card plus the 1.5rem the item keeps
+     free (BoardNotPlannedItem), the gap between the two cards is 4.5rem and holds the arrow of the left one, so the pair
+     reads as one group and the Heute column, a clear step further right, as another */
+  /* The header's add button (#380) sits on the left edge of the two card columns, as Offen's does on its cards' */
+  .not-planned {
+    --add-row-width: calc(2 * var(--task-card-width) + 4.5rem);
+    --add-row-max: none;
+  }
+
   .not-planned__grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, calc(var(--task-card-width) + 1.5rem)));
+    column-gap: 3rem;
+    justify-content: center;
   }
 }
 
 @media (--phone) {
+  /* The add button (#380) takes the left 2.75rem of the card width; "Meine Aufgaben" at the display size (258 px at 390)
+     would run under it, so this one headline steps down one notch on a phone and keeps clear of the button on both sides */
+  .not-planned :deep(.column-header h2) {
+    font-size: calc(var(--text-display) * 0.75);
+  }
+
   .not-planned__body {
     flex: 1 0 auto;
     padding-bottom: 0.75rem;

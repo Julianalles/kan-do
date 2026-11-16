@@ -148,7 +148,6 @@
       "planNamed": "{title}: für heute einplanen",
       "notToday": "Nicht heute",
       "notTodayNamed": "{title}: nicht heute",
-      "continue": "Tag starten",
       "empty": "Keine weiteren Aufgaben vorhanden.",
       "create": "Aufgabe erstellen",
       "noMatch": "Keine Aufgaben gefunden.",
@@ -197,7 +196,8 @@
     "appUpdate": "App-Update",
     "syncNow": "Jetzt synchronisieren",
     "syncing": "Wird synchronisiert…",
-    "all": "Planung"
+    "all": "Planung",
+    "continue": "Weiter zum Board"
   },
   "menu": {
     "app": "Kan-Do",

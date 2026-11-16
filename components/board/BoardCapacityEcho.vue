@@ -2,8 +2,8 @@
 @component BoardCapacityEcho
 @kind component
 @category display
-@description The echo of Offen's "Kapazität" line on the place "Planung" (#354, #334 D6): the same wavy line and label with one muted sentence, shown above "Tag starten" while the real line (BoardCapacityDivider) is out of view. A click or tap shows the real line.
-@usage Inside BoardContinue only. `watch-window` (desktop): shown while the day is full and the real line is outside the window; without it (phone, the "Meine Aufgaben" page) shown while the day is full and `active`.
+@description The echo of Offen's "Kapazität" line on the place "Planung" (#354, #334 D6): the same wavy line and label with one muted sentence, shown at the foot of Offen while the real line (BoardCapacityDivider) is out of view. A click or tap shows the real line.
+@usage Inside BoardCapacityDock only. `watch-window` (desktop): shown while the day is full and the real line is outside the window; without it (phone, the "Meine Aufgaben" page) shown while the day is full and `active`.
 @avoid Not the line itself (BoardCapacityDivider, in the Offen list) and not an alert or a limit: it informs, nothing is blocked, no numbers of time and no room-left counter. Never on Heute.
 @responsibility
 - Reads the Offen column's own line (`useOpenCapacityLine`), so it follows the topic focus, the sorting and the stacks; it never calculates
