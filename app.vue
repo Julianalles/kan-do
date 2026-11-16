@@ -4,6 +4,7 @@
 @usage Always rendered as the top-level component; contains <NuxtPage /> to display the current route
 @responsibility
 - Mount the global app bar once (#470, ADR 017), before the page
+- Show the navigation progress bar (#376): 3px, `--ui-primary`, after a 150 ms wait, instant under reduced motion, no pointer events (assets/css/app-nav.css)
 - Mount the command palette once, while the app bar shows (#224), and the update and what's-new dialogs once on desktop (#225, #226)
 - Provide Nuxt UI app context and the window drag strip for Tauri (#614): the title bar is an overlay, so the
   app bar row doubles as the window's grab area (`.titlebar`, desktop shell only; under a full-screen layer
@@ -20,6 +21,8 @@
     <div class="titlebar absolute h-10" :data-tauri-drag-region="isTauri() || undefined" />
     <!-- The global app bar (#470): beside the layout, so it survives page transitions; the nav comes before <main> in reading order -->
     <AppNav />
+    <!-- Wait feedback (#376): a thin bar for a navigation that still waits (first load of a route not preloaded yet); `throttle` keeps fast navigations free of it -->
+    <NuxtLoadingIndicator color="var(--ui-primary)" :height="3" :throttle="150" aria-hidden="true" class="nav-loading-bar" data-testid="nav-loading" />
     <!-- No default layout exists, so this renders only the page; sub-pages opt into
          layouts/sub-page.vue themselves (layout: false + <NuxtLayout name="sub-page">). -->
     <NuxtLayout>
