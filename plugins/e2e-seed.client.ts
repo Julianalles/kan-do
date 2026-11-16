@@ -26,7 +26,7 @@
  *                   stacks under every grouping option, Jetzt a timebox with time spent, Wartet notes and carry-over,
  *                   Erledigt tasks done today and yesterday; topics come with colours and symbols. Writes the statistics
  *                   records of the done tasks too (the onboarding button does not: the backfill skips demo ids). Not an
- *                   E2E fixture: use `?seed=local` for specs
+ *                   E2E fixture: use `?seed=local` for specs. `&backlog=1` adds ten not-planned tasks under "Meine Aufgaben" (Planung)
  *   ?seed=notion  — Notion stub mode (token = 'notion_test_stub'), pre-populated tasks
  *   ?seed=mixed   — Local and Notion tasks side by side (Notion stub, default source Notion; `&default=local`
  *                   makes Local the default source); the Notion tasks are the stub's own pages
@@ -222,8 +222,11 @@ export default defineNuxtPlugin((nuxtApp) => {
     localStorage.setItem('board-store', JSON.stringify(buildBoardStore('local')))
     localStorage.setItem('tasks-store', JSON.stringify(tasksStoreFor('local')))
   } else if (seed === 'demo') {
-    const demo = buildDemoBoard()
-    localStorage.setItem('board-store', JSON.stringify(buildBoardStore('local', demo.tasks)))
+    // `&backlog=1` adds sample tasks under "Meine Aufgaben" (Planung, README screenshots); they are not on today's board
+    const backlog = url.searchParams.get('backlog') === '1'
+    url.searchParams.delete('backlog')
+    const demo = buildDemoBoard(new Date(), undefined, { backlog })
+    localStorage.setItem('board-store', JSON.stringify(buildBoardStore('local', demo.tasks.filter(task => !task.notPlanned))))
     localStorage.setItem('tasks-store', JSON.stringify(tasksStoreFor('local', demo.tasks, { carryOverByTaskId: demo.carryOverByTaskId })))
     localStorage.setItem('topic-styles', JSON.stringify({ styles: demo.topicStyles }))
     // The statistics backfill skips demo tasks (the onboarding button must not fill permanent statistics), so the dev seed writes its records itself
