@@ -28,7 +28,7 @@ test.describe('Drag and Drop Visuals (@dnd-kit/vue)', () => {
     });
 
     await page.goto('/tasks');
-    await page.waitForSelector('.column', { timeout: 10000 });
+    await page.waitForSelector('#column-open',{ timeout: 10000 });
   });
 
   test('should show dragging class on board during drag', async ({ page }) => {
