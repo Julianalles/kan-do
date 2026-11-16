@@ -320,6 +320,15 @@
       ]
     },
     {
+      "area": "desktop native feel (#370): which text is selectable under html[data-shell=desktop] and the cancelled browser context menu",
+      "paths": [
+        "assets/css/utilities.css"
+      ],
+      "specs": [
+        "desktop-native-feel"
+      ]
+    },
+    {
       "area": "desktop shell (Rust): E2E only reaches it through the Tauri stub, cargo test covers the rest",
       "risk": true,
       "paths": [

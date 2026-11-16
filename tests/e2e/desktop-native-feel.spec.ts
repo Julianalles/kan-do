@@ -57,6 +57,12 @@ test.describe('Native feel (desktop)', () => {
     expect(await contextMenuCancelled(page, '[data-testid="data-folder-change"]')).toBe(true)
     expect(await contextMenuCancelled(page, 'body')).toBe(true)
 
+    // selected text keeps Copy, but only on the selection itself
+    await page.getByTestId('data-folder-path').dblclick()
+    expect(await selectedText(page)).not.toBe('')
+    expect(await contextMenuCancelled(page, '[data-testid="data-folder-path"] [aria-hidden="true"]')).toBe(false)
+    expect(await contextMenuCancelled(page, '[data-testid="data-folder-change"]')).toBe(true)
+
     await page.goto('/tasks/add')
     await expect(page.getByRole('textbox').first()).toBeVisible()
     expect(await contextMenuCancelled(page, 'input[type="text"], input:not([type]), textarea')).toBe(false)

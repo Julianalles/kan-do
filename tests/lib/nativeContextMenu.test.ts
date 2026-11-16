@@ -53,6 +53,26 @@ describe('shouldBlockContextMenu', () => {
     expect(shouldBlockContextMenu(p, selection)).toBe(true)
   })
 
+  it('blocks it away from the selection, keeps it on the selected text only', () => {
+    const p = mount('p')
+    p.textContent = 'Selected text'
+    const button = mount('button')
+    const range = document.createRange()
+    range.selectNodeContents(p)
+    const selection = window.getSelection()!
+    selection.removeAllRanges()
+    selection.addRange(range)
+    expect(shouldBlockContextMenu(button, selection)).toBe(true)
+    expect(shouldBlockContextMenu(document.body, selection)).toBe(true)
+    expect(shouldBlockContextMenu(p, selection)).toBe(false)
+  })
+
+  it('blocks it on readonly and disabled fields (nothing to paste into)', () => {
+    expect(shouldBlockContextMenu(mount('input', { readonly: '' }), null)).toBe(true)
+    expect(shouldBlockContextMenu(mount('input', { disabled: '' }), null)).toBe(true)
+    expect(shouldBlockContextMenu(mount('textarea', { readonly: '' }), null)).toBe(true)
+  })
+
   it('blocks it on a whitespace-only selection', () => {
     const p = mount('p')
     p.textContent = '   '
