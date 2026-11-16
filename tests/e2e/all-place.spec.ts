@@ -300,6 +300,21 @@ test.describe('The place "Alle" (#354), desktop', () => {
     await expect(page.getByTestId('board-continue')).toBeInViewport()
   })
 
+  test('desktop: a place change keeps the window scroll (Offen survives the move)', async ({ context, page }) => {
+    const cards = Array.from({ length: 30 }, (_, i) => open(`scr-${i}`, `Karte ${i}`))
+    await seedLocalBoard(context, cards)
+    await gotoAll(page)
+    await page.evaluate(() => window.scrollTo(0, 600))
+    const before = await page.evaluate(() => window.scrollY)
+    test.skip(before === 0, 'the page does not scroll in this viewport')
+    await appNav(page).locator('.app-nav-place', { hasText: 'Heute' }).click()
+    await expect(page).toHaveURL(/\/tasks$/)
+    expect(await page.evaluate(() => window.scrollY)).toBe(before)
+    await appNav(page).locator('.app-nav-place', { hasText: 'Alle' }).click()
+    await expect(page).toHaveURL(/\/all$/)
+    expect(await page.evaluate(() => window.scrollY)).toBe(before)
+  })
+
   test('capacity: the line shows in Offen as on Heute; its echo sits above "Weiter zu Heute" while the line is below the window, and a click shows the line', async ({ context, page }) => {
     // 6 h day (no history): nine 1 h cards put the line behind the sixth, below an 800 px window
     const cards = Array.from({ length: 9 }, (_, i) => open(`cap-${i}`, `Karte ${i}`, null, 1))
