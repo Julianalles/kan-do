@@ -870,6 +870,20 @@ test.describe('Drag between "Meine Aufgaben" and Offen (#355), desktop', () => {
     await expect(page).toHaveURL(/\/all\/np-1$/)
   })
 
+  test('#380: the add button beside "Meine Aufgaben" steps out while a card is held and is back after the drop', async ({ context, page }) => {
+    await seedLocalBoard(context, BOARD)
+    await gotoAll(page)
+
+    const add = page.getByTestId('not-planned-add')
+    await expect(add).toBeVisible()
+    await pickUp(page, openCard(page, 'open-2'))
+    await expect(add).toBeHidden()
+    await page.keyboard.press('Escape')
+    await page.mouse.up()
+    await dropSettled(page)
+    await expect(add).toBeVisible()
+  })
+
   test('keyboard: Space picks a "Meine Aufgaben" card up, the arrows carry it into Offen and back; both results are said', async ({ context, page }) => {
     await seedLocalBoard(context, BOARD)
     await gotoAll(page)

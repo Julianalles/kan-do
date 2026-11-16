@@ -308,6 +308,10 @@
   /* "Meine Aufgaben" as the drop target (#355) names itself like a hovered column */
   :where(.board.dragging) :where(.not-planned.is-drop-target) h2 { opacity: 1; }
 
+  /* The "Meine Aufgaben" add button (#380) cannot be used mid-drag: it steps out, its place stays. On a phone the
+     left edge arrow of a drag sits right where it is */
+  :where(.board.dragging) :where(.not-planned) .column-header__add { visibility: hidden; }
+
   :where(.waiting-header.empty:not(.dragover)) h2 {
     transform: translateY(30vh);
     opacity: 0;
