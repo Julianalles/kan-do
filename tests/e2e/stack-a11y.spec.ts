@@ -240,7 +240,7 @@ test('an expanded group has a header row with the pill and a round close X, outs
   await expect(header(page)).toBeVisible()
   // a labelled group named like the old caption; the X is an action, not a disclosure (#154)
   await expect(header(page)).toHaveAttribute('role', 'group')
-  await expect(header(page)).toHaveAttribute('aria-label', 'Design · 3 Aufgaben')
+  await expect(header(page)).toHaveAttribute('aria-label', 'Design, 3 Aufgaben')
   await expect(header(page).getByRole('button', { name: /schließen/i })).not.toHaveAttribute('aria-expanded', /.*/)
   await expect(header(page).locator('.task-stack-pill')).toBeVisible()
   await expect(header(page).locator('.task-stack-caption')).toHaveCount(0)

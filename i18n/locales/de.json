@@ -64,7 +64,7 @@
     "emptyWaitingSuffix": "?",
     "dropToComplete": "Hier ablegen, um die Aufgabe als erledigt zu markieren",
     "stack": {
-      "caption": "{group} · {n} Aufgabe | {group} · {n} Aufgaben",
+      "caption": "{group}, {n} Aufgabe | {group}, {n} Aufgaben",
       "label": "{title}, {group}, {n} Aufgabe | {title}, {group}, {n} Aufgaben",
       "labelUntitled": "{group}, {n} Aufgabe | {group}, {n} Aufgaben",
       "closeLabel": "Gruppe {group} schließen",
@@ -131,7 +131,7 @@
     },
     "swap": {
       "title": "Aufgabe gewechselt",
-      "description": "„{running}“ läuft · „{waiting}“ wartet"
+      "description": "„{running}“ läuft, „{waiting}“ wartet"
     },
     "focus": {
       "trigger": "Fokus",
@@ -189,7 +189,7 @@
     "more": "Mehr",
     "moreProblem": "Mehr, Verbindungsproblem",
     "commands": "Befehle",
-    "moreWithCommands": "Mehr · {commands}",
+    "moreWithCommands": "Mehr, {commands}",
     "view": "Ansicht",
     "dayClose": "Tag abschließen",
     "trash": "Papierkorb",
@@ -250,9 +250,9 @@
       "failed": "Verschieben fehlgeschlagen",
       "failedDescription": "„{title}“ bleibt in {source}.",
       "retry": "Erneut versuchen",
-      "hintLost": "{n} Feld geht verloren | {n} Felder gehen verloren",
-      "hintAttention": "Verbindung prüfen · wird später gespeichert",
-      "hintPending": "Wird gespeichert"
+      "hintLost": "{n} Feld geht verloren. | {n} Felder gehen verloren.",
+      "hintAttention": "Verbindung prüfen. Wird später gespeichert.",
+      "hintPending": "Wird gespeichert."
     },
     "completed": "Erledigt",
     "completedMany": "{n} Aufgabe erledigt | {n} Aufgaben erledigt",
@@ -318,7 +318,7 @@
       "start": "Starten",
       "saveIn": "Speichern in",
       "saveInDefault": "Standard",
-      "saveInAttention": "Verbindung prüfen · wird später gespeichert"
+      "saveInAttention": "Verbindung prüfen. Wird später gespeichert."
     },
     "contextMenu": {
       "startNow": "Jetzt starten",
@@ -513,7 +513,7 @@
       "unfinishedDiscarded": "Nicht eingerechnet: {deleted} auf gelöschten Aufgaben (letzte 4 Wochen).",
       "labelTopic": "Zeit nach Thema, letzte 4 Wochen: {values}",
       "labelActivity": "Zeit nach Aktivität, letzte 4 Wochen: {values}",
-      "row": "{time} · {share} %"
+      "row": "{time}, {share} %"
     },
     "allTasks": "Alle erledigten Aufgaben ({n})",
     "rhythm": {
@@ -938,8 +938,8 @@
       "chooseFolder": "Ordner wählen…",
       "reveal": "Im Finder zeigen",
       "startFresh": "Hier neu beginnen",
-      "lastSaved": "Zuletzt gespeichert {time} · Schema {version}",
-      "notSavedYet": "Noch nicht gespeichert · Schema {version}",
+      "lastSaved": "Zuletzt gespeichert {time}, Schema {version}",
+      "notSavedYet": "Noch nicht gespeichert, Schema {version}",
       "problemHeading": "Speichern ist gerade nicht möglich",
       "state": {
         "newerSchema": "Dieser Ordner enthält Daten einer neueren Version. Aktualisiere die App; bis dahin wird nichts geschrieben.",
@@ -1247,10 +1247,10 @@
       "local": "Auf diesem Gerät gespeichert",
       "checking": "Wird geprüft…",
       "needsAttention": "Verbindung prüfen",
-      "syncedNow": "Synchronisiert · gerade eben",
-      "syncedMinutes": "Synchronisiert · vor {n} Min.",
-      "syncedHours": "Synchronisiert · vor {n} Std.",
-      "syncedDays": "Synchronisiert · vor {n} T."
+      "syncedNow": "Synchronisiert gerade eben",
+      "syncedMinutes": "Synchronisiert vor {n} Min.",
+      "syncedHours": "Synchronisiert vor {n} Std.",
+      "syncedDays": "Synchronisiert vor {n} T."
     }
   },
   "sync": {
@@ -1538,7 +1538,7 @@
     "sentToast": "Danke, das Feedback ist als Issue #{number} angelegt.",
     "picker": {
       "region": "Elementauswahl",
-      "hint": "Klicke ein Element an · ↑ größer · ↓ kleiner · Esc bricht ab",
+      "hint": "Klicke ein Element an. ↑ größer, ↓ kleiner, Esc bricht ab",
       "cancel": "Abbrechen"
     },
     "screenshot": {

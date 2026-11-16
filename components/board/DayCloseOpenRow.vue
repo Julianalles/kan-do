@@ -20,7 +20,7 @@
     >
       <template #label>
         <span class="block text-sm font-normal wrap-break-word text-default" data-private>{{ task.title }}</span>
-        <span class="block text-xs font-normal text-muted" data-testid="day-close-open-subline">{{ subline }}</span>
+        <span class="flex flex-wrap gap-x-2 text-xs font-normal text-muted" data-testid="day-close-open-subline"><template v-for="(part, index) in subline" :key="part"><span>{{ part }}<span v-if="index < subline.length - 1" class="sr-only">.</span></span>{{ ' ' }}</template></span>
       </template>
     </UCheckbox>
   </ListRow>
@@ -60,6 +60,6 @@ const subline = computed(() => {
   if (!props.kept) parts.push(t(deleteTrashKey(props.task.source)))
   // "Fertig" stops the Jetzt task and puts it into Offen; every other open task stays where it is (#387)
   else if (props.task.status === TaskStatus.Progress) parts.push(t('dayClose.backToOpen'))
-  return parts.join(' · ')
+  return parts
 })
 </script>

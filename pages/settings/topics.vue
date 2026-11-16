@@ -117,7 +117,7 @@ function metaOf(name: string): string {
   const parts = [t('settings.topics.taskCount', { n: count }, count)]
   if (isSourceOwned(kind.value, name)) parts.push(t('settings.topics.fromNotion'))
   else if (count === 0) parts.push(t('settings.topics.unused'))
-  return parts.join(' · ')
+  return parts.join(', ')
 }
 
 function toggle(name: string) {

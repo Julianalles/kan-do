@@ -4,7 +4,7 @@ import { pickUp, hover, dropSettled } from './helpers/dnd'
 
 /**
  * #161: the topic focus. A muted funnel beside ⋯ opens the topic chips; picking one hides the cards of every
- * other topic in Offen, Wartet and Erledigt and shows the pill "Fokus: <topic> · n ausgeblendet". A card in
+ * other topic in Offen, Wartet and Erledigt and shows the pill "Fokus: <topic>, n ausgeblendet". A card in
  * Jetzt is never hidden. The focus is kept across a reload (it ends with its day: unit tests). Drags use
  * page.mouse (docs/testing/e2e-dnd-patterns.md).
  */
@@ -61,7 +61,7 @@ test.describe('topic focus (#161)', () => {
     await expect(page.getByTestId('focus-chip')).toHaveText(['Büro4', 'Baustelle3'])
 
     await page.getByTestId('focus-chip').filter({ hasText: 'Baustelle' }).click()
-    await expect(pillText(page)).toHaveText('Fokus: Baustelle · 5 ausgeblendet')
+    await expect(pillText(page)).toHaveText('Fokus: Baustelle, 5 ausgeblendet')
     await expect(trigger(page)).toHaveAttribute('aria-pressed', 'true')
     await expect(trigger(page)).toHaveAccessibleName('Fokus beenden: Baustelle')
     expect(await ids(page, 'open')).toEqual(['a1', 'a2'])
@@ -80,10 +80,10 @@ test.describe('topic focus (#161)', () => {
     await gotoBoard(page)
     await trigger(page).click()
     await page.getByTestId('focus-chip').filter({ hasText: 'Büro' }).click()
-    await expect(pillText(page)).toHaveText('Fokus: Büro · 4 ausgeblendet')
+    await expect(pillText(page)).toHaveText('Fokus: Büro, 4 ausgeblendet')
 
     await page.reload()
-    await expect(pillText(page)).toHaveText('Fokus: Büro · 4 ausgeblendet')
+    await expect(pillText(page)).toHaveText('Fokus: Büro, 4 ausgeblendet')
     expect(await ids(page, 'open')).toEqual(['b1', 'b2'])
 
     await trigger(page).click()
@@ -123,7 +123,7 @@ test.describe('topic focus (#161)', () => {
     await gotoBoard(page)
     await trigger(page).click()
     await page.getByTestId('focus-chip').filter({ hasText: 'Baustelle' }).click()
-    await expect(pillText(page)).toHaveText('Fokus: Baustelle · 5 ausgeblendet')
+    await expect(pillText(page)).toHaveText('Fokus: Baustelle, 5 ausgeblendet')
 
     await pickUp(page, card(page, 'run'))
     await hover(page, card(page, 'a1'))
@@ -131,6 +131,6 @@ test.describe('topic focus (#161)', () => {
     await dropSettled(page)
 
     await expect(card(page, 'run')).toHaveCount(0)
-    await expect(pillText(page)).toHaveText('Fokus: Baustelle · 6 ausgeblendet')
+    await expect(pillText(page)).toHaveText('Fokus: Baustelle, 6 ausgeblendet')
   })
 })

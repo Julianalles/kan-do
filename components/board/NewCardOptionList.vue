@@ -2,7 +2,7 @@
 @component NewCardOptionList
 @kind component
 @category input
-@description The list behind "Mehr" (Thema, Aktivität, kd#16) and "···" (Timebox) of the guided new-card flow: the values that are not pills, with a search field and a "Neu: „text“" row on Thema and Aktivität
+@description The list behind "Mehr" (Thema, Aktivität, kd#16) and the dots icon (Timebox) of the guided new-card flow: the values that are not pills, with a search field and a "Neu: „text“" row on Thema and Aktivität
 @usage Inside NewCardFlow's popover (desktop) and drawer (phone); the parent owns open/close, the picks and the focus hand-back
 @avoid Only inside NewCardFlow's popover or drawer; the task sheet's property pickers use TaskPropertySelect.
 @responsibility

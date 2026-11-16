@@ -108,7 +108,7 @@ const tableColumns = computed<TableColumn<TaskCompletionRecord>[]>(() => {
       cell: ({ row }) => {
         const record = row.original;
         // Topic and activity are plain text: label colours never tint chips or dots here
-        const meta = [record.topic, record.activity].filter(Boolean).join(' · ');
+        const meta = [record.topic, record.activity].filter(Boolean).join(', ');
 
         return h('div', { class: 'space-y-1' }, [
           h('div', { class: 'font-medium' }, record.title),
