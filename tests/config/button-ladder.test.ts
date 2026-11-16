@@ -201,6 +201,12 @@ describe('button ladder: theme (#552)', () => {
     expect(sizes?.xs?.base).toMatch(/(^|\s)md:h-6(\s|$)/)
   })
 
+  it('sets the notice action `xs` at the 14 px text step of the notice beside it, not Nuxt UI\'s 12 px (#377)', async () => {
+    const base = (await theme()).variants?.size?.xs?.base ?? ''
+    expect(base).toMatch(/(^|\s)text-sm(\s|$)/)
+    expect(base).not.toMatch(/(^|\s)text-xs(\s|$)/)
+  })
+
   it('leaves the notice action `xs` without a floor: the notice has its own phone rule', async () => {
     const xs = (await theme()).compoundVariants?.find((c) => c.size === 'xs')
     expect(xs?.class).toContain('max-md:min-h-0')

@@ -364,8 +364,8 @@ export default defineAppConfig({
     // main action of a row), ghost (every further action in a row, card, menu or toolbar, every icon-only button), link.
     // `sm`, `xl`, `outline` and `subtle` are Nuxt UI's and stay in the merged theme (a theme cannot delete a key) but are
     // unused: tests/config/button-ladder.test.ts fails on them, the `/ui` entry leaves them out (`only`). `xs` is 24 px and exists only for the
-    // actions Nuxt UI renders in an alert or toast (`size="xs"`, no template sets it); those keep their own 44 px
-    // phone rule (`.kando-notice-actions`, `.kando-toast-actions` in mobile-nav.css, #284).
+    // actions Nuxt UI renders in an alert or toast (`size="xs"`, no template sets it); it takes the 14 px text step of the
+    // notice beside it, not Nuxt UI's 12 px (#377); those actions keep their own 44 px phone rule (`.kando-notice-actions`, `.kando-toast-actions` in mobile-nav.css, #284).
     // On a phone every button is 44 px high (`lg` 48), icon-only ones 44 wide (the heights above apply from `md` up, so a label that wraps grows the button on a phone),
     // so no surface applies `.touch-target` by hand. Nuxt UI internals follow the floor, measured at 390 px (#552):
     // calendar header and its Löschen / Heute 44, modal close 44 x 44. The ladder covers buttons only: `USelect` and
@@ -381,7 +381,7 @@ export default defineAppConfig({
       },
       variants: {
         size: {
-          xs: { base: 'md:h-6' },
+          xs: { base: 'md:h-6 py-0.5 text-sm' },
           md: { base: 'md:h-8 px-3' },
           lg: { base: 'md:h-9 max-md:min-h-12' }
         }
