@@ -82,6 +82,57 @@
     pointer-events: none !important;
   }
 
+  /* ========================================
+   * A "NICHT GEPLANT" CARD AS DRAG SOURCE, AND THAT SIDE AS DROP TARGET (#355)
+   * The card's list item (BoardNotPlannedItem) is the sortable: it shows the same grey slot as a board card, in its
+   * own list and, once dnd-kit sorted it into Offen, in Offen's list (the usual gap). There it has no side room of
+   * its own: the list has it.
+   * While the side is the drop target (`data-over-not-planned` on `.board`, Board.vue) a drop does not land in a
+   * slot of Offen, so the placeholder leaves Offen's layout the way it does over an empty column (#393): the card
+   * from Offen goes on top of the side, the side's own card back to where it was.
+   * ======================================== */
+  .board.dragging .not-planned__item.kando-dnd-dragged,
+  .board.dragging .not-planned__item[data-dnd-dragging] {
+    opacity: 1 !important;
+  }
+
+  .board.dragging .not-planned__item.kando-dnd-dragged .task,
+  .board.dragging .not-planned__item[data-dnd-dragging] .task {
+    background-color: var(--dnd-slot-bg) !important;
+    opacity: 1 !important;
+    box-shadow: none !important;
+    transform: none !important;
+    filter: none !important;
+    border: 0 !important;
+    border-radius: var(--task-card-radius) !important;
+  }
+
+  .board.dragging .not-planned__item.kando-dnd-dragged .task > *,
+  .board.dragging .not-planned__item[data-dnd-dragging] .task > * {
+    opacity: 0 !important;
+    visibility: hidden !important;
+  }
+
+  .board.dragging[data-drop-ghost] .not-planned__item.kando-dnd-dragged .task,
+  .board.dragging[data-drop-ghost] .not-planned__item[data-dnd-dragging] .task {
+    background-color: transparent !important;
+  }
+
+  .task-list > .not-planned__item {
+    padding-inline: 0;
+  }
+
+  .board.dragging[data-over-not-planned] .task-list > :is(.task-wrapper, .task-stack, .not-planned__item):is(.kando-dnd-dragged, [data-dnd-dragging]) {
+    position: absolute !important;
+    width: 0 !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+    pointer-events: none !important;
+  }
+
   /* Landing slot in Erledigt (#124): on the green drop wash the placeholder takes a green tint so it
      reads as the slot. Same geometry, class untouched. Skipped while the empty-column ghost shows. */
   .board.dragging:not([data-drop-ghost]) .column.is-done-drop-target .task-wrapper.kando-dnd-dragged .task,
@@ -218,7 +269,8 @@
       animation: kando-dnd-pick-up var(--dnd-pick-duration) var(--ease-emphasized) backwards;
     }
 
-    .task-wrapper.kando-dnd-set-down .task {
+    .task-wrapper.kando-dnd-set-down .task,
+    .not-planned__item.kando-dnd-set-down .task {
       animation: kando-dnd-set-down var(--dnd-set-down-duration) var(--ease-emphasized) backwards;
     }
 
@@ -231,19 +283,22 @@
      leaves, so the fill faded up from the slot grey under the content that is already visible, and the set-down ended
      on a shadow still fading in from none (WebKit dipped to no shadow and came back: a flash on every drop).
      Outside the motion query: under reduced motion the card simply is there. */
-  .task-wrapper.kando-dnd-set-down .task {
+  .task-wrapper.kando-dnd-set-down .task,
+  .not-planned__item.kando-dnd-set-down .task {
     transition: none !important;
   }
 
   /* While the preview glides in, the real card is the slot it lands on: the placeholder's look, without `.board.dragging` */
-  .task-wrapper.kando-dnd-landing .task {
+  .task-wrapper.kando-dnd-landing .task,
+  .not-planned__item.kando-dnd-landing .task {
     background-color: var(--dnd-slot-bg) !important;
     box-shadow: none !important;
     filter: none !important;
     transition: none !important;
   }
 
-  .task-wrapper.kando-dnd-landing .task > * {
+  .task-wrapper.kando-dnd-landing .task > *,
+  .not-planned__item.kando-dnd-landing .task > * {
     visibility: hidden !important;
   }
 
@@ -264,7 +319,7 @@
   }
 
   :root.kando-dnd-active :is(
-    .board, .task, .task-stack, .task-wrapper,
+    .board, .task, .task-stack, .task-wrapper, .not-planned__card,
     button, a[href], summary, label[for], input, textarea, select,
     [role='button'], [role='tab'], [role='radio'], [role='checkbox'], [role='switch'], [role='menuitem'], [role='option'],
     [aria-disabled='true']

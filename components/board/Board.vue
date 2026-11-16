@@ -15,6 +15,8 @@
   `--place-move` / `--place-ease` in board.css, nothing under reduced motion): desktop a transform animation over the layout change (FLIP, a retarget continues from where the strip is), phone the
   strip's own transform on that timing. `data-place-moving` is set meanwhile; the side out of view is `inert`, and once the move is over it is out of layout (desktop) or hidden (phone), so
   neither pointer, keyboard, reader nor a drag reaches it. The Jetzt focus overlay never shows on "Alle" nor during the move
+- "Alle", drag (#355): a card is carried between "Nicht geplant" and Offen with the board's own drag (useBoardDndKit); `data-over-not-planned` on `.board` while that side is the drop
+  target (dnd.css takes the placeholder out of Offen's layout). Phone: the edge scroll and its arrows work on the two pages of "Alle" as on Heute's three
 - "Alle": BoardContinue ("Weiter zu Heute" with the capacity echo) in Offen's footer on desktop and as a fixed bar on the phone; the two planning moves are announced politely (usePlanMoves)
 - Phone: column pages moved by swipe and drag edge-scroll only (no tabs, #470), per place: "Alle" has two ("Nicht geplant", Offen), "Heute" three (Offen, Jetzt + Wartet, Erledigt); a swipe, the
   edge-scroll and focus never leave the place. The active page within the place is `data-mobile-page`. Heute opens on Jetzt while a task sits there, else on Offen (kd#191), and on Offen when
@@ -57,6 +59,7 @@
       :data-place="place"
       :data-place-moving="placeMoving ? '' : undefined"
       :data-drop-ghost="dragState.ghostCount > 0 ? '' : undefined"
+      :data-over-not-planned="dragState.overNotPlanned ? '' : undefined"
       :style="mobileBoardStyle"
       :data-focus="focusEnabledNow ? '' : undefined"
       :data-focus-lit="focusLit ? '' : undefined"
@@ -142,7 +145,7 @@
     <!-- Mobile edge-scroll indicators: appear while dragging near the screen edge -->
     <template v-if="isDragging">
       <div
-        v-if="!isAll && stripPage > firstPage"
+        v-if="stripPage > firstPage"
         class="edge-indicator edge-indicator--left md:hidden"
         :class="{ 'edge-indicator--charging': edgeDirection === 'left' }"
         :style="edgeIndicatorStyle"
@@ -151,7 +154,7 @@
         <UIcon :name="ICONS.back" class="size-6" />
       </div>
       <div
-        v-if="!isAll && stripPage < lastPage"
+        v-if="stripPage < lastPage"
         class="edge-indicator edge-indicator--right md:hidden"
         :class="{ 'edge-indicator--charging': edgeDirection === 'right' }"
         :style="edgeIndicatorStyle"
@@ -181,6 +184,8 @@
         v-else-if="draggingTask"
         :task="draggingTask"
         :muted="false"
+        :source-icon="previewFromNotPlanned"
+        :corner-room="previewFromNotPlanned"
         preview
         class="kando-dnd-preview"
       />
@@ -249,9 +254,12 @@ const { plugins: dndPlugins, sensors: dndSensors } = useBoardAnnouncements();
 // The end of a drag as motion (kd#181): the preview outlives the drag by its glide to the slot, then the card is
 // set down. `handleDragEnd` reads the dragged ids before `onDragEnd` clears them; visuals only.
 const { land, reset: resetDropMotion, dropAnimation } = useDropMotion();
+/** The held card came from "Nicht geplant" (#355): the preview keeps that side's face (source icon) until the next drag, the glide included */
+const previewFromNotPlanned = ref(false);
 function handleDragStart(event: Parameters<typeof onDragStart>[0]) {
   resetDropMotion();
   onDragStart(event);
+  previewFromNotPlanned.value = dragState.value.fromNotPlanned;
 }
 function handleDragEnd(event: Parameters<typeof onDragEnd>[0]) {
   const { draggedTaskId, draggedStack } = dragState.value;
@@ -580,8 +588,8 @@ const clearEdgeTimer = () => {
 };
 
 const fireEdgeScroll = (direction: 'left' | 'right') => {
-  // "Alle" has no second page a dragged card could go to: "Nicht geplant" takes no drop (drag between the sides: #355)
-  if (edgeScrollCooldown || isAll.value) return;
+  // The pages of the place that shows: on "Alle" a card is carried between "Nicht geplant" and Offen this way (#355)
+  if (edgeScrollCooldown) return;
   const target = direction === 'right'
     ? Math.min(stripPage.value + 1, lastPage.value)
     : Math.max(stripPage.value - 1, firstPage.value);
@@ -627,11 +635,19 @@ const handleDragPointerMove = (event: PointerEvent) => {
 };
 
 // Edge arrows follow the active page's header row, clamped at the top (#231)
-const COLUMN_PAGE_SELECTORS = ['#column-open', '.column-group-mid', '#column-done'];
+const COLUMN_PAGE_SELECTORS: Record<number, string> = {
+  [NOT_PLANNED_PAGE]: '#column-not-planned',
+  0: '#column-open',
+  1: '.column-group-mid',
+  2: '#column-done',
+};
 const { top: edgeIndicatorTopPx } = useEdgeIndicatorTop({
   isActive: computed(() => isDragging.value && isMobile.value),
   activeTab: stripPage,
-  getPage: tab => document.querySelector<HTMLElement>(COLUMN_PAGE_SELECTORS[tab] ?? '#column-not-planned'),
+  getPage: (tab) => {
+    const selector = COLUMN_PAGE_SELECTORS[tab];
+    return selector ? document.querySelector<HTMLElement>(selector) : null;
+  },
 });
 const edgeIndicatorStyle = computed(() =>
   edgeIndicatorTopPx.value === null ? undefined : { '--edge-indicator-top': `${edgeIndicatorTopPx.value}px` },

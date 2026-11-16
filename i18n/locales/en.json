@@ -154,6 +154,10 @@
       "noMatch": "No tasks found.",
       "planned": "{title} is planned for today.",
       "unplanned": "{title} is no longer planned for today.",
+      "unplannedStack": "Stack “{title}” is no longer planned for today.",
+      "dropHere": "Drop here: not today",
+      "dragOver": "“{title}” over Not planned. Dropping takes the task off today.",
+      "dragBack": "“{title}” stays in Not planned.",
       "capacityFull": "With this your day is probably full.",
       "capacityBelow": "Your day is probably full. One task is below the line. | Your day is probably full. {n} tasks are below the line."
     }

@@ -3,7 +3,7 @@ import { Feedback } from '@dnd-kit/dom'
 import { useSortable, type UseSortableInput } from '@dnd-kit/vue/sortable'
 import { useBoardDragState } from '~/composables/useBoardDragState'
 import { DND_MOTION } from '~/composables/useDropMotion'
-import type { TaskStatus } from '~/types/taskStatus'
+import type { BoardSortableGroup } from '~/utils/planDrop'
 
 /** Plugin list accepted by a sortable (`Plugins` from @dnd-kit/abstract, a transitive dependency). */
 type SortablePlugins = Extract<UseSortableInput['plugins'], unknown[]>
@@ -23,6 +23,8 @@ export interface ColumnSortableOptions {
   data?: MaybeRefOrGetter<Record<string, unknown>>
   /** Element that starts a drag and takes focus and keyboard input instead of the element itself */
   handle?: Ref<HTMLElement | null>
+  /** Which dragged sources this item takes as a drop target; a "Nicht geplant" card takes only itself (#355) */
+  accept?: (source: { id: string | number }) => boolean
 }
 
 /**
@@ -33,14 +35,14 @@ export interface ColumnSortableOptions {
  * @param taskId   - Unique task identifier (used as dnd-kit item id); a stack passes its front task's
  *                   id as a getter, so the id follows the front card
  * @param index    - Reactive index within its column list
- * @param status   - Column status used as the sortable group identifier
+ * @param status   - Column status used as the sortable group identifier ("Nicht geplant": `NOT_PLANNED_GROUP`, #355)
  * @param element  - Template ref for the draggable DOM element
- * @param options  - `data` and `handle` (stacks, #150)
+ * @param options  - `data` and `handle` (stacks, #150), `accept` ("Nicht geplant" cards, #355)
  */
 export function useColumnSortable(
   taskId: MaybeRefOrGetter<string>,
   index: Ref<number>,
-  status: TaskStatus,
+  status: BoardSortableGroup,
   element: Ref<HTMLElement | null>,
   options: ColumnSortableOptions = {},
 ) {
@@ -51,6 +53,8 @@ export function useColumnSortable(
     element,
     ...(options.handle ? { handle: options.handle } : {}),
     ...(options.data ? { data: options.data } : {}),
+    // A getter around the function, like `plugins` below: the binding would call a bare function as a value getter
+    ...(options.accept ? { accept: () => options.accept as never } : {}),
     // Wrapped in a getter: the Vue binding resolves every input with toValue(),
     // which would otherwise call the customizer itself without the defaults.
     plugins: () => withCloneFeedback,

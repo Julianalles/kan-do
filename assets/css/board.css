@@ -308,6 +308,14 @@
 
   :where(.board.dragging) h2 { opacity: 0.5; }
   :where(.board.dragging) :where(.dragover) h2 { opacity: 1; }
+  /* "Nicht geplant" as the drop target (#355) names itself like a hovered column */
+  :where(.board.dragging) :where(.not-planned.is-drop-target) h2 { opacity: 1; }
+
+  /* Phone, "Alle" (#355): Offen is the second page there, so the left edge arrow of a drag sits where Offen's add
+     button is. The button cannot be used mid-drag: it steps out, its place stays */
+  @media (--phone) {
+    :where(.board.dragging[data-place='all']) .column-header__add { visibility: hidden; }
+  }
 
   :where(.waiting-header.empty:not(.dragover)) h2 {
     transform: translateY(30vh);

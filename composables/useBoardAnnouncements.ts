@@ -5,10 +5,11 @@ import { translate } from '~/lib/i18n'
 import { stackAccessibleName } from '~/utils/stackAccessibleName'
 import { TaskStatus } from '~/types/taskStatus'
 import { canSwapIntoProgress } from '~/utils/wipGuard'
+import { NOT_PLANNED_GROUP, isNotPlannedZone, resolvePlanDrop } from '~/utils/planDrop'
 
 /** Minimal shapes of the dnd-kit entities the announcements read (avoids `any`). */
 interface AnnouncedStack { key: string, label: string, taskIds: string[] }
-interface AnnouncedEntity { id: string | number, data?: { taskStatus?: TaskStatus, stack?: AnnouncedStack } }
+interface AnnouncedEntity { id: string | number, data?: { taskStatus?: TaskStatus, stack?: AnnouncedStack, notPlannedCard?: boolean, notPlannedZone?: boolean } }
 interface AnnouncementEvent {
   operation: { source: AnnouncedEntity | null, target?: AnnouncedEntity | null }
   canceled?: boolean
@@ -33,6 +34,10 @@ const COLUMN_KEYS: Partial<Record<TaskStatus, string>> = {
  *   dragging at once for a mouse, and a plain click must still expand
  * - a single card over a Jetzt that holds one task announces the swap (#162): the drop switches them and
  *   the running task moves to Wartet; the drop then names both
+ * - the place "Alle" (#355): "Nicht geplant" is named like a column; an Offen card over that side hears what the
+ *   drop does, and the drop says the result once ("… ist für heute geplant." / "… ist nicht mehr für heute geplant.",
+ *   the lines of the arrows), by the rule the drop handler uses (`resolvePlanDrop`). A "Nicht geplant" card's handle
+ *   needs the same drag threshold as a stack's control: a plain click opens its sheet
  * Announcements are pure reads; store updates stay in `useBoardDndKit().onDragEnd`.
  */
 export function useBoardAnnouncements() {
@@ -47,7 +52,8 @@ export function useBoardAnnouncements() {
     return tasksStore.tasks.find(t => t.id === String(entity.id))?.title ?? String(entity.id)
   }
 
-  const columnName = (status: TaskStatus | undefined) => {
+  const columnName = (status: TaskStatus | typeof NOT_PLANNED_GROUP | undefined) => {
+    if (status === NOT_PLANNED_GROUP) return translate('board.notPlanned.title')
     const key = status === undefined ? undefined : COLUMN_KEYS[status]
     return key ? translate(key) : ''
   }
@@ -91,12 +97,17 @@ export function useBoardAnnouncements() {
     dragover({ operation: { source, target } }: AnnouncementEvent) {
       swapAnnounced = null
       if (!source || !target || source.id === target.id) return undefined
+      if (isNotPlannedZone(target)) {
+        return resolvePlanDrop(source, target) === 'unplan'
+          ? translate('board.notPlanned.dragOver', { title: title(source) })
+          : translate('board.notPlanned.dragBack', { title: title(source) })
+      }
       swapAnnounced = swapPartnerTitle(source, target)
       if (swapAnnounced !== null) return translate('board.dnd.swapOver', { title: title(source), running: swapAnnounced })
       const { column, position } = where(target)
       return translate('board.dnd.movedTo', { title: title(source), column, position })
     },
-    dragend({ operation: { source }, canceled }: AnnouncementEvent) {
+    dragend({ operation: { source, target }, canceled }: AnnouncementEvent) {
       const swapped = swapAnnounced
       swapAnnounced = null
       if (!source) return undefined
@@ -107,6 +118,14 @@ export function useBoardAnnouncements() {
           : ''
         return translate('board.dnd.cancelled', { title: title(source), column: initial })
       }
+      const planDrop = resolvePlanDrop(source, target)
+      if (planDrop === 'plan') return translate('board.notPlanned.planned', { title: title(source) })
+      if (planDrop === 'unplan') {
+        return source.data?.stack
+          ? translate('board.notPlanned.unplannedStack', { title: title(source) })
+          : translate('board.notPlanned.unplanned', { title: title(source) })
+      }
+      if (planDrop === 'back') return translate('board.notPlanned.dragBack', { title: title(source) })
       const { column, position } = where(source)
       return translate('board.dnd.dropped', { title: title(source), column, position })
     },
@@ -142,10 +161,11 @@ type Sensors = Extract<NonNullable<DragDropManagerInput['sensors']>, (...args: n
               typeof defaultConstraints === 'function' ? defaultConstraints(e, source) : defaultConstraints
             const constraints = defaultsFor(event)
             // dnd-kit starts a mouse drag on a handle without any constraint: not on a stack's
-            // control, where a click expands. The drag then needs what a drag off the handle needs
+            // control, where a click expands, nor on a "Nicht geplant" card, where it opens the sheet (#355). The drag then needs what a drag off the handle needs
             // (read from the defaults with an event that is not on the handle, so the values follow
             // dnd-kit), whichever pointer type came without a constraint.
-            if (constraints === undefined && (source.data as { stack?: unknown } | undefined)?.stack) {
+            const data = source.data as { stack?: unknown, notPlannedCard?: unknown } | undefined
+            if (constraints === undefined && (data?.stack || data?.notPlannedCard)) {
               return defaultsFor({ pointerType: event.pointerType, target: null, defaultPrevented: false } as PointerEvent)
             }
             return constraints

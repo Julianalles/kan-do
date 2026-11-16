@@ -1,13 +1,15 @@
 import { test, expect, type Page } from '@playwright/test'
 import { seedLocalBoard, type SeedTask } from './helpers/seed'
-import { finger } from './helpers/dnd'
-import { settleAnimations } from './helpers/settle'
+import { dropSettled, edgeDwell, finger, hover, pickUp } from './helpers/dnd'
+import { dwell, settleAnimations } from './helpers/settle'
+import { EDGE_HOLD_DWELL_MS } from './helpers/constants'
 import { appNav } from './helpers/appNav'
 
 /**
  * #354 (epic #334): the place "Alle". `/all` is a second path of the board page: "Nicht geplant" beside Offen, the
  * two planning moves, the sideways move to Heute, and on a phone two places with their own swipe pages.
  * Local board; a task is "not planned" by its `notPlanned` marker (#353).
+ * #355: the drag between "Nicht geplant" and Offen, with the board's own drag (page.mouse, keyboard, 390 edge scroll).
  */
 
 const NOW = new Date().toISOString()
@@ -489,6 +491,227 @@ test.describe('The place "Alle" (#354), phone', () => {
     await expect(page.getByTestId('capacity-divider')).toBeInViewport()
     // On the Offen page the real line speaks for itself
     await expect(echo).toBeHidden()
+  })
+
+  test('#355: press-and-hold on a "Nicht geplant" card carries it over the right edge into Offen; a tap still opens its sheet', async ({ context, page }) => {
+    await seedLocalBoard(context, BOARD)
+    await gotoAll(page)
+    await pageAtRest(page)
+    const touch = finger(await context.newCDPSession(page), page)
+    const from = (await item(page, 'np-1').locator('.not-planned__card').boundingBox())!
+
+    await touch.start(from.x + 40, from.y + from.height / 2)
+    await expect(page.locator('.board.dragging')).toHaveCount(1)
+    await touch.moveTo(385, from.y + from.height / 2, 10, 20)
+    await dwell(page, EDGE_HOLD_DWELL_MS) // past EDGE_HOLD_MS in the edge zone
+    await expect.poll(() => pageOf(page)).toBe('1')
+    const target = (await openCard(page, 'open-1').boundingBox())!
+    await touch.moveTo(195, target.y + 12, 12, 20)
+    await expect(page.locator('#column-open-list > .not-planned__item.kando-dnd-dragged')).toHaveCount(1)
+    await touch.end()
+    await dropSettled(page)
+    await expect.poll(async () => (await openIds(page)).includes('np-1')).toBe(true)
+    await expect.poll(() => notPlannedIds(page)).toEqual(['np-2'])
+
+    // A short tap is no drag
+    await swipe(page, 'right')
+    await expect.poll(() => pageOf(page)).toBe('0')
+    await pageAtRest(page)
+    await item(page, 'np-2').locator('.not-planned__card').tap()
+    await expect(page).toHaveURL(/\/all\/np-2$/)
+  })
+})
+
+/** Offen's list as the drag shows it: the cards, and the "Nicht geplant" item dnd-kit sorted in as the gap */
+const openListIds = (page: Page) =>
+  page.locator('#column-open-list > :is(.task-wrapper, .not-planned__item)').evaluateAll(els =>
+    els.map(el => el.getAttribute('data-task-id') ?? el.getAttribute('data-not-planned-id')))
+const side = (page: Page) => page.locator('#column-not-planned')
+const dropHint = (page: Page) => page.getByTestId('not-planned-drop-hint')
+const card = (page: Page, id: string) => item(page, id).locator('.not-planned__card')
+
+/** Moves the held card onto the middle of "Nicht geplant" and waits until that side is the drop target */
+async function hoverSide(page: Page) {
+  const box = (await side(page).boundingBox())!
+  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, { steps: 25 })
+  await expect(board(page)).toHaveAttribute('data-over-not-planned', '')
+}
+
+test.describe('Drag between "Nicht geplant" and Offen (#355), desktop', () => {
+  test.use({ viewport: { width: 1280, height: 800 } })
+
+  test('a "Nicht geplant" card dropped on Offen is planned and lands in the slot the gap showed', async ({ context, page }) => {
+    await seedLocalBoard(context, BOARD)
+    await gotoAll(page)
+
+    await pickUp(page, card(page, 'np-2'))
+    // The upper part of the first Offen card: the gap opens among the cards, not at the end (where the arrow puts a card)
+    await hover(page, openCard(page, 'open-1'), { fromTop: 12 })
+    const preview = await openListIds(page)
+    expect(preview).toHaveLength(3)
+    expect(preview.indexOf('np-2')).toBeLessThan(2)
+    await expect(side(page)).not.toHaveClass(/is-drop-target/)
+
+    await page.mouse.up()
+    await dropSettled(page)
+    await expect.poll(() => openIds(page)).toEqual(preview)
+    await expect.poll(() => notPlannedIds(page)).toEqual(['np-1'])
+    await expect(page.locator('#column-open-list .not-planned__item')).toHaveCount(0)
+
+    // The last slot too: below the last card
+    await pickUp(page, card(page, 'np-1'))
+    const last = (await page.locator('#column-open-list > .task-wrapper').last().boundingBox())!
+    await page.mouse.move(last.x + last.width / 2, last.y + last.height + 60, { steps: 25 })
+    await page.mouse.up()
+    await dropSettled(page)
+    await expect.poll(async () => (await openIds(page)).at(-1)).toBe('np-1')
+    await expect(page.getByTestId('not-planned-empty')).toBeVisible()
+  })
+
+  test('an Offen card held over "Nicht geplant" gets the wash and the line; dropped, it lies on top there', async ({ context, page }) => {
+    await seedLocalBoard(context, BOARD)
+    await gotoAll(page)
+
+    await pickUp(page, openCard(page, 'open-2'))
+    await hoverSide(page)
+    await expect(side(page)).toHaveClass(/is-drop-target/)
+    await expect(dropHint(page)).toHaveText('Hier ablegen: nicht heute')
+    // The side names itself like a hovered column: its headline is at full ink, Offen's steps back
+    await expect(side(page).locator('h2')).toHaveCSS('opacity', '1')
+    await expect(page.locator('#column-open h2')).toHaveCSS('opacity', '0.5')
+    // No slot is promised in Offen meanwhile: the placeholder is out of its layout
+    await expect.poll(() => page.locator('#column-open-list > .kando-dnd-dragged').evaluate(el => el.getBoundingClientRect().height)).toBe(0)
+
+    // Leaving ends the answer, coming back shows it again
+    await hover(page, openCard(page, 'open-1'))
+    await expect(side(page)).not.toHaveClass(/is-drop-target/)
+    await expect(dropHint(page)).toHaveCount(0)
+    await hoverSide(page)
+    await expect(dropHint(page)).toBeVisible()
+
+    await page.mouse.up()
+    await dropSettled(page)
+    await expect.poll(() => notPlannedIds(page)).toEqual(['open-2', 'np-1', 'np-2'])
+    await expect.poll(() => openIds(page)).toEqual(['open-1'])
+    await expect(side(page)).not.toHaveClass(/is-drop-target/)
+    await expect(dropHint(page)).toHaveCount(0)
+  })
+
+  test('a drop on a scrolled "Nicht geplant" list shows the card where it landed, on top', async ({ context, page }) => {
+    const many = Array.from({ length: 14 }, (_, i) => held(`fill-${i}`, `Aufgabe ${i + 1}`))
+    await seedLocalBoard(context, [...many, ...BOARD])
+    await gotoAll(page)
+    const body = side(page).locator('.not-planned__body')
+    await body.evaluate((el) => { el.scrollTop = el.scrollHeight })
+    await expect.poll(() => body.evaluate(el => el.scrollTop)).toBeGreaterThan(100)
+
+    await pickUp(page, openCard(page, 'open-1'))
+    await hoverSide(page)
+    await page.mouse.up()
+    await dropSettled(page)
+    await expect.poll(async () => (await notPlannedIds(page))[0]).toBe('open-1')
+    await expect.poll(() => body.evaluate(el => el.scrollTop)).toBe(0)
+    await expect(item(page, 'open-1')).toBeInViewport()
+  })
+
+  test('a drop back on its own side, Escape, and a hover over a neighbour change nothing', async ({ context, page }) => {
+    await seedLocalBoard(context, BOARD)
+    await gotoAll(page)
+
+    // Over a neighbour of its own side: the cards never make room for one another
+    await pickUp(page, card(page, 'np-1'))
+    const neighbour = (await item(page, 'np-2').boundingBox())!
+    await page.mouse.move(neighbour.x + neighbour.width / 2, neighbour.y + neighbour.height / 2, { steps: 25 })
+    await expect.poll(() => notPlannedIds(page)).toEqual(['np-1', 'np-2'])
+    await expect(side(page)).not.toHaveClass(/is-drop-target/)
+
+    // Into Offen and back over the side: the gap in Offen closes, the side shows no wash for its own card
+    await hover(page, openCard(page, 'open-1'))
+    expect(await openListIds(page)).toContain('np-1')
+    await hoverSide(page)
+    await expect(side(page)).not.toHaveClass(/is-drop-target/)
+    await page.mouse.up()
+    await dropSettled(page)
+    await expect.poll(() => notPlannedIds(page)).toEqual(['np-1', 'np-2'])
+    await expect.poll(() => openIds(page)).toEqual(['open-1', 'open-2'])
+
+    // Escape in mid-drag over Offen
+    await pickUp(page, card(page, 'np-2'))
+    await hover(page, openCard(page, 'open-2'))
+    await page.keyboard.press('Escape')
+    await page.mouse.up()
+    await dropSettled(page)
+    await expect.poll(() => notPlannedIds(page)).toEqual(['np-1', 'np-2'])
+    await expect.poll(() => openIds(page)).toEqual(['open-1', 'open-2'])
+
+    // The card is still a card: a click opens its sheet
+    await card(page, 'np-1').click()
+    await expect(page).toHaveURL(/\/all\/np-1$/)
+  })
+
+  test('keyboard: Space picks a "Nicht geplant" card up, the arrows carry it into Offen and back; both results are said', async ({ context, page }) => {
+    await seedLocalBoard(context, BOARD)
+    await gotoAll(page)
+    const live = page.locator('body > [aria-live]')
+
+    await card(page, 'np-1').focus()
+    await page.keyboard.press('Space')
+    await expect(page.locator('.board.dragging')).toHaveCount(1)
+    await expect(live).toContainText('Nicht geplant')
+    await page.keyboard.press('ArrowRight')
+    await expect.poll(() => openListIds(page)).toContain('np-1')
+    await page.keyboard.press('Space')
+    await expect(live).toContainText('Angebot kalkulieren ist für heute geplant.')
+    await dropSettled(page)
+    await expect.poll(() => openIds(page)).toContain('np-1')
+    await expect.poll(() => notPlannedIds(page)).toEqual(['np-2'])
+
+    await openCard(page, 'np-1').focus()
+    await page.keyboard.press('Space')
+    await expect(page.locator('.board.dragging')).toHaveCount(1)
+    await page.keyboard.press('ArrowLeft')
+    await expect(side(page)).toHaveClass(/is-drop-target/)
+    await expect(live).toContainText('über Nicht geplant')
+    await page.keyboard.press('Space')
+    await expect(live).toContainText('Angebot kalkulieren ist nicht mehr für heute geplant.')
+    await dropSettled(page)
+    await expect.poll(() => notPlannedIds(page)).toEqual(['np-1', 'np-2'])
+    await expect.poll(() => openIds(page)).toEqual(['open-1', 'open-2'])
+  })
+})
+
+test.describe('Drag between "Nicht geplant" and Offen (#355), 390', () => {
+  test.use({ viewport: { width: 390, height: 844 } })
+
+  test('the edge scroll carries a card from "Nicht geplant" to a slot in Offen, and an Offen card back', async ({ context, page }) => {
+    await seedLocalBoard(context, BOARD)
+    await gotoAll(page)
+    await expect(board(page)).toHaveAttribute('data-mobile-page', '0')
+    await expect.poll(async () => (await card(page, 'np-1').boundingBox())?.x ?? -1).toBeGreaterThanOrEqual(0)
+
+    await pickUp(page, card(page, 'np-1'))
+    await expect(page.locator('.edge-indicator--right')).toBeVisible()
+    await expect(page.locator('.edge-indicator--left')).toHaveCount(0)
+    await edgeDwell(page, 'right')
+    await hover(page, openCard(page, 'open-1'), { fromTop: 12 })
+    const preview = await openListIds(page)
+    expect(preview).toContain('np-1')
+    await page.mouse.up()
+    await dropSettled(page)
+    await expect.poll(() => openIds(page)).toEqual(preview)
+
+    await pickUp(page, openCard(page, 'open-2'))
+    await expect(page.locator('.edge-indicator--left')).toBeVisible()
+    await expect(page.locator('.edge-indicator--right')).toHaveCount(0)
+    // The left arrow sits where Offen's add button is: the button steps out for the drag
+    await expect(page.locator('#column-open [data-testid="add-task-header-button"]')).toBeHidden()
+    await edgeDwell(page, 'left')
+    await expect(side(page)).toHaveClass(/is-drop-target/)
+    await expect(dropHint(page)).toBeVisible()
+    await page.mouse.up()
+    await dropSettled(page)
+    await expect.poll(() => notPlannedIds(page)).toEqual(['open-2', 'np-2'])
+    await expect.poll(async () => (await openIds(page)).includes('open-2')).toBe(false)
   })
 })
 
