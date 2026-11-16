@@ -7,7 +7,7 @@
 @avoid Not a board card (TaskCard) and not a done task (DayCloseTaskRow); the choice lives in `useDayClose`, the row only shows and reports it.
 @responsibility
 - UCheckbox whose label holds the title and the subline, so the accessible name carries the state
-- Subline: the column (Offen, Jetzt, Wartet); a kept Offen or Jetzt task adds "Geht zurück nach „Nicht geplant“" (the new day sends it there, #356; every kept row says what happens to it, so the count in the sentence above matches the rows), a kept Wartet task "Bleibt in Wartet"; a task planned for several days adds "An n Tagen eingeplant"; unchecked it says what "Fertig" does instead: "Kommt in den Papierkorb" (naming Notion or Todoist for tasks of those sources, like the delete label)
+- Subline: the column (Offen, Jetzt, Wartet); a kept Offen or Jetzt task adds "Geht zurück nach „Meine Aufgaben“" (the new day sends it there, #356; every kept row says what happens to it, so the count in the sentence above matches the rows), a kept Wartet task "Bleibt in Wartet"; a task planned for several days adds "An n Tagen eingeplant"; unchecked it says what "Fertig" does instead: "Kommt in den Papierkorb" (naming Notion or Todoist for tasks of those sources, like the delete label)
 - The task text is masked in feedback screenshots
 -->
 <template>

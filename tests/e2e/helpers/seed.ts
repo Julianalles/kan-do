@@ -606,7 +606,7 @@ export function newDayTasks(daysAgo = 1, options: { allDone?: boolean } = {}): S
 
 /**
  * A full board for the new day's pass (#356): `newDayTasks` plus a Jetzt card with time spent, a second Offen card and a
- * task that was not planned before. After the pass "Nicht geplant" holds nd-now-1, nd-open-2, nd-open-1 as the group
+ * task that was not planned before. After the pass "Meine Aufgaben" holds nd-now-1, nd-open-2, nd-open-1 as the group
  * "Gestern geplant, noch offen" (board order, Jetzt first) and nd-held-1 under "Weitere Aufgaben".
  */
 export function newDayBackTasks(daysAgo = 1): SeedTask[] {

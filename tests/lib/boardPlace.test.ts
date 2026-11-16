@@ -3,7 +3,7 @@
  * a sheet or the add flow opens under the place that shows.
  */
 import { afterEach, describe, expect, it } from 'vitest'
-import { boardBaseOfPath, boardPlaceLocation, boardPlaceOfPath, setCurrentBoardPath } from '~/lib/boardPlace'
+import { boardBaseOfPath, boardPlaceLocation, boardPlaceOfPath, openColumnTitleKey, readPlaceMove, setCurrentBoardPath } from '~/lib/boardPlace'
 import { boardBasePath, todayLocation, useBoardPlace } from '~/composables/useBoardPlace'
 
 describe('board places (#354)', () => {
@@ -43,11 +43,36 @@ describe('board places (#354)', () => {
     expect([place.value, basePath.value]).toEqual(['today', '/tasks'])
   })
 
-  it('"go to Heute" is forced only while "Alle" shows', () => {
+  it('"go to Heute" is forced only while "Planung" shows', () => {
     expect(todayLocation()).toBe('/tasks')
     setCurrentBoardPath('/statistics')
     expect(todayLocation()).toBe('/tasks')
     setCurrentBoardPath('/all')
     expect(todayLocation()).toEqual({ path: '/tasks', force: true })
+  })
+
+  it('the Offen column is headed "Heute" on "Planung" and "Offen" on "Heute" (#375); by default for the place that shows', () => {
+    expect(openColumnTitleKey('all')).toBe('board.columns.openPlanning')
+    expect(openColumnTitleKey('today')).toBe('board.columns.open')
+    expect(openColumnTitleKey()).toBe('board.columns.open')
+    setCurrentBoardPath('/all/add')
+    expect(openColumnTitleKey()).toBe('board.columns.openPlanning')
+    setCurrentBoardPath('/statistics')
+    expect(openColumnTitleKey()).toBe('board.columns.open')
+  })
+
+  it('reads the place move from the element: ms or s, 0 without a value (reduced motion sets 0ms)', () => {
+    const el = document.createElement('div')
+    document.body.append(el)
+    expect(readPlaceMove(null)).toEqual({ ms: 0, easing: 'ease' })
+    expect(readPlaceMove(el)).toEqual({ ms: 0, easing: 'ease' })
+    el.style.setProperty('--place-move', '420ms')
+    el.style.setProperty('--place-ease', 'cubic-bezier(0.2, 0.7, 0.2, 1)')
+    expect(readPlaceMove(el)).toEqual({ ms: 420, easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)' })
+    el.style.setProperty('--place-move', '0.3s')
+    expect(readPlaceMove(el).ms).toBe(300)
+    el.style.setProperty('--place-move', '0ms')
+    expect(readPlaceMove(el).ms).toBe(0)
+    el.remove()
   })
 })

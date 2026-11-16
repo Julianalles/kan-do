@@ -18,6 +18,7 @@
     "pageHeading": "Today",
     "columns": {
       "open": "Open",
+      "openPlanning": "Today",
       "progress": "Now",
       "waiting": "Waiting",
       "done": "Done"
@@ -142,7 +143,7 @@
       "end": "End focus"
     },
     "notPlanned": {
-      "title": "Not planned",
+      "title": "My tasks",
       "plan": "Plan for today",
       "planNamed": "{title}: plan for today",
       "notToday": "Not today",
@@ -156,17 +157,17 @@
       "unplanned": "{title} is no longer planned for today.",
       "unplannedStack": "Stack “{title}” is no longer planned for today.",
       "dropHere": "Drop here: not today",
-      "dragOver": "“{title}” over Not planned. Dropping takes the task off today.",
-      "dragBack": "“{title}” stays in Not planned.",
+      "dragOver": "“{title}” over My tasks. Dropping takes the task off today.",
+      "dragBack": "“{title}” stays in My tasks.",
       "capacityFull": "With this your day is probably full.",
       "capacityBelow": "Your day is probably full. One task is below the line. | Your day is probably full. {n} tasks are below the line.",
       "groupYesterday": "Planned yesterday, still open",
       "groupOthers": "More tasks"
     },
-    "yesterdayUnderAll": "One task from yesterday is under {all}. | {n} tasks from yesterday are under {all}.",
+    "yesterdayUnderAll": "One task from yesterday is in {all}. | {n} tasks from yesterday are in {all}.",
     "newDayNote": {
       "title": "New: every day starts with an empty plan.",
-      "description": "One task from Open and Now is now under “All”, in “Not planned”. Plan it for today there. | {n} tasks from Open and Now are now under “All”, in “Not planned”. Plan them for today there.",
+      "description": "One task from Open and Now is now under “Planning”, in “My tasks”. Plan it for today there. | {n} tasks from Open and Now are now under “Planning”, in “My tasks”. Plan them for today there.",
       "planAll": "Plan all again",
       "close": "Close",
       "planned": "One task is planned for today again. | {n} tasks are planned for today again."
@@ -202,7 +203,7 @@
     "appUpdate": "App update",
     "syncNow": "Sync now",
     "syncing": "Syncing…",
-    "all": "All"
+    "all": "Planning"
   },
   "menu": {
     "app": "Kan-Do",
@@ -560,6 +561,7 @@
     "progress": "Now",
     "waiting": "Waiting",
     "done": "Done",
+    "notPlanned": "Not planned",
     "backlog": "Backlog"
   },
   "priority": {
@@ -1354,7 +1356,7 @@
     "openUpdates": "Version & updates",
     "sendFeedback": "Send feedback",
     "openWhatsNew": "What's new",
-    "openAll": "Open All"
+    "openAll": "Open Planning"
   },
   "recap": {
     "title": "Quick look back",
@@ -1401,7 +1403,7 @@
       "over": "{n} min over the timebox"
     },
     "tomorrowHeading": "For tomorrow",
-    "tomorrow": "No task goes back to “Not planned”. | One task goes back to “Not planned”. You plan it again tomorrow. You can deselect it. | {n} tasks go back to “Not planned”. You plan them again tomorrow. You can deselect them one by one.",
+    "tomorrow": "No task goes back to “My tasks”. | One task goes back to “My tasks”. You plan it again tomorrow. You can deselect it. | {n} tasks go back to “My tasks”. You plan them again tomorrow. You can deselect them one by one.",
     "showOpen": "Show open tasks",
     "openListLabel": "Open tasks for tomorrow",
     "trash": {
@@ -1422,7 +1424,7 @@
       "inFlight": "Not done yet",
       "nothingInFlight": "Nothing left open."
     },
-    "backToNotPlanned": "Goes back to “Not planned”",
+    "backToNotPlanned": "Goes back to “My tasks”",
     "staysWaiting": "Stays in Waiting"
   },
   "secrets": {

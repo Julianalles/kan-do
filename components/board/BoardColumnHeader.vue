@@ -9,6 +9,9 @@
 - Displays column title with appropriate styling
 - Shows the title as plain text in every column, Erledigt included (#273: its check icon is gone; the done cards keep their corner check)
 - Handles visual states for different statuses (waiting, empty)
+- Offen's title fade (#375, `titleFadeKey`): the column is headed "Heute" on the place "Planung" and "Offen" on "Heute". When the place changes, the old title fades out over the new
+  one, which fades in, for the length and on the curve of the board's sideways move (`--place-move` 420 ms, `--place-ease`, board.css): one clock for strip, app-bar chip and title. A second
+  change mid-fade continues from the opacity the titles stand at. The outgoing title is `aria-hidden` and in the DOM only meanwhile. Reduced motion (`--place-move: 0ms`): no fade, the title just changes
 - Offen only (`showAdd`, #248, moved left #264): a round soft icon-only add button at the start of the card-width track (the
   cards' left edge), vertically centred on the title line; the title stays centred exactly like the other columns' (the
   button is out of the flow, so it never moves the title). A tooltip names it on hover and focus (UTooltip, off on the
@@ -21,8 +24,10 @@
     :class="['column-header', { 'waiting-header': isWaiting, empty: isEmpty }]"
     class="relative flex items-center justify-center"
   >
-    <h2 class="font-display" :class="{ 'column-header__marked': status === TaskStatus.Progress }">
-      {{ title }}
+    <h2 class="font-display" :class="{ 'column-header__marked': status === TaskStatus.Progress, 'column-header__fading': outgoingTitle !== null }">
+      <span ref="titleEl">{{ title }}</span>
+      <!-- The title of the place just left, fading out over the new one (#375); never read: the heading has one name -->
+      <span v-if="outgoingTitle !== null" ref="outgoingEl" class="column-header__outgoing" aria-hidden="true">{{ outgoingTitle }}</span>
     </h2>
     <div v-if="showAdd" class="column-header__track">
       <div class="column-header__add-row">
@@ -49,11 +54,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useMediaQuery } from "@vueuse/core";
 import { BREAKPOINT_QUERIES } from "~/lib/breakpoints";
 import { TaskStatus } from "~/types/taskStatus";
+import { readPlaceMove } from "~/lib/boardPlace";
 
 defineOptions({ name: "BoardColumnHeader" });
 
@@ -80,6 +86,8 @@ const props = defineProps<{
   showAdd?: boolean;
   /** A draft is open: the button stays in place but does nothing */
   addDisabled?: boolean;
+  /** Offen only (#375): the place that shows. A title that changes together with it fades; any other title change (a locale, Wartet's "?") is plain */
+  titleFadeKey?: string;
 }>();
 
 const emit = defineEmits<{
@@ -110,6 +118,56 @@ const addButtonEl = (): HTMLElement | null => {
 };
 
 defineExpose({ addButtonEl });
+
+// ── The title fade between the places (#375) ──
+const titleEl = ref<HTMLElement | null>(null);
+const outgoingEl = ref<HTMLElement | null>(null);
+/** The title of the place just left, while it fades out over the new one; null at rest */
+const outgoingTitle = ref<string | null>(null);
+let titleFades: Animation[] = [];
+/** Bumped per fade: the end of a fade that a second place change overtook must not clear the new one */
+let titleFadeToken = 0;
+
+function endTitleFade(token: number) {
+  if (token !== titleFadeToken) return;
+  titleFades.forEach((fade) => fade.cancel());
+  titleFades = [];
+  outgoingTitle.value = null;
+}
+
+// Default (pre) flush: the callback runs before the render that writes the new title, so a fade that is still
+// running can be read where it stands and the next one starts from there (as the board's own move does)
+watch(() => [props.title, props.titleFadeKey] as const, async ([title, key], [oldTitle, oldKey]) => {
+  if (key === undefined || oldKey === undefined || key === oldKey || title === oldTitle) return;
+  const el = titleEl.value;
+  const token = ++titleFadeToken;
+  const { ms, easing } = readPlaceMove(el);
+  const shown = el && titleFades.length > 0 ? Number.parseFloat(getComputedStyle(el).opacity) : 1;
+  titleFades.forEach((fade) => fade.cancel());
+  titleFades = [];
+  // Reduced motion (0 ms) or no Web Animations: the title just changes
+  if (!el || ms === 0 || typeof el.animate !== "function") {
+    outgoingTitle.value = null;
+    return;
+  }
+  outgoingTitle.value = oldTitle;
+  await nextTick();
+  if (token !== titleFadeToken) return;
+  const outgoing = outgoingEl.value;
+  if (!outgoing || !titleEl.value) {
+    endTitleFade(token);
+    return;
+  }
+  titleFades = [
+    outgoing.animate([{ opacity: shown }, { opacity: 0 }], { duration: ms, easing, fill: "forwards" }),
+    titleEl.value.animate([{ opacity: 1 - shown }, { opacity: 1 }], { duration: ms, easing }),
+  ];
+  titleFades[0]!.finished.then(() => endTitleFade(token), () => { /* overtaken: the next fade clears the title */ });
+});
+onBeforeUnmount(() => {
+  titleFadeToken++;
+  titleFades.forEach((fade) => fade.cancel());
+});
 
 /**
  * Whether this column represents the Waiting status
@@ -159,6 +217,22 @@ const isWaiting = computed(() => props.status === TaskStatus.Waiting);
     transition:
       all 0.5s cubic-bezier(0.16, 1, 0.3, 1),
       color var(--done-wash-duration) var(--ease-standard);
+  }
+
+  /* The title fade between the places (#375): for the length of the place move the outgoing title lies centred on the
+     new one. Positioned only meanwhile, and without a stacking level of its own, so the header at rest is what it was. */
+  h2.column-header__fading {
+    position: relative;
+    z-index: auto;
+  }
+
+  .column-header__outgoing {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    translate: -50% 0;
+    white-space: nowrap;
+    pointer-events: none;
   }
 
   .waiting-header h2 {

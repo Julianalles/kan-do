@@ -47,7 +47,7 @@ type Translate = (key: string, ...args: unknown[]) => string
 
 export interface PaletteActions {
   addTask: () => void
-  /** The planning side of the board (`/all`, "Alle", #354). */
+  /** The planning side of the board (`/all`, "Planung", #354). */
   openAll: () => void
   /** The board (`/tasks`, "Heute"). */
   openToday: () => void
@@ -307,7 +307,7 @@ export function useCommandPalette() {
   }
 
   const actions: PaletteActions = {
-    // Under the place that shows (#354): a sheet opened on "Alle" closes back to "Alle"
+    // Under the place that shows (#354): a sheet opened on "Planung" closes back to "Planung"
     addTask: run(() => { void navigateTo(`${boardBasePath()}/add`) }, { navigates: true }),
     openAll: run(() => { void navigateTo(boardPlaceLocation('all')) }, { navigates: true }),
     openToday: run(() => { void navigateTo(todayLocation()) }, { navigates: true }),

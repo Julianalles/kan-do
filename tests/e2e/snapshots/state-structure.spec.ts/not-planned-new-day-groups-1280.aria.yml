@@ -1,5 +1,5 @@
-- region "Nicht geplant":
-  - heading "Nicht geplant" [level=2]
+- region "Meine Aufgaben":
+  - heading "Meine Aufgaben" [level=2]
   - heading "Gestern geplant, noch offen" [level=3]
   - list "Gestern geplant, noch offen":
     - listitem:

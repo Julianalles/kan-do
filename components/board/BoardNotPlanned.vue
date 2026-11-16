@@ -2,18 +2,18 @@
 @component BoardNotPlanned
 @kind block
 @category layout
-@description The "Nicht geplant" side of the place "Alle" (#354, epic #334): every task kan-do holds that is not on today's board, as cards under a column headline, each with the arrow that plans it for today
-@usage Rendered once by Board.vue as the first child of `.board`, left of Offen (desktop: two column tracks wide, cards in two columns; phone: a swipe page of its own left of Offen). `active` says whether the place "Alle" shows, `rendered` whether the cards are in the DOM (also while the board travels to Heute).
+@description The "Meine Aufgaben" side of the place "Planung" (#354, epic #334): every task kan-do holds that is not on today's board, as cards under a column headline, each with the arrow that plans it for today
+@usage Rendered once by Board.vue as the first child of `.board`, left of Offen (desktop: two column tracks wide, cards in two columns; phone: a swipe page of its own left of Offen). `active` says whether the place "Planung" shows, `rendered` whether the cards are in the DOM (also while the board travels to Heute).
 @avoid Not a board column: no status, no sorting and no slot inside it (BoardColumn). Not for the trash or another static list of cards.
 @responsibility
 - Headline: BoardColumnHeader with the same 40 px row below it as every column, so the first card sits level with Offen's first
-- Cards: TaskCard as the board shows it, always with the source icon (the question here is where a task comes from); a click, a tap or Enter on the focused card opens its sheet under `/all/:id`, so closing returns to "Alle". No card menu. Each card is a BoardNotPlannedItem
+- Cards: TaskCard as the board shows it, always with the source icon (the question here is where a task comes from); a click, a tap or Enter on the focused card opens its sheet under `/all/:id`, so closing returns to "Planung". No card menu. Each card is a BoardNotPlannedItem
 - Drag (#355): a card can be carried onto Offen with the board's own drag (it is planned and lands where it is dropped). The side is one dnd-kit droppable (`data.notPlannedZone`) for a card or stack from Offen: while one is held over it the side shows a wash and "Hier ablegen: nicht heute" under the headline, and the drop takes it off today's board, on top of this list. The cards never make room for one another: no sorting here
 - Pick: a round button per card ("Für heute einplanen", named with the task's title). Desktop: on the paper right of the card, towards Offen, quiet at rest and full on hover and focus, so a first-time user finds it (#354 D1e). Phone: in the card's top right corner, where a board card has its menu button. The move is `usePlanMoves().planForToday`; keyboard focus goes on to the next card's button
 - Order: `tasksStore.tasksNotPlanned` (put back by hand first, newest first); the topic focus filters it like a column (`useBoardFocus`)
 - A new day (#356): the tasks today's pass sent back (`useNewDay().groupIds`) stand on top as the group "Gestern geplant, noch offen" (its `h3` in the row under the headline), every other task below under "Weitere Aufgaben". For that one day only; a group the topic focus leaves empty is not shown, and without the first group there are no headings at all. Pick, drag and the focus hand-over work across the heading
 - Limit (#357): when Notion holds more "not planned" pages than a sync loads (`notionConfig.notPlannedLimited`, the most recently edited 500), one muted line under the list says so
-- Empty: one muted note. Nothing held here: "Keine weiteren Aufgaben vorhanden." and the soft button "Aufgabe erstellen" (#367, the user's wording), which opens the sheet's add form under `/all/add`; a task made while "Alle" shows is not planned, so it lands here; a focus without a match: "Keine Aufgaben gefunden."; a board without any task stays blank
+- Empty: one muted note. Nothing held here: "Keine weiteren Aufgaben vorhanden." and the soft button "Aufgabe erstellen" (#367, the user's wording), which opens the sheet's add form under `/all/add`; a task made while "Planung" shows is not planned, so it lands here; a focus without a match: "Keine Aufgaben gefunden."; a board without any task stays blank
 - Many items: on desktop the side is as tall as the window and its list scrolls inside it, so Offen and "Tag starten" stay in view; on a phone the page scrolls like every column page
 - Out of view (`active` false) the side is `inert`; Board.vue's CSS takes it out of layout or view once the move is over
 -->
@@ -146,9 +146,9 @@ import { NOT_PLANNED_PAGE_LIMIT } from '~/lib/notionLimits'
 defineOptions({ name: 'BoardNotPlanned' })
 
 defineProps<{
-  /** The place "Alle" shows: the side takes pointer, keyboard and reader */
+  /** The place "Planung" shows: the side takes pointer, keyboard and reader */
   active: boolean
-  /** The cards are in the DOM: while "Alle" shows and while the board travels away from it */
+  /** The cards are in the DOM: while "Planung" shows and while the board travels away from it */
   rendered: boolean
 }>()
 
@@ -202,7 +202,7 @@ const othersHeadingId = useId()
 const hasTasks = computed(() => tasksStore.tasks.length > 0)
 
 const openTask = (id: string) => void navigateTo({ path: `${basePath.value}/${id}` })
-/** "Aufgabe erstellen" (#367): the sheet's add form under "Alle"; `createTask` makes the task not planned there */
+/** "Aufgabe erstellen" (#367): the sheet's add form under "Planung"; `createTask` makes the task not planned there */
 const createTask = () => void navigateTo({ path: `${basePath.value}/add` })
 
 /** Plans the card. A keyboard user's focus was on the button that now leaves: it goes on to the next card's button. */

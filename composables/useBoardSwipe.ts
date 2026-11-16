@@ -72,7 +72,7 @@ export function resolveSwipeTarget({ dx, velocity, viewportWidth, tab, lastTab }
 interface UseBoardSwipeOptions {
   /** Settled page; stays the single source of truth, the live offset is transient. */
   activeTab: Readonly<Ref<number>>
-  /** Index of the last page; a getter when the page count changes (#354: "Alle" has two pages, "Heute" three) */
+  /** Index of the last page; a getter when the page count changes (#354: "Planung" has two pages, "Heute" three) */
   lastTab: number | (() => number)
   /** False on desktop and while a dnd-kit drag is active: the tracker then ignores/aborts touches. */
   isEnabled: () => boolean

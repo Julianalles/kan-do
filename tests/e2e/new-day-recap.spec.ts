@@ -14,7 +14,7 @@ const recap = (page: Page) => page.getByTestId('new-day-recap')
 const summary = (page: Page) => page.getByTestId('recap-summary')
 /** "Direkt zum Board": leaves to the board, as the single button did before #356 */
 const continueButton = (page: Page) => page.getByTestId('recap-continue')
-/** "Tag planen" (#356): the primary way out, leads to "Alle" */
+/** "Tag planen" (#356): the primary way out, leads to "Planung" */
 const planButton = (page: Page) => page.getByTestId('recap-plan')
 const archiveSwitch = (page: Page) => page.getByTestId('recap-archive-toggle')
 /** The footer panel (container) that holds the switch and the button. */
@@ -717,7 +717,7 @@ test.describe('New-day recap (#385)', () => {
 })
 
 /**
- * #356 (epic #334): a new day sends what was planned and not finished (Offen, Jetzt) back to "Nicht geplant", and the
+ * #356 (epic #334): a new day sends what was planned and not finished (Offen, Jetzt) back to "Meine Aufgaben", and the
  * recap has two ways out. `seedNewDayBoard` stores an earlier pass, so the pass runs and the one-time note stays away;
  * `firstPass: true` is the first morning after the update.
  */
@@ -736,7 +736,7 @@ test.describe('A new day sends unfinished cards back (#356)', () => {
     await settleAnimations(page)
   }
 
-  test('"Tag planen" leads to "Alle": yesterday\'s Jetzt and Offen cards are the group on top, above "Weitere Aufgaben"; Wartet stays', async ({ page, context }) => {
+  test('"Tag planen" leads to "Planung": yesterday\'s Jetzt and Offen cards are the group on top, above "Weitere Aufgaben"; Wartet stays', async ({ page, context }) => {
     await seedNewDayBoard(context, { tasks: newDayBackTasks() })
     await page.goto('/tasks')
     // the recap still looks at yesterday's board: Jetzt, both Offen cards and the Wartet card are "noch offen"
@@ -763,18 +763,18 @@ test.describe('A new day sends unfinished cards back (#356)', () => {
     expect(await storedTask(page, 'nd-now-1')).toMatchObject({ status: 0, notPlanned: true, timeSpentSeconds: 1800 })
   })
 
-  test('"Direkt zum Board": an empty Offen says how many tasks of yesterday wait under "Alle", with a link; planning one ends the sentence', async ({ page, context }) => {
+  test('"Direkt zum Board": an empty Offen says how many tasks of yesterday wait under "Planung", with a link; planning one ends the sentence', async ({ page, context }) => {
     await seedNewDayBoard(context, { tasks: newDayBackTasks() })
     await page.goto('/tasks')
     await continueButton(page).click()
     await settled(page)
     await expect(page).toHaveURL(/\/tasks$/)
-    await expect(sentence(page)).toHaveText('3 Aufgaben von gestern liegen unter Alle.')
+    await expect(sentence(page)).toHaveText('3 Aufgaben von gestern liegen in der Planung.')
 
-    await sentence(page).getByRole('link', { name: 'Alle' }).click()
+    await sentence(page).getByRole('link', { name: 'Planung' }).click()
     await expect(page).toHaveURL(/\/all$/)
     await settleAnimations(page)
-    // on "Alle" the group is beside the column: Offen stays blank
+    // on "Planung" the group is beside the column: Offen stays blank
     await expect(sentence(page)).toHaveCount(0)
 
     // a task planned again keeps its time spent and leaves the group
@@ -794,7 +794,7 @@ test.describe('A new day sends unfinished cards back (#356)', () => {
     await page.evaluate(() => window.dispatchEvent(new Event('focus')))
     await expect.poll(() => openIds(page)).toEqual(['nd-now-1'])
     // "Nicht heute" puts it back into the group, and the sentence counts it again
-    await goToPlace(page, 'Alle')
+    await goToPlace(page, 'Planung')
     await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-open-2', 'nd-open-1'])
   })
 
@@ -803,27 +803,27 @@ test.describe('A new day sends unfinished cards back (#356)', () => {
     await page.goto('/tasks')
     await continueButton(page).click()
     await settled(page)
-    await expect(sentence(page)).toHaveText('Eine Aufgabe von gestern liegt unter Alle.')
+    await expect(sentence(page)).toHaveText('Eine Aufgabe von gestern liegt in der Planung.')
   })
 
-  test('the sentence in an empty Offen counts what the topic focus leaves of the group, as "Alle" shows it', async ({ page, context }) => {
+  test('the sentence in an empty Offen counts what the topic focus leaves of the group, as "Planung" shows it', async ({ page, context }) => {
     const topics: Record<string, string> = { 'nd-now-1': 'Keller', 'nd-open-2': 'Keller', 'nd-open-1': 'Büro', 'nd-held-1': 'Garten' }
     const tasks = newDayBackTasks().filter(task => task.status !== 3).map(task => ({ ...task, topic: topics[task.id] ?? null }))
     await seedNewDayBoard(context, { tasks })
     await page.goto('/tasks')
-    await expect(sentence(page)).toHaveText('3 Aufgaben von gestern liegen unter Alle.')
-    // the funnel has cards to filter only under "Alle" (Heute's Offen is empty): the focus is set there
+    await expect(sentence(page)).toHaveText('3 Aufgaben von gestern liegen in der Planung.')
+    // the funnel has cards to filter only under "Planung" (Heute's Offen is empty): the focus is set there
     const focusOn = async (topic: string) => {
       await page.getByTestId('focus-trigger').click()
       await page.getByTestId('focus-chip').filter({ hasText: topic }).click()
     }
-    await goToPlace(page, 'Alle')
+    await goToPlace(page, 'Planung')
     await expect.poll(() => groupIds(page, 'yesterday')).toHaveLength(3)
-    // the focus leaves one task of the group: the sentence says one, and "Alle" shows exactly that one
+    // the focus leaves one task of the group: the sentence says one, and "Planung" shows exactly that one
     await focusOn('Büro')
     await goToPlace(page, 'Heute')
-    await expect(sentence(page)).toHaveText('Eine Aufgabe von gestern liegt unter Alle.')
-    await sentence(page).getByRole('link', { name: 'Alle' }).click()
+    await expect(sentence(page)).toHaveText('Eine Aufgabe von gestern liegt in der Planung.')
+    await sentence(page).getByRole('link', { name: 'Planung' }).click()
     await expect(page).toHaveURL(/\/all$/)
     await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-open-1'])
     // the focus leaves none of the group (a task that was not sent back matches): no sentence, no link to nothing
@@ -837,9 +837,9 @@ test.describe('A new day sends unfinished cards back (#356)', () => {
     await seedNewDayBoard(context, { tasks: newDayBackTasks().filter(task => task.status !== 3) })
     await page.goto('/tasks')
     await expect(board(page)).toBeVisible()
-    await expect(sentence(page)).toHaveText('3 Aufgaben von gestern liegen unter Alle.')
+    await expect(sentence(page)).toHaveText('3 Aufgaben von gestern liegen in der Planung.')
     await expect(recap(page)).toHaveCount(0)
-    await goToPlace(page, 'Alle')
+    await goToPlace(page, 'Planung')
     await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1'])
   })
 
@@ -884,7 +884,7 @@ test.describe('A new day sends unfinished cards back (#356)', () => {
     await page.evaluate(() => window.dispatchEvent(new Event('blur')))
     await page.evaluate(() => { (window as unknown as { __shiftMs: number }).__shiftMs += 120_000 })
     await page.evaluate(() => window.dispatchEvent(new Event('focus')))
-    await expect(sentence(page)).toHaveText('3 Aufgaben von gestern liegen unter Alle.')
+    await expect(sentence(page)).toHaveText('3 Aufgaben von gestern liegen in der Planung.')
     await expect(page.locator('#column-progress .task-wrapper')).toHaveCount(0)
     // the Jetzt task's time from before midnight is kept (the clock jump itself counts no second)
     expect(await storedTask(page, 'nd-now-1')).toMatchObject({ status: 0, notPlanned: true })
@@ -919,7 +919,7 @@ test.describe('A new day sends unfinished cards back (#356)', () => {
     expect(await storedTask(page, 'nd-now-1')).toMatchObject({ status: 0, notPlanned: true })
   })
 
-  test('the first morning after the update: a one-time note on Heute and on "Alle"; "Alle wieder einplanen" puts every card back, once', async ({ page, context }) => {
+  test('the first morning after the update: a one-time note on Heute and on "Planung"; "Alle wieder einplanen" puts every card back, once', async ({ page, context }) => {
     await seedNewDayBoard(context, { tasks: newDayBackTasks(), firstPass: true })
     await page.goto('/tasks')
     await continueButton(page).click()
@@ -927,8 +927,8 @@ test.describe('A new day sends unfinished cards back (#356)', () => {
     await expect(note(page)).toBeVisible()
     await expect(note(page)).toHaveAttribute('role', 'status')
     await expect(note(page)).toContainText('Neu: Jeder Tag beginnt mit einem leeren Plan.')
-    await expect(note(page)).toContainText('3 Aufgaben aus Offen und Jetzt liegen jetzt unter „Alle“ bei „Nicht geplant“.')
-    await goToPlace(page, 'Alle')
+    await expect(note(page)).toContainText('3 Aufgaben aus Offen und Jetzt liegen jetzt unter „Planung“ bei „Meine Aufgaben“.')
+    await goToPlace(page, 'Planung')
     await expect(note(page)).toBeVisible()
 
     await page.getByTestId('new-day-note-plan-all').click()
@@ -948,14 +948,14 @@ test.describe('A new day sends unfinished cards back (#356)', () => {
     await expect.poll(() => openIds(page)).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1'])
   })
 
-  test('the first morning: "Schließen" leaves the cards under "Alle" and the note stays away after a reload', async ({ page, context }) => {
+  test('the first morning: "Schließen" leaves the cards under "Planung" and the note stays away after a reload', async ({ page, context }) => {
     await seedNewDayBoard(context, { tasks: newDayBackTasks(), firstPass: true })
     await page.goto('/tasks')
     await continueButton(page).click()
     await settled(page)
     await page.getByTestId('new-day-note-close').click()
     await expect(note(page)).toHaveCount(0)
-    await expect(sentence(page)).toHaveText('3 Aufgaben von gestern liegen unter Alle.')
+    await expect(sentence(page)).toHaveText('3 Aufgaben von gestern liegen in der Planung.')
     await page.reload()
     await expect(board(page)).toBeVisible()
     await expect(note(page)).toHaveCount(0)
@@ -975,7 +975,7 @@ test.describe('A new day sends unfinished cards back (#356)', () => {
     await expect.poll(() => groupIds(page, 'others')).toEqual(['nd-held-1'])
   })
 
-  test('Escape on the recap dismisses without a move: on "Alle" the place stays "Alle"', async ({ page, context }) => {
+  test('Escape on the recap dismisses without a move: on "Planung" the place stays "Planung"', async ({ page, context }) => {
     await seedNewDayBoard(context, { tasks: newDayBackTasks() })
     await page.goto('/all')
     await expect(recap(page)).toBeVisible()
@@ -1024,8 +1024,8 @@ test.describe('A new day sends unfinished cards back (#356)', () => {
       await expect(page.getByTestId('new-day-time-note-task')).toHaveAttribute('data-private', '')
       // the cards went back all the same, the time is whole
       expect(await storedTask(page, 'nd-now-1')).toMatchObject({ status: 0, notPlanned: true, timeSpentSeconds: 1800 })
-      // an "Alle" visit and a reload keep the question; the board stays usable
-      await goToPlace(page, 'Alle')
+      // an "Planung" visit and a reload keep the question; the board stays usable
+      await goToPlace(page, 'Planung')
       await expect(timeNote(page)).toBeVisible()
       await page.reload()
       await expect(board(page)).toBeVisible()
@@ -1108,7 +1108,7 @@ test.describe('A new day sends unfinished cards back (#356)', () => {
       expect(action.height).toBeGreaterThanOrEqual(44)
       // no sideways scroll
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
-      await expect(sentence(page)).toHaveText('3 Aufgaben von gestern liegen unter Alle.')
+      await expect(sentence(page)).toHaveText('3 Aufgaben von gestern liegen in der Planung.')
     })
   })
 })

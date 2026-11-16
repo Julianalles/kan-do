@@ -23,7 +23,7 @@ export interface ColumnSortableOptions {
   data?: MaybeRefOrGetter<Record<string, unknown>>
   /** Element that starts a drag and takes focus and keyboard input instead of the element itself */
   handle?: Ref<HTMLElement | null>
-  /** Which dragged sources this item takes as a drop target; a "Nicht geplant" card takes only itself (#355) */
+  /** Which dragged sources this item takes as a drop target; a "Meine Aufgaben" card takes only itself (#355) */
   accept?: (source: { id: string | number }) => boolean
 }
 
@@ -35,9 +35,9 @@ export interface ColumnSortableOptions {
  * @param taskId   - Unique task identifier (used as dnd-kit item id); a stack passes its front task's
  *                   id as a getter, so the id follows the front card
  * @param index    - Reactive index within its column list
- * @param status   - Column status used as the sortable group identifier ("Nicht geplant": `NOT_PLANNED_GROUP`, #355)
+ * @param status   - Column status used as the sortable group identifier ("Meine Aufgaben": `NOT_PLANNED_GROUP`, #355)
  * @param element  - Template ref for the draggable DOM element
- * @param options  - `data` and `handle` (stacks, #150), `accept` ("Nicht geplant" cards, #355)
+ * @param options  - `data` and `handle` (stacks, #150), `accept` ("Meine Aufgaben" cards, #355)
  */
 export function useColumnSortable(
   taskId: MaybeRefOrGetter<string>,

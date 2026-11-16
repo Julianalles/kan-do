@@ -71,7 +71,7 @@ describe('useBoardFocus', () => {
 
   afterEach(() => setCurrentBoardPath('/tasks'))
 
-  it('on "Alle" it counts and hides what that place shows: "Nicht geplant" and Offen, not Wartet or Erledigt (#354)', () => {
+  it('on "Planung" it counts and hides what that place shows: "Meine Aufgaben" and Offen, not Wartet or Erledigt (#354)', () => {
     tasksStore.addTask(makeTask('n1', TaskStatus.Open, 'Garten', { notPlanned: true }))
     tasksStore.addTask(makeTask('n2', TaskStatus.Open, 'Büro', { notPlanned: true }))
     setCurrentBoardPath('/all')

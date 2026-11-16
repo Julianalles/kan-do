@@ -12,7 +12,7 @@
   Jetzt, a footer-wide bar in Jetzt that grows to the right from the chip's own position; the card has no progress ring
   (the task sheet keeps its own)
 - Shows the carried-over dots (#99) for not-done cards, with the numeral only past the dot cap (#584)
-- Shows the source icon at the footer start on a board with tasks from 2+ sources (#323) and, with `sourceIcon`, on every "Nicht geplant" card (#354), the cloud "save pending" icon next to it while the task's source cannot sync (#319)
+- Shows the source icon at the footer start on a board with tasks from 2+ sources (#323) and, with `sourceIcon`, on every "Meine Aufgaben" card (#354), the cloud "save pending" icon next to it while the task's source cannot sync (#319)
 - Manages task timer functionality (for Progress status)
 - Handles visual states for different task statuses
 - Done (#124): regular sheet, struck toned title, green corner check, and the
@@ -209,7 +209,7 @@ const props = withDefaults(
     draft?: boolean;
     /** A trash entry (#422): shown as the board shows the task, but it cannot be opened */
     readonly?: boolean;
-    /** Show the source icon on a board with one source too (#354: the cards under "Nicht geplant") */
+    /** Show the source icon on a board with one source too (#354: the cards under "Meine Aufgaben") */
     sourceIcon?: boolean;
     /** The host puts its own button in the top-right corner on touch (#354, the pick arrow): title and topic keep the menu button's room */
     cornerRoom?: boolean;
@@ -330,7 +330,7 @@ const { isSavePending } = useSavePending();
 const savePending = computed(() => isSavePending(props.task));
 // Source icon (#323): the board decides, so every card of a mixed board has one (Erledigt too), the draft none
 const tasksStore = useTasksStore();
-// A "Nicht geplant" card (#354) always names its source (`sourceIcon`): there the question is where a task comes from
+// A "Meine Aufgaben" card (#354) always names its source (`sourceIcon`): there the question is where a task comes from
 const showSourceIcon = computed(() => (tasksStore.hasMultipleSources || props.sourceIcon) && !props.draft);
 const savePendingLabel = computed(() =>
   t('task.savePending', { source: isIntegrationSourceId(props.task.source) ? integrationLabel(props.task.source) : '' }),

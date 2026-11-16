@@ -370,7 +370,7 @@ describe('NewDayRecap', () => {
       setTestLocale('de')
     })
 
-    it('"Tag planen" leaves the recap and leads to "Alle"', async () => {
+    it('"Tag planen" leaves the recap and leads to "Planung"', async () => {
       await open([doneAt(1, 'a')])
       q('[data-testid="recap-plan"]').click()
       expect(navigateTo).toHaveBeenCalledTimes(1)
@@ -387,7 +387,7 @@ describe('NewDayRecap', () => {
 
     })
 
-    it('"Direkt zum Board" on "Alle" goes to Heute', async () => {
+    it('"Direkt zum Board" on "Planung" goes to Heute', async () => {
       setCurrentBoardPath('/all')
       await open([doneAt(1, 'a')])
       q('[data-testid="recap-continue"]').click()
@@ -395,7 +395,7 @@ describe('NewDayRecap', () => {
       expect(useNewDayRecap().isOpen.value).toBe(false)
     })
 
-    it('Escape is "Direkt zum Board" without a move: it only dismisses, also on "Alle"', async () => {
+    it('Escape is "Direkt zum Board" without a move: it only dismisses, also on "Planung"', async () => {
       setCurrentBoardPath('/all')
       await open([doneAt(1, 'a')])
       pressEscape()

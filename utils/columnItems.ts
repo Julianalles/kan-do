@@ -219,7 +219,7 @@ export function withCapacityItem(items: ColumnItem[], afterKey: string | null): 
   return [...items.slice(0, at + 1), line, ...items.slice(at + 1)].map((item, itemIndex) => ({ ...item, itemIndex }));
 }
 
-/** What the capacity divider says about the list it sits in (#354, the echo on "Alle"). */
+/** What the capacity divider says about the list it sits in (#354, the echo on "Planung"). */
 export interface CapacityLineState {
   /** The list holds the divider: the day is full */
   full: boolean;
@@ -229,7 +229,7 @@ export interface CapacityLineState {
 
 /**
  * Reads the capacity divider's place from a column's rendered items, so a reader outside the column (the echo of the
- * line on "Alle") says what the column shows: the same topic focus, the same sorting, the same stacks.
+ * line on "Planung") says what the column shows: the same topic focus, the same sorting, the same stacks.
  */
 export function capacityLineState(items: readonly ColumnItem[]): CapacityLineState {
   const at = items.findIndex((item) => item.kind === "capacity");

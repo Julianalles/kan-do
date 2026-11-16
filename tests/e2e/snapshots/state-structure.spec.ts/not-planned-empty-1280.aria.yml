@@ -1,4 +1,4 @@
-- region "Nicht geplant":
-  - heading "Nicht geplant" [level=2]
+- region "Meine Aufgaben":
+  - heading "Meine Aufgaben" [level=2]
   - paragraph: Keine weiteren Aufgaben vorhanden.
   - button "Aufgabe erstellen"

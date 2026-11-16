@@ -102,8 +102,8 @@ export async function resync(page: Page): Promise<void> {
   await expect(row).toBeEnabled()
 }
 
-/** Alle / Heute / Statistik in the bar: one click. Waits for the destination route ("Alle" is `/all`, the planning side of the board page, #354). */
-export async function goToPlace(page: Page, place: 'Alle' | 'Heute' | 'Statistik'): Promise<void> {
+/** Planung / Heute / Statistik in the bar: one click. Waits for the destination route ("Planung" is `/all`, the planning side of the board page, #354). */
+export async function goToPlace(page: Page, place: 'Planung' | 'Heute' | 'Statistik'): Promise<void> {
   await appNav(page).getByRole('link', { name: place, exact: true }).click()
-  await expect(page).toHaveURL({ Alle: /\/all(\?.*)?$/, Heute: /\/tasks(\?.*)?$/, Statistik: /\/statistics$/ }[place])
+  await expect(page).toHaveURL({ Planung: /\/all(\?.*)?$/, Heute: /\/tasks(\?.*)?$/, Statistik: /\/statistics$/ }[place])
 }

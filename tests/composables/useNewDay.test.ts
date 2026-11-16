@@ -1,5 +1,5 @@
 /**
- * #356: a new day sends what was planned and not finished back to "Nicht geplant". One pass per local day over
+ * #356: a new day sends what was planned and not finished back to "Meine Aufgaben". One pass per local day over
  * Jetzt and Offen; the Jetzt task stops its timer and loses the time counted after the local midnight that starts
  * the new day (the user's decision D2), nothing else about any task changes.
  */

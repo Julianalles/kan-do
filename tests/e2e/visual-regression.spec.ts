@@ -224,10 +224,10 @@ test.describe('mobile 390px board pages', () => {
 })
 
 // ---------------------------------------------------------------------------
-// The place "Alle" (#354): "Nicht geplant" beside Offen
+// The place "Planung" (#354): "Meine Aufgaben" beside Offen
 // ---------------------------------------------------------------------------
 
-test.describe('the place "Alle" (#354)', () => {
+test.describe('the place "Planung" (#354)', () => {
   // Two tasks held off the board (one put back from Jetzt's seed neighbours), the rest of the seed as it is
   const HELD: SeedTask[] = [
     { id: 'vr-held-1', title: 'Angebot kalkulieren', status: 0, priority: 3, activity: null, topic: 'Design', topicColorCode: '#6366f1', notes: null, timeSpentSeconds: 0, timeBoxSeconds: 2700, custom: {}, createdAt: FIXED_NOW, updatedAt: FIXED_NOW, notPlanned: true },
@@ -249,7 +249,7 @@ test.describe('the place "Alle" (#354)', () => {
     await expect(page).toHaveScreenshot('alle-1280.png', { animations: 'disabled' })
   })
 
-  test('desktop 1280: empty "Nicht geplant"', async ({ context, page }) => {
+  test('desktop 1280: empty "Meine Aufgaben"', async ({ context, page }) => {
     await gotoAll(page, context, [])
     await expect(page).toHaveScreenshot('alle-empty-1280.png', { animations: 'disabled' })
   })
@@ -257,7 +257,7 @@ test.describe('the place "Alle" (#354)', () => {
   test.describe('mobile 390px', () => {
     test.use({ viewport: { width: 390, height: 844 } })
 
-    test('the "Nicht geplant" page with the bar above the app bar', async ({ context, page }) => {
+    test('the "Meine Aufgaben" page with the bar above the app bar', async ({ context, page }) => {
       await gotoAll(page, context, HELD)
       await expect(page).toHaveScreenshot('alle-390.png', { animations: 'disabled' })
     })

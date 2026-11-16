@@ -1,7 +1,7 @@
 <!--
 @component TasksPage
 @description Hauptseite mit dem Kanban-Board, Synchronisationssteuerung und Modalen
-@usage Erreichbar unter /tasks (Heute) und /all (Alle, #354: dieselbe Seite, das Board bleibt gemountet), zeigt Board, Setup- und Statistik-Modal
+@usage Erreichbar unter /tasks (Heute) und /all (Planung, #354: dieselbe Seite, das Board bleibt gemountet), zeigt Board, Setup- und Statistik-Modal
 @responsibility
 - Lädt und aktualisiert Aufgaben periodisch
 - Hosts the task sheet (`TaskSheetHost`, kd#179) for /tasks/:id and /tasks/add; the command palette (mounted in app.vue since #224) opens its dialogs from here
@@ -108,7 +108,7 @@ const recap = useNewDayRecap();
 const newDay = useNewDay();
 /**
  * The day check (#356, the user's decision of 2026-11-16: the new day never starts while the user works in the
- * window). The pass (unfinished cards go back to "Nicht geplant"; on Heute and on "Alle", with a sheet open too) runs
+ * window). The pass (unfinished cards go back to "Meine Aufgaben"; on Heute and on "Planung", with a sheet open too) runs
  * only when the app is opened or returned to after an absence: `pass` is true there. A route change inside the app
  * (a sheet opens or closes, another page and back) is work, never a start: the pass waits for the next real
  * return, and so do the carried-over count and the recap, which belong to the new day. A day that has not passed
@@ -174,7 +174,7 @@ const handleVisibilityChange = () => {
   }
 };
 
-// "Alle" (`/all`, #354) is a second path of this page: one board, two places, so the way between them is a move of
+// "Planung" (`/all`, #354) is a second path of this page: one board, two places, so the way between them is a move of
 // the mounted board and not a page swap (lib/boardPlace). The fixed key keeps the page instance across both paths.
 definePageMeta({ alias: ['/all'], key: 'board' });
 
