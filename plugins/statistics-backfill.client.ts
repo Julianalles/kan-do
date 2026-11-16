@@ -1,4 +1,5 @@
 import { useStatisticsBackfill } from '~/composables/useStatisticsBackfill';
+import { isOverlayWindow } from '~/lib/overlayWindow'
 
 /**
  * Plugin to handle scheduled statistics backfill operations
@@ -11,6 +12,8 @@ export default defineNuxtPlugin((nuxtApp) => {
   if (import.meta.server) {
     return;
   }
+  // The floating Now window (#383) holds no board
+  if (isOverlayWindow()) return;
 
   const { runDailyBackfill, shouldRunDailyBackfill } = useStatisticsBackfill();
 

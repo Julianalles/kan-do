@@ -1,0 +1,12 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "overlay",
+  "description": "the floating Now window (#383): listens for the snapshot and drags itself, nothing else",
+  "windows": [
+    "overlay"
+  ],
+  "permissions": [
+    "core:event:default",
+    "core:window:allow-start-dragging"
+  ]
+}

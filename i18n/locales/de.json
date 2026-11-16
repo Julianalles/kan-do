@@ -1196,6 +1196,10 @@
       "emptyActivities": "Noch keine Aktivitäten.",
       "emptyActivitiesHint": "Aktivitäten entstehen, wenn du sie an einer Aufgabe wählst.",
       "editRow": "{name} bearbeiten"
+    },
+    "floatingNow": {
+      "label": "Schwebendes Jetzt-Fenster",
+      "help": "Zeigt die Aufgabe in „Jetzt“ mit ihrer Zeit als kleines Fenster über anderen Apps, solange Kan-Do nicht vorne ist."
     }
   },
   "sources": {
@@ -1675,5 +1679,15 @@
       "done": "Fertig",
       "rowEdit": "bearbeiten"
     }
+  },
+  "nowWindow": {
+    "region": "Aufgabe in Jetzt",
+    "open": "Kan-Do öffnen",
+    "pause": "Pausieren",
+    "resume": "Fortsetzen",
+    "done": "Als erledigt markieren",
+    "left": "noch {time}",
+    "over": "{time} über der Timebox",
+    "paused": "pausiert"
   }
 }

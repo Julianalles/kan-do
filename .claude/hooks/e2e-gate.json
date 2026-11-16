@@ -17,6 +17,7 @@
       "layouts/**",
       "assets/**",
       "app.vue",
+      "components/AppShell.vue",
       "app.config.ts",
       "lib/icons.ts",
       "i18n/locales/**"
@@ -445,7 +446,8 @@
         "composables/useTaskTimerDriver.ts",
         "composables/useWorkSessionTracking.ts",
         "lib/workSessions.ts",
-        "app.vue"
+        "app.vue",
+        "components/AppShell.vue"
       ],
       "specs": [
         "timer-lifecycle",
@@ -475,7 +477,8 @@
       "area": "route preload and navigation wait bar (#376)",
       "paths": [
         "plugins/route-preload.client.ts",
-        "app.vue"
+        "app.vue",
+        "components/AppShell.vue"
       ],
       "specs": [
         "route-preload",
@@ -909,6 +912,7 @@
         "composables/useCommandPalette*",
         "layouts/**",
         "app.vue",
+        "components/AppShell.vue",
         "i18n/**",
         "plugins/i18n-locale*",
         "utils/localeResolution.ts",
@@ -942,6 +946,7 @@
       "area": "app shell (#470, ADR 017, #493): global app bar, Mehr panel, layouts and app.vue; route-derived selected state, page offsets, phone bar. It sets the geometry of every page, so it runs the specs with a 390px viewport plus the whole drag-and-drop set (#489: archive-feature and dnd-open-column-gap failed only in a full run)",
       "paths": [
         "app.vue",
+        "components/AppShell.vue",
         "components/nav/**",
         "composables/useAppNav.ts",
         "composables/useNavIndicator.ts",
@@ -1032,6 +1037,28 @@
         "welcome-setup",
         "design-detect",
         "state-structure"
+      ]
+    },
+    {
+      "area": "floating Now window (#383, ADR 020): the pill window, its Rust owner and the main window's sync; E2E reaches it through the Tauri stub, cargo test covers the Rust side",
+      "risk": true,
+      "paths": [
+        "lib/nowWindow.ts",
+        "lib/overlayWindow.ts",
+        "composables/useNowWindowSync.ts",
+        "components/overlay/**",
+        "pages/overlay.vue",
+        "components/AppShell.vue",
+        "app.vue"
+      ],
+      "specs": [
+        "now-window",
+        "settings-tabs",
+        "tasks-settings",
+        "timer-lifecycle",
+        "focus-overlay",
+        "native-menu",
+        "data-safety"
       ]
     }
   ]

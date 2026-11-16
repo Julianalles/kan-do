@@ -3,6 +3,7 @@ import { newDayBackTasks, seedAfterMidnight, seedLocalBoard, seedMixedBoard, see
 import { openDayClose, openMore } from './helpers/appNav'
 import { pinClock, pinnedNow } from './helpers/clock'
 import { settleAnimations } from './helpers/settle'
+import { installTauriStub } from './helpers/tauriStub'
 
 /**
  * Structure of the empty, loading and error states and of the open task sheet, as Playwright ARIA snapshots
@@ -487,5 +488,36 @@ test.describe('live copy editor (#59)', () => {
     await page.getByTestId('copy-editor-translate').click()
     await expect(page.getByTestId('copy-editor-error')).toBeVisible()
     await expect(page.getByTestId('copy-editor-publish-view')).toMatchAriaSnapshot({ name: 'copy-editor-publish-error-390.aria.yml' })
+  })
+})
+
+test.describe('the floating Now window (#383)', () => {
+  const snapshot = { taskId: 'seed-1', title: 'Release notes schreiben', timeBoxSeconds: 1500, spentSeconds: 860, running: false, locale: 'de' }
+
+  async function openPill(context: Parameters<typeof installTauriStub>[0], page: Page, extra: Record<string, unknown> = {}) {
+    await installTauriStub(context, {})
+    await context.addInitScript((value) => {
+      ;(window as unknown as { __overlaySnapshot: unknown }).__overlaySnapshot = { ...value, at: Date.now() }
+    }, { ...snapshot, ...extra })
+    await page.goto('/overlay')
+    await expect(page.getByTestId('now-pill')).toBeVisible()
+  }
+
+  test('paused pill with a timebox: ring, title, time, and the resume and done buttons', async ({ context, page }) => {
+    await openPill(context, page)
+    await expect(page.getByTestId('now-pill')).toMatchAriaSnapshot({ name: 'now-window-paused.aria.yml' })
+  })
+
+  test('running pill without a timebox: the title only', async ({ context, page }) => {
+    await openPill(context, page, { timeBoxSeconds: null, running: true })
+    await expect(page.getByTestId('now-pill')).toMatchAriaSnapshot({ name: 'now-window-no-timebox.aria.yml' })
+  })
+
+  test('the setting row on the desktop Board tab', async ({ context, page }) => {
+    await seedLocalBoard(context)
+    await installTauriStub(context, {})
+    await page.goto('/settings')
+    await expect(page.getByTestId('floating-now-setting')).toBeVisible()
+    await expect(page.getByTestId('focus-settings')).toMatchAriaSnapshot({ name: 'settings-board-desktop.aria.yml' })
   })
 })

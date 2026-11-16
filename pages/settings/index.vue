@@ -10,6 +10,7 @@ Speicher, and on desktop Updates and GitHub-Zugriff).
 @usage Board gear, command palette "Einstellungen", the sync popover's "Verbindung reparieren"
 @responsibility
 - "Fokus": one switch row, "Jetzt-Karte im Fokus" (`settingsStore.focusEnabled`); takes effect on the board at once; on phone the 36×20 switch has a 44 px hit area (an invisible `::after`, kd#27)
+- "Schwebendes Jetzt-Fenster" (#383): a switch row below "Fokus", desktop only (`settingsStore.floatingNowEnabled`, default on); the main window pushes the setting to Rust at once, which hides or destroys the window
 - Aufgabenquellen is one sheet (#333: one concern): "Deine Verbindungen" (h2), the lead, the connected rows, then a separator and "Weitere Verbindungen" a level below (h3, the `sub` role); separator and heading drop out when nothing is left to connect
 - List Lokal (always) and the connected integrations as hairline rows; the default carries the "Standard" badge; a row's name and actions share one line at every width (`SourceRow`: the "…" menu)
 - "Als Standard festlegen" changes the default at once (`boardStore.setDefaultSource`)
@@ -61,6 +62,20 @@ Speicher, and on desktop Updates and GitHub-Zugriff).
                 :ui="{ base: 'relative max-md:after:absolute max-md:after:-inset-3.5' }"
                 data-testid="focus-switch"
                 @update:model-value="settingsStore.setFocusEnabled"
+              />
+            </div>
+            <!-- The floating Now window (#383): a desktop-only window, so the row is not there on the web -->
+            <div v-if="isDesktop" class="flex items-center gap-4 border-t border-default py-6" data-testid="floating-now-setting">
+              <div class="min-w-0 flex-1">
+                <label id="floating-now-label" class="block text-default" for="floating-now-switch">{{ t('settings.floatingNow.label') }}</label>
+                <p id="floating-now-help" class="text-body text-muted">{{ t('settings.floatingNow.help') }}</p>
+              </div>
+              <USwitch
+                id="floating-now-switch"
+                :model-value="settingsStore.floatingNowEnabled"
+                aria-describedby="floating-now-help"
+                data-testid="floating-now-switch"
+                @update:model-value="settingsStore.setFloatingNowEnabled"
               />
             </div>
             <div class="flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-default pt-6" data-testid="working-hours-setting">

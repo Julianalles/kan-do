@@ -1196,6 +1196,10 @@
       "emptyActivities": "No activities yet.",
       "emptyActivitiesHint": "Activities appear when you pick one on a task.",
       "editRow": "Edit {name}"
+    },
+    "floatingNow": {
+      "label": "Floating Now window",
+      "help": "Shows the task in “Now” and its time as a small window over other apps while Kan-Do is not in front."
     }
   },
   "sources": {
@@ -1675,5 +1679,15 @@
       "done": "Done",
       "rowEdit": "edit"
     }
+  },
+  "nowWindow": {
+    "region": "Task in Now",
+    "open": "Open Kan-Do",
+    "pause": "Pause",
+    "resume": "Resume",
+    "done": "Mark as done",
+    "left": "{time} left",
+    "over": "{time} over the timebox",
+    "paused": "paused"
   }
 }

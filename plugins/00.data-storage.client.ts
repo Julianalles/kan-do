@@ -5,11 +5,14 @@
  * The `00.` prefix and `enforce: 'pre'` put it ahead of plugins/pinia.ts.
  */
 import { initDataStorage } from '~/lib/dataStorage'
+import { isOverlayWindow } from '~/lib/overlayWindow'
 
 export default defineNuxtPlugin({
   name: 'data-storage',
   enforce: 'pre',
   async setup() {
+    // The floating Now window (#383) never reads or writes the data file (ADR 020)
+    if (isOverlayWindow()) return
     await initDataStorage()
   },
 })

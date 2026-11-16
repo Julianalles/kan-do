@@ -57,10 +57,12 @@ import { buildDemoBoard } from '~/lib/demo-board'
 import { buildDemoDayEndHistory, buildDemoStatisticsHistory, buildDemoWorkSessions } from '~/lib/demo-statistics-history'
 import { useSourceConnections } from '~/composables/useSourceConnections'
 import type { IntegrationSourceId } from '~/types/taskSource'
+import { isOverlayWindow } from '~/lib/overlayWindow'
 
 export default defineNuxtPlugin((nuxtApp) => {
   if (!__NOTION_STUB_ALLOWED__) return
   if (!import.meta.client) return
+  if (isOverlayWindow()) return // the floating Now window seeds nothing (#383)
 
   ;(window as unknown as { __kandoE2E?: unknown }).__kandoE2E = {
     connectSource: (source: IntegrationSourceId) => nuxtApp.runWithContext(() => useSourceConnections().connectSource(source)),

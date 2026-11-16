@@ -7,12 +7,13 @@
  */
 import { isTauri } from '~/utils/isTauri'
 import { useWhatsNew } from '~/composables/useWhatsNew'
+import { isOverlayWindow } from '~/lib/overlayWindow'
 
 export default defineNuxtPlugin({
   name: 'whats-new',
   dependsOn: ['secrets'],
   setup(nuxtApp) {
-    if (!isTauri()) return
+    if (!isTauri() || isOverlayWindow()) return
     nuxtApp.hook('app:mounted', () => {
       void nuxtApp.vueApp.runWithContext(() => {
         const router = useRouter()
