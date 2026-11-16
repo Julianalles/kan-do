@@ -59,18 +59,22 @@ export async function keepsRootGutter(page: Page): Promise<boolean> {
 
 export type Box = { x: number, width: number }
 
+/** The navigation wait bar (#376): `position: fixed`, its progress is `transform: scaleX()`, which `getBoundingClientRect()` reads as a width change. It takes no part in layout, so it can never show a scrollbar shift (#399). */
+const NAV_LOADING_BAR = '.nuxt-loading-indicator'
+
 /**
  * Tags every element once, so the same elements are compared before and after the page's nodes change. `ignore` is a
  * selector for elements (and their descendants) that move on purpose and stay untagged, e.g. the app bar's group while a
- * task sheet is open (#290).
+ * task sheet is open (#290). The navigation wait bar (`NAV_LOADING_BAR`) is never tagged: an in-app open such as the task
+ * sheet route can start it after its 150 ms throttle (#399).
  */
 export const tagElements = (page: Page, ignore = '') =>
-  page.evaluate((skip) => {
+  page.evaluate(([skip, bar]) => {
     document.querySelectorAll('body *').forEach((el, i) => {
-      if (skip && el.closest(skip)) return
+      if (el.closest(bar) || (skip && el.closest(skip))) return
       el.setAttribute('data-shift-probe', String(i))
     })
-  }, ignore)
+  }, [ignore, NAV_LOADING_BAR] as const)
 
 /** Horizontal boxes of every tagged element. */
 export const boxes = (page: Page) =>

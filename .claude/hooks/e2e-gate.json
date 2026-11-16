@@ -320,6 +320,15 @@
       ]
     },
     {
+      "area": "desktop native feel (#370): which text is selectable under html[data-shell=desktop] and the cancelled browser context menu",
+      "paths": [
+        "assets/css/utilities.css"
+      ],
+      "specs": [
+        "desktop-native-feel"
+      ]
+    },
+    {
       "area": "desktop shell (Rust): E2E only reaches it through the Tauri stub, cargo test covers the rest",
       "risk": true,
       "paths": [
@@ -327,11 +336,13 @@
         "utils/isTauri.ts",
         "lib/nativeMenu.ts",
         "lib/windowDrag.ts",
+        "lib/nativeContextMenu.ts",
         "composables/useNativeMenu.ts",
         "plugins/desktop-shell.client.ts"
       ],
       "specs": [
         "native-menu",
+        "desktop-native-feel",
         "data-safety",
         "data-settings",
         "web-data-transfer",
@@ -472,14 +483,17 @@
       ]
     },
     {
-      "area": "route preload and navigation wait bar (#376)",
+      "area": "route preload and navigation wait bar (#376): a fixed overlay on every page that the layout-shift check reads (#399), so it also runs in fast mode",
+      "risk": true,
       "paths": [
         "plugins/route-preload.client.ts",
-        "app.vue"
+        "app.vue",
+        "assets/css/app-nav.css"
       ],
       "specs": [
         "route-preload",
-        "statistics-page"
+        "statistics-page",
+        "scrollbar-shift"
       ]
     },
     {
