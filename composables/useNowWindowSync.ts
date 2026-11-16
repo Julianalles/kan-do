@@ -106,7 +106,7 @@ export function useNowWindowSync(): void {
         await moveOrSwapToStatus(task.id, TaskStatus.Done)
       }
     } else if (task.status === TaskStatus.Waiting && pinnedId.value === task.id) {
-      if (payload.kind === 'toggle-pause') await moveTaskToStatus(task.id, TaskStatus.Progress)
+      if (payload.kind === 'toggle-pause') await moveTaskToStatus(task.id, TaskStatus.Progress, { resume: true })
       else if (payload.kind === 'done') await moveOrSwapToStatus(task.id, TaskStatus.Done)
     }
   }

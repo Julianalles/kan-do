@@ -10,6 +10,7 @@ import { useCompletionUndo } from '~/composables/useCompletionUndo';
 import { useTaskDeletion } from '~/composables/useTaskDeletion';
 import { useTaskSwap } from '~/composables/useTaskSwap';
 import { stopTaskTimer } from '~/composables/useTaskTimerDriver';
+import { withResumeEntry } from '~/lib/taskTimers';
 import { checkWipMove, type WipVerdict } from '~/utils/wipGuard';
 import { useToast } from '#imports';
 
@@ -87,8 +88,10 @@ export const useTaskOperations = () => {
    * `pause` (#405, the Now window's pause: Jetzt to Wartet): the card goes first into Wartet's order, whatever the
    * column's sort (`moveToTopOfColumn`), and is flagged for its arrival motion. The write is the same status write as
    * any move, through `useTaskSync().updateTaskStatus`.
+   * `resume` (#405, the pill's resume: Wartet to Jetzt): the same stint goes on, so the timer driver keeps the
+   * after-midnight note (#356) and the card gets no timebox question (#389) again.
    */
-  const moveTaskToStatus = async (taskId: string, newStatus: TaskStatus, options: { pause?: boolean } = {}): Promise<boolean> => {
+  const moveTaskToStatus = async (taskId: string, newStatus: TaskStatus, options: { pause?: boolean, resume?: boolean } = {}): Promise<boolean> => {
     const task = tasksStore.task(taskId);
     if (!task) {
       handleError(`Task with id ${taskId} not found`, 'task_operation');
@@ -112,7 +115,10 @@ export const useTaskOperations = () => {
     const waitingBefore = pausing ? tasksStore.tasksWaiting.map(waiting => waiting.id) : [];
 
     // Update the board first
-    boardStore.updateTaskPosition(taskId, newStatus, oldStatus);
+    // A resume of a pause (#405) is the same stint going on: the driver keeps the after-midnight note, no timebox question
+    const resuming = options.resume === true && oldStatus === TaskStatus.Waiting && newStatus === TaskStatus.Progress;
+    if (resuming) withResumeEntry(taskId, () => boardStore.updateTaskPosition(taskId, newStatus, oldStatus));
+    else boardStore.updateTaskPosition(taskId, newStatus, oldStatus);
     if (pausing) {
       boardStore.moveToTopOfColumn(TaskStatus.Waiting, taskId, waitingBefore);
       boardStore.markPaused(taskId);
@@ -123,7 +129,7 @@ export const useTaskOperations = () => {
     // Then, sync the status change
     const sync = updateTaskStatus({ taskId, status: newStatus });
     // A card without a timebox that arrives in Jetzt asks for one (#389); the status is set synchronously above
-    if (newStatus === TaskStatus.Progress) boardStore.startTimeboxNudge(taskId);
+    if (newStatus === TaskStatus.Progress && !resuming) boardStore.startTimeboxNudge(taskId);
     // Same in-card confirmation and check spring as a drop into Erledigt (#124, #611)
     if (newStatus === TaskStatus.Done) boardStore.startConfirmation(taskId, finishedFasterThanPlan(tasksStore.task(taskId)));
     notifyCompleted(completion);

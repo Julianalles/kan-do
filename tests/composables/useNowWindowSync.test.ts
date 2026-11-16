@@ -29,7 +29,7 @@ vi.mock('@tauri-apps/api/event', () => ({
 }))
 const moveOrSwapToStatus = vi.fn(async (_id: string, _status: TaskStatus) => true)
 /** The board's guarded move without its toasts and sync: the status changes synchronously, as in the real one */
-const moveTaskToStatus = vi.fn(async (id: string, status: TaskStatus, _options?: { pause?: boolean }) => {
+const moveTaskToStatus = vi.fn(async (id: string, status: TaskStatus, _options?: { pause?: boolean, resume?: boolean }) => {
   useTasksStore().updateTask(id, { status })
   return true
 })
@@ -148,7 +148,7 @@ describe('useNowWindowSync (#383)', () => {
     await nextTick(); await flushPromises()
     fire({ kind: 'toggle-pause', taskId: 'a' })
     await nextTick(); await flushPromises()
-    expect(moveTaskToStatus).toHaveBeenLastCalledWith('a', TaskStatus.Progress)
+    expect(moveTaskToStatus).toHaveBeenLastCalledWith('a', TaskStatus.Progress, { resume: true })
     expect(tasks.task('a')!.status).toBe(TaskStatus.Progress)
     expect(isTaskTimerArmed('a')).toBe(true)
     expect(syncs().at(-1)?.snapshot).toMatchObject({ taskId: 'a', running: true })
