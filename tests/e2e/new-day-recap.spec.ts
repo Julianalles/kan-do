@@ -812,20 +812,24 @@ test.describe('A new day sends unfinished cards back (#356)', () => {
     await seedNewDayBoard(context, { tasks })
     await page.goto('/tasks')
     await expect(sentence(page)).toHaveText('3 Aufgaben von gestern liegen unter Alle.')
+    // the funnel has cards to filter only under "Alle" (Heute's Offen is empty): the focus is set there
     const focusOn = async (topic: string) => {
       await page.getByTestId('focus-trigger').click()
       await page.getByTestId('focus-chip').filter({ hasText: topic }).click()
     }
+    await goToPlace(page, 'Alle')
+    await expect.poll(() => groupIds(page, 'yesterday')).toHaveLength(3)
     // the focus leaves one task of the group: the sentence says one, and "Alle" shows exactly that one
     await focusOn('Büro')
+    await goToPlace(page, 'Heute')
     await expect(sentence(page)).toHaveText('Eine Aufgabe von gestern liegt unter Alle.')
     await sentence(page).getByRole('link', { name: 'Alle' }).click()
     await expect(page).toHaveURL(/\/all$/)
     await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-open-1'])
-    await goToPlace(page, 'Heute')
     // the focus leaves none of the group (a task that was not sent back matches): no sentence, no link to nothing
-    await page.getByTestId('focus-trigger').click()
-    await page.getByTestId('focus-chip').filter({ hasText: 'Garten' }).click()
+    await page.getByTestId('focus-trigger').click() // the funnel ends the focus that is on
+    await focusOn('Garten')
+    await goToPlace(page, 'Heute')
     await expect(sentence(page)).toHaveCount(0)
   })
 
