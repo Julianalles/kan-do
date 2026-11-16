@@ -31,7 +31,7 @@ export const useIntegrationManager = () => {
   const { handleSuccess } = useErrorHandler();
   const { validateAndConfirm } = useSyncValidation();
   const { adapterFor } = useTaskSources();
-  const { syncPendingChanges } = useTaskSync();
+  const { syncPendingChanges, isPushing } = useTaskSync();
   const fetchGenerations = fetchGenerationsByStore.get(tasksStore) ?? new Map<SourceId, number>();
   fetchGenerationsByStore.set(tasksStore, fetchGenerations);
 
@@ -73,8 +73,8 @@ export const useIntegrationManager = () => {
     const integration: IntegrationSourceId | null = isIntegrationSourceId(source) ? source : null;
 
     let tasks: Task[];
-    // The statuses a capped list holds only in part (#357): the merge must not read it as complete for them,
-    // nor drop a task whose push went through after this fetch began
+    // The statuses a capped list holds only in part (#357): the merge must not read it as complete for them.
+    // Nor may it drop a task written since this fetch began: the list may have been read before the write
     let partialNotPlanned: readonly string[] = [];
     const fetchStartedAt = Date.now();
     try {
@@ -126,6 +126,7 @@ export const useIntegrationManager = () => {
       startsNotPlanned: adapter.startsNotPlanned === true,
       partialNotPlanned,
       fetchStartedAt,
+      pushing: isPushing,
     });
     if (completesSwitch) boardStore.clearSourceSwitchPending();
     if (integration) health.recordSuccessfulSync(integration);

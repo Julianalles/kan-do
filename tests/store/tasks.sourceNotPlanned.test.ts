@@ -4,7 +4,7 @@
  * answer changes, so kan-do's own moves survive a sync. A source without one whose tasks start not planned
  * (Todoist) decides only for a task kan-do sees for the first time: a fetch never moves a card it already holds (#387).
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useTasksStore } from '~/store/tasks'
 import { inStatus, isNotPlanned } from '~/lib/taskPlanning'
@@ -246,6 +246,109 @@ describe('mergeTasks follows a source only when its planning state changes (#357
       expect(store.tasks.filter(t => t.id === 'past-cap')).toHaveLength(1)
       expect(isNotPlanned(store.task('past-cap')!)).toBe(false)
       expect(store.task('past-cap')!.timeSpentSeconds).toBe(900)
+    })
+  })
+
+  // Delta review of PR 384: the board query is read first, the "not planned" query after it. A plan whose write
+  // reaches Notion between the two reads is in neither answer, with a complete list too, and the task was dropped
+  // with what only kan-do holds (time, order, the carried-over count)
+  describe('a fetch that began before a task was written cannot say the task is gone', () => {
+    const T0 = new Date('2026-11-16T09:00:00Z').getTime()
+    beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(T0) })
+    afterEach(() => vi.useRealTimers())
+    const COMPLETE = { partialNotPlanned: [] as string[] }
+    const seed = () => {
+      const store = useTasksStore()
+      store.setTasks([makeTask('other'), makeTask('held', { notPlanned: true, sourceNotPlanned: 'Backlog', timeSpentSeconds: 900 })])
+      return store
+    }
+    /** The user plans the held task: what `useTaskSync.planTasks` does to the store before its push */
+    const plan = (store: ReturnType<typeof useTasksStore>) => {
+      store.planTasks(['held'])
+      store.setSourceNotPlanned('held', undefined)
+      return store.markPendingSync('held')
+    }
+
+    it('a complete list read around a plan\'s write keeps the task; the next fetch decides', () => {
+      const store = seed()
+      const fetchStartedAt = T0
+      vi.setSystemTime(T0 + 300)
+      const revision = plan(store)
+      vi.setSystemTime(T0 + 600)
+      store.clearPendingSync('held', revision)
+      store.mergeTasks('notion', [makeTask('other')], { ...COMPLETE, fetchStartedAt })
+      expect(store.task('held')).toMatchObject({ timeSpentSeconds: 900 })
+      expect(store.tasksOpen.map(t => t.id)).toEqual(['other', 'held'])
+
+      // the fetch after it read Notion after the write: with the page it is matched, without it the page is gone
+      vi.setSystemTime(T0 + 5000)
+      store.mergeTasks('notion', [makeTask('other'), makeTask('held')], { ...COMPLETE, fetchStartedAt: T0 + 4000 })
+      expect(store.task('held')).toMatchObject({ timeSpentSeconds: 900 })
+      store.mergeTasks('notion', [makeTask('other')], { ...COMPLETE, fetchStartedAt: T0 + 4500 })
+      expect(store.task('held')).toBeNull()
+    })
+
+    it('a write that began before the fetch and went through during it counts too', () => {
+      const store = seed()
+      const revision = plan(store)
+      vi.setSystemTime(T0 + 300)
+      const fetchStartedAt = T0 + 300
+      vi.setSystemTime(T0 + 600)
+      store.clearPendingSync('held', revision)
+      store.mergeTasks('notion', [makeTask('other')], { ...COMPLETE, fetchStartedAt })
+      expect(store.task('held')).not.toBeNull()
+    })
+
+    it('a write whose answer is still out, one an edit overtook and one that failed keep the task as well', () => {
+      // noted since the fetch began, the answer still out
+      const pending = seed()
+      vi.setSystemTime(T0 + 300)
+      plan(pending)
+      pending.mergeTasks('notion', [makeTask('other')], { ...COMPLETE, fetchStartedAt: T0 })
+      expect(pending.task('held')!.pendingSync).toBeDefined()
+
+      // went through, but the user edited the task meanwhile: the marker stays for the edit
+      setActivePinia(createPinia())
+      const overtaken = seed()
+      vi.setSystemTime(T0)
+      const revision = plan(overtaken)
+      overtaken.markPendingSync('held')
+      vi.setSystemTime(T0 + 600)
+      expect(overtaken.clearPendingSync('held', revision)).toBe(false)
+      overtaken.mergeTasks('notion', [makeTask('other')], { ...COMPLETE, fetchStartedAt: T0 + 300 })
+      expect(overtaken.task('held')).not.toBeNull()
+
+      // failed for kan-do (a timeout), though it may have reached Notion
+      setActivePinia(createPinia())
+      const failed = seed()
+      vi.setSystemTime(T0)
+      plan(failed)
+      vi.setSystemTime(T0 + 600)
+      failed.recordPendingSyncFailure('held', 'timeout')
+      failed.mergeTasks('notion', [makeTask('other')], { ...COMPLETE, fetchStartedAt: T0 + 300 })
+      expect(failed.task('held')).not.toBeNull()
+      // the page is gone for good: the retry fails, and the fetch after it drops the task
+      vi.setSystemTime(T0 + 9000)
+      failed.mergeTasks('notion', [makeTask('other')], { ...COMPLETE, fetchStartedAt: T0 + 8000 })
+      expect(failed.task('held')).toBeNull()
+    })
+
+    it('a write still under way when the list is merged keeps the task, however long ago it began', () => {
+      const store = seed()
+      plan(store)
+      vi.setSystemTime(T0 + 5000)
+      store.mergeTasks('notion', [makeTask('other')], { ...COMPLETE, fetchStartedAt: T0 + 4000, pushing: id => id === 'held' })
+      expect(store.task('held')).not.toBeNull()
+    })
+
+    it('a task written before the fetch began is dropped by a complete list that lacks it, as before', () => {
+      const store = seed()
+      const revision = plan(store)
+      store.clearPendingSync('held', revision)
+      store.markPendingSync('other')
+      vi.setSystemTime(T0 + 1000)
+      store.mergeTasks('notion', [], { ...COMPLETE, fetchStartedAt: T0 + 1000, pushing: () => false })
+      expect(store.tasks).toEqual([])
     })
   })
 

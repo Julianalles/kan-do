@@ -224,6 +224,70 @@ describe('plan and put-back are written to a source that stores planning (#357)'
     expect(store.task('past')).toBeNull()
   })
 
+  // Delta review of PR 384: the board query is read before the "not planned" query. A plan whose write reaches
+  // Notion between the two reads is in neither answer, with a complete list too
+  describe('a sync that was reading Notion while a plan was written', () => {
+    const T0 = new Date('2026-11-16T09:00:00Z').getTime()
+    beforeEach(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(T0) })
+    afterEach(() => vi.useRealTimers())
+    const seed = () => {
+      const store = useTasksStore()
+      useBoardStore().setSources({ connected: ['notion'], default: 'notion' })
+      store.setTasks([task('board', 'notion'), task('held', 'notion', { notPlanned: true, sourceNotPlanned: 'Backlog', timeSpentSeconds: 600 })])
+      return store
+    }
+    /** A fetch whose answer the test hands in: the list as Notion read it */
+    const openFetch = () => {
+      let answer!: (list: Task[]) => void
+      notion.fetchActiveBoardTasks.mockImplementationOnce(() => new Promise<Task[]>((resolve) => { answer = resolve }))
+      const done = useIntegrationManager().fetchTasks()
+      return { done, answer: (list: Task[]) => { answer(list); return done } }
+    }
+
+    it('keeps the planned task a complete list lacks, and follows Notion at the next sync', async () => {
+      const store = seed()
+      const fetch = openFetch()
+      await vi.waitFor(() => expect(notion.fetchActiveBoardTasks).toHaveBeenCalled())
+      // the write lands after the board query was read and before the "not planned" query: the page is in neither
+      vi.setSystemTime(T0 + 400)
+      useTaskSync().planTask('held')
+      await settle()
+      vi.setSystemTime(T0 + 800)
+      await fetch.answer([task('board', 'notion')])
+      expect(store.task('held')).toMatchObject({ timeSpentSeconds: 600 })
+      expect(store.tasksOpen.map(t => t.id)).toEqual(['board', 'held'])
+
+      // the next sync read Notion after the write: the page is on the board there, the card stays where it is
+      vi.setSystemTime(T0 + 60_000)
+      notion.fetchActiveBoardTasks.mockResolvedValueOnce([task('board', 'notion'), task('held', 'notion')])
+      await useIntegrationManager().fetchTasks()
+      expect(store.tasksOpen.map(t => t.id)).toEqual(['board', 'held'])
+      expect(store.task('held')!.timeSpentSeconds).toBe(600)
+      // and a page that is gone at Notion is dropped by a sync that began after the write
+      vi.setSystemTime(T0 + 120_000)
+      notion.fetchActiveBoardTasks.mockResolvedValueOnce([task('board', 'notion')])
+      await useIntegrationManager().fetchTasks()
+      expect(store.task('held')).toBeNull()
+    })
+
+    it('keeps it while the write that began before the sync is still under way', async () => {
+      const store = seed()
+      let release!: () => void
+      notion.updateTask.mockImplementationOnce((t) => new Promise((resolve) => { note(t); release = () => resolve({ ...t }) }))
+      useTaskSync().planTask('held')
+      await vi.waitFor(() => expect(release).toBeTypeOf('function'))
+      vi.setSystemTime(T0 + 400)
+      const fetch = openFetch()
+      await vi.waitFor(() => expect(notion.fetchActiveBoardTasks).toHaveBeenCalled())
+      vi.setSystemTime(T0 + 800)
+      await fetch.answer([task('board', 'notion')])
+      expect(store.task('held')).not.toBeNull()
+      release()
+      await settle()
+      expect(store.tasksOpen.map(t => t.id)).toEqual(['board', 'held'])
+    })
+  })
+
   it('a task made as not planned in Notion is created with the first mapped status; in Offen it is created as before', async () => {
     const sync = useTaskSync()
     const made = await sync.createTask({ title: 'Neu', status: TaskStatus.Open, notPlanned: true }, 'notion')

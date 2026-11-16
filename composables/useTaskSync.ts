@@ -387,6 +387,12 @@ export const useTaskSync = () => {
     }
   };
 
+  /**
+   * Whether a write of the task is under way or waits for an earlier one. A fetch that is merged meanwhile may
+   * have read the source before that write and must not take the task for gone (`mergeTasks`' `pushing`, #357).
+   */
+  const isPushing = (taskId: string): boolean => pushesInFlight.has(taskId) || statusWritesInFlight.has(taskId);
+
   /** `timeEdited` for a write that carries a total the user set (kd#4), even at 0; empty otherwise. */
   const timeEditFlag = (taskId: string): { timeEdited?: true } =>
     tasksStore.pendingTimeUpdates[taskId]?.absolute === true ? { timeEdited: true } : {};
@@ -955,6 +961,7 @@ export const useTaskSync = () => {
     setCompletedDay,
     syncTaskToIntegration,
     syncPendingChanges,
+    isPushing,
     syncArchiveStatusForTasks,
     handleSyncError,
     deleteTaskUpstream,

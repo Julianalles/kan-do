@@ -1053,7 +1053,9 @@ export class NotionIntegration {
 
     // The pages in a "not planned" status (#357), only once the user mapped one: a list of its own, because it may
     // be an archive. It is capped at the most recently edited `NOT_PLANNED_PAGE_LIMIT`; the board query above is
-    // never capped. A page both queries return (its status changed in between) is taken once.
+    // never capped. A page both queries return (its status changed in between) is taken once; a page neither
+    // returns for the same reason (it left "not planned" between the two reads) is kept by `mergeTasks` when the
+    // change was kan-do's own write (`fetchStartedAt`).
     this.notPlannedPartial = [];
     const notPlanned = this.notPlannedStatuses();
     if (notPlanned.length > 0) {
