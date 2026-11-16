@@ -732,7 +732,7 @@ export const useTaskSync = () => {
     tasksStore.guardRestoredTask(taskId);
     const back = tasksStore.task(taskId);
     if (back && isNotPlanned(back)) {
-      // A task that was not planned returns to "Nicht geplant", on top: it has no place in Offen's order (#354)
+      // A task that was not planned returns to "Meine Aufgaben", on top: it has no place in Offen's order (#354)
       boardStore.noteNotPlanned(taskId);
     } else {
       // The column's order still names the task where it stood: take it out there, then it goes to the end

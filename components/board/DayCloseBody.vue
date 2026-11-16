@@ -7,7 +7,7 @@
 @avoid Not standalone: hosted by DayCloseDialog (modal and drawer share it); the start-of-day look back is NewDayRecap.
 @responsibility
 - DayCloseSummary on top, then today's done tasks as DayCloseTaskRow (no archived, nothing from earlier days)
-- "Für morgen": one sentence with the number of tasks that stay, and a native `<details>` ("Offene Aufgaben anzeigen") with one DayCloseOpenRow and checkbox per Offen, Jetzt or Wartet task, all selected by default; nothing open: one quiet line, no section
+- "Für morgen": one sentence with the number of tasks that stay, and a native `<details>` ("Offene Aufgaben") with one DayCloseOpenRow and checkbox per Offen, Jetzt or Wartet task, all selected by default; nothing open: one quiet line, no section
 - The choice lives in useDayClose (deselected ids, cleared on open); only "Fertig" acts on it (trash for a deselected task, Jetzt back to Offen otherwise)
 - The sheet scrolls as one, there is no inner scroll area; opening the list scrolls its header to the top; no motivation sentence
 -->

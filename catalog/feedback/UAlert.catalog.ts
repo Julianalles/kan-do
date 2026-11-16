@@ -25,6 +25,6 @@ export default {
   states: [
     { id: 'error', state: 'error', props: { color: 'error', variant: 'subtle', icon: 'i-ph-x-circle', role: 'alert', description: { $t: 'settings.data.backups.loadFailed' } } },
     { id: 'long-text', state: 'long-text', label: 'long German text', props: { color: 'warning', variant: 'subtle', icon: 'i-ph-warning', title: { $t: 'sync.warning.title' }, description: { $t: 'board.dropToComplete' } } },
-    { id: 'actions', state: 'icon-only', label: 'with actions and close', props: { color: 'warning', variant: 'subtle', orientation: 'horizontal', icon: 'i-ph-warning', title: { $t: 'sync.warning.title' }, close: true, actions: [{ label: { $t: 'common.close' }, color: 'neutral', variant: 'outline', size: 'xs' }] } },
+    { id: 'actions', state: 'icon-only', label: 'with actions and close', props: { color: 'warning', variant: 'subtle', orientation: 'horizontal', icon: 'i-ph-warning', title: { $t: 'sync.warning.title' }, close: true, actions: [{ label: { $t: 'common.close' }, color: 'neutral', variant: 'link', size: 'xs' }] } },
   ],
 } satisfies CatalogEntry

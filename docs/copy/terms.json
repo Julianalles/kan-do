@@ -792,7 +792,7 @@
   },
   {
     "id": "board-day",
-    "concept": "The running count of days a task has been planned for (on the board); day 1 is the first day and stays silent (#121, #247). Days under \"Nicht geplant\" do not count (#356)",
+    "concept": "The running count of days a task has been planned for (on the board); day 1 is the first day and stays silent (#121, #247). Days in \"Meine Aufgaben\" do not count (#356)",
     "de": "An {n} Tagen eingeplant",
     "en": "planned on {n} days",
     "avoidDe": [],
@@ -878,7 +878,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Approved by the user on 2026-11-16 (#367); the user's `npm run terms:approve` makes it decided. Name of the arrow button beside a \"Nicht geplant\" card. Proposed in the design of #334 (D4)."
+    "note": "Approved by the user on 2026-11-16 (#367); the user's `npm run terms:approve` makes it decided. Name of the arrow button beside a card in \"Meine Aufgaben\". Proposed in the design of #334 (D4)."
   },
   {
     "id": "not-today",
@@ -962,7 +962,7 @@
   },
   {
     "id": "create-task-not-planned",
-    "concept": "The soft button of an empty \"Nicht geplant\" on the place \"Alle\": it opens the add form, and the new task is not planned (#367)",
+    "concept": "The soft button of an empty \"Meine Aufgaben\" on the place \"Planung\": it opens the add form, and the new task is not planned (#367)",
     "de": "Aufgabe erstellen",
     "en": "Create task",
     "avoidDe": [],

@@ -18,6 +18,6 @@
   - region "Für morgen":
     - heading "Für morgen" [level=3]
     - paragraph: 3 Aufgaben bleiben auf dem Board, bis du den nächsten Tag planst. Du kannst sie einzeln abwählen.
-    - group: Offene Aufgaben anzeigen
+    - group: Offene Aufgaben
   - button "Zusammenfassung kopieren"
   - button "Fertig"
