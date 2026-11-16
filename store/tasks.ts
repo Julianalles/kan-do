@@ -256,6 +256,14 @@ export const useTasksStore = defineStore("tasks", () => {
   const afterMidnight = ref<AfterMidnightCount | null>(null);
   const validAfterMidnight = computed(() => sanitizeAfterMidnight(afterMidnight.value));
   /**
+   * Transient (never persisted): the local day whose check already took the note (`settleAfterMidnight`). A tick that
+   * sees that day's midnight only after its check (the machine slept across midnight and the wake-up's focus event
+   * came before the timer's first tick, or the crossing write was held) starts no note: what the timer counts after
+   * the check is the user's own running timer, never asked about (#387 D1 g). Runtime is enough: a page load arms
+   * every timer on the current day, so it never sees a crossing into that day.
+   */
+  let afterMidnightSettledDay: string | null = null;
+  /**
    * Transient (never persisted, per Pinia instance) status locks: while a locally-initiated
    * status change (e.g. undoing a completion) is still being written upstream, a concurrent
    * refresh must not overwrite it with stale upstream data. One entry per task, owned by a token:
@@ -858,10 +866,13 @@ export const useTasksStore = defineStore("tasks", () => {
 
   /**
    * The timer of `taskId` ran across the local midnight that starts `day` (#356): what it counts from now on is
-   * noted. Replaces an older entry (another task, or an earlier midnight: only the last one counts).
+   * noted. Replaces an older entry (another task, or an earlier midnight: only the last one counts). Nothing is noted
+   * for a day whose check already ran in this page load (`settleAfterMidnight`).
    */
   function beginAfterMidnight(taskId: string, day: string): void {
     if (!isValidDayKey(day) || !tasks.value.some((el) => el.id === taskId)) return;
+    // The check of that day already ran: the question covers only the time up to it
+    if (day === afterMidnightSettledDay) return;
     const current = validAfterMidnight.value;
     if (current && current.taskId === taskId && current.day === day) return;
     afterMidnight.value = { taskId, day, seconds: 0, spans: [] };
@@ -871,6 +882,15 @@ export const useTasksStore = defineStore("tasks", () => {
   function clearAfterMidnight(taskId?: string): void {
     if (afterMidnight.value === null) return;
     if (taskId === undefined || validAfterMidnight.value?.taskId === taskId || validAfterMidnight.value === null) afterMidnight.value = null;
+  }
+
+  /**
+   * The check of `day` has read the note (#387): whatever is left of it is dropped, and no note for that day starts
+   * any more (`beginAfterMidnight` refuses it), so a crossing the timer sees only after the check asks nothing later.
+   */
+  function settleAfterMidnight(day: string): void {
+    clearAfterMidnight();
+    if (isValidDayKey(day)) afterMidnightSettledDay = day;
   }
 
   /**
@@ -1704,6 +1724,7 @@ export const useTasksStore = defineStore("tasks", () => {
     setTimeSpent,
     beginAfterMidnight,
     clearAfterMidnight,
+    settleAfterMidnight,
     takeAfterMidnight,
     takeOffSeconds,
     setCompletedAt,

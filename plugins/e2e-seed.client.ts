@@ -13,7 +13,8 @@
  *                   not archived, plus an open and a waiting card; `newday-all` has nothing open. Writes `day-recap-store`
  *                   with `lastShownDay` n+1 days back, so the recap opens (`&daysago=3` reads "am Montag"-style copy).
  *                   Nothing moves by itself (#387): "Tag planen" in the recap is the fresh start, "Direkt zum Board"
- *                   keeps the board and shows the notice that offers it
+ *                   keeps the board and shows the notice that offers it. `&nomarker=1` (every new-day seed) stores
+ *                   no `lastNewDay`: the data of a version before the fresh start (the update from v0.16.0)
  *   ?seed=newday-back — the new day in full (#356, #387): like `newday`, plus a card in Jetzt (with time spent), a
  *                   second Offen card and a task that was not planned before. After "Tag planen" "Planung" shows the
  *                   group "Gestern geplant, noch offen", the category "Zuletzt in Wartet" and "Weitere Aufgaben", and
@@ -243,7 +244,10 @@ export default defineNuxtPlugin((nuxtApp) => {
     // The day was last started fresh on the day of the marker: today is a day the user has not planned yet (#387)
     localStorage.setItem('board-store', JSON.stringify(buildBoardStore('local', list.filter(task => !('notPlanned' in task)))))
     localStorage.setItem('tasks-store', JSON.stringify(tasksStoreFor('local', list, { carryOverByTaskId: seed === 'newday-all' ? {} : newDayCarryOver })))
-    localStorage.setItem('day-recap-store', JSON.stringify({ lastShownDay: dayKey(lastShown), archiveDone: true, lastNewDay: dayKey(lastShown) }))
+    // `&nomarker=1`: no `lastNewDay` at all, the stored state of a version before the fresh start (the update from v0.16.0)
+    const noMarker = url.searchParams.get('nomarker') === '1'
+    url.searchParams.delete('nomarker')
+    localStorage.setItem('day-recap-store', JSON.stringify({ lastShownDay: dayKey(lastShown), archiveDone: true, ...(noMarker ? {} : { lastNewDay: dayKey(lastShown) }) }))
   } else if (seed === 'notion') {
     localStorage.setItem('board-store', JSON.stringify(buildBoardStore('notion')))
     localStorage.setItem('tasks-store', JSON.stringify(tasksStoreFor('notion')))

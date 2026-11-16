@@ -8,7 +8,9 @@
  * - `check()`: the day check, called by `pages/tasks.vue` on the app's start (the first board mount of a page load)
  *   and on a return to the app after an absence (`lib/appPresence`), never on a route change and never while the user
  *   works in the window (#356 D5). It moves no card. It notes that today has begun in this window (`isDayBegun`: the
- *   notice, the recap and the page wait for it), writes the baseline of a board without a marker, counts a due day
+ *   notice, the recap and the page wait for it), writes the baseline of a board without a marker (today, or the day
+ *   of the recap's marker when that is an earlier day: data from before #356, so the day stays due whatever the recap
+ *   does to its own marker), counts a due day
  *   whose board has nothing unfinished as started, and turns the time a Jetzt timer counted after midnight while the
  *   user was away into the question of that day (`timeOffer`) without stopping the timer. Does nothing while the
  *   board is not onboarded, the desktop data status blocks writes (ADR 011) or the day-close dialog is open.
@@ -105,7 +107,9 @@ export function useNewDay() {
    * The time a Jetzt timer counted after the local midnight that starts `todayKey` while the user was away becomes
    * the question of that day. The timer is not stopped (#387: on a skipped day it keeps tracking); what it has
    * collected is written first, so the store holds everything it counted. The note is dropped whatever it held: one
-   * for a task that is no longer in Jetzt, or for an earlier midnight, is never used later.
+   * for a task that is no longer in Jetzt, or for an earlier midnight, is never used later. The day is settled with
+   * it: a tick that sees this midnight only after the check (the machine slept across it and the wake-up's focus
+   * event came first) starts no note, so a later absence that day is never asked about (D1 g).
    */
   function askAboutNight(todayKey: string): void {
     let offer: AfterMidnightCount | null = null
@@ -115,7 +119,7 @@ export function useNewDay() {
       const counted = tasksStore.takeAfterMidnight(task.id, todayKey)
       if (counted && counted.seconds >= TIME_OFFER_MIN_SECONDS) offer = counted
     }
-    tasksStore.clearAfterMidnight()
+    tasksStore.settleAfterMidnight(todayKey)
     if (offer) recapStore.offerTime(offer)
   }
 
@@ -135,11 +139,16 @@ export function useNewDay() {
     const pending = recapStore.validTimeOffer
     if (pending && pending.day < todayKey) recapStore.resolveTimeOffer()
     askAboutNight(todayKey)
-    if (!isNewDayDue(now)) {
-      // No marker and no proof of an earlier day (a new board, or the update arrived during the day): today is
-      // the baseline, the first day that can be started fresh is tomorrow
-      if (recapStore.validLastNewDay === null) recapStore.markNewDay(todayKey, [])
-    } else if (unfinished.value.length === 0) {
+    const due = isNewDayDue(now)
+    if (recapStore.validLastNewDay === null) {
+      // No marker yet: the baseline is written here, once. Without proof of an earlier day (a new board, or the
+      // update arrived during the day) it is today, and the first day that can be started fresh is tomorrow. Data
+      // from before the fresh start existed whose recap marker is an earlier day gets that day: today stays a day to
+      // start fresh by a marker of its own, because leaving the recap moves the recap's marker to today before
+      // "Tag planen" runs, and "Direkt zum Board" moves it before the notice looks
+      recapStore.markNewDay(due ? recapStore.validLastShownDay ?? todayKey : todayKey, [])
+    }
+    if (due && unfinished.value.length === 0) {
       // Nothing of yesterday is on the board: the day is started as it is, and what the user plans from here on is
       // today's plan, which no notice may call yesterday's
       recapStore.markNewDay(todayKey, [])

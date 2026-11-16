@@ -856,6 +856,70 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     expect(await storedTask(page, 'nd-now-1')).toMatchObject({ status: 0, notPlanned: true })
   })
 
+  // The update from v0.16.0: the stored state has the recap's marker but none of a fresh start. Leaving the recap
+  // moves the recap's marker to today, which must not make today look started.
+  test.describe('data stored before the fresh start existed (no `lastNewDay`)', () => {
+    test('"Tag planen" in the recap takes yesterday\'s cards off the board, once', async ({ page, context }) => {
+      await seedNewDayBoard(context, { tasks: newDayBackTasks(), lastNewDay: null })
+      await page.goto('/tasks')
+      await expect(planButton(page)).toBeFocused()
+      await expectBoardUntouched(page)
+      // the day check gave the old data its baseline: the day the board was last seen, not today
+      await expect.poll(async () => (await storedRecap(page)).lastNewDay).toBe(dayKeyDaysAgo(2))
+
+      await planButton(page).click()
+      await expect(page).toHaveURL(/\/all$/)
+      await settled(page)
+      await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1'])
+      await expect.poll(() => groupIds(page, 'waiting')).toEqual(['nd-waiting-1'])
+      await expect.poll(() => groupIds(page, 'others')).toEqual(['nd-held-1'])
+      expect(await openIds(page)).toEqual([])
+      await expect(note(page)).toHaveCount(0)
+      expect(await storedRecap(page)).toMatchObject({ lastNewDay: dayKeyDaysAgo(0), sentBack: { day: dayKeyDaysAgo(0), ids: ['nd-now-1', 'nd-open-2', 'nd-open-1'] } })
+      expect(await storedTask(page, 'nd-now-1')).toMatchObject({ status: 0, notPlanned: true, timeSpentSeconds: 1800 })
+
+      // a reload brings no recap, no notice and no second move
+      await page.reload()
+      await expect(board(page)).toBeVisible()
+      await expect(recap(page)).toHaveCount(0)
+      await expect(note(page)).toHaveCount(0)
+      await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1'])
+    })
+
+    test('"Direkt zum Board" keeps the board and the notice offers the fresh start, also after a reload; its button does it', async ({ page, context }) => {
+      await seedNewDayBoard(context, { tasks: newDayBackTasks(), lastNewDay: null })
+      await page.goto('/tasks')
+      await continueButton(page).click()
+      await settled(page)
+      await expectBoardUntouched(page)
+      await expect(note(page)).toBeVisible()
+
+      await page.reload()
+      await expect(board(page)).toBeVisible()
+      await expect(recap(page)).toHaveCount(0)
+      await expect(note(page)).toBeVisible()
+      await expectBoardUntouched(page)
+
+      await startButton(page).click()
+      await expect(page).toHaveURL(/\/all$/)
+      await expect(note(page)).toHaveCount(0)
+      await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1'])
+      await expect.poll(() => groupIds(page, 'waiting')).toEqual(['nd-waiting-1'])
+      expect((await storedRecap(page)).lastNewDay).toBe(dayKeyDaysAgo(0))
+    })
+
+    test('no recap due: the notice shows and its button starts the day fresh', async ({ page, context }) => {
+      await seedNewDayBoard(context, { tasks: boardOnly(), lastNewDay: null })
+      await page.goto('/tasks')
+      await expect(board(page)).toBeVisible()
+      await expect(recap(page)).toHaveCount(0)
+      await expect(note(page)).toBeVisible()
+      await expectBoardUntouched(page)
+      await startButton(page).click()
+      await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1'])
+    })
+  })
+
   test('no recap due: the board is unchanged and the notice shows, on "Planung" too; a visit there moves nothing, the button there keeps the place', async ({ page, context }) => {
     await seedNewDayBoard(context, { tasks: boardOnly() })
     await page.goto('/tasks')

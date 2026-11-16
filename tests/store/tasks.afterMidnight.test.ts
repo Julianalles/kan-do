@@ -131,6 +131,25 @@ describe('time counted after midnight (#356)', () => {
     expect(store.task('b')!.timeSpentSeconds).toBe(1000)
   })
 
+  it('a day whose check settled it takes no note any more; the next midnight starts one again (#387)', () => {
+    store.beginAfterMidnight('a', DAY)
+    store.addTrackedSeconds('a', 400, 400)
+    store.settleAfterMidnight(DAY)
+    expect(store.afterMidnight).toBeNull()
+    // a tick that sees the midnight only after the check: nothing is noted for that day
+    store.beginAfterMidnight('a', DAY)
+    store.addTrackedSeconds('a', 50, 50)
+    expect(store.afterMidnight).toBeNull()
+    store.beginAfterMidnight('a', '2026-10-23')
+    store.addTrackedSeconds('a', 7, 7)
+    expect(store.afterMidnight).toEqual({ taskId: 'a', day: '2026-10-23', seconds: 7, spans: [] })
+    // a malformed day drops the note and settles nothing new
+    store.settleAfterMidnight('tomorrow')
+    expect(store.afterMidnight).toBeNull()
+    store.beginAfterMidnight('a', '2026-10-23')
+    expect(store.afterMidnight).toMatchObject({ day: '2026-10-23' })
+  })
+
   it('a malformed stored note hands out nothing', () => {
     store.afterMidnight = { taskId: 'a', day: DAY, seconds: -300, spans: [] }
     expect(store.takeAfterMidnight('a', DAY)).toBeNull()

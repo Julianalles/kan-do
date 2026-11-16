@@ -626,9 +626,10 @@ export interface SeedDayRecapOptions {
   /**
    * The day the user last started fresh on (#387). Default: the same day as `lastShownDay`, so a fresh start is on
    * offer when that day is before today; nothing moves by itself. Today's key: the day is already started (no notice,
-   * "Tag planen" moves nothing), the recap is still due.
+   * "Tag planen" moves nothing), the recap is still due. `null` stores no such field: data from before the fresh start
+   * existed (the update from v0.16.0), which the day check gives its baseline.
    */
-  lastNewDay?: string
+  lastNewDay?: string | null
   /** Stored marker; default: two days back, so the recap is due. `null` leaves the store out (baseline case). */
   lastShownDay?: string | null
   archiveDone?: boolean
@@ -639,7 +640,9 @@ export interface SeedDayRecapOptions {
 /** Seeds `day-recap-store` via addInitScript. */
 export async function seedDayRecapStore(context: BrowserContext, options: SeedDayRecapOptions = {}): Promise<void> {
   const lastShownDay = options.lastShownDay === undefined ? dayKeyDaysAgo(2) : options.lastShownDay
-  const state = lastShownDay === null ? null : { lastShownDay, archiveDone: options.archiveDone ?? true, lastNewDay: options.lastNewDay ?? lastShownDay }
+  const state = lastShownDay === null
+    ? null
+    : { lastShownDay, archiveDone: options.archiveDone ?? true, ...(options.lastNewDay === null ? {} : { lastNewDay: options.lastNewDay ?? lastShownDay }) }
   await context.addInitScript(
     ({ state: s, once }) => {
       if (once) {

@@ -26,6 +26,7 @@ vi.mock('~/composables/useNotionDataSource', () => ({
 
 /* eslint-disable import/first -- order-sensitive: mocks must be registered before the SUT is imported */
 import { isNewDayDue, resetNewDay, useNewDay } from '~/composables/useNewDay'
+import { resetNewDayRecap, useNewDayRecap } from '~/composables/useNewDayRecap'
 import { syncToday } from '~/composables/useToday'
 import { useDayClose } from '~/composables/useDayClose'
 import { useTaskSync } from '~/composables/useTaskSync'
@@ -97,6 +98,7 @@ describe('useNewDay: the day check and the fresh start (#387)', () => {
     localStorage.clear()
     setActivePinia(createPinia())
     resetNewDay()
+    resetNewDayRecap()
     Object.values(notion).forEach(fn => fn.mockReset())
     notion.updateTask.mockImplementation(async t => t)
     Object.assign(dataState, emptyDataStatus(), { available: false })
@@ -456,6 +458,69 @@ describe('useNewDay: the day check and the fresh start (#387)', () => {
       expect(tasks.tasksOpen).toHaveLength(2)
       expect(newDay.noticeShown.value).toBe(true)
       expect(newDay.freshStart()).toEqual(['j', 'o1', 'o2', 'w'])
+    })
+
+    describe('data from before #356 on a morning with a recap (the update from v0.16.0): leaving the recap moves its marker to today', () => {
+      /** The page's order: the day check, then the recap opens on yesterday's done task */
+      function recapMorning() {
+        const context = setup({ lastNewDay: null, lastShownDay: YESTERDAY })
+        context.recap.archiveDone = false
+        const page = useNewDayRecap()
+        context.newDay.check()
+        page.check('tasks')
+        expect(page.isOpen.value).toBe(true)
+        return { ...context, page }
+      }
+
+      it('"Tag planen": the recap is left first, the fresh start still takes yesterday\'s cards off the board', () => {
+        const { tasks, recap, newDay, page } = recapMorning()
+        page.leave()
+        expect(recap.lastShownDay).toBe(TODAY)
+        expect(newDay.freshStart()).toEqual(['j', 'o1', 'o2', 'w'])
+        expect(notPlannedIds()).toEqual(['j', 'o1', 'o2', 'w'])
+        expect(tasks.tasksOpen).toHaveLength(0)
+        expect(recap.lastNewDay).toBe(TODAY)
+        expect(newDay.groupIds.value).toEqual(['j', 'o1', 'o2'])
+        // once per day holds here too
+        expect(newDay.freshStart()).toEqual([])
+      })
+
+      it('"Direkt zum Board": the notice offers the fresh start, also after a reload, and its button does it', () => {
+        const { tasks, newDay, page } = recapMorning()
+        page.leave()
+        expect(tasks.tasksOpen).toHaveLength(2)
+        expect(newDay.noticeShown.value).toBe(true)
+        // a reload: the app starts again with what the morning stored
+        resetNewDay()
+        resetNewDayRecap()
+        newDay.check()
+        expect(newDay.noticeShown.value).toBe(true)
+        expect(newDay.freshStart()).toEqual(['j', 'o1', 'o2', 'w'])
+        expect(newDay.noticeShown.value).toBe(false)
+      })
+
+      it('the day check stores the day the board was last seen as the baseline: nothing moves, the day stays one to start fresh, and no group is made up', () => {
+        const { tasks, recap, newDay } = setup({ lastNewDay: null, lastShownDay: '2026-10-19' })
+        const before = JSON.stringify(tasks.tasks)
+        newDay.check()
+        expect(JSON.stringify(tasks.tasks)).toBe(before)
+        expect(recap.lastNewDay).toBe('2026-10-19')
+        expect(isNewDayDue()).toBe(true)
+        expect(newDay.groupIds.value).toEqual([])
+        // a second check that day keeps it
+        newDay.check()
+        expect(recap.lastNewDay).toBe('2026-10-19')
+      })
+
+      it('while the data status blocks writes the day check stores nothing; the next check after it clears does', () => {
+        const { recap, newDay } = setup({ lastNewDay: null, lastShownDay: YESTERDAY })
+        Object.assign(dataState, { available: true, status: 'conflict' })
+        expect(newDay.check()).toBe(false)
+        expect(recap.lastNewDay).toBeNull()
+        Object.assign(dataState, { status: 'ok' })
+        expect(newDay.check()).toBe(true)
+        expect(recap.lastNewDay).toBe(YESTERDAY)
+      })
     })
 
     it('no recap marker (a new board): today is the baseline, nothing is offered, the first day to start fresh is tomorrow', () => {
@@ -880,6 +945,37 @@ describe('useNewDay: the day check and the fresh start (#387)', () => {
         newDay.check()
         expect(newDay.timeOffer.value).toBeNull()
         expect(tasks.afterMidnight).toBeNull()
+      })
+
+      it('the machine slept over midnight and the return runs the day check before the timer\'s first tick: a later absence that day is still not asked about', () => {
+        const { tasks, newDay } = running(at(21, 23, 50))
+        vi.advanceTimersByTime(5 * 60 * 1000) // 23:55, then the machine sleeps: no tick until it wakes
+        vi.setSystemTime(at(22, 8, 0))
+        // the wake-up's focus event reaches the page before the timer's interval does
+        window.dispatchEvent(new Event('focus'))
+        newDay.check()
+        expect(newDay.timeOffer.value).toBeNull()
+        // the first tick after the check is the one that sees the midnight: it may not start a note for the day already checked
+        vi.advanceTimersByTime(60 * 1000)
+        expect(tasks.afterMidnight).toBeNull()
+        leaveWindow()
+        vi.advanceTimersByTime(60 * 60 * 1000) // an hour away at midday, the timer running
+        window.dispatchEvent(new Event('focus'))
+        newDay.check()
+        expect(newDay.timeOffer.value).toBeNull()
+        expect(tasks.afterMidnight).toBeNull()
+        expect(stored('j')).toBe(600 + 5 * 60 + 60 + 60 * 60)
+      })
+
+      it('the day after a checked day is asked about again: the next midnight starts its own note', () => {
+        const { tasks, newDay } = backInTheMorning()
+        newDay.keepTime()
+        leaveWindow()
+        vi.advanceTimersByTime(17 * 60 * 60 * 1000) // away from 08:00 until 01:00 the next night
+        expect(tasks.validAfterMidnight).toMatchObject({ taskId: 'j', day: '2026-10-23', seconds: 60 * 60 })
+        window.dispatchEvent(new Event('focus'))
+        newDay.check()
+        expect(newDay.timeOffer.value).toEqual({ taskId: 'j', title: 'Task j', seconds: 60 * 60 })
       })
 
       it('the fresh start after the question was raised asks nothing twice and removes nothing', () => {
