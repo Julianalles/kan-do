@@ -1401,7 +1401,7 @@
     },
     "tomorrowHeading": "For tomorrow",
     "tomorrow": "No task stays on the board. | One task stays on the board until you plan the next day. You can deselect it. | {n} tasks stay on the board until you plan the next day. You can deselect them one by one.",
-    "showOpen": "Show open tasks",
+    "showOpen": "Open tasks",
     "openListLabel": "Open tasks that stay on the board",
     "trash": {
       "local": "Goes to the trash",

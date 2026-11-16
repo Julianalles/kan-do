@@ -680,9 +680,9 @@
         "placeholder": "Status für 'Heute' auswählen"
       },
       "doing": {
-        "label": "In Bearbeitung",
+        "label": "Jetzt",
         "help": "Aufgaben, die gerade bearbeitet werden.",
-        "placeholder": "Status für 'In Bearbeitung' auswählen"
+        "placeholder": "Status für 'Jetzt' auswählen"
       },
       "done": {
         "label": "Erledigt",
@@ -690,9 +690,9 @@
         "placeholder": "Status für 'Erledigt' auswählen"
       },
       "waiting": {
-        "label": "Wartend",
+        "label": "Wartet",
         "help": "Wartende oder blockierte Aufgaben.",
-        "placeholder": "Status für 'Wartend' auswählen"
+        "placeholder": "Status für 'Wartet' auswählen"
       },
       "archive": {
         "label": "Archiviert",
@@ -1401,7 +1401,7 @@
     },
     "tomorrowHeading": "Für morgen",
     "tomorrow": "Keine Aufgabe bleibt auf dem Board. | Eine Aufgabe bleibt auf dem Board, bis du den nächsten Tag planst. Du kannst sie abwählen. | {n} Aufgaben bleiben auf dem Board, bis du den nächsten Tag planst. Du kannst sie einzeln abwählen.",
-    "showOpen": "Offene Aufgaben anzeigen",
+    "showOpen": "Offene Aufgaben",
     "openListLabel": "Offene Aufgaben, die auf dem Board bleiben",
     "trash": {
       "local": "Kommt in den Papierkorb",
