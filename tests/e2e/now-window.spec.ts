@@ -174,6 +174,31 @@ test.describe('the main window side', () => {
     await expect.poll(async () => (await syncs(page)).at(-1)?.snapshot).toMatchObject({ taskId: 'jetzt-1', running: true })
   })
 
+  test('pause and resume from the pill keep the after-midnight note (#405, #356)', async ({ page }) => {
+    // The Tauri stub keeps the persisted state, so the note (what a timer counted after midnight, #356) is set and read on the live store
+    type Store = { afterMidnight: { taskId: string, day: string, seconds: number, spans: number[][] } | null }
+    const note = () => page.evaluate(() => {
+      const app = (window as unknown as { useNuxtApp: () => { $pinia: { _s: Map<string, Store> } } }).useNuxtApp()
+      return app.$pinia._s.get('tasks')!.afterMidnight
+    })
+    await page.goto('/tasks')
+    await expect.poll(async () => (await syncs(page)).at(-1)?.snapshot?.running).toBe(true)
+    await page.evaluate(() => {
+      const app = (window as unknown as { useNuxtApp: () => { $pinia: { _s: Map<string, Store> } } }).useNuxtApp()
+      const midnight = new Date(); midnight.setHours(0, 0, 0, 0)
+      app.$pinia._s.get('tasks')!.afterMidnight = { taskId: 'jetzt-1', day: '2026-01-01', seconds: 900, spans: [[midnight.getTime(), midnight.getTime() + 900_000]] }
+    })
+    expect(await note()).toMatchObject({ taskId: 'jetzt-1', seconds: 900 })
+
+    await emitTauriEvent(page, ACTION_EVENT, { kind: 'toggle-pause', taskId: 'jetzt-1' })
+    await expect.poll(async () => (await syncs(page)).at(-1)?.snapshot?.running).toBe(false)
+    await emitTauriEvent(page, ACTION_EVENT, { kind: 'toggle-pause', taskId: 'jetzt-1' })
+    await expect.poll(async () => (await syncs(page)).at(-1)?.snapshot?.running).toBe(true)
+
+    // the same stint went on: the note is still there
+    expect(await note()).toMatchObject({ taskId: 'jetzt-1', seconds: 900 })
+  })
+
   test('done on the paused task completes it from Wartet', async ({ page }) => {
     await page.goto('/tasks')
     await expect.poll(async () => (await syncs(page)).at(-1)?.snapshot?.running).toBe(true)

@@ -349,10 +349,10 @@ describe('useTaskOperations', () => {
     })
 
     describe('resume (#405)', () => {
-      it('marks the entry as a resume while the board moves, asks no timebox question, and clears the marker', async () => {
+      it('marks the entry as a resume while the status is written (the driver watcher reads it), asks no timebox question, and clears the marker', async () => {
         taskMock.mockReturnValue(makeTask({ id: 'task-1', source: 'local', externalId: null, status: TaskStatus.Waiting }))
         let markedDuringMove: boolean | null = null
-        updateTaskPositionMock.mockImplementationOnce(() => { markedDuringMove = isResumeEntry('task-1') })
+        updateTaskStatusMock.mockImplementationOnce(() => { markedDuringMove = isResumeEntry('task-1') })
         const { moveTaskToStatus } = useTaskOperations()
 
         await moveTaskToStatus('task-1', TaskStatus.Progress, { resume: true })
@@ -365,7 +365,7 @@ describe('useTaskOperations', () => {
 
       it('is a fresh entry without the option, and for any move other than Wartet to Jetzt', async () => {
         let marked: boolean | null = null
-        updateTaskPositionMock.mockImplementation(() => { marked = isResumeEntry('task-1') })
+        updateTaskStatusMock.mockImplementation(() => { marked = isResumeEntry('task-1') })
         const { moveTaskToStatus } = useTaskOperations()
 
         taskMock.mockReturnValue(makeTask({ id: 'task-1', source: 'local', externalId: null, status: TaskStatus.Waiting }))

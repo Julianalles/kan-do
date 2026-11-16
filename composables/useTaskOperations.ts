@@ -117,8 +117,10 @@ export const useTaskOperations = () => {
     // Update the board first
     // A resume of a pause (#405) is the same stint going on: the driver keeps the after-midnight note, no timebox question
     const resuming = options.resume === true && oldStatus === TaskStatus.Waiting && newStatus === TaskStatus.Progress;
-    if (resuming) withResumeEntry(taskId, () => boardStore.updateTaskPosition(taskId, newStatus, oldStatus));
-    else boardStore.updateTaskPosition(taskId, newStatus, oldStatus);
+    // The driver's watcher reads `task.status` (flush 'sync'), which only `updateTaskStatus` writes: the marker has to
+    // stand around that write, not around the column move
+    const asResume = <T>(run: () => T): T => (resuming ? withResumeEntry(taskId, run) : run());
+    boardStore.updateTaskPosition(taskId, newStatus, oldStatus);
     if (pausing) {
       boardStore.moveToTopOfColumn(TaskStatus.Waiting, taskId, waitingBefore);
       boardStore.markPaused(taskId);
@@ -126,8 +128,8 @@ export const useTaskOperations = () => {
       boardStore.clearPaused(taskId);
     }
 
-    // Then, sync the status change
-    const sync = updateTaskStatus({ taskId, status: newStatus });
+    // Then, sync the status change. The store is written before its first await, so the marker covers the watcher's run
+    const sync = asResume(() => updateTaskStatus({ taskId, status: newStatus }));
     // A card without a timebox that arrives in Jetzt asks for one (#389); the status is set synchronously above
     if (newStatus === TaskStatus.Progress && !resuming) boardStore.startTimeboxNudge(taskId);
     // Same in-card confirmation and check spring as a drop into Erledigt (#124, #611)
