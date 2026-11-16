@@ -17,6 +17,9 @@
   picker's footer ("Bearbeiten" / "Fertig") lists one button row per option, and a row closes the picker and opens the shared
   TopicEditorHost under the property row (#430, #431, #443); topics also get a "Themen verwalten" row
 - Host the carried-over triage block and line (#99)
+- Status row (#359): five choices in the order of the places, "Nicht geplant" first, then Offen, Jetzt, Wartet, Erledigt. A task
+  that is not planned reads "Nicht geplant" (never "Offen", the name of the other column on "Alle"); picking a column plans it,
+  picking "Nicht geplant" takes a task off today's board from any column (`useTaskStatusActions.chooseStatus`)
 - Guard against drift (#161, kd#4): at most six always-visible standard rows (Status, Priorität, Thema, Aktivität, Timebox,
   Aufgewendete Zeit),
   no per-row icons, no dividers; more always-visible rows must revisit the layout. The one hairline is the pin line
@@ -93,11 +96,11 @@
         <TaskPropertyRow :label="t('task.field.status')">
           <TaskPropertySelect
             :label="t('task.field.status')"
-            :model-value="task.status"
+            :model-value="statusChoice"
             :items="statusItems"
             value-key="value"
             data-testid="task-status-select"
-            @update:model-value="(val) => changeStatus(Number(val) as TaskStatus)"
+            @update:model-value="onStatusPicked"
           />
         </TaskPropertyRow>
 
@@ -300,8 +303,8 @@ import { useOverlayIsDesktop } from '~/composables/useIsDesktop';
 import { useTaskDetail, formatTaskDuration, applyCustomValue } from '~/composables/useTaskDetail';
 import { useLocaleFormat } from '~/composables/useLocaleFormat';
 import { useI18n } from 'vue-i18n';
-import { TASK_STATUS_CONFIG, getStatusLabel, getPriorityLabel } from '~/utils/taskStatusMappings';
-import { useTaskStatusActions } from '~/composables/useTaskStatusActions';
+import { TASK_STATUS_CONFIG, NOT_PLANNED_CONFIG, getStatusLabel, getPriorityLabel } from '~/utils/taskStatusMappings';
+import { useTaskStatusActions, NOT_PLANNED_CHOICE, type StatusChoice } from '~/composables/useTaskStatusActions';
 import { TaskStatus } from '~/types/taskStatus';
 import SectionHeader from '~/components/ui/SectionHeader.vue';
 import InlineEditable from '~/components/ui/inline/InlineEditable.vue';
@@ -395,7 +398,8 @@ const {
   remainingTimeText,
 } = useTaskDetail(taskIdRef);
 
-const { changeStatus } = useTaskStatusActions(task);
+const { statusChoice, chooseStatus } = useTaskStatusActions(task);
+const onStatusPicked = (value: unknown) => void chooseStatus(value === NOT_PLANNED_CHOICE ? NOT_PLANNED_CHOICE : Number(value) as TaskStatus);
 const { targets: moveTargets, move: moveToSource } = useTaskMoveTargets(() => (props.isPreview ? null : task.value));
 
 // Desktop slideover (>=768px): the metadata is pinned to the bottom edge (#386). Below that the sheet is a
@@ -403,9 +407,13 @@ const { targets: moveTargets, move: moveToSource } = useTaskMoveTargets(() => (p
 // so a resize while open cannot disagree with the layout the sheet actually shows (#199).
 const pinMetadata = useOverlayIsDesktop();
 
-const statusItems = computed(() => Object.entries(TASK_STATUS_CONFIG)
-  .filter(([status]) => Number(status) !== TaskStatus.Backlog)
-  .map(([status, config]) => ({ label: getStatusLabel(Number(status) as TaskStatus), value: Number(status) as TaskStatus, icon: config.icon })));
+// Five choices in the order of the places (#359): "Nicht geplant" first, as on "Alle", then the four columns
+const statusItems = computed<{ label: string; value: StatusChoice; icon: string }[]>(() => [
+  { label: t(NOT_PLANNED_CONFIG.labelKey), value: NOT_PLANNED_CHOICE, icon: NOT_PLANNED_CONFIG.icon },
+  ...Object.entries(TASK_STATUS_CONFIG)
+    .filter(([status]) => Number(status) !== TaskStatus.Backlog)
+    .map(([status, config]) => ({ label: getStatusLabel(Number(status) as TaskStatus), value: Number(status) as TaskStatus, icon: config.icon })),
+]);
 
 const priorityItems = computed(() => [
   { label: getPriorityLabel(1), value: 1, icon: 'i-ph-flag' },

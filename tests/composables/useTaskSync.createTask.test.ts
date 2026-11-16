@@ -196,4 +196,50 @@ describe('useTaskSync.createTask (#321)', () => {
     expect(useTasksStore().task(created.id)).toMatchObject({ status: TaskStatus.Progress, timeSpentSeconds: 42, isUnplanned: true })
     expect(useBoardStore().columns.find((c) => c.taskStatus === TaskStatus.Progress)?.taskOrder).toContain(created.id)
   })
+
+  describe('a task made while "Alle" shows is not planned (#367)', () => {
+    const openOrder = () => useBoardStore().columns.find((c) => c.taskStatus === TaskStatus.Open)?.taskOrder ?? []
+
+    it('Local: the marker is set, the task is on top of "Nicht geplant" and not in Offen', async () => {
+      const first = await useTaskSync().createTask(draft({ notPlanned: true }), 'local')
+      const second = await useTaskSync().createTask(draft({ title: 'Zweite', notPlanned: true }), 'local')
+      expect(useTasksStore().task(first.id)?.notPlanned).toBe(true)
+      expect(openOrder()).toEqual([])
+      expect(useTasksStore().tasksNotPlanned.map((t) => t.id)).toEqual([second.id, first.id])
+      expect(useTasksStore().tasksOpen).toEqual([])
+    })
+
+    it('Notion: the adapter never sees the marker and nothing extra is written; the stored task carries it', async () => {
+      const created = await useTaskSync().createTask(draft({ notPlanned: true }), 'notion')
+      expect(notion.createTask).toHaveBeenCalledTimes(1)
+      expect(notion.createTask.mock.calls[0]![0]).not.toHaveProperty('notPlanned')
+      expect(notion.updateTask).not.toHaveBeenCalled()
+      expect(useTasksStore().task(created.id)).toMatchObject({ id: 'page-new', notPlanned: true })
+      expect(useTasksStore().task(created.id)?.pendingSync).toBeUndefined()
+      expect(openOrder()).not.toContain('page-new')
+    })
+
+    it('a deferred create keeps the marker through the later push', async () => {
+      const tasksStore = useTasksStore()
+      useIntegrationHealthStore().recordFailure('notion', networkError())
+      const created = await useTaskSync().createTask(draft({ notPlanned: true }), 'notion')
+      expect(tasksStore.task(created.id)).toMatchObject({ notPlanned: true })
+      expect(tasksStore.task(created.id)?.pendingSync).toBeDefined()
+
+      useIntegrationHealthStore().markHealthy('notion')
+      await useTaskSync().syncPendingChanges('notion')
+      expect(tasksStore.task(created.id)).toMatchObject({ externalId: 'page-new', notPlanned: true })
+      expect(tasksStore.tasksNotPlanned.map((t) => t.id)).toEqual([created.id])
+      expect(openOrder()).not.toContain(created.id)
+    })
+
+    it('add-and-start (Jetzt) is never not planned, and a plain draft lands in Offen as before', async () => {
+      const started = await useTaskSync().createTask(draft({ status: TaskStatus.Progress, notPlanned: true }), 'local')
+      expect(useTasksStore().task(started.id)?.notPlanned).toBeUndefined()
+      expect(useBoardStore().columns.find((c) => c.taskStatus === TaskStatus.Progress)?.taskOrder).toContain(started.id)
+      const plain = await useTaskSync().createTask(draft(), 'local')
+      expect(useTasksStore().task(plain.id)?.notPlanned).toBeUndefined()
+      expect(openOrder()).toContain(plain.id)
+    })
+  })
 })

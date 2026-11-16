@@ -60,6 +60,7 @@ import { useToast } from '#imports';
 import NewCardFlow from '~/components/board/NewCardFlow.vue';
 import TaskDraftCard from '~/components/board/TaskDraftCard.vue';
 import { useTaskDraft } from '~/composables/useTaskDraft';
+import { useBoardPlace } from '~/composables/useBoardPlace';
 import { trackInCardAdding } from '~/composables/useInCardAdding';
 import { TaskStatus } from '~/types/taskStatus';
 import { focusWhenReady, findSavedCardElement } from '~/utils/focusRecovery';
@@ -92,6 +93,7 @@ const emit = defineEmits<{
 }>();
 
 const { draftTask, draftSaved } = useTaskDraft();
+const { place } = useBoardPlace();
 
 const variant = computed(() => (props.status === TaskStatus.Progress ? 'progress' : 'open'));
 const route = useRoute();
@@ -104,7 +106,9 @@ const { t } = useI18n();
 const toast = useToast();
 /** True once the flow ended in a save: the saved card replaces it, so it leaves without a fade */
 const flowSaved = ref(false);
-const isSheetDrafting = computed(() => draftTask.value?.status === props.status);
+/** The sheet's draft shows as a card here. Not Offen's on the place "Alle": that task will land under "Nicht geplant" (#367) */
+const isSheetDrafting = computed(() => draftTask.value?.status === props.status
+  && !(props.status === TaskStatus.Open && place.value === 'all'));
 const isDrafting = computed(() => isSheetDrafting.value || flowOpen.value);
 
 /** The header button's entry (Offen) and the Jetzt button's click. A second call while a draft is up does nothing */

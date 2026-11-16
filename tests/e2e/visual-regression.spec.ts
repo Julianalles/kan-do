@@ -244,7 +244,7 @@ test.describe('the place "Alle" (#354)', () => {
     await settle(page)
   }
 
-  test('desktop 1280: cards in two columns beside Offen, "Weiter zu Heute" at its foot', async ({ context, page }) => {
+  test('desktop 1280: cards in two columns beside Offen, "Tag starten" at its foot', async ({ context, page }) => {
     await gotoAll(page, context, HELD)
     await expect(page).toHaveScreenshot('alle-1280.png', { animations: 'disabled' })
   })
