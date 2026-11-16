@@ -236,6 +236,12 @@ export class NotionIntegration {
    * is not complete for them, so the merge keeps a task held in one of them that the list lacks.
    */
   notPlannedPartial: string[] = [];
+  /**
+   * Whether the last `fetchActiveBoardTasks` read the source in two queries (the board, then the mapped "not planned"
+   * statuses, #357): a page the user moves between the two is in neither answer, so `mergeTasks` drops a task only
+   * when two lists in a row lack it (`FetchedTasks.readInParts`, #392).
+   */
+  listReadInParts = false;
 
   /** Whether the last `fetchActiveBoardTasks` left "not planned" pages out because Notion has more than the limit. */
   get notPlannedLimited(): boolean {
@@ -1055,9 +1061,10 @@ export class NotionIntegration {
     // be an archive. It is capped at the most recently edited `NOT_PLANNED_PAGE_LIMIT`; the board query above is
     // never capped. A page both queries return (its status changed in between) is taken once; a page neither
     // returns for the same reason (it left "not planned" between the two reads) is kept by `mergeTasks` when the
-    // change was kan-do's own write (`fetchStartedAt`).
+    // change was kan-do's own write (`fetchStartedAt`), and once more when the user made it at Notion (`listReadInParts`).
     this.notPlannedPartial = [];
     const notPlanned = this.notPlannedStatuses();
+    this.listReadInParts = notPlanned.length > 0;
     if (notPlanned.length > 0) {
       const held = await this.api.queryDataSource(this.dataSourceId, {
         filter: { or: notPlanned.map((name) => this.statusFilter(statusType, name)) },

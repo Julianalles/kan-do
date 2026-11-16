@@ -1,5 +1,5 @@
 import { expect, test, type Page, type Route } from '@playwright/test'
-import { newDayBackTasks, seedAfterMidnight, seedLocalBoard, seedMixedBoard, seedNewDayBoard, SEED_TASKS, type SeedTask } from './helpers/seed'
+import { fillerTasks, MIXED_SEED_TASKS, newDayBackTasks, seedAfterMidnight, seedLocalBoard, seedMixedBoard, seedNewDayBoard, SEED_TASKS, type SeedTask } from './helpers/seed'
 import { openDayClose, openMore } from './helpers/appNav'
 import { pinClock, pinnedNow } from './helpers/clock'
 import { settleAnimations } from './helpers/settle'
@@ -215,6 +215,29 @@ test.describe('error states', () => {
     const panel = await openMore(page)
     await expect(panel.getByTestId('sync-problem-notion')).toBeVisible()
     await expect(panel).toMatchAriaSnapshot({ name: 'sync-broken-more-panel.aria.yml' })
+  })
+})
+
+test.describe('sync question (#369)', () => {
+  const notionExtras = (): SeedTask[] => fillerTasks(30).map((task) => ({ ...task, title: `Notion-Altlast ${task.title}`, source: 'notion', externalId: task.id }))
+
+  test('a sync that returns far less than the board holds: the question with nothing chosen (1280)', async ({ context, page }) => {
+    await seedMixedBoard(context, [...MIXED_SEED_TASKS, ...notionExtras()])
+    await page.goto('/tasks')
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible()
+    await settleAnimations(page)
+    await expect(dialog).toMatchAriaSnapshot({ name: 'sync-question-1280.aria.yml' })
+  })
+
+  test('the same question after an answer: the footer button follows it (390)', async ({ context, page }) => {
+    await page.setViewportSize(MOBILE)
+    await seedMixedBoard(context, [...MIXED_SEED_TASKS, ...notionExtras()])
+    await page.goto('/tasks')
+    const dialog = page.getByRole('dialog')
+    await dialog.getByRole('radio', { name: /Nein oder nicht sicher/ }).click()
+    await settleAnimations(page)
+    await expect(dialog).toMatchAriaSnapshot({ name: 'sync-question-answered-390.aria.yml' })
   })
 })
 

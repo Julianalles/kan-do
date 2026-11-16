@@ -1,0 +1,13 @@
+- dialog "Kurz prüfen":
+  - heading "Kurz prüfen" [level=2]
+  - paragraph: /Notion hat kaum etwas geliefert \(4 von \d+ Aufgaben\)\. Das kann stimmen oder ein Fehler sein\./
+  - button "Schließen"
+  - paragraph: Bisher wurde nichts geändert.
+  - paragraph: Was trifft zu?
+  - radiogroup "Was trifft zu?":
+    - radio "Ja, das habe ich so gemacht Das Board folgt Notion. Aufgaben, die dort fehlen, verschwinden vom Board."
+    - radio "Nein oder nicht sicher Das Board bleibt, wie es ist." [checked]
+  - group: Mögliche Ursachen
+  - link "Notion öffnen":
+    - /url: https://www.notion.so/db123
+  - button "Board behalten"

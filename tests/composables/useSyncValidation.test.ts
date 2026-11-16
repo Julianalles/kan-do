@@ -120,6 +120,38 @@ describe('useSyncValidation', () => {
     })
   })
 
+  // #369: the user cleared "today" in Notion and the not-planned pages still come in: the connection works, no question
+  describe('validateSyncResult counts the not-planned tasks a source still brings in', () => {
+    const held = (count: number): Task[] => makeTasks(count).map((task) => ({ ...task, id: `held-${task.id}`, externalId: `held-${task.id}`, sourceNotPlanned: 'Backlog' }))
+
+    it('a big drop is valid while any task the source holds as not planned comes in', () => {
+      localTasksMock.value = makeTasks(40)
+      const { validateSyncResult } = useSyncValidation()
+      expect(validateSyncResult('notion', held(1))).toEqual({ isValid: true, needsConfirmation: false })
+      expect(validateSyncResult('notion', [...makeTasks(2), ...held(1)]).needsConfirmation).toBe(false)
+    })
+
+    it('a big drop of planned tasks only, and an empty result, still ask', () => {
+      localTasksMock.value = makeTasks(40)
+      const { validateSyncResult } = useSyncValidation()
+      expect(validateSyncResult('notion', makeTasks(3)).reason).toBe('significant_task_count_drop')
+      expect(validateSyncResult('notion', []).reason).toBe('empty_sync_with_local_data')
+    })
+
+    it('Todoist delivers no planning state: its drop still asks', () => {
+      localTasksMock.value = makeTasks(40).map((task) => ({ ...task, source: 'todoist' as const }))
+      const { validateSyncResult } = useSyncValidation()
+      expect(validateSyncResult('todoist', makeTasks(2).map((task) => ({ ...task, source: 'todoist' as const }))).reason).toBe('significant_task_count_drop')
+    })
+
+    it('validateAndConfirm opens no modal for it', async () => {
+      localTasksMock.value = makeTasks(40)
+      const { validateAndConfirm, showWarningModal } = useSyncValidation()
+      await expect(validateAndConfirm('notion', held(2))).resolves.toBe(true)
+      expect(showWarningModal.value).toBe(false)
+    })
+  })
+
   describe('requestUserConfirmation', () => {
     it('sets showWarningModal to true', () => {
       const { requestUserConfirmation, showWarningModal } = useSyncValidation()

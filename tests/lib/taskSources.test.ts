@@ -9,6 +9,7 @@ import {
   normalizeTasks,
   sourcesFromLegacyService,
   singleSource,
+  sourceHomeUrl,
   sourceSyncsTime,
   sourceTaskUrl,
 } from '~/lib/taskSources'
@@ -278,5 +279,18 @@ describe('sourceTaskUrl (#296)', () => {
     expect(sourceTaskUrl({ source: 'local', externalId: 'x' })).toBeNull()
     expect(sourceTaskUrl({ source: 'notion', externalId: null })).toBeNull()
     expect(sourceTaskUrl({ source: 'todoist', externalId: null })).toBeNull()
+  })
+})
+
+describe('sourceHomeUrl (#369)', () => {
+  it('links Notion\'s database page, dashes removed, and nothing without a database id', () => {
+    expect(sourceHomeUrl('notion', { notionDatabaseId: '1a2b3c4d-1111-2222-3333-444455556666' })).toBe('https://www.notion.so/1a2b3c4d111122223333444455556666')
+    expect(sourceHomeUrl('notion')).toBeNull()
+    expect(sourceHomeUrl('notion', { notionDatabaseId: null })).toBeNull()
+  })
+
+  it('links the Todoist app and has none for Local', () => {
+    expect(sourceHomeUrl('todoist')).toBe('https://app.todoist.com/app/today')
+    expect(sourceHomeUrl('local')).toBeNull()
   })
 })

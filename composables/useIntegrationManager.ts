@@ -29,7 +29,7 @@ export const useIntegrationManager = () => {
   const tasksStore = useTasksStore();
   const boardStore = useBoardStore();
   const { handleSuccess } = useErrorHandler();
-  const { validateAndConfirm } = useSyncValidation();
+  const { validateAndConfirm, validateSyncResult } = useSyncValidation();
   const { adapterFor } = useTaskSources();
   const { syncPendingChanges, isPushing } = useTaskSync();
   const fetchGenerations = fetchGenerationsByStore.get(tasksStore) ?? new Map<SourceId, number>();
@@ -76,9 +76,10 @@ export const useIntegrationManager = () => {
     // The statuses a capped list holds only in part (#357): the merge must not read it as complete for them.
     // Nor may it drop a task written since this fetch began: the list may have been read before the write
     let partialNotPlanned: readonly string[] = [];
+    let readInParts = false;
     const fetchStartedAt = Date.now();
     try {
-      if (adapter.fetchActiveList) ({ tasks, partialNotPlanned } = await adapter.fetchActiveList());
+      if (adapter.fetchActiveList) ({ tasks, partialNotPlanned, readInParts = false } = await adapter.fetchActiveList());
       else tasks = await adapter.fetchActive();
     } catch (error) {
       console.error(`[IntegrationManager] Fetching ${source} failed:`, error);
@@ -101,6 +102,9 @@ export const useIntegrationManager = () => {
     }
 
     // Validate this source's result before merging (may show the warning and wait for the user)
+    // A merge the user confirmed after the sync question removes what the list lacks (#369): the keep-once of a list
+    // read in parts (#392) must not undo the answer, or the warning would come back at the next sync
+    const asked = validateSyncResult(source, tasks).needsConfirmation;
     const shouldProceed = await validateAndConfirm(source, tasks);
     if (!shouldProceed) {
       if (import.meta.dev) {
@@ -125,6 +129,8 @@ export const useIntegrationManager = () => {
       holdsOnlyOpenDone: adapter.holdsOnlyOpenDone === true,
       startsNotPlanned: adapter.startsNotPlanned === true,
       partialNotPlanned,
+      readInParts,
+      confirmedDrop: asked,
       fetchStartedAt,
       pushing: isPushing,
     });

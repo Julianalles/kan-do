@@ -37,7 +37,6 @@
       :reason="syncValidation.warning.value?.reason ?? null"
       :current-task-count="syncValidation.warning.value?.currentTaskCount ?? 0"
       :fetched-count="syncValidation.warning.value?.fetchedCount ?? 0"
-      :last-sync-timestamp="syncValidation.warning.value?.lastSync ? new Date(syncValidation.warning.value.lastSync) : null"
       @action="(action) => (action === 'confirm' ? syncValidation.handleConfirm() : syncValidation.handleCancel())"
     />
   </main>

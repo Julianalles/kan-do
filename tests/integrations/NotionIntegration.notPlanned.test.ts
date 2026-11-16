@@ -82,6 +82,17 @@ describe('fetch', () => {
     expect(sut.notPlannedLimited).toBe(false)
   })
 
+  it('says whether the list was read in two queries (#392): only with a mapped "not planned" status', async () => {
+    mockProxy([page('a', 'Heute')])
+    const plain = makeSut(null)
+    await plain.fetchActiveBoardTasks()
+    expect(plain.listReadInParts).toBe(false)
+    mockProxy([page('a', 'Heute')], () => ({ results: [] }))
+    const mapped = makeSut(['Backlog'])
+    await mapped.fetchActiveBoardTasks()
+    expect(mapped.listReadInParts).toBe(true)
+  })
+
   it('a "not planned" status named like the default waiting status is still an Open task held as not planned', async () => {
     mockProxy([], () => ({ results: [page('w', 'Waiting')] }))
     const sut = new NotionIntegration('tkn', 'db1', propertyMapping as any, { today: 'Heute', doing: 'Jetzt', done: 'Erledigt', notPlanned: ['Waiting'] } as any, undefined, 'ds-1')

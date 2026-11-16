@@ -19,6 +19,7 @@ vi.mock('~/composables/useErrorHandler', () => ({
 vi.mock('~/composables/useSyncValidation', () => ({
   useSyncValidation: () => ({
     validateAndConfirm: vi.fn().mockResolvedValue(true),
+    validateSyncResult: () => ({ isValid: true, needsConfirmation: false }),
   }),
 }));
 

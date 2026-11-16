@@ -65,7 +65,7 @@ export const useSyncValidation = () => {
    * Validates sync results before merging with local data
    * 
    * @param source Source the tasks were fetched from; only that source's stored tasks are compared
-   * @param fetchedTasks Tasks fetched from that source
+   * @param fetchedTasks Tasks fetched from that source: the whole list the adapter returned, the not-planned pages included
    * @returns Validation result with confirmation requirement
    */
   const validateSyncResult = (source: SourceId, fetchedTasks: Task[]): SyncValidationResult => {
@@ -83,6 +83,12 @@ export const useSyncValidation = () => {
         isValid: true,
         needsConfirmation: false
       }
+    }
+
+    // A source that still brings in tasks it holds as not planned (Notion's "not planned" pages, not only today's)
+    // is answering: the user may just have cleared today. Only a list without any such task stays suspicious (#369).
+    if (fetchedTasks.some((task) => task.sourceNotPlanned !== undefined)) {
+      return { isValid: true, needsConfirmation: false }
     }
 
     // Empty sync result when we have local tasks is suspicious

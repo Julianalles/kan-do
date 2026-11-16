@@ -212,6 +212,16 @@ export function sourceTaskUrl(task: Pick<Task, 'source' | 'externalId'>): string
   return null
 }
 
+/**
+ * Where a source lives, for "<Source> öffnen" (#369): Notion's database page (needs the database id; `null` without
+ * it), Todoist's app, `null` for Local. The Todoist address is unverified against a live account, like `sourceTaskUrl`'s.
+ */
+export function sourceHomeUrl(source: SourceId, ids: { notionDatabaseId?: string | null } = {}): string | null {
+  if (source === 'notion') return ids.notionDatabaseId ? `https://www.notion.so/${ids.notionDatabaseId.replace(/-/g, '')}` : null
+  if (source === 'todoist') return 'https://app.todoist.com/app/today'
+  return null
+}
+
 /** Whether the add form can create tasks in a source. Todoist cannot yet (no connect UI, no create): new tasks stay Local there. */
 export function sourceCanCreate(source: SourceId): boolean {
   return source !== 'todoist'

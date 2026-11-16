@@ -54,7 +54,7 @@ export class NotionSource implements TaskSourceAdapter {
     const notion = this.deps.createInstance()
     const tasks = await notion.fetchActiveBoardTasks()
     this.deps.onNotPlannedLimit?.(notion.notPlannedLimited)
-    return { tasks, partialNotPlanned: notion.notPlannedPartial }
+    return { tasks, partialNotPlanned: notion.notPlannedPartial, readInParts: notion.listReadInParts }
   }
 
   /** Planning is written to Notion only once the user mapped a "not planned" status (#357). */

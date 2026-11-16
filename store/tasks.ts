@@ -285,6 +285,13 @@ export const useTasksStore = defineStore("tasks", () => {
    * cap is in none before the plan took it out of there. `mergeTasks` keeps such a task (`fetchStartedAt`).
    */
   const writtenAt = new Map<string, number>();
+  /**
+   * Transient (never persisted): per source, the ids of the tasks the last merge's list lacked and the merge kept
+   * all the same (#392). A list says that a task is gone only when it and the one before lack it: a page moved at
+   * the source between the two reads of one sync is in neither query's answer, and a failing push stamps
+   * `writtenAt` on every tick. Replaced by each merge of the source, forgotten at a reload.
+   */
+  const lackedByLastMerge = new Map<SourceId, Set<string>>();
   let nextStatusLockToken = 0;
   /**
    * Transient (never persisted) revision of each task's `pendingSync`, bumped by every change that needs a
@@ -1084,12 +1091,20 @@ export const useTasksStore = defineStore("tasks", () => {
    *   starts not planned; a task already held is never moved by it (#387: the app moves no card by itself).
    *   `fetchStartedAt` (epoch ms, when the fetch began) and `pushing` (whether a write of a task is under way now,
    *   `useTaskSync.isPushing`): a task written since the fetch began, or being written, stays as it is when the
-   *   list lacks it, because the list may have been read before the write (#357); the next fetch decides.
+   *   list lacks it, because the list may have been read before the write (#357); the next fetch decides. A task the
+   *   list contains is held the same way: the list is older than the write, so the task keeps its local state and only
+   *   takes the source's `externalId` (#390).
+   *   `readInParts` (`FetchedTasks.readInParts`, #392): the list was assembled from more than one read (Notion's board
+   *   query, then its "not planned" query), so a page moved between the reads is in none. A task the list lacks is kept
+   *   once then, and goes when the next merge's list lacks it too; a task written since the fetch began is kept once
+   *   the same way (a push that keeps failing must not keep it for ever). `confirmedDrop` (the user answered "Ja" to
+   *   the sync question for this list, #369): the question named the tasks the list lacks, so they go at once and
+   *   the keep-once above does not apply to them; a task written since the fetch began or being written stays.
    *   `partialNotPlanned` (`FetchedTasks.partialNotPlanned`, Notion's capped "not planned" list, #357): for a task
    *   held as one of these values `fetchedTasks` is only a part of what the source holds. Such a task that the list
    *   lacks stays as it is, and so does a task with unpushed changes; every other task the list lacks is dropped.
    */
-  function mergeTasks(source: SourceId, fetchedTasks: Task[], options: { replaceOthers?: boolean; heldTime?: (seconds: number) => number; timeWritable?: boolean; holdsOnlyOpenDone?: boolean; startsNotPlanned?: boolean; partialNotPlanned?: readonly string[]; fetchStartedAt?: number; pushing?: (taskId: string) => boolean } = {}): void {
+  function mergeTasks(source: SourceId, fetchedTasks: Task[], options: { replaceOthers?: boolean; heldTime?: (seconds: number) => number; timeWritable?: boolean; holdsOnlyOpenDone?: boolean; startsNotPlanned?: boolean; partialNotPlanned?: readonly string[]; readInParts?: boolean; confirmedDrop?: boolean; fetchStartedAt?: number; pushing?: (taskId: string) => boolean } = {}): void {
     const boardStore = useBoardStore();
 
     // A completed switch replaces the Local tasks it adopted; another connected integration's tasks stay (#320)
@@ -1111,6 +1126,12 @@ export const useTasksStore = defineStore("tasks", () => {
     for (const task of tasks.value) {
       if (task.pendingMove?.fromSource === source && task.pendingMove.fromExternalId !== null) movedAwayPages.add(task.pendingMove.fromExternalId);
     }
+
+    // A list is older than every write that ended after the fetch began (strictly: a write that ended in the
+    // millisecond the fetch began was there before its first read) and than a write still under way (#357, #390)
+    const fetchStartedAt = options.fetchStartedAt;
+    const writtenSinceFetch = (taskId: string): boolean =>
+      (fetchStartedAt !== undefined && (writtenAt.get(taskId) ?? 0) > fetchStartedAt) || options.pushing?.(taskId) === true;
 
     const mergedTasks: Task[] = [];
     fetchedTasks.forEach(fetchedFrom => {
@@ -1143,13 +1164,17 @@ export const useTasksStore = defineStore("tasks", () => {
         // What the source says now also corrects the marker's note of whether it holds the task as completed (#344)
         const marker = existingTask.pendingSync;
         const heldDone = fetchedTask.status === TaskStatus.Done;
+        // The same for a task written since this fetch began (#390): the list was read before the write (or while
+        // it was on its way), so it carries the older state; the next fetch decides
         const base: Task = marker
           ? {
             ...existingTask,
             externalId: fetchedTask.externalId,
             ...(marker.upstreamDone !== undefined && marker.upstreamDone !== heldDone ? { pendingSync: { ...marker, upstreamDone: heldDone } } : {}),
           }
-          : fetchedTask;
+          : source !== 'local' && writtenSinceFetch(existingTask.id)
+            ? { ...existingTask, externalId: fetchedTask.externalId }
+            : fetchedTask;
 
         // Merge task: use fetched data but preserve local time tracking
         const mergedTask: Task = {
@@ -1248,24 +1273,31 @@ export const useTasksStore = defineStore("tasks", () => {
     // planned" in neither answer when it lands between the two reads. So a task written since this fetch began, or
     // being written now, stays as it is, with what only kan-do holds (time, order, the carried-over count); the
     // next fetch read the source after the write and decides.
+    // The same goes for a page the user moved at the source itself between the two reads (#392): a list read in
+    // parts (`readInParts`) says "gone" only when the list before it lacked the task too.
+    // Either way a task is kept once: a task the previous merge already kept is dropped now, so a push that keeps
+    // failing (it stamps a write on every tick) does not keep a task gone at its source for ever.
     // A capped list (Notion's most recently edited "not planned" pages) is a part of what the source holds on top
     // of that. A task held in one of its statuses that the list lacks may only be past the cap: it stays as it is.
     // A task with unpushed changes stays too: its page may be past the cap while the change that takes it out of
     // there (a plan made offline) still waits. Everything else the list lacks is gone at the source (the board
     // query is never capped).
-    const partial = options.partialNotPlanned ?? [];
-    const fetchStartedAt = options.fetchStartedAt;
-    if (source !== 'local' && (partial.length > 0 || fetchStartedAt !== undefined || options.pushing)) {
+    if (source !== 'local') {
+      const partial = options.partialNotPlanned ?? [];
+      const lackedBefore = lackedByLastMerge.get(source);
+      const lackedNow = new Set<string>();
       const mergedIds = new Set(mergedTasks.map(merged => merged.id));
       for (const local of tasks.value) {
         if (local.source !== source || local.externalId === null || mergedIds.has(local.id)) continue;
-        // Strictly later: a write that ended in the millisecond the fetch began was there before its first read
-        const writtenSinceFetch = (fetchStartedAt !== undefined && (writtenAt.get(local.id) ?? 0) > fetchStartedAt)
-          || options.pushing?.(local.id) === true;
         const heldPastCap = local.sourceNotPlanned !== undefined && partial.includes(local.sourceNotPlanned);
-        const keptByCap = partial.length > 0 && (heldPastCap || local.pendingSync !== undefined);
-        if (writtenSinceFetch || keptByCap) mergedTasks.push(local);
+        if (partial.length > 0 && (heldPastCap || local.pendingSync !== undefined)) {
+          mergedTasks.push(local);
+        } else if (lackedBefore?.has(local.id) !== true && ((options.readInParts === true && options.confirmedDrop !== true) || writtenSinceFetch(local.id))) {
+          mergedTasks.push(local);
+          lackedNow.add(local.id);
+        }
       }
+      lackedByLastMerge.set(source, lackedNow);
     }
 
     // Replace this source's tasks with the merged results
