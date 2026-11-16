@@ -66,6 +66,9 @@ fi
 
 # An inline `E2E_GATE=full gh pr merge ...` prefix is the hook's own switch: the hook does not inherit it.
 [ "$(printf '%s' "$parsed" | head -1)" = 1 ] && export E2E_GATE=full
+# Same for `E2E_GATE_BUDGET_SECONDS=<s>` as an inline prefix (the timeout message recommends it): read it from the command, not only the hook's env.
+inline_budget=$(printf '%s' "$cmd" | grep -oE 'E2E_GATE_BUDGET_SECONDS=[0-9]+' | head -1 | cut -d= -f2)
+[ -n "$inline_budget" ] && export E2E_GATE_BUDGET_SECONDS=$inline_budget
 repo_flag=$(printf '%s' "$parsed" | sed -n 2p | tr -d "\"'")
 merge_args=$(printf '%s' "$parsed" | sed -n 3p)
 
