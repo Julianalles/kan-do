@@ -34,6 +34,10 @@
  * `menu_install` mirrors `src-tauri/src/menu.rs` (#614): it answers nothing, the labels stay in `calls`; `emitTauriEvent`
  * plays `menu://action` for a clicked custom menu item.
  *
+ * `overlay_sync`, `overlay_ready` and `overlay_action` mirror `src-tauri/src/overlay.rs` (#383): the first and last answer nothing
+ * (the arguments stay in `calls`), `overlay_ready` answers `window.__overlaySnapshot`; `emitTauriEvent` plays `overlay://state`
+ * (to the pill) and `overlay://action` (to the main window).
+ *
  * The page-side state lives on `window.__tauriStub`; tests read `calls` and flip `githubMode` /
  * `keychainError` through `page.evaluate`. It is mirrored into sessionStorage so a reload keeps it.
  */
@@ -403,6 +407,10 @@ export async function installTauriStub(context: BrowserContext, options: TauriSt
       if (cmd === 'log_reveal') return null
       // Native menu bar (#614): the labels the app sent stay in `calls`.
       if (cmd === 'menu_install') return null
+      // Floating Now window (#383): `overlay_sync` and `overlay_action` answer nothing, their arguments stay in `calls`;
+      // `overlay_ready` answers the snapshot a test put on `window.__overlaySnapshot` (what Rust holds for the pill).
+      if (cmd === 'overlay_sync' || cmd === 'overlay_action') return null
+      if (cmd === 'overlay_ready') return (window as unknown as { __overlaySnapshot?: unknown }).__overlaySnapshot ?? null
       if (cmd === 'update_check') {
         const check = state.update.check ?? { status: 'up-to-date' }
         state.update.lastChecked = new Date().toISOString()

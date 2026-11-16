@@ -1,0 +1,4 @@
+- group "Aufgabe in Jetzt":
+  - button "Kan-Do öffnen": Release notes schreiben
+  - button "Pausieren"
+  - button "Als erledigt markieren"

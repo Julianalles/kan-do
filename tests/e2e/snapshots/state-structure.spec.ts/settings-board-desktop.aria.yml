@@ -1,0 +1,9 @@
+- text: Jetzt-Karte im Fokus
+- paragraph: Solange eine Aufgabe in „Jetzt“ liegt, tritt das übrige Board zurück. Eine Mausbewegung oder ein Tippen blendet es wieder ein.
+- switch "Jetzt-Karte im Fokus"
+- text: Schwebendes Jetzt-Fenster
+- paragraph: Zeigt die Aufgabe in „Jetzt“ mit ihrer Zeit als kleines Fenster über anderen Apps, solange Kan-Do nicht vorne ist.
+- switch "Schwebendes Jetzt-Fenster" [checked]
+- text: Arbeitszeit pro Tag
+- paragraph: Danach richtet sich die Kapazitätslinie in Offen. „Automatisch“ nutzt deine bisher erfasste Arbeitszeit.
+- combobox "Arbeitszeit pro Tag": Automatisch

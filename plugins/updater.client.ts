@@ -7,6 +7,7 @@
  */
 import { isTauri } from '~/utils/isTauri'
 import { useAppUpdater } from '~/composables/useAppUpdater'
+import { isOverlayWindow } from '~/lib/overlayWindow'
 
 export const LAUNCH_CHECK_DELAY_MS = 10_000
 
@@ -14,7 +15,7 @@ export default defineNuxtPlugin({
   name: 'updater',
   dependsOn: ['secrets'],
   setup(nuxtApp) {
-    if (!isTauri()) return
+    if (!isTauri() || isOverlayWindow()) return
     nuxtApp.hook('app:mounted', () => {
       setTimeout(() => {
         void nuxtApp.vueApp.runWithContext(async () => {

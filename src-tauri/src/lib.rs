@@ -5,6 +5,7 @@ mod github;
 mod identifier_migration;
 mod logging;
 mod menu;
+mod overlay;
 mod relaunch;
 mod secrets;
 mod updater;
@@ -19,7 +20,7 @@ fn background_requested(value: Option<&OsStr>) -> bool {
 }
 
 /// True in a debug build started with `KANDO_SANDBOX_BACKGROUND`: the app must neither activate nor bring a window forward.
-fn sandbox_background() -> bool {
+pub(crate) fn sandbox_background() -> bool {
   cfg!(debug_assertions) && background_requested(std::env::var_os("KANDO_SANDBOX_BACKGROUND").as_deref())
 }
 
@@ -61,6 +62,7 @@ pub fn run() {
     .plugin(tauri_plugin_opener::init())
     .plugin(tauri_plugin_dialog::init())
     .manage(updater::UpdaterState::default())
+    .manage(overlay::OverlayState::default())
     .invoke_handler(tauri::generate_handler![
       secrets::secret_set,
       secrets::secret_delete,
@@ -80,6 +82,9 @@ pub fn run() {
       updater::update_install,
       updater::update_state,
       menu::menu_install,
+      overlay::overlay_sync,
+      overlay::overlay_ready,
+      overlay::overlay_action,
       logging::log_location,
       logging::log_reveal,
       logging::log_tail,
@@ -96,11 +101,26 @@ pub fn run() {
     ])
     .on_menu_event(menu::on_menu_event)
     .on_window_event(|window, event| {
+      // The floating Now window (#383) reports where the user drops it; it has no other events to handle
+      if window.label() == overlay::OVERLAY_LABEL {
+        overlay::on_overlay_event(window.app_handle(), event);
+        return;
+      }
       match event {
-        // Closing the window flushes pending edits; the debounce would otherwise hold them for 400 ms.
-        WindowEvent::CloseRequested { .. } => window.state::<data_file::DataFile>().flush_on_exit(false),
+        // Closing the window flushes pending edits; the debounce would otherwise hold them for 400 ms. The Now window
+        // goes with it: a hidden window left alive would keep the app running with no way back in (#383).
+        WindowEvent::CloseRequested { .. } => {
+          overlay::close(window.app_handle());
+          window.state::<data_file::DataFile>().flush_on_exit(false)
+        }
         // A change made on another device is usually noticed before the next edit (#224).
-        WindowEvent::Focused(true) => window.state::<data_file::DataFile>().poke(),
+        WindowEvent::Focused(focused) => {
+          if *focused {
+            window.state::<data_file::DataFile>().poke();
+          }
+          // The Now window shows while kan-do is not in front (#383)
+          overlay::on_main_focus(window.app_handle(), *focused);
+        }
         _ => {}
       }
     })

@@ -969,5 +969,15 @@
     "avoidEn": [],
     "status": "proposed",
     "note": "The user's own wording of 2026-11-16 (#367; the user's `npm run terms:approve` makes it decided), the same words as the add form's submit button (task.form.submit). The column header's icon button stays \"Aufgabe hinzufügen\" (board.addTask). The empty state beside it reads \"Keine weiteren Aufgaben vorhanden.\", also the user's wording."
+  },
+  {
+    "id": "floating-now-window",
+    "concept": "The small always-on-top window that shows the Jetzt task and its time over other apps while Kan-Do is not in front (#383, ADR 020)",
+    "de": "Schwebendes Jetzt-Fenster",
+    "en": "Floating Now window",
+    "avoidDe": [],
+    "avoidEn": [],
+    "status": "proposed",
+    "note": "The user's own wording from the issue (#383). Not \"Fokus\": the board's dusk overlay (settings.focus, \"Jetzt-Karte im Fokus\") is a different feature. The window's buttons are \"Pausieren\" / \"Fortsetzen\" (EN Pause / Resume), \"Als erledigt markieren\" and \"Kan-Do öffnen\" (the pill's aria-labels; the pill shows icons only)."
   }
 ]
