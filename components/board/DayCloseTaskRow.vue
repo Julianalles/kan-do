@@ -13,7 +13,7 @@
   <ListRow data-testid="day-close-done-row" :data-task-id="task.id">
     <div class="min-w-0 flex-1 basis-40">
       <p class="text-sm wrap-break-word text-default" data-private>{{ task.title }}</p>
-      <p class="text-xs text-muted" data-testid="day-close-done-subline">{{ subline }}</p>
+      <p class="flex flex-wrap gap-x-2 text-xs text-muted" data-testid="day-close-done-subline"><template v-for="part in subline" :key="part"><span>{{ part }}</span>{{ ' ' }}</template></p>
     </div>
     <span v-if="task.timeSpentSeconds > 0" class="shrink-0 text-sm text-toned tabular-nums" data-testid="day-close-done-time">
       {{ formatDuration(task.timeSpentSeconds, 'spaced') }}
@@ -45,5 +45,5 @@ const fact = computed(() => {
   if (state === 'none') return ''
   return t(`dayClose.box.${state}`, { n: minutes })
 })
-const subline = computed(() => [t('dayClose.rowDone'), fact.value].filter(Boolean).join(', '))
+const subline = computed(() => [t('dayClose.rowDone'), fact.value].filter(Boolean))
 </script>

@@ -250,9 +250,9 @@
       "failed": "Move failed",
       "failedDescription": "“{title}” stays in {source}.",
       "retry": "Try again",
-      "hintLost": "{n} field is lost | {n} fields are lost",
-      "hintAttention": "Check connection, saved later",
-      "hintPending": "Saving"
+      "hintLost": "{n} field is lost. | {n} fields are lost.",
+      "hintAttention": "Check connection. Saved later.",
+      "hintPending": "Saving."
     },
     "completed": "Done",
     "completedMany": "{n} task done | {n} tasks done",
@@ -318,7 +318,7 @@
       "start": "Start",
       "saveIn": "Save to",
       "saveInDefault": "Default",
-      "saveInAttention": "Check connection, saved later"
+      "saveInAttention": "Check connection. Saved later."
     },
     "contextMenu": {
       "startNow": "Start now",

@@ -51,7 +51,7 @@ const items = computed<SelectMenuItem[]>(() =>
     return {
       label: t(`source.name.${source}`),
       value: source,
-      ...(captions.length > 0 ? { description: captions.join(', ') } : {}),
+      ...(captions.length > 0 ? { description: captions.join('. ') } : {}),
     };
   }),
 );
