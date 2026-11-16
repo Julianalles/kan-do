@@ -197,10 +197,10 @@ describe('useTaskSync.createTask (#321)', () => {
     expect(useBoardStore().columns.find((c) => c.taskStatus === TaskStatus.Progress)?.taskOrder).toContain(created.id)
   })
 
-  describe('a task made while "Alle" shows is not planned (#367)', () => {
+  describe('a task made while "Planung" shows is not planned (#367)', () => {
     const openOrder = () => useBoardStore().columns.find((c) => c.taskStatus === TaskStatus.Open)?.taskOrder ?? []
 
-    it('Local: the marker is set, the task is on top of "Nicht geplant" and not in Offen', async () => {
+    it('Local: the marker is set, the task is on top of "Meine Aufgaben" and not in Offen', async () => {
       const first = await useTaskSync().createTask(draft({ notPlanned: true }), 'local')
       const second = await useTaskSync().createTask(draft({ title: 'Zweite', notPlanned: true }), 'local')
       expect(useTasksStore().task(first.id)?.notPlanned).toBe(true)

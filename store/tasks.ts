@@ -654,7 +654,7 @@ export const useTasksStore = defineStore("tasks", () => {
 
   /**
    * "Not today" (#353): takes an Offen task off the board. It stays in `tasks` with its time, notes, topic,
-   * priority, timebox, source and carried-over count, leaves Offen's order and goes to the top of "Nicht geplant" (#354). Only an Open task can be taken
+   * priority, timebox, source and carried-over count, leaves Offen's order and goes to the top of "Meine Aufgaben" (#354). Only an Open task can be taken
    * off: any other status is refused (`false`), as is a task that is already not planned.
    */
   function unplanTask(taskId: string): boolean {

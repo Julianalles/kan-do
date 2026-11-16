@@ -17,7 +17,7 @@
       - text: /\d+ min/
   - region "Für morgen":
     - heading "Für morgen" [level=3]
-    - paragraph: 2 Aufgaben gehen zurück nach „Nicht geplant“. Morgen planst du sie neu ein. Du kannst sie einzeln abwählen.
+    - paragraph: 2 Aufgaben gehen zurück nach „Meine Aufgaben“. Morgen planst du sie neu ein. Du kannst sie einzeln abwählen.
     - group: Offene Aufgaben anzeigen
   - button "Zusammenfassung kopieren"
   - button "Fertig"

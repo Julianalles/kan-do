@@ -2,11 +2,11 @@
 @component BoardPageDots
 @kind primitive
 @category navigation
-@description Phone page indicator: one dot per column page above the column title (three on Heute, two on "Alle", #354), the active one a stretched pill
+@description Phone page indicator: one dot per column page above the column title (three on Heute, two on "Planung", #354), the active one a stretched pill
 @usage Rendered once by Board.vue beside .board (so it does not slide with the pages)
 @avoid Phone only, for the board's column pages; not a tab bar or pagination on desktop.
 @responsibility
-- Says how many pages the place has (Heute: Offen, Jetzt + Wartet, Erledigt; "Alle": "Nicht geplant", Offen; `count`) and which one is showing (kd#26)
+- Says how many pages the place has (Heute: Offen, Jetzt + Wartet, Erledigt; "Planung": "Meine Aufgaben", Offen; `count`) and which one is showing (kd#26)
 - Follows a live swipe: the pill stretches from one dot to the next with the finger, then settles on the board's own timing
 - Pure indicator: not focusable, not tappable (`pointer-events: none`, `aria-hidden`), so it is no tab bar (#470, ADR 017); the page is
   already exposed by the column headings and `data-mobile-page`, a hidden "page 2 of 3" would say it twice
@@ -39,7 +39,7 @@ const props = withDefaults(defineProps<{
   offsetPx: number;
   /** True while the finger is down on a swipe: the pill tracks it with no transition */
   live: boolean;
-  /** Pages of the place that shows (#354): three on Heute, two on "Alle" */
+  /** Pages of the place that shows (#354): three on Heute, two on "Planung" */
   count?: number;
 }>(), { count: PAGE_DOT_COUNT });
 

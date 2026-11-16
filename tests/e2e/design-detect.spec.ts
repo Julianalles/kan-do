@@ -69,7 +69,7 @@ const SURFACES: Surface[] = [
     },
   },
   {
-    // The place "Alle" (#354): "Nicht geplant" with cards beside Offen (at 390 its own page, which "Alle" opens on)
+    // The place "Planung" (#354): "Meine Aufgaben" with cards beside Offen (at 390 its own page, which "Planung" opens on)
     name: 'alle',
     open: async (page, context) => {
       const [first, ...rest] = SEED_TASKS.filter(task => task.status === 0)

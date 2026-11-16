@@ -832,23 +832,43 @@
   },
   {
     "id": "place-all",
-    "concept": "The place of the app bar that shows every task, planned for today or not (#354, epic #334): \"Nicht geplant\" beside Offen",
-    "de": "Alle",
-    "en": "All",
+    "concept": "The place of the app bar where the day is planned (#354, epic #334): the column \"Meine Aufgaben\" beside the column of today's tasks",
+    "de": "Planung",
+    "en": "Planning",
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Approved by the user on 2026-11-16 (#367); the user's `npm run terms:approve` makes it decided. Proposed in the design of #334 (D4). \"Backlog\" is not the name of this place: it is an avoid form of column-open and not registered here, because an avoid form matches as a word prefix across every string."
+    "note": "Renamed by the user on 2026-11-16 (#375): \"Planung\" / \"Planning\", before \"Alle\" / \"All\" (that wording was approved by the user on 2026-11-16, #367, and never made decided). The user's `npm run terms:approve` makes it decided. The route stays /all. \"Backlog\" is not the name of this place: it is an avoid form of column-open and not registered here, because an avoid form matches as a word prefix across every string."
   },
   {
     "id": "not-planned",
-    "concept": "A task kan-do holds that is not on today's board, and the column of \"Alle\" that lists them (#353, #354)",
+    "concept": "The column of \"Planung\" that lists the tasks kan-do holds that are not on today's board (#354)",
+    "de": "Meine Aufgaben",
+    "en": "My tasks",
+    "avoidDe": [],
+    "avoidEn": [],
+    "status": "proposed",
+    "note": "Renamed by the user on 2026-11-16 (#375): \"Meine Aufgaben\" / \"My tasks\", before \"Nicht geplant\" / \"Not planned\" (that wording was approved by the user on 2026-11-16, #367, and never made decided). The user's `npm run terms:approve` makes it decided. Names the column only (headline, region name, sentences that say where a task goes); the state of a task there is the term not-planned-state. \"Nicht geplant\" is not an avoid form: it is that state's term."
+  },
+  {
+    "id": "not-planned-state",
+    "concept": "The state of a task kan-do holds that is not on today's board (#353): the fifth choice of the task sheet's status picker (#359) and the wording of sentences about it",
     "de": "Nicht geplant",
     "en": "Not planned",
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Approved by the user on 2026-11-16 (#367); the user's `npm run terms:approve` makes it decided. Proposed in the design of #334 (D4). Not \"ungeplant\" / \"unplanned\": that is ad-hoc work (task.isUnplanned, \"Ungeplant\")."
+    "note": "Split from not-planned in #375, when the column became \"Meine Aufgaben\"; the wording itself was approved by the user on 2026-11-16 (#367). A state, like \"Offen\": \"Status: Nicht geplant\", \"… ist nicht mehr für heute geplant.\". Not \"ungeplant\" / \"unplanned\": that is ad-hoc work (task.isUnplanned, \"Ungeplant\"). Whether \"chosen for today\" is a marker separate from the status is #374."
+  },
+  {
+    "id": "planning-today",
+    "concept": "The headline of the Offen column on the place \"Planung\" (#375): there the only question is whether a task is for today",
+    "de": "Heute",
+    "en": "Today",
+    "avoidDe": [],
+    "avoidEn": [],
+    "status": "proposed",
+    "note": "The user's wording of 2026-11-16 (#375). Only the headline (and the column's spoken name) on \"Planung\", key board.columns.openPlanning; on the place \"Heute\" the column is headed \"Offen\", and the status is \"Offen\" everywhere (column-open). The same word as the app bar's place \"Heute\" on purpose: both mean today's plan."
   },
   {
     "id": "plan-for-today",

@@ -13,7 +13,7 @@ describe('pageProgress', () => {
     expect(pageProgress(0, 80, 390)).toBe(0)
     expect(pageProgress(2, -80, 390)).toBe(2)
   })
-  it('clamps to the pages of a place with two pages ("Alle", #354)', () => {
+  it('clamps to the pages of a place with two pages ("Planung", #354)', () => {
     expect(pageProgress(1, -80, 390, 2)).toBe(1)
     expect(pageProgress(0, -195, 390, 2)).toBe(0.5)
   })

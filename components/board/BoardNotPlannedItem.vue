@@ -2,7 +2,7 @@
 @component BoardNotPlannedItem
 @kind component
 @category layout
-@description One card under "Nicht geplant" on the place "Alle" (#354, #355): the task's card, the arrow that plans it for today, and its registration with the board's drag so it can be carried onto Offen
+@description One card under "Meine Aufgaben" on the place "Planung" (#354, #355): the task's card, the arrow that plans it for today, and its registration with the board's drag so it can be carried onto Offen
 @usage Rendered by BoardNotPlanned, one per task, as the list's `li` (one root node per list item)
 @avoid Not a board card: no status, no card menu, no delete key, never a drop target for another card (SortableTaskWrapper is the card of a column). Not for a static list of cards (trash, recap).
 @responsibility

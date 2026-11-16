@@ -7,7 +7,7 @@
  * - Only the board's column lists and the drag order are filtered; the store's getters, statistics, day close, the
  *   recap and the WIP rule keep seeing every task
  * - Chip counts and the hidden number leave Jetzt out, so they count what the focus can keep or hide
- * - One state for both places of the board (#354): on "Alle" it filters and counts "Nicht geplant" and Offen
+ * - One state for both places of the board (#354): on "Planung" it filters and counts "Meine Aufgaben" and Offen
  * @responsibility Filter, counts and the chip row's open state; never mutates tasks
  */
 import { computed, ref } from 'vue'
@@ -41,7 +41,7 @@ export function useBoardFocus() {
 
   /**
    * The cards the focus can keep or hide, which are the cards the place shows: on Heute Offen, Wartet and today's
-   * Erledigt (Jetzt is never hidden), on "Alle" (#354) "Nicht geplant" and Offen
+   * Erledigt (Jetzt is never hidden), on "Planung" (#354) "Meine Aufgaben" and Offen
    */
   const { isAll } = useBoardPlace()
   const filterable = computed(() => (isAll.value

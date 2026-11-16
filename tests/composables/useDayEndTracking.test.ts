@@ -61,7 +61,7 @@ describe('useDayEndTracking (#537)', () => {
     mountTracker()
     expect(stats.dayEndInFlight).toEqual({ '2026-11-03': 3 })
     day = new Date(2026, 10, 4, 9, 0)
-    // Offen and Jetzt go back to "Nicht geplant": only Wartet is still in flight
+    // Offen and Jetzt go back to "Meine Aufgaben": only Wartet is still in flight
     tasks.updateTask('b', { status: TaskStatus.Open })
     tasks.unplanTasks(['a', 'b'])
     await nextTick()

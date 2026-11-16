@@ -18,6 +18,7 @@
     "pageHeading": "Heute",
     "columns": {
       "open": "Offen",
+      "openPlanning": "Heute",
       "progress": "Jetzt",
       "waiting": "Wartet",
       "done": "Erledigt"
@@ -142,7 +143,7 @@
       "end": "Fokus beenden"
     },
     "notPlanned": {
-      "title": "Nicht geplant",
+      "title": "Meine Aufgaben",
       "plan": "Für heute einplanen",
       "planNamed": "{title}: für heute einplanen",
       "notToday": "Nicht heute",
@@ -155,17 +156,17 @@
       "unplanned": "{title} ist nicht mehr für heute geplant.",
       "unplannedStack": "Stapel „{title}“ ist nicht mehr für heute geplant.",
       "dropHere": "Hier ablegen: nicht heute",
-      "dragOver": "„{title}“ über Nicht geplant. Beim Ablegen ist die Aufgabe nicht mehr für heute geplant.",
-      "dragBack": "„{title}“ bleibt in Nicht geplant.",
+      "dragOver": "„{title}“ über Meine Aufgaben. Beim Ablegen ist die Aufgabe nicht mehr für heute geplant.",
+      "dragBack": "„{title}“ bleibt in Meine Aufgaben.",
       "capacityFull": "Damit ist dein Tag vermutlich voll.",
       "capacityBelow": "Dein Tag ist vermutlich voll. Eine Aufgabe liegt unter der Linie. | Dein Tag ist vermutlich voll. {n} Aufgaben liegen unter der Linie.",
       "groupYesterday": "Gestern geplant, noch offen",
       "groupOthers": "Weitere Aufgaben"
     },
-    "yesterdayUnderAll": "Eine Aufgabe von gestern liegt unter {all}. | {n} Aufgaben von gestern liegen unter {all}.",
+    "yesterdayUnderAll": "Eine Aufgabe von gestern liegt in der {all}. | {n} Aufgaben von gestern liegen in der {all}.",
     "newDayNote": {
       "title": "Neu: Jeder Tag beginnt mit einem leeren Plan.",
-      "description": "Eine Aufgabe aus Offen und Jetzt liegt jetzt unter „Alle“ bei „Nicht geplant“. Dort planst du sie für heute ein. | {n} Aufgaben aus Offen und Jetzt liegen jetzt unter „Alle“ bei „Nicht geplant“. Dort planst du sie für heute ein.",
+      "description": "Eine Aufgabe aus Offen und Jetzt liegt jetzt unter „Planung“ bei „Meine Aufgaben“. Dort planst du sie für heute ein. | {n} Aufgaben aus Offen und Jetzt liegen jetzt unter „Planung“ bei „Meine Aufgaben“. Dort planst du sie für heute ein.",
       "planAll": "Alle wieder einplanen",
       "close": "Schließen",
       "planned": "Eine Aufgabe ist wieder für heute geplant. | {n} Aufgaben sind wieder für heute geplant."
@@ -196,7 +197,7 @@
     "appUpdate": "App-Update",
     "syncNow": "Jetzt synchronisieren",
     "syncing": "Wird synchronisiert…",
-    "all": "Alle"
+    "all": "Planung"
   },
   "menu": {
     "app": "Kan-Do",
@@ -554,6 +555,7 @@
     "progress": "Jetzt",
     "waiting": "Wartet",
     "done": "Erledigt",
+    "notPlanned": "Nicht geplant",
     "backlog": "Backlog"
   },
   "priority": {
@@ -1343,7 +1345,7 @@
     "openUpdates": "Version & Updates",
     "sendFeedback": "Feedback senden",
     "openWhatsNew": "Was ist neu",
-    "openAll": "Alle öffnen"
+    "openAll": "Planung öffnen"
   },
   "recap": {
     "title": "Kurzer Rückblick",
@@ -1390,7 +1392,7 @@
       "over": "{n} Min über der Timebox"
     },
     "tomorrowHeading": "Für morgen",
-    "tomorrow": "Keine Aufgabe geht zurück nach „Nicht geplant“. | Eine Aufgabe geht zurück nach „Nicht geplant“. Morgen planst du sie neu ein. Du kannst sie abwählen. | {n} Aufgaben gehen zurück nach „Nicht geplant“. Morgen planst du sie neu ein. Du kannst sie einzeln abwählen.",
+    "tomorrow": "Keine Aufgabe geht zurück nach „Meine Aufgaben“. | Eine Aufgabe geht zurück nach „Meine Aufgaben“. Morgen planst du sie neu ein. Du kannst sie abwählen. | {n} Aufgaben gehen zurück nach „Meine Aufgaben“. Morgen planst du sie neu ein. Du kannst sie einzeln abwählen.",
     "showOpen": "Offene Aufgaben anzeigen",
     "openListLabel": "Offene Aufgaben für morgen",
     "trash": {
@@ -1411,7 +1413,7 @@
       "inFlight": "Noch nicht erledigt",
       "nothingInFlight": "Nichts mehr offen."
     },
-    "backToNotPlanned": "Geht zurück nach „Nicht geplant“",
+    "backToNotPlanned": "Geht zurück nach „Meine Aufgaben“",
     "staysWaiting": "Bleibt in Wartet"
   },
   "secrets": {

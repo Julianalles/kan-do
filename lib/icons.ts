@@ -18,7 +18,7 @@
 export const ICONS = {
   /** Step back (recap deck, new-card flow, board edge indicator). */
   back: 'i-ph-caret-left',
-  /** Back to the previous step of a flow or to the parent route: the arrow of `BackButton` (#236); also "Nicht heute", an Offen card back to "Nicht geplant" (#354). */
+  /** Back to the previous step of a flow or to the parent route: the arrow of `BackButton` (#236); also "Nicht heute", an Offen card back to "Meine Aufgaben" (#354). */
   stepBack: 'i-ph-arrow-left',
   /** Step forward / skip. */
   forward: 'i-ph-caret-right',

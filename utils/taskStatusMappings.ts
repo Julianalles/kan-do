@@ -51,10 +51,11 @@ export const TASK_STATUS_CONFIG: Record<TaskStatus, TaskStatusConfig> = {
 
 /**
  * "Nicht geplant" in the task sheet's status picker (#359): not a `TaskStatus` (an Open task with the `notPlanned`
- * marker), so it has its own entry beside the table above. A dashed circle: Offen's circle, not on today's board.
+ * marker), so it has its own entry beside the table above. The label names the state, not the column the task then
+ * lies in ("Meine Aufgaben", `board.notPlanned.title`, #375). A dashed circle: Offen's circle, not on today's board.
  */
 export const NOT_PLANNED_CONFIG = {
-  labelKey: 'board.notPlanned.title',
+  labelKey: 'taskStatus.notPlanned',
   icon: 'i-ph-circle-dashed',
 } as const;
 

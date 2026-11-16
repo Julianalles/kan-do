@@ -2,7 +2,7 @@
 @component DayCloseBody
 @kind block
 @category display
-@description Scrolling content of the closing sheet (#98, #237): the day in one look (date, headline, total time, time-box bar), what got done today, and what goes back to "Nicht geplant" for tomorrow (#356).
+@description Scrolling content of the closing sheet (#98, #237): the day in one look (date, headline, total time, time-box bar), what got done today, and what goes back to "Meine Aufgaben" for tomorrow (#356).
 @usage Hosted by DayCloseDialog (modal and drawer share it). Reads the local cache only; a sync that lands while it is open updates the lists in place.
 @avoid Not standalone: hosted by DayCloseDialog (modal and drawer share it); the start-of-day look back is NewDayRecap.
 @responsibility
@@ -72,7 +72,7 @@ function revealList(event: Event) {
 }
 
 /**
- * What goes back to "Nicht geplant" with the new day (#356): the kept tasks in Offen and Jetzt. A kept Wartet task
+ * What goes back to "Meine Aufgaben" with the new day (#356): the kept tasks in Offen and Jetzt. A kept Wartet task
  * stays in Wartet and is not counted; its row says so.
  */
 const keptCount = computed(() => inFlight.value.filter(task => task.status !== TaskStatus.Waiting && isKept(task.id)).length)

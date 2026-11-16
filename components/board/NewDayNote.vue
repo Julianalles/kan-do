@@ -2,8 +2,8 @@
 @component NewDayNote
 @kind component
 @category feedback
-@description The one-time note of the first morning a new day sent cards back to "Nicht geplant" (#356, the user's decision D2): it says what happened and where the cards are, and offers "Alle wieder einplanen", which puts them all back on today's board this once.
-@usage <NewDayNote /> above the board in pages/tasks.vue, below DataStorageNotice; it shows on Heute and on "Alle". State and both actions live in `useNewDay` (`noteShown`, `planAllAgain`, `closeNote`).
+@description The one-time note of the first morning a new day sent cards back to "Meine Aufgaben" (#356, the user's decision D2): it says what happened and where the cards are, and offers "Alle wieder einplanen", which puts them all back on today's board this once.
+@usage <NewDayNote /> above the board in pages/tasks.vue, below DataStorageNotice; it shows on Heute and on "Planung". State and both actions live in `useNewDay` (`noteShown`, `planAllAgain`, `closeNote`).
 @avoid Not the daily pointer to yesterday's cards (the sentence in an empty Offen, BoardColumn) and not a toast: it stays until it is answered or its day ends. Never shown again after the first time.
 @responsibility
 - One neutral, persistent notice like DataStorageNotice (a subtle UAlert as the theme draws it, `role="status"`, no call-site `:ui`): title (the new rule), description (how many tasks lie where now), two link actions with the notices' 44 px hit area on touch (`kando-notice-actions`), beside the text on desktop and below it on a phone

@@ -70,7 +70,7 @@ describe('AppNav: the global app bar (#470)', () => {
     expect(render().find('[data-testid="app-nav"]').exists()).toBe(false)
   })
 
-  it('links Alle to /all, the brand and Heute to /tasks and Statistik to /statistics; the brand is never current', () => {
+  it('links Planung to /all, the brand and Heute to /tasks and Statistik to /statistics; the brand is never current', () => {
     const w = render()
     expect(place(w, 'all').attributes('href')).toBe('/all')
     expect(w.find('[data-testid="app-nav-brand"]').attributes('href')).toBe('/tasks')
