@@ -7,7 +7,7 @@ import type { Task } from '~/types/task'
 import type { IntegrationHealth } from '~/types/integration'
 import type { NotionIntegration } from '~/integrations/NotionIntegration'
 import { externalIdOf, sourceSyncsTime } from '~/lib/taskSources'
-import { SourceNotConfiguredError, type TaskSourceAdapter } from './types'
+import { SourceNotConfiguredError, type FetchedTasks, type TaskSourceAdapter } from './types'
 
 export interface NotionSourceDeps {
   isConfigured: () => boolean
@@ -41,14 +41,20 @@ export class NotionSource implements TaskSourceAdapter {
   }
 
   async fetchActive(): Promise<Task[]> {
+    return (await this.fetchActiveList()).tasks
+  }
+
+  /** The "not planned" pages are capped (#357): the list names the statuses it holds only in part. */
+  async fetchActiveList(): Promise<FetchedTasks> {
     if (!this.deps.isConfigured()) throw new SourceNotConfiguredError('notion', NOT_CONFIGURED)
     if (!(await this.deps.ensureDataSource())) {
       throw new Error('Notion data source is not configured')
     }
+    // One instance per fetch: what it says about its list belongs to this fetch alone
     const notion = this.deps.createInstance()
     const tasks = await notion.fetchActiveBoardTasks()
     this.deps.onNotPlannedLimit?.(notion.notPlannedLimited)
-    return tasks
+    return { tasks, partialNotPlanned: notion.notPlannedPartial }
   }
 
   /** Planning is written to Notion only once the user mapped a "not planned" status (#357). */

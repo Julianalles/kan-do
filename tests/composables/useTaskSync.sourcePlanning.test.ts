@@ -29,9 +29,15 @@ const notion = {
   createTask: vi.fn<(draft: Partial<Task>) => Promise<Task>>(),
   archiveTask: vi.fn<(externalId: string) => Promise<void>>(),
 }
+/** What the Notion fetch says about its capped list (`NotionIntegration.notPlannedPartial` / `notPlannedLimited`) */
+const notionList = { notPlannedPartial: [] as string[], notPlannedLimited: false }
+const notionInstance = Object.defineProperties(notion, {
+  notPlannedPartial: { get: () => notionList.notPlannedPartial },
+  notPlannedLimited: { get: () => notionList.notPlannedLimited },
+})
 const notionConfig = { isConfigured: true, hasDataSourceSelected: true, setNotPlannedLimited: () => {}, config: { token: 't', statusMapping: { archive: 'Archive' as string | null } } }
 vi.mock('~/composables/useNotionIntegration', () => ({
-  useNotionIntegration: () => ({ isConfigured: { value: true }, createInstance: () => notion }),
+  useNotionIntegration: () => ({ isConfigured: { value: true }, createInstance: () => notionInstance }),
 }))
 vi.mock('~/store/notionConfig', () => ({ useNotionConfigStore: () => notionConfig }))
 
@@ -68,7 +74,9 @@ describe('plan and put-back are written to a source that stores planning (#357)'
     localStorage.clear()
     setActivePinia(createPinia())
     handleErrorMock.mockReset()
-    Object.values(notion).forEach((fn) => fn.mockReset())
+    for (const fn of [notion.fetchActiveBoardTasks, notion.updateTask, notion.createTask, notion.archiveTask]) fn.mockReset()
+    notionList.notPlannedPartial = []
+    notionList.notPlannedLimited = false
     fetchTodoist.mockReset()
     sent.length = 0
     notion.updateTask.mockImplementation(async (t) => { note(t); return { ...t } })
@@ -186,6 +194,34 @@ describe('plan and put-back are written to a source that stores planning (#357)'
     await useTaskSync().syncPendingChanges('notion')
     expect(sentToNotion().at(-1)).toEqual(['n1', true, 'Backlog'])
     expect(store.pendingSyncTasks).toEqual([])
+  })
+
+  // Review of PR 384: with more "not planned" pages in Notion than one sync loads, a held task past the cap was
+  // dropped by the merge together with its unpushed edit
+  it('a sync whose "not planned" list is capped keeps a held task the list lacks and pushes its unpushed edit', async () => {
+    const store = useTasksStore()
+    useBoardStore().setSources({ connected: ['notion'], default: 'notion' })
+    store.setTasks([
+      task('in', 'notion', { notPlanned: true, sourceNotPlanned: 'Backlog' }),
+      task('past', 'notion', { notPlanned: true, sourceNotPlanned: 'Irgendwann', title: 'Offline umbenannt', timeSpentSeconds: 600 }),
+    ])
+    store.markPendingSync('past')
+    notion.fetchActiveBoardTasks.mockResolvedValue([task('in', 'notion', { sourceNotPlanned: 'Backlog' })])
+    notionList.notPlannedPartial = ['Backlog', 'Irgendwann']
+    notionList.notPlannedLimited = true
+
+    await useIntegrationManager().fetchTasks()
+    expect(store.task('past')).toMatchObject({ notPlanned: true, sourceNotPlanned: 'Irgendwann', title: 'Offline umbenannt', timeSpentSeconds: 600 })
+    // the push that follows the merge carries the edit, in the status the page is held in
+    await settle()
+    expect(sentToNotion()).toEqual([['past', true, 'Irgendwann']])
+    expect(notion.updateTask.mock.calls[0]![0].title).toBe('Offline umbenannt')
+
+    // the same fetch as a complete list: Notion no longer has the page
+    notionList.notPlannedPartial = []
+    notionList.notPlannedLimited = false
+    await useIntegrationManager().fetchTasks()
+    expect(store.task('past')).toBeNull()
   })
 
   it('a task made as not planned in Notion is created with the first mapped status; in Offen it is created as before', async () => {

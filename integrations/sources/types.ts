@@ -22,6 +22,18 @@ export class SourceNotConfiguredError extends Error {
   }
 }
 
+/** A source's active tasks together with what the list leaves out (`TaskSourceAdapter.fetchActiveList`). */
+export interface FetchedTasks {
+  tasks: Task[]
+  /**
+   * The values of `Task.sourceNotPlanned` for which `tasks` is only a part of what the source holds (#357: Notion
+   * loads the most recently edited pages of its "not planned" statuses up to a limit). Empty: the list is
+   * complete. `mergeTasks` keeps a held task with one of these values that the list lacks; every other task the
+   * list lacks is gone at the source, as with a complete list.
+   */
+  partialNotPlanned: readonly string[]
+}
+
 export interface TaskSourceAdapter {
   readonly id: SourceId
   /** Whether time spent is written upstream (Notion). Todoist has no such field, Local has no upstream. */
@@ -35,6 +47,13 @@ export interface TaskSourceAdapter {
    * so a caller can tell a failed fetch from an empty one. Local returns the Local tasks of the board.
    */
   fetchActive(): Promise<Task[]>
+
+  /**
+   * `fetchActive` for a source whose list can be a part of what it holds (Notion's capped "not planned" pages,
+   * #357): the same tasks, plus what the list leaves out. The integration manager fetches through it when it
+   * exists, so the answer belongs to exactly that fetch. Absent: `fetchActive` is always complete.
+   */
+  fetchActiveList?(): Promise<FetchedTasks>
 
   /**
    * For a source that holds time rounded to a unit (Notion minutes/hours): maps a local total to the total the

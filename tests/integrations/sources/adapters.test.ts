@@ -102,6 +102,20 @@ describe('NotionSource', () => {
     await expect(build().fetchActive()).rejects.toThrow('boom')
   })
 
+  it('the list says for which "not planned" statuses it is a part (#357: Notion caps them), and the limit is reported', async () => {
+    integration.fetchActiveBoardTasks.mockResolvedValue([task()])
+    const capped = Object.assign(Object.create(integration), { notPlannedPartial: ['Backlog'], notPlannedLimited: true })
+    const source = new NotionSource({
+      isConfigured: () => true, ensureDataSource: async () => true, createInstance: () => capped as unknown as NotionIntegration,
+      archiveStatus: () => null, notPlannedStatus: () => 'Backlog', onNotPlannedLimit: (limited) => { limitReports.push(limited) }, health: () => 'healthy',
+    })
+    limitReports.length = 0
+    const list = await source.fetchActiveList()
+    expect(list.tasks).toHaveLength(1)
+    expect(list.partialNotPlanned).toEqual(['Backlog'])
+    expect(limitReports).toEqual([true])
+  })
+
   it('rejects with SourceNotConfiguredError when Notion is not set up, and with an error without a data source', async () => {
     configured = false
     await expect(build().fetchActive()).rejects.toBeInstanceOf(SourceNotConfiguredError)

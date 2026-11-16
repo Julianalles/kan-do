@@ -366,7 +366,8 @@ export class NotionClientAPI {
    *
    * `maxResults` (#357) is for a list that is allowed to be a part: reading stops once that many rows are in, and
    * `limited` says whether Notion has more. Pass `sorts` with it, so the part is a defined one. Never for a list
-   * `mergeTasks` treats as complete.
+   * `mergeTasks` treats as complete: the caller hands the merge what the list is a part of
+   * (`FetchedTasks.partialNotPlanned`).
    */
   async queryDataSource(
     dataSourceId: string,

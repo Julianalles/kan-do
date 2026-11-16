@@ -170,6 +170,59 @@ describe('mergeTasks follows a source only when its planning state changes (#357
     expect(store.task('n')!.status).toBe(TaskStatus.Open)
   })
 
+  // Review of PR 384: the capped "not planned" list was merged as a complete one, so a held task past the cap was
+  // dropped with its unpushed edit and with what only kan-do holds (time, the carried-over count, order)
+  describe('a list the source capped is a part of what it holds', () => {
+    const PARTIAL = { partialNotPlanned: ['Backlog', 'Someday'] }
+    const seed = () => {
+      const store = useTasksStore()
+      store.setTasks([
+        makeTask('in-list', { notPlanned: true, sourceNotPlanned: 'Backlog' }),
+        makeTask('past-cap', { notPlanned: true, sourceNotPlanned: 'Someday', timeSpentSeconds: 900, title: 'Lokal umbenannt' }),
+        makeTask('planned-unpushed', { title: 'Gerade eingeplant' }),
+        makeTask('other-status', { notPlanned: true, sourceNotPlanned: 'Archiv' }),
+        makeTask('gone-from-board'),
+      ])
+      store.markPendingSync('past-cap')
+      // planned by the user a moment ago: the value is cleared, Notion still holds the page past the cap
+      store.markPendingSync('planned-unpushed')
+      return store
+    }
+    const fetched = () => [makeTask('in-list', { sourceNotPlanned: 'Backlog' }), makeTask('new', { sourceNotPlanned: 'Backlog' })]
+
+    it('a held task the list lacks stays as it is, with its unpushed change and local time; so does a task with an unpushed change', () => {
+      const store = seed()
+      store.mergeTasks('notion', fetched(), PARTIAL)
+      expect(store.task('past-cap')).toMatchObject({ notPlanned: true, sourceNotPlanned: 'Someday', timeSpentSeconds: 900, title: 'Lokal umbenannt' })
+      expect(store.task('past-cap')!.pendingSync).toBeDefined()
+      expect(store.task('planned-unpushed')).toMatchObject({ title: 'Gerade eingeplant' })
+      expect(store.tasksOpen.map(t => t.id)).toEqual(['planned-unpushed'])
+      // what the cap cannot hide is gone as before: a board task, and a task held in a status that is not capped
+      expect(store.task('gone-from-board')).toBeNull()
+      expect(store.task('other-status')).toBeNull()
+      expect(store.tasksNotPlanned.map(t => t.id).sort()).toEqual(['in-list', 'new', 'past-cap'])
+    })
+
+    it('a complete list drops what it lacks, as before', () => {
+      const store = seed()
+      store.mergeTasks('notion', fetched())
+      expect(store.tasks.map(t => t.id).sort()).toEqual(['in-list', 'new'])
+      const again = seed()
+      again.mergeTasks('notion', fetched(), { partialNotPlanned: [] })
+      expect(again.tasks.map(t => t.id).sort()).toEqual(['in-list', 'new'])
+    })
+
+    it('a kept task is matched again once the list has it, and follows Notion from there', () => {
+      const store = seed()
+      store.mergeTasks('notion', fetched(), PARTIAL)
+      store.clearPendingSync('past-cap')
+      store.mergeTasks('notion', [...fetched(), makeTask('past-cap')], PARTIAL)
+      expect(store.tasks.filter(t => t.id === 'past-cap')).toHaveLength(1)
+      expect(isNotPlanned(store.task('past-cap')!)).toBe(false)
+      expect(store.task('past-cap')!.timeSpentSeconds).toBe(900)
+    })
+  })
+
   it('a move to another source drops the value and its undo brings it back', () => {
     const store = useTasksStore()
     store.setTasks([makeTask('t', { notPlanned: true, sourceNotPlanned: 'Backlog' })])

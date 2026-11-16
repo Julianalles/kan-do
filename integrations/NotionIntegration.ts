@@ -230,8 +230,17 @@ export class NotionIntegration {
     return this.mapStatusToNotion(task.status);
   }
 
+  /**
+   * The "not planned" statuses whose pages the last `fetchActiveBoardTasks` read only in part, because Notion has
+   * more than the limit (#357): the mapped statuses then, empty when every page was read. The list of such a fetch
+   * is not complete for them, so the merge keeps a task held in one of them that the list lacks.
+   */
+  notPlannedPartial: string[] = [];
+
   /** Whether the last `fetchActiveBoardTasks` left "not planned" pages out because Notion has more than the limit. */
-  notPlannedLimited = false;
+  get notPlannedLimited(): boolean {
+    return this.notPlannedPartial.length > 0;
+  }
 
   private mapNotionStatus(notionStatus: string): TaskStatus {
     const statusMap: Record<string, TaskStatus> = {
@@ -1045,7 +1054,7 @@ export class NotionIntegration {
     // The pages in a "not planned" status (#357), only once the user mapped one: a list of its own, because it may
     // be an archive. It is capped at the most recently edited `NOT_PLANNED_PAGE_LIMIT`; the board query above is
     // never capped. A page both queries return (its status changed in between) is taken once.
-    this.notPlannedLimited = false;
+    this.notPlannedPartial = [];
     const notPlanned = this.notPlannedStatuses();
     if (notPlanned.length > 0) {
       const held = await this.api.queryDataSource(this.dataSourceId, {
@@ -1053,7 +1062,7 @@ export class NotionIntegration {
         sorts: [{ timestamp: 'last_edited_time', direction: 'descending' }],
         maxResults: NOT_PLANNED_PAGE_LIMIT,
       });
-      this.notPlannedLimited = held.limited === true;
+      if (held.limited === true) this.notPlannedPartial = [...notPlanned];
       const seen = new Set(pages.map((page) => page.id));
       for (const page of held.results as NotionPage[]) {
         // Only what the filter asked for: a transport that ignores it must not double the board

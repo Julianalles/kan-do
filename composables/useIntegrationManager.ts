@@ -73,8 +73,11 @@ export const useIntegrationManager = () => {
     const integration: IntegrationSourceId | null = isIntegrationSourceId(source) ? source : null;
 
     let tasks: Task[];
+    // The statuses a capped list holds only in part (#357): the merge must not read it as complete for them
+    let partialNotPlanned: readonly string[] = [];
     try {
-      tasks = await adapter.fetchActive();
+      if (adapter.fetchActiveList) ({ tasks, partialNotPlanned } = await adapter.fetchActiveList());
+      else tasks = await adapter.fetchActive();
     } catch (error) {
       console.error(`[IntegrationManager] Fetching ${source} failed:`, error);
       if (!ticket.isStale() && integration) {
@@ -119,6 +122,7 @@ export const useIntegrationManager = () => {
       timeWritable,
       holdsOnlyOpenDone: adapter.holdsOnlyOpenDone === true,
       startsNotPlanned: adapter.startsNotPlanned === true,
+      partialNotPlanned,
     });
     if (completesSwitch) boardStore.clearSourceSwitchPending();
     if (integration) health.recordSuccessfulSync(integration);

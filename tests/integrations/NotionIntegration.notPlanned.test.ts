@@ -100,6 +100,8 @@ describe('fetch', () => {
     const tasks = await sut.fetchActiveBoardTasks()
     expect(tasks).toHaveLength(NOT_PLANNED_PAGE_LIMIT)
     expect(sut.notPlannedLimited).toBe(true)
+    // the statuses whose list is a part: the merge keeps a held task in one of them that the list lacks
+    expect(sut.notPlannedPartial).toEqual(['Backlog'])
     // the board query plus exactly the pages the limit needs
     expect(queries.length - 1).toBe(Math.ceil(NOT_PLANNED_PAGE_LIMIT / 100))
   })
@@ -114,6 +116,7 @@ describe('fetch', () => {
     const sut = makeSut(['Backlog'])
     expect(await sut.fetchActiveBoardTasks()).toHaveLength(NOT_PLANNED_PAGE_LIMIT)
     expect(sut.notPlannedLimited).toBe(false)
+    expect(sut.notPlannedPartial).toEqual([])
   })
 })
 
