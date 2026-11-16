@@ -12,7 +12,7 @@ import {
 
 const recap = (page: Page) => page.getByTestId('new-day-recap')
 const summary = (page: Page) => page.getByTestId('recap-summary')
-/** "Direkt zu Heute": leaves to the board, as the single button did before #356 */
+/** "Direkt zum Board": leaves to the board, as the single button did before #356 */
 const continueButton = (page: Page) => page.getByTestId('recap-continue')
 /** "Tag planen" (#356): the primary way out, leads to "Alle" */
 const planButton = (page: Page) => page.getByTestId('recap-plan')
@@ -304,14 +304,14 @@ test.describe('New-day recap (#385)', () => {
     const toggle = (await archiveSwitch(page).boundingBox())!
     const button = (await planButton(page).boundingBox())!
     const skip = (await continueButton(page).boundingBox())!
-    // "Direkt zu Heute" left of "Tag planen" (#356), on one line
+    // "Direkt zum Board" left of "Tag planen" (#356), on one line
     expect(toggle.x + toggle.width).toBeLessThan(skip.x)
     expect(skip.x + skip.width).toBeLessThanOrEqual(button.x)
     expect(Math.abs(skip.y + skip.height / 2 - (button.y + button.height / 2))).toBeLessThan(2)
     // one row, both vertically centred in the panel
     expect(Math.abs(toggle.y + toggle.height / 2 - (button.y + button.height / 2))).toBeLessThan(6)
     expect(Math.abs(panelBox.y + panelBox.height / 2 - (button.y + button.height / 2))).toBeLessThan(2)
-    await expect(continueButton(page)).toHaveAccessibleName('Direkt zu Heute')
+    await expect(continueButton(page)).toHaveAccessibleName('Direkt zum Board')
     await expect(planButton(page)).toHaveAccessibleName('Tag planen')
     // trailing: the icon is the last child of the button, after the label, and decorative
     const icon = planButton(page).locator('svg[data-slot="trailingIcon"]')
@@ -743,7 +743,7 @@ test.describe('A new day sends unfinished cards back (#356)', () => {
     await expect(summary(page)).toHaveText('Du hast gestern 4 von 8 Aufgaben erledigt.')
     await expect(planButton(page)).toBeFocused()
     await expect(planButton(page)).toHaveText('Tag planen')
-    await expect(continueButton(page)).toHaveText('Direkt zu Heute')
+    await expect(continueButton(page)).toHaveText('Direkt zum Board')
 
     await planButton(page).click()
     await expect(page).toHaveURL(/\/all$/)
@@ -763,7 +763,7 @@ test.describe('A new day sends unfinished cards back (#356)', () => {
     expect(await storedTask(page, 'nd-now-1')).toMatchObject({ status: 0, notPlanned: true, timeSpentSeconds: 1800 })
   })
 
-  test('"Direkt zu Heute": an empty Offen says how many tasks of yesterday wait under "Alle", with a link; planning one ends the sentence', async ({ page, context }) => {
+  test('"Direkt zum Board": an empty Offen says how many tasks of yesterday wait under "Alle", with a link; planning one ends the sentence', async ({ page, context }) => {
     await seedNewDayBoard(context, { tasks: newDayBackTasks() })
     await page.goto('/tasks')
     await continueButton(page).click()

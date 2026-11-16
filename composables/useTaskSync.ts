@@ -274,9 +274,13 @@ export const useTaskSync = () => {
    * connection, a missing setup, 401) is recorded in the source's health, anything else (403, 5xx) only in the
    * task's marker, and the first failure that is not plain offline is reported once. A rejected create (400, 409,
    * 404, any other 4xx: the source refuses this task) throws, the caller keeps the form open and reports it.
+   * A draft with `notPlanned: true` and the status Open makes a task that is not planned (#367: one made while the
+   * place "Alle" shows): it goes on top of "Nicht geplant" instead of into Offen. The marker is set here, after the
+   * adapter returned the task, and never reaches an adapter: nothing about it is written to a connection.
    * @returns the task as it was added to the store
    */
-  const createTask = async (draft: Partial<Task>, source: SourceId): Promise<Task> => {
+  const createTask = async (draftIn: Partial<Task>, source: SourceId): Promise<Task> => {
+    const { notPlanned: asksNotPlanned, ...draft } = draftIn;
     let created: Task;
     let deferredReason: string | null = null;
     let deferredError: unknown = null;
@@ -300,8 +304,13 @@ export const useTaskSync = () => {
       }
     }
 
+    // Only an Open task can be not planned (`isNotPlanned`): add-and-start (Jetzt) stays on the board
+    const notPlanned = asksNotPlanned === true && created.status === TaskStatus.Open;
+    if (notPlanned) created = { ...created, notPlanned: true };
+    else if (created.notPlanned !== undefined) delete created.notPlanned;
     tasksStore.addTask(created);
-    if (created.status !== undefined) boardStore.updateTaskPosition(created.id, created.status);
+    if (notPlanned) boardStore.noteNotPlanned(created.id);
+    else if (created.status !== undefined) boardStore.updateTaskPosition(created.id, created.status);
     if (deferredReason !== null) {
       tasksStore.markPendingSync(created.id);
       if (deferredError === null || !isIntegrationSourceId(source)) tasksStore.recordPendingSyncFailure(created.id, deferredReason);

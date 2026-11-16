@@ -358,15 +358,15 @@ describe('NewDayRecap', () => {
     })
     afterEach(() => setCurrentBoardPath('/tasks'))
 
-    it('shows "Tag planen" as the primary button and "Direkt zu Heute" beside it', async () => {
+    it('shows "Tag planen" as the primary button and "Direkt zum Board" beside it', async () => {
       await open([doneAt(1, 'a')])
       expect(q('[data-testid="recap-plan"]').textContent?.trim()).toBe('Tag planen')
       expect(q('[data-testid="recap-plan"]').hasAttribute('data-recap-primary')).toBe(true)
-      expect(q('[data-testid="recap-continue"]').textContent?.trim()).toBe('Direkt zu Heute')
+      expect(q('[data-testid="recap-continue"]').textContent?.trim()).toBe('Direkt zum Board')
       setTestLocale('en')
       await nextTick()
       expect(q('[data-testid="recap-plan"]').textContent?.trim()).toBe('Plan the day')
-      expect(q('[data-testid="recap-continue"]').textContent?.trim()).toBe('Straight to Today')
+      expect(q('[data-testid="recap-continue"]').textContent?.trim()).toBe('Straight to the board')
       setTestLocale('de')
     })
 
@@ -379,7 +379,7 @@ describe('NewDayRecap', () => {
       expect(useDayRecapStore().lastShownDay).toBe('2026-10-22')
     })
 
-    it('"Direkt zu Heute" leaves the recap and stays on Heute', async () => {
+    it('"Direkt zum Board" leaves the recap and stays on Heute', async () => {
       await open([doneAt(1, 'a')])
       q('[data-testid="recap-continue"]').click()
       expect(navigateTo).not.toHaveBeenCalled()
@@ -387,7 +387,7 @@ describe('NewDayRecap', () => {
 
     })
 
-    it('"Direkt zu Heute" on "Alle" goes to Heute', async () => {
+    it('"Direkt zum Board" on "Alle" goes to Heute', async () => {
       setCurrentBoardPath('/all')
       await open([doneAt(1, 'a')])
       q('[data-testid="recap-continue"]').click()
@@ -395,7 +395,7 @@ describe('NewDayRecap', () => {
       expect(useNewDayRecap().isOpen.value).toBe(false)
     })
 
-    it('Escape is "Direkt zu Heute" without a move: it only dismisses, also on "Alle"', async () => {
+    it('Escape is "Direkt zum Board" without a move: it only dismisses, also on "Alle"', async () => {
       setCurrentBoardPath('/all')
       await open([doneAt(1, 'a')])
       pressEscape()

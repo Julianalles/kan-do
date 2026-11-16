@@ -90,7 +90,7 @@
       overflow-x: clip;
     }
 
-    /* "Weiter zu Heute" keeps its place at the foot of Offen, like "Tag abschließen" at the foot of Erledigt */
+    /* "Tag starten" keeps its place at the foot of Offen, like "Tag abschließen" at the foot of Erledigt */
     #column-open > .column-footer {
       margin-top: auto;
     }
@@ -243,7 +243,7 @@
       grid-row: unset;
     }
 
-    /* "Alle" (#354): room under the last card of both pages for the fixed "Weiter zu Heute" bar (BoardContinue); the
+    /* "Alle" (#354): room under the last card of both pages for the fixed "Tag starten" bar (BoardContinue); the
        "Nicht geplant" page also for the capacity echo above the button */
     :where(.board)[data-place='all'] > #column-open {
       padding-bottom: calc(var(--phone-bar-offset) + 5rem);

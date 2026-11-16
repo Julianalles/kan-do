@@ -12,8 +12,8 @@
 - Pick: a round button per card ("Für heute einplanen", named with the task's title). Desktop: on the paper right of the card, towards Offen, quiet at rest and full on hover and focus, so a first-time user finds it (#354 D1e). Phone: in the card's top right corner, where a board card has its menu button. The move is `usePlanMoves().planForToday`; keyboard focus goes on to the next card's button
 - Order: `tasksStore.tasksNotPlanned` (put back by hand first, newest first); the topic focus filters it like a column (`useBoardFocus`)
 - A new day (#356): the tasks today's pass sent back (`useNewDay().groupIds`) stand on top as the group "Gestern geplant, noch offen" (its `h3` in the row under the headline), every other task below under "Weitere Aufgaben". For that one day only; a group the topic focus leaves empty is not shown, and without the first group there are no headings at all. Pick, drag and the focus hand-over work across the heading
-- Empty: one muted note. Nothing held here: "Noch keine weiteren Aufgaben. Alles ist für heute geplant." plus how a task gets here (#354 D1c: until #357 nothing arrives by itself); a focus without a match: "Keine Aufgaben gefunden."; a board without any task stays blank
-- Many items: on desktop the side is as tall as the window and its list scrolls inside it, so Offen and "Weiter zu Heute" stay in view; on a phone the page scrolls like every column page
+- Empty: one muted note. Nothing held here: "Keine weiteren Aufgaben vorhanden." and the soft button "Aufgabe erstellen" (#367, the user's wording), which opens the sheet's add form under `/all/add`; a task made while "Alle" shows is not planned, so it lands here; a focus without a match: "Keine Aufgaben gefunden."; a board without any task stays blank
+- Many items: on desktop the side is as tall as the window and its list scrolls inside it, so Offen and "Tag starten" stay in view; on a phone the page scrolls like every column page
 - Out of view (`active` false) the side is `inert`; Board.vue's CSS takes it out of layout or view once the move is over
 -->
 <template>
@@ -56,9 +56,15 @@
       <EmptyNote v-if="held.length > 0 && shown.length === 0" class="not-planned__note" data-testid="not-planned-no-match">
         {{ t('board.notPlanned.noMatch') }}
       </EmptyNote>
-      <EmptyNote v-else-if="held.length === 0 && hasTasks" class="not-planned__note" data-testid="not-planned-empty">
-        {{ t('board.notPlanned.empty') }} {{ t('board.notPlanned.emptyHow') }}
-      </EmptyNote>
+      <!-- Nothing held here (#367): the sentence and the one way to fill the side from here. The new task is not planned -->
+      <div v-else-if="held.length === 0 && hasTasks" class="not-planned__note flex flex-col items-center gap-3">
+        <EmptyNote data-testid="not-planned-empty">
+          {{ t('board.notPlanned.empty') }}
+        </EmptyNote>
+        <UButton color="neutral" variant="soft" icon="i-ph-plus" data-testid="not-planned-create" @click="createTask">
+          {{ t('board.notPlanned.create') }}
+        </UButton>
+      </div>
 
       <!-- On a new day (#356): what was planned yesterday and not finished, on top as a group of its own, for that day.
            Not in the reader's tree while it holds nothing: an empty list says "0 items" -->
@@ -186,6 +192,8 @@ const othersHeadingId = useId()
 const hasTasks = computed(() => tasksStore.tasks.length > 0)
 
 const openTask = (id: string) => void navigateTo({ path: `${basePath.value}/${id}` })
+/** "Aufgabe erstellen" (#367): the sheet's add form under "Alle"; `createTask` makes the task not planned there */
+const createTask = () => void navigateTo({ path: `${basePath.value}/add` })
 
 /** Plans the card. A keyboard user's focus was on the button that now leaves: it goes on to the next card's button. */
 async function pick(id: string, event: MouseEvent) {

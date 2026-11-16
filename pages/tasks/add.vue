@@ -32,6 +32,7 @@ import { useTaskOperations } from "~/composables/useTaskOperations";
 import { useModalFooter } from "~/composables/useModalFooter";
 import { useTaskSheet } from "~/composables/useTaskSheet";
 import { useTaskDraft } from "~/composables/useTaskDraft";
+import { newTaskStartsNotPlanned } from '~/lib/boardPlace';
 import { TaskStatus } from "~/types/taskStatus";
 import { checkWipMove } from "~/utils/wipGuard";
 import type { Task } from "~/types/task";
@@ -215,7 +216,9 @@ async function handleSave(taskData: Partial<Task>) {
       });
     }
     
-    createdTaskId = (await createTask(taskData, saveSource.value)).id;
+    // On the place "Alle" a new task is not planned (#367); add-and-start always goes to the board
+    const notPlanned = !isAdHocMode.value && newTaskStartsNotPlanned();
+    createdTaskId = (await createTask(notPlanned ? { ...taskData, notPlanned: true } : taskData, saveSource.value)).id;
   } catch (error) {
     handleError(error as Error, "task_create");
 

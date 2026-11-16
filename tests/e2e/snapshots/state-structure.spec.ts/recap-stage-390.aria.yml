@@ -11,5 +11,5 @@
     - button "Nächste Aufgabe"
   - switch "Erledigte archivieren" [checked]
   - text: Erledigte archivieren
-  - button "Direkt zu Heute"
+  - button "Direkt zum Board"
   - button "Tag planen"

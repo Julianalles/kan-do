@@ -226,6 +226,7 @@ import { useI18n } from 'vue-i18n';
 import { useToast } from '#imports';
 import { navigateTo } from 'nuxt/app';
 import { boardBasePath } from '~/composables/useBoardPlace';
+import { newTaskStartsNotPlanned } from '~/lib/boardPlace';
 import TaskCard from '~/components/task/TaskCard.vue';
 import NewCardOptionList from '~/components/board/NewCardOptionList.vue';
 import ChoiceChip from '~/components/ui/ChoiceChip.vue';
@@ -624,6 +625,8 @@ async function save() {
         notes: notes.value.trim() || null,
         timeBoxSeconds: fields.value.timebox && minutes.value ? minutes.value * 60 : null,
         isUnplanned: false,
+        // On the place "Alle" the saved card goes to "Nicht geplant" (#367)
+        ...(newTaskStartsNotPlanned() ? { notPlanned: true as const } : {}),
       },
       defaultSource.value,
     );

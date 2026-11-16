@@ -2,8 +2,8 @@
 @component BoardContinue
 @kind component
 @category action
-@description The way on from the place "Alle" to the board (#354, epic #334): the primary button "Weiter zu Heute" and, above it, the echo of Offen's capacity line while that line is out of view
-@usage Board.vue renders it twice, never both at once: on desktop in the footer slot of the Offen column (where Erledigt has "Tag abschließen"), on a phone (`phone`) as a bar fixed above the app bar on both pages of "Alle", with the number of tasks in Offen behind the label.
+@description The way on from the place "Alle" to the board (#354, epic #334): the primary button "Tag starten" (#367, without a count) and, above it, the echo of Offen's capacity line while that line is out of view
+@usage Board.vue renders it twice, never both at once: on desktop in the footer slot of the Offen column (where Erledigt has "Tag abschließen"), on a phone (`phone`) as a bar fixed above the app bar on both pages of "Alle".
 @avoid The page's one primary button, only on "Alle"; "Tag abschließen" on Heute keeps its own footer in Board.vue. Not a navigation bar: the places are in AppNav.
 @responsibility
 - The button is a link to Heute (`boardPlaceLocation('today')`), so the board travels there as with the app bar
@@ -27,7 +27,7 @@
         class="max-md:w-full max-md:justify-center"
         data-testid="board-continue"
       >
-        {{ phone && count > 0 ? t('board.notPlanned.continueCount', { n: count }) : t('board.notPlanned.continue') }}
+        {{ t('board.notPlanned.continue') }}
       </UButton>
     </span>
   </div>
@@ -44,15 +44,13 @@ defineOptions({ name: 'BoardContinue' })
 const props = withDefaults(defineProps<{
   /** The phone bar (fixed above the app bar) instead of the column footer */
   phone?: boolean
-  /** Phone: tasks in Offen, shown behind the label */
-  count?: number
   /** Phone: the "Nicht geplant" page shows, so Offen's line is out of view */
   echoActive?: boolean
   /** Phone: the topic focus pill floats above the app bar; the bar steps up above it */
   lifted?: boolean
   /** A card is dragged: the bar steps back like the app bar */
   hidden?: boolean
-}>(), { phone: false, count: 0, echoActive: false, lifted: false, hidden: false })
+}>(), { phone: false, echoActive: false, lifted: false, hidden: false })
 
 const emit = defineEmits<{
   /** Phone: bring Offen's capacity line into view (the board owns its pages) */

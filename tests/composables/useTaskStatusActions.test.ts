@@ -1,9 +1,10 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { setActivePinia, createPinia } from 'pinia'
 import { TaskStatus } from '~/types/taskStatus'
 import type { Task } from '~/types/task'
-import { useTaskStatusActions } from '~/composables/useTaskStatusActions'
+import { useTaskStatusActions, NOT_PLANNED_CHOICE } from '~/composables/useTaskStatusActions'
+import { useTasksStore } from '~/store/tasks'
 
 const updateTaskStatusMock = vi.fn()
 
@@ -11,6 +12,12 @@ vi.mock('~/composables/useTaskOperations', () => ({
   useTaskOperations: () => ({
     moveOrSwapToStatus: updateTaskStatusMock,
   }),
+}))
+
+const planForTodayMock = vi.fn()
+const notTodayMock = vi.fn()
+vi.mock('~/composables/usePlanMoves', () => ({
+  usePlanMoves: () => ({ planForToday: planForTodayMock, notToday: notTodayMock }),
 }))
 
 function makeTask(overrides: Partial<Task> = {}): Task {
@@ -145,6 +152,74 @@ describe('useTaskStatusActions', () => {
 
       expect(statusMenuItems.value[0]!.find(i => i.label === 'Erledigt')?.disabled).toBe(true)
       expect(statusMenuItems.value[0]!.find(i => i.label === 'Offen')?.disabled).toBe(false)
+    })
+  })
+
+  describe('the fifth choice "Nicht geplant" (#359)', () => {
+    /** The task as the store holds it; the mocked move sets the status at once, as the real one does before its write */
+    function stored(overrides: Partial<Task>) {
+      const store = useTasksStore()
+      store.setTasks([makeTask({ id: 'abc', ...overrides })])
+      updateTaskStatusMock.mockImplementation(async (id: string, status: TaskStatus) => {
+        store.updateTask(id, { status })
+      })
+      planForTodayMock.mockReset().mockResolvedValue(true)
+      notTodayMock.mockReset().mockResolvedValue(true)
+      return useTaskStatusActions(computed(() => store.task('abc') ?? null))
+    }
+
+    it('reads "Nicht geplant" for a not-planned task and the column for every other', () => {
+      expect(stored({ notPlanned: true }).statusChoice.value).toBe(NOT_PLANNED_CHOICE)
+      expect(stored({}).statusChoice.value).toBe(TaskStatus.Open)
+      // A stale marker outside Offen never hides the column
+      expect(stored({ status: TaskStatus.Waiting, notPlanned: true }).statusChoice.value).toBe(TaskStatus.Waiting)
+    })
+
+    it('Offen → Nicht geplant is "Nicht heute", without a status write', async () => {
+      await stored({}).chooseStatus(NOT_PLANNED_CHOICE)
+      expect(notTodayMock).toHaveBeenCalledWith('abc')
+      expect(updateTaskStatusMock).not.toHaveBeenCalled()
+    })
+
+    it.each([TaskStatus.Progress, TaskStatus.Waiting, TaskStatus.Done])('status %s → Nicht geplant: to Offen by the normal move, then "Nicht heute"', async (status) => {
+      await stored({ status }).chooseStatus(NOT_PLANNED_CHOICE)
+      expect(updateTaskStatusMock).toHaveBeenCalledWith('abc', TaskStatus.Open)
+      expect(notTodayMock).toHaveBeenCalledWith('abc')
+      expect(updateTaskStatusMock.mock.invocationCallOrder[0]!).toBeLessThan(notTodayMock.mock.invocationCallOrder[0]!)
+    })
+
+    it('a refused move to Offen leaves the task where it is: no "Nicht heute"', async () => {
+      const actions = stored({ status: TaskStatus.Waiting })
+      updateTaskStatusMock.mockImplementation(async () => false)
+      await actions.chooseStatus(NOT_PLANNED_CHOICE)
+      expect(notTodayMock).not.toHaveBeenCalled()
+    })
+
+    it('Nicht geplant → Nicht geplant does nothing', async () => {
+      await stored({ notPlanned: true }).chooseStatus(NOT_PLANNED_CHOICE)
+      expect(notTodayMock).not.toHaveBeenCalled()
+      expect(updateTaskStatusMock).not.toHaveBeenCalled()
+    })
+
+    it('Nicht geplant → Offen is "Für heute einplanen"', async () => {
+      await stored({ notPlanned: true }).chooseStatus(TaskStatus.Open)
+      expect(planForTodayMock).toHaveBeenCalledWith('abc')
+      expect(updateTaskStatusMock).not.toHaveBeenCalled()
+    })
+
+    it.each([TaskStatus.Progress, TaskStatus.Waiting, TaskStatus.Done])('Nicht geplant → status %s is the normal move, which plans it', async (status) => {
+      const store = useTasksStore()
+      await stored({ notPlanned: true }).chooseStatus(status)
+      expect(updateTaskStatusMock).toHaveBeenCalledWith('abc', status)
+      expect(planForTodayMock).not.toHaveBeenCalled()
+      expect(store.task('abc')).toMatchObject({ status })
+      expect(store.task('abc')?.notPlanned).toBeUndefined()
+    })
+
+    it('a planned task picked into a column is the normal move', async () => {
+      await stored({}).chooseStatus(TaskStatus.Waiting)
+      expect(updateTaskStatusMock).toHaveBeenCalledWith('abc', TaskStatus.Waiting)
+      expect(notTodayMock).not.toHaveBeenCalled()
     })
   })
 })

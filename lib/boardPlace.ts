@@ -40,6 +40,14 @@ const path = ref<string>(BOARD_PLACE_PATHS.today)
 /** The path the router is on (without query and hash); `/tasks` until the plugin has set it. */
 export const currentBoardPath = readonly(path)
 
+/**
+ * A task made now starts as not planned (#367): the place "Alle" shows, also under its sheet (`/all/add`). Every
+ * caller of `useTaskSync().createTask` that adds a new task to Offen passes this as the draft's `notPlanned`.
+ */
+export function newTaskStartsNotPlanned(): boolean {
+  return boardPlaceOfPath(path.value) === 'all'
+}
+
 /** Called by `plugins/board-place.client.ts` on every route change (and by tests that pose as a place). */
 export function setCurrentBoardPath(next: string): void {
   path.value = next

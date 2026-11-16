@@ -147,10 +147,9 @@
       "planNamed": "{title}: plan for today",
       "notToday": "Not today",
       "notTodayNamed": "{title}: not today",
-      "continue": "Continue to Today",
-      "continueCount": "Continue to Today · {n}",
-      "empty": "No more tasks yet. Everything is planned for today.",
-      "emptyHow": "“Not today” in the menu of a card in Open puts a task back here.",
+      "continue": "Start the day",
+      "empty": "No more tasks.",
+      "create": "Create task",
       "noMatch": "No tasks found.",
       "planned": "{title} is planned for today.",
       "unplanned": "{title} is no longer planned for today.",
@@ -1372,7 +1371,7 @@
       "label": "Choose a deck"
     },
     "archiveToggle": "Archive done tasks",
-    "continue": "Straight to Today",
+    "continue": "Straight to the board",
     "plan": "Plan the day"
   },
   "dayClose": {

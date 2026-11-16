@@ -18,7 +18,7 @@
 - One-off (owner, #351, 2026-11-16): "Alle" and "Heute" show Offen with the same look and vertical position, so the way between them reads as one sideways move of the board; no general rule for other places
 - "Alle", drag (#355): a card is carried between "Nicht geplant" and Offen with the board's own drag (useBoardDndKit); `data-over-not-planned` on `.board` while that side is the drop
   target (dnd.css takes the placeholder out of Offen's layout). Phone: the edge scroll and its arrows work on the two pages of "Alle" as on Heute's three
-- "Alle": BoardContinue ("Weiter zu Heute" with the capacity echo) in Offen's footer on desktop and as a fixed bar on the phone; the two planning moves are announced politely (usePlanMoves)
+- "Alle": BoardContinue ("Tag starten" with the capacity echo) in Offen's footer on desktop and as a fixed bar on the phone; the two planning moves are announced politely (usePlanMoves)
 - Phone: column pages moved by swipe and drag edge-scroll only (no tabs, #470), per place: "Alle" has two ("Nicht geplant", Offen), "Heute" three (Offen, Jetzt + Wartet, Erledigt); a swipe, the
   edge-scroll and focus never leave the place. The active page within the place is `data-mobile-page`. Heute opens on Jetzt while a task sits there, else on Offen (kd#191), and on Offen when
   coming from "Alle"; "Alle" opens on "Nicht geplant". Focus entering an off-screen page of the place makes it active (the keyboard / screen-reader path the tabs were)
@@ -46,7 +46,6 @@
     <BoardContinue
       v-if="isAll && isMobile"
       phone
-      :count="tasksOpen.length"
       :echo-active="stripPage === NOT_PLANNED_PAGE"
       :lifted="focusBarShows"
       :hidden="isDragging"
@@ -86,7 +85,7 @@
         :grouping-enabled="groupingEnabled"
         :grouping-key="groupingKey"
       >
-        <!-- "Weiter zu Heute" at the foot of Offen on "Alle" (desktop), where Erledigt has "Tag abschließen" -->
+        <!-- "Tag starten" at the foot of Offen on "Alle" (desktop), where Erledigt has "Tag abschließen" -->
         <template v-if="isAll && !isMobile" #footer>
           <BoardContinue />
         </template>
@@ -301,7 +300,7 @@ const { effectiveGroupKey: groupingKey } = useBoardGrouping();
  * Tasks in the Open/Today column.
  */
 const { applyFocus, focusTopic, chipsOpen } = useBoardFocus();
-/** The topic focus bar shows (its chip row or its pill): on the phone the "Weiter zu Heute" bar steps up above it */
+/** The topic focus bar shows (its chip row or its pill): on the phone the "Tag starten" bar steps up above it */
 const focusBarShows = computed(() => focusTopic.value !== null || chipsOpen.value);
 const tasksOpen = computed(() => applyFocus(tasksStore.tasksOpen));
 
@@ -327,7 +326,7 @@ const tasksDone = computed(() => applyFocus(tasksStore.tasksDoneToday));
 // page left of it (board.css), and
 // .board-container clips it to its own width (never 100vw, #269); `stripPage` drives translateX so no scroll container
 // is needed. No tabs (#470): a swipe, the drag edge-scroll and focus entering a page move it inside the place; only
-// the app bar and "Weiter zu Heute" change the place.
+// the app bar and "Tag starten" change the place.
 
 const { place, isAll } = useBoardPlace();
 // The tasks the new day sent back that still wait under "Alle" (#356): Offen says so while it is empty on Heute. The

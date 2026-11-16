@@ -147,10 +147,9 @@
       "planNamed": "{title}: für heute einplanen",
       "notToday": "Nicht heute",
       "notTodayNamed": "{title}: nicht heute",
-      "continue": "Weiter zu Heute",
-      "continueCount": "Weiter zu Heute · {n}",
-      "empty": "Noch keine weiteren Aufgaben. Alles ist für heute geplant.",
-      "emptyHow": "Mit „Nicht heute“ im Menü einer Karte in Offen legst du eine Aufgabe hierher zurück.",
+      "continue": "Tag starten",
+      "empty": "Keine weiteren Aufgaben vorhanden.",
+      "create": "Aufgabe erstellen",
       "noMatch": "Keine Aufgaben gefunden.",
       "planned": "{title} ist für heute geplant.",
       "unplanned": "{title} ist nicht mehr für heute geplant.",
@@ -1372,7 +1371,7 @@
       "label": "Anzeige wählen"
     },
     "archiveToggle": "Erledigte archivieren",
-    "continue": "Direkt zu Heute",
+    "continue": "Direkt zum Board",
     "plan": "Tag planen"
   },
   "dayClose": {

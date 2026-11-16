@@ -838,7 +838,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Proposed in the design of #334 (D4). \"Backlog\" is not the name of this place: it is an avoid form of column-open and not registered here, because an avoid form matches as a word prefix across every string."
+    "note": "Approved by the user on 2026-11-16 (#367); the user's `npm run terms:approve` makes it decided. Proposed in the design of #334 (D4). \"Backlog\" is not the name of this place: it is an avoid form of column-open and not registered here, because an avoid form matches as a word prefix across every string."
   },
   {
     "id": "not-planned",
@@ -848,7 +848,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Proposed in the design of #334 (D4). Not \"ungeplant\" / \"unplanned\": that is ad-hoc work (task.isUnplanned, \"Ungeplant\")."
+    "note": "Approved by the user on 2026-11-16 (#367); the user's `npm run terms:approve` makes it decided. Proposed in the design of #334 (D4). Not \"ungeplant\" / \"unplanned\": that is ad-hoc work (task.isUnplanned, \"Ungeplant\")."
   },
   {
     "id": "plan-for-today",
@@ -858,7 +858,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Name of the arrow button beside a \"Nicht geplant\" card. Proposed in the design of #334 (D4)."
+    "note": "Approved by the user on 2026-11-16 (#367); the user's `npm run terms:approve` makes it decided. Name of the arrow button beside a \"Nicht geplant\" card. Proposed in the design of #334 (D4)."
   },
   {
     "id": "not-today",
@@ -868,17 +868,17 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Card menu entry and name of the mirrored arrow. Proposed in the design of #334 (D4)."
+    "note": "Approved by the user on 2026-11-16 (#367); the user's `npm run terms:approve` makes it decided. Card menu entry and name of the mirrored arrow. Proposed in the design of #334 (D4)."
   },
   {
-    "id": "continue-to-today",
-    "concept": "The button on \"Alle\" that leads on to the board once planning is done (#354)",
-    "de": "Weiter zu Heute",
-    "en": "Continue to Today",
+    "id": "start-the-day",
+    "concept": "The button on \"Alle\" that leads on to the board once planning is done (#354, #367)",
+    "de": "Tag starten",
+    "en": "Start the day",
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "The one primary button of \"Alle\". Proposed in the design of #334 (D4)."
+    "note": "The user's own wording of 2026-11-16 (#367; the user's `npm run terms:approve` makes it decided), shown without a count; it replaces the proposed \"Weiter zu Heute\" / \"Continue to Today\" (entry continue-to-today). The one primary button of \"Alle\". English by the copy-writer skill, beside \"Plan the day\" and \"Close the day\"."
   },
   {
     "id": "plan-the-day",
@@ -888,17 +888,17 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Proposed in the design of #334. The second way out is \"Direkt zu Heute\"."
+    "note": "Approved by the user on 2026-11-16 (#367); the user's `npm run terms:approve` makes it decided. Proposed in the design of #334. The second way out is \"Direkt zum Board\"."
   },
   {
-    "id": "straight-to-today",
-    "concept": "The secondary way out of the new-day recap: it skips planning and leads to the board (#356)",
-    "de": "Direkt zu Heute",
-    "en": "Straight to Today",
+    "id": "straight-to-board",
+    "concept": "The secondary way out of the new-day recap: it skips planning and leads to the board (#356, #367)",
+    "de": "Direkt zum Board",
+    "en": "Straight to the board",
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Proposed in the design of #334. Also what Escape does on the recap."
+    "note": "The user's own wording of 2026-11-16 (#367; the user's `npm run terms:approve` makes it decided); it replaces the proposed \"Direkt zu Heute\" / \"Straight to Today\" (entry straight-to-today). Also what Escape does on the recap."
   },
   {
     "id": "planned-yesterday",
@@ -908,7 +908,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Proposed in the design of #334. \"Gestern\" also when the last board day was longer ago: the group names the last plan, not a date."
+    "note": "Approved by the user on 2026-11-16 (#367); the user's `npm run terms:approve` makes it decided. Proposed in the design of #334. \"Gestern\" also when the last board day was longer ago: the group names the last plan, not a date."
   },
   {
     "id": "more-tasks",
@@ -918,7 +918,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Proposed in the design of #334. Shown only together with the first group."
+    "note": "Approved by the user on 2026-11-16 (#367); the user's `npm run terms:approve` makes it decided. Proposed in the design of #334. Shown only together with the first group."
   },
   {
     "id": "plan-all-again",
@@ -939,5 +939,15 @@
     "avoidEn": [],
     "status": "proposed",
     "note": "Proposed wording from the user's decision. Not \"Entfernen\": that term is for a value or element taken away; here a counted amount is subtracted from the total. Recorded time only changes when the user says so."
+  },
+  {
+    "id": "create-task-not-planned",
+    "concept": "The soft button of an empty \"Nicht geplant\" on the place \"Alle\": it opens the add form, and the new task is not planned (#367)",
+    "de": "Aufgabe erstellen",
+    "en": "Create task",
+    "avoidDe": [],
+    "avoidEn": [],
+    "status": "proposed",
+    "note": "The user's own wording of 2026-11-16 (#367; the user's `npm run terms:approve` makes it decided), the same words as the add form's submit button (task.form.submit). The column header's icon button stays \"Aufgabe hinzufügen\" (board.addTask). The empty state beside it reads \"Keine weiteren Aufgaben vorhanden.\", also the user's wording."
   }
 ]
