@@ -74,6 +74,7 @@ Emotional side of every job: calm, focused, satisfied ("Brand Commitments"). Inf
 4. **Quiet confirmation, earned celebration** — everyday actions feel resolved, not celebrated: positive reinforcement is a whisper, not a fanfare. Completing a task is an achievement and earns a short, contained reward (DESIGN.md "Behaviour", #692).
 5. **Invisible infrastructure** — hide integration complexity behind calm, guided flows. If a user sees a technical detail, the design has failed.
 6. **Ask in place** — a question that belongs to a card or a row is asked right there, not in a dialog. Dialogs are for flows that need the whole stage.
+7. **Nothing plans itself** — a task is on today's board only because the user put it there today. What was planned and not finished goes back to the tasks that are not planned when a new day starts, marked as planned yesterday, and is picked again or left (owner, #352, 2026-11-16). The day close's wording ("Für morgen") and the meaning of the carried-over count follow in #356.
 
 ## Accessibility & Inclusion
 
