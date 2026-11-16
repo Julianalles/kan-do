@@ -3,7 +3,7 @@ import { mount } from '@vue/test-utils'
 import { setActivePinia, createPinia } from 'pinia'
 import { nextTick, onMounted } from 'vue'
 import TaskCard from '~/components/task/TaskCard.vue'
-import { useBoardStore, DONE_CONFIRMATION_MS, FASTER_CONFIRMATION_MS } from '~/store/board'
+import { useBoardStore, DONE_CONFIRMATION_MS, FASTER_CONFIRMATION_MS, CONFIRMATION_FADE_OUT_MS } from '~/store/board'
 import { setTestLocale } from '../../helpers/i18n'
 import { TaskStatus } from '~/types/taskStatus'
 import type { Task } from '~/types/task'
@@ -117,6 +117,7 @@ describe('TaskCard done (#124)', () => {
       expect(layer.find('.task-confirm__message').text()).toBe('Sehr gut! Schneller als geplant.')
       expect(layer.find('.task-confirm__icon').exists()).toBe(false)
       expect(layer.attributes('style')).toContain(`--done-confirm-duration: ${FASTER_CONFIRMATION_MS}ms`)
+      expect(layer.attributes('style')).toContain(`--done-confirm-fade-at: ${FASTER_CONFIRMATION_MS - CONFIRMATION_FADE_OUT_MS}ms`)
     })
 
     it('shows the English sentence in en', async () => {
@@ -132,6 +133,7 @@ describe('TaskCard done (#124)', () => {
       expect(w.find('.task-confirm__message').exists()).toBe(false)
       expect(w.find('.task-confirm--faster').exists()).toBe(false)
       expect(w.find('.task-confirm').attributes('style')).toContain(`--done-confirm-duration: ${DONE_CONFIRMATION_MS}ms`)
+      expect(w.find('.task-confirm').attributes('style')).toContain(`--done-confirm-fade-at: ${DONE_CONFIRMATION_MS - CONFIRMATION_FADE_OUT_MS}ms`)
     })
   })
 

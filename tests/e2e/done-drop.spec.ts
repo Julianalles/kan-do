@@ -101,7 +101,7 @@ test.describe('Drop into Erledigt (#124)', () => {
     await expect(dropped).toHaveClass(/task--confirming/)
     await expect(dropped.locator('.task-confirm')).toHaveAttribute('aria-hidden', 'true')
     await expect(doneList(page).locator('.task-confirm')).toHaveCount(1)
-    await expect(dropped.locator('.task-confirm')).toHaveCount(0, { timeout: 2000 })
+    await expect(dropped.locator('.task-confirm')).toHaveCount(0, { timeout: 4000 }) // layer: 2.5 s (#400)
     await expect(dropped).toHaveClass(/task-done/)
 
     // The wash fades out; no praise copy and no toast (#136)
@@ -240,7 +240,7 @@ test.describe('Drop into Erledigt (#124)', () => {
     await expect(live).toContainText('abgelegt')
     // The same burst as for a mouse drop (#692)
     await expect(doneList(page).locator(`[data-task-id="${OPEN.id}"] [data-testid="completion-burst"]`)).toHaveCount(1)
-    await expect(page.locator('.task-confirm')).toHaveCount(0, { timeout: 2000 })
+    await expect(page.locator('.task-confirm')).toHaveCount(0, { timeout: 4000 })
     await expect(page.getByTestId('completion-burst')).toHaveCount(0, { timeout: 2000 })
     await expect(toasts(page)).toHaveCount(0)
   })
@@ -277,10 +277,10 @@ test.describe('Faster than planned (#295)', () => {
     // The burst plays with it
     await expect(page.getByTestId('completion-burst')).toHaveCount(1)
 
-    // It holds longer than the plain check (1.3 s) and is gone by 2.2 s
-    await page.waitForTimeout(1500)
+    // It holds longer than the plain check (2.5 s) and is gone by 3.4 s (#400)
+    await page.waitForTimeout(2700)
     await expect(layer).toHaveCount(1)
-    await expect(layer).toHaveCount(0, { timeout: 2000 })
+    await expect(layer).toHaveCount(0, { timeout: 3000 })
     await expect(toasts(page)).toHaveCount(0)
   })
 
