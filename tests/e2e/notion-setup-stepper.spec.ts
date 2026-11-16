@@ -114,6 +114,11 @@ test.describe('Notion Setup Stepper', () => {
       await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
       await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100)
       expect((await list.boundingBox())!.y).toBeLessThan(0)
+      // The selected tab's underline is visible: the scrolling list must not clip it (#368)
+      const indicator = list.locator('[data-slot="indicator"]')
+      const [lb, ib] = [await list.evaluate(el => el.getBoundingClientRect().bottom - parseFloat(getComputedStyle(el).borderBottomWidth)), await indicator.boundingBox()]
+      expect(ib!.y + ib!.height).toBeLessThanOrEqual(lb + 0.5)
+      expect(await list.evaluate(el => el.scrollHeight <= el.clientHeight)).toBe(true)
       // 44px hit areas
       expect((await list.getByRole('tab').first().boundingBox())!.height).toBeGreaterThanOrEqual(44)
     })

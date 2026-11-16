@@ -472,6 +472,8 @@ export default defineAppConfig({
       compoundVariants: [
         // ...and its underline is 2 px, so the strip reads as the page's navigation, not as a detail
         { orientation: 'horizontal', variant: 'link', size: 'xl', class: { indicator: 'h-0.5' } },
+        // A list that scrolls sideways (`overflow-x-auto`) clips at its padding box, so the 1px underline that sits in the border (`-bottom-px`) would vanish: draw it just above the border instead (#368)
+        { orientation: 'horizontal', variant: 'link', class: { indicator: 'in-[.overflow-x-auto]:bottom-0' } },
         {
           color: 'neutral',
           variant: 'pill',
