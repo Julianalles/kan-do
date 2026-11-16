@@ -202,7 +202,8 @@ export default defineNuxtPlugin((nuxtApp) => {
   }
 
   // Seeds keep the Fokus overlay off unless asked for (`&focus=1`); the app default is on
-  if (['local', 'demo', 'dayclose', 'notion', 'mixed', 'notion-sandbox'].includes(seed)) {
+  // (the new-day seeds too since #387: their Jetzt card stays on the board until the user starts the day fresh)
+  if (['local', 'demo', 'dayclose', 'newday', 'newday-all', 'newday-back', 'newday-notice', 'notion', 'mixed', 'notion-sandbox'].includes(seed)) {
     localStorage.setItem('settings-store', JSON.stringify({ focusEnabled: url.searchParams.get('focus') === '1' }))
     url.searchParams.delete('focus')
   }

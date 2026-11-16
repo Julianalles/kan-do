@@ -1,4 +1,4 @@
 - status:
-  - text: "Neu: Jeder Tag beginnt mit einem leeren Plan. 3 Aufgaben aus Offen und Jetzt liegen jetzt unter „Planung“ bei „Meine Aufgaben“. Dort planst du sie für heute ein."
-  - button "Alle wieder einplanen"
+  - text: Auf dem Board liegt noch der Plan von gestern. „Tag planen“ legt alles, was nicht erledigt ist, zurück nach „Meine Aufgaben“.
+  - button "Tag planen"
   - button "Schließen"

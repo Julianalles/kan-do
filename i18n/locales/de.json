@@ -167,7 +167,7 @@
     "yesterdayUnderAll": "Eine Aufgabe von gestern liegt in der {all}. | {n} Aufgaben von gestern liegen in der {all}.",
     "newDayNote": {
       "title": "Auf dem Board liegt noch der Plan von gestern.",
-      "description": "„Tag planen“ legt alles, was nicht erledigt ist, zurück nach „Meine Aufgaben“. Dort planst du es für heute ein.",
+      "description": "„Tag planen“ legt alles, was nicht erledigt ist, zurück nach „Meine Aufgaben“.",
       "start": "Tag planen",
       "close": "Schließen",
       "started": "Eine Aufgabe liegt jetzt unter „Meine Aufgaben“. | {n} Aufgaben liegen jetzt unter „Meine Aufgaben“."

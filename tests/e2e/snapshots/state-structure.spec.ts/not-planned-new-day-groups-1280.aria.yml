@@ -1,5 +1,6 @@
 - region "Meine Aufgaben":
   - heading "Meine Aufgaben" [level=2]
+  - button "Aufgabe hinzufügen"
   - heading "Gestern geplant, noch offen" [level=3]
   - list "Gestern geplant, noch offen":
     - listitem:
@@ -18,6 +19,13 @@
         - paragraph: Konzept ausarbeiten
         - text: Hoch
       - 'button "Konzept ausarbeiten: für heute einplanen"'
+  - heading "Zuletzt in Wartet" [level=3]
+  - list "Zuletzt in Wartet":
+    - listitem:
+      - group "Rückmeldung vom Vermieter":
+        - paragraph: Rückmeldung vom Vermieter
+        - text: Hoch
+      - 'button "Rückmeldung vom Vermieter: für heute einplanen"'
   - heading "Weitere Aufgaben" [level=3]
   - list "Weitere Aufgaben":
     - listitem:

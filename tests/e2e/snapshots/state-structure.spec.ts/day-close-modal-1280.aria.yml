@@ -18,18 +18,18 @@
       - text: /\d+ min/
   - region "Für morgen":
     - heading "Für morgen" [level=3]
-    - paragraph: Eine Aufgabe geht zurück nach „Meine Aufgaben“. Morgen planst du sie neu ein. Du kannst sie abwählen.
+    - paragraph: 2 Aufgaben bleiben auf dem Board, bis du den nächsten Tag planst. Du kannst sie einzeln abwählen.
     - group:
       - text: Offene Aufgaben anzeigen
-      - list "Offene Aufgaben für morgen":
+      - list "Offene Aufgaben, die auf dem Board bleiben":
         - listitem:
           - checkbox "Konzept ausarbeiten Offen · Kommt in den Papierkorb"
           - text: Konzept ausarbeiten Offen · Kommt in den Papierkorb
         - listitem:
-          - checkbox "Review schreiben Jetzt · Geht zurück nach „Meine Aufgaben“" [checked]
-          - text: Review schreiben Jetzt · Geht zurück nach „Meine Aufgaben“
+          - checkbox "Review schreiben Jetzt · Geht zurück nach Offen" [checked]
+          - text: Review schreiben Jetzt · Geht zurück nach Offen
         - listitem:
-          - checkbox "Blocker klären Wartet · Bleibt in Wartet" [checked]
-          - text: Blocker klären Wartet · Bleibt in Wartet
+          - checkbox "Blocker klären Wartet" [checked]
+          - text: Blocker klären Wartet
   - button "Zusammenfassung kopieren"
   - button "Fertig"

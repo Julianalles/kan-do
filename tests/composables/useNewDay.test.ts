@@ -201,6 +201,8 @@ describe('useNewDay: the day check and the fresh start (#387)', () => {
       // the Jetzt task: Open, not planned, no timer; the Wartet task: Open, not planned; their time is untouched
       expect(tasks.task('j')).toMatchObject({ status: TaskStatus.Open, notPlanned: true, timerId: null, timeSpentSeconds: 600 })
       expect(tasks.task('w')).toMatchObject({ status: TaskStatus.Open, notPlanned: true, title: 'Task w' })
+      // a Local task has no connection: nothing waits to be pushed
+      expect(tasks.tasks.every(t => t.pendingSync === undefined)).toBe(true)
     })
 
     it('the carried-over count is kept: a day counted this morning is taken back, an earlier count stays', () => {

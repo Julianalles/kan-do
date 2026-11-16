@@ -441,7 +441,7 @@ test.describe('Day close dialog (#98)', () => {
     await expect(page.getByTestId('day-close-headline')).toHaveText('1 of 5 planned tasks done')
     await expect(page.getByTestId('day-close-done-subline')).toHaveText('Done · Within the timebox')
     await expect(page.getByTestId('day-close-bar-caption')).toHaveText('1 of 1 timebox kept')
-    await expect(page.getByTestId('day-close-tomorrow')).toHaveText('3 tasks go back to “My tasks”. You plan them again tomorrow. You can deselect them one by one.')
+    await expect(page.getByTestId('day-close-tomorrow')).toHaveText('4 tasks stay on the board until you plan the next day. You can deselect them one by one.')
     await expect(page.getByRole('heading', { name: 'For tomorrow' })).toBeVisible()
   })
 

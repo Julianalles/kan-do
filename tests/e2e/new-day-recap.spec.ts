@@ -95,9 +95,9 @@ test.describe('New-day recap (#385)', () => {
     // The board is mounted behind and inert (which also hides it from assistive tech; no aria-hidden besides)
     await expect(board(page)).toHaveAttribute('inert', '')
     await expect(board(page)).not.toHaveAttribute('aria-hidden')
-    // The new day already sent the Offen card back (#356): the Wartet card is what the board holds behind the stage
+    // Nothing moved by itself (#387): behind the stage the board holds yesterday's Offen and Wartet cards
     await expect(board(page).locator('[data-task-id="nd-waiting-1"]').first()).toBeAttached()
-    await expect(board(page).locator('#column-open [data-task-id="nd-open-1"]')).toHaveCount(0)
+    await expect(board(page).locator('#column-open [data-task-id="nd-open-1"]').first()).toBeAttached()
     await expect(planButton(page)).toBeFocused()
   })
 

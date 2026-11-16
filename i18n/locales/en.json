@@ -167,7 +167,7 @@
     "yesterdayUnderAll": "One task from yesterday is in {all}. | {n} tasks from yesterday are in {all}.",
     "newDayNote": {
       "title": "The board still shows yesterday's plan.",
-      "description": "“Plan the day” puts everything that is not done back under “My tasks”. Plan it for today from there.",
+      "description": "“Plan the day” puts everything that is not done back under “My tasks”.",
       "start": "Plan the day",
       "close": "Close",
       "started": "One task is now under “My tasks”. | {n} tasks are now under “My tasks”."
