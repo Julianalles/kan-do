@@ -476,6 +476,7 @@
         "components/recap/**",
         "composables/useNewDayRecap.ts",
         "composables/useNewDay.ts",
+        "lib/appPresence.ts",
         "components/board/NewDayNote.vue",
         "composables/useSwipeDeck.ts",
         "composables/useToday.ts",

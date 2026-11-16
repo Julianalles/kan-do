@@ -1,22 +1,24 @@
 /**
  * @composable useNewDay
  * @description A new day sends what was planned and not finished back to "Nicht geplant" (#356, epic #334): one
- * pass per local day over Jetzt and Offen, run when the board is opened or returned to on a new day (never while a
- * window keeps the focus across midnight), with or without a recap. It changes kan-do's own state only, except for
+ * pass per local day over Jetzt and Offen, run when the app is opened or returned to after an absence on a later
+ * day (never while the user works in the window: not at midnight, not on a route change), with or without a recap. It changes kan-do's own state only, except for
  * the one Jetzt task, whose status is written to its connection like the day close's "Fertig" does.
  * @responsibility
- * - `run()`: called by `pages/tasks.vue` before the recap's check on the same triggers (mount, return to the app,
- *   route change). Does nothing while the board is not onboarded, the desktop data status blocks writes (ADR 011)
+ * - `run()`: called by `pages/tasks.vue` before the recap's check, on the app's start (the first board mount of a
+ *   page load) and on a return to the app (window focus, tab visible) after an absence (`lib/appPresence`); never
+ *   on a route change. Does nothing while the board is not onboarded, the desktop data status blocks writes (ADR 011)
  *   or the day-close dialog is open, and nothing when its marker (`dayRecap.lastNewDay`) is today or later (a clock
  *   set back never repeats it). Without a marker the pass runs only when the recap's marker proves an earlier day
  *   (an existing board on its first morning after the update); otherwise today is the baseline and nothing moves.
  * - The pass: the Jetzt task stops its timer, loses the time its timer counted after the local midnight that
- *   starts today (`tasksStore.removeTimeAfterMidnight`, the user's decision D2; never more than was counted, never
- *   below zero) and moves to Offen through the shared move path; then Jetzt and Offen (board order, Jetzt first,
+ *   starts today while the user was away from the window (`tasksStore.removeTimeAfterMidnight`, the user's decisions
+ *   D2 and D5; never more than was counted, never below zero; the same stretch is cut out of the work sessions,
+ *   D3 h) and moves to Offen through the shared move path; then Jetzt and Offen (board order, Jetzt first,
  *   demo tasks excluded) are taken off the board in one store action and stand on top of "Nicht geplant".
  *   Wartet and Erledigt stay. Nothing is deleted; title, notes, topic, priority, time box, source and the
  *   carried-over entry are untouched.
- * - `isDue()`: the pass has not run today although a day has passed; the carried-over count waits for it, so a
+ * - `isNewDayDue()`: the pass has not run today although a day has passed; the carried-over count waits for it, so a
  *   day only counts as planned for what the user plans after the pass.
  * - `groupIds`: the ids of today's pass that are still not planned, i.e. the group "Gestern geplant, noch offen";
  *   it ends with its day without a write.
@@ -28,6 +30,7 @@ import { syncToday, useToday } from '~/composables/useToday'
 import { useTasksStore } from '~/store/tasks'
 import { useBoardStore } from '~/store/board'
 import { useDayRecapStore } from '~/store/dayRecap'
+import { useTaskStatisticsStore } from '~/store/taskStatistics'
 import { useDayClose } from '~/composables/useDayClose'
 import { useTaskOperations } from '~/composables/useTaskOperations'
 import { useTaskSync } from '~/composables/useTaskSync'
@@ -91,7 +94,10 @@ export function useNewDay() {
       const { id } = task
       // The stop writes the collected seconds first, so the store holds everything the timer counted
       stopTaskTimer(id)
+      // The same stretch goes out of the Statistik work sessions (D3 h), so the card, the rhythm and the capacity agree
+      const spans = tasksStore.afterMidnightSpans(id, todayKey)
       tasksStore.removeTimeAfterMidnight(id, todayKey)
+      if (spans.length > 0) useTaskStatisticsStore().cutWorkSessions(spans)
       // Local change at once (status, board order); the write to the task's connection follows on its own
       void moveTaskToStatus(id, TaskStatus.Open).catch(() => {})
       if (tasksStore.task(id)?.status === TaskStatus.Open) back.push(id)

@@ -43,35 +43,77 @@ describe('time counted after midnight (#356)', () => {
       { taskId: 'a', day: DAY, seconds: '5' }, { taskId: 'a', day: DAY, seconds: Number.POSITIVE_INFINITY }]) {
       expect(sanitizeAfterMidnight(bad)).toBeNull()
     }
-    expect(sanitizeAfterMidnight({ taskId: 'a', day: DAY, seconds: 0 })).toEqual({ taskId: 'a', day: DAY, seconds: 0 })
+    expect(sanitizeAfterMidnight({ taskId: 'a', day: DAY, seconds: 0 })).toEqual({ taskId: 'a', day: DAY, seconds: 0, spans: [] })
   })
 
   it('counts only from the crossing on, only for that task, and only tracked seconds', () => {
-    store.addTrackedSeconds('a', 30)
+    store.addTrackedSeconds('a', 30, 30)
     expect(store.afterMidnight).toBeNull()
     store.beginAfterMidnight('a', DAY)
-    store.addTrackedSeconds('a', 10)
-    store.addTrackedSeconds('b', 99)
-    store.addTrackedSeconds('a', 5)
-    expect(store.afterMidnight).toEqual({ taskId: 'a', day: DAY, seconds: 15 })
+    store.addTrackedSeconds('a', 10, 10)
+    store.addTrackedSeconds('b', 99, 99)
+    store.addTrackedSeconds('a', 5, 5)
+    expect(store.afterMidnight).toEqual({ taskId: 'a', day: DAY, seconds: 15, spans: [] })
     // the same crossing reported twice does not reset the count; an unknown task or day is ignored
     store.beginAfterMidnight('a', DAY)
     store.beginAfterMidnight('nope', DAY)
     store.beginAfterMidnight('a', 'tomorrow')
-    expect(store.afterMidnight).toEqual({ taskId: 'a', day: DAY, seconds: 15 })
+    expect(store.afterMidnight).toEqual({ taskId: 'a', day: DAY, seconds: 15, spans: [] })
+  })
+
+  it('notes only the seconds counted while the user was away (D3 o): a second counted in the window is never noted', () => {
+    store.beginAfterMidnight('a', DAY)
+    store.addTrackedSeconds('a', 10) // all present
+    expect(store.afterMidnight).toEqual({ taskId: 'a', day: DAY, seconds: 0, spans: [] })
+    store.addTrackedSeconds('a', 10, 4)
+    store.addTrackedSeconds('a', 10, 10)
+    expect(store.afterMidnight).toEqual({ taskId: 'a', day: DAY, seconds: 14, spans: [] })
+    // never more away than counted; a malformed count notes nothing
+    store.addTrackedSeconds('a', 5, 50)
+    store.addTrackedSeconds('a', 5, Number.NaN)
+    store.addTrackedSeconds('a', 5, -3)
+    expect(store.afterMidnight).toEqual({ taskId: 'a', day: DAY, seconds: 19, spans: [] })
+    expect(store.task('a')!.timeSpentSeconds).toBe(1000 + 10 + 10 + 10 + 5 + 5 + 5)
+  })
+
+  it('keeps the wall-clock spans of the away seconds: merged where they touch, never before that midnight, malformed ones dropped', () => {
+    const t = (hour: number, minute = 0) => new Date(2026, 9, 22, hour, minute).getTime()
+    store.beginAfterMidnight('a', DAY)
+    store.addTrackedSeconds('a', 10, 10, [[t(-1, 55), t(0, 5)]]) // starts 5 minutes before midnight
+    store.addTrackedSeconds('a', 10, 10, [[t(0, 5), t(0, 9)]]) // touches: one span
+    store.addTrackedSeconds('a', 10, 10, [[t(2), t(2, 30)], [t(3), t(3)], [Number.NaN, 4] as never])
+    store.addTrackedSeconds('a', 10, 0, [[t(5), t(6)]]) // no away seconds: its span is not noted
+    expect(store.afterMidnight!.spans).toEqual([[t(0), t(0, 9)], [t(2), t(2, 30)]])
+    expect(store.afterMidnightSpans('a', DAY)).toEqual([[t(0), t(0, 9)], [t(2), t(2, 30)]])
+    expect(store.afterMidnightSpans('b', DAY)).toEqual([])
+    expect(store.afterMidnightSpans('a', '2026-10-23')).toEqual([])
+    store.removeTimeAfterMidnight('a', DAY)
+    expect(store.afterMidnightSpans('a', DAY)).toEqual([])
+  })
+
+  it('a note stored without spans (or with a malformed list) loads with none; it is the same count', () => {
+    expect(sanitizeAfterMidnight({ taskId: 'a', day: DAY, seconds: 7 })).toEqual({ taskId: 'a', day: DAY, seconds: 7, spans: [] })
+    expect(sanitizeAfterMidnight({ taskId: 'a', day: DAY, seconds: 7, spans: 'x' })?.spans).toEqual([])
+    expect(sanitizeAfterMidnight({ taskId: 'a', day: DAY, seconds: 7, spans: [[1], 'x', [5, 2]] })?.spans).toEqual([])
+  })
+
+  it('never keeps more than 50 spans: the nearest two merge', () => {
+    const t = (minute: number) => new Date(2026, 9, 22, 0, minute).getTime()
+    const spans = Array.from({ length: 60 }, (_, i) => [t(i * 3), t(i * 3 + 1)] as [number, number])
+    expect(sanitizeAfterMidnight({ taskId: 'a', day: DAY, seconds: 1, spans })!.spans).toHaveLength(50)
   })
 
   it('a later midnight replaces the note: only the last one counts', () => {
     store.beginAfterMidnight('a', DAY)
-    store.addTrackedSeconds('a', 600)
+    store.addTrackedSeconds('a', 600, 600)
     store.beginAfterMidnight('a', '2026-10-23')
-    store.addTrackedSeconds('a', 7)
-    expect(store.afterMidnight).toEqual({ taskId: 'a', day: '2026-10-23', seconds: 7 })
+    store.addTrackedSeconds('a', 7, 7)
+    expect(store.afterMidnight).toEqual({ taskId: 'a', day: '2026-10-23', seconds: 7, spans: [] })
   })
 
   it('removes exactly the noted seconds, once', () => {
     store.beginAfterMidnight('a', DAY)
-    store.addTrackedSeconds('a', 400)
+    store.addTrackedSeconds('a', 400, 400)
     expect(store.removeTimeAfterMidnight('a', DAY)).toBe(400)
     expect(store.task('a')!.timeSpentSeconds).toBe(1000)
     expect(store.afterMidnight).toBeNull()
@@ -81,11 +123,11 @@ describe('time counted after midnight (#356)', () => {
 
   it('removes nothing for another task, another day or without a note, and drops the note', () => {
     store.beginAfterMidnight('a', DAY)
-    store.addTrackedSeconds('a', 400)
+    store.addTrackedSeconds('a', 400, 400)
     expect(store.removeTimeAfterMidnight('b', DAY)).toBe(0)
     expect(store.afterMidnight).toBeNull()
     store.beginAfterMidnight('a', DAY)
-    store.addTrackedSeconds('a', 50)
+    store.addTrackedSeconds('a', 50, 50)
     expect(store.removeTimeAfterMidnight('a', '2026-10-23')).toBe(0)
     expect(store.removeTimeAfterMidnight('a', DAY)).toBe(0)
     expect(store.task('a')!.timeSpentSeconds).toBe(1450)
@@ -93,22 +135,22 @@ describe('time counted after midnight (#356)', () => {
   })
 
   it('never goes below zero, even when the stored note says more than the task holds', () => {
-    store.afterMidnight = { taskId: 'a', day: DAY, seconds: 5000 }
+    store.afterMidnight = { taskId: 'a', day: DAY, seconds: 5000, spans: [] }
     expect(store.removeTimeAfterMidnight('a', DAY)).toBe(1000)
     expect(store.task('a')!.timeSpentSeconds).toBe(0)
   })
 
   it('a malformed stored note removes nothing', () => {
-    store.afterMidnight = { taskId: 'a', day: DAY, seconds: -300 }
+    store.afterMidnight = { taskId: 'a', day: DAY, seconds: -300, spans: [] }
     expect(store.removeTimeAfterMidnight('a', DAY)).toBe(0)
-    store.afterMidnight = { taskId: 'a', day: DAY, seconds: 'all' } as never
+    store.afterMidnight = { taskId: 'a', day: DAY, seconds: 'all', spans: [] } as never
     expect(store.removeTimeAfterMidnight('a', DAY)).toBe(0)
     expect(store.task('a')!.timeSpentSeconds).toBe(1000)
   })
 
   it('the user\'s own time edit drops the note of that task only', () => {
     store.beginAfterMidnight('a', DAY)
-    store.addTrackedSeconds('a', 400)
+    store.addTrackedSeconds('a', 400, 400)
     store.setTimeSpent('b', 5)
     expect(store.afterMidnight).not.toBeNull()
     store.setTimeSpent('a', 900)
@@ -119,10 +161,10 @@ describe('time counted after midnight (#356)', () => {
 
   it('survives a restart; data stored before #356 has none and is not written at hydration', async () => {
     store.beginAfterMidnight('a', DAY)
-    store.addTrackedSeconds('a', 20)
+    store.addTrackedSeconds('a', 20, 20)
     await nextTick()
     freshPinia()
-    expect(useTasksStore().validAfterMidnight).toEqual({ taskId: 'a', day: DAY, seconds: 20 })
+    expect(useTasksStore().validAfterMidnight).toEqual({ taskId: 'a', day: DAY, seconds: 20, spans: [] })
 
     const old = JSON.parse(localStorage.getItem('tasks-store')!)
     delete old.afterMidnight

@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type BrowserContext, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { settleAnimations } from './helpers/settle'
 import { appNav, goToPlace, openSettings } from './helpers/appNav'
@@ -806,6 +806,29 @@ test.describe('A new day sends unfinished cards back (#356)', () => {
     await expect(sentence(page)).toHaveText('Eine Aufgabe von gestern liegt unter Alle.')
   })
 
+  test('the sentence in an empty Offen counts what the topic focus leaves of the group, as "Alle" shows it', async ({ page, context }) => {
+    const topics: Record<string, string> = { 'nd-now-1': 'Keller', 'nd-open-2': 'Keller', 'nd-open-1': 'Büro', 'nd-held-1': 'Garten' }
+    const tasks = newDayBackTasks().filter(task => task.status !== 3).map(task => ({ ...task, topic: topics[task.id] ?? null }))
+    await seedNewDayBoard(context, { tasks })
+    await page.goto('/tasks')
+    await expect(sentence(page)).toHaveText('3 Aufgaben von gestern liegen unter Alle.')
+    const focusOn = async (topic: string) => {
+      await page.getByTestId('focus-trigger').click()
+      await page.getByTestId('focus-chip').filter({ hasText: topic }).click()
+    }
+    // the focus leaves one task of the group: the sentence says one, and "Alle" shows exactly that one
+    await focusOn('Büro')
+    await expect(sentence(page)).toHaveText('Eine Aufgabe von gestern liegt unter Alle.')
+    await sentence(page).getByRole('link', { name: 'Alle' }).click()
+    await expect(page).toHaveURL(/\/all$/)
+    await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-open-1'])
+    await goToPlace(page, 'Heute')
+    // the focus leaves none of the group (a task that was not sent back matches): no sentence, no link to nothing
+    await page.getByTestId('focus-trigger').click()
+    await page.getByTestId('focus-chip').filter({ hasText: 'Garten' }).click()
+    await expect(sentence(page)).toHaveCount(0)
+  })
+
   test('without a recap (nothing was done yesterday) the cards go back all the same', async ({ page, context }) => {
     await seedNewDayBoard(context, { tasks: newDayBackTasks().filter(task => task.status !== 3) })
     await page.goto('/tasks')
@@ -816,33 +839,46 @@ test.describe('A new day sends unfinished cards back (#356)', () => {
     await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1'])
   })
 
-  test('app left open over midnight: nothing moves while the window keeps the focus, the next return sends the cards back', async ({ page, context }) => {
+  /** The page clock runs on (`__shiftMs` moves it): a night passes without a reload. */
+  const installShiftedClock = (context: BrowserContext) => context.addInitScript(() => {
+    const RealDate = Date
+    const w = window as unknown as { __shiftMs: number }
+    w.__shiftMs = 0
+    class ShiftedDate extends RealDate {
+      constructor(...args: unknown[]) {
+        if (args.length === 0) super(RealDate.now() + w.__shiftMs)
+        else super(...(args as [number]))
+      }
+      static now() { return RealDate.now() + w.__shiftMs }
+    }
+    window.Date = ShiftedDate as unknown as DateConstructor
+  })
+  const nextMorning = (page: Page) => page.evaluate(() => {
+    const next = new Date(); next.setDate(next.getDate() + 1); next.setHours(9, 0, 0, 0)
+    ;(window as unknown as { __shiftMs: number }).__shiftMs = next.getTime() - Date.now()
+  })
+
+  test('app left open over midnight: nothing moves while the user works in the window, the next return after an absence sends the cards back', async ({ page, context }) => {
     // The marker is today: nothing is due. The page clock is then moved a day on, as after a night.
     await seedNewDayBoard(context, { daysAgo: 0, lastShownDay: dayKeyDaysAgo(0), tasks: newDayBackTasks(0).filter(task => task.status !== 3) })
-    await context.addInitScript(() => {
-      const RealDate = Date
-      const w = window as unknown as { __shiftMs: number }
-      w.__shiftMs = 0
-      class ShiftedDate extends RealDate {
-        constructor(...args: unknown[]) {
-          if (args.length === 0) super(RealDate.now() + w.__shiftMs)
-          else super(...(args as [number]))
-        }
-        static now() { return RealDate.now() + w.__shiftMs }
-      }
-      window.Date = ShiftedDate as unknown as DateConstructor
-    })
+    await installShiftedClock(context)
     await page.goto('/tasks')
     await expect.poll(() => openIds(page)).toEqual(['nd-open-2', 'nd-open-1'])
     await expect(page.locator('#column-progress [data-task-id="nd-now-1"]').first()).toBeVisible()
 
-    await page.evaluate(() => {
-      const next = new Date(); next.setDate(next.getDate() + 1); next.setHours(9, 0, 0, 0)
-      ;(window as unknown as { __shiftMs: number }).__shiftMs = next.getTime() - Date.now()
-    })
+    await nextMorning(page)
     await page.waitForTimeout(300)
     expect(await openIds(page)).toEqual(['nd-open-2', 'nd-open-1']) // still focused: the cards stay under the user's hands
 
+    // a glance at another window is not leaving: its return starts nothing
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')))
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+    await page.waitForTimeout(300)
+    expect(await openIds(page)).toEqual(['nd-open-2', 'nd-open-1'])
+
+    // a real absence (the grace is 60 s: the page clock jumps past it), then the return
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')))
+    await page.evaluate(() => { (window as unknown as { __shiftMs: number }).__shiftMs += 120_000 })
     await page.evaluate(() => window.dispatchEvent(new Event('focus')))
     await expect(sentence(page)).toHaveText('3 Aufgaben von gestern liegen unter Alle.')
     await expect(page.locator('#column-progress .task-wrapper')).toHaveCount(0)
@@ -850,6 +886,33 @@ test.describe('A new day sends unfinished cards back (#356)', () => {
     expect(await storedTask(page, 'nd-now-1')).toMatchObject({ status: 0, notPlanned: true })
     expect((await storedTask(page, 'nd-now-1'))!.timeSpentSeconds).toBeGreaterThanOrEqual(1800)
     expect((await storedTask(page, 'nd-now-1'))!.timeSpentSeconds).toBeLessThan(1800 + 30)
+  })
+
+  test('a route change after midnight (a sheet opens and closes while the user works) does not send the cards back, and neither does the recap open', async ({ page, context }) => {
+    await seedNewDayBoard(context, { daysAgo: 0, lastShownDay: dayKeyDaysAgo(0), tasks: newDayBackTasks(0) })
+    await installShiftedClock(context)
+    await page.goto('/tasks')
+    await expect.poll(() => openIds(page)).toEqual(['nd-open-2', 'nd-open-1'])
+
+    await nextMorning(page)
+    await page.locator('#column-open-list [data-task-id="nd-open-1"]').first().click()
+    await expect(page).toHaveURL(/\/tasks\/nd-open-1$/)
+    await page.goBack()
+    await expect(page).toHaveURL(/\/tasks$/)
+    await settleAnimations(page)
+    await page.waitForTimeout(300)
+    expect(await openIds(page)).toEqual(['nd-open-2', 'nd-open-1'])
+    await expect(page.locator('#column-progress [data-task-id="nd-now-1"]').first()).toBeVisible()
+    await expect(recap(page)).toHaveCount(0)
+    await expect(sentence(page)).toHaveCount(0)
+    expect(await storedTask(page, 'nd-now-1')).not.toHaveProperty('notPlanned')
+
+    // the next return after an absence is the new day: the pass, then the recap
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')))
+    await page.evaluate(() => { (window as unknown as { __shiftMs: number }).__shiftMs += 120_000 })
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+    await expect(recap(page)).toBeVisible()
+    expect(await storedTask(page, 'nd-now-1')).toMatchObject({ status: 0, notPlanned: true })
   })
 
   test('the first morning after the update: a one-time note on Heute and on "Alle"; "Alle wieder einplanen" puts every card back, once', async ({ page, context }) => {

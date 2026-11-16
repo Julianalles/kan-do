@@ -4,8 +4,10 @@
  * owns its open state and the snapshot it shows, and runs the one action when the user leaves it. State is
  * module-level so the page, the overlay and the board share it.
  * @responsibility
- * - `check(routeName)`: called by `pages/tasks.vue` on mount and on every return to the app (`listenForReturn`: window focus,
- *   tab visible; #242), never awaited, each time after the new day's pass (`useNewDay().run()`, #356). It syncs the shared "today" first. Opens the recap when the board is
+ * - `check(routeName)`: called by `pages/tasks.vue` on mount, on a return to the app after an absence (`listenForReturn`:
+ *   window focus, tab visible; #242) and on a route change, never awaited. The page runs the new day's pass first
+ *   (`useNewDay().run()`, #356: only on the app's start and on such a return) and skips the check while the pass is
+ *   still due, so the recap never opens before the cards went back. It syncs the shared "today" first. Opens the recap when the board is
  *   onboarded, the data status does not block writes, `lastShownDay` is a day before today and there are
  *   done-before-today tasks. A missing or malformed marker is the baseline: write today once, show nothing
  *   (skipped while the data status blocks, ADR 011). The day key is computed once here, so a midnight

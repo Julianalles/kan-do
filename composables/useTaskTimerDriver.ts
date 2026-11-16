@@ -13,14 +13,16 @@
  *   `LIVE_CHECKPOINT_SECONDS`, when a timer stops, on `pagehide` and when the page turns hidden
  * - Midnight (#356): each tick knows its local day. The first tick of a timer on a later day than its previous one
  *   means the timer ran across midnight: the seconds collected so far are written (they belong to the day before,
- *   the crossing second included), and from then on the store notes what the timer counts (`beginAfterMidnight`),
- *   for the new day's pass to take off again. A task that enters Jetzt anew starts without such a note
+ *   the crossing second included), and from then on the store notes what the timer counts while the user is away
+ *   from the window (`lib/appPresence`, `beginAfterMidnight`), for the new day's pass to take off again. Each tick
+ *   is tagged away or present; a second counted with the user in the window is never noted. The wall-clock stretch of the away ticks (`lib/liveTime` spans) goes to the store with the seconds, for the Statistik work sessions to be cut by it. A task that enters Jetzt anew starts without such a note
  * - `stopTaskTimer` is the one explicit stop (day close, delete, disconnect); `resumeTaskTimer` undoes it for a
  *   task that stayed in Jetzt because the operation that stopped it failed
  */
 import { watch, type WatchStopHandle } from 'vue'
 import { armTaskTimer, disarmAllTaskTimers, disarmTaskTimer, isTaskTimerArmed } from '~/lib/taskTimers'
-import { LIVE_CHECKPOINT_SECONDS, addLiveSecond, discardLiveSeconds, liveSecondsOf, unsavedLiveSecondsIds } from '~/lib/liveTime'
+import { LIVE_CHECKPOINT_SECONDS, addLiveSecond, discardLiveSeconds, forgetLiveAwaySpans, liveAwaySecondsOf, liveAwaySpansOf, liveSecondsOf, settleLiveAwaySpans, unsavedLiveSecondsIds } from '~/lib/liveTime'
+import { isAway, startPresence, stopPresence } from '~/lib/appPresence'
 import { useTasksStore } from '~/store/tasks'
 import { beginWorkSession, endAllWorkSessions, endWorkSession } from '~/composables/useWorkSessionTracking'
 import { TaskStatus } from '~/types/taskStatus'
@@ -42,7 +44,10 @@ function commitLiveTime(taskId: string): void {
     discardLiveSeconds(taskId)
     return
   }
-  if (tasksStore.addTrackedSeconds(taskId, seconds)) discardLiveSeconds(taskId)
+  if (tasksStore.addTrackedSeconds(taskId, seconds, liveAwaySecondsOf(taskId), liveAwaySpansOf(taskId))) {
+    discardLiveSeconds(taskId)
+    settleLiveAwaySpans(taskId)
+  }
 }
 
 /** Writes the collected seconds of every task: before the page can go away and before anything reads the stored time. */
@@ -67,6 +72,7 @@ export function stopTaskTimer(taskId: string): boolean {
   commitLiveTime(taskId)
   const wasArmed = disarmTaskTimer(taskId)
   lastTickDay.delete(taskId)
+  forgetLiveAwaySpans(taskId)
   endWorkSession(taskId)
   const tasksStore = useTasksStore()
   const task = tasksStore.task(taskId)
@@ -116,7 +122,7 @@ function tick(taskId: string): void {
     // Across midnight (also after a sleep): this second and everything collected belong to the day before. Only
     // once they are written does the note for the new day start, so none of them is ever counted as "after midnight";
     // a write that is held (a batch move) is tried again with the next tick
-    addLiveSecond(taskId)
+    addLiveSecond(taskId, isAway())
     commitLiveTime(taskId)
     if (liveSecondsOf(taskId) > 0) return
     tasksStore.beginAfterMidnight(taskId, today)
@@ -125,7 +131,7 @@ function tick(taskId: string): void {
   }
   // A clock set back keeps the later day: the next crossing is the one after it
   if (last === undefined) lastTickDay.set(taskId, today)
-  if (addLiveSecond(taskId) >= LIVE_CHECKPOINT_SECONDS) commitLiveTime(taskId)
+  if (addLiveSecond(taskId, isAway()) >= LIVE_CHECKPOINT_SECONDS) commitLiveTime(taskId)
 }
 
 export function useTaskTimerDriver() {
@@ -139,12 +145,14 @@ export function useTaskTimerDriver() {
     stopWatching = null
     disarmAllTaskTimers()
     lastTickDay.clear()
+    stopPresence()
     endAllWorkSessions()
   }
 
   /** Arms every Jetzt task and follows the Jetzt column from here on. Idempotent (a re-run disarms first). */
   function start(): void {
     stop()
+    startPresence()
     window.addEventListener('pagehide', onPageHide)
     document.addEventListener('visibilitychange', onVisibilityChange)
 

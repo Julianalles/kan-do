@@ -58,7 +58,8 @@ import { usePropertyOptionsSync } from "~/composables/usePropertyOptionsSync";
 import SyncWarningModal from "~/components/sync/SyncWarningModal.vue";
 import TaskSheetHost from "~/components/task/TaskSheetHost.vue";
 import { useNewDayRecap } from "~/composables/useNewDayRecap";
-import { useNewDay } from "~/composables/useNewDay";
+import { isNewDayDue, useNewDay } from "~/composables/useNewDay";
+import { returnedAfterAbsence, takeAppStart } from "~/lib/appPresence";
 import { useDayClose } from "~/composables/useDayClose";
 import { useFeedback } from "~/composables/useFeedback";
 import { useElementPicker } from "~/composables/useElementPicker";
@@ -98,14 +99,23 @@ const syncValidation = useSyncValidation();
 const recap = useNewDayRecap();
 const newDay = useNewDay();
 /**
- * The day check: first the new day's pass (unfinished cards go back to "Nicht geplant", #356; on Heute and on "Alle",
- * with a sheet open too), then the recap's own check. Both do nothing unless a day has passed.
+ * The day check (#356, the user's decision of 2026-11-16: the new day never starts while the user works in the
+ * window). The pass (unfinished cards go back to "Nicht geplant"; on Heute and on "Alle", with a sheet open too) runs
+ * only when the app is opened or returned to after an absence: `pass` is true there. A route change inside the app
+ * (a sheet opens or closes, another page and back) is work, never a start: the pass waits for the next real
+ * return, and so do the carried-over count and the recap, which belong to the new day. A day that has not passed
+ * changes nothing.
  */
-const checkDay = () => {
-  newDay.run();
+const checkDay = (pass: boolean) => {
+  if (pass) newDay.run();
+  if (isNewDayDue()) return;
   // The count waited for the pass (a card it sent back is not planned today); a pass that moved nothing triggers no count by itself
   recordCarryOver();
   recap.check(route.name);
+};
+/** A focus or visibility event: the new day starts only after a real absence (a glance at another window is not one, `lib/appPresence`) */
+const onReturn = () => {
+  if (returnedAfterAbsence()) checkDay(true);
 };
 const dayCloseOpened = useOpenedOnce(useDayClose().isOpen);
 const recapOpened = useOpenedOnce(recap.isOpen);
@@ -202,12 +212,13 @@ async function initializeTasksPageOnMount() {
 onMounted(() => {
   // The page init starts its fetch before the first await, so the recap opens over a board that is already loading (#385)
   void initializeTasksPageOnMount();
-  checkDay();
-  stopRecapReturn = recap.listenForReturn(checkDay);
+  // The board of an app start is "the app was opened"; a later mount (another page and back) is not
+  checkDay(takeAppStart());
+  stopRecapReturn = recap.listenForReturn(onReturn);
 });
 let stopRecapReturn = () => {};
 // A task sheet open overnight swallows the return check (route is not `tasks`): closing it must run it (#242)
-watch(() => route.name, checkDay);
+watch(() => route.name, () => checkDay(false));
 
 // Watch for task updates to track when they happen
 /** Source accessor for tasks array to drive the watcher. */

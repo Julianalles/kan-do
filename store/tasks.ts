@@ -159,12 +159,54 @@ const sortTasks = (
   });
 };
 
-/** Seconds a Jetzt timer counted after the local midnight (the start of `day`) it ran across (#356). */
+/** Seconds a Jetzt timer counted after the local midnight (the start of `day`) it ran across, while the user was away from the window (#356). */
 export interface AfterMidnightCount {
   taskId: string
   /** Local day (`YYYY-MM-DD`) that midnight starts */
   day: string
   seconds: number
+  /**
+   * The wall-clock spans (`[from, to]`, epoch ms, never before that midnight) in which those seconds were counted:
+   * the same stretch is taken out of the Statistik work sessions when the seconds are removed (D3 h).
+   */
+  spans: Array<[number, number]>
+}
+
+/** Most spans one note keeps (a count that long needs one absence per span); beyond it the nearest two merge. */
+const AFTER_MIDNIGHT_MAX_SPANS = 50
+
+/** Local midnight (epoch ms) that starts the day `YYYY-MM-DD`. */
+const startOfDayMs = (day: string): number => {
+  const [year, month, date] = day.split('-').map(Number)
+  return new Date(year!, month! - 1, date!).getTime()
+}
+
+/** Spans as trusted values: usable entries only, sorted, overlapping or touching ones merged, capped. */
+function normalizeSpans(raw: unknown, notBefore: number): Array<[number, number]> {
+  if (!Array.isArray(raw)) return []
+  const spans: Array<[number, number]> = []
+  for (const entry of raw) {
+    if (!Array.isArray(entry) || entry.length !== 2) continue
+    const [from, to] = entry as [unknown, unknown]
+    if (typeof from !== 'number' || typeof to !== 'number' || !Number.isFinite(from) || !Number.isFinite(to)) continue
+    const start = Math.max(from, notBefore)
+    if (to > start) spans.push([start, to])
+  }
+  spans.sort((a, b) => a[0] - b[0])
+  const merged: Array<[number, number]> = []
+  for (const span of spans) {
+    const last = merged.at(-1)
+    if (last && span[0] <= last[1]) last[1] = Math.max(last[1], span[1])
+    else merged.push([span[0], span[1]])
+  }
+  while (merged.length > AFTER_MIDNIGHT_MAX_SPANS) {
+    let at = 0
+    for (let index = 1; index < merged.length - 1; index++) {
+      if (merged[index + 1]![0] - merged[index]![1] < merged[at + 1]![0] - merged[at]![1]) at = index
+    }
+    merged.splice(at, 2, [merged[at]![0], merged[at + 1]![1]])
+  }
+  return merged
 }
 
 /** A stored `afterMidnight` as a trusted value: anything malformed reads as null (nothing is ever taken off for it). */
@@ -172,7 +214,7 @@ export function sanitizeAfterMidnight(raw: unknown): AfterMidnightCount | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
   const { taskId, day, seconds } = raw as { taskId?: unknown; day?: unknown; seconds?: unknown };
   if (typeof taskId !== 'string' || !isValidDayKey(day) || typeof seconds !== 'number' || !Number.isFinite(seconds) || seconds < 0) return null;
-  return { taskId, day, seconds };
+  return { taskId, day, seconds, spans: normalizeSpans((raw as { spans?: unknown }).spans, startOfDayMs(day)) };
 }
 
 /**
@@ -699,17 +741,29 @@ export const useTasksStore = defineStore("tasks", () => {
    * now: the stop flush of a task that just left Jetzt runs after its status changed, and that move must leave the
    * queued entry in place, as the last per-second tick did before the checkpoints.
    * A push of the task in flight (#313) counts as superseded by it: see `markPendingSync` revisions.
+   * `awaySeconds` (of `seconds`): counted while the user was away from the window, in `awaySpans`; only those are
+   * noted for the new day's pass when a timer ran across midnight (#356).
    * @returns false for an unknown task, a count that is not a positive number, or while a batch operation holds updates
    */
-  function addTrackedSeconds(taskId: string, seconds: number): boolean {
+  function addTrackedSeconds(
+    taskId: string,
+    seconds: number,
+    awaySeconds = 0,
+    awaySpans: ReadonlyArray<readonly [number, number]> = [],
+  ): boolean {
     const task = tasks.value.find((el) => el.id === taskId);
     if (!task || !Number.isFinite(seconds) || seconds <= 0 || batchOperationInProgress.value) return false;
 
     const total = task.timeSpentSeconds + seconds;
     updateTask(taskId, { timeSpentSeconds: total });
-    // A timer that ran across midnight: what it counts from there on is noted for the new day's pass (#356)
+    // A timer that ran across midnight: what it counts from there on while the user is away is noted for the new
+    // day's pass (#356, D3 o); a second counted with the user in the window is never noted
     const counted = validAfterMidnight.value;
-    if (counted && counted.taskId === taskId) afterMidnight.value = { ...counted, seconds: counted.seconds + seconds };
+    if (counted && counted.taskId === taskId) {
+      const away = Number.isFinite(awaySeconds) ? Math.min(Math.max(0, awaySeconds), seconds) : 0;
+      const spans = away > 0 ? normalizeSpans([...counted.spans, ...awaySpans], startOfDayMs(counted.day)) : counted.spans;
+      afterMidnight.value = { ...counted, seconds: counted.seconds + away, spans };
+    }
 
     if (sourceSyncsTime(task.source)) {
       // A push of this task in flight (or a marker from this session) started from the older total: a new revision,
@@ -767,7 +821,7 @@ export const useTasksStore = defineStore("tasks", () => {
     if (!isValidDayKey(day) || !tasks.value.some((el) => el.id === taskId)) return;
     const current = validAfterMidnight.value;
     if (current && current.taskId === taskId && current.day === day) return;
-    afterMidnight.value = { taskId, day, seconds: 0 };
+    afterMidnight.value = { taskId, day, seconds: 0, spans: [] };
   }
 
   /** Drops the noted seconds: of one task (it entered Jetzt anew, the user set its time) or, without an id, any. */
@@ -777,12 +831,22 @@ export const useTasksStore = defineStore("tasks", () => {
   }
 
   /**
+   * The wall-clock spans the noted seconds of `taskId` were counted in, for the new day `day` (empty for another
+   * task or day). Read before `removeTimeAfterMidnight`, which drops the note: the pass takes the same stretch out of
+   * the Statistik work sessions (D3 h) so the card's time, the rhythm and the day capacity agree.
+   */
+  function afterMidnightSpans(taskId: string, day: string): Array<[number, number]> {
+    const counted = validAfterMidnight.value;
+    return counted && counted.taskId === taskId && counted.day === day ? counted.spans.map(([from, to]) => [from, to]) : [];
+  }
+
+  /**
    * The new day's pass (#356, the user's decision D2): takes the time the Jetzt task's timer counted after the
    * local midnight that starts `day` off its time spent again. Only what was noted for exactly this task and this
    * day is removed, never more than the task holds (never below zero), and the note is dropped whatever happens,
    * so a second call removes nothing. The lowered total is written like a user's time edit (`setTimeSpent`), so a
    * connection that stores time receives it and a fetch cannot bring the higher one back. Call it after the
-   * timer was stopped (the stop writes the collected seconds). Work sessions are not touched.
+   * timer was stopped (the stop writes the collected seconds). The work sessions are cut by the caller (`afterMidnightSpans`).
    * @returns the seconds removed
    */
   function removeTimeAfterMidnight(taskId: string, day: string): number {
@@ -1518,6 +1582,7 @@ export const useTasksStore = defineStore("tasks", () => {
     beginAfterMidnight,
     clearAfterMidnight,
     removeTimeAfterMidnight,
+    afterMidnightSpans,
     setCompletedAt,
     clearPendingTimeUpdate,
     clearAllPendingTimeUpdates,

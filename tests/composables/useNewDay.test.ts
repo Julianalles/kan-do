@@ -30,9 +30,11 @@ import { useTaskTimerDriver } from '~/composables/useTaskTimerDriver'
 import { useTasksStore } from '~/store/tasks'
 import { useBoardStore } from '~/store/board'
 import { useDayRecapStore } from '~/store/dayRecap'
+import { useTaskStatisticsStore } from '~/store/taskStatistics'
 import { useIntegrationHealthStore } from '~/store/integrationHealth'
 import { armedTaskTimerIds, disarmAllTaskTimers } from '~/lib/taskTimers'
 import { clearAllLiveSeconds } from '~/lib/liveTime'
+import { returnedAfterAbsence, resetPresence } from '~/lib/appPresence'
 import { dataState } from '~/lib/dataStorage'
 import { emptyDataStatus } from '~/lib/dataStatus'
 import { isNotPlanned } from '~/lib/taskPlanning'
@@ -74,6 +76,9 @@ function setup(options: SetupOptions = {}) {
   return { tasks, board, recap, newDay: useNewDay() }
 }
 
+/** The window loses the focus (or the tab is hidden): from here on the user is away, after the grace */
+const leaveWindow = () => { window.dispatchEvent(new Event('blur')) }
+
 const notPlannedIds = () => useTasksStore().tasksNotPlanned.map(t => t.id)
 
 describe('useNewDay: the pass (#356)', () => {
@@ -89,6 +94,7 @@ describe('useNewDay: the pass (#356)', () => {
     vi.spyOn(console, 'log').mockImplementation(() => {})
   })
   afterEach(() => {
+    resetPresence()
     disarmAllTaskTimers()
     clearAllLiveSeconds()
     vi.useRealTimers()
@@ -354,19 +360,24 @@ describe('useNewDay: the pass (#356)', () => {
     let driver: ReturnType<typeof useTaskTimerDriver>
     const stored = (id: string) => useTasksStore().task(id)!.timeSpentSeconds
 
-    /** A board at `start` with `j` in Jetzt (600 s) and its timer running. */
-    function running(start: Date, options: SetupOptions = {}) {
+    /**
+     * A board at `start` with `j` in Jetzt (600 s) and its timer running. The user leaves the window at once
+     * (blur), so what the timer counts after the grace (`AWAY_GRACE_MS`, D3 o) is counted while away; `present: true`
+     * keeps the user in the window.
+     */
+    function running(start: Date, options: SetupOptions & { present?: boolean } = {}) {
       vi.setSystemTime(start)
       const context = setup(options)
       driver = useTaskTimerDriver()
       driver.start()
+      if (options.present !== true) leaveWindow()
       return context
     }
     afterEach(() => driver?.stop())
 
-    it('app left open over midnight: the time until midnight stays, the time after it is taken off', () => {
+    it('app left open over midnight while the user is away: the time until midnight stays, the time after it is taken off', () => {
       const { tasks, newDay } = running(at(21, 23, 50))
-      // 10 min before midnight, 20 min after it; the return to the app runs the pass
+      // 10 min before midnight, 20 min after it, the user away from 23:50; the return to the app runs the pass
       vi.advanceTimersByTime(30 * 60 * 1000)
       expect(tasks.validAfterMidnight).toMatchObject({ taskId: 'j', day: TODAY })
       newDay.run()
@@ -380,11 +391,11 @@ describe('useNewDay: the pass (#356)', () => {
     })
 
     it('the second that crosses midnight counts as before it', () => {
-      const { newDay } = running(at(21, 23, 59, 58))
-      vi.advanceTimersByTime(5000)
+      const { newDay } = running(at(21, 23, 50))
+      vi.advanceTimersByTime((10 * 60 + 5) * 1000)
       newDay.run()
-      // ticks at 23:59:59 and 00:00:00 belong to yesterday, the three after them are taken off
-      expect(stored('j')).toBe(602)
+      // the ticks up to and with the one at 00:00:00 belong to yesterday, the five after them are taken off
+      expect(stored('j')).toBe(600 + 10 * 60)
     })
 
     it('other tasks keep their time, also an Offen task with time spent', () => {
@@ -424,7 +435,7 @@ describe('useNewDay: the pass (#356)', () => {
       expect(stored('j')).toBe(600 + 10 * 60 + 2)
     })
 
-    it('app closed after midnight and opened again that day: the time counted after midnight is still known and taken off', () => {
+    it('app closed after midnight (the user was away) and opened again that day: the time counted after midnight is still known and taken off', () => {
       const { tasks, newDay } = running(at(21, 23, 50))
       vi.advanceTimersByTime(40 * 60 * 1000) // until 00:30
       driver.stop()
@@ -496,11 +507,127 @@ describe('useNewDay: the pass (#356)', () => {
 
     it('a count noted for an earlier day is not used by a later pass', () => {
       const { tasks, newDay } = running(at(22, 8, 0))
-      tasks.afterMidnight = { taskId: 'j', day: YESTERDAY, seconds: 500 }
+      tasks.afterMidnight = { taskId: 'j', day: YESTERDAY, seconds: 500, spans: [] }
       vi.advanceTimersByTime(60 * 1000)
       vi.setSystemTime(at(22, 9, 0))
       newDay.run()
       expect(stored('j')).toBe(600 + 60)
+    })
+
+    it('the user works through midnight and never leaves: nothing is removed, however late the pass runs (D3 o)', () => {
+      const { tasks, newDay } = running(at(21, 23, 50), { present: true })
+      vi.advanceTimersByTime(30 * 60 * 1000) // 00:20, always in the window
+      expect(tasks.validAfterMidnight).toMatchObject({ taskId: 'j', day: TODAY, seconds: 0 })
+      // the pass has not run (no return, a route change never starts it); the next start or return runs it
+      newDay.run()
+      expect(stored('j')).toBe(600 + 30 * 60)
+      // the cards went back all the same, and the carried-over count and the recap wait for exactly this pass
+      expect(tasks.task('j')).toMatchObject({ status: TaskStatus.Open, notPlanned: true, timerId: null })
+      expect(notPlannedIds()).toEqual(['j', 'o1', 'o2'])
+    })
+
+    it('away from 23:50 to 08:00: only the seconds counted after midnight go, none before it', () => {
+      const { newDay } = running(at(21, 23, 50))
+      vi.advanceTimersByTime((10 + 8 * 60) * 60 * 1000) // 08:00 the next morning
+      newDay.run()
+      expect(stored('j')).toBe(600 + 10 * 60)
+    })
+
+    it('the user leaves after midnight: what the timer counted in the window and in the grace stays, only the away seconds go', () => {
+      const { newDay } = running(at(21, 23, 50), { present: true })
+      vi.advanceTimersByTime(30 * 60 * 1000) // 00:20 in the window
+      leaveWindow()
+      vi.advanceTimersByTime(7 * 60 * 60 * 1000 + 40 * 60 * 1000) // away until 08:00
+      newDay.run()
+      // 600 s before midnight, 1200 s after it in the window, and the 59 seconds of the grace in which the user still counts as present
+      expect(stored('j')).toBe(600 + 600 + 1200 + 59)
+    })
+
+    it('a glance at another window (below the grace) is not leaving: nothing is removed', () => {
+      const { newDay } = running(at(21, 23, 50), { present: true })
+      vi.advanceTimersByTime(15 * 60 * 1000) // 00:05
+      leaveWindow()
+      vi.advanceTimersByTime(30 * 1000) // back within half a minute
+      window.dispatchEvent(new Event('focus'))
+      vi.advanceTimersByTime(5 * 60 * 1000)
+      newDay.run()
+      expect(stored('j')).toBe(600 + 20 * 60 + 30)
+    })
+
+    it('away 23:50 to 00:10, then working on until 01:00: the return at 00:10 starts the new day, so the card goes back with the 10 away minutes off, and the timer does not run on', () => {
+      const { tasks, newDay } = running(at(21, 23, 50))
+      vi.advanceTimersByTime(20 * 60 * 1000) // 00:10: back after 20 minutes away
+      // the page's handler: the return follows a real absence, so it runs the pass
+      expect(returnedAfterAbsence()).toBe(true)
+      newDay.run()
+      expect(stored('j')).toBe(600 + 10 * 60)
+      expect(tasks.task('j')).toMatchObject({ status: TaskStatus.Open, notPlanned: true, timerId: null })
+      expect(armedTaskTimerIds()).toEqual([])
+      // working on until 01:00 adds nothing to the card: it has to be planned again and started
+      vi.advanceTimersByTime(50 * 60 * 1000)
+      expect(stored('j')).toBe(600 + 10 * 60)
+      expect(newDay.run()).toEqual([])
+    })
+
+    describe('the Statistik work sessions follow the removal (D3 h): one stretch, cut at the same boundary', () => {
+      const sessions = () => useTaskStatisticsStore().workSessions.map(({ start, end }) => [start, end])
+      const ms = (day: number, hour: number, minute = 0, second = 0) => at(day, hour, minute, second).getTime()
+
+      it('away from 23:50 to 08:00: the session ends at midnight, and its length is the time the card keeps from that night', () => {
+        // a session of the afternoon before is old data and stays as it is
+        const yesterdayAfternoon = { start: ms(21, 14), end: ms(21, 15) }
+        useTaskStatisticsStore().workSessions = [yesterdayAfternoon]
+        const { newDay } = running(at(21, 23, 50))
+        vi.advanceTimersByTime((10 + 8 * 60) * 60 * 1000)
+        newDay.run()
+        expect(sessions()).toEqual([[yesterdayAfternoon.start, yesterdayAfternoon.end], [ms(21, 23, 50), ms(22, 0)]])
+        // the card kept 600 s of the night, the session 600 s: they agree
+        expect(stored('j') - 600).toBe(600)
+      })
+
+      it('the user leaves after midnight: the session is cut where the removed seconds begin, not at midnight', () => {
+        const { newDay } = running(at(21, 23, 50), { present: true })
+        vi.advanceTimersByTime(30 * 60 * 1000) // 00:20 in the window
+        leaveWindow()
+        vi.advanceTimersByTime(7 * 60 * 60 * 1000 + 40 * 60 * 1000)
+        newDay.run()
+        // the 59 seconds of the grace count as present: the session keeps them with the card's 600 + 1200 + 59 s
+        expect(sessions()).toEqual([[ms(21, 23, 50), ms(22, 0, 20, 59)]])
+        expect(stored('j') - 600).toBe((ms(22, 0, 20, 59) - ms(21, 23, 50)) / 1000)
+      })
+
+      it('present through midnight: the session is untouched, and so is the card', () => {
+        const { newDay } = running(at(21, 23, 50), { present: true })
+        vi.advanceTimersByTime(30 * 60 * 1000)
+        newDay.run()
+        expect(sessions()).toEqual([[ms(21, 23, 50), ms(22, 0, 20)]])
+        expect(stored('j')).toBe(600 + 30 * 60)
+      })
+
+      it('away 23:50 to 00:10: the ten minutes after midnight leave the session as they leave the card', () => {
+        const { newDay } = running(at(21, 23, 50))
+        vi.advanceTimersByTime(20 * 60 * 1000)
+        newDay.run()
+        expect(sessions()).toEqual([[ms(21, 23, 50), ms(22, 0)]])
+        expect(stored('j')).toBe(600 + 10 * 60)
+      })
+
+      it('exactly once: a second pass the same day and a stopped timer cut nothing more', () => {
+        const { newDay } = running(at(21, 23, 50))
+        vi.advanceTimersByTime((10 + 8 * 60) * 60 * 1000)
+        newDay.run()
+        const after = sessions()
+        newDay.run()
+        vi.advanceTimersByTime(60 * 60 * 1000)
+        expect(sessions()).toEqual(after)
+        expect(useTasksStore().afterMidnightSpans('j', TODAY)).toEqual([])
+      })
+
+      it('never time before midnight: a span noted from before it is clipped to it', () => {
+        useTasksStore().setTasks([task('j', TaskStatus.Progress, { timeSpentSeconds: 600 })])
+        useTasksStore().afterMidnight = { taskId: 'j', day: TODAY, seconds: 120, spans: [[ms(21, 23, 58), ms(22, 0, 2)]] }
+        expect(useTasksStore().afterMidnightSpans('j', TODAY)).toEqual([[ms(22, 0), ms(22, 0, 2)]])
+      })
     })
 
     it('a Notion task: the lowered time is pushed like a user\'s time edit, so a fetch cannot bring the higher one back', async () => {
