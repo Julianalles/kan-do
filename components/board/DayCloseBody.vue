@@ -2,7 +2,7 @@
 @component DayCloseBody
 @kind block
 @category display
-@description Scrolling content of the closing sheet (#98, #237): the day in one look (date, headline, total time, time-box bar), what got done today, and what stays on the board for tomorrow.
+@description Scrolling content of the closing sheet (#98, #237): the day in one look (date, headline, total time, time-box bar), what got done today, and what goes back to "Nicht geplant" for tomorrow (#356).
 @usage Hosted by DayCloseDialog (modal and drawer share it). Reads the local cache only; a sync that lands while it is open updates the lists in place.
 @avoid Not standalone: hosted by DayCloseDialog (modal and drawer share it); the start-of-day look back is NewDayRecap.
 @responsibility
@@ -52,6 +52,7 @@ import { ICONS } from '~/lib/icons'
 import { computed, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDayClose, useDayCloseData } from '~/composables/useDayClose'
+import { TaskStatus } from '~/types/taskStatus'
 import DayCloseOpenRow from '~/components/board/DayCloseOpenRow.vue'
 import DayCloseSummary from '~/components/board/DayCloseSummary.vue'
 import DayCloseTaskRow from '~/components/board/DayCloseTaskRow.vue'
@@ -70,6 +71,9 @@ function revealList(event: Event) {
   if (details.open) details.scrollIntoView({ block: 'start' })
 }
 
-/** Open tasks that carry on to tomorrow: every one that is not deselected. */
-const keptCount = computed(() => inFlight.value.filter(task => isKept(task.id)).length)
+/**
+ * What goes back to "Nicht geplant" with the new day (#356): the kept tasks in Offen and Jetzt. A kept Wartet task
+ * stays in Wartet and is not counted; its row says so.
+ */
+const keptCount = computed(() => inFlight.value.filter(task => task.status !== TaskStatus.Waiting && isKept(task.id)).length)
 </script>

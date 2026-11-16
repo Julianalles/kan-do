@@ -67,7 +67,7 @@ describe('TaskCarryOverTriage (#99)', () => {
     expect(block.classes()).not.toContain('bg-muted/50')
     expect(block.find('h3').exists()).toBe(false)
     expect(block.find('[data-testid="carry-over-dots"]').exists()).toBe(false)
-    expect(block.attributes('aria-label')).toBe('Immer noch da: Tag 6 auf dem Board.')
+    expect(block.attributes('aria-label')).toBe('Immer noch da: an 6 Tagen eingeplant.')
     expect(block.findAll('button')).toHaveLength(3)
   })
 

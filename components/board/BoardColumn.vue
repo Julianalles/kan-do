@@ -14,6 +14,7 @@
 - Provides header with status information
 - Enables task addition for the Open column (#248): the header's round add button asks the add slot, the draft host at the start of the list, to open; the draft card enters at the top (#125). Cancel returns focus to the header button
 - Handles visual states for different statuses and empty states
+- Offen on Heute, empty while tasks of today's group "Gestern geplant, noch offen" wait under "Alle" (#356): one muted sentence with a link to "Alle"; every other empty column stays blank
 - Erledigt drop target (#124): a light green wash under the list and a one-line hint while a card
   from another column hovers it
 -->
@@ -95,6 +96,20 @@
       @focusin="handleFocusIn"
       @focusout="handleFocusOut"
     >
+      <!-- Offen is empty on Heute while yesterday's cards wait under "Alle" (#356): one muted sentence with the way there.
+           The app took the cards off the board itself, so this one empty column is not blank (#334, Pattern line) -->
+      <p
+        v-if="showYesterdayNote"
+        class="open-yesterday-note text-body text-muted"
+        data-testid="open-yesterday-note"
+      >
+        <i18n-t keypath="board.yesterdayUnderAll" :plural="yesterdayCount" scope="global">
+          <template #n>{{ yesterdayCount }}</template>
+          <template #all>
+            <ULink :to="allLocation" class="font-medium text-primary underline" data-testid="open-yesterday-link">{{ t('nav.all') }}</ULink>
+          </template>
+        </i18n-t>
+      </p>
       <!-- Add slot (Open column only, #125, #248): the draft host at the start of the list. It has no box while no draft is
            open (no gap above the first card); the header button opens it. Inside the flex container so gap spacing applies -->
       <add-task-slot
@@ -149,6 +164,7 @@ import { buildColumnItems, withCapacityItem } from "~/utils/columnItems";
 import { useDayCapacity } from "~/composables/useDayCapacity";
 import { useOpenCapacityLine } from "~/composables/useOpenCapacityLine";
 import { useBoardPlace } from "~/composables/useBoardPlace";
+import { boardPlaceLocation } from "~/lib/boardPlace";
 import {
   getGroupLabel,
   getStackKeys,
@@ -170,7 +186,8 @@ const { t } = useI18n();
 const tasksStore = useTasksStore();
 const boardStore = useBoardStore();
 const { dragState } = useBoardDragState();
-const { basePath } = useBoardPlace();
+const { basePath, isAll } = useBoardPlace();
+const allLocation = boardPlaceLocation('all');
 
 const isHovering = ref(false);
 const isSortingOpen = ref(false);
@@ -180,6 +197,11 @@ const props = defineProps({
   headline: {
     type: String,
     default: undefined,
+  },
+  /** Offen only (#356): how many tasks the new day sent back still wait under "Alle"; 0 for every other column. */
+  yesterdayWaiting: {
+    type: Number,
+    default: 0,
   },
   staticMode: {
     type: Boolean,
@@ -506,6 +528,16 @@ const computedHeadline = computed(computeHeadline);
 const computeIsEmpty = (): boolean => props.tasks.length < 1;
 
 const isEmpty = computed(computeIsEmpty);
+
+/** Tasks of today's group "Gestern geplant, noch offen" that still wait under "Alle" (#356); Board.vue hands it to Offen. */
+const yesterdayCount = computed(() => props.yesterdayWaiting);
+/**
+ * The sentence in an empty Offen on Heute: only while the column holds no card (and no deleted-card gap, no draft, no
+ * drag) and tasks of today's group are left. On "Alle" the group itself is beside the column, so Offen stays blank.
+ */
+const showYesterdayNote = computed(() =>
+  isOpenColumn.value && !props.staticMode && !isAll.value && isEmpty.value && !hasGaps.value
+  && !props.isDragging && !(addSlotRef.value?.isDrafting ?? false) && yesterdayCount.value > 0);
 
 /**
  * Navigates to the task detail view

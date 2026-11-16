@@ -63,7 +63,10 @@ describe('hydration writes nothing (#273)', () => {
   })
 
   it('a stored or missing day-recap-store is not written back at hydration (#385)', async () => {
-    for (const stores of [{}, { 'day-recap-store': { lastShownDay: '2026-10-21', archiveDone: false } }, { 'day-recap-store': { lastShownDay: 'garbage' } }]) {
+    for (const stores of [{}, { 'day-recap-store': { lastShownDay: '2026-10-21', archiveDone: false } }, { 'day-recap-store': { lastShownDay: 'garbage' } },
+      // #356: the new day's fields, well-formed and malformed
+      { 'day-recap-store': { lastShownDay: '2026-10-21', lastNewDay: '2026-10-21', sentBack: { day: '2026-10-21', ids: ['a'] }, firstBackDay: '2026-10-21', backNoteClosed: true, timeOffer: { taskId: 'a', day: '2026-10-21', seconds: 900, spans: [] } } },
+      { 'day-recap-store': { lastNewDay: 7, sentBack: 'x', firstBackDay: [], timeOffer: 'x' }, 'tasks-store': { tasks: [], afterMidnight: 'x' } }]) {
       const backend = await desktopPinia(stores)
       const created = await instantiateAll()
       await nextTick()

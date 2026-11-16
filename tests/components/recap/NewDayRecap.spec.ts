@@ -8,10 +8,13 @@ import { useTasksStore } from '~/store/tasks'
 import { useBoardStore } from '~/store/board'
 import { useDayRecapStore } from '~/store/dayRecap'
 import { toastAddMock } from '../../mocks/nuxt-imports'
+import { setCurrentBoardPath } from '~/lib/boardPlace'
 import { setTestLocale } from '../../helpers/i18n'
 import { TaskStatus } from '~/types/taskStatus'
 import type { Task } from '~/types/task'
 
+const navigateTo = vi.hoisted(() => vi.fn())
+vi.mock('nuxt/app', () => ({ navigateTo }))
 vi.mock('~/composables/useTaskSync', () => ({ useTaskSync: () => ({ syncArchiveStatusForTasks: vi.fn().mockResolvedValue(undefined) }) }))
 vi.mock('~/store/taskStatistics', () => ({
   useTaskStatisticsStore: () => ({ syncExistingDoneTasks: vi.fn(), updateTaskRecord: vi.fn() }),
@@ -348,10 +351,71 @@ describe('NewDayRecap', () => {
     expect(useNewDayRecap().isOpen.value).toBe(false)
   })
 
-  it('moves focus to the button on open', async () => {
+  describe('two ways out (#356)', () => {
+    beforeEach(() => {
+      navigateTo.mockClear()
+      setCurrentBoardPath('/tasks')
+    })
+    afterEach(() => setCurrentBoardPath('/tasks'))
+
+    it('shows "Tag planen" as the primary button and "Direkt zu Heute" beside it', async () => {
+      await open([doneAt(1, 'a')])
+      expect(q('[data-testid="recap-plan"]').textContent?.trim()).toBe('Tag planen')
+      expect(q('[data-testid="recap-plan"]').hasAttribute('data-recap-primary')).toBe(true)
+      expect(q('[data-testid="recap-continue"]').textContent?.trim()).toBe('Direkt zu Heute')
+      setTestLocale('en')
+      await nextTick()
+      expect(q('[data-testid="recap-plan"]').textContent?.trim()).toBe('Plan the day')
+      expect(q('[data-testid="recap-continue"]').textContent?.trim()).toBe('Straight to Today')
+      setTestLocale('de')
+    })
+
+    it('"Tag planen" leaves the recap and leads to "Alle"', async () => {
+      await open([doneAt(1, 'a')])
+      q('[data-testid="recap-plan"]').click()
+      expect(navigateTo).toHaveBeenCalledTimes(1)
+      expect(navigateTo).toHaveBeenCalledWith({ path: '/all', force: true })
+      expect(useNewDayRecap().isOpen.value).toBe(false)
+      expect(useDayRecapStore().lastShownDay).toBe('2026-10-22')
+    })
+
+    it('"Direkt zu Heute" leaves the recap and stays on Heute', async () => {
+      await open([doneAt(1, 'a')])
+      q('[data-testid="recap-continue"]').click()
+      expect(navigateTo).not.toHaveBeenCalled()
+      expect(useNewDayRecap().isOpen.value).toBe(false)
+
+    })
+
+    it('"Direkt zu Heute" on "Alle" goes to Heute', async () => {
+      setCurrentBoardPath('/all')
+      await open([doneAt(1, 'a')])
+      q('[data-testid="recap-continue"]').click()
+      expect(navigateTo).toHaveBeenCalledWith({ path: '/tasks', force: true })
+      expect(useNewDayRecap().isOpen.value).toBe(false)
+    })
+
+    it('Escape is "Direkt zu Heute" without a move: it only dismisses, also on "Alle"', async () => {
+      setCurrentBoardPath('/all')
+      await open([doneAt(1, 'a')])
+      pressEscape()
+      expect(useNewDayRecap().isOpen.value).toBe(false)
+      expect(navigateTo).not.toHaveBeenCalled()
+    })
+
+    it('a second click during the curtain neither navigates nor leaves again', async () => {
+      await open([doneAt(1, 'a')])
+      q('[data-testid="recap-plan"]').click()
+      q('[data-testid="recap-plan"]').click()
+      q('[data-testid="recap-continue"]').click()
+      expect(navigateTo).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  it('moves focus to "Tag planen" on open', async () => {
     await open([doneAt(1, 'a')])
     await new Promise(resolve => requestAnimationFrame(() => resolve(null)))
-    expect(document.activeElement).toBe(q('[data-testid="recap-continue"]'))
+    expect(document.activeElement).toBe(q('[data-testid="recap-plan"]'))
   })
 
   it('a remount with the recap already open (back from settings) focuses the button again', async () => {
@@ -360,7 +424,7 @@ describe('NewDayRecap', () => {
     wrapper = mount(NewDayRecap, { global: { stubs }, attachTo: document.body })
     await nextTick()
     await new Promise(resolve => requestAnimationFrame(() => resolve(null)))
-    expect(document.activeElement).toBe(q('[data-testid="recap-continue"]'))
+    expect(document.activeElement).toBe(q('[data-testid="recap-plan"]'))
   })
 
   describe('curtain', () => {

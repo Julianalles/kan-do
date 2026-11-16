@@ -36,6 +36,150 @@ describe('day recap store', () => {
     expect(store.lastShownDay).toBe('2026-10-23')
   })
 
+  describe('the new day\'s pass (#356)', () => {
+    it('starts without a pass, a group or a note', () => {
+      const store = useDayRecapStore()
+      expect(store.validLastNewDay).toBeNull()
+      expect(store.validSentBack).toBeNull()
+      expect(store.validFirstBackDay).toBeNull()
+      expect(store.backNoteClosed).toBe(false)
+    })
+
+    it('markNewDay only moves forward and replaces the group', () => {
+      const store = useDayRecapStore()
+      expect(store.markNewDay('2026-10-22', ['a', 'b'])).toBe(true)
+      expect(store.markNewDay('2026-10-22', ['c'])).toBe(false)
+      expect(store.markNewDay('2026-10-21', ['c'])).toBe(false)
+      expect(store.markNewDay('garbage', ['c'])).toBe(false)
+      expect(store.sentBack).toEqual({ day: '2026-10-22', ids: ['a', 'b'] })
+      expect(store.markNewDay('2026-10-23', [])).toBe(true)
+      expect(store.sentBack).toEqual({ day: '2026-10-23', ids: [] })
+    })
+
+    it('remembers the first day cards were sent back, once: a baseline or an empty pass does not count', () => {
+      const store = useDayRecapStore()
+      store.markNewDay('2026-10-21', [])
+      expect(store.firstBackDay).toBeNull()
+      store.markNewDay('2026-10-22', ['a'])
+      store.closeBackNote()
+      store.markNewDay('2026-10-23', ['a'])
+      expect(store.firstBackDay).toBe('2026-10-22')
+      expect(store.backNoteClosed).toBe(true)
+    })
+
+    it('data stored before #356 loads as "no pass yet, no group" and keeps its recap marker; nothing is written at hydration', async () => {
+      localStorage.setItem('day-recap-store', JSON.stringify({ lastShownDay: '2026-10-21', archiveDone: false, closedTaskIds: ['x'] }))
+      const before = localStorage.getItem('day-recap-store')
+      freshPinia()
+      const store = useDayRecapStore()
+      await nextTick()
+      expect(store.validLastShownDay).toBe('2026-10-21')
+      expect(store.archiveDone).toBe(false)
+      expect(store.validLastNewDay).toBeNull()
+      expect(store.validSentBack).toBeNull()
+      expect(store.validFirstBackDay).toBeNull()
+      expect(localStorage.getItem('day-recap-store')).toBe(before)
+    })
+
+    it('malformed stored values read as "no pass yet, no group" and are not written back', async () => {
+      for (const bad of [
+        { lastNewDay: 42, sentBack: 'yes', firstBackDay: {} },
+        { lastNewDay: '22.10.2026', sentBack: { day: 'x', ids: ['a'] }, firstBackDay: 'soon' },
+        { lastNewDay: null, sentBack: { day: '2026-10-22', ids: 'a' }, firstBackDay: null },
+        { lastNewDay: [], sentBack: ['a'], firstBackDay: 1 },
+      ]) {
+        localStorage.setItem('day-recap-store', JSON.stringify(bad))
+        const before = localStorage.getItem('day-recap-store')
+        freshPinia()
+        const store = useDayRecapStore()
+        await nextTick()
+        expect(store.validLastNewDay).toBeNull()
+        expect(store.validSentBack).toBeNull()
+        expect(store.validFirstBackDay).toBeNull()
+        expect(localStorage.getItem('day-recap-store')).toBe(before)
+      }
+    })
+
+    it('drops ids that are not strings from a stored group', () => {
+      const store = useDayRecapStore()
+      store.sentBack = { day: '2026-10-22', ids: ['a', 3, null, 'b'] as never }
+      expect(store.validSentBack).toEqual({ day: '2026-10-22', ids: ['a', 'b'] })
+    })
+
+    describe('the question about time after midnight (the user\'s decision of 2026-11-16)', () => {
+      const offer = { taskId: 'a', day: '2026-10-22', seconds: 900, spans: [[new Date(2026, 9, 22, 0, 5).getTime(), new Date(2026, 9, 22, 0, 20).getTime()] as [number, number]] }
+
+      it('belongs to its pass: the pass stores it, the next pass replaces it, answering clears it', () => {
+        const store = useDayRecapStore()
+        expect(store.validTimeOffer).toBeNull()
+        store.markNewDay('2026-10-22', ['a'], offer)
+        expect(store.validTimeOffer).toEqual(offer)
+        store.resolveTimeOffer()
+        expect(store.validTimeOffer).toBeNull()
+        store.markNewDay('2026-10-23', ['a'], { ...offer, day: '2026-10-23' })
+        store.markNewDay('2026-10-24', ['a'])
+        expect(store.timeOffer).toBeNull()
+      })
+
+      it('resolving for a task ends only that task\'s question (the user typed its time)', () => {
+        const store = useDayRecapStore()
+        store.markNewDay('2026-10-22', ['a'], offer)
+        store.resolveTimeOffer('b')
+        expect(store.validTimeOffer).toEqual(offer)
+        store.resolveTimeOffer('a')
+        expect(store.validTimeOffer).toBeNull()
+      })
+
+      it('a pass that is ignored (a clock set back) leaves the question alone', () => {
+        const store = useDayRecapStore()
+        store.markNewDay('2026-10-22', ['a'], offer)
+        store.markNewDay('2026-10-21', ['a'])
+        expect(store.validTimeOffer).toEqual(offer)
+      })
+
+      it('reads a malformed stored question as none and does not write it back at hydration', async () => {
+        for (const bad of ['yes', { taskId: 1, day: '2026-10-22', seconds: 5 }, { taskId: 'a', day: 'x', seconds: 5 }, { taskId: 'a', day: '2026-10-22', seconds: -1 }, { taskId: 'a', day: '2026-10-22', seconds: 0 }, ['a']]) {
+          localStorage.setItem('day-recap-store', JSON.stringify({ timeOffer: bad }))
+          const before = localStorage.getItem('day-recap-store')
+          freshPinia()
+          const store = useDayRecapStore()
+          await nextTick()
+          expect(store.validTimeOffer).toBeNull()
+          expect(localStorage.getItem('day-recap-store')).toBe(before)
+        }
+      })
+
+      it('data stored without the field loads with no question; spans are clipped to the midnight and a missing list reads as none', () => {
+        const store = useDayRecapStore()
+        store.timeOffer = { taskId: 'a', day: '2026-10-22', seconds: 60 } as never
+        expect(store.validTimeOffer).toEqual({ taskId: 'a', day: '2026-10-22', seconds: 60, spans: [] })
+        store.timeOffer = { taskId: 'a', day: '2026-10-22', seconds: 60, spans: [[new Date(2026, 9, 21, 23, 58).getTime(), new Date(2026, 9, 22, 0, 2).getTime()]] }
+        expect(store.validTimeOffer?.spans).toEqual([[new Date(2026, 9, 22, 0, 0).getTime(), new Date(2026, 9, 22, 0, 2).getTime()]])
+      })
+
+      it('survives a restart', async () => {
+        const store = useDayRecapStore()
+        store.markNewDay('2026-10-22', ['a'], offer)
+        await nextTick()
+        freshPinia()
+        expect(useDayRecapStore().validTimeOffer).toEqual(offer)
+      })
+    })
+
+    it('persists the pass, the group and the note across a restart', async () => {
+      const store = useDayRecapStore()
+      store.markNewDay('2026-10-22', ['a', 'b'])
+      store.closeBackNote()
+      await nextTick()
+      freshPinia()
+      const again = useDayRecapStore()
+      expect(again.validLastNewDay).toBe('2026-10-22')
+      expect(again.validSentBack).toEqual({ day: '2026-10-22', ids: ['a', 'b'] })
+      expect(again.validFirstBackDay).toBe('2026-10-22')
+      expect(again.backNoteClosed).toBe(true)
+    })
+  })
+
   it('ignores a malformed key', () => {
     const store = useDayRecapStore()
     store.markShown('yesterday')
@@ -57,7 +201,7 @@ describe('day recap store', () => {
     store.markShown('2026-10-22')
     store.setArchiveDone(false)
     await nextTick()
-    expect(JSON.parse(localStorage.getItem('day-recap-store') as string)).toEqual({ lastShownDay: '2026-10-22', archiveDone: false, closedTaskIds: [] })
+    expect(JSON.parse(localStorage.getItem('day-recap-store') as string)).toMatchObject({ lastShownDay: '2026-10-22', archiveDone: false, closedTaskIds: [] })
   })
 
   it('restores both after a reload', () => {

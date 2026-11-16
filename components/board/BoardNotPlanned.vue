@@ -11,6 +11,7 @@
 - Drag (#355): a card can be carried onto Offen with the board's own drag (it is planned and lands where it is dropped). The side is one dnd-kit droppable (`data.notPlannedZone`) for a card or stack from Offen: while one is held over it the side shows a wash and "Hier ablegen: nicht heute" under the headline, and the drop takes it off today's board, on top of this list. The cards never make room for one another: no sorting here
 - Pick: a round button per card ("Für heute einplanen", named with the task's title). Desktop: on the paper right of the card, towards Offen, quiet at rest and full on hover and focus, so a first-time user finds it (#354 D1e). Phone: in the card's top right corner, where a board card has its menu button. The move is `usePlanMoves().planForToday`; keyboard focus goes on to the next card's button
 - Order: `tasksStore.tasksNotPlanned` (put back by hand first, newest first); the topic focus filters it like a column (`useBoardFocus`)
+- A new day (#356): the tasks today's pass sent back (`useNewDay().groupIds`) stand on top as the group "Gestern geplant, noch offen" (its `h3` in the row under the headline), every other task below under "Weitere Aufgaben". For that one day only; a group the topic focus leaves empty is not shown, and without the first group there are no headings at all. Pick, drag and the focus hand-over work across the heading
 - Empty: one muted note. Nothing held here: "Noch keine weiteren Aufgaben. Alles ist für heute geplant." plus how a task gets here (#354 D1c: until #357 nothing arrives by itself); a focus without a match: "Keine Aufgaben gefunden."; a board without any task stays blank
 - Many items: on desktop the side is as tall as the window and its list scrolls inside it, so Offen and "Weiter zu Heute" stay in view; on a phone the page scrolls like every column page
 - Out of view (`active` false) the side is `inert`; Board.vue's CSS takes it out of layout or view once the move is over
@@ -38,6 +39,17 @@
           {{ t('board.notPlanned.dropHere') }}
         </p>
       </Transition>
+      <!-- The first group's heading sits in this row, so the group's first card stays level with Offen's (#356) -->
+      <SectionHeader
+        v-if="rendered && yesterday.length > 0 && !isDropTarget"
+        :id="yesterdayHeadingId"
+        tag="h3"
+        size="label"
+        class="not-planned__group mb-0"
+        data-testid="not-planned-group-yesterday"
+      >
+        {{ t('board.notPlanned.groupYesterday') }}
+      </SectionHeader>
     </div>
 
     <div v-if="rendered" ref="bodyEl" class="not-planned__body">
@@ -48,13 +60,49 @@
         {{ t('board.notPlanned.empty') }} {{ t('board.notPlanned.emptyHow') }}
       </EmptyNote>
 
-      <!-- Not in the reader's tree while it holds nothing: an empty list says "0 items" beside the note -->
-      <TransitionGroup v-show="shown.length > 0" tag="ul" name="not-planned-item" class="not-planned__grid">
+      <!-- On a new day (#356): what was planned yesterday and not finished, on top as a group of its own, for that day.
+           Not in the reader's tree while it holds nothing: an empty list says "0 items" -->
+      <TransitionGroup
+        v-show="yesterday.length > 0"
+        tag="ul"
+        name="not-planned-item"
+        class="not-planned__grid"
+        :aria-labelledby="yesterdayHeadingId"
+        data-testid="not-planned-list-yesterday"
+      >
         <BoardNotPlannedItem
-          v-for="(task, index) in shown"
+          v-for="(task, index) in yesterday"
           :key="task.id"
           :task="task"
           :index="index"
+          @open="openTask"
+          @pick="pick"
+        />
+      </TransitionGroup>
+      <!-- "Weitere Aufgaben" only says something beside the first group: without it the side looks as on any other day -->
+      <SectionHeader
+        v-if="yesterday.length > 0 && others.length > 0"
+        :id="othersHeadingId"
+        tag="h3"
+        size="label"
+        class="not-planned__group not-planned__group--next"
+        data-testid="not-planned-group-others"
+      >
+        {{ t('board.notPlanned.groupOthers') }}
+      </SectionHeader>
+      <TransitionGroup
+        v-show="others.length > 0"
+        tag="ul"
+        name="not-planned-item"
+        class="not-planned__grid"
+        :aria-labelledby="yesterday.length > 0 ? othersHeadingId : undefined"
+        data-testid="not-planned-list-others"
+      >
+        <BoardNotPlannedItem
+          v-for="(task, index) in others"
+          :key="task.id"
+          :task="task"
+          :index="yesterday.length + index"
           @open="openTask"
           @pick="pick"
         />
@@ -64,17 +112,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, ref, useId } from 'vue'
 import { useDroppable } from '@dnd-kit/vue'
 import { useI18n } from 'vue-i18n'
 import { navigateTo } from 'nuxt/app'
 import BoardColumnHeader from '~/components/board/BoardColumnHeader.vue'
 import EmptyNote from '~/components/ui/EmptyNote.vue'
+import SectionHeader from '~/components/ui/SectionHeader.vue'
 import BoardNotPlannedItem from '~/components/board/BoardNotPlannedItem.vue'
 import { useTasksStore } from '~/store/tasks'
 import { useBoardFocus } from '~/composables/useBoardFocus'
 import { useBoardPlace } from '~/composables/useBoardPlace'
 import { usePlanMoves } from '~/composables/usePlanMoves'
+import { useNewDay } from '~/composables/useNewDay'
 import { useBoardDragState } from '~/composables/useBoardDragState'
 import { notPlannedZoneAccepts } from '~/utils/planDrop'
 import { TaskStatus } from '~/types/taskStatus'
@@ -114,6 +164,24 @@ const isDropTarget = computed(() => dragState.value.isDragging && dragState.valu
 const held = computed(() => tasksStore.tasksNotPlanned)
 /** What the topic focus leaves of it (the funnel in the app bar filters this side like a column) */
 const shown = computed(() => applyFocus(held.value))
+/**
+ * The two groups of a new day (#356): the tasks today's pass sent back that are still not planned, in the order they
+ * had on the board (Jetzt first), and every other task. Without a first group there is one plain list, as on any other day.
+ */
+const { groupIds } = useNewDay()
+const yesterday = computed(() => {
+  const byId = new Map(shown.value.map(task => [task.id, task]))
+  return groupIds.value.map(id => byId.get(id)).filter(task => task !== undefined)
+})
+const others = computed(() => {
+  const inGroup = new Set(yesterday.value.map(task => task.id))
+  return inGroup.size === 0 ? shown.value : shown.value.filter(task => !inGroup.has(task.id))
+})
+/** The cards in the order they are rendered, across both groups */
+const renderedOrder = computed(() => [...yesterday.value, ...others.value].map(task => task.id))
+const yesterdayHeadingId = useId()
+const othersHeadingId = useId()
+
 /** kan-do holds a task at all: only then "everything is planned for today" is true; a new board stays blank */
 const hasTasks = computed(() => tasksStore.tasks.length > 0)
 
@@ -122,9 +190,11 @@ const openTask = (id: string) => void navigateTo({ path: `${basePath.value}/${id
 /** Plans the card. A keyboard user's focus was on the button that now leaves: it goes on to the next card's button. */
 async function pick(id: string, event: MouseEvent) {
   const button = event.currentTarget as HTMLElement
-  const item = button.closest('.not-planned__item')
   const hadFocus = document.activeElement === button
-  const neighbour = (item?.nextElementSibling ?? item?.previousElementSibling)?.getAttribute('data-not-planned-id') ?? null
+  // The next card as rendered, also across the group heading (#356); the last card hands on to the one before it
+  const order = renderedOrder.value
+  const at = order.indexOf(id)
+  const neighbour = at === -1 ? null : order[at + 1] ?? order[at - 1] ?? null
   if (!(await planForToday(id)) || !hadFocus) return
   await nextTick()
   const next = neighbour ? bodyEl.value?.querySelector<HTMLElement>(`[data-not-planned-id="${CSS.escape(neighbour)}"] .not-planned__pick`) : null
@@ -143,6 +213,15 @@ async function pick(id: string, event: MouseEvent) {
   grid-template-columns: minmax(0, 1fr);
   justify-items: center;
   row-gap: var(--task-list-gap);
+}
+
+.not-planned__group {
+  justify-content: center;
+  text-align: center;
+}
+
+.not-planned__group--next {
+  margin: 1.5rem 0 0.75rem;
 }
 
 .not-planned__note {

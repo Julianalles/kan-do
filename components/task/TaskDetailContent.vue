@@ -307,6 +307,7 @@ import SectionHeader from '~/components/ui/SectionHeader.vue';
 import InlineEditable from '~/components/ui/inline/InlineEditable.vue';
 import PropertyValueTrigger from '~/components/ui/PropertyValueTrigger.vue';
 import { useTasksStore } from '~/store/tasks';
+import { useDayRecapStore } from '~/store/dayRecap';
 import { usePropertyOptionsStore } from '~/store/propertyOptions';
 import { useTimeboxSuggestion } from '~/composables/useTimeboxSuggestion';
 import { useTaskSync } from '~/composables/useTaskSync';
@@ -441,6 +442,8 @@ function setTimeSpentAndSync(seconds: number) {
   if (!task.value) return;
   const operationVersion = tasksStore.incrementTaskOperationVersion(task.value.id);
   if (!tasksStore.setTimeSpent(task.value.id, seconds)) return;
+  // The typed total is the truth: an open "Zeit abziehen" question for this task (#356) would lower it again
+  useDayRecapStore().resolveTimeOffer(task.value.id);
   if (!props.isPreview) {
     const updatedTask = tasksStore.task(task.value.id);
     if (updatedTask) syncTaskToIntegration(updatedTask, undefined, operationVersion);

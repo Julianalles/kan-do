@@ -159,7 +159,25 @@
       "dragOver": "“{title}” over Not planned. Dropping takes the task off today.",
       "dragBack": "“{title}” stays in Not planned.",
       "capacityFull": "With this your day is probably full.",
-      "capacityBelow": "Your day is probably full. One task is below the line. | Your day is probably full. {n} tasks are below the line."
+      "capacityBelow": "Your day is probably full. One task is below the line. | Your day is probably full. {n} tasks are below the line.",
+      "groupYesterday": "Planned yesterday, still open",
+      "groupOthers": "More tasks"
+    },
+    "yesterdayUnderAll": "One task from yesterday is under {all}. | {n} tasks from yesterday are under {all}.",
+    "newDayNote": {
+      "title": "New: every day starts with an empty plan.",
+      "description": "One task from Open and Now is now under “All”, in “Not planned”. Plan it for today there. | {n} tasks from Open and Now are now under “All”, in “Not planned”. Plan them for today there.",
+      "planAll": "Plan all again",
+      "close": "Close",
+      "planned": "One task is planned for today again. | {n} tasks are planned for today again."
+    },
+    "newDayTimeNote": {
+      "title": "Timer ran on for {duration} after midnight",
+      "description": "Kan-Do was not in focus. The time is still on the task.",
+      "takeOff": "Subtract time",
+      "keep": "Keep time",
+      "tookOff": "{duration} subtracted from the task.",
+      "kept": "The time stays on the task."
     }
   },
   "nav": {
@@ -330,8 +348,8 @@
       "notToday": "Not today"
     },
     "carryOver": {
-      "label": "Day {n} on the board",
-      "nudgeTitle": "Still here: day {n} on the board.",
+      "label": "Planned on {n} days",
+      "nudgeTitle": "Still here: planned on {n} days.",
       "keep": "Keep",
       "smaller": "Make smaller",
       "smallerHint": "What is the first small step?",
@@ -1354,7 +1372,8 @@
       "label": "Choose a deck"
     },
     "archiveToggle": "Archive done tasks",
-    "continue": "Continue to the board"
+    "continue": "Straight to Today",
+    "plan": "Plan the day"
   },
   "dayClose": {
     "title": "Close the day",
@@ -1372,10 +1391,9 @@
       "over": "{n} min over the timebox"
     },
     "tomorrowHeading": "For tomorrow",
-    "tomorrow": "No task stays on the board. | One task stays on the board. You can deselect it. | {n} tasks stay on the board. You can deselect them one by one.",
+    "tomorrow": "No task goes back to “Not planned”. | One task goes back to “Not planned”. You plan it again tomorrow. You can deselect it. | {n} tasks go back to “Not planned”. You plan them again tomorrow. You can deselect them one by one.",
     "showOpen": "Show open tasks",
-    "openListLabel": "Open tasks that stay on the board",
-    "backToOpen": "Goes back to Open",
+    "openListLabel": "Open tasks for tomorrow",
     "trash": {
       "local": "Goes to the trash",
       "notion": "Goes to the trash, also in Notion",
@@ -1393,7 +1411,9 @@
       "nothingDone": "Nothing done today yet.",
       "inFlight": "Not done yet",
       "nothingInFlight": "Nothing left open."
-    }
+    },
+    "backToNotPlanned": "Goes back to “Not planned”",
+    "staysWaiting": "Stays in Waiting"
   },
   "secrets": {
     "unavailableTitle": "Keychain not available",

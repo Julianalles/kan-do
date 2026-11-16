@@ -604,8 +604,32 @@ export function newDayTasks(daysAgo = 1, options: { allDone?: boolean } = {}): S
   ]
 }
 
+/**
+ * A full board for the new day's pass (#356): `newDayTasks` plus a Jetzt card with time spent, a second Offen card and a
+ * task that was not planned before. After the pass "Nicht geplant" holds nd-now-1, nd-open-2, nd-open-1 as the group
+ * "Gestern geplant, noch offen" (board order, Jetzt first) and nd-held-1 under "Weitere Aufgaben".
+ */
+export function newDayBackTasks(daysAgo = 1): SeedTask[] {
+  const base = newDayTasks(daysAgo)
+  return [
+    ...base.filter(task => task.status === 3),
+    recapTask({ id: 'nd-now-1', title: 'Präsentation vorbereiten', status: 1, timeSpentSeconds: 1800, timeBoxSeconds: 3600 }),
+    recapTask({ id: 'nd-open-2', title: 'Steuerberater anrufen', status: 0 }),
+    recapTask({ id: 'nd-held-1', title: 'Regal für den Keller aussuchen', status: 0, notPlanned: true }),
+    ...base.filter(task => task.status !== 3),
+  ]
+}
+
 /** Options of `seedDayRecapStore`. */
 export interface SeedDayRecapOptions {
+  /**
+   * The new day's own marker (#356). Default: the same day as `lastShownDay`, with an earlier pass on record, so the
+   * pass runs when that day is before today and the one-time note stays away. `firstPass: true` stores neither
+   * (the first morning after the update: the note shows).
+   */
+  firstPass?: boolean
+  /** The day the pass last ran on, when it differs from `lastShownDay` (today: the pass already ran, the recap is still due). */
+  lastNewDay?: string
   /** Stored marker; default: two days back, so the recap is due. `null` leaves the store out (baseline case). */
   lastShownDay?: string | null
   archiveDone?: boolean
@@ -616,7 +640,8 @@ export interface SeedDayRecapOptions {
 /** Seeds `day-recap-store` via addInitScript. */
 export async function seedDayRecapStore(context: BrowserContext, options: SeedDayRecapOptions = {}): Promise<void> {
   const lastShownDay = options.lastShownDay === undefined ? dayKeyDaysAgo(2) : options.lastShownDay
-  const state = lastShownDay === null ? null : { lastShownDay, archiveDone: options.archiveDone ?? true }
+  const earlierPass = options.firstPass ? {} : { lastNewDay: options.lastNewDay ?? lastShownDay, firstBackDay: lastShownDay }
+  const state = lastShownDay === null ? null : { lastShownDay, archiveDone: options.archiveDone ?? true, ...earlierPass }
   await context.addInitScript(
     ({ state: s, once }) => {
       if (once) {
@@ -647,6 +672,35 @@ export async function seedNewDayBoard(
   const once = options.once ?? true
   await seedLocalBoard(context, tasks, {}, NO_GROUPING, { once, ...(options.focus ? { focus: true } : {}) })
   await seedDayRecapStore(context, { lastShownDay: dayKeyDaysAgo(daysAgo + 1), ...options, once })
+}
+
+/**
+ * The seconds a Jetzt timer counted after this morning's midnight while the user was away (#356): a note in
+ * `tasks-store`, which the new day's pass turns into the question "Zeit abziehen / Zeit behalten". Register it after
+ * the board's seed (it patches the stored `tasks-store`); `once` as the board's.
+ */
+export async function seedAfterMidnight(context: BrowserContext, options: { taskId: string, seconds: number, once?: boolean }): Promise<void> {
+  await context.addInitScript(
+    ({ taskId, seconds, once }) => {
+      if (once) {
+        try {
+          if (sessionStorage.getItem('e2e-seeded:after-midnight')) return
+          sessionStorage.setItem('e2e-seeded:after-midnight', '1')
+        } catch {
+          // sessionStorage unavailable: patch every load
+        }
+      }
+      const raw = localStorage.getItem('tasks-store')
+      if (!raw) return
+      const midnight = new Date(); midnight.setHours(0, 0, 0, 0)
+      const pad = (n: number) => String(n).padStart(2, '0')
+      const day = `${midnight.getFullYear()}-${pad(midnight.getMonth() + 1)}-${pad(midnight.getDate())}`
+      const state = JSON.parse(raw)
+      state.afterMidnight = { taskId, day, seconds, spans: [[midnight.getTime(), midnight.getTime() + seconds * 1000]] }
+      localStorage.setItem('tasks-store', JSON.stringify(state))
+    },
+    { taskId: options.taskId, seconds: options.seconds, once: options.once ?? true },
+  )
 }
 
 // ---------------------------------------------------------------------------

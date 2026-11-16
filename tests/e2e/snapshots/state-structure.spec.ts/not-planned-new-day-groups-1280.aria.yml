@@ -1,0 +1,27 @@
+- region "Nicht geplant":
+  - heading "Nicht geplant" [level=2]
+  - heading "Gestern geplant, noch offen" [level=3]
+  - list "Gestern geplant, noch offen":
+    - listitem:
+      - group "Präsentation vorbereiten":
+        - paragraph: Präsentation vorbereiten
+        - 'progressbar /Timebox: \d+ min von 1 h/': /\d+ min 1 h/
+        - text: Hoch
+      - 'button "Präsentation vorbereiten: für heute einplanen"'
+    - listitem:
+      - group "Steuerberater anrufen":
+        - paragraph: Steuerberater anrufen
+        - text: Hoch
+      - 'button "Steuerberater anrufen: für heute einplanen"'
+    - listitem:
+      - group "Konzept ausarbeiten":
+        - paragraph: Konzept ausarbeiten
+        - text: Hoch
+      - 'button "Konzept ausarbeiten: für heute einplanen"'
+  - heading "Weitere Aufgaben" [level=3]
+  - list "Weitere Aufgaben":
+    - listitem:
+      - group "Regal für den Keller aussuchen":
+        - paragraph: Regal für den Keller aussuchen
+        - text: Hoch
+      - 'button "Regal für den Keller aussuchen: für heute einplanen"'

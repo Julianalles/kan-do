@@ -960,7 +960,7 @@ for (const { size, viewport } of CORE_VIEWPORTS) {
     const recap = page.getByTestId('new-day-recap')
     await expect(recap).toBeVisible()
     await expect(page.getByTestId('recap-summary')).toHaveText('Du hast gestern 4 von 6 Aufgaben erledigt.')
-    await expect(page.getByTestId('recap-continue')).toBeFocused()
+    await expect(page.getByTestId('recap-plan')).toBeFocused()
     await page.mouse.move(0, 0)
     await settle(page)
     await expect(page).toHaveScreenshot(`new-day-recap-${size}.png`, { animations: 'disabled' })

@@ -11,7 +11,13 @@
  *                   `&alldone=1` leaves nothing open
  *   ?seed=newday[-all][&daysago=n] — Local source, first start on a new day (#385): four tasks done n days ago (default 1),
  *                   not archived, plus an open and a waiting card; `newday-all` has nothing open. Writes `day-recap-store`
- *                   with `lastShownDay` n+1 days back, so the recap opens (`&daysago=3` reads "am Montag"-style copy)
+ *                   with `lastShownDay` n+1 days back, so the recap opens (`&daysago=3` reads "am Montag"-style copy).
+ *                   The new day's pass (#356) runs too and sends the open card back to "Nicht geplant"; the store says
+ *                   an earlier pass already happened, so the one-time note stays away
+ *   ?seed=newday-back[&first=1] — the new day in full (#356): like `newday`, plus a card in Jetzt (with time spent), a
+ *                   second Offen card and a task that was not planned before. After the recap "Alle" shows the group
+ *                   "Gestern geplant, noch offen" above "Weitere Aufgaben" and Heute an empty Offen with its sentence.
+ *                   `&first=1`: no earlier pass is stored, so the one-time note with "Alle wieder einplanen" shows
  *   ?seed=demo    — Local source, the realistic demo board (#527, lib/demo-board.ts): a landscaping business owner's
  *                   offers, building sites, staff and bookkeeping. Offen has topics, activities and priorities that form
  *                   stacks under every grouping option, Jetzt a timebox with time spent, Wartet notes and carry-over,
@@ -125,6 +131,12 @@ export default defineNuxtPlugin((nuxtApp) => {
   ]
   const newDayAllDone = [...newDayDone, newDayTask({ id: 'nd-done-5', title: 'Retrospektive nachbereiten', status: 3, activity: 'Planung', timeSpentSeconds: 3600, timeBoxSeconds: 3600, completedAt: doneAt(17, 10) })]
   const newDayCarryOver = { 'nd-open-1': carriedFor(2), 'nd-waiting-1': carriedFor(3) }
+  // #356: what the new day finds on a full board, and one task that was put aside before
+  const newDayBack = [
+    newDayTask({ id: 'nd-now-1', title: 'Präsentation vorbereiten', status: 1, priority: 1, activity: 'Entwicklung', topic: 'Backend', topicColorCode: '#10b981', timeSpentSeconds: 1800, timeBoxSeconds: 3600 }),
+    newDayTask({ id: 'nd-open-2', title: 'Steuerberater anrufen', status: 0 }),
+    newDayTask({ id: 'nd-held-1', title: 'Regal für den Keller aussuchen', status: 0, notPlanned: true }),
+  ]
 
   const byStatus = (s: number, list: { id: string, status: number }[] = seedTasks) => list.filter((t) => t.status === s).map((t) => t.id)
 
@@ -194,7 +206,7 @@ export default defineNuxtPlugin((nuxtApp) => {
   }
 
   // A seeded board starts with an empty trash (#422), so the dock shows no trash icon until a task is deleted
-  if (['local', 'demo', 'dayclose', 'newday', 'newday-all', 'notion', 'mixed', 'notion-sandbox'].includes(seed)) {
+  if (['local', 'demo', 'dayclose', 'newday', 'newday-all', 'newday-back', 'notion', 'mixed', 'notion-sandbox'].includes(seed)) {
     localStorage.removeItem('trash-store')
     // ... and no topic colours or symbols left over from a previous seed (#431)
     localStorage.removeItem('topic-styles')
@@ -218,12 +230,16 @@ export default defineNuxtPlugin((nuxtApp) => {
     const list = allDone ? dayCloseTasks.filter(task => task.status === 3) : dayCloseTasks
     localStorage.setItem('board-store', JSON.stringify(buildBoardStore('local', list)))
     localStorage.setItem('tasks-store', JSON.stringify(tasksStoreFor('local', list, { carryOverByTaskId: allDone ? {} : dayCloseCarryOver })))
-  } else if (seed === 'newday' || seed === 'newday-all') {
-    const list = seed === 'newday' ? [...newDayDone, ...newDayUndone] : newDayAllDone
+  } else if (seed === 'newday' || seed === 'newday-all' || seed === 'newday-back') {
+    const list = seed === 'newday-all' ? newDayAllDone : seed === 'newday' ? [...newDayDone, ...newDayUndone] : [...newDayDone, ...newDayBack, ...newDayUndone]
     const lastShown = new Date(); lastShown.setDate(lastShown.getDate() - daysAgo - 1)
-    localStorage.setItem('board-store', JSON.stringify(buildBoardStore('local', list)))
-    localStorage.setItem('tasks-store', JSON.stringify(tasksStoreFor('local', list, { carryOverByTaskId: seed === 'newday' ? newDayCarryOver : {} })))
-    localStorage.setItem('day-recap-store', JSON.stringify({ lastShownDay: dayKey(lastShown), archiveDone: true }))
+    // `&first=1` (newday-back): the first morning after the update, no pass is on record yet (#356)
+    const first = seed === 'newday-back' && url.searchParams.get('first') === '1'
+    url.searchParams.delete('first')
+    const earlierPass = first ? {} : { lastNewDay: dayKey(lastShown), firstBackDay: dayKey(lastShown) }
+    localStorage.setItem('board-store', JSON.stringify(buildBoardStore('local', list.filter(task => !('notPlanned' in task)))))
+    localStorage.setItem('tasks-store', JSON.stringify(tasksStoreFor('local', list, { carryOverByTaskId: seed === 'newday-all' ? {} : newDayCarryOver })))
+    localStorage.setItem('day-recap-store', JSON.stringify({ lastShownDay: dayKey(lastShown), archiveDone: true, ...earlierPass }))
   } else if (seed === 'notion') {
     localStorage.setItem('board-store', JSON.stringify(buildBoardStore('notion')))
     localStorage.setItem('tasks-store', JSON.stringify(tasksStoreFor('notion')))

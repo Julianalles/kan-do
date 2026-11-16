@@ -1,10 +1,10 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type BrowserContext, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { settleAnimations } from './helpers/settle'
 import { appNav, goToPlace, openSettings } from './helpers/appNav'
 import { expectContrast } from './helpers/contrast'
 import {
-  MIXED_SEED_TASKS, atDaysAgo, dayKeyDaysAgo, newDayTasks, seedDayRecapStore, seedMixedBoard, seedNewDayBoard,
+  MIXED_SEED_TASKS, atDaysAgo, dayKeyDaysAgo, newDayBackTasks, newDayTasks, seedAfterMidnight, seedDayRecapStore, seedMixedBoard, seedNewDayBoard,
   type SeedTask,
 } from './helpers/seed'
 
@@ -12,7 +12,10 @@ import {
 
 const recap = (page: Page) => page.getByTestId('new-day-recap')
 const summary = (page: Page) => page.getByTestId('recap-summary')
+/** "Direkt zu Heute": leaves to the board, as the single button did before #356 */
 const continueButton = (page: Page) => page.getByTestId('recap-continue')
+/** "Tag planen" (#356): the primary way out, leads to "Alle" */
+const planButton = (page: Page) => page.getByTestId('recap-plan')
 const archiveSwitch = (page: Page) => page.getByTestId('recap-archive-toggle')
 /** The footer panel (container) that holds the switch and the button. */
 const panelOf = (page: Page) => archiveSwitch(page).locator('xpath=ancestor::div[contains(@class,"@container")][1]')
@@ -92,8 +95,10 @@ test.describe('New-day recap (#385)', () => {
     // The board is mounted behind and inert (which also hides it from assistive tech; no aria-hidden besides)
     await expect(board(page)).toHaveAttribute('inert', '')
     await expect(board(page)).not.toHaveAttribute('aria-hidden')
-    await expect(board(page).locator('[data-task-id="nd-open-1"]').first()).toBeAttached()
-    await expect(continueButton(page)).toBeFocused()
+    // The new day already sent the Offen card back (#356): the Wartet card is what the board holds behind the stage
+    await expect(board(page).locator('[data-task-id="nd-waiting-1"]').first()).toBeAttached()
+    await expect(board(page).locator('#column-open [data-task-id="nd-open-1"]')).toHaveCount(0)
+    await expect(planButton(page)).toBeFocused()
   })
 
   test('opens on the first return of a new day without a click or navigation, not while the window stays focused (#242)', async ({ page, context }) => {
@@ -297,17 +302,22 @@ test.describe('New-day recap (#385)', () => {
     await settleAnimations(page) // the modal scales in: boxes are measured at rest
     const panelBox = (await panel.boundingBox())!
     const toggle = (await archiveSwitch(page).boundingBox())!
-    const button = (await continueButton(page).boundingBox())!
-    expect(toggle.x + toggle.width).toBeLessThan(button.x)
+    const button = (await planButton(page).boundingBox())!
+    const skip = (await continueButton(page).boundingBox())!
+    // "Direkt zu Heute" left of "Tag planen" (#356), on one line
+    expect(toggle.x + toggle.width).toBeLessThan(skip.x)
+    expect(skip.x + skip.width).toBeLessThanOrEqual(button.x)
+    expect(Math.abs(skip.y + skip.height / 2 - (button.y + button.height / 2))).toBeLessThan(2)
     // one row, both vertically centred in the panel
     expect(Math.abs(toggle.y + toggle.height / 2 - (button.y + button.height / 2))).toBeLessThan(6)
     expect(Math.abs(panelBox.y + panelBox.height / 2 - (button.y + button.height / 2))).toBeLessThan(2)
-    await expect(continueButton(page)).toHaveAccessibleName('Weiter zum Board')
+    await expect(continueButton(page)).toHaveAccessibleName('Direkt zu Heute')
+    await expect(planButton(page)).toHaveAccessibleName('Tag planen')
     // trailing: the icon is the last child of the button, after the label, and decorative
-    const icon = continueButton(page).locator('svg[data-slot="trailingIcon"]')
+    const icon = planButton(page).locator('svg[data-slot="trailingIcon"]')
     await expect(icon).toHaveAttribute('aria-hidden', 'true')
     const iconBox = (await icon.boundingBox())!
-    const buttonBox = (await continueButton(page).boundingBox())!
+    const buttonBox = (await planButton(page).boundingBox())!
     expect(iconBox.x + iconBox.width).toBeGreaterThan(buttonBox.x + buttonBox.width / 2)
   })
 
@@ -409,8 +419,8 @@ test.describe('New-day recap (#385)', () => {
   test('tab order: deck, previous, next per deck, then the switch and the button; focus starts on the button, no trap (#245)', async ({ page, context }) => {
     await seedNewDayBoard(context)
     await page.goto('/tasks')
-    await expect(continueButton(page)).toBeFocused()
-    const order = ['recap-deck-undone', 'recap-prev-undone', 'recap-next-undone', 'recap-deck-done', 'recap-prev-done', 'recap-next-done', 'recap-archive-toggle', 'recap-continue']
+    await expect(planButton(page)).toBeFocused()
+    const order = ['recap-deck-undone', 'recap-prev-undone', 'recap-next-undone', 'recap-deck-done', 'recap-prev-done', 'recap-next-done', 'recap-archive-toggle', 'recap-continue', 'recap-plan']
     const active = () => page.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? document.activeElement?.closest('[data-testid]')?.getAttribute('data-testid'))
     // Backwards from the button through every stop in reverse
     for (const id of order.slice(0, -1).reverse()) {
@@ -597,7 +607,8 @@ test.describe('New-day recap (#385)', () => {
 
   test('with the focus setting on and a task in Jetzt, no overlay shows while the recap is open, and it behaves as normal after "Weiter zum Board"', async ({ page, context }) => {
     const nowTask: SeedTask = { id: 'nd-now-1', title: 'Gerade in Arbeit', status: 1, priority: 3, timeSpentSeconds: 0, timeBoxSeconds: null, custom: {} }
-    await seedNewDayBoard(context, { tasks: [...newDayTasks(1), nowTask], focus: true })
+    // The new day's pass already ran today (#356) and this task was put into Jetzt after it; the recap is still unanswered
+    await seedNewDayBoard(context, { tasks: [...newDayTasks(1), nowTask], focus: true, lastNewDay: dayKeyDaysAgo(0) })
     await page.goto('/tasks')
 
     await expect(recap(page)).toBeVisible()
@@ -701,6 +712,403 @@ test.describe('New-day recap (#385)', () => {
       await expect(switcher(page, 'done')).toHaveCount(0)
       await expect(deck(page, 'undone')).toHaveCount(0)
       await expect(continueButton(page)).toBeInViewport({ ratio: 1 })
+    })
+  })
+})
+
+/**
+ * #356 (epic #334): a new day sends what was planned and not finished (Offen, Jetzt) back to "Nicht geplant", and the
+ * recap has two ways out. `seedNewDayBoard` stores an earlier pass, so the pass runs and the one-time note stays away;
+ * `firstPass: true` is the first morning after the update.
+ */
+test.describe('A new day sends unfinished cards back (#356)', () => {
+  const side = (page: Page) => page.getByTestId('not-planned')
+  const groupIds = (page: Page, group: 'yesterday' | 'others') =>
+    page.getByTestId(`not-planned-list-${group}`).locator('[data-not-planned-id]').evaluateAll(els => els.map(el => el.getAttribute('data-not-planned-id')))
+  const openIds = (page: Page) =>
+    page.locator('#column-open-list > .task-wrapper').evaluateAll(els => els.map(el => el.getAttribute('data-task-id')))
+  const sentence = (page: Page) => page.getByTestId('open-yesterday-note')
+  const note = (page: Page) => page.getByTestId('new-day-note')
+  const storedTask = (page: Page, id: string) =>
+    page.evaluate(taskId => (JSON.parse(localStorage.getItem('tasks-store') ?? '{}') as { tasks?: Array<Record<string, unknown>> }).tasks?.find(task => task.id === taskId) ?? null, id)
+  const settled = async (page: Page) => {
+    await expect(recap(page)).toBeHidden({ timeout: 5000 })
+    await settleAnimations(page)
+  }
+
+  test('"Tag planen" leads to "Alle": yesterday\'s Jetzt and Offen cards are the group on top, above "Weitere Aufgaben"; Wartet stays', async ({ page, context }) => {
+    await seedNewDayBoard(context, { tasks: newDayBackTasks() })
+    await page.goto('/tasks')
+    // the recap still looks at yesterday's board: Jetzt, both Offen cards and the Wartet card are "noch offen"
+    await expect(summary(page)).toHaveText('Du hast gestern 4 von 8 Aufgaben erledigt.')
+    await expect(planButton(page)).toBeFocused()
+    await expect(planButton(page)).toHaveText('Tag planen')
+    await expect(continueButton(page)).toHaveText('Direkt zu Heute')
+
+    await planButton(page).click()
+    await expect(page).toHaveURL(/\/all$/)
+    await settled(page)
+    await expect(page.getByRole('heading', { level: 3, name: 'Gestern geplant, noch offen' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 3, name: 'Weitere Aufgaben' })).toBeVisible()
+    // board order, Jetzt first
+    await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1'])
+    await expect.poll(() => groupIds(page, 'others')).toEqual(['nd-held-1'])
+    expect(await openIds(page)).toEqual([])
+    await expect(note(page)).toHaveCount(0)
+
+    // Wartet stayed; the Jetzt task is an Offen task that is not planned, with its time
+    await goToPlace(page, 'Heute')
+    await expect(page.locator('#column-waiting [data-task-id="nd-waiting-1"]').first()).toBeVisible()
+    await expect(page.locator('#column-progress .task-wrapper')).toHaveCount(0)
+    expect(await storedTask(page, 'nd-now-1')).toMatchObject({ status: 0, notPlanned: true, timeSpentSeconds: 1800 })
+  })
+
+  test('"Direkt zu Heute": an empty Offen says how many tasks of yesterday wait under "Alle", with a link; planning one ends the sentence', async ({ page, context }) => {
+    await seedNewDayBoard(context, { tasks: newDayBackTasks() })
+    await page.goto('/tasks')
+    await continueButton(page).click()
+    await settled(page)
+    await expect(page).toHaveURL(/\/tasks$/)
+    await expect(sentence(page)).toHaveText('3 Aufgaben von gestern liegen unter Alle.')
+
+    await sentence(page).getByRole('link', { name: 'Alle' }).click()
+    await expect(page).toHaveURL(/\/all$/)
+    await settleAnimations(page)
+    // on "Alle" the group is beside the column: Offen stays blank
+    await expect(sentence(page)).toHaveCount(0)
+
+    // a task planned again keeps its time spent and leaves the group
+    await side(page).locator('[data-not-planned-id="nd-now-1"]').getByTestId('not-planned-pick').click()
+    await expect.poll(() => openIds(page)).toEqual(['nd-now-1'])
+    await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-open-2', 'nd-open-1'])
+    expect(await storedTask(page, 'nd-now-1')).toMatchObject({ status: 0, timeSpentSeconds: 1800 })
+    expect(await storedTask(page, 'nd-now-1')).not.toHaveProperty('notPlanned')
+    await goToPlace(page, 'Heute')
+    await expect(sentence(page)).toHaveCount(0)
+
+    // once per day: a reload and a return to the app leave the planned card in Offen
+    await page.reload()
+    await expect(board(page)).toBeVisible()
+    await expect(recap(page)).toHaveCount(0)
+    await expect.poll(() => openIds(page)).toEqual(['nd-now-1'])
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+    await expect.poll(() => openIds(page)).toEqual(['nd-now-1'])
+    // "Nicht heute" puts it back into the group, and the sentence counts it again
+    await goToPlace(page, 'Alle')
+    await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-open-2', 'nd-open-1'])
+  })
+
+  test('one task of yesterday: the sentence is singular', async ({ page, context }) => {
+    await seedNewDayBoard(context)
+    await page.goto('/tasks')
+    await continueButton(page).click()
+    await settled(page)
+    await expect(sentence(page)).toHaveText('Eine Aufgabe von gestern liegt unter Alle.')
+  })
+
+  test('the sentence in an empty Offen counts what the topic focus leaves of the group, as "Alle" shows it', async ({ page, context }) => {
+    const topics: Record<string, string> = { 'nd-now-1': 'Keller', 'nd-open-2': 'Keller', 'nd-open-1': 'Büro', 'nd-held-1': 'Garten' }
+    const tasks = newDayBackTasks().filter(task => task.status !== 3).map(task => ({ ...task, topic: topics[task.id] ?? null }))
+    await seedNewDayBoard(context, { tasks })
+    await page.goto('/tasks')
+    await expect(sentence(page)).toHaveText('3 Aufgaben von gestern liegen unter Alle.')
+    // the funnel has cards to filter only under "Alle" (Heute's Offen is empty): the focus is set there
+    const focusOn = async (topic: string) => {
+      await page.getByTestId('focus-trigger').click()
+      await page.getByTestId('focus-chip').filter({ hasText: topic }).click()
+    }
+    await goToPlace(page, 'Alle')
+    await expect.poll(() => groupIds(page, 'yesterday')).toHaveLength(3)
+    // the focus leaves one task of the group: the sentence says one, and "Alle" shows exactly that one
+    await focusOn('Büro')
+    await goToPlace(page, 'Heute')
+    await expect(sentence(page)).toHaveText('Eine Aufgabe von gestern liegt unter Alle.')
+    await sentence(page).getByRole('link', { name: 'Alle' }).click()
+    await expect(page).toHaveURL(/\/all$/)
+    await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-open-1'])
+    // the focus leaves none of the group (a task that was not sent back matches): no sentence, no link to nothing
+    await page.getByTestId('focus-trigger').click() // the funnel ends the focus that is on
+    await focusOn('Garten')
+    await goToPlace(page, 'Heute')
+    await expect(sentence(page)).toHaveCount(0)
+  })
+
+  test('without a recap (nothing was done yesterday) the cards go back all the same', async ({ page, context }) => {
+    await seedNewDayBoard(context, { tasks: newDayBackTasks().filter(task => task.status !== 3) })
+    await page.goto('/tasks')
+    await expect(board(page)).toBeVisible()
+    await expect(sentence(page)).toHaveText('3 Aufgaben von gestern liegen unter Alle.')
+    await expect(recap(page)).toHaveCount(0)
+    await goToPlace(page, 'Alle')
+    await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1'])
+  })
+
+  /** The page clock runs on (`__shiftMs` moves it): a night passes without a reload. */
+  const installShiftedClock = (context: BrowserContext) => context.addInitScript(() => {
+    const RealDate = Date
+    const w = window as unknown as { __shiftMs: number }
+    w.__shiftMs = 0
+    class ShiftedDate extends RealDate {
+      constructor(...args: unknown[]) {
+        if (args.length === 0) super(RealDate.now() + w.__shiftMs)
+        else super(...(args as [number]))
+      }
+      static now() { return RealDate.now() + w.__shiftMs }
+    }
+    window.Date = ShiftedDate as unknown as DateConstructor
+  })
+  const nextMorning = (page: Page) => page.evaluate(() => {
+    const next = new Date(); next.setDate(next.getDate() + 1); next.setHours(9, 0, 0, 0)
+    ;(window as unknown as { __shiftMs: number }).__shiftMs = next.getTime() - Date.now()
+  })
+
+  test('app left open over midnight: nothing moves while the user works in the window, the next return after an absence sends the cards back', async ({ page, context }) => {
+    // The marker is today: nothing is due. The page clock is then moved a day on, as after a night.
+    await seedNewDayBoard(context, { daysAgo: 0, lastShownDay: dayKeyDaysAgo(0), tasks: newDayBackTasks(0).filter(task => task.status !== 3) })
+    await installShiftedClock(context)
+    await page.goto('/tasks')
+    await expect.poll(() => openIds(page)).toEqual(['nd-open-2', 'nd-open-1'])
+    await expect(page.locator('#column-progress [data-task-id="nd-now-1"]').first()).toBeVisible()
+
+    await nextMorning(page)
+    await page.waitForTimeout(300)
+    expect(await openIds(page)).toEqual(['nd-open-2', 'nd-open-1']) // still focused: the cards stay under the user's hands
+
+    // a glance at another window is not leaving: its return starts nothing
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')))
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+    await page.waitForTimeout(300)
+    expect(await openIds(page)).toEqual(['nd-open-2', 'nd-open-1'])
+
+    // a real absence (the grace is 60 s: the page clock jumps past it), then the return
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')))
+    await page.evaluate(() => { (window as unknown as { __shiftMs: number }).__shiftMs += 120_000 })
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+    await expect(sentence(page)).toHaveText('3 Aufgaben von gestern liegen unter Alle.')
+    await expect(page.locator('#column-progress .task-wrapper')).toHaveCount(0)
+    // the Jetzt task's time from before midnight is kept (the clock jump itself counts no second)
+    expect(await storedTask(page, 'nd-now-1')).toMatchObject({ status: 0, notPlanned: true })
+    expect((await storedTask(page, 'nd-now-1'))!.timeSpentSeconds).toBeGreaterThanOrEqual(1800)
+    expect((await storedTask(page, 'nd-now-1'))!.timeSpentSeconds).toBeLessThan(1800 + 30)
+  })
+
+  test('a route change after midnight (a sheet opens and closes while the user works) does not send the cards back, and neither does the recap open', async ({ page, context }) => {
+    await seedNewDayBoard(context, { daysAgo: 0, lastShownDay: dayKeyDaysAgo(0), tasks: newDayBackTasks(0) })
+    await installShiftedClock(context)
+    await page.goto('/tasks')
+    await expect.poll(() => openIds(page)).toEqual(['nd-open-2', 'nd-open-1'])
+
+    await nextMorning(page)
+    await page.locator('#column-open-list [data-task-id="nd-open-1"]').first().click()
+    await expect(page).toHaveURL(/\/tasks\/nd-open-1$/)
+    await page.goBack()
+    await expect(page).toHaveURL(/\/tasks$/)
+    await settleAnimations(page)
+    await page.waitForTimeout(300)
+    expect(await openIds(page)).toEqual(['nd-open-2', 'nd-open-1'])
+    await expect(page.locator('#column-progress [data-task-id="nd-now-1"]').first()).toBeVisible()
+    await expect(recap(page)).toHaveCount(0)
+    await expect(sentence(page)).toHaveCount(0)
+    expect(await storedTask(page, 'nd-now-1')).not.toHaveProperty('notPlanned')
+
+    // the next return after an absence is the new day: the pass, then the recap
+    await page.evaluate(() => window.dispatchEvent(new Event('blur')))
+    await page.evaluate(() => { (window as unknown as { __shiftMs: number }).__shiftMs += 120_000 })
+    await page.evaluate(() => window.dispatchEvent(new Event('focus')))
+    await expect(recap(page)).toBeVisible()
+    expect(await storedTask(page, 'nd-now-1')).toMatchObject({ status: 0, notPlanned: true })
+  })
+
+  test('the first morning after the update: a one-time note on Heute and on "Alle"; "Alle wieder einplanen" puts every card back, once', async ({ page, context }) => {
+    await seedNewDayBoard(context, { tasks: newDayBackTasks(), firstPass: true })
+    await page.goto('/tasks')
+    await continueButton(page).click()
+    await settled(page)
+    await expect(note(page)).toBeVisible()
+    await expect(note(page)).toHaveAttribute('role', 'status')
+    await expect(note(page)).toContainText('Neu: Jeder Tag beginnt mit einem leeren Plan.')
+    await expect(note(page)).toContainText('3 Aufgaben aus Offen und Jetzt liegen jetzt unter „Alle“ bei „Nicht geplant“.')
+    await goToPlace(page, 'Alle')
+    await expect(note(page)).toBeVisible()
+
+    await page.getByTestId('new-day-note-plan-all').click()
+    await expect(note(page)).toHaveCount(0)
+    // back in Offen in their order, the Jetzt task too (no timer starts by itself); what was not planned before stays
+    await expect.poll(() => openIds(page)).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1'])
+    await expect.poll(() => groupIds(page, 'others')).toEqual(['nd-held-1'])
+    await expect(page.getByTestId('not-planned-group-yesterday')).toHaveCount(0)
+    await expect(page.getByTestId('not-planned-group-others')).toHaveCount(0)
+    await expect(page.getByTestId('plan-announcement')).toHaveText('3 Aufgaben sind wieder für heute geplant.')
+    expect(await storedTask(page, 'nd-now-1')).toMatchObject({ status: 0, timeSpentSeconds: 1800 })
+
+    // never again: not after a reload, and the cards stay
+    await page.reload()
+    await expect(board(page)).toBeVisible()
+    await expect(note(page)).toHaveCount(0)
+    await expect.poll(() => openIds(page)).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1'])
+  })
+
+  test('the first morning: "Schließen" leaves the cards under "Alle" and the note stays away after a reload', async ({ page, context }) => {
+    await seedNewDayBoard(context, { tasks: newDayBackTasks(), firstPass: true })
+    await page.goto('/tasks')
+    await continueButton(page).click()
+    await settled(page)
+    await page.getByTestId('new-day-note-close').click()
+    await expect(note(page)).toHaveCount(0)
+    await expect(sentence(page)).toHaveText('3 Aufgaben von gestern liegen unter Alle.')
+    await page.reload()
+    await expect(board(page)).toBeVisible()
+    await expect(note(page)).toHaveCount(0)
+    await expect(sentence(page)).toBeVisible()
+  })
+
+  test('the group headings follow the topic focus: a group without a match is not shown', async ({ page, context }) => {
+    const tasks = newDayBackTasks().filter(task => task.status !== 3).map(task =>
+      ({ ...task, topic: task.id === 'nd-held-1' ? 'Keller' : task.id === 'nd-waiting-1' ? null : 'Büro' }))
+    await seedNewDayBoard(context, { tasks })
+    await page.goto('/all')
+    await expect.poll(() => groupIds(page, 'yesterday')).toHaveLength(3)
+    await page.getByTestId('focus-trigger').click()
+    await page.getByTestId('focus-chip').filter({ hasText: 'Keller' }).click()
+    await expect(page.getByTestId('not-planned-group-yesterday')).toHaveCount(0)
+    await expect(page.getByTestId('not-planned-group-others')).toHaveCount(0)
+    await expect.poll(() => groupIds(page, 'others')).toEqual(['nd-held-1'])
+  })
+
+  test('Escape on the recap dismisses without a move: on "Alle" the place stays "Alle"', async ({ page, context }) => {
+    await seedNewDayBoard(context, { tasks: newDayBackTasks() })
+    await page.goto('/all')
+    await expect(recap(page)).toBeVisible()
+    await page.keyboard.press('Escape')
+    await settled(page)
+    await expect(page).toHaveURL(/\/all$/)
+    await expect.poll(() => groupIds(page, 'yesterday')).toHaveLength(3)
+  })
+
+  test('the pick moves keyboard focus on across the group heading', async ({ page, context }) => {
+    await seedNewDayBoard(context, { tasks: newDayBackTasks().filter(task => task.status !== 3 && task.id !== 'nd-open-2' && task.id !== 'nd-now-1') })
+    await page.goto('/all')
+    await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-open-1'])
+    const pick = (id: string) => side(page).locator(`[data-not-planned-id="${id}"]`).getByTestId('not-planned-pick')
+    await pick('nd-open-1').focus()
+    await page.keyboard.press('Enter')
+    await expect.poll(() => openIds(page)).toEqual(['nd-open-1'])
+    // the last card of the first group hands on to the first card below the heading
+    await expect(pick('nd-held-1')).toBeFocused()
+  })
+
+  /**
+   * The user's decision of 2026-11-16: nothing is removed silently. A timer that ran on after midnight while the
+   * user was away leaves a question, not a removal ("Präsentation vorbereiten" has 30 min recorded; 10 or 75 of
+   * them were counted after midnight).
+   */
+  test.describe('the question about time after midnight', () => {
+    const timeNote = (page: Page) => page.getByTestId('new-day-time-note')
+    const takeOff = (page: Page) => page.getByTestId('new-day-time-note-take-off')
+    const keep = (page: Page) => page.getByTestId('new-day-time-note-keep')
+
+    async function openBoard(page: Page, context: Parameters<typeof seedNewDayBoard>[0], seconds: number, options: { firstPass?: boolean } = {}) {
+      await seedNewDayBoard(context, { tasks: newDayBackTasks(), ...options })
+      await seedAfterMidnight(context, { taskId: 'nd-now-1', seconds })
+      await page.goto('/tasks')
+      await continueButton(page).click()
+      await settled(page)
+    }
+
+    test('names the stretch and the task, removes nothing by itself, and survives a reload; "Zeit behalten" ends it', async ({ page, context }) => {
+      await openBoard(page, context, 4500)
+      await expect(timeNote(page)).toBeVisible()
+      await expect(timeNote(page)).toHaveAttribute('role', 'status')
+      await expect(timeNote(page)).toContainText('Timer lief nach Mitternacht 1 h 15 min weiter')
+      await expect(page.getByTestId('new-day-time-note-task')).toHaveText('Präsentation vorbereiten')
+      await expect(page.getByTestId('new-day-time-note-task')).toHaveAttribute('data-private', '')
+      // the cards went back all the same, the time is whole
+      expect(await storedTask(page, 'nd-now-1')).toMatchObject({ status: 0, notPlanned: true, timeSpentSeconds: 1800 })
+      // an "Alle" visit and a reload keep the question; the board stays usable
+      await goToPlace(page, 'Alle')
+      await expect(timeNote(page)).toBeVisible()
+      await page.reload()
+      await expect(board(page)).toBeVisible()
+      await expect(timeNote(page)).toBeVisible()
+      expect(await storedTask(page, 'nd-now-1')).toMatchObject({ timeSpentSeconds: 1800 })
+
+      await keep(page).click()
+      await expect(timeNote(page)).toHaveCount(0)
+      await expect(page.getByTestId('plan-announcement')).toHaveText('Die Zeit bleibt an der Aufgabe.')
+      expect(await storedTask(page, 'nd-now-1')).toMatchObject({ timeSpentSeconds: 1800 })
+      await page.reload()
+      await expect(board(page)).toBeVisible()
+      await expect(timeNote(page)).toHaveCount(0)
+    })
+
+    test('"Zeit abziehen" takes exactly that time off the card, once, and the question does not come back', async ({ page, context }) => {
+      await openBoard(page, context, 600)
+      await expect(timeNote(page)).toContainText('Timer lief nach Mitternacht 10 min weiter')
+      await takeOff(page).click()
+      await expect(timeNote(page)).toHaveCount(0)
+      await expect(page.getByTestId('plan-announcement')).toHaveText('10 min von der Aufgabe abgezogen.')
+      expect(await storedTask(page, 'nd-now-1')).toMatchObject({ status: 0, notPlanned: true, timeSpentSeconds: 1200 })
+      await page.reload()
+      await expect(board(page)).toBeVisible()
+      await expect(timeNote(page)).toHaveCount(0)
+      expect(await storedTask(page, 'nd-now-1')).toMatchObject({ timeSpentSeconds: 1200 })
+    })
+
+    test('a stretch under a minute is not asked about', async ({ page, context }) => {
+      await openBoard(page, context, 40)
+      await expect(sentence(page)).toBeVisible()
+      await expect(timeNote(page)).toHaveCount(0)
+      expect(await storedTask(page, 'nd-now-1')).toMatchObject({ timeSpentSeconds: 1800 })
+    })
+
+    test('on the first morning it is its own note below the one-time note; each is answered on its own', async ({ page, context }) => {
+      await openBoard(page, context, 4500, { firstPass: true })
+      await expect(note(page)).toBeVisible()
+      await expect(timeNote(page)).toBeVisible()
+      const one = (await note(page).boundingBox())!
+      const two = (await timeNote(page).boundingBox())!
+      expect(two.y).toBeGreaterThanOrEqual(one.y + one.height)
+      // the time question is answered: the one-time note stays
+      await takeOff(page).click()
+      await expect(timeNote(page)).toHaveCount(0)
+      await expect(note(page)).toBeVisible()
+      expect(await storedTask(page, 'nd-now-1')).toMatchObject({ timeSpentSeconds: 0 })
+      await page.getByTestId('new-day-note-close').click()
+      await expect(note(page)).toHaveCount(0)
+    })
+
+    test.describe('390px', () => {
+      test.use({ viewport: { width: 390, height: 844 }, hasTouch: true })
+
+      test('the actions sit below the text, 44 px high, and nothing scrolls sideways', async ({ page, context }) => {
+        await openBoard(page, context, 4500)
+        const text = (await timeNote(page).getByText('Timer lief nach Mitternacht 1 h 15 min weiter').boundingBox())!
+        const action = (await takeOff(page).boundingBox())!
+        expect(action.y).toBeGreaterThan(text.y + text.height)
+        expect(action.height).toBeGreaterThanOrEqual(44)
+        expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+      })
+    })
+  })
+
+  test.describe('390px', () => {
+    test.use({ viewport: { width: 390, height: 844 }, hasTouch: true })
+
+    test('the note stacks its actions below the text, and the buttons of the recap stack with "Tag planen" on top', async ({ page, context }) => {
+      await seedNewDayBoard(context, { tasks: newDayBackTasks(), firstPass: true })
+      await page.goto('/tasks')
+      const plan = (await planButton(page).boundingBox())!
+      const skip = (await continueButton(page).boundingBox())!
+      expect(plan.y + plan.height).toBeLessThanOrEqual(skip.y)
+      await continueButton(page).click()
+      await settled(page)
+      const text = (await note(page).getByText('Neu: Jeder Tag beginnt mit einem leeren Plan.').boundingBox())!
+      const action = (await page.getByTestId('new-day-note-plan-all').boundingBox())!
+      expect(action.y).toBeGreaterThan(text.y + text.height)
+      expect(action.height).toBeGreaterThanOrEqual(44)
+      // no sideways scroll
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+      await expect(sentence(page)).toHaveText('3 Aufgaben von gestern liegen unter Alle.')
     })
   })
 })

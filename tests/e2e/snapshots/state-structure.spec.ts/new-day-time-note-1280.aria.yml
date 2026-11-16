@@ -1,0 +1,4 @@
+- status:
+  - text: /Timer lief nach Mitternacht 1 h \d+ min weiter Präsentation vorbereiten Kan-Do war dabei nicht im Vordergrund\. Die Zeit steht noch an der Aufgabe\./
+  - button "Zeit abziehen"
+  - button "Zeit behalten"

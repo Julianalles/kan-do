@@ -69,6 +69,32 @@ describe('useNewDayRecap', () => {
       expect(snap.dayKey).toBe(TODAY)
     })
 
+    it('the still-open deck is yesterday\'s board: what today\'s pass sent back comes first, then the board as it is (#356)', () => {
+      const { tasks, recap: store } = setup({ tasks: [
+        task('d1', TaskStatus.Done, yesterdayAt(9)),
+        { ...task('back-open', TaskStatus.Open), notPlanned: true },
+        { ...task('back-now', TaskStatus.Open), notPlanned: true },
+        task('replanned', TaskStatus.Open),
+        task('done-since', TaskStatus.Done, NOW),
+        { ...task('older', TaskStatus.Open), notPlanned: true },
+        task('w1', TaskStatus.Waiting),
+      ] })
+      store.sentBack = { day: TODAY, ids: ['back-now', 'back-open', 'replanned', 'done-since', 'gone'] }
+      const recap = useNewDayRecap()
+      recap.check('tasks')
+      // a task not planned before the pass ('older') was not on yesterday's board; one completed since is not "still open"
+      expect(recap.snapshot.value!.undone.map(t => t.id)).toEqual(['back-now', 'back-open', 'replanned', 'w1'])
+      expect(tasks.tasks).toHaveLength(7)
+    })
+
+    it('a pass result of another day is not yesterday\'s board (#356)', () => {
+      const { recap: store } = setup({ tasks: [task('d1', TaskStatus.Done, yesterdayAt(9)), { ...task('older', TaskStatus.Open), notPlanned: true }, task('o1', TaskStatus.Open)] })
+      store.sentBack = { day: '2026-10-21', ids: ['older'] }
+      const recap = useNewDayRecap()
+      recap.check('tasks')
+      expect(recap.snapshot.value!.undone.map(t => t.id)).toEqual(['o1'])
+    })
+
     it('does not open on a sheet route', () => {
       setup()
       const recap = useNewDayRecap()
@@ -182,7 +208,7 @@ describe('useNewDayRecap', () => {
     it('opens when the window is focused again on a new day, never while it stays focused across midnight (#242)', () => {
       setup({ lastShownDay: TODAY, tasks: [task('d1', TaskStatus.Done, new Date(2026, 9, 22, 15))] })
       const recap = useNewDayRecap()
-      const stop = recap.listenForReturn(() => 'tasks')
+      const stop = recap.listenForReturn(() => recap.check('tasks'))
       vi.setSystemTime(new Date(2026, 9, 23, 0, 30))
       vi.advanceTimersByTime(10 * 60 * 1000)
       expect(recap.isOpen.value).toBe(false)
@@ -194,7 +220,7 @@ describe('useNewDayRecap', () => {
     it('stops listening after the returned stop function (#242)', () => {
       setup({ lastShownDay: TODAY, tasks: [task('d1', TaskStatus.Done, yesterdayAt(9))] })
       const recap = useNewDayRecap()
-      recap.listenForReturn(() => 'tasks')()
+      recap.listenForReturn(() => recap.check('tasks'))()
       window.dispatchEvent(new Event('focus'))
       expect(recap.isOpen.value).toBe(false)
     })

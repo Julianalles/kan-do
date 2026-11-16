@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useTasksStore } from '~/store/tasks'
 import { useBoardStore } from '~/store/board'
-import { inStatus, isNotPlanned, plannedTasks } from '~/lib/taskPlanning'
+import { inStatus, isNotPlanned, markerSurvives, plannedTasks } from '~/lib/taskPlanning'
 import type { Task } from '~/types/task'
 import type { SourceId } from '~/types/taskSource'
 import { TaskStatus } from '~/types/taskStatus'
@@ -44,6 +44,64 @@ describe('isNotPlanned: the single reader of the marker (#353)', () => {
   it('plannedTasks keeps the tasks on the board', () => {
     const tasks = [makeTask('a'), makeTask('b', { notPlanned: true }), makeTask('c', { status: TaskStatus.Done })]
     expect(plannedTasks(tasks).map(t => t.id)).toEqual(['a', 'c'])
+  })
+})
+
+describe('several tasks at once (#356)', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  it('unplanTasks takes Open tasks off the board in the order given, on top of "Nicht geplant", with one reconcile', () => {
+    const store = useTasksStore()
+    const board = useBoardStore()
+    store.setTasks([makeTask('a'), makeTask('b'), makeTask('c'), makeTask('old', { notPlanned: true }), makeTask('w', { status: TaskStatus.Waiting })])
+    board.reconcileColumnsWithTasks(store.tasks)
+    board.noteNotPlanned('old')
+    const reconcile = vi.spyOn(board, 'reconcileColumnsWithTasks')
+    // unknown ids, a task in another column, one already not planned and a repeat are skipped
+    expect(store.unplanTasks(['c', 'a', 'w', 'old', 'nope', 'c'])).toEqual(['c', 'a'])
+    expect(reconcile).toHaveBeenCalledTimes(1)
+    expect(store.tasksNotPlanned.map(t => t.id)).toEqual(['c', 'a', 'old'])
+    expect(store.tasksOpen.map(t => t.id)).toEqual(['b'])
+    expect(store.task('w')!.notPlanned).toBeUndefined()
+    reconcile.mockClear()
+    expect(store.unplanTasks([])).toEqual([])
+    expect(store.unplanTasks(['w'])).toEqual([])
+    expect(reconcile).not.toHaveBeenCalled()
+  })
+
+  it('planTasks puts them at the end of Offen in the order given, with one reconcile', () => {
+    const store = useTasksStore()
+    const board = useBoardStore()
+    store.setTasks([makeTask('x', { notPlanned: true }), makeTask('y', { notPlanned: true }), makeTask('z', { notPlanned: true }), makeTask('o')])
+    board.reconcileColumnsWithTasks(store.tasks)
+    const reconcile = vi.spyOn(board, 'reconcileColumnsWithTasks')
+    expect(store.planTasks(['z', 'x', 'o', 'nope', 'z'])).toEqual(['z', 'x'])
+    expect(reconcile).toHaveBeenCalledTimes(1)
+    expect(store.tasksOpen.map(t => t.id)).toEqual(['o', 'z', 'x'])
+    expect(store.tasksNotPlanned.map(t => t.id)).toEqual(['y'])
+  })
+
+  it('the single moves are the list moves of one: same result, same refusals', () => {
+    const store = useTasksStore()
+    store.setTasks([makeTask('a'), makeTask('p', { status: TaskStatus.Progress })])
+    expect(store.unplanTask('p')).toBe(false)
+    expect(store.unplanTask('a')).toBe(true)
+    expect(store.unplanTask('a')).toBe(false)
+    expect(store.planTask('a')).toBe(true)
+    expect(store.planTask('a')).toBe(false)
+  })
+
+  it('markerSurvives is the one rule of every status write: only Open to Open keeps the marker', () => {
+    const all = [TaskStatus.Open, TaskStatus.Progress, TaskStatus.Waiting, TaskStatus.Done]
+    for (const before of all) for (const after of all) {
+      expect(markerSurvives(before, after)).toBe(before === TaskStatus.Open && after === TaskStatus.Open)
+    }
+    const store = useTasksStore()
+    store.setTasks([makeTask('a', { notPlanned: true }), makeTask('b', { notPlanned: true }), makeTask('c', { notPlanned: true, source: 'notion' })])
+    store.updateTask('a', { status: TaskStatus.Waiting })
+    store.batchUpdateTaskStatus(['b'], TaskStatus.Progress)
+    store.mergeTasks('notion', [makeTask('c', { source: 'notion', status: TaskStatus.Done })])
+    expect(store.tasks.some(t => 'notPlanned' in t)).toBe(false)
   })
 })
 

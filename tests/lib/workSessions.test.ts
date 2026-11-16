@@ -3,6 +3,7 @@ import {
   WORK_SESSION_MERGE_GAP_MS,
   WORK_SESSION_MIN_MS,
   cleanWorkSessions,
+  cutSessions,
   extendSession,
   isWorkSession,
   openSession,
@@ -58,5 +59,32 @@ describe('workSessions (#600)', () => {
     expect(extendSession(list, 100, 160)).toEqual([{ start: 0, end: 5 }, { start: 100, end: 160 }])
     expect(extendSession(list, 100, 50)).toBe(list)
     expect(extendSession(list, 7, 500)).toBe(list)
+  })
+})
+
+describe('cutSessions (#356, D3 h)', () => {
+  const sessions = [{ start: 0, end: 100 }, { start: 200, end: 300 }, { start: 400, end: 400 }]
+
+  it('returns the same list when no span touches a session, or no span is usable', () => {
+    expect(cutSessions(sessions, [])).toBe(sessions)
+    expect(cutSessions(sessions, [[100, 200], [300, 400]])).toBe(sessions)
+    expect(cutSessions(sessions, [[50, 50], [60, 10], [Number.NaN, 5]])).toBe(sessions)
+  })
+
+  it('cuts at the span\'s edge, drops a covered session and splits one that holds the span', () => {
+    expect(cutSessions(sessions, [[50, 250]])).toEqual([{ start: 0, end: 50 }, { start: 250, end: 300 }, { start: 400, end: 400 }])
+    expect(cutSessions(sessions, [[190, 310]])).toEqual([{ start: 0, end: 100 }, { start: 400, end: 400 }])
+    expect(cutSessions(sessions, [[20, 40]])).toEqual([{ start: 0, end: 20 }, { start: 40, end: 100 }, { start: 200, end: 300 }, { start: 400, end: 400 }])
+  })
+
+  it('several spans, in any order, and the input is never changed', () => {
+    const before = JSON.stringify(sessions)
+    expect(cutSessions(sessions, [[250, 300], [0, 10]])).toEqual([{ start: 10, end: 100 }, { start: 200, end: 250 }, { start: 400, end: 400 }])
+    expect(JSON.stringify(sessions)).toBe(before)
+  })
+
+  it('cutting the same span twice changes nothing the second time', () => {
+    const once = cutSessions(sessions, [[50, 250]])
+    expect(cutSessions(once, [[50, 250]])).toBe(once)
   })
 })

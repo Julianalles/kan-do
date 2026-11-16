@@ -61,3 +61,34 @@ export function extendSession(sessions: WorkSession[], start: number, at: number
   }
   return sessions
 }
+
+/**
+ * Takes spans of wall-clock time out of the sessions (#356, the user's "Zeit abziehen" after a new day): a session that a span
+ * covers wholly is dropped, one it overlaps is cut at the span's edge, one it lies inside is split in two. Spans
+ * are `[from, to]` in epoch ms; a span that is not finite or has `to <= from` is ignored.
+ * @returns the same list when nothing is cut
+ */
+export function cutSessions(sessions: WorkSession[], spans: ReadonlyArray<readonly [number, number]>): WorkSession[] {
+  const cuts = spans.filter(([from, to]) => Number.isFinite(from) && Number.isFinite(to) && to > from)
+  if (cuts.length === 0) return sessions
+  let changed = false
+  const out: WorkSession[] = []
+  for (const session of sessions) {
+    let pieces: Array<[number, number]> = [[session.start, session.end]]
+    for (const [from, to] of cuts) {
+      const next: Array<[number, number]> = []
+      for (const [start, end] of pieces) {
+        if (to <= start || from >= end) {
+          next.push([start, end])
+          continue
+        }
+        changed = true
+        if (from > start) next.push([start, from])
+        if (to < end) next.push([to, end])
+      }
+      pieces = next
+    }
+    for (const [start, end] of pieces) out.push({ start, end })
+  }
+  return changed ? out : sessions
+}

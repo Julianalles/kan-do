@@ -7,7 +7,7 @@ import { isDemoTaskId } from "~/lib/demoIds";
 import { renameField, type NameKind } from "~/lib/topicNames";
 import { TaskStatus } from "~/types/taskStatus";
 import { dayKey, isValidDayKey } from "~/utils/recapDay";
-import { cleanWorkSessions, extendSession, isWorkSession, openSession, type WorkSession } from "~/lib/workSessions";
+import { cleanWorkSessions, cutSessions, extendSession, isWorkSession, openSession, type WorkSession } from "~/lib/workSessions";
 
 export interface TaskCompletionRecord {
   taskId: string;
@@ -295,6 +295,15 @@ export const useTaskStatisticsStore = defineStore("taskStatistics", () => {
   }
 
   /**
+   * Takes spans of wall-clock time out of the work sessions (#356): the time a new day's pass removes from the Jetzt
+   * task is removed here too, so the card, the "Wann arbeite ich?" rhythm and the learned day capacity agree.
+   */
+  function cutWorkSessions(spans: ReadonlyArray<readonly [number, number]>): void {
+    const next = cutSessions(workSessions.value, spans);
+    if (next !== workSessions.value) workSessions.value = next;
+  }
+
+  /**
    * Clear all statistics data
    */
   function clearAllRecords(): void {
@@ -406,6 +415,7 @@ export const useTaskStatisticsStore = defineStore("taskStatistics", () => {
     removeDiscardedTime,
     openWorkSession,
     extendWorkSession,
+    cutWorkSessions,
     syncExistingDoneTasks,
   };
 }, {

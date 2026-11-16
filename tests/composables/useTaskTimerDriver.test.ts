@@ -319,6 +319,75 @@ describe('useTaskTimerDriver (#352)', () => {
       expect(tasksStore.pendingTimeUpdates['n']?.timeSpentSeconds).toBe(73)
     })
 
+    it('midnight (#356): the seconds until the crossing are written as they are, the count for the new day starts after them and notes the away seconds only', () => {
+      vi.setSystemTime(new Date(2026, 9, 21, 23, 58, 0))
+      tasksStore.setTasks([makeTask('a', { status: TaskStatus.Progress })])
+      driver.start()
+      window.dispatchEvent(new Event('blur')) // the user leaves the window at 23:58:00; the grace is 60 s
+      vi.advanceTimersByTime(119 * 1000)
+      expect(tasksStore.afterMidnight).toBeNull()
+      vi.advanceTimersByTime(1000) // the tick at 00:00:00
+      // 120 seconds written at once (not a checkpoint of ten): none of them is "after midnight"
+      expect(stored('a')).toBe(120)
+      expect(tasksStore.afterMidnight).toEqual({ taskId: 'a', day: '2026-10-22', seconds: 0, spans: [] })
+      vi.advanceTimersByTime(12 * 1000)
+      expect(tasksStore.afterMidnight).toMatchObject({ taskId: 'a', day: '2026-10-22', seconds: 10 })
+      stopTaskTimer('a')
+      // the seconds and the wall-clock stretch they were counted in (from midnight on, the Statistik sessions are cut by it)
+      expect(tasksStore.afterMidnight).toEqual({
+        taskId: 'a', day: '2026-10-22', seconds: 12, spans: [[new Date(2026, 9, 22, 0, 0, 0).getTime(), new Date(2026, 9, 22, 0, 0, 12).getTime()]],
+      })
+      expect(stored('a')).toBe(132)
+    })
+
+    it('midnight (#356): seconds counted with the user in the window are not noted, the ones after the user left are', () => {
+      vi.setSystemTime(new Date(2026, 9, 21, 23, 59, 55))
+      tasksStore.setTasks([makeTask('a', { status: TaskStatus.Progress })])
+      driver.start()
+      vi.advanceTimersByTime(5000) // 00:00:00, the crossing
+      vi.advanceTimersByTime(30 * 1000) // 30 s in the window
+      expect(tasksStore.afterMidnight).toEqual({ taskId: 'a', day: '2026-10-22', seconds: 0, spans: [] })
+      window.dispatchEvent(new Event('blur'))
+      vi.advanceTimersByTime(59 * 1000) // inside the grace: still present
+      expect(tasksStore.afterMidnight).toEqual({ taskId: 'a', day: '2026-10-22', seconds: 0, spans: [] })
+      vi.advanceTimersByTime(21 * 1000) // 21 s with the user away (the tick at the grace itself counts as away)
+      stopTaskTimer('a')
+      // the away seconds and exactly their stretch (00:01:29 to 00:01:50), one span across the checkpoints in between
+      expect(tasksStore.afterMidnight).toEqual({
+        taskId: 'a', day: '2026-10-22', seconds: 21, spans: [[new Date(2026, 9, 22, 0, 1, 29).getTime(), new Date(2026, 9, 22, 0, 1, 50).getTime()]],
+      })
+      expect(stored('a')).toBe(5 + 30 + 59 + 21)
+    })
+
+    it('midnight (#356): a write held at the crossing (a batch move) is tried again before the count starts', () => {
+      vi.setSystemTime(new Date(2026, 9, 21, 23, 59, 57))
+      tasksStore.setTasks([makeTask('a', { status: TaskStatus.Progress }), makeTask('b')])
+      driver.start()
+      vi.advanceTimersByTime(2000)
+      tasksStore.batchUpdateTaskStatus(['b'], TaskStatus.Waiting) // holds every update for two seconds
+      vi.advanceTimersByTime(1000) // 00:00:00: the write is refused, the count must not start
+      expect(tasksStore.afterMidnight).toBeNull()
+      expect(stored('a')).toBe(0)
+      vi.advanceTimersByTime(4000) // the hold ends; the next tick writes everything collected so far, then the count starts
+      stopTaskTimer('a')
+      const counted = tasksStore.afterMidnight!
+      expect(counted).toMatchObject({ taskId: 'a', day: '2026-10-22' })
+      expect(stored('a')).toBe(7)
+      // every second up to the first write that went through counts as before midnight: at least the three until the crossing
+      expect(counted.seconds).toBeLessThanOrEqual(3)
+      expect(stored('a') - counted.seconds).toBeGreaterThanOrEqual(4)
+    })
+
+    it('midnight (#356): a timer that starts after midnight notes nothing, and a task entering Jetzt drops an older note of its own', () => {
+      vi.setSystemTime(new Date(2026, 9, 22, 0, 10))
+      tasksStore.setTasks([makeTask('a')])
+      driver.start()
+      tasksStore.afterMidnight = { taskId: 'a', day: '2026-10-22', seconds: 300, spans: [] }
+      tasksStore.updateTask('a', { status: TaskStatus.Progress })
+      vi.advanceTimersByTime(20 * 1000)
+      expect(tasksStore.afterMidnight).toBeNull()
+    })
+
     it('a task removed with open seconds drops them: no write, no leftover', () => {
       tasksStore.setTasks([makeTask('a', { status: TaskStatus.Progress })])
       driver.start()

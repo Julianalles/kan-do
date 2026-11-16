@@ -57,6 +57,27 @@ describe('useDayEndTracking (#537)', () => {
     expect(stats.dayEndInFlight).toEqual({ '2026-11-03': 3, '2026-11-04': 2 })
   })
 
+  it('the new day\'s pass (#356) writes under today\'s key only: yesterday\'s figure stays what the evening saw', async () => {
+    mountTracker()
+    expect(stats.dayEndInFlight).toEqual({ '2026-11-03': 3 })
+    day = new Date(2026, 10, 4, 9, 0)
+    // Offen and Jetzt go back to "Nicht geplant": only Wartet is still in flight
+    tasks.updateTask('b', { status: TaskStatus.Open })
+    tasks.unplanTasks(['a', 'b'])
+    await nextTick()
+    expect(stats.dayEndInFlight).toEqual({ '2026-11-03': 3, '2026-11-04': 1 })
+  })
+
+  it('a board whose every task went back records 0 for the day instead of keeping an older count (#353 review)', async () => {
+    tasks.setTasks([task('a', TaskStatus.Open), task('b', TaskStatus.Open)])
+    mountTracker()
+    await nextTick()
+    expect(stats.dayEndInFlight['2026-11-03']).toBe(2)
+    tasks.unplanTasks(['a', 'b'])
+    await nextTick()
+    expect(stats.dayEndInFlight['2026-11-03']).toBe(0)
+  })
+
   it('writes when the tab becomes visible again', () => {
     const tracker = mountTracker()
     stats.dayEndInFlight = {}
