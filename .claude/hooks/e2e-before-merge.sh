@@ -193,7 +193,11 @@ fi
 # Worktrees outside Claude's own (symlinkDirectories) may lack node_modules: reuse the main checkout's.
 [ -e "$wt/node_modules" ] || ln -s "$(pwd)/node_modules" "$wt/node_modules"
 
-port=$((3200 + RANDOM % 700))
+# A port Chromium blocks fails the whole run at once (ERR_UNSAFE_PORT, #349), so the picker skips those and busy ports.
+port=$("$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/e2e-port.sh") || {
+  echo "e2e-before-merge: found no free port for the E2E server in 3200-3899. Free some ports, then retry." >&2
+  exit 2
+}
 log=$(mktemp "${TMPDIR:-/tmp}/kando-e2e.XXXXXX")
 SECONDS=0
 run_args=$(printf '%s' "$decision" | jq -r '.args | join(" ")') # flags and spec paths, no spaces
