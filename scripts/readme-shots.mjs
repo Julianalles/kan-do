@@ -84,7 +84,7 @@ const CSS = `
   .win{position:relative;border-radius:12px;overflow:hidden;background:#fff;
     box-shadow:0 0 0 1px rgba(0,0,0,.12),0 18px 40px -6px rgba(0,0,0,.28),0 40px 90px -10px rgba(0,0,0,.30)}
   /* The desktop app has no system title bar: the traffic lights float over the transparent top of the page */
-  .bar{position:absolute;top:0;left:0;height:56px;display:flex;align-items:center;gap:8px;padding:0 20px}
+  .bar{position:absolute;top:0;left:0;height:40px;display:flex;align-items:center;gap:8px;padding:0 20px}
   .bar i{width:12px;height:12px;border-radius:50%;display:block}
   .bar i:nth-child(1){background:#ff5f57;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.2)}
   .bar i:nth-child(2){background:#febc2e;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.2)}
