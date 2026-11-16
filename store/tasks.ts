@@ -1097,12 +1097,14 @@ export const useTasksStore = defineStore("tasks", () => {
    *   `readInParts` (`FetchedTasks.readInParts`, #392): the list was assembled from more than one read (Notion's board
    *   query, then its "not planned" query), so a page moved between the reads is in none. A task the list lacks is kept
    *   once then, and goes when the next merge's list lacks it too; a task written since the fetch began is kept once
-   *   the same way (a push that keeps failing must not keep it for ever).
+   *   the same way (a push that keeps failing must not keep it for ever). `confirmedDrop` (the user answered "Ja" to
+   *   the sync question for this list, #369): the question named the tasks the list lacks, so they go at once and
+   *   the keep-once above does not apply to them; a task written since the fetch began or being written stays.
    *   `partialNotPlanned` (`FetchedTasks.partialNotPlanned`, Notion's capped "not planned" list, #357): for a task
    *   held as one of these values `fetchedTasks` is only a part of what the source holds. Such a task that the list
    *   lacks stays as it is, and so does a task with unpushed changes; every other task the list lacks is dropped.
    */
-  function mergeTasks(source: SourceId, fetchedTasks: Task[], options: { replaceOthers?: boolean; heldTime?: (seconds: number) => number; timeWritable?: boolean; holdsOnlyOpenDone?: boolean; startsNotPlanned?: boolean; partialNotPlanned?: readonly string[]; readInParts?: boolean; fetchStartedAt?: number; pushing?: (taskId: string) => boolean } = {}): void {
+  function mergeTasks(source: SourceId, fetchedTasks: Task[], options: { replaceOthers?: boolean; heldTime?: (seconds: number) => number; timeWritable?: boolean; holdsOnlyOpenDone?: boolean; startsNotPlanned?: boolean; partialNotPlanned?: readonly string[]; readInParts?: boolean; confirmedDrop?: boolean; fetchStartedAt?: number; pushing?: (taskId: string) => boolean } = {}): void {
     const boardStore = useBoardStore();
 
     // A completed switch replaces the Local tasks it adopted; another connected integration's tasks stay (#320)
@@ -1290,7 +1292,7 @@ export const useTasksStore = defineStore("tasks", () => {
         const heldPastCap = local.sourceNotPlanned !== undefined && partial.includes(local.sourceNotPlanned);
         if (partial.length > 0 && (heldPastCap || local.pendingSync !== undefined)) {
           mergedTasks.push(local);
-        } else if (lackedBefore?.has(local.id) !== true && (options.readInParts === true || writtenSinceFetch(local.id))) {
+        } else if (lackedBefore?.has(local.id) !== true && ((options.readInParts === true && options.confirmedDrop !== true) || writtenSinceFetch(local.id))) {
           mergedTasks.push(local);
           lackedNow.add(local.id);
         }

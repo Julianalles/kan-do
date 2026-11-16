@@ -29,7 +29,7 @@ export const useIntegrationManager = () => {
   const tasksStore = useTasksStore();
   const boardStore = useBoardStore();
   const { handleSuccess } = useErrorHandler();
-  const { validateAndConfirm } = useSyncValidation();
+  const { validateAndConfirm, validateSyncResult } = useSyncValidation();
   const { adapterFor } = useTaskSources();
   const { syncPendingChanges, isPushing } = useTaskSync();
   const fetchGenerations = fetchGenerationsByStore.get(tasksStore) ?? new Map<SourceId, number>();
@@ -102,6 +102,9 @@ export const useIntegrationManager = () => {
     }
 
     // Validate this source's result before merging (may show the warning and wait for the user)
+    // A merge the user confirmed after the sync question removes what the list lacks (#369): the keep-once of a list
+    // read in parts (#392) must not undo the answer, or the warning would come back at the next sync
+    const asked = validateSyncResult(source, tasks).needsConfirmation;
     const shouldProceed = await validateAndConfirm(source, tasks);
     if (!shouldProceed) {
       if (import.meta.dev) {
@@ -127,6 +130,7 @@ export const useIntegrationManager = () => {
       startsNotPlanned: adapter.startsNotPlanned === true,
       partialNotPlanned,
       readInParts,
+      confirmedDrop: asked,
       fetchStartedAt,
       pushing: isPushing,
     });

@@ -135,6 +135,33 @@ describe('a task a list lacks goes only when two lists in a row lack it (#392)',
     expect(store.task('moved')).toBeNull()
   })
 
+  it('a list the user confirmed after the sync question drops what it lacks at once (#369 x #392)', () => {
+    const store = seed()
+    store.mergeTasks('notion', [makeTask('other')], { ...PARTS, confirmedDrop: true })
+    expect(store.task('moved')).toBeNull()
+    expect(store.task('other')).not.toBeNull()
+  })
+
+  it('a confirmed list still keeps a task being written now or written since the fetch began', () => {
+    const store = useTasksStore()
+    store.setTasks([makeTask('other'), makeTask('busy'), makeTask('written')])
+    vi.setSystemTime(T0 + 300)
+    store.markPendingSync('written')
+    store.mergeTasks('notion', [makeTask('other')], { ...PARTS, confirmedDrop: true, fetchStartedAt: T0, pushing: id => id === 'busy' })
+    expect(store.task('busy')).not.toBeNull()
+    expect(store.task('written')).not.toBeNull()
+  })
+
+  it('a confirmed merge leaves the next ordinary list on the keep-once rule', () => {
+    const store = seed()
+    store.mergeTasks('notion', [makeTask('other'), makeTask('moved')], PARTS)
+    store.mergeTasks('notion', [makeTask('other')], { ...PARTS, confirmedDrop: true })
+    expect(store.task('moved')).toBeNull()
+    store.setTasks([makeTask('other'), makeTask('moved2')])
+    store.mergeTasks('notion', [makeTask('other')], PARTS)
+    expect(store.task('moved2')).not.toBeNull()
+  })
+
   it('a list that has the task in between starts over', () => {
     const store = seed()
     store.mergeTasks('notion', [makeTask('other')], PARTS)

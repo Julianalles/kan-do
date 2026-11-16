@@ -24,13 +24,15 @@ vi.mock('~/composables/useNotionDataSource', () => ({
 
 const fetchNotion = vi.fn<() => Promise<Task[]>>()
 const fetchTodoist = vi.fn<() => Promise<Task[]>>()
+// Whether the Notion list is read in parts (a mapped "not planned" status, #392)
+const notionInParts = { value: false }
 // A Notion database in hours: 125 s is held as 0.03 h (108 s)
 const timeWritableNotion = vi.fn(() => Promise.resolve(true))
 const heldTimeNotion = vi.fn((seconds: number) => (Math.round((seconds / 3600) * 100) / 100) * 3600)
 vi.mock('~/composables/useNotionIntegration', () => ({
   useNotionIntegration: () => ({
     isConfigured: { value: true },
-    createInstance: () => ({ fetchActiveBoardTasks: fetchNotion, heldTimeSeconds: (seconds: number) => heldTimeNotion(seconds), timeIsWritable: () => timeWritableNotion() }),
+    createInstance: () => ({ fetchActiveBoardTasks: fetchNotion, listReadInParts: notionInParts.value, heldTimeSeconds: (seconds: number) => heldTimeNotion(seconds), timeIsWritable: () => timeWritableNotion() }),
   }),
 }))
 vi.mock('~/store/notionConfig', () => ({
@@ -91,6 +93,7 @@ describe('useIntegrationManager: several sources (#318)', () => {
     resetSyncValidation()
     fetchNotion.mockReset()
     fetchTodoist.mockReset()
+    notionInParts.value = false
     timeWritableNotion.mockClear()
     timeWritableNotion.mockResolvedValue(true)
     handleErrorMock.mockReset()
@@ -322,6 +325,42 @@ describe('useIntegrationManager: several sources (#318)', () => {
 
       expect(tasks.tasks).toHaveLength(10) // the confirmed result was not merged: no Notion-stamped duplicate
       expect(tasks.tasks.every((t) => t.source === 'local')).toBe(true)
+    })
+  })
+
+  describe('the sync question on a list read in parts (#369 x #392)', () => {
+    it('"Ja" removes what the list lacks at once and the warning does not come back', async () => {
+      const board = useBoardStore()
+      const tasks = useTasksStore()
+      board.setSources({ connected: ['notion'], default: 'notion' })
+      notionInParts.value = true
+      tasks.setTasks(Array.from({ length: 10 }, (_, i) => task(`n-${i}`, 'notion')))
+      fetchNotion.mockResolvedValue([task('n-0', 'notion')]) // a drop of 90%, no not-planned page in it
+      const { warning, handleConfirm } = useSyncValidation()
+
+      const running = useIntegrationManager().fetchTasks()
+      await vi.waitFor(() => expect(warning.value?.source).toBe('notion'))
+      handleConfirm()
+      await running
+      expect(ids('notion')).toEqual(['n-0'])
+
+      await useIntegrationManager().fetchTasks()
+      expect(useSyncValidation().showWarningModal.value).toBe(false)
+      expect(ids('notion')).toEqual(['n-0'])
+    })
+
+    it('an ordinary sync of such a list still keeps a page it lacks once', async () => {
+      const board = useBoardStore()
+      const tasks = useTasksStore()
+      board.setSources({ connected: ['notion'], default: 'notion' })
+      notionInParts.value = true
+      tasks.setTasks(Array.from({ length: 4 }, (_, i) => task(`n-${i}`, 'notion')))
+      fetchNotion.mockResolvedValue([task('n-0', 'notion'), task('n-1', 'notion'), task('n-2', 'notion')])
+
+      await useIntegrationManager().fetchTasks()
+      expect(ids('notion')).toEqual(['n-0', 'n-1', 'n-2', 'n-3'])
+      await useIntegrationManager().fetchTasks()
+      expect(ids('notion')).toEqual(['n-0', 'n-1', 'n-2'])
     })
   })
 
