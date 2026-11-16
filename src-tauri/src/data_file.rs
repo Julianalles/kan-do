@@ -1976,29 +1976,51 @@ async fn blocking<T: Send + 'static>(
         .map_err(|error| DataError::Io { message: error.to_string() })?
 }
 
+/// The only window that may use the data commands (ADR 011, #383): the floating Now window loads the same webview
+/// origin but must never read or write the data file, so a bug there cannot become a second writer.
+pub const DATA_WINDOW_LABEL: &str = "main";
+
+pub(crate) fn is_data_window(label: &str) -> bool {
+    label == DATA_WINDOW_LABEL
+}
+
+fn ensure_main_window(window: &tauri::Window) -> Result<(), DataError> {
+    if is_data_window(window.label()) {
+        Ok(())
+    } else {
+        log::warn!("data: a data command was refused for the window \"{}\"", window.label());
+        Err(DataError::Invalid)
+    }
+}
+
 #[tauri::command]
-pub async fn data_load(app: AppHandle) -> Result<LoadResult, DataError> {
+pub async fn data_load(window: tauri::Window, app: AppHandle) -> Result<LoadResult, DataError> {
+    ensure_main_window(&window)?;
     blocking(app, |data| Ok(data.load())).await
 }
 
 #[tauri::command]
 pub async fn data_set(
+    window: tauri::Window,
     state: State<'_, DataFile>,
     key: String,
     value: Value,
     generation: u64,
     seq: u64,
 ) -> Result<(), DataError> {
+    ensure_main_window(&window)?;
     state.set_versioned(&key, value, generation, seq).map(|_| ())
 }
 
 #[tauri::command]
-pub async fn data_flush(app: AppHandle) -> Result<(), DataError> {
+pub async fn data_flush(window: tauri::Window, app: AppHandle) -> Result<(), DataError> {
+    ensure_main_window(&window)?;
     blocking(app, |data| data.flush()).await
 }
 
 #[tauri::command]
-pub async fn data_status(state: State<'_, DataFile>) -> Result<StatusPayload, DataError> {
+pub async fn data_status(window: tauri::Window, state: State<'_, DataFile>) -> Result<StatusPayload, DataError> {
+    ensure_main_window(&window)?;
     Ok(state.status())
 }
 
@@ -2008,22 +2030,26 @@ pub struct InitEnvelope {
 }
 
 #[tauri::command]
-pub async fn data_init(app: AppHandle, envelope: InitEnvelope) -> Result<StatusPayload, DataError> {
+pub async fn data_init(window: tauri::Window, app: AppHandle, envelope: InitEnvelope) -> Result<StatusPayload, DataError> {
+    ensure_main_window(&window)?;
     blocking(app, move |data| data.init(envelope.stores)).await
 }
 
 #[tauri::command]
-pub async fn data_inspect_folder(app: AppHandle, folder: String) -> Result<FolderInfo, DataError> {
+pub async fn data_inspect_folder(window: tauri::Window, app: AppHandle, folder: String) -> Result<FolderInfo, DataError> {
+    ensure_main_window(&window)?;
     blocking(app, move |data| data.inspect_folder(Path::new(&folder))).await
 }
 
 #[tauri::command]
-pub async fn data_set_location(app: AppHandle, folder: String, mode: LocationMode) -> Result<LoadResult, DataError> {
+pub async fn data_set_location(window: tauri::Window, app: AppHandle, folder: String, mode: LocationMode) -> Result<LoadResult, DataError> {
+    ensure_main_window(&window)?;
     blocking(app, move |data| data.set_location(Path::new(&folder), mode)).await
 }
 
 #[tauri::command]
-pub async fn data_reveal(app: AppHandle, state: State<'_, DataFile>) -> Result<(), DataError> {
+pub async fn data_reveal(window: tauri::Window, app: AppHandle, state: State<'_, DataFile>) -> Result<(), DataError> {
+    ensure_main_window(&window)?;
     use tauri_plugin_opener::OpenerExt;
     app.opener()
         .reveal_item_in_dir(state.reveal_target())
@@ -2032,7 +2058,8 @@ pub async fn data_reveal(app: AppHandle, state: State<'_, DataFile>) -> Result<(
 
 /// A backup the webview may ask for (`manual`, `pre-migration`, `pre-update`); returns its file name.
 #[tauri::command]
-pub async fn data_backup(app: AppHandle, kind: BackupKind) -> Result<String, DataError> {
+pub async fn data_backup(window: tauri::Window, app: AppHandle, kind: BackupKind) -> Result<String, DataError> {
+    ensure_main_window(&window)?;
     if !kind.requestable() {
         return Err(DataError::Invalid);
     }
@@ -2040,22 +2067,26 @@ pub async fn data_backup(app: AppHandle, kind: BackupKind) -> Result<String, Dat
 }
 
 #[tauri::command]
-pub async fn data_backup_list(app: AppHandle) -> Result<Vec<BackupEntry>, DataError> {
+pub async fn data_backup_list(window: tauri::Window, app: AppHandle) -> Result<Vec<BackupEntry>, DataError> {
+    ensure_main_window(&window)?;
     blocking(app, |data| data.list_backups()).await
 }
 
 #[tauri::command]
-pub async fn data_restore(app: AppHandle, name: String) -> Result<StatusPayload, DataError> {
+pub async fn data_restore(window: tauri::Window, app: AppHandle, name: String) -> Result<StatusPayload, DataError> {
+    ensure_main_window(&window)?;
     blocking(app, move |data| data.restore(&name)).await
 }
 
 #[tauri::command]
-pub async fn data_resolve_conflict(app: AppHandle, choice: ConflictChoice) -> Result<StatusPayload, DataError> {
+pub async fn data_resolve_conflict(window: tauri::Window, app: AppHandle, choice: ConflictChoice) -> Result<StatusPayload, DataError> {
+    ensure_main_window(&window)?;
     blocking(app, move |data| data.resolve_conflict(choice)).await
 }
 
 #[tauri::command]
-pub async fn data_scan_conflict_copies(app: AppHandle) -> Result<Vec<ConflictCopy>, DataError> {
+pub async fn data_scan_conflict_copies(window: tauri::Window, app: AppHandle) -> Result<Vec<ConflictCopy>, DataError> {
+    ensure_main_window(&window)?;
     blocking(app, |data| {
         data.check_now();
         Ok(data.status().conflict_copies)
@@ -2064,28 +2095,46 @@ pub async fn data_scan_conflict_copies(app: AppHandle) -> Result<Vec<ConflictCop
 }
 
 #[tauri::command]
-pub async fn data_file_to_backups(app: AppHandle, name: String) -> Result<StatusPayload, DataError> {
+pub async fn data_file_to_backups(window: tauri::Window, app: AppHandle, name: String) -> Result<StatusPayload, DataError> {
+    ensure_main_window(&window)?;
     blocking(app, move |data| data.file_to_backups(&name)).await
 }
 
 #[tauri::command]
-pub async fn data_retry(app: AppHandle) -> Result<StatusPayload, DataError> {
+pub async fn data_retry(window: tauri::Window, app: AppHandle) -> Result<StatusPayload, DataError> {
+    ensure_main_window(&window)?;
     blocking(app, |data| Ok(data.check_now())).await
 }
 
 #[tauri::command]
-pub async fn data_export(app: AppHandle, path: String, contents: String) -> Result<(), DataError> {
+pub async fn data_export(window: tauri::Window, app: AppHandle, path: String, contents: String) -> Result<(), DataError> {
+    ensure_main_window(&window)?;
     blocking(app, move |data| data.export_to(Path::new(&path), &contents)).await
 }
 
 #[tauri::command]
-pub async fn data_import_read(app: AppHandle, path: String) -> Result<String, DataError> {
+pub async fn data_import_read(window: tauri::Window, app: AppHandle, path: String) -> Result<String, DataError> {
+    ensure_main_window(&window)?;
     blocking(app, move |data| data.read_import(Path::new(&path))).await
 }
 
 #[tauri::command]
-pub async fn data_import_apply(app: AppHandle, contents: String) -> Result<StatusPayload, DataError> {
+pub async fn data_import_apply(window: tauri::Window, app: AppHandle, contents: String) -> Result<StatusPayload, DataError> {
+    ensure_main_window(&window)?;
     blocking(app, move |data| data.import_apply(contents)).await
+}
+
+#[cfg(test)]
+mod window_guard_tests {
+    use super::*;
+
+    #[test]
+    fn only_the_main_window_may_use_the_data_commands() {
+        assert!(is_data_window("main"));
+        assert!(!is_data_window("overlay"));
+        assert!(!is_data_window(""));
+        assert!(!is_data_window("Main"));
+    }
 }
 
 #[cfg(test)]

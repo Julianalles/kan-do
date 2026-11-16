@@ -12,11 +12,13 @@ import { useSecrets } from '~/composables/useSecrets'
 import { useKeychainStatus } from '~/composables/useKeychainStatus'
 import { useNotionConfigStore } from '~/store/notionConfig'
 import { useBoardStore } from '~/store/board'
+import { isOverlayWindow } from '~/lib/overlayWindow'
 
 export default defineNuxtPlugin({
   name: 'secrets',
   dependsOn: ['i18n-locale'],
   async setup(nuxtApp) {
+    if (isOverlayWindow()) return // the floating Now window needs no Keychain (#383)
     const secrets = useSecrets()
     if (!secrets.available) return
 
