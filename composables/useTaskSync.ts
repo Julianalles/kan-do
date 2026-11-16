@@ -275,7 +275,7 @@ export const useTaskSync = () => {
    * task's marker, and the first failure that is not plain offline is reported once. A rejected create (400, 409,
    * 404, any other 4xx: the source refuses this task) throws, the caller keeps the form open and reports it.
    * A draft with `notPlanned: true` and the status Open makes a task that is not planned (#367: one made while the
-   * place "Alle" shows): it goes on top of "Nicht geplant" instead of into Offen. The marker is set here, after the
+   * place "Planung" shows): it goes on top of "Meine Aufgaben" instead of into Offen. The marker is set here, after the
    * adapter returned the task. A source that stores planning (#357, `notPlannedHold`: Notion with a "not planned"
    * status mapped) creates the task as not planned there too; for every other source nothing about it is written.
    * @returns the task as it was added to the store

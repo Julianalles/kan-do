@@ -7,7 +7,7 @@
 @avoid Only a step of the Notion setup wizard.
 @responsibility
 - Allows mapping of Today, Doing, Done (mandatory) and Waiting (optional) to Notion select options
-- "Nicht geplant" (#357, optional): any number of statuses whose pages load under "Nicht geplant" (a multi-select like the priority levels of PriorityMappingStep); never suggested by name, so it stays empty until the user fills it, and kan-do writes the first one back when a task is put back
+- "Nicht geplant" (#357, optional): any number of statuses whose pages load under "Meine Aufgaben" (a multi-select like the priority levels of PriorityMappingStep); never suggested by name, so it stays empty until the user fills it, and kan-do writes the first one back when a task is put back
 - Validates mapping configuration: a status mapped twice (also between "Nicht geplant" and a column) blocks the save
 - Provides save functionality for completing setup
 - Emits `change` with the current mapping after the user's own edit (the name suggestions never count), so the settings tab knows it has something to save

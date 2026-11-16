@@ -1092,9 +1092,10 @@ export class NotionIntegration {
 
     // Extract status first for use in other property calculations
     const statusName = this.statusNameOf(page);
-    const status = this.mapNotionStatus(statusName || this.statusMapping.today);
-    // A page in a mapped "not planned" status (#357): an Open task whose source holds it as not planned
+    // A page in a mapped "not planned" status (#357): an Open task whose source holds it as not planned, whatever
+    // the status is called (an unmapped "Waiting" would fall into Wartet by `mapNotionStatus`'s default name)
     const heldNotPlanned = this.notPlannedStatuses().includes(statusName);
+    const status = heldNotPlanned ? TaskStatus.Open : this.mapNotionStatus(statusName || this.statusMapping.today);
 
     const task: Task = {
       id: page.id,

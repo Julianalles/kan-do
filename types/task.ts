@@ -109,10 +109,11 @@ interface Task {
   notPlanned?: true;
   /**
    * What the task's source holds it as while the source holds it as not planned (#357): the Notion status name
-   * (one of the mapped "not planned" statuses), a constant for Todoist (every open task). Absent = the source holds
-   * it as planned, or holds no planning at all (Local). Set by a fetch and by the user's own plan / put-back of a
-   * task whose source stores planning (`useTaskSync`); `mergeTasks` changes `notPlanned` only when the fetched
-   * value differs from this one, so kan-do's own moves survive a sync. Additive: older data has none.
+   * (one of the mapped "not planned" statuses). Absent = the source holds it as planned, or holds no planning at
+   * all (Local, Todoist). Set by a fetch and by the user's own plan / put-back of a task whose source stores
+   * planning (`useTaskSync`), dropped by every status write that drops the marker (`markerSurvives`: that write
+   * tells the source the column). `mergeTasks` changes `notPlanned` only when the fetched value's presence differs
+   * from this one, so kan-do's own moves survive a sync. Additive: older data has none.
    */
   sourceNotPlanned?: string;
   /** Unpushed local changes (absent = the source holds the task as it is). A Local task never has one. */

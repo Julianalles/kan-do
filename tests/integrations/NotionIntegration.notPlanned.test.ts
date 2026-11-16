@@ -82,6 +82,13 @@ describe('fetch', () => {
     expect(sut.notPlannedLimited).toBe(false)
   })
 
+  it('a "not planned" status named like the default waiting status is still an Open task held as not planned', async () => {
+    mockProxy([], () => ({ results: [page('w', 'Waiting')] }))
+    const sut = new NotionIntegration('tkn', 'db1', propertyMapping as any, { today: 'Heute', doing: 'Jetzt', done: 'Erledigt', notPlanned: ['Waiting'] } as any, undefined, 'ds-1')
+    const tasks = await sut.fetchActiveBoardTasks()
+    expect(tasks.map(t => [t.id, t.status, t.sourceNotPlanned])).toEqual([['w', TaskStatus.Open, 'Waiting']])
+  })
+
   it('a page both queries return is taken once, and a row the filter did not ask for is left out', async () => {
     mockProxy([page('a', 'Heute'), page('b', 'Backlog')], () => ({ results: [page('b', 'Backlog'), page('a', 'Heute'), page('x', 'Sonstwas')] }))
     const tasks = await makeSut(['Backlog']).fetchActiveBoardTasks()
