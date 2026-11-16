@@ -152,6 +152,16 @@ describe('mergeTasks follows a source only when its planning state changes (#357
     expect(store.tasksNotPlanned.map(t => t.id).sort()).toEqual(['held', 'new', 'o2'])
   })
 
+  it('a Todoist task restored from the trash (same id, a new externalId) is a held task: the next fetch leaves it in its column', () => {
+    const store = useTasksStore()
+    store.setTasks([todoist('kept')])
+    // what `useTaskSync.restoreTask` adds after Todoist created the task anew
+    store.addTask(todoist('restored', { externalId: 'td-new' }))
+    store.mergeTasks('todoist', [todoist('kept'), todoist('td-new')], TODOIST)
+    expect(store.tasksOpen.map(t => t.id)).toEqual(['kept', 'restored'])
+    expect(store.tasksNotPlanned).toEqual([])
+  })
+
   it('a source without the rule (Local, Notion without a mapping) starts every task on the board', () => {
     const store = useTasksStore()
     store.mergeTasks('notion', [makeTask('a')])
