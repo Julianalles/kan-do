@@ -107,6 +107,12 @@ function openFromKey(event: KeyboardEvent) {
   -webkit-touch-callout: none;
 }
 
+/* Held in a column's list (Offen): the list's own padding is the side room. Here, not in the components layer:
+   the unlayered scoped padding above beats any layered rule */
+.task-list > .not-planned__item {
+  padding-inline: 0;
+}
+
 /* The focusable card box: the card's own width, so the focus ring hugs the card */
 .not-planned__card {
   display: flex;

@@ -508,6 +508,13 @@ test.describe('The place "Alle" (#354), phone', () => {
     const target = (await openCard(page, 'open-1').boundingBox())!
     await touch.moveTo(195, target.y + 12, 12, 20)
     await expect(page.locator('#column-open-list > .not-planned__item.kando-dnd-dragged')).toHaveCount(1)
+    // The slot has no side room of its own (Offen's list pads it): a padded slot is 1.5rem narrower than its
+    // neighbours wherever the card is not capped at its max width, and the "usual gap" is lost
+    const slotItem = page.locator('#column-open-list > .not-planned__item.kando-dnd-dragged')
+    expect(await slotItem.evaluate(el => getComputedStyle(el).paddingInlineStart)).toBe('0px')
+    const slot = (await slotItem.locator('.task').boundingBox())!
+    const neighbour = (await openCard(page, 'open-1').locator('.task').boundingBox())!
+    expect(slot.width).toBeCloseTo(neighbour.width, 0)
     await touch.end()
     await dropSettled(page)
     await expect.poll(async () => (await openIds(page)).includes('np-1')).toBe(true)
