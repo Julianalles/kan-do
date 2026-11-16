@@ -16,6 +16,9 @@
  * - Erledigt (4): three done today with tracked time (one over its timebox, one unplanned without timebox, one under its
  *   timebox), one yesterday
  *
+ * `options.backlog` (opt-in, `?seed=demo&backlog=1`, README screenshots) adds {@link DEMO_BACKLOG} as Open tasks with `notPlanned`,
+ * so Planung's "My tasks" has something to plan from; the default board is unchanged.
+ *
  * Statistics: the backfill skips demo ids ({@link isDemoTaskId} in `lib/demoIds.ts`), so only `?seed=demo` has statistics data.
  * Dates are relative to `now`, so the board reads the same on any day. The data is pure: it touches no store.
  */
@@ -27,6 +30,20 @@ import { localDateKey, type CarryOverEntry } from '~/utils/carryOver'
 import { demoTaskId, newDemoLoadId } from '~/lib/demoIds'
 
 const HOUR_MS = 3_600_000
+
+/** Backlog for `options.backlog`: [key, title, topic, activity, priority, timebox minutes, created days ago] */
+const DEMO_BACKLOG: Array<[string, string, string | undefined, string | undefined, number, number | undefined, number]> = [
+  ['b1', 'Pflasterarbeiten Zufahrt Familie Koch planen', 'Baustelle Müller', 'Büro', 2, 60, 9],
+  ['b2', 'Angebot Dachbegrünung Reihenhäuser nachfassen', 'Angebote', 'Telefonat', 2, 20, 12],
+  ['b3', 'Winterdienst-Verträge für Bestandskunden prüfen', 'Angebote', 'Büro', 1, 90, 14],
+  ['b4', 'Urlaubsplanung Team für Dezember abstimmen', 'Personal', 'Büro', 2, 30, 6],
+  ['b5', 'Bewerbung Landschaftsgärtner sichten', 'Personal', 'Büro', 3, 45, 4],
+  ['b6', 'Hänger vor dem TÜV-Termin durchsehen', 'Fuhrpark', 'Vor Ort', 2, 30, 8],
+  ['b7', 'Winterreifen für den Transporter bestellen', 'Fuhrpark', 'Telefonat', 1, 15, 11],
+  ['b8', 'Umsatzsteuer-Voranmeldung vorbereiten', 'Buchhaltung', 'Büro', 3, 60, 5],
+  ['b9', 'Belege Baumschule einsortieren', 'Buchhaltung', 'Büro', 1, undefined, 15],
+  ['b10', 'Pflanzenbestellung Frühjahr zusammenstellen', undefined, 'Büro', 1, 45, 10],
+]
 
 /** Colour and symbol per topic name (the `topic-styles` store, #431). */
 export const DEMO_TOPIC_STYLES: Record<string, TopicStyle> = {
@@ -74,6 +91,8 @@ interface DemoTaskInput {
   /** Done yesterday evening */
   doneYesterday?: boolean
   isUnplanned?: boolean
+  /** Backlog task: Open, not on today's board, listed under "My tasks" in Planung */
+  notPlanned?: boolean
 }
 
 /**
@@ -81,7 +100,11 @@ interface DemoTaskInput {
  * @param loadId Token in every task id (`demo-<loadId>-open-1`): a fresh one per load, so loading the samples twice
  *   never reuses an id (archive, trash and statistics of the first load stay out of the second). Tests pass a fixed one.
  */
-export function buildDemoBoard(now: Date = new Date(), loadId: string = newDemoLoadId()): DemoBoard {
+export function buildDemoBoard(
+  now: Date = new Date(),
+  loadId: string = newDemoLoadId(),
+  options: { backlog?: boolean } = {},
+): DemoBoard {
   const id = (key: string) => demoTaskId(loadId, key)
   // `days` calendar days before `now`, same wall-clock time (`now - days * 24 h` drifts by an hour across a DST switch)
   const daysBefore = (days: number) =>
@@ -116,6 +139,7 @@ export function buildDemoBoard(now: Date = new Date(), loadId: string = newDemoL
       updatedAt: completedAt ?? created,
       archivedAt: null,
       isUnplanned: input.isUnplanned ?? false,
+      ...(input.notPlanned ? { notPlanned: true as const } : {}),
     }
   }
 
@@ -267,6 +291,12 @@ export function buildDemoBoard(now: Date = new Date(), loadId: string = newDemoL
       doneYesterday: true,
     }),
   ]
+
+  if (options.backlog) {
+    DEMO_BACKLOG.forEach(([_key, title, topic, activity, priority, timeBox, days], index) =>
+      tasks.push(task({ id: id(`backlog-${index + 1}`), title, status: Open, priority, topic, activity, timeBox, createdDaysAgo: days, notPlanned: true })),
+    )
+  }
 
   // Carried-over cue (#99), counted through today so reloading the same day keeps the numbers
   const today = localDateKey(now)

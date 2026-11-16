@@ -12,6 +12,7 @@ Kan-Do is a focus layer for one person's day: a today-only board (Offen, Jetzt, 
 - [How work flows](#how-work-flows)
 - [Branches, commits and pull requests](#branches-commits-and-pull-requests)
 - [Working with AI agents](#working-with-ai-agents)
+- [README screenshots](#readme-screenshots)
 - [Building and deploying](#building-and-deploying)
 - [Troubleshooting](#troubleshooting)
 
@@ -170,6 +171,10 @@ UI work: UX direction is settled in the issue first. Throwaway prototypes live o
 - Prerequisites for the hooks: `jq` and `perl` on `PATH` (macOS ships perl; `brew install jq`), Chromium for Playwright (`npx playwright install chromium`), and `npx nuxt prepare` once per checkout or worktree (lint and typecheck read `.nuxt/`). Without `perl` the pre-merge hook refuses a merge command; without `jq` it cannot read the command at all, so install both.
 - The testing mode (`.claude/testing-mode`, `fast` or `quality`, untracked) is read per checkout; without the file everything runs in `quality`.
 - Workflow skills (`/build-gh-issue` and friends, [agent-workflow](https://github.com/jaylouiz/agent-workflow)), Orca and the FigCraft design canvas are the maintainer's personal tooling and not part of the repo; the method is described in this file, not required.
+
+## README screenshots
+
+The README images are generated, not hand-edited. After a release or a visible UI change, start a dev server (`npm run dev`) and run `PORT=3000 npm run readme:shots` (or `BASE_URL=<url>`). The script (`scripts/readme-shots.mjs`) seeds the demo board (`?seed=demo`, `&backlog=1` for Planung), captures each shot in English at 1280 px with the repo's Playwright Chromium, frames it as a macOS window on an almost-white background and rewrites `docs/images/readme-day.png` and `docs/images/readme-statistics.png`. Shots and captions live in its `SHOTS` list; `-- --only=<key>` recaptures one shot. Commit the two PNGs. It is not a test and runs in no gate.
 
 ## Building and deploying
 
