@@ -27,7 +27,7 @@ version since the last one seen, newest first. Opened by the "Was ist neu" butto
           <SectionHeader :id="`whats-new-${entry.version}`" tag="h3" size="sub">
             {{ t('whatsNew.version', { version: entry.version }) }}
           </SectionHeader>
-          <ul class="list-disc space-y-1.5 pl-5 text-sm text-default">
+          <ul class="list-disc space-y-1.5 pl-5 text-sm text-default" data-selectable>
             <li v-for="(bullet, index) in entry.bullets" :key="`${index}-${bullet.title}`">
               <strong class="font-semibold text-highlighted">{{ bullet.title }}</strong> {{ bullet.text }}
             </li>

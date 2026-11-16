@@ -3,10 +3,12 @@
  * @description Marks `<html data-shell="desktop">` when the app runs inside Tauri (#614), before the first
  * render. CSS keys desktop-only behaviour on it (no rubber-band overscroll, `assets/css/utilities.css`), so the
  * web build keeps the browser's own scrolling. Same detection as everywhere else: `isTauri()`. Also keeps the
- * window draggable while a full-screen layer covers the drag strip (`lib/windowDrag.ts`).
+ * window draggable while a full-screen layer covers the drag strip (`lib/windowDrag.ts`). In a production build it
+ * also cancels the browser's context menu (#370, `lib/nativeContextMenu.ts`); dev builds keep it for Inspect.
  */
 import { isTauri } from '~/utils/isTauri'
 import { isLayerDragStart } from '~/lib/windowDrag'
+import { shouldBlockContextMenu } from '~/lib/nativeContextMenu'
 
 export default defineNuxtPlugin(() => {
   if (!isTauri()) return
@@ -24,4 +26,12 @@ export default defineNuxtPlugin(() => {
     event.preventDefault()
     void import('@tauri-apps/api/window').then(({ getCurrentWindow }) => getCurrentWindow().startDragging())
   })
+
+  // No Back / Reload / Inspect menu in an installed app (#370). Bubble phase and no stopPropagation: the task card's own
+  // menu (reka ContextMenu) still opens. Text fields and selected text keep the native menu (Cut, Copy, Paste).
+  if (!import.meta.dev) {
+    document.addEventListener('contextmenu', (event) => {
+      if (shouldBlockContextMenu(event.target, window.getSelection())) event.preventDefault()
+    })
+  }
 })

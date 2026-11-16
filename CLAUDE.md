@@ -4,7 +4,7 @@
 
 ```bash
 # Development
-npm run dev           # Nuxt dev server on port 3000 (check if already running)
+npm run dev           # Nuxt dev server on port 3000
 npm run dev:e2e       # Dev server with Notion stub enabled (E2E_NOTION_STUB=1)
 npm run tauri:dev     # Tauri desktop app with hot reload (the user only; agents: skill desktop-verify)
 npx npm@11.19.0 install <pkg>  # dependency installs (local npm 11.6 drops `@emnapi` lockfile entries CI needs)
@@ -62,7 +62,7 @@ Path-scoped rules in `.claude/rules/` load when you read or edit a matching file
 - `e2e-gate.md`: tier rules of the pre-merge E2E gate (docs/style-only skip, smoke + mapped specs, `E2E_GATE=full`)
 - `ui-patterns.md`: the Pattern check before creating or changing a UI element (#586), record line format
 - `ui-catalog.md`: the `/ui` Components engine: catalog entries, the manifest rows of Nuxt UI components, the style fingerprint (#66)
-- `desktop.md`: desktop E2E stub, desktop CSP (ADR 012), in-app feedback (ADR 010/014)
+- `desktop.md`: desktop E2E stub, CSP (ADR 012), in-app feedback (ADR 010/014), native feel (`data-selectable`, #370)
 - `hooks.md`: Stop, per-edit and cleanup hooks in detail
 - `ci.md`: the GitHub workflow (shards, PR E2E switch, pre-push hook)
 - `i18n.md`: locale resolution, the live copy editor
