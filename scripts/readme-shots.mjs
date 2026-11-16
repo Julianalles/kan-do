@@ -26,7 +26,7 @@ mkdirSync(rawDir, { recursive: true })
 const VIEWPORT = { width: 1280, height: 800 }
 const q = '&lang=en'
 
-/** The day sequence in README order. `title` and `text` are the captions ("1 · First start — ..."). */
+/** The day sequence in README order. `title` and `text` are the captions ("1. First start — ..."). */
 const SHOTS = [
   { key: 'start', title: 'First start', text: 'pick where your tasks live, or try a sample board', url: `/welcome?seed=clear${q}`, ready: 'h1, h2' },
   {
@@ -81,9 +81,10 @@ const CSS = `
   body{background:#fdfdfc;font:15px/1.4 -apple-system,BlinkMacSystemFont,"SF Pro Text","Inter",sans-serif;color:#555;padding:64px}
   .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:72px 64px;width:1800px}
   .grid .cell:last-child:nth-child(odd){grid-column:1/-1;justify-self:center;width:calc(50% - 32px)}
-  .win{border-radius:12px;overflow:hidden;background:#fff;
+  .win{position:relative;border-radius:12px;overflow:hidden;background:#fff;
     box-shadow:0 0 0 1px rgba(0,0,0,.12),0 18px 40px -6px rgba(0,0,0,.28),0 40px 90px -10px rgba(0,0,0,.30)}
-  .bar{height:34px;background:#ececec;border-bottom:1px solid rgba(0,0,0,.12);display:flex;align-items:center;gap:8px;padding:0 14px}
+  /* The desktop app has no system title bar: the traffic lights float over the transparent top of the page */
+  .bar{position:absolute;top:0;left:0;height:56px;display:flex;align-items:center;gap:8px;padding:0 20px}
   .bar i{width:12px;height:12px;border-radius:50%;display:block}
   .bar i:nth-child(1){background:#ff5f57;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.2)}
   .bar i:nth-child(2){background:#febc2e;box-shadow:inset 0 0 0 .5px rgba(0,0,0,.2)}
@@ -111,7 +112,7 @@ try {
     console.log(`capture ${shot.key}`)
     await capture(browser, shot)
   }
-  const cells = SHOTS.map((s, i) => `<div class="cell">${win(s.key)}<p class="cap"><b>${i + 1} · ${esc(s.title)}</b> — ${esc(s.text)}</p></div>`).join('')
+  const cells = SHOTS.map((s, i) => `<div class="cell">${win(s.key)}<p class="cap"><b>${i + 1}. ${esc(s.title)}</b> — ${esc(s.text)}</p></div>`).join('')
   await compose(browser, 'readme-day.png', `<div class="grid">${cells}</div>`, 1928)
   await compose(browser, 'readme-statistics.png', `<div style="width:1100px">${win('statistics')}</div>`, 1228)
 } finally {
