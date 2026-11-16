@@ -35,7 +35,7 @@ describe('TaskStackHeader (#148, #578)', () => {
     mountHeader()
     const root = wrapper!.find('.task-stack-header')
     expect(root.attributes('role')).toBe('group')
-    expect(root.attributes('aria-label')).toBe('Design · 3 Aufgaben')
+    expect(root.attributes('aria-label')).toBe('Design, 3 Aufgaben')
     const button = wrapper!.find('.u-button')
     expect(button.attributes('aria-label')).toBe('Gruppe Design schließen')
     expect(button.attributes('aria-expanded')).toBeUndefined()
@@ -45,7 +45,7 @@ describe('TaskStackHeader (#148, #578)', () => {
     const { setTestLocale } = await import('~/tests/helpers/i18n')
     setTestLocale('en')
     mountHeader()
-    expect(wrapper!.find('.task-stack-header').attributes('aria-label')).toBe('Design · 3 tasks')
+    expect(wrapper!.find('.task-stack-header').attributes('aria-label')).toBe('Design, 3 tasks')
     expect(wrapper!.find('.u-button').attributes('aria-label')).toBe('Close group Design')
   })
 

@@ -339,7 +339,7 @@ test.describe('creating while the default source needs attention (#321)', () => 
     await switchTrigger(page).click()
     const notionOption = page.getByRole('option', { name: /^Notion/ })
     await expect(notionOption).toContainText('Standard')
-    await expect(notionOption).toContainText('Verbindung prüfen · wird später gespeichert')
+    await expect(notionOption).toContainText('Verbindung prüfen, wird später gespeichert')
     await notionOption.click() // still selectable
     await sheet(page).getByPlaceholder('Aufgabe benennen…').fill('Trotzdem gespeichert')
     await submit(page)

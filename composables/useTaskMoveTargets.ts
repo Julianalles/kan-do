@@ -60,7 +60,7 @@ export function buildMoveTargets({ t, task, connected, notionMapping, needsAtten
         if (lost > 0) hints.push(t('task.move.hintLost', lost))
         if (isIntegrationSourceId(source) && needsAttention(source)) hints.push(t('task.move.hintAttention'))
       }
-      return { source, name: t(SOURCE_META[source].nameKey), icon: SOURCE_META[source].icon, hint: hints.join(' · '), disabled: pending }
+      return { source, name: t(SOURCE_META[source].nameKey), icon: SOURCE_META[source].icon, hint: hints.join(', '), disabled: pending }
     })
 }
 

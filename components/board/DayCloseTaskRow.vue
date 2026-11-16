@@ -45,5 +45,5 @@ const fact = computed(() => {
   if (state === 'none') return ''
   return t(`dayClose.box.${state}`, { n: minutes })
 })
-const subline = computed(() => [t('dayClose.rowDone'), fact.value].filter(Boolean).join(' · '))
+const subline = computed(() => [t('dayClose.rowDone'), fact.value].filter(Boolean).join(', '))
 </script>

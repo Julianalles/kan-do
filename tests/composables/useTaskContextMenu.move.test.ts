@@ -91,7 +91,7 @@ describe('useTaskContextMenu: move to another source (#322)', () => {
     useBoardStore().setSources({ connected: ['notion'], default: 'local' })
     useIntegrationHealthStore().recordFailure('notion', Object.assign(new Error('Network error'), { statusCode: 0 }))
     const entry = groupsOf(makeTask()).flat().find(i => i.label === 'Verschieben nach …')!
-    expect(entry.children![0]!.description).toBe('Verbindung prüfen · wird später gespeichert')
+    expect(entry.children![0]!.description).toBe('Verbindung prüfen, wird später gespeichert')
     entry.children![0]!.onSelect!()
     expect(moveTaskToSource).toHaveBeenCalledWith('a', 'notion')
   })

@@ -42,13 +42,13 @@ describe('ColumnSortingControl', () => {
 
   it.each([
     [TaskStatus.Open, { field: 'manual', direction: 'asc' }, 'Manuell'],
-    [TaskStatus.Open, { field: 'priority', direction: 'desc' }, 'Priorität · höchste zuerst'],
-    [TaskStatus.Open, { field: 'dateCreated', direction: 'desc' }, 'Erstellt · neueste zuerst'],
-    [TaskStatus.Open, { field: 'dateCreated', direction: 'asc' }, 'Erstellt · älteste zuerst'],
+    [TaskStatus.Open, { field: 'priority', direction: 'desc' }, 'Priorität, höchste zuerst'],
+    [TaskStatus.Open, { field: 'dateCreated', direction: 'desc' }, 'Erstellt, neueste zuerst'],
+    [TaskStatus.Open, { field: 'dateCreated', direction: 'asc' }, 'Erstellt, älteste zuerst'],
     [TaskStatus.Waiting, { field: 'dateUpdated', direction: 'asc' }, 'Längste Wartezeit'],
     [TaskStatus.Waiting, { field: 'dateUpdated', direction: 'desc' }, 'Kürzeste Wartezeit'],
-    [TaskStatus.Done, { field: 'dateCompleted', direction: 'asc' }, 'Zuerst erledigt · älteste oben'],
-    [TaskStatus.Done, { field: 'dateCompleted', direction: 'desc' }, 'Zuletzt erledigt · neueste oben']
+    [TaskStatus.Done, { field: 'dateCompleted', direction: 'asc' }, 'Zuerst erledigt, älteste oben'],
+    [TaskStatus.Done, { field: 'dateCompleted', direction: 'desc' }, 'Zuletzt erledigt, neueste oben']
   ] as const)('shows the active sort in the trigger (%#)', (status, sorting, label) => {
     expect(mountControl(status, sorting as ColumnSorting).find('button').text()).toBe(label)
   })

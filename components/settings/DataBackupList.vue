@@ -69,15 +69,12 @@ event, the page owns the single confirmation modal.
         data-testid="data-backup-row"
         :data-kind="entry.kind"
       >
-        <p class="min-w-0 text-body text-default">
+        <p class="flex min-w-0 flex-wrap gap-x-3 text-body text-default">
           <span class="text-highlighted tabular-nums">{{ formatDateTime(entry.ts, 'mediumDateShortTime') }}</span>
-          <span class="px-1.5 text-muted" aria-hidden="true">·</span>
           <span>{{ t(`settings.data.backups.kind.${entry.kind}`) }}</span>
           <template v-if="entry.readable && !entry.ownDevice">
-            <span class="px-1.5 text-muted" aria-hidden="true">·</span>
             <span class="text-muted">{{ t('settings.data.backups.otherDevice') }}</span>
           </template>
-          <span class="px-1.5 text-muted" aria-hidden="true">·</span>
           <span v-if="!entry.readable" class="text-muted" data-testid="data-backup-unreadable">{{ t('settings.data.backups.unreadable') }}</span>
           <span v-else-if="entry.taskCount !== null" class="text-muted">{{ t('settings.data.backups.tasks', { n: entry.taskCount }, entry.taskCount) }}</span>
         </p>

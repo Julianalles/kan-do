@@ -788,7 +788,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Funnel \"Fokus\", pill \"Fokus: <Thema> · n ausgeblendet\", ✕ \"Fokus beenden\". The same word already names the Jetzt focus overlay (settings.focus.*, #394): two features, one word. Term question for the user: keep \"Fokus\" for both, or name this one \"Themenfokus\" / \"Filter\"."
+    "note": "Funnel \"Fokus\", pill \"Fokus: <Thema>, n ausgeblendet\", ✕ \"Fokus beenden\". The same word already names the Jetzt focus overlay (settings.focus.*, #394): two features, one word. Term question for the user: keep \"Fokus\" for both, or name this one \"Themenfokus\" / \"Filter\"."
   },
   {
     "id": "board-day",

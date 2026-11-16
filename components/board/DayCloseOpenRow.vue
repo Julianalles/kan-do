@@ -60,6 +60,6 @@ const subline = computed(() => {
   if (!props.kept) parts.push(t(deleteTrashKey(props.task.source)))
   // "Fertig" stops the Jetzt task and puts it into Offen; every other open task stays where it is (#387)
   else if (props.task.status === TaskStatus.Progress) parts.push(t('dayClose.backToOpen'))
-  return parts.join(' · ')
+  return parts.join(', ')
 })
 </script>

@@ -4,7 +4,7 @@ import SourceRow from '~/components/settings/SourceRow.vue'
 import type { ConnectedSourceRow } from '~/composables/useSourceList'
 
 const row = (overrides: Partial<ConnectedSourceRow> = {}): ConnectedSourceRow => ({
-  id: 'notion', name: 'Notion', icon: 'i-simple-icons-notion', isDefault: false, statusText: 'Synchronisiert · vor 5 Min.',
+  id: 'notion', name: 'Notion', icon: 'i-simple-icons-notion', isDefault: false, statusText: 'Synchronisiert vor 5 Min.',
   statusTone: 'muted', canSetDefault: true, canRepair: false, canConfigure: true, ...overrides,
 })
 

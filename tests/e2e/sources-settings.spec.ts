@@ -142,7 +142,7 @@ test.describe('Local and Notion connected', () => {
     await openFromBoard(page, baseURL)
 
     await expect(page.getByTestId('source-default-notion')).toBeVisible()
-    await expect(page.getByTestId('source-status-notion')).toContainText('Synchronisiert · ')
+    await expect(page.getByTestId('source-status-notion')).toContainText('Synchronisiert ')
     await expect(page.getByTestId('source-actions-local')).toHaveAccessibleName('Aktionen für Lokal')
     await expect(page.getByTestId('source-actions-notion')).toBeVisible() // settings and disconnect; the default offers no „Als Standard festlegen“
     await expect(page.getByTestId('source-more-notion')).toHaveCount(0)

@@ -106,7 +106,7 @@ const activeOption = computed(() => options.value.find(isActive));
 const currentLabel = computed(() => {
   const option = activeOption.value;
   if (!option) return t('board.sort.default');
-  return option.hint && option.field !== 'manual' ? `${option.label} · ${option.hint}` : option.label;
+  return option.hint && option.field !== 'manual' ? `${option.label}, ${option.hint}` : option.label;
 });
 
 const currentIcon = computed(() => {

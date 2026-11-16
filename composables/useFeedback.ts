@@ -215,7 +215,7 @@ const contextSummary = computed(() => {
     versionInfo.value?.os ?? null,
     environment.value?.route ?? null,
   ].filter(Boolean)
-  return parts.join(' · ')
+  return parts.join(', ')
 })
 
 function restoreFocus(): void {
