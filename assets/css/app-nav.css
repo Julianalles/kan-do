@@ -448,3 +448,14 @@
     }
   }
 }
+
+/* Navigation wait bar (#376, NuxtLoadingIndicator in app.vue): it never takes a click or a window drag from what lies under
+   its 3px, and under reduced motion its width and fade are instant (Nuxt sets its transitions inline, hence !important). */
+.nav-loading-bar {
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .nav-loading-bar {
+    transition: none !important;
+  }
+}

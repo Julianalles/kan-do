@@ -430,8 +430,8 @@ for (const { label, size } of VIEWPORTS) {
         const lagging: string[] = []
         ;(window as unknown as { __lagging: string[] }).__lagging = lagging
         new MutationObserver((records) => {
-          // The indicator's per-frame style writes (#583) say nothing about the selection
-          if (records.every(r => (r.target as HTMLElement).classList?.contains('app-nav-indicator'))) return
+          // The indicator's per-frame style writes (#583) and the navigation wait bar's (#376) say nothing about the selection
+          if (records.every(r => (r.target as HTMLElement).classList?.contains('app-nav-indicator') || (r.target as HTMLElement).dataset?.testid === 'nav-loading')) return
           const expected = places.find(([path]) => location.pathname === path)?.[1]
           const current = document.querySelector('[data-testid="app-nav"] [aria-current="page"]')?.getAttribute('data-testid')
           if (expected && current !== expected) lagging.push(`${location.pathname}: ${current}`)
