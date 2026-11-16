@@ -11,7 +11,7 @@
 - Drag (#355): a card can be carried onto Offen with the board's own drag (it is planned and lands where it is dropped). The side is one dnd-kit droppable (`data.notPlannedZone`) for a card or stack from Offen: while one is held over it the side shows a wash and "Hier ablegen: nicht heute" under the headline, and the drop takes it off today's board, on top of this list. The cards never make room for one another: no sorting here
 - Pick: a round button per card ("Für heute einplanen", named with the task's title). Desktop: on the paper right of the card, towards Offen, hidden at rest and shown on hover and keyboard focus, as "Nicht heute" is in the Heute column (#373; it was quiet at rest so a first-time user found it, #354 D1e; a touch-only device keeps it visible). Phone: in the card's top right corner, where a board card has its menu button. The move is `usePlanMoves().planForToday`; keyboard focus goes on to the next card's button
 - Order: `tasksStore.tasksNotPlanned` (put back by hand first, newest first); the topic focus filters it like a column (`useBoardFocus`)
-- A new day (#356): the tasks today's pass sent back (`useNewDay().groupIds`) stand on top as the group "Gestern geplant, noch offen" (its `h3` in the row under the headline), every other task below under "Weitere Aufgaben". For that one day only; a group the topic focus leaves empty is not shown, and without the first group there are no headings at all. Pick, drag and the focus hand-over work across the heading
+- A new day (#356, #387): the Jetzt and Offen tasks the user's fresh start of today took off the board (`useNewDay().groupIds`) stand on top as the group "Gestern geplant, noch offen", for that one day only. Below it the tasks a fresh start took out of Wartet stand in their own category "Zuletzt in Wartet" (`waitingIds`), so the user still knows they were waiting; that category lasts until each task is planned again. Every other task follows under "Weitere Aufgaben". The first shown category's `h3` sits in the row under the headline; a category the topic focus leaves empty is not shown, and without the first two there are no headings at all. Pick, drag and the focus hand-over work across the headings
 - Limit (#357): when Notion holds more "not planned" pages than a sync loads (`notionConfig.notPlannedLimited`, the most recently edited 500), one muted line under the list says so
 - Empty: one muted note. Nothing held here: "Keine weiteren Aufgaben vorhanden." and the soft button "Aufgabe erstellen" (#367, the user's wording), which opens the sheet's add form under `/all/add`; a task made while "Planung" shows is not planned, so it lands here; a focus without a match: "Keine Aufgaben gefunden."; a board without any task stays blank
 - Many items: on desktop the side is as tall as the window and its list scrolls inside it, so Offen and the capacity echo stay in view; on a phone the page scrolls like every column page
@@ -49,7 +49,7 @@
           {{ t('board.notPlanned.dropHere') }}
         </p>
       </Transition>
-      <!-- The first group's heading sits in this row, so the group's first card stays level with Offen's (#356) -->
+      <!-- The first category's heading sits in this row, so its first card stays level with Offen's (#356, #387) -->
       <SectionHeader
         v-if="rendered && yesterday.length > 0 && !isDropTarget"
         :id="yesterdayHeadingId"
@@ -59,6 +59,16 @@
         data-testid="not-planned-group-yesterday"
       >
         {{ t('board.notPlanned.groupYesterday') }}
+      </SectionHeader>
+      <SectionHeader
+        v-else-if="rendered && waiting.length > 0 && !isDropTarget"
+        :id="waitingHeadingId"
+        tag="h3"
+        size="label"
+        class="not-planned__group mb-0"
+        data-testid="not-planned-group-waiting"
+      >
+        {{ t('board.notPlanned.groupWaiting') }}
       </SectionHeader>
     </div>
 
@@ -95,9 +105,38 @@
           @pick="pick"
         />
       </TransitionGroup>
-      <!-- "Weitere Aufgaben" only says something beside the first group: without it the side looks as on any other day -->
+      <!-- What a fresh start took out of Wartet (#387): its own category, so the earlier waiting stays known. Its
+           heading is here only below the first group; alone it sits in the row under the headline -->
       <SectionHeader
-        v-if="yesterday.length > 0 && others.length > 0"
+        v-if="yesterday.length > 0 && waiting.length > 0"
+        :id="waitingHeadingId"
+        tag="h3"
+        size="label"
+        class="not-planned__group not-planned__group--next"
+        data-testid="not-planned-group-waiting"
+      >
+        {{ t('board.notPlanned.groupWaiting') }}
+      </SectionHeader>
+      <TransitionGroup
+        v-show="waiting.length > 0"
+        tag="ul"
+        name="not-planned-item"
+        class="not-planned__grid"
+        :aria-labelledby="waitingHeadingId"
+        data-testid="not-planned-list-waiting"
+      >
+        <BoardNotPlannedItem
+          v-for="(task, index) in waiting"
+          :key="task.id"
+          :task="task"
+          :index="yesterday.length + index"
+          @open="openTask"
+          @pick="pick"
+        />
+      </TransitionGroup>
+      <!-- "Weitere Aufgaben" only says something beside a category above it: without one the side looks as on any other day -->
+      <SectionHeader
+        v-if="hasCategories && others.length > 0"
         :id="othersHeadingId"
         tag="h3"
         size="label"
@@ -111,14 +150,14 @@
         tag="ul"
         name="not-planned-item"
         class="not-planned__grid"
-        :aria-labelledby="yesterday.length > 0 ? othersHeadingId : undefined"
+        :aria-labelledby="hasCategories ? othersHeadingId : undefined"
         data-testid="not-planned-list-others"
       >
         <BoardNotPlannedItem
           v-for="(task, index) in others"
           :key="task.id"
           :task="task"
-          :index="yesterday.length + index"
+          :index="yesterday.length + waiting.length + index"
           @open="openTask"
           @pick="pick"
         />
@@ -191,22 +230,26 @@ const notionLimited = computed(() => useNotionConfigStore().notPlannedLimited ==
 /** What the topic focus leaves of it (the funnel in the app bar filters this side like a column) */
 const shown = computed(() => applyFocus(held.value))
 /**
- * The two groups of a new day (#356): the tasks today's pass sent back that are still not planned, in the order they
- * had on the board (Jetzt first), and every other task. Without a first group there is one plain list, as on any other day.
+ * The categories of "Meine Aufgaben" (#356, #387): the Jetzt and Offen tasks today's fresh start took off the board
+ * that are still not planned, in the order they had on the board (Jetzt first); the tasks a fresh start took out of
+ * Wartet, until each is planned again; and every other task. Without the first two there is one plain list, as on
+ * any other day.
  */
-const { groupIds } = useNewDay()
+const { groupIds, waitingIds } = useNewDay()
 const { draftTask } = useTaskDraft()
-const yesterday = computed(() => {
-  const byId = new Map(shown.value.map(task => [task.id, task]))
-  return groupIds.value.map(id => byId.get(id)).filter(task => task !== undefined)
-})
+const shownById = computed(() => new Map(shown.value.map(task => [task.id, task])))
+const yesterday = computed(() => groupIds.value.map(id => shownById.value.get(id)).filter(task => task !== undefined))
+const waiting = computed(() => waitingIds.value.map(id => shownById.value.get(id)).filter(task => task !== undefined))
+const hasCategories = computed(() => yesterday.value.length > 0 || waiting.value.length > 0)
 const others = computed(() => {
-  const inGroup = new Set(yesterday.value.map(task => task.id))
-  return inGroup.size === 0 ? shown.value : shown.value.filter(task => !inGroup.has(task.id))
+  if (!hasCategories.value) return shown.value
+  const inCategory = new Set([...yesterday.value, ...waiting.value].map(task => task.id))
+  return shown.value.filter(task => !inCategory.has(task.id))
 })
-/** The cards in the order they are rendered, across both groups */
-const renderedOrder = computed(() => [...yesterday.value, ...others.value].map(task => task.id))
+/** The cards in the order they are rendered, across the categories */
+const renderedOrder = computed(() => [...yesterday.value, ...waiting.value, ...others.value].map(task => task.id))
 const yesterdayHeadingId = useId()
+const waitingHeadingId = useId()
 const othersHeadingId = useId()
 
 /** kan-do holds a task at all: only then "everything is planned for today" is true; a new board stays blank */
@@ -220,7 +263,7 @@ const createTask = () => void navigateTo({ path: `${basePath.value}/add` })
 async function pick(id: string, event: MouseEvent) {
   const button = event.currentTarget as HTMLElement
   const hadFocus = document.activeElement === button
-  // The next card as rendered, also across the group heading (#356); the last card hands on to the one before it
+  // The next card as rendered, also across the category headings (#356, #387); the last card hands on to the one before it
   const order = renderedOrder.value
   const at = order.indexOf(id)
   const neighbour = at === -1 ? null : order[at + 1] ?? order[at - 1] ?? null

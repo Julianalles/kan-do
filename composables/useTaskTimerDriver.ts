@@ -14,7 +14,7 @@
  * - Midnight (#356): each tick knows its local day. The first tick of a timer on a later day than its previous one
  *   means the timer ran across midnight: the seconds collected so far are written (they belong to the day before,
  *   the crossing second included), and from then on the store notes what the timer counts while the user is away
- *   from the window (`lib/appPresence`, `beginAfterMidnight`), for the new day's pass to ask the user about (it removes nothing itself). Each tick
+ *   from the window (`lib/appPresence`, `beginAfterMidnight`), for the new day's check to ask the user about (`useNewDay().check`; it removes nothing itself). Each tick
  *   is tagged away or present; a second counted with the user in the window is never noted. The wall-clock stretch of the away ticks (`lib/liveTime` spans) goes to the store with the seconds, for the Statistik work sessions to be cut by it. A task that enters Jetzt anew starts without such a note
  * - `stopTaskTimer` is the one explicit stop (day close, delete, disconnect); `resumeTaskTimer` undoes it for a
  *   task that stayed in Jetzt because the operation that stopped it failed
@@ -48,6 +48,14 @@ function commitLiveTime(taskId: string): void {
     discardLiveSeconds(taskId)
     settleLiveAwaySpans(taskId)
   }
+}
+
+/**
+ * Writes what the timer of `taskId` has collected into the store now and lets it run on (#387): the new day's check
+ * reads the stored time and the note of the time after midnight of a task that stays in Jetzt.
+ */
+export function checkpointTaskTimer(taskId: string): void {
+  commitLiveTime(taskId)
 }
 
 /** Writes the collected seconds of every task: before the page can go away and before anything reads the stored time. */

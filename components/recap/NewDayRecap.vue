@@ -2,14 +2,14 @@
 @component NewDayRecap
 @kind block
 @category overlay
-@description "Kurzer Rückblick" (#385, #451, #44, #245): the recap on the first start of a new day, shown as a stage on the welcome photo, behind the app bar, instead of a dialog over the board. A still-open deck and a done deck like the board's Offen → Erledigt, and one submit panel with the switch "Erledigte archivieren" and the two ways out (#356): "Tag planen" (primary, leads to "Planung") and "Direkt zum Board" (leads to the board).
+@description "Kurzer Rückblick" (#385, #451, #44, #245): the recap on the first start of a new day, shown as a stage on the welcome photo, behind the app bar, instead of a dialog over the board. A still-open deck and a done deck like the board's Offen → Erledigt, and one submit panel with the switch "Erledigte archivieren" and the two ways out (#356, #387): "Tag planen" (primary: the fresh start, which takes yesterday's unfinished cards off the board, and the way to "Planung") and "Direkt zum Board" (leads to the board and keeps it as it is).
 @usage Mounted once in pages/tasks.vue next to DayCloseDialog; opened by useNewDayRecap().check() on mount.
 One centred paper sheet (max 44rem, like the welcome sheet) with both decks side by side from 768px, one deck with a switcher below. The page itself never scrolls; only the stage's scroll area may, on very short windows.
 @avoid Only the first start of a new day; closing the day is DayCloseDialog.
 @responsibility
 - Shell only: headline (the title, the theme's 18 px dialog title, kd#179), summary, decks (body), submit panel
 - Not modal (#245), teleported to `#recap-stage-host` (app.vue) so the inert board does not take it along and the bar stays above it: a `role="region"` named by the headline, no scrim, no focus trap. The app bar stays usable and sits above the stage (`--z-bar`); the board is `inert` behind it (`pages/tasks.vue`). Going to settings and coming back finds the same recap, because the state lives in `useNewDayRecap`
-- Focus starts on "Tag planen"; both buttons and Escape inside the stage call `leave()`, which follows the switch (#44); "Tag planen" goes to "Planung" first, "Direkt zum Board" to Heute when "Planung" shows, Escape only dismisses and never navigates; `finishLeave()` after the curtain hands focus to the board
+- Focus starts on "Tag planen"; both buttons and Escape inside the stage call `leave()`, which follows the switch (#44); "Tag planen" goes to "Planung" first and then starts the day fresh (`useNewDay().freshStart()`, #387: the only thing here that moves a card), "Direkt zum Board" goes to Heute when "Planung" shows and moves nothing, Escape only dismisses, never navigates and moves nothing; `finishLeave()` after the curtain hands focus to the board
 - Curtain (assets/css/recap-stage.css): `leave()` runs at once (archive, marker, the board is live), the stage stays mounted while the sheet fades (200 ms) and only the photo slides up (700 ms, ease in-out) with a feathered edge; reduced motion: instant. A second click or Escape during the curtain does nothing
 - The photo is the welcome page's (`public/welcome`), decoration only (`alt=""`); until it loads, or if it fails, the layer is the paper colour
 - Phone switcher ("n noch offen" / "n erledigt", a `UTabs` pill: `role="tab"`, `aria-selected`): one RecapDeck mounted at a time, starts on "noch offen" (on "erledigt" when nothing is open, then without a switcher)
@@ -131,6 +131,7 @@ import { useI18n } from 'vue-i18n'
 import RecapDeck from '~/components/recap/RecapDeck.vue'
 import { navigateTo } from 'nuxt/app'
 import { useNewDayRecap } from '~/composables/useNewDayRecap'
+import { useNewDay } from '~/composables/useNewDay'
 import { useBoardPlace } from '~/composables/useBoardPlace'
 import { boardPlaceLocation } from '~/lib/boardPlace'
 import { useDayRecapStore } from '~/store/dayRecap'
@@ -144,6 +145,8 @@ defineOptions({ name: 'NewDayRecap' })
 const { t } = useI18n()
 const { locale } = useLocaleFormat()
 const { isOpen, snapshot, leave, finishLeave } = useNewDayRecap()
+// Resolved in setup: the fresh start needs the Nuxt-bound move path
+const { freshStart } = useNewDay()
 const recapStore = useDayRecapStore()
 const { isAll } = useBoardPlace()
 
@@ -222,14 +225,20 @@ function finishCurtain() {
   finishLeave({ restoreFocus: !keep })
 }
 
-/** "Tag planen" (#356): the board goes to "Planung" first (the same page, so it is there before the photo moves), then the curtain lifts over it. */
+/**
+ * "Tag planen" (#356, #387): the board goes to "Planung" first (the same page, so it is there before the photo moves),
+ * the recap is left, and the day starts fresh: yesterday's unfinished cards leave the board for "Meine Aufgaben". The
+ * recap's own decks are a snapshot and do not change under the curtain.
+ */
 function leaveToPlan() {
   if (closing.value || !isOpen.value) return
   void navigateTo(boardPlaceLocation('all'))
   leaveOnce()
+  // Left (not: nothing to leave): the user's click is the fresh start
+  if (!isOpen.value) freshStart()
 }
 
-/** "Direkt zum Board" (#356): the board; from "Planung" that is a move to Heute. */
+/** "Direkt zum Board" (#356, #387): the board as it is, nothing moves; from "Planung" that is a move to Heute. */
 function leaveToToday() {
   if (closing.value || !isOpen.value) return
   if (isAll.value) void navigateTo(boardPlaceLocation('today'))

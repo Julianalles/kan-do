@@ -1,0 +1,4 @@
+- status:
+  - text: Auf dem Board liegt noch der Plan von gestern. „Tag planen“ legt alles, was nicht erledigt ist, zurück nach „Meine Aufgaben“.
+  - button "Tag planen"
+  - button "Schließen"

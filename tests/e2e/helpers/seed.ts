@@ -605,9 +605,10 @@ export function newDayTasks(daysAgo = 1, options: { allDone?: boolean } = {}): S
 }
 
 /**
- * A full board for the new day's pass (#356): `newDayTasks` plus a Jetzt card with time spent, a second Offen card and a
- * task that was not planned before. After the pass "Meine Aufgaben" holds nd-now-1, nd-open-2, nd-open-1 as the group
- * "Gestern geplant, noch offen" (board order, Jetzt first) and nd-held-1 under "Weitere Aufgaben".
+ * A full board for the fresh start (#356, #387): `newDayTasks` plus a Jetzt card with time spent, a second Offen card and
+ * a task that was not planned before. After "Tag planen" "Meine Aufgaben" holds nd-now-1, nd-open-2, nd-open-1 as the
+ * group "Gestern geplant, noch offen" (board order, Jetzt first), nd-waiting-1 under "Zuletzt in Wartet" and nd-held-1
+ * under "Weitere Aufgaben". Without the done tasks no recap is due and the board shows the notice instead.
  */
 export function newDayBackTasks(daysAgo = 1): SeedTask[] {
   const base = newDayTasks(daysAgo)
@@ -623,13 +624,12 @@ export function newDayBackTasks(daysAgo = 1): SeedTask[] {
 /** Options of `seedDayRecapStore`. */
 export interface SeedDayRecapOptions {
   /**
-   * The new day's own marker (#356). Default: the same day as `lastShownDay`, with an earlier pass on record, so the
-   * pass runs when that day is before today and the one-time note stays away. `firstPass: true` stores neither
-   * (the first morning after the update: the note shows).
+   * The day the user last started fresh on (#387). Default: the same day as `lastShownDay`, so a fresh start is on
+   * offer when that day is before today; nothing moves by itself. Today's key: the day is already started (no notice,
+   * "Tag planen" moves nothing), the recap is still due. `null` stores no such field: data from before the fresh start
+   * existed (the update from v0.16.0), which the day check gives its baseline.
    */
-  firstPass?: boolean
-  /** The day the pass last ran on, when it differs from `lastShownDay` (today: the pass already ran, the recap is still due). */
-  lastNewDay?: string
+  lastNewDay?: string | null
   /** Stored marker; default: two days back, so the recap is due. `null` leaves the store out (baseline case). */
   lastShownDay?: string | null
   archiveDone?: boolean
@@ -640,8 +640,9 @@ export interface SeedDayRecapOptions {
 /** Seeds `day-recap-store` via addInitScript. */
 export async function seedDayRecapStore(context: BrowserContext, options: SeedDayRecapOptions = {}): Promise<void> {
   const lastShownDay = options.lastShownDay === undefined ? dayKeyDaysAgo(2) : options.lastShownDay
-  const earlierPass = options.firstPass ? {} : { lastNewDay: options.lastNewDay ?? lastShownDay, firstBackDay: lastShownDay }
-  const state = lastShownDay === null ? null : { lastShownDay, archiveDone: options.archiveDone ?? true, ...earlierPass }
+  const state = lastShownDay === null
+    ? null
+    : { lastShownDay, archiveDone: options.archiveDone ?? true, ...(options.lastNewDay === null ? {} : { lastNewDay: options.lastNewDay ?? lastShownDay }) }
   await context.addInitScript(
     ({ state: s, once }) => {
       if (once) {
@@ -676,7 +677,8 @@ export async function seedNewDayBoard(
 
 /**
  * The seconds a Jetzt timer counted after this morning's midnight while the user was away (#356): a note in
- * `tasks-store`, which the new day's pass turns into the question "Zeit abziehen / Zeit behalten". Register it after
+ * `tasks-store`, which the day check on the app's start turns into the question "Zeit abziehen / Zeit behalten" (#387:
+ * without a fresh start, the task stays in Jetzt). Register it after
  * the board's seed (it patches the stored `tasks-store`); `once` as the board's.
  */
 export async function seedAfterMidnight(context: BrowserContext, options: { taskId: string, seconds: number, once?: boolean }): Promise<void> {

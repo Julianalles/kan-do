@@ -12,7 +12,7 @@ import { extractValueKey, createCustomPropertyIndex } from "~/types/customProper
 import type { SortField, SortDirection } from "~/types/state";
 import { mapHelpers, setHelpers } from "~/utils/mapHelpers";
 import type { CarryOverEntry } from "~/utils/carryOver";
-import { advanceCarryOverEntry, createCarryOverEntry } from "~/utils/carryOver";
+import { advanceCarryOverEntry, createCarryOverEntry, localDateKey } from "~/utils/carryOver";
 import { isNotPlanned, markerSurvives } from "~/lib/taskPlanning";
 import { isValidDayKey } from "~/utils/recapDay";
 import { isKnownSource } from "~/utils/sourceMeta";
@@ -250,11 +250,19 @@ export const useTasksStore = defineStore("tasks", () => {
    * The seconds a Jetzt timer counted after the local midnight it ran across (#356), persisted so a reload keeps
    * it: one entry, for the one task whose timer crossed the last midnight. Written by the timer driver
    * (`beginAfterMidnight` at the crossing, then every checkpoint through `addTrackedSeconds`), read once by the new
-   * day's pass (`takeAfterMidnight`, which turns it into the question of the day-recap store). Additive: older data has none (null); read it through
+   * day's check (`useNewDay().check`: `takeAfterMidnight`, which it turns into the question of the day-recap store). Additive: older data has none (null); read it through
    * `validAfterMidnight`.
    */
   const afterMidnight = ref<AfterMidnightCount | null>(null);
   const validAfterMidnight = computed(() => sanitizeAfterMidnight(afterMidnight.value));
+  /**
+   * Transient (never persisted): the local day whose check already took the note (`settleAfterMidnight`). A tick that
+   * sees that day's midnight only after its check (the machine slept across midnight and the wake-up's focus event
+   * came before the timer's first tick, or the crossing write was held) starts no note: what the timer counts after
+   * the check is the user's own running timer, never asked about (#387 D1 g). Runtime is enough: a page load arms
+   * every timer on the current day, so it never sees a crossing into that day.
+   */
+  let afterMidnightSettledDay: string | null = null;
   /**
    * Transient (never persisted, per Pinia instance) status locks: while a locally-initiated
    * status change (e.g. undoing a completion) is still being written upstream, a concurrent
@@ -704,7 +712,7 @@ export const useTasksStore = defineStore("tasks", () => {
   }
 
   /**
-   * Takes several Offen tasks off the board at once (#356, the new day's pass): they go to the top of "Nicht
+   * Takes several Offen tasks off the board at once (#356; #387: the fresh start the user triggers): they go to the top of "Nicht
    * geplant" in the order given, with one reconcile for the whole list. The rule per task is `unplanTask`'s: only
    * an Open task that is still planned; every other id is skipped. Nothing else about a task changes.
    * @returns the ids that were taken off
@@ -785,7 +793,7 @@ export const useTasksStore = defineStore("tasks", () => {
    * queued entry in place, as the last per-second tick did before the checkpoints.
    * A push of the task in flight (#313) counts as superseded by it: see `markPendingSync` revisions.
    * `awaySeconds` (of `seconds`): counted while the user was away from the window, in `awaySpans`; only those are
-   * noted for the new day's pass when a timer ran across midnight (#356).
+   * noted for the new day's check when a timer ran across midnight (#356).
    * @returns false for an unknown task, a count that is not a positive number, or while a batch operation holds updates
    */
   function addTrackedSeconds(
@@ -800,7 +808,7 @@ export const useTasksStore = defineStore("tasks", () => {
     const total = task.timeSpentSeconds + seconds;
     updateTask(taskId, { timeSpentSeconds: total });
     // A timer that ran across midnight: what it counts from there on while the user is away is noted for the new
-    // day's pass (#356, D3 o); a second counted with the user in the window is never noted
+    // day's check (#356, D3 o); a second counted with the user in the window is never noted
     const counted = validAfterMidnight.value;
     if (counted && counted.taskId === taskId) {
       const away = Number.isFinite(awaySeconds) ? Math.min(Math.max(0, awaySeconds), seconds) : 0;
@@ -858,10 +866,13 @@ export const useTasksStore = defineStore("tasks", () => {
 
   /**
    * The timer of `taskId` ran across the local midnight that starts `day` (#356): what it counts from now on is
-   * noted. Replaces an older entry (another task, or an earlier midnight: only the last one counts).
+   * noted. Replaces an older entry (another task, or an earlier midnight: only the last one counts). Nothing is noted
+   * for a day whose check already ran in this page load (`settleAfterMidnight`).
    */
   function beginAfterMidnight(taskId: string, day: string): void {
     if (!isValidDayKey(day) || !tasks.value.some((el) => el.id === taskId)) return;
+    // The check of that day already ran: the question covers only the time up to it
+    if (day === afterMidnightSettledDay) return;
     const current = validAfterMidnight.value;
     if (current && current.taskId === taskId && current.day === day) return;
     afterMidnight.value = { taskId, day, seconds: 0, spans: [] };
@@ -874,7 +885,16 @@ export const useTasksStore = defineStore("tasks", () => {
   }
 
   /**
-   * The new day's pass (#356): hands out the seconds the timer of `taskId` counted after the local midnight that
+   * The check of `day` has read the note (#387): whatever is left of it is dropped, and no note for that day starts
+   * any more (`beginAfterMidnight` refuses it), so a crossing the timer sees only after the check asks nothing later.
+   */
+  function settleAfterMidnight(day: string): void {
+    clearAfterMidnight();
+    if (isValidDayKey(day)) afterMidnightSettledDay = day;
+  }
+
+  /**
+   * The new day's check (#356; `useNewDay().check`, #387): hands out the seconds the timer of `taskId` counted after the local midnight that
    * starts `day` while the user was away (with the wall-clock spans they were counted in) and drops the note, whatever
    * it held, so a second call returns nothing. Changes no time: the user decides what happens to them (the
    * question of `useNewDay`, the user's decision of 2026-11-16: nothing is removed silently). Call it after the timer
@@ -1539,6 +1559,23 @@ export const useTasksStore = defineStore("tasks", () => {
     carryOverByTaskId.value = next;
   }
 
+  /**
+   * The fresh start (#387) took these tasks off the board on `today`: a board day already counted for `today` is
+   * taken back, so the day counts only for what the user plans again (`recordCarryOver` then counts it anew). An
+   * entry first seen today, or last counted on an earlier day, stays as it is. `lastOn` becomes the day before:
+   * the real earlier day is not kept, and any day before today reads the same for the next count.
+   */
+  function takeBackCarryOver(taskIds: readonly string[], today: string): void {
+    if (!isValidDayKey(today)) return;
+    const [year, month, day] = today.split('-').map(Number) as [number, number, number];
+    const before = localDateKey(new Date(year, month - 1, day - 1));
+    for (const taskId of taskIds) {
+      const entry = mapHelpers.get(carryOverByTaskId.value, taskId);
+      if (!entry || entry.lastOn !== today || entry.days <= 0) continue;
+      mapHelpers.set(carryOverByTaskId.value, taskId, { ...entry, days: entry.days - 1, lastOn: before });
+    }
+  }
+
   /** Drops counters for task ids that are not in `taskIds`. */
   function pruneCarryOver(taskIds: string[]): void {
     const keep = new Set(taskIds);
@@ -1687,6 +1724,7 @@ export const useTasksStore = defineStore("tasks", () => {
     setTimeSpent,
     beginAfterMidnight,
     clearAfterMidnight,
+    settleAfterMidnight,
     takeAfterMidnight,
     takeOffSeconds,
     setCompletedAt,
@@ -1718,6 +1756,7 @@ export const useTasksStore = defineStore("tasks", () => {
     batchUpdateTaskStatus,
     recordCarryOver,
     pruneCarryOver,
+    takeBackCarryOver,
     setCarryOver,
     keepCarryOver,
     restoreCarryOver,

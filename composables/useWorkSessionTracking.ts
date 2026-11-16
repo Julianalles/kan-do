@@ -6,6 +6,7 @@
  * `pagehide`, never from the per-second tick (which writes no store either since #286: its seconds are collected in `lib/liveTime`).
  * @responsibility
  * - Decide when a session opens, grows and closes; the list and its pruning live in `store/taskStatistics` / `lib/workSessions`
+ * - `cutWorkSessions`: the one way to cut the list while a session may be open (the time the user takes off after a night), so the open session is re-anchored
  * - A heartbeat more than 3 minutes after the previous one means the machine slept or the page was frozen: the old session
  *   keeps its last `end` and a new one starts, so sleep is never counted as work
  * - Write nothing while the board is not onboarded, while the desktop data status blocks writes (ADR 011), or for demo tasks
@@ -109,6 +110,27 @@ export function endWorkSession(taskId: string): void {
 export function endAllWorkSessions(): void {
   armed.clear()
   closeSession()
+}
+
+/**
+ * Takes spans of wall-clock time out of the work sessions while a timer may still run (#387: "Zeit abziehen" for a
+ * task that stayed in Jetzt on a day the user did not start fresh). The open session is named by its `start`, and
+ * the cut may move or remove it: the heartbeat goes on with the piece that holds the session's end, or with a new
+ * session from now when the cut took that end, so the next beat never stretches a session back over the stretch that
+ * was just cut.
+ */
+export function cutWorkSessions(spans: ReadonlyArray<readonly [number, number]>): void {
+  const store = useTaskStatisticsStore()
+  const before = openStart === null ? null : store.workSessions.find(session => session.start === openStart) ?? null
+  store.cutWorkSessions(spans)
+  if (!before) return
+  const tail = store.workSessions.find(session => session.end === before.end && session.start >= before.start)
+  if (tail) {
+    openStart = tail.start
+    return
+  }
+  openStart = null
+  if (armed.size > 0) open(Date.now())
 }
 
 // A Vite HMR re-run replaces this module with empty state: end the old session and clear its interval first

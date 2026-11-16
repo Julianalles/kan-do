@@ -161,15 +161,16 @@
       "capacityFull": "With this your day is probably full.",
       "capacityBelow": "Your day is probably full. One task is below the line. | Your day is probably full. {n} tasks are below the line.",
       "groupYesterday": "Planned yesterday, still open",
+      "groupWaiting": "Last in Waiting",
       "groupOthers": "More tasks"
     },
     "yesterdayUnderAll": "One task from yesterday is in {all}. | {n} tasks from yesterday are in {all}.",
     "newDayNote": {
-      "title": "New: every day starts with an empty plan.",
-      "description": "One task from Open and Now is now under “Planning”, in “My tasks”. Plan it for today there. | {n} tasks from Open and Now are now under “Planning”, in “My tasks”. Plan them for today there.",
-      "planAll": "Plan all again",
+      "title": "The board still shows yesterday's plan.",
+      "description": "“Plan the day” puts everything that is not done back under “My tasks”.",
+      "start": "Plan the day",
       "close": "Close",
-      "planned": "One task is planned for today again. | {n} tasks are planned for today again."
+      "started": "One task is now under “My tasks”. | {n} tasks are now under “My tasks”."
     },
     "newDayTimeNote": {
       "title": "Timer ran on for {duration} after midnight",
@@ -1398,9 +1399,9 @@
       "over": "{n} min over the timebox"
     },
     "tomorrowHeading": "For tomorrow",
-    "tomorrow": "No task goes back to “My tasks”. | One task goes back to “My tasks”. You plan it again tomorrow. You can deselect it. | {n} tasks go back to “My tasks”. You plan them again tomorrow. You can deselect them one by one.",
+    "tomorrow": "No task stays on the board. | One task stays on the board until you plan the next day. You can deselect it. | {n} tasks stay on the board until you plan the next day. You can deselect them one by one.",
     "showOpen": "Show open tasks",
-    "openListLabel": "Open tasks for tomorrow",
+    "openListLabel": "Open tasks that stay on the board",
     "trash": {
       "local": "Goes to the trash",
       "notion": "Goes to the trash, also in Notion",
@@ -1419,8 +1420,7 @@
       "inFlight": "Not done yet",
       "nothingInFlight": "Nothing left open."
     },
-    "backToNotPlanned": "Goes back to “My tasks”",
-    "staysWaiting": "Stays in Waiting"
+    "backToOpen": "Goes back to Open"
   },
   "secrets": {
     "unavailableTitle": "Keychain not available",

@@ -330,7 +330,7 @@ const tasksDone = computed(() => applyFocus(tasksStore.tasksDoneToday));
 // the app bar changes the place.
 
 const { place, isAll } = useBoardPlace();
-// The tasks the new day sent back that still wait under "Planung" (#356): Offen says so while it is empty on Heute. The
+// The tasks today's fresh start took off the board that still wait under "Planung" (#356, #387): Offen says so while it is empty on Heute. The
 // count is what "Planung" shows of the group, so the topic focus applies to it as it does there (a link must not lead to
 // a group that is not shown)
 const { groupIds: yesterdayIds } = useNewDay();

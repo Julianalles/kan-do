@@ -882,8 +882,8 @@ export const useTaskSync = () => {
    * adapter answers `notPlannedHold()` (Notion with a "not planned" status mapped) gets the status it is now held
    * as noted (`sourceNotPlanned`) and is pushed like any edit. Every task is marked pending at once, so a fetch
    * that lands before its write keeps the local state; the writes then run one after another (rate limits). A
-   * task whose source already holds it that way (kan-do sent it back by itself, the source never knew) and a
-   * task of a source without planning (Local, Todoist) get no write.
+   * task whose source already holds it that way and a task of a source without planning (Local, Todoist) get no
+   * write.
    */
   const writePlanning = (taskIds: readonly string[], back: boolean): void => {
     const toPush: string[] = [];
@@ -924,18 +924,19 @@ export const useTaskSync = () => {
   const unplanTask = (taskId: string): boolean => unplanTasks([taskId]).length > 0;
 
   /**
-   * Several tasks at once (#356): the new day's pass and "Alle wieder einplanen". Same rules, one board update;
-   * returns the ids that changed. `local: true` changes kan-do's own state only and writes to no source: the new
-   * day's pass, which moves cards without a click (#357, the user's open decision D1).
+   * Several tasks at once (#356, #387): the fresh start the user triggers (`useNewDay().freshStart`). Same rules as
+   * the single move, one board update; returns the ids that changed. Every caller is the user's own move, so a
+   * source that stores planning is always written (#387: the app moves no card by itself, the option that kept a
+   * move local went with the automatic pass).
    */
-  const planTasks = (taskIds: readonly string[], options: { local?: boolean } = {}): string[] => {
+  const planTasks = (taskIds: readonly string[]): string[] => {
     const planned = tasksStore.planTasks(taskIds);
-    if (!options.local) writePlanning(planned, false);
+    writePlanning(planned, false);
     return planned;
   };
-  const unplanTasks = (taskIds: readonly string[], options: { local?: boolean } = {}): string[] => {
+  const unplanTasks = (taskIds: readonly string[]): string[] => {
     const taken = tasksStore.unplanTasks(taskIds);
-    if (!options.local) writePlanning(taken, true);
+    writePlanning(taken, true);
     return taken;
   };
 

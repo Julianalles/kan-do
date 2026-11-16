@@ -11,9 +11,9 @@
   <main data-task-sheet-return :inert="recap.isOpen.value || undefined">
     <h1 class="sr-only">{{ t('board.pageHeading') }}</h1>
     <DataStorageNotice class="relative z-10 mx-auto mt-3 w-auto max-w-3xl" />
-    <!-- The new day's two notes (#356): the one-time note of the first morning, and the question about time the timer
-         counted after midnight. They stack when both apply; the first one shown takes the top margin (a phone: it
-         starts below the page dots) -->
+    <!-- The new day's two notes: the notice that offers the fresh start on a day the user has not planned (#387), and
+         the question about time the timer counted after midnight (#356). They stack when both apply; the first one
+         shown takes the top margin (a phone: it starts below the page dots) -->
     <div class="relative z-10 mx-3 flex max-w-3xl flex-col gap-2 md:mx-auto">
       <NewDayNote class="first:mt-8 md:first:mt-3" />
       <NewDayTimeNote class="first:mt-8 md:first:mt-3" />
@@ -63,7 +63,7 @@ import { usePropertyOptionsSync } from "~/composables/usePropertyOptionsSync";
 import SyncWarningModal from "~/components/sync/SyncWarningModal.vue";
 import TaskSheetHost from "~/components/task/TaskSheetHost.vue";
 import { useNewDayRecap } from "~/composables/useNewDayRecap";
-import { isNewDayDue, useNewDay } from "~/composables/useNewDay";
+import { useNewDay } from "~/composables/useNewDay";
 import { returnedAfterAbsence, takeAppStart } from "~/lib/appPresence";
 import { useDayClose } from "~/composables/useDayClose";
 import { useFeedback } from "~/composables/useFeedback";
@@ -104,21 +104,20 @@ const syncValidation = useSyncValidation();
 const recap = useNewDayRecap();
 const newDay = useNewDay();
 /**
- * The day check (#356, the user's decision of 2026-11-16: the new day never starts while the user works in the
- * window). The pass (unfinished cards go back to "Meine Aufgaben"; on Heute and on "Planung", with a sheet open too) runs
- * only when the app is opened or returned to after an absence: `pass` is true there. A route change inside the app
- * (a sheet opens or closes, another page and back) is work, never a start: the pass waits for the next real
- * return, and so do the carried-over count and the recap, which belong to the new day. A day that has not passed
- * changes nothing.
+ * The day check (#387; #356 D5: the new day never begins while the user works in the window). `start` is true when
+ * the app is opened or returned to after an absence: only then `newDay.check()` runs (it moves no card: the
+ * baseline, the question about time after midnight, and the notice that offers the fresh start). A route change
+ * inside the app (a sheet opens or closes, another page and back) is work, never a start: the recap of a day that
+ * has not begun in this window waits for the next real return. The fresh start itself is the user's click ("Tag
+ * planen" in the recap, the notice's button).
  */
-const checkDay = (pass: boolean) => {
-  if (pass) newDay.run();
-  if (isNewDayDue()) return;
-  // The count waited for the pass (a card it sent back is not planned today); a pass that moved nothing triggers no count by itself
+const checkDay = (start: boolean) => {
+  if (start) newDay.check();
+  if (!newDay.isDayBegun()) return;
   recordCarryOver();
   recap.check(route.name);
 };
-/** A focus or visibility event: the new day starts only after a real absence (a glance at another window is not one, `lib/appPresence`) */
+/** A focus or visibility event: the new day begins only after a real absence (a glance at another window is not one, `lib/appPresence`) */
 const onReturn = () => {
   if (returnedAfterAbsence()) checkDay(true);
 };
