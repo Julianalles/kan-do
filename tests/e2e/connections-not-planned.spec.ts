@@ -84,6 +84,7 @@ test.describe('Todoist: every task starts under "Nicht geplant" (#357)', () => {
     await expect(note).toBeVisible()
     await expect(note).toContainText('Neu: Aufgaben aus Todoist beginnen unter „Nicht geplant“.')
     await expect(note).toContainText('2 Aufgaben aus Offen liegen jetzt unter „Alle“ bei „Nicht geplant“.')
+    await expect(page.getByTestId('source-back-note-plan-all')).toHaveText('2 Aufgaben wieder einplanen')
     await expect(column(page, 'open').locator('.task-wrapper')).toHaveCount(0)
     await expect(column(page, 'progress').getByText('Plan zeichnen')).toBeVisible()
     await expect(column(page, 'waiting').getByText('Rückruf abwarten')).toBeVisible()
@@ -198,7 +199,7 @@ test.describe('Notion: statuses that mean "not planned" (#357)', () => {
     await page.getByRole('tab', { name: 'Status' }).click()
     const field = page.getByTestId('status-map-not-planned')
     await expect(field).toBeVisible()
-    await expect(field).toContainText('Status für „Nicht geplant“ auswählen')
+    await expect(field).toContainText('Status auswählen')
     const save = page.getByRole('tabpanel').getByRole('button', { name: 'Speichern' })
     await expect(save).toBeDisabled()
 
@@ -212,12 +213,9 @@ test.describe('Notion: statuses that mean "not planned" (#357)', () => {
     await expect(save).toBeDisabled()
     await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('notionConfig') ?? '{}').config?.statusMapping?.notPlanned)).toEqual(['Backlog', 'Someday'])
 
-    // a status that is a column already cannot be "not planned" too
+    // a status that is a column already is not offered: only the two free ones
     await field.click()
-    await page.getByRole('option', { name: 'Today' }).click()
+    await expect(page.getByRole('option')).toHaveText(['Backlog', 'Someday'])
     await page.keyboard.press('Escape')
-    await expect(page.getByRole('tabpanel')).toContainText('Die folgenden Status-Werte sind mehrfach zugeordnet: Today')
-    await save.click()
-    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('notionConfig') ?? '{}').config?.statusMapping?.notPlanned)).toEqual(['Backlog', 'Someday'])
   })
 })

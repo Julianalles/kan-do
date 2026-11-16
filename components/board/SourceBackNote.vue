@@ -2,7 +2,7 @@
 @component SourceBackNote
 @kind component
 @category feedback
-@description The one-time note of the sync that took a connection's cards out of Offen (#357, the user's decision of 2026-11-16: every Todoist task starts under "Nicht geplant"): it says what happened and where the cards are, and offers "Alle wieder einplanen", which puts exactly those cards back at the end of Offen in their old order.
+@description The one-time note of the sync that took a connection's cards out of Offen (#357, the user's decision of 2026-11-16: every Todoist task starts under "Nicht geplant"): it says what happened and where the cards are, and offers "{n} Aufgaben wieder einplanen" (the count, because "Alle" is also the place the note names), which puts exactly those cards back at the end of Offen in their old order.
 @usage <SourceBackNote /> above the board in pages/tasks.vue, with NewDayNote (the notes stack when several apply); it shows on Heute and on "Alle". State: `boardStore.sourceBackNotes`, written once per connection by `useIntegrationManager` from the merge's result.
 @avoid Not the new day's note (NewDayNote: that one is about yesterday's cards and ends with its day) and not a toast: it stays until it is answered. Never for a task a connection delivers for the first time, and never a second time for the same connection.
 @responsibility
@@ -91,7 +91,7 @@ const actions = computed<ButtonProps[]>(() => {
   const base = { color: 'neutral' as const, variant: 'link' as const }
   return [
     // The one action with a consequence reads as the link it is (forest green); "Schließen" stays quiet
-    { ...base, color: 'primary' as const, label: t('board.newDayNote.planAll'), onClick: planAll, 'data-testid': 'source-back-note-plan-all' } as ButtonProps,
+    { ...base, color: 'primary' as const, label: t('board.sourceBackNote.planAll', { n: count.value }, count.value), onClick: planAll, 'data-testid': 'source-back-note-plan-all' } as ButtonProps,
     { ...base, label: t('board.newDayNote.close'), onClick: close, 'data-testid': 'source-back-note-close' } as ButtonProps,
   ]
 })

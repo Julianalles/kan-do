@@ -96,7 +96,7 @@
         :model-value="mapping.notPlanned ?? []"
         multiple
         value-key="value"
-        :items="statusOptions"
+        :items="notPlannedOptions"
         :search-input="false"
         :placeholder="t('notion.statusMap.notPlanned.placeholder')"
         class="w-full"
@@ -185,6 +185,12 @@ const computeStatusOptions = (): Array<{ label: string; value: string }> => {
 };
 
 const statusOptions = computed(computeStatusOptions);
+
+/** "Nicht geplant" offers only the statuses no column uses: a status mapped twice is an error the menu can prevent. */
+const notPlannedOptions = computed(() => {
+  const used = new Set([mapping.value.today, mapping.value.doing, mapping.value.done, mapping.value.waiting, mapping.value.archive].filter(Boolean));
+  return statusOptions.value.filter((option) => !used.has(option.value) || (mapping.value.notPlanned ?? []).includes(option.value));
+});
 
 // Check for duplicate status mappings
 /**
