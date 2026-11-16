@@ -221,8 +221,8 @@ export class NotionIntegration {
    * The Notion status a task is written as. An Offen task kan-do holds as not planned AND whose page is held in a
    * still-mapped "not planned" status (`sourceNotPlanned`: read by a fetch, or set by the user's own put-back) keeps
    * exactly that status, so a page from the second mapped status is not rewritten to the first. Every other Open
-   * task is written as `today`, also one kan-do put back by itself (the new day): only the user's own move changes
-   * a page's planning (#357).
+   * task is written as `today`, also one that was put back without a write (while no status was mapped, or by the
+   * automatic pass of #356 before #387): only the user's own move changes a page's planning (#357).
    */
   private statusNameFor(task: Pick<Task, 'status' | 'notPlanned' | 'sourceNotPlanned'>): string {
     const held = task.sourceNotPlanned;

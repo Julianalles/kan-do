@@ -7,7 +7,7 @@
 @avoid Not a board card (TaskCard) and not a done task (DayCloseTaskRow); the choice lives in `useDayClose`, the row only shows and reports it.
 @responsibility
 - UCheckbox whose label holds the title and the subline, so the accessible name carries the state
-- Subline: the column (Offen, Jetzt, Wartet); a kept Offen or Jetzt task adds "Geht zurück nach „Meine Aufgaben“" (the new day sends it there, #356; every kept row says what happens to it, so the count in the sentence above matches the rows), a kept Wartet task "Bleibt in Wartet"; a task planned for several days adds "An n Tagen eingeplant"; unchecked it says what "Fertig" does instead: "Kommt in den Papierkorb" (naming Notion or Todoist for tasks of those sources, like the delete label)
+- Subline: the column (Offen, Jetzt, Wartet); a kept Jetzt task adds "Geht zurück nach Offen" (what "Fertig" does with it); a kept Offen or Wartet task stays where it is and says nothing more (#387: nothing goes back to "Meine Aufgaben" by itself); a task planned for several days adds "An n Tagen eingeplant"; unchecked it says what "Fertig" does instead: "Kommt in den Papierkorb" (naming Notion or Todoist for tasks of those sources, like the delete label)
 - The task text is masked in feedback screenshots
 -->
 <template>
@@ -58,8 +58,8 @@ const subline = computed(() => {
   const parts = [getStatusLabel(props.task.status)]
   if (displayDay.value >= CARRY_OVER_NUDGE_DAYS) parts.push(t('task.carryOver.label', { n: displayDay.value }))
   if (!props.kept) parts.push(t(deleteTrashKey(props.task.source)))
-  else if (props.task.status === TaskStatus.Progress || props.task.status === TaskStatus.Open) parts.push(t('dayClose.backToNotPlanned'))
-  else if (props.task.status === TaskStatus.Waiting) parts.push(t('dayClose.staysWaiting'))
+  // "Fertig" stops the Jetzt task and puts it into Offen; every other open task stays where it is (#387)
+  else if (props.task.status === TaskStatus.Progress) parts.push(t('dayClose.backToOpen'))
   return parts.join(' · ')
 })
 </script>

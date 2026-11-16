@@ -161,15 +161,16 @@
       "capacityFull": "Damit ist dein Tag vermutlich voll.",
       "capacityBelow": "Dein Tag ist vermutlich voll. Eine Aufgabe liegt unter der Linie. | Dein Tag ist vermutlich voll. {n} Aufgaben liegen unter der Linie.",
       "groupYesterday": "Gestern geplant, noch offen",
+      "groupWaiting": "Zuletzt in Wartet",
       "groupOthers": "Weitere Aufgaben"
     },
     "yesterdayUnderAll": "Eine Aufgabe von gestern liegt in der {all}. | {n} Aufgaben von gestern liegen in der {all}.",
     "newDayNote": {
-      "title": "Neu: Jeder Tag beginnt mit einem leeren Plan.",
-      "description": "Eine Aufgabe aus Offen und Jetzt liegt jetzt unter „Planung“ bei „Meine Aufgaben“. Dort planst du sie für heute ein. | {n} Aufgaben aus Offen und Jetzt liegen jetzt unter „Planung“ bei „Meine Aufgaben“. Dort planst du sie für heute ein.",
-      "planAll": "Alle wieder einplanen",
+      "title": "Auf dem Board liegt noch der Plan von gestern.",
+      "description": "„Tag planen“ legt alles, was nicht erledigt ist, zurück nach „Meine Aufgaben“. Dort planst du es für heute ein.",
+      "start": "Tag planen",
       "close": "Schließen",
-      "planned": "Eine Aufgabe ist wieder für heute geplant. | {n} Aufgaben sind wieder für heute geplant."
+      "started": "Eine Aufgabe liegt jetzt unter „Meine Aufgaben“. | {n} Aufgaben liegen jetzt unter „Meine Aufgaben“."
     },
     "newDayTimeNote": {
       "title": "Timer lief nach Mitternacht {duration} weiter",
@@ -1398,9 +1399,9 @@
       "over": "{n} Min über der Timebox"
     },
     "tomorrowHeading": "Für morgen",
-    "tomorrow": "Keine Aufgabe geht zurück nach „Meine Aufgaben“. | Eine Aufgabe geht zurück nach „Meine Aufgaben“. Morgen planst du sie neu ein. Du kannst sie abwählen. | {n} Aufgaben gehen zurück nach „Meine Aufgaben“. Morgen planst du sie neu ein. Du kannst sie einzeln abwählen.",
+    "tomorrow": "Keine Aufgabe bleibt auf dem Board. | Eine Aufgabe bleibt auf dem Board, bis du den nächsten Tag planst. Du kannst sie abwählen. | {n} Aufgaben bleiben auf dem Board, bis du den nächsten Tag planst. Du kannst sie einzeln abwählen.",
     "showOpen": "Offene Aufgaben anzeigen",
-    "openListLabel": "Offene Aufgaben für morgen",
+    "openListLabel": "Offene Aufgaben, die auf dem Board bleiben",
     "trash": {
       "local": "Kommt in den Papierkorb",
       "notion": "Kommt in den Papierkorb, auch in Notion",
@@ -1419,8 +1420,7 @@
       "inFlight": "Noch nicht erledigt",
       "nothingInFlight": "Nichts mehr offen."
     },
-    "backToNotPlanned": "Geht zurück nach „Meine Aufgaben“",
-    "staysWaiting": "Bleibt in Wartet"
+    "backToOpen": "Geht zurück nach Offen"
   },
   "secrets": {
     "unavailableTitle": "Schlüsselbund nicht erreichbar",

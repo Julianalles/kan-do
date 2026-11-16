@@ -1,7 +1,8 @@
 /**
  * #357: the user's plan and put-back are written to a source that stores planning (Notion with a "not planned"
- * status mapped), never to Local or Todoist and never for kan-do's own moves (`local: true`); and a Todoist sync
- * moves no card kan-do already holds (#387), only a task seen for the first time starts not planned.
+ * status mapped), never to Local or Todoist (#387: there is no move of kan-do's own any more, every plan and
+ * put-back is the user's and is written); and a Todoist sync moves no card kan-do already holds (#387), only a task
+ * seen for the first time starts not planned.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
@@ -151,18 +152,38 @@ describe('plan and put-back are written to a source that stores planning (#357)'
     expect(isNotPlanned(store.task('n4')!)).toBe(true)
   })
 
-  it('`local: true` and a Notion without the mapping change kan-do only', async () => {
+  it('a Notion without the mapping changes kan-do only, also for several tasks at once (the fresh start)', async () => {
     const store = useTasksStore()
     store.setTasks([task('n1', 'notion'), task('n3', 'notion')])
     const sync = useTaskSync()
-    sync.unplanTasks(['n1'], { local: true })
     delete mapping.notPlanned
-    sync.unplanTasks(['n3'])
+    expect(sync.unplanTasks(['n1', 'n3'])).toEqual(['n1', 'n3'])
     sync.planTasks(['n1', 'n3'])
     await Promise.resolve()
     expect(notion.updateTask).not.toHaveBeenCalled()
     expect(store.pendingSyncTasks).toEqual([])
     expect(store.task('n1')!.sourceNotPlanned).toBeUndefined()
+  })
+
+  it('several tasks at once (the fresh start, #387): each is marked pending at once and written as "not planned", one after another', async () => {
+    const store = useTasksStore()
+    store.setTasks([task('n1', 'notion'), task('n2', 'notion'), task('l1', 'local')])
+    const releases: Array<() => void> = []
+    notion.updateTask.mockImplementation((t) => new Promise((resolve) => { note(t); releases.push(() => resolve({ ...t })) }))
+    expect(useTaskSync().unplanTasks(['n1', 'n2', 'l1'])).toEqual(['n1', 'n2', 'l1'])
+    expect(store.task('n1')!.pendingSync).toBeDefined()
+    expect(store.task('n2')!.pendingSync).toBeDefined()
+    expect(store.task('l1')!.pendingSync).toBeUndefined()
+    await vi.waitFor(() => expect(releases).toHaveLength(1))
+    // the second write waits for the first
+    expect(notion.updateTask).toHaveBeenCalledTimes(1)
+    releases[0]!()
+    await vi.waitFor(() => expect(releases).toHaveLength(2))
+    releases[1]!()
+    await vi.waitFor(() => expect(store.pendingSyncTasks).toEqual([]))
+    expect(notion.updateTask.mock.calls.map(([sent]) => [sent.id, sent.notPlanned, sent.sourceNotPlanned])).toEqual([
+      ['n1', true, 'Backlog'], ['n2', true, 'Backlog'],
+    ])
   })
 
   it('a fetch that lands before the write keeps the put-back; the fetch after the write keeps it too', async () => {

@@ -120,16 +120,17 @@ test.describe('Day close dialog (#98)', () => {
 
     // "Für morgen": the sentence, the closed accordion, then one checkbox row per open task, all selected
     await expect(dialog(page).getByRole('heading', { name: 'Für morgen' })).toBeVisible()
-    await expect(dialog(page).getByTestId('day-close-tomorrow')).toHaveText('3 Aufgaben gehen zurück nach „Meine Aufgaben“. Morgen planst du sie neu ein. Du kannst sie einzeln abwählen.')
+    await expect(dialog(page).getByTestId('day-close-tomorrow')).toHaveText('4 Aufgaben bleiben auf dem Board, bis du den nächsten Tag planst. Du kannst sie einzeln abwählen.')
     await expect(openRows(page).first()).toBeHidden()
     await openList(page)
     await expect(openRows(page)).toHaveCount(4)
     await expect(openRows(page).getByRole('checkbox', { checked: true })).toHaveCount(4)
     const subline = (title: string) => openRows(page).filter({ hasText: title }).getByTestId('day-close-open-subline')
-    await expect(subline('Konzept ausarbeiten')).toHaveText('Offen · An 6 Tagen eingeplant · Geht zurück nach „Meine Aufgaben“')
-    await expect(subline('Dokumentation lesen')).toHaveText('Offen · Geht zurück nach „Meine Aufgaben“')
-    await expect(subline('Review schreiben')).toHaveText('Jetzt · Geht zurück nach „Meine Aufgaben“')
-    await expect(subline('Blocker klären')).toHaveText('Wartet · An 6 Tagen eingeplant · Bleibt in Wartet')
+    // every open task stays on the board until the user plans the next day (#387); only the Jetzt task moves, to Offen
+    await expect(subline('Konzept ausarbeiten')).toHaveText('Offen · An 6 Tagen eingeplant')
+    await expect(subline('Dokumentation lesen')).toHaveText('Offen')
+    await expect(subline('Review schreiben')).toHaveText('Jetzt · Geht zurück nach Offen')
+    await expect(subline('Blocker klären')).toHaveText('Wartet · An 6 Tagen eingeplant')
     // Plain rows: not draggable, not links; the sheet has no triage buttons, no closing line, no recap line
     await expect(dialog(page).locator('[draggable="true"], a')).toHaveCount(0)
     await expect(dialog(page).getByTestId('carry-over-triage')).toHaveCount(0)
@@ -142,19 +143,19 @@ test.describe('Day close dialog (#98)', () => {
     await openList(page)
     await checkboxOf(page, 'Dokumentation lesen').click()
     await expect(checkboxOf(page, 'Dokumentation lesen')).not.toBeChecked()
-    await expect(dialog(page).getByTestId('day-close-tomorrow')).toHaveText('2 Aufgaben gehen zurück nach „Meine Aufgaben“. Morgen planst du sie neu ein. Du kannst sie einzeln abwählen.')
+    await expect(dialog(page).getByTestId('day-close-tomorrow')).toHaveText('3 Aufgaben bleiben auf dem Board, bis du den nächsten Tag planst. Du kannst sie einzeln abwählen.')
     await expect(openRows(page).filter({ hasText: 'Dokumentation lesen' }).getByTestId('day-close-open-subline')).toHaveText('Offen · Kommt in den Papierkorb')
     await checkboxOf(page, 'Dokumentation lesen').press('Space')
     await expect(checkboxOf(page, 'Dokumentation lesen')).toBeChecked()
-    await expect(dialog(page).getByTestId('day-close-tomorrow')).toHaveText('3 Aufgaben gehen zurück nach „Meine Aufgaben“. Morgen planst du sie neu ein. Du kannst sie einzeln abwählen.')
+    await expect(dialog(page).getByTestId('day-close-tomorrow')).toHaveText('4 Aufgaben bleiben auf dem Board, bis du den nächsten Tag planst. Du kannst sie einzeln abwählen.')
     for (const title of ['Konzept ausarbeiten', 'Dokumentation lesen', 'Review schreiben']) await checkboxOf(page, title).click()
-    // The sentence counts what goes back to "Meine Aufgaben" (#356): Offen and Jetzt. The Wartet task stays in Wartet, checked or not
-    await expect(dialog(page).getByTestId('day-close-tomorrow')).toHaveText('Keine Aufgabe geht zurück nach „Meine Aufgaben“.')
+    // The sentence counts every task that stays on the board (#387): Offen, Jetzt and Wartet
+    await expect(dialog(page).getByTestId('day-close-tomorrow')).toHaveText('Eine Aufgabe bleibt auf dem Board, bis du den nächsten Tag planst. Du kannst sie abwählen.')
     await checkboxOf(page, 'Blocker klären').click()
-    await expect(dialog(page).getByTestId('day-close-tomorrow')).toHaveText('Keine Aufgabe geht zurück nach „Meine Aufgaben“.')
+    await expect(dialog(page).getByTestId('day-close-tomorrow')).toHaveText('Keine Aufgabe bleibt auf dem Board.')
     await expect(openRows(page).filter({ hasText: 'Blocker klären' }).getByTestId('day-close-open-subline')).toHaveText('Wartet · An 6 Tagen eingeplant · Kommt in den Papierkorb')
     await checkboxOf(page, 'Review schreiben').click()
-    await expect(dialog(page).getByTestId('day-close-tomorrow')).toHaveText('Eine Aufgabe geht zurück nach „Meine Aufgaben“. Morgen planst du sie neu ein. Du kannst sie abwählen.')
+    await expect(dialog(page).getByTestId('day-close-tomorrow')).toHaveText('Eine Aufgabe bleibt auf dem Board, bis du den nächsten Tag planst. Du kannst sie abwählen.')
   })
 
   /**
@@ -173,7 +174,7 @@ test.describe('Day close dialog (#98)', () => {
     await expect(page.locator('#column-progress-list .task-wrapper')).toHaveCount(1)
     await openDayClose(page)
     await openList(page)
-    await expect(openRows(page).filter({ hasText: 'Review schreiben' }).getByTestId('day-close-open-subline')).toHaveText('Jetzt · Geht zurück nach „Meine Aufgaben“')
+    await expect(openRows(page).filter({ hasText: 'Review schreiben' }).getByTestId('day-close-open-subline')).toHaveText('Jetzt · Geht zurück nach Offen')
     await expect(dialog(page).getByRole('button', { name: /Timer anhalten/ })).toHaveCount(0)
 
     await dialog(page).getByTestId('day-close-done-button').click()
@@ -348,7 +349,7 @@ test.describe('Day close dialog (#98)', () => {
     expect(await page.evaluate(() => localStorage.getItem('trash-store'))).toBeNull()
 
     await openDayClose(page)
-    await expect(dialog(page).getByTestId('day-close-tomorrow')).toHaveText('3 Aufgaben gehen zurück nach „Meine Aufgaben“. Morgen planst du sie neu ein. Du kannst sie einzeln abwählen.')
+    await expect(dialog(page).getByTestId('day-close-tomorrow')).toHaveText('4 Aufgaben bleiben auf dem Board, bis du den nächsten Tag planst. Du kannst sie einzeln abwählen.')
     await openList(page)
     await expect(openRows(page).getByRole('checkbox', { checked: true })).toHaveCount(4)
   })
@@ -406,7 +407,7 @@ test.describe('Day close dialog (#98)', () => {
     await page.goto('/tasks')
     await openDayClose(page)
     await expect(dialog(page).getByTestId('day-close-headline')).toHaveText('1 von 35 geplanten Aufgaben erledigt')
-    await expect(dialog(page).getByTestId('day-close-tomorrow')).toHaveText('33 Aufgaben gehen zurück nach „Meine Aufgaben“. Morgen planst du sie neu ein. Du kannst sie einzeln abwählen.')
+    await expect(dialog(page).getByTestId('day-close-tomorrow')).toHaveText('34 Aufgaben bleiben auf dem Board, bis du den nächsten Tag planst. Du kannst sie einzeln abwählen.')
     await expect(openRows(page).first()).toBeHidden()
     await openList(page)
     await expect(openRows(page)).toHaveCount(34)

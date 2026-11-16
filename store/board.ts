@@ -127,6 +127,13 @@ export const useBoardStore = defineStore("board", () => {
    * (`tasksStore.tasksNotPlanned`). `reconcileColumnsWithTasks` drops an id that is no longer not planned.
    */
   const notPlannedOrder = ref<string[]>([]);
+  /**
+   * The not-planned tasks that were in Wartet when a fresh start took them off the board (#387), persisted: their own
+   * category under "Meine Aufgaben", so the user still knows they were waiting. An id stays until its task is planned
+   * again or is no longer held as not planned (`reconcileColumnsWithTasks`), and a task put back by hand later is not
+   * in it (`noteNotPlanned`). Readers also filter with `isNotPlanned`: a status change alone runs no reconcile.
+   */
+  const notPlannedFromWaiting = ref<string[]>([]);
 
   // Transient state for scroll persistence
   const scrollPosition = ref({ top: 0, left: 0 });
@@ -520,6 +527,20 @@ export const useBoardStore = defineStore("board", () => {
   function noteNotPlanned(taskIds: string | readonly string[]) {
     const ids = typeof taskIds === 'string' ? [taskIds] : [...new Set(taskIds)];
     notPlannedOrder.value = [...ids, ...notPlannedOrder.value.filter(id => !ids.includes(id))];
+    // A task put back now comes from Offen: whatever an earlier fresh start noted about it no longer holds (#387)
+    if (notPlannedFromWaiting.value.some(id => ids.includes(id))) {
+      notPlannedFromWaiting.value = notPlannedFromWaiting.value.filter(id => !ids.includes(id));
+    }
+  }
+
+  /**
+   * The fresh start (#387) took these tasks off the board out of Wartet: they join the category of the tasks that
+   * were waiting, in the order given, behind the ones already in it. Call it after the tasks were taken off
+   * (`tasksStore.unplanTasks`, which notes them as put back first).
+   */
+  function noteFromWaiting(taskIds: readonly string[]) {
+    const ids = [...new Set(taskIds)].filter(id => !notPlannedFromWaiting.value.includes(id));
+    if (ids.length > 0) notPlannedFromWaiting.value = [...notPlannedFromWaiting.value, ...ids];
   }
 
   /** Puts ids that are in a column's order at its end, in the order given (#356: several tasks planned at once). */
@@ -552,6 +573,11 @@ export const useBoardStore = defineStore("board", () => {
     // A task that was planned, moved on or removed leaves the order of "Meine Aufgaben" (#354)
     if (notPlannedOrder.value.some(id => !notPlannedIds.has(id))) {
       notPlannedOrder.value = notPlannedOrder.value.filter(id => notPlannedIds.has(id));
+      hasChanges = true;
+    }
+    // ... and the category of the tasks that came from Wartet (#387)
+    if (notPlannedFromWaiting.value.some(id => !notPlannedIds.has(id))) {
+      notPlannedFromWaiting.value = notPlannedFromWaiting.value.filter(id => notPlannedIds.has(id));
       hasChanges = true;
     }
 
@@ -655,21 +681,25 @@ export const useBoardStore = defineStore("board", () => {
     reconcileColumnsWithTasks,
     notPlannedOrder,
     noteNotPlanned,
+    notPlannedFromWaiting,
+    noteFromWaiting,
     moveToEndOfColumn,
   };
 }, {
   persist: {
     key: 'board-store',
-    pick: ['boardConfig', 'columns', 'grouping', 'focus', 'notPlannedOrder'],
+    pick: ['boardConfig', 'columns', 'grouping', 'focus', 'notPlannedOrder', 'notPlannedFromWaiting'],
     // The Todoist token lives in the Keychain on desktop (ADR 007).
     omit: persistOmitFor('board-store'),
-    afterHydrate: (ctx: { store: { boardConfig: IBoardConfig; focus: unknown; notPlannedOrder: unknown; $persist: () => void } }) => {
+    afterHydrate: (ctx: { store: { boardConfig: IBoardConfig; focus: unknown; notPlannedOrder: unknown; notPlannedFromWaiting: unknown; $persist: () => void } }) => {
       // The focus (#161) of older data is missing; a malformed one reads as none. In memory only: the next
       // mutation persists it (hydration must not write by itself, below). An earlier day's focus stays until then
       // and `activeFocusTopic` ignores it.
       ctx.store.focus = sanitizeFocus(ctx.store.focus);
       // The order of "Meine Aufgaben" (#354) follows the same rule: missing or malformed reads as empty, no write
       ctx.store.notPlannedOrder = sanitizeNotPlannedOrder(ctx.store.notPlannedOrder);
+      // ... and so does the list of the tasks that came from Wartet (#387): a list of ids of the same shape
+      ctx.store.notPlannedFromWaiting = sanitizeNotPlannedOrder(ctx.store.notPlannedFromWaiting);
       const hydrated = ctx.store.boardConfig;
       const sanitised = sanitizeBoardConfig(hydrated);
       ctx.store.boardConfig = sanitised;

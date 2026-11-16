@@ -1,44 +1,49 @@
 /**
  * @composable useNewDay
- * @description A new day sends what was planned and not finished back to "Meine Aufgaben" (#356, epic #334): one
- * pass per local day over Jetzt and Offen, run when the app is opened or returned to after an absence on a later
- * day (never while the user works in the window: not at midnight, not on a route change), with or without a recap. It changes kan-do's own state only (also for a connection that stores planning, #357: the pass is `unplanTasks(..., { local: true })`), except for
- * the one Jetzt task, whose status is written to its connection like the day close's "Fertig" does.
+ * @description A new day starts fresh only when the user says so (#387; it replaces the automatic pass of #356):
+ * the app never takes a card off the board and never writes to a connection by itself. The fresh start takes what
+ * was planned and not finished (Jetzt, Offen and Wartet) off the board, onto "Meine Aufgaben"; skipping it keeps
+ * yesterday's board as it is. Module-level state, so the page, the notice, the recap and the board share it.
  * @responsibility
- * - `run()`: called by `pages/tasks.vue` before the recap's check, on the app's start (the first board mount of a
- *   page load) and on a return to the app (window focus, tab visible) after an absence (`lib/appPresence`); never
- *   on a route change. Does nothing while the board is not onboarded, the desktop data status blocks writes (ADR 011)
- *   or the day-close dialog is open, and nothing when its marker (`dayRecap.lastNewDay`) is today or later (a clock
- *   set back never repeats it). Without a marker the pass runs only when the recap's marker proves an earlier day
- *   (an existing board on its first morning after the update); otherwise today is the baseline and nothing moves.
- * - The pass: the Jetzt task stops its timer and moves to Offen through the shared move path; then Jetzt and Offen
- *   (board order, Jetzt first, demo tasks excluded) are taken off the board in one store action and stand on top of
- *   "Meine Aufgaben". Wartet and Erledigt stay. Nothing is deleted; title, notes, topic, priority, time box, source and
- *   the carried-over entry are untouched. It removes NO time by itself (the user's decision of 2026-11-16: nothing is
- *   removed silently): the time its timer counted after the local midnight that starts today while the user was away
- *   from the window (`tasksStore.takeAfterMidnight`, D3 o) becomes a question (`timeOffer`).
- * - `isNewDayDue()`: the pass has not run today although a day has passed; the carried-over count waits for it, so a
- *   day only counts as planned for what the user plans after the pass.
- * - `groupIds`: the ids of today's pass that are still not planned, i.e. the group "Gestern geplant, noch offen";
- *   it ends with its day without a write.
+ * - `check()`: the day check, called by `pages/tasks.vue` on the app's start (the first board mount of a page load)
+ *   and on a return to the app after an absence (`lib/appPresence`), never on a route change and never while the user
+ *   works in the window (#356 D5). It moves no card. It notes that today has begun in this window (`isDayBegun`: the
+ *   notice, the recap and the page wait for it), writes the baseline of a board without a marker, counts a due day
+ *   whose board has nothing unfinished as started, and turns the time a Jetzt timer counted after midnight while the
+ *   user was away into the question of that day (`timeOffer`) without stopping the timer. Does nothing while the
+ *   board is not onboarded, the desktop data status blocks writes (ADR 011) or the day-close dialog is open.
+ * - `freshStart()`: the user's click ("Tag planen" in the recap, the notice's button). Once per local day (the
+ *   marker `dayRecap.lastNewDay` is monotonic: a second click and a clock set back move nothing). The Jetzt task
+ *   stops its timer and goes to Offen through the shared move path, the Wartet tasks go to Offen through the batch
+ *   status path (their writes run one after another), then everything is taken off the board in one store action
+ *   through `useTaskSync.unplanTasks`, which writes the "not planned" status to a source that stores planning (Notion
+ *   with such a status mapped, #357); Local and Todoist get no planning write. Demo tasks stay. Nothing is deleted;
+ *   title, notes, topic, priority, time box, time spent and source are untouched. The board day counted for today is
+ *   taken back for the cards it takes off (`tasksStore.takeBackCarryOver`), so today counts only for what is planned
+ *   again. It removes no time.
+ * - `isNewDayDue()`: a local day has passed since the last fresh start (or, before the first one, since the recap's
+ *   marker), i.e. today has not been started fresh.
+ * - `groupIds`: the Jetzt and Offen tasks of today's fresh start that are still not planned, i.e. the group
+ *   "Gestern geplant, noch offen"; it ends with its day without a write. `waitingIds`: the not-planned tasks a fresh
+ *   start took out of Wartet (`boardStore.notPlannedFromWaiting`), their own category until each is planned again.
+ * - `noticeShown` / `closeNotice()`: the notice that offers the fresh start, on a day that has begun in this window,
+ *   has not been started fresh, whose notice was not closed, while something unfinished is on the board.
  * - `timeOffer` / `takeOffTime()` / `keepTime()`: the question "the timer ran on for {duration} after midnight: take
  *   that time off, or keep it?" for that one day. Unanswered the time stays (keep is the default) and the question
- *   ends with its day; taking it off does what the removal used to do (the task's time, the Statistik work
- *   sessions, a connection that stores time), never below zero, exactly once. Only the time after the last midnight
- *   is offered (D3 b).
- * - `noteShown` / `planAllAgain()` / `closeNote()`: the one-time note of the first pass that ever sent a card
- *   back (D2, point 1a) and its button "Alle wieder einplanen", which plans the whole group again, this once.
+ *   ends with its day; taking it off lowers the task's time (also of a timer that still runs), cuts the Statistik
+ *   work sessions and reaches a connection that stores time, never below zero, exactly once. Only the away time
+ *   between the last midnight and the day check is offered (#356 D3 b, #387 D1 g).
  */
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { syncToday, useToday } from '~/composables/useToday'
 import { useTasksStore, type AfterMidnightCount } from '~/store/tasks'
 import { useBoardStore } from '~/store/board'
 import { useDayRecapStore } from '~/store/dayRecap'
-import { useTaskStatisticsStore } from '~/store/taskStatistics'
 import { useDayClose } from '~/composables/useDayClose'
 import { useTaskOperations } from '~/composables/useTaskOperations'
 import { useTaskSync } from '~/composables/useTaskSync'
-import { resumeTaskTimer, stopTaskTimer } from '~/composables/useTaskTimerDriver'
+import { checkpointTaskTimer, resumeTaskTimer, stopTaskTimer } from '~/composables/useTaskTimerDriver'
+import { cutWorkSessions } from '~/composables/useWorkSessionTracking'
 import { dataState } from '~/lib/dataStorage'
 import { isDemoTaskId } from '~/lib/demoIds'
 import { isNotPlanned } from '~/lib/taskPlanning'
@@ -52,17 +57,33 @@ export const TIME_OFFER_MIN_SECONDS = 60
 const writesBlocked = () => dataState.available && dataState.status !== 'ok'
 
 /**
- * Whether a day has passed since the last pass (or, before the first one, since the recap's marker). A one-off
- * read for callers outside a component; `now` is injectable for tests.
+ * The local day whose check ran in this window (runtime only: a reload is an app start and checks again). The
+ * notice and the recap of a new day wait for it, so neither appears under the hands of someone working across
+ * midnight.
  */
-export function isNewDayDue(now: Date = new Date()): boolean {
+const begunDay = ref<string | null>(null)
+
+/** Test seam: a fresh app start. */
+export function resetNewDay(): void {
+  begunDay.value = null
+}
+
+/** Whether `today` (a day key) is a day after the last fresh start, or after the recap's marker before the first one. */
+function dueOn(today: string): boolean {
   if (useBoardStore().boardConfig.sources === null) return false
   const recapStore = useDayRecapStore()
-  const today = dayKey(now)
   const marker = recapStore.validLastNewDay
   if (marker !== null) return marker < today
   const lastShown = recapStore.validLastShownDay
   return lastShown !== null && lastShown < today
+}
+
+/**
+ * Whether a day has passed since the last fresh start (or, before the first one, since the recap's marker): today
+ * has not been started fresh. A one-off read for callers outside a component; `now` is injectable for tests.
+ */
+export function isNewDayDue(now: Date = new Date()): boolean {
+  return dueOn(dayKey(now))
 }
 
 export function useNewDay() {
@@ -70,72 +91,149 @@ export function useNewDay() {
   const boardStore = useBoardStore()
   const recapStore = useDayRecapStore()
   const { today } = useToday()
-  // Resolved here, in the caller's setup: the pass also runs from a window event (the return to the app), where
+  // Resolved here, in the caller's setup: the check also runs from a window event (the return to the app), where
   // the Nuxt helpers these need (the toast) are out of reach
   const { moveTaskToStatus } = useTaskOperations()
-  const { planTasks, unplanTasks } = useTaskSync()
+  const { unplanTasks, updateTaskStatuses } = useTaskSync()
   const dayClose = useDayClose()
 
+  /** What a fresh start would take off the board: Jetzt, Offen and Wartet without the demo tasks, in that order. */
+  const unfinished = computed(() =>
+    [...tasksStore.tasksProgress, ...tasksStore.tasksOpen, ...tasksStore.tasksWaiting].filter(task => !isDemoTaskId(task.id)))
+
   /**
-   * Runs the pass when it is due. Synchronous: every local change has happened when it returns; only the Jetzt
-   * task's write to its connection runs on.
-   * @returns the ids sent back (empty when nothing ran or nothing was on the board)
+   * The time a Jetzt timer counted after the local midnight that starts `todayKey` while the user was away becomes
+   * the question of that day. The timer is not stopped (#387: on a skipped day it keeps tracking); what it has
+   * collected is written first, so the store holds everything it counted. The note is dropped whatever it held: one
+   * for a task that is no longer in Jetzt, or for an earlier midnight, is never used later.
    */
-  function run(now: Date = new Date()): string[] {
+  function askAboutNight(todayKey: string): void {
+    let offer: AfterMidnightCount | null = null
+    for (const task of tasksStore.tasksProgress) {
+      if (isDemoTaskId(task.id)) continue
+      checkpointTaskTimer(task.id)
+      const counted = tasksStore.takeAfterMidnight(task.id, todayKey)
+      if (counted && counted.seconds >= TIME_OFFER_MIN_SECONDS) offer = counted
+    }
+    tasksStore.clearAfterMidnight()
+    if (offer) recapStore.offerTime(offer)
+  }
+
+  /**
+   * The day check: the app was opened or returned to after an absence. Moves no card and writes to no connection.
+   * @returns whether the check ran (false while the board is not onboarded, writes are blocked or the day close is open)
+   */
+  function check(now: Date = new Date()): boolean {
+    syncToday()
+    if (boardStore.boardConfig.sources === null) return false
+    if (writesBlocked()) return false
+    // The evening's dialog is still open: the day does not begin under it; the next return checks again
+    if (dayClose.isOpen.value) return false
+
+    const todayKey = dayKey(now)
+    // A question of an earlier day was never answered: the time stayed, the question is gone
+    const pending = recapStore.validTimeOffer
+    if (pending && pending.day < todayKey) recapStore.resolveTimeOffer()
+    askAboutNight(todayKey)
+    if (!isNewDayDue(now)) {
+      // No marker and no proof of an earlier day (a new board, or the update arrived during the day): today is
+      // the baseline, the first day that can be started fresh is tomorrow
+      if (recapStore.validLastNewDay === null) recapStore.markNewDay(todayKey, [])
+    } else if (unfinished.value.length === 0) {
+      // Nothing of yesterday is on the board: the day is started as it is, and what the user plans from here on is
+      // today's plan, which no notice may call yesterday's
+      recapStore.markNewDay(todayKey, [])
+    }
+    begunDay.value = todayKey
+    return true
+  }
+
+  /** Whether the day check of the current local day ran in this window: the recap and the notice wait for it. */
+  function isDayBegun(now: Date = new Date()): boolean {
+    return begunDay.value === dayKey(now)
+  }
+
+  /**
+   * The fresh start, on the user's click. Synchronous: every local change has happened when it returns; only the
+   * writes to the tasks' connections run on.
+   * @returns the ids taken off the board (empty when it was refused, already ran today or the board had nothing)
+   */
+  function freshStart(now: Date = new Date()): string[] {
     syncToday()
     if (boardStore.boardConfig.sources === null) return []
     if (writesBlocked()) return []
-    // The evening's dialog is still open: its list must not empty under the user's hands; the next return runs the pass
     if (dayClose.isOpen.value) return []
+    // Once per local day: a second click, a stale button or a clock set back moves nothing
+    if (!isNewDayDue(now)) return []
 
     const todayKey = dayKey(now)
-    if (!isNewDayDue(now)) {
-      // No marker and no proof of an earlier day (a new board, or the update arrived during the day): today is
-      // the baseline, the first pass is tomorrow's
-      if (recapStore.validLastNewDay === null) recapStore.markNewDay(todayKey, [])
-      return []
-    }
+    // A check always comes first in the app; a caller without one still loses no question
+    askAboutNight(todayKey)
 
-    const back: string[] = []
-    let offer: AfterMidnightCount | null = null
+    const group: string[] = []
     for (const task of tasksStore.tasksProgress.filter(task => !isDemoTaskId(task.id))) {
       const { id } = task
       // The stop writes the collected seconds first, so the store holds everything the timer counted
       stopTaskTimer(id)
-      // Nothing is removed: the stretch counted after midnight while the user was away becomes a question
-      const counted = tasksStore.takeAfterMidnight(id, todayKey)
-      if (counted && counted.seconds >= TIME_OFFER_MIN_SECONDS) offer = counted
       // Local change at once (status, board order); the write to the task's connection follows on its own
       void moveTaskToStatus(id, TaskStatus.Open).catch(() => {})
-      if (tasksStore.task(id)?.status === TaskStatus.Open) back.push(id)
+      if (tasksStore.task(id)?.status === TaskStatus.Open) group.push(id)
       // A refused move leaves the task in Jetzt: it keeps counting, as after a refused day close
       else resumeTaskTimer(id)
     }
-    // A note for a task that is no longer in Jetzt (or for an earlier midnight) is never used later
-    tasksStore.clearAfterMidnight()
     for (const task of tasksStore.tasksOpen) {
-      if (!isDemoTaskId(task.id) && !back.includes(task.id)) back.push(task.id)
+      if (!isDemoTaskId(task.id) && !group.includes(task.id)) group.push(task.id)
     }
+    // Wartet is reset too (#387): Offen locally at once, the writes to a connection one after another
+    const waiting = tasksStore.tasksWaiting.filter(task => !isDemoTaskId(task.id)).map(task => task.id)
+    if (waiting.length > 0) void updateTaskStatuses(waiting, TaskStatus.Open).catch(() => {})
 
-    // kan-do's own state only: the morning writes nothing to a connection for the cards it sends back (#357, D1)
-    const sent = unplanTasks(back, { local: true })
-    recapStore.markNewDay(todayKey, sent, offer)
+    // The user's own move: a source that stores planning gets its "not planned" status written (#357)
+    const sent = unplanTasks([...group, ...waiting])
+    boardStore.noteFromWaiting(waiting.filter(id => sent.includes(id)))
+    recapStore.markNewDay(todayKey, group.filter(id => sent.includes(id)))
+    // The cards were on the board this morning and counted the day: only what is planned again counts it
+    tasksStore.takeBackCarryOver(sent, todayKey)
     return sent
   }
 
-  /** Today's pass result, null on any other day (the shared "today" is reactive across midnight and on return). */
+  /** Today's fresh start, null on any other day (the shared "today" is reactive across midnight and on return). */
   const todaysBack = computed(() => {
     const sentBack = recapStore.validSentBack
     return sentBack && sentBack.day === dayKey(today.value) ? sentBack : null
   })
 
-  /** The group "Gestern geplant, noch offen": today's sent-back tasks that are still not planned, in their order. */
+  /** The ids of the tasks that are held as not planned now. */
+  const heldIds = computed(() => new Set(tasksStore.tasks.filter(task => isNotPlanned(task)).map(task => task.id)))
+
+  /** The group "Gestern geplant, noch offen": today's Jetzt and Offen tasks that are still not planned, in their order. */
   const groupIds = computed<string[]>(() => {
     const ids = todaysBack.value?.ids ?? []
-    if (ids.length === 0) return ids
-    const held = new Set(tasksStore.tasks.filter(task => isNotPlanned(task)).map(task => task.id))
-    return ids.filter(id => held.has(id))
+    return ids.length === 0 ? ids : ids.filter(id => heldIds.value.has(id))
   })
+
+  /** The category of the tasks a fresh start took out of Wartet and that are still not planned, in their order. */
+  const waitingIds = computed<string[]>(() => {
+    const ids = boardStore.notPlannedFromWaiting
+    if (ids.length === 0) return ids
+    const inGroup = new Set(groupIds.value)
+    return ids.filter(id => heldIds.value.has(id) && !inGroup.has(id))
+  })
+
+  /**
+   * The notice that offers the fresh start: today has begun in this window and was not started fresh, the notice was
+   * not closed today, and something unfinished is on the board.
+   */
+  const noticeShown = computed(() => {
+    const todayKey = dayKey(today.value)
+    return begunDay.value === todayKey && dueOn(todayKey) && recapStore.validNoticeClosedDay !== todayKey && unfinished.value.length > 0
+  })
+
+  /** "Schließen": the notice stays away for today; the board stays as it is. */
+  function closeNotice(): void {
+    if (writesBlocked()) return
+    recapStore.closeNotice(dayKey(today.value))
+  }
 
   /** The open question about the time after midnight: today's offer for a task that still exists, else null. */
   const timeOffer = computed(() => {
@@ -157,8 +255,9 @@ export function useNewDay() {
     if (!offer || !open) return 0
     recapStore.resolveTimeOffer()
     const removed = tasksStore.takeOffSeconds(offer.taskId, offer.seconds)
-    // The sessions follow the question, not the clamp: the stretch was counted away from the window either way
-    if (offer.spans.length > 0) useTaskStatisticsStore().cutWorkSessions(offer.spans)
+    // The sessions follow the question, not the clamp: the stretch was counted away from the window either way.
+    // Through the tracker: the task's timer may still run (a day that was not started fresh), so its open session moves
+    if (offer.spans.length > 0) cutWorkSessions(offer.spans)
     return removed
   }
 
@@ -168,22 +267,5 @@ export function useNewDay() {
     recapStore.resolveTimeOffer()
   }
 
-  /** The one-time note: on the day of the first pass that sent cards back, until closed, while its group has a task. */
-  const noteShown = computed(() =>
-    !recapStore.backNoteClosed && todaysBack.value !== null && recapStore.validFirstBackDay === todaysBack.value.day && groupIds.value.length > 0)
-
-  /** "Alle wieder einplanen": the whole group lands at the end of Offen in its order; the note is done. */
-  function planAllAgain(): string[] {
-    if (writesBlocked()) return []
-    const planned = planTasks(groupIds.value)
-    recapStore.closeBackNote()
-    return planned
-  }
-
-  function closeNote(): void {
-    if (writesBlocked()) return
-    recapStore.closeBackNote()
-  }
-
-  return { run, groupIds, noteShown, planAllAgain, closeNote, timeOffer, takeOffTime, keepTime }
+  return { check, isDayBegun, freshStart, groupIds, waitingIds, noticeShown, closeNotice, timeOffer, takeOffTime, keepTime }
 }

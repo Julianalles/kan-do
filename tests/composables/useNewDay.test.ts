@@ -1,7 +1,8 @@
 /**
- * #356: a new day sends what was planned and not finished back to "Meine Aufgaben". One pass per local day over
- * Jetzt and Offen; the Jetzt task stops its timer and loses the time counted after the local midnight that starts
- * the new day (the user's decision D2), nothing else about any task changes.
+ * #387 (replaces the automatic pass of #356): a new day starts fresh only on the user's click. The day check on the
+ * app's start or return moves no card and writes to no connection; the fresh start takes Jetzt, Offen and Wartet off
+ * the board once per local day; the question about time a timer counted after midnight comes with the day check and
+ * removes nothing by itself.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
@@ -24,9 +25,10 @@ vi.mock('~/composables/useNotionDataSource', () => ({
 }))
 
 /* eslint-disable import/first -- order-sensitive: mocks must be registered before the SUT is imported */
-import { isNewDayDue, useNewDay } from '~/composables/useNewDay'
+import { isNewDayDue, resetNewDay, useNewDay } from '~/composables/useNewDay'
 import { syncToday } from '~/composables/useToday'
 import { useDayClose } from '~/composables/useDayClose'
+import { useTaskSync } from '~/composables/useTaskSync'
 import { useTaskTimerDriver } from '~/composables/useTaskTimerDriver'
 import { useTasksStore } from '~/store/tasks'
 import { useBoardStore } from '~/store/board'
@@ -43,7 +45,7 @@ import { demoTaskId } from '~/lib/demoIds'
 import { createCarryOverEntry } from '~/utils/carryOver'
 /* eslint-enable import/first */
 
-// Thursday 22 Oct 2026, 09:00 local: the morning the pass runs on
+// Thursday 22 Oct 2026, 09:00 local: the morning of the new day
 const MORNING = new Date(2026, 9, 22, 9, 0)
 const TODAY = '2026-10-22'
 const YESTERDAY = '2026-10-21'
@@ -82,12 +84,19 @@ const leaveWindow = () => { window.dispatchEvent(new Event('blur')) }
 
 const notPlannedIds = () => useTasksStore().tasksNotPlanned.map(t => t.id)
 
-describe('useNewDay: the pass (#356)', () => {
+/** The morning as the app runs it: the day check, then the user's click. */
+const startFresh = (newDay: ReturnType<typeof useNewDay>) => {
+  newDay.check()
+  return newDay.freshStart()
+}
+
+describe('useNewDay: the day check and the fresh start (#387)', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     vi.setSystemTime(MORNING)
     localStorage.clear()
     setActivePinia(createPinia())
+    resetNewDay()
     Object.values(notion).forEach(fn => fn.mockReset())
     notion.updateTask.mockImplementation(async t => t)
     Object.assign(dataState, emptyDataStatus(), { available: false })
@@ -96,294 +105,481 @@ describe('useNewDay: the pass (#356)', () => {
   })
   afterEach(() => {
     resetPresence()
+    resetNewDay()
     disarmAllTaskTimers()
     clearAllLiveSeconds()
     vi.useRealTimers()
     vi.restoreAllMocks()
   })
 
-  it('sends Jetzt and Offen back in board order (Jetzt first); Wartet and Erledigt stay', () => {
-    const { tasks, recap, newDay } = setup()
-    expect(newDay.run()).toEqual(['j', 'o1', 'o2'])
-    expect(notPlannedIds()).toEqual(['j', 'o1', 'o2'])
-    expect(tasks.tasksOpen).toEqual([])
-    expect(tasks.tasksProgress).toEqual([])
-    expect(tasks.tasksWaiting.map(t => t.id)).toEqual(['w'])
-    expect(tasks.task('d')!.status).toBe(TaskStatus.Done)
-    expect(recap.lastNewDay).toBe(TODAY)
-    expect(recap.sentBack).toEqual({ day: TODAY, ids: ['j', 'o1', 'o2'] })
-    expect(newDay.groupIds.value).toEqual(['j', 'o1', 'o2'])
-  })
-
-  it('follows Offen\'s own order, not the stored order of the tasks', () => {
-    const { board, newDay } = setup()
-    board.columns.find(c => c.taskStatus === TaskStatus.Open)!.taskOrder = ['o2', 'o1']
-    expect(newDay.run()).toEqual(['j', 'o2', 'o1'])
-  })
-
-  it('never deletes a task and changes nothing but the plan: title, notes, topic, time box, time spent, source, carried-over entry', () => {
-    const { tasks, newDay } = setup()
-    const entry = { ...createCarryOverEntry('2026-10-19'), days: 2, lastOn: YESTERDAY }
-    tasks.setCarryOver({ o1: entry })
-    const before = { ...tasks.task('o1')! }
-    newDay.run()
-    expect(tasks.tasks).toHaveLength(5)
-    expect(tasks.task('o1')).toEqual({ ...before, notPlanned: true })
-    expect(tasks.carryOverByTaskId.o1).toEqual(entry)
-    // the Jetzt task: Open, not planned, no timer; its time is untouched without a midnight crossing
-    expect(tasks.task('j')).toMatchObject({ status: TaskStatus.Open, notPlanned: true, timerId: null, timeSpentSeconds: 600 })
-  })
-
-  it('keeps tasks that were already not planned below the group, in their order', () => {
-    const { tasks, board, newDay } = setup({ tasks: [
-      task('o1', TaskStatus.Open), task('old1', TaskStatus.Open, { notPlanned: true }), task('old2', TaskStatus.Open, { notPlanned: true }),
-    ] })
-    board.noteNotPlanned('old2')
-    newDay.run()
-    expect(notPlannedIds()).toEqual(['o1', 'old2', 'old1'])
-    expect(newDay.groupIds.value).toEqual(['o1'])
-    expect(isNotPlanned(tasks.task('old1')!)).toBe(true)
-  })
-
-  it('runs once per day: a card planned again stays in Offen on every later run that day', () => {
-    const { tasks, newDay } = setup()
-    newDay.run()
-    tasks.planTask('o1')
-    expect(newDay.run()).toEqual([])
-    vi.setSystemTime(at(22, 23, 59))
-    expect(newDay.run()).toEqual([])
-    expect(tasks.tasksOpen.map(t => t.id)).toEqual(['o1'])
-    expect(newDay.groupIds.value).toEqual(['j', 'o2'])
-  })
-
-  it('a group task planned and put back the same day returns to the group', () => {
-    const { tasks, newDay } = setup()
-    newDay.run()
-    tasks.planTask('o1')
-    expect(newDay.groupIds.value).toEqual(['j', 'o2'])
-    tasks.unplanTask('o1')
-    expect(newDay.groupIds.value).toEqual(['j', 'o1', 'o2'])
-  })
-
-  it('the next day\'s pass replaces the group', () => {
-    const { tasks, recap, newDay } = setup()
-    newDay.run()
-    tasks.planTask('o1')
-    vi.setSystemTime(at(23, 8))
-    expect(newDay.run()).toEqual(['o1'])
-    expect(recap.sentBack).toEqual({ day: '2026-10-23', ids: ['o1'] })
-    // yesterday's leftovers are plain "not planned" tasks now, below today's group
-    expect(notPlannedIds()).toEqual(['o1', 'j', 'o2'])
-  })
-
-  it('a clock set back never repeats the pass', () => {
-    const { tasks, newDay } = setup()
-    newDay.run()
-    tasks.planTask('o1')
-    vi.setSystemTime(at(20, 9))
-    expect(newDay.run()).toEqual([])
-    vi.setSystemTime(at(22, 10))
-    expect(newDay.run()).toEqual([])
-    expect(tasks.tasksOpen.map(t => t.id)).toEqual(['o1'])
-  })
-
-  it('does nothing while the data status blocks writes and runs on the next return after it clears', () => {
-    const { tasks, recap, newDay } = setup()
-    Object.assign(dataState, emptyDataStatus(), { available: true, status: 'conflict' })
-    expect(newDay.run()).toEqual([])
-    expect(tasks.tasksOpen).toHaveLength(2)
-    expect(recap.lastNewDay).toBe(YESTERDAY)
-    Object.assign(dataState, emptyDataStatus(), { available: true, status: 'ok' })
-    expect(newDay.run()).toEqual(['j', 'o1', 'o2'])
-  })
-
-  it('runs from a window event: nothing in the pass needs a component setup (the toast behind the move path is resolved before)', () => {
-    const { newDay } = setup()
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
-    // as on the return to the app: no component instance is current
-    window.addEventListener('focus', () => newDay.run(), { once: true })
-    window.dispatchEvent(new Event('focus'))
-    expect(notPlannedIds()).toEqual(['j', 'o1', 'o2'])
-    expect(warn.mock.calls.filter(call => String(call[0]).includes('inject()'))).toEqual([])
-  })
-
-  it('does nothing on a board that is not onboarded', () => {
-    const { recap, newDay } = setup({ onboarded: false })
-    expect(newDay.run()).toEqual([])
-    expect(recap.lastNewDay).toBe(YESTERDAY)
-    expect(isNewDayDue()).toBe(false)
-  })
-
-  it('waits while the day-close dialog is open (its list must not empty) and runs on the next return', () => {
-    const { tasks, newDay } = setup()
-    useDayClose().open()
-    expect(newDay.run()).toEqual([])
-    expect(tasks.tasksOpen).toHaveLength(2)
-    useDayClose().close()
-    expect(newDay.run()).toHaveLength(3)
-  })
-
-  it('leaves demo tasks on the board', () => {
-    const demoOpen = demoTaskId('load', 'open')
-    const demoNow = demoTaskId('load', 'now')
-    const { tasks, recap, newDay } = setup({ tasks: [task(demoNow, TaskStatus.Progress), task(demoOpen, TaskStatus.Open), task('real', TaskStatus.Open)] })
-    expect(newDay.run()).toEqual(['real'])
-    expect(tasks.tasksProgress.map(t => t.id)).toEqual([demoNow])
-    expect(tasks.tasksOpen.map(t => t.id)).toEqual([demoOpen])
-    expect(recap.lastNewDay).toBe(TODAY)
-  })
-
-  it('an empty board still moves the marker, with an empty group and no note', () => {
-    const { recap, newDay } = setup({ tasks: [task('w', TaskStatus.Waiting)] })
-    expect(newDay.run()).toEqual([])
-    expect(recap.lastNewDay).toBe(TODAY)
-    expect(newDay.groupIds.value).toEqual([])
-    expect(recap.firstBackDay).toBeNull()
-  })
-
-  describe('the first run (no marker yet)', () => {
-    it('a board whose recap marker is an earlier day (the first morning after the update): the pass runs and the one-time note shows', () => {
-      const { recap, newDay } = setup({ lastNewDay: null, lastShownDay: YESTERDAY })
+  describe('the app does nothing by itself', () => {
+    it('the day check moves no card, stops no timer and leaves every marker of a task alone', () => {
+      const { tasks, recap, newDay } = setup()
+      const driver = useTaskTimerDriver()
+      driver.start()
+      const before = JSON.parse(JSON.stringify(tasks.tasks.map(({ timerId: _t, ...rest }) => rest)))
+      expect(newDay.check()).toBe(true)
+      expect(JSON.parse(JSON.stringify(tasks.tasks.map(({ timerId: _t, ...rest }) => rest)))).toEqual(before)
+      expect(tasks.tasksProgress.map(t => t.id)).toEqual(['j'])
+      expect(tasks.tasksOpen.map(t => t.id)).toEqual(['o1', 'o2'])
+      expect(tasks.tasksWaiting.map(t => t.id)).toEqual(['w'])
+      expect(notPlannedIds()).toEqual([])
+      expect(armedTaskTimerIds()).toEqual(['j'])
+      // the day is still not started fresh: the marker and the group are yesterday's
+      expect(recap.lastNewDay).toBe(YESTERDAY)
+      expect(recap.sentBack).toBeNull()
       expect(isNewDayDue()).toBe(true)
-      expect(newDay.run()).toEqual(['j', 'o1', 'o2'])
-      expect(recap.firstBackDay).toBe(TODAY)
-      expect(newDay.noteShown.value).toBe(true)
+      // a second return the same day changes nothing either, and the timer goes on counting
+      newDay.check()
+      vi.advanceTimersByTime(10_000)
+      expect(tasks.task('j')!.timeSpentSeconds).toBe(610)
+      driver.stop()
     })
 
-    it('no recap marker (a new board): today is the baseline, nothing moves, the first pass is tomorrow\'s', () => {
-      const { tasks, recap, newDay } = setup({ lastNewDay: null, lastShownDay: null })
-      expect(isNewDayDue()).toBe(false)
-      expect(newDay.run()).toEqual([])
-      expect(tasks.tasksOpen).toHaveLength(2)
-      expect(recap.lastNewDay).toBe(TODAY)
-      expect(newDay.noteShown.value).toBe(false)
-      vi.setSystemTime(at(23, 8))
-      expect(newDay.run()).toEqual(['j', 'o1', 'o2'])
-      expect(newDay.noteShown.value).toBe(true)
-    })
-
-    it('the update arrived during the day (recap marker is today): baseline, the cards stay today', () => {
-      const { tasks, newDay } = setup({ lastNewDay: null, lastShownDay: TODAY })
-      expect(newDay.run()).toEqual([])
-      expect(tasks.tasksOpen).toHaveLength(2)
-    })
-
-    it('a malformed marker reads as "no pass yet"', () => {
-      const { recap, newDay } = setup({ lastShownDay: null })
-      recap.lastNewDay = 'yesterday' as never
-      expect(newDay.run()).toEqual([])
-      expect(recap.lastNewDay).toBe(TODAY)
-    })
-  })
-
-  describe('the one-time note and "Alle wieder einplanen" (D2, point 1a)', () => {
-    it('plans the whole group again at the end of Offen, in its order, and the note is gone', () => {
-      const { tasks, newDay } = setup({ lastNewDay: null, tasks: [
-        task('j', TaskStatus.Progress, { timeSpentSeconds: 60 }), task('o1', TaskStatus.Open), task('o2', TaskStatus.Open),
-        task('old', TaskStatus.Open, { notPlanned: true }),
-      ] })
-      newDay.run()
-      expect(newDay.planAllAgain()).toEqual(['j', 'o1', 'o2'])
-      expect(tasks.tasksOpen.map(t => t.id)).toEqual(['j', 'o1', 'o2'])
-      // back in Offen, not in Jetzt: no timer starts by itself; a task that was not planned before stays where it was
-      expect(tasks.tasksProgress).toEqual([])
-      expect(armedTaskTimerIds()).toEqual([])
-      expect(notPlannedIds()).toEqual(['old'])
-      expect(newDay.noteShown.value).toBe(false)
-    })
-
-    it('leaves out what the user already planned or completed, and never touches a task outside the group', () => {
-      const { tasks, newDay } = setup({ lastNewDay: null })
-      newDay.run()
-      tasks.planTask('o2')
-      tasks.unplanTask('o2')
-      tasks.planTask('o1')
-      expect(newDay.planAllAgain()).toEqual(['j', 'o2'])
-      expect(tasks.tasksOpen.map(t => t.id)).toEqual(['o1', 'j', 'o2'])
-    })
-
-    it('closing the note keeps the cards where they are', () => {
-      const { newDay } = setup({ lastNewDay: null })
-      newDay.run()
-      newDay.closeNote()
-      expect(newDay.noteShown.value).toBe(false)
-      expect(newDay.groupIds.value).toEqual(['j', 'o1', 'o2'])
-    })
-
-    it('shows once ever: not on a later day\'s pass, and not after its own day', () => {
-      const { tasks, newDay } = setup({ lastNewDay: null })
-      newDay.run()
-      expect(newDay.noteShown.value).toBe(true)
-      tasks.planTask('o1')
-      vi.setSystemTime(at(23, 8))
-      newDay.run()
-      expect(newDay.groupIds.value).toEqual(['o1'])
-      expect(newDay.noteShown.value).toBe(false)
-    })
-
-    it('a pass that follows earlier passes (marker present) shows no note', () => {
-      const { recap, newDay } = setup()
-      recap.firstBackDay = '2026-10-20'
-      newDay.run()
-      expect(newDay.noteShown.value).toBe(false)
-    })
-  })
-
-  describe('a connected task', () => {
-    it('writes nothing to a connection for the Offen tasks; the Jetzt task\'s status goes there as "Fertig" does', async () => {
-      const { tasks, board, newDay } = setup({ tasks: [
-        task('nj', TaskStatus.Progress, { source: 'notion' }), task('no', TaskStatus.Open, { source: 'notion', updatedAt: at(21, 10) }),
-      ] })
-      board.setSources({ connected: ['notion'], default: 'notion' })
-      useIntegrationHealthStore().recordSuccessfulSync('notion')
-      newDay.run()
-      expect(tasks.task('no')!.pendingSync).toBeUndefined()
-      expect(tasks.task('no')!.updatedAt).toEqual(at(21, 10))
-      await vi.runAllTimersAsync()
-      expect(notion.updateTask).toHaveBeenCalledTimes(1)
-      expect(notion.updateTask.mock.calls[0]![0]).toMatchObject({ id: 'nj', status: TaskStatus.Open })
-      // the echo of that write keeps the marker
-      expect(notPlannedIds()).toEqual(['nj', 'no'])
-      expect(tasks.task('nj')!.pendingSync).toBeUndefined()
-    })
-
-    it('with a Notion "not planned" status mapped the pass still writes nothing for the cards it sends back (#357, D1)', async () => {
+    it('the day check writes nothing to a connection, also with a Notion "not planned" status mapped', async () => {
       const mapping = notionConfig.config.statusMapping as { archive: string | null; notPlanned?: string[] }
       mapping.notPlanned = ['Backlog']
       try {
         const { tasks, board, newDay } = setup({ tasks: [
-          task('nj', TaskStatus.Progress, { source: 'notion' }), task('no', TaskStatus.Open, { source: 'notion' }),
+          task('nj', TaskStatus.Progress, { source: 'notion' }), task('no', TaskStatus.Open, { source: 'notion' }), task('nw', TaskStatus.Waiting, { source: 'notion' }),
         ] })
         board.setSources({ connected: ['notion'], default: 'notion' })
         useIntegrationHealthStore().recordSuccessfulSync('notion')
-        newDay.run()
+        newDay.check()
         await vi.runAllTimersAsync()
-        expect(notPlannedIds()).toEqual(['nj', 'no'])
-        // only the Jetzt task's own status write; neither card is noted as held "not planned" by Notion
-        expect(notion.updateTask.mock.calls.map(([sent]) => sent.id)).toEqual(['nj'])
-        expect(tasks.task('nj')!.sourceNotPlanned).toBeUndefined()
-        expect(tasks.task('no')!.sourceNotPlanned).toBeUndefined()
-        expect(tasks.task('no')!.pendingSync).toBeUndefined()
-        // "Alle wieder einplanen" has nothing to write either: Notion never held them as not planned
-        newDay.planAllAgain()
-        await vi.runAllTimersAsync()
-        expect(notion.updateTask).toHaveBeenCalledTimes(1)
+        expect(notion.updateTask).not.toHaveBeenCalled()
+        expect(tasks.tasks.every(t => t.pendingSync === undefined && t.sourceNotPlanned === undefined)).toBe(true)
       } finally {
         delete mapping.notPlanned
       }
     })
 
-    it('a fetch after the pass keeps the marker, also for a task its connection still reports as open', () => {
-      const { tasks, board, newDay } = setup({ tasks: [task('no', TaskStatus.Open, { source: 'notion' })] })
-      board.setSources({ connected: ['notion'], default: 'notion' })
-      newDay.run()
+    it('the day begins in this window only with the check: before it neither the recap nor the notice may show', () => {
+      const { newDay } = setup()
+      expect(newDay.isDayBegun()).toBe(false)
+      expect(newDay.noticeShown.value).toBe(false)
+      newDay.check()
+      expect(newDay.isDayBegun()).toBe(true)
+      // the window stays open across midnight: the next day has not begun until the next check
+      vi.setSystemTime(at(23, 0, 5))
+      syncToday()
+      expect(newDay.isDayBegun()).toBe(false)
+      expect(newDay.noticeShown.value).toBe(false)
+    })
+  })
+
+  describe('the fresh start (the user\'s click)', () => {
+    it('takes Jetzt, Offen and Wartet off the board: Jetzt first, then Offen in board order, then Wartet; Erledigt stays', () => {
+      const { tasks, board, recap, newDay } = setup()
+      expect(startFresh(newDay)).toEqual(['j', 'o1', 'o2', 'w'])
+      expect(notPlannedIds()).toEqual(['j', 'o1', 'o2', 'w'])
+      expect(tasks.tasksOpen).toEqual([])
+      expect(tasks.tasksProgress).toEqual([])
+      expect(tasks.tasksWaiting).toEqual([])
+      expect(tasks.task('d')!.status).toBe(TaskStatus.Done)
+      expect(recap.lastNewDay).toBe(TODAY)
+      // the group is what came from Jetzt and Offen; what came from Wartet is its own category
+      expect(recap.sentBack).toEqual({ day: TODAY, ids: ['j', 'o1', 'o2'] })
+      expect(newDay.groupIds.value).toEqual(['j', 'o1', 'o2'])
+      expect(board.notPlannedFromWaiting).toEqual(['w'])
+      expect(newDay.waitingIds.value).toEqual(['w'])
+      expect(isNewDayDue()).toBe(false)
+    })
+
+    it('follows Offen\'s own order, not the stored order of the tasks', () => {
+      const { board, newDay } = setup()
+      board.columns.find(c => c.taskStatus === TaskStatus.Open)!.taskOrder = ['o2', 'o1']
+      expect(startFresh(newDay)).toEqual(['j', 'o2', 'o1', 'w'])
+    })
+
+    it('never deletes a task and changes nothing but the plan: title, notes, topic, time box, time spent, source', () => {
+      const { tasks, newDay } = setup()
+      const before = { ...tasks.task('o1')! }
+      startFresh(newDay)
+      expect(tasks.tasks).toHaveLength(5)
+      expect(tasks.task('o1')).toEqual({ ...before, notPlanned: true })
+      // the Jetzt task: Open, not planned, no timer; the Wartet task: Open, not planned; their time is untouched
+      expect(tasks.task('j')).toMatchObject({ status: TaskStatus.Open, notPlanned: true, timerId: null, timeSpentSeconds: 600 })
+      expect(tasks.task('w')).toMatchObject({ status: TaskStatus.Open, notPlanned: true, title: 'Task w' })
+    })
+
+    it('the carried-over count is kept: a day counted this morning is taken back, an earlier count stays', () => {
+      const { tasks, newDay } = setup()
+      tasks.setCarryOver({
+        o1: { ...createCarryOverEntry('2026-10-19'), days: 3, lastOn: TODAY },
+        w: { ...createCarryOverEntry('2026-10-19'), days: 2, lastOn: YESTERDAY },
+      })
+      startFresh(newDay)
+      expect(tasks.carryOverByTaskId.o1).toMatchObject({ firstOn: '2026-10-19', days: 2, lastOn: YESTERDAY })
+      expect(tasks.carryOverByTaskId.w).toMatchObject({ firstOn: '2026-10-19', days: 2, lastOn: YESTERDAY })
+    })
+
+    it('keeps tasks that were already not planned below the group, in their order', () => {
+      const { tasks, board, newDay } = setup({ tasks: [
+        task('o1', TaskStatus.Open), task('old1', TaskStatus.Open, { notPlanned: true }), task('old2', TaskStatus.Open, { notPlanned: true }),
+      ] })
+      board.noteNotPlanned('old2')
+      startFresh(newDay)
+      expect(notPlannedIds()).toEqual(['o1', 'old2', 'old1'])
+      expect(newDay.groupIds.value).toEqual(['o1'])
+      expect(newDay.waitingIds.value).toEqual([])
+      expect(isNotPlanned(tasks.task('old1')!)).toBe(true)
+    })
+
+    it('once per day: a second click, a later click that day and a reload move nothing again', () => {
+      const { tasks, recap, newDay } = setup()
+      startFresh(newDay)
+      tasks.planTask('o1')
+      expect(newDay.freshStart()).toEqual([])
+      vi.setSystemTime(at(22, 23, 59))
+      expect(newDay.freshStart()).toEqual([])
+      expect(tasks.tasksOpen.map(t => t.id)).toEqual(['o1'])
+      expect(newDay.groupIds.value).toEqual(['j', 'o2'])
+      // a reload: fresh module state, the same persisted marker
+      resetNewDay()
+      newDay.check()
+      expect(newDay.freshStart()).toEqual([])
+      expect(recap.sentBack).toEqual({ day: TODAY, ids: ['j', 'o1', 'o2'] })
+      expect(tasks.tasksOpen.map(t => t.id)).toEqual(['o1'])
+    })
+
+    it('a group task planned and put back the same day returns to the group', () => {
+      const { tasks, newDay } = setup()
+      startFresh(newDay)
+      tasks.planTask('o1')
+      expect(newDay.groupIds.value).toEqual(['j', 'o2'])
+      tasks.unplanTask('o1')
+      expect(newDay.groupIds.value).toEqual(['j', 'o1', 'o2'])
+    })
+
+    it('the next day\'s fresh start replaces the group; several days without planning: it takes everything unfinished at once', () => {
+      const { tasks, recap, newDay } = setup()
+      startFresh(newDay)
+      tasks.planTask('o1')
+      // two days pass without a fresh start: nothing moves by the check alone
+      for (const day of [23, 24]) {
+        vi.setSystemTime(at(day, 8))
+        resetNewDay()
+        newDay.check()
+        expect(tasks.tasksOpen.map(t => t.id)).toEqual(['o1'])
+      }
+      tasks.updateTask('o2', { status: TaskStatus.Waiting, notPlanned: undefined })
+      expect(newDay.freshStart()).toEqual(['o1', 'o2'])
+      expect(recap.sentBack).toEqual({ day: '2026-10-24', ids: ['o1'] })
+      // the earlier leftovers are plain "not planned" tasks now, below today's group and what came from Wartet
+      expect(notPlannedIds()).toEqual(['o1', 'o2', 'j', 'w'])
+      expect(newDay.groupIds.value).toEqual(['o1'])
+      expect(newDay.waitingIds.value).toEqual(['w', 'o2'])
+    })
+
+    it('a clock set back never repeats the fresh start', () => {
+      const { tasks, newDay } = setup()
+      startFresh(newDay)
+      tasks.planTask('o1')
+      vi.setSystemTime(at(20, 9))
+      expect(startFresh(newDay)).toEqual([])
+      vi.setSystemTime(at(22, 10))
+      expect(startFresh(newDay)).toEqual([])
+      expect(tasks.tasksOpen.map(t => t.id)).toEqual(['o1'])
+    })
+
+    it('does nothing while the data status blocks writes; the next check after it clears offers it again', () => {
+      const { tasks, recap, newDay } = setup()
+      Object.assign(dataState, emptyDataStatus(), { available: true, status: 'conflict' })
+      expect(newDay.check()).toBe(false)
+      expect(newDay.isDayBegun()).toBe(false)
+      expect(newDay.freshStart()).toEqual([])
+      newDay.closeNotice()
+      expect(tasks.tasksOpen).toHaveLength(2)
+      expect(recap.lastNewDay).toBe(YESTERDAY)
+      expect(recap.noticeClosedDay).toBeNull()
+      Object.assign(dataState, emptyDataStatus(), { available: true, status: 'ok' })
+      expect(newDay.check()).toBe(true)
+      expect(newDay.noticeShown.value).toBe(true)
+      expect(newDay.freshStart()).toEqual(['j', 'o1', 'o2', 'w'])
+    })
+
+    it('runs from a window event: nothing in it needs a component setup (the toast behind the move path is resolved before)', () => {
+      const { newDay } = setup()
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+      // as on the return to the app: no component instance is current
+      window.addEventListener('focus', () => startFresh(newDay), { once: true })
+      window.dispatchEvent(new Event('focus'))
+      expect(notPlannedIds()).toEqual(['j', 'o1', 'o2', 'w'])
+      expect(warn.mock.calls.filter(call => String(call[0]).includes('inject()'))).toEqual([])
+    })
+
+    it('does nothing on a board that is not onboarded', () => {
+      const { recap, newDay } = setup({ onboarded: false })
+      expect(newDay.check()).toBe(false)
+      expect(newDay.freshStart()).toEqual([])
+      expect(recap.lastNewDay).toBe(YESTERDAY)
+      expect(isNewDayDue()).toBe(false)
+      expect(newDay.noticeShown.value).toBe(false)
+    })
+
+    it('waits while the day-close dialog is open: neither the check nor the fresh start acts under it', () => {
+      const { tasks, newDay } = setup()
+      useDayClose().open()
+      expect(newDay.check()).toBe(false)
+      expect(newDay.freshStart()).toEqual([])
+      expect(tasks.tasksOpen).toHaveLength(2)
+      useDayClose().close()
+      expect(startFresh(newDay)).toHaveLength(4)
+    })
+
+    it('leaves demo tasks on the board', () => {
+      const demoOpen = demoTaskId('load', 'open')
+      const demoNow = demoTaskId('load', 'now')
+      const demoWaiting = demoTaskId('load', 'waiting')
+      const { tasks, recap, newDay } = setup({ tasks: [
+        task(demoNow, TaskStatus.Progress), task(demoOpen, TaskStatus.Open), task(demoWaiting, TaskStatus.Waiting), task('real', TaskStatus.Open),
+      ] })
+      expect(startFresh(newDay)).toEqual(['real'])
+      expect(tasks.tasksProgress.map(t => t.id)).toEqual([demoNow])
+      expect(tasks.tasksOpen.map(t => t.id)).toEqual([demoOpen])
+      expect(tasks.tasksWaiting.map(t => t.id)).toEqual([demoWaiting])
+      expect(recap.lastNewDay).toBe(TODAY)
+    })
+
+    it('a Jetzt task whose move is refused stays in Jetzt and keeps counting', () => {
+      const { tasks, newDay } = setup()
+      const driver = useTaskTimerDriver()
+      driver.start()
+      newDay.check()
+      // the task is gone from the move path's view (a refused move): the status does not change
+      const original = tasks.updateTask
+      vi.spyOn(tasks, 'updateTask').mockImplementation((id, updates) => {
+        if (id === 'j' && updates.status === TaskStatus.Open) return undefined as never
+        return original(id, updates)
+      })
+      expect(newDay.freshStart()).toEqual(['o1', 'o2', 'w'])
+      expect(tasks.task('j')!.status).toBe(TaskStatus.Progress)
+      expect(armedTaskTimerIds()).toEqual(['j'])
+      driver.stop()
+    })
+  })
+
+  describe('the category of the tasks that came from Wartet', () => {
+    it('lasts beyond its day until each task is planned again; a pick lands in Offen and leaves the category', () => {
+      const { tasks, newDay } = setup({ tasks: [task('o1', TaskStatus.Open), task('w1', TaskStatus.Waiting), task('w2', TaskStatus.Waiting)] })
+      startFresh(newDay)
+      expect(newDay.waitingIds.value).toEqual(['w1', 'w2'])
+      // the next days, without another fresh start: the group of the day is gone, the category stays
+      vi.setSystemTime(at(24, 9))
+      syncToday()
+      expect(newDay.groupIds.value).toEqual([])
+      expect(newDay.waitingIds.value).toEqual(['w1', 'w2'])
+      tasks.planTask('w1')
+      expect(tasks.task('w1')).toMatchObject({ status: TaskStatus.Open })
+      expect(isNotPlanned(tasks.task('w1')!)).toBe(false)
+      expect(tasks.tasksOpen.map(t => t.id)).toEqual(['w1'])
+      expect(newDay.waitingIds.value).toEqual(['w2'])
+      // put back by hand later, it comes from Offen: it does not return to the category
+      tasks.unplanTask('w1')
+      expect(newDay.waitingIds.value).toEqual(['w2'])
+    })
+
+    it('a task whose status changed without a reconcile (the sheet\'s status picker) is not listed, and a deleted one is gone', () => {
+      const { tasks, newDay } = setup({ tasks: [task('w1', TaskStatus.Waiting), task('w2', TaskStatus.Waiting)] })
+      startFresh(newDay)
+      tasks.updateTask('w1', { status: TaskStatus.Progress })
+      expect(newDay.waitingIds.value).toEqual(['w2'])
+      tasks.setTasks([task('w1', TaskStatus.Progress)])
+      expect(newDay.waitingIds.value).toEqual([])
+    })
+  })
+
+  describe('the notice that offers the fresh start', () => {
+    it('shows after the day check on a day that was not started fresh, while something unfinished is on the board', () => {
+      const { newDay } = setup()
+      expect(newDay.noticeShown.value).toBe(false)
+      newDay.check()
+      expect(newDay.noticeShown.value).toBe(true)
+      newDay.freshStart()
+      expect(newDay.noticeShown.value).toBe(false)
+    })
+
+    it('"Schließen" hides it for that day, also after a reload, and it is back the next morning', () => {
+      const { tasks, recap, newDay } = setup()
+      newDay.check()
+      newDay.closeNotice()
+      expect(newDay.noticeShown.value).toBe(false)
+      expect(recap.noticeClosedDay).toBe(TODAY)
+      // nothing moved, and the day is still not started fresh
+      expect(tasks.tasksOpen).toHaveLength(2)
+      expect(isNewDayDue()).toBe(true)
+      resetNewDay()
+      newDay.check()
+      expect(newDay.noticeShown.value).toBe(false)
+      vi.setSystemTime(at(23, 8))
+      syncToday()
+      resetNewDay()
+      newDay.check()
+      expect(newDay.noticeShown.value).toBe(true)
+    })
+
+    it('a day whose board has nothing unfinished counts as started: no notice, also for what is planned later that day', () => {
+      const { tasks, recap, newDay } = setup({ tasks: [task('d', TaskStatus.Done, { completedAt: at(21, 15) }), task('held', TaskStatus.Open, { notPlanned: true })] })
+      newDay.check()
+      expect(recap.lastNewDay).toBe(TODAY)
+      expect(recap.sentBack).toEqual({ day: TODAY, ids: [] })
+      expect(newDay.noticeShown.value).toBe(false)
+      tasks.planTask('held')
+      expect(newDay.noticeShown.value).toBe(false)
+      expect(newDay.freshStart()).toEqual([])
+      expect(tasks.tasksOpen.map(t => t.id)).toEqual(['held'])
+      // the next morning that card is yesterday's plan
+      vi.setSystemTime(at(23, 8))
+      syncToday()
+      resetNewDay()
+      newDay.check()
+      expect(newDay.noticeShown.value).toBe(true)
+    })
+
+    it('leaves by itself when the last unfinished card is done; demo tasks never raise it', () => {
+      const { tasks, newDay } = setup({ tasks: [task('o1', TaskStatus.Open), task(demoTaskId('load', 'open'), TaskStatus.Open)] })
+      newDay.check()
+      expect(newDay.noticeShown.value).toBe(true)
+      tasks.updateTask('o1', { status: TaskStatus.Done })
+      expect(newDay.noticeShown.value).toBe(false)
+    })
+  })
+
+  describe('the first run (no marker yet)', () => {
+    it('a board whose recap marker is an earlier day (data from before #356): nothing moves by itself, the notice offers the fresh start', () => {
+      const { tasks, newDay } = setup({ lastNewDay: null, lastShownDay: YESTERDAY })
+      expect(isNewDayDue()).toBe(true)
+      newDay.check()
+      expect(tasks.tasksOpen).toHaveLength(2)
+      expect(newDay.noticeShown.value).toBe(true)
+      expect(newDay.freshStart()).toEqual(['j', 'o1', 'o2', 'w'])
+    })
+
+    it('no recap marker (a new board): today is the baseline, nothing is offered, the first day to start fresh is tomorrow', () => {
+      const { tasks, recap, newDay } = setup({ lastNewDay: null, lastShownDay: null })
+      expect(isNewDayDue()).toBe(false)
+      newDay.check()
+      expect(newDay.freshStart()).toEqual([])
+      expect(tasks.tasksOpen).toHaveLength(2)
+      expect(recap.lastNewDay).toBe(TODAY)
+      expect(newDay.noticeShown.value).toBe(false)
+      vi.setSystemTime(at(23, 8))
+      syncToday()
+      resetNewDay()
+      newDay.check()
+      expect(newDay.noticeShown.value).toBe(true)
+      expect(newDay.freshStart()).toEqual(['j', 'o1', 'o2', 'w'])
+    })
+
+    it('the update arrived during the day (recap marker is today): baseline, the cards stay today', () => {
+      const { tasks, newDay } = setup({ lastNewDay: null, lastShownDay: TODAY })
+      expect(startFresh(newDay)).toEqual([])
+      expect(tasks.tasksOpen).toHaveLength(2)
+      expect(newDay.noticeShown.value).toBe(false)
+    })
+
+    it('a board the automatic pass of #356 emptied this morning, before the update: it stays as it is, its group still shows today', () => {
+      const { tasks, recap, newDay } = setup({ lastNewDay: TODAY, lastShownDay: TODAY, tasks: [
+        task('j', TaskStatus.Open, { notPlanned: true }), task('o1', TaskStatus.Open, { notPlanned: true }), task('w', TaskStatus.Waiting),
+      ] })
+      recap.sentBack = { day: TODAY, ids: ['j', 'o1'] }
+      Object.assign(recap, { firstBackDay: TODAY, backNoteClosed: false })
+      expect(startFresh(newDay)).toEqual([])
+      expect(notPlannedIds()).toEqual(['j', 'o1'])
+      expect(tasks.tasksWaiting.map(t => t.id)).toEqual(['w'])
+      expect(newDay.groupIds.value).toEqual(['j', 'o1'])
+      expect(newDay.noticeShown.value).toBe(false)
+    })
+
+    it('a malformed marker reads as "no start yet"', () => {
+      const { recap, newDay } = setup({ lastShownDay: null })
+      recap.lastNewDay = 'yesterday' as never
+      expect(startFresh(newDay)).toEqual([])
+      expect(recap.lastNewDay).toBe(TODAY)
+    })
+  })
+
+  describe('a connected task', () => {
+    const connect = (tasks: Task[]) => {
+      const context = setup({ tasks })
+      context.board.setSources({ connected: ['notion'], default: 'notion' })
+      useIntegrationHealthStore().recordSuccessfulSync('notion')
+      return context
+    }
+    const lastSent = (id: string) => notion.updateTask.mock.calls.filter(([sent]) => sent.id === id).at(-1)?.[0]
+
+    it('Notion without a "not planned" status: a task from Jetzt or Wartet gets its open status (as "Fertig" writes it), one from Offen gets no write', async () => {
+      const { tasks, newDay } = connect([
+        task('nj', TaskStatus.Progress, { source: 'notion' }), task('no', TaskStatus.Open, { source: 'notion', updatedAt: at(21, 10) }),
+        task('nw', TaskStatus.Waiting, { source: 'notion' }),
+      ])
+      startFresh(newDay)
+      expect(tasks.task('no')!.pendingSync).toBeUndefined()
+      expect(tasks.task('no')!.updatedAt).toEqual(at(21, 10))
+      await vi.runAllTimersAsync()
+      expect(notion.updateTask.mock.calls.map(([sent]) => sent.id).sort()).toEqual(['nj', 'nw'])
+      expect(lastSent('nj')).toMatchObject({ status: TaskStatus.Open })
+      expect(lastSent('nw')).toMatchObject({ status: TaskStatus.Open })
+      // the echo of those writes keeps the marker, and nothing is noted as held "not planned" by Notion
+      expect(notPlannedIds()).toEqual(['nj', 'no', 'nw'])
+      expect(tasks.tasks.every(t => t.pendingSync === undefined && t.sourceNotPlanned === undefined)).toBe(true)
+    })
+
+    it('Notion with a "not planned" status mapped: every card taken off the board ends in that status there, at once', async () => {
+      const mapping = notionConfig.config.statusMapping as { archive: string | null; notPlanned?: string[] }
+      mapping.notPlanned = ['Backlog']
+      try {
+        const { tasks, newDay } = connect([
+          task('nj', TaskStatus.Progress, { source: 'notion' }), task('no', TaskStatus.Open, { source: 'notion' }),
+          task('nw', TaskStatus.Waiting, { source: 'notion' }),
+        ])
+        startFresh(newDay)
+        // marked at once: a fetch that lands before the writes keeps the local state
+        for (const id of ['nj', 'no', 'nw']) {
+          expect(tasks.task(id)).toMatchObject({ status: TaskStatus.Open, notPlanned: true, sourceNotPlanned: 'Backlog' })
+          expect(tasks.task(id)!.pendingSync).toBeDefined()
+        }
+        tasks.mergeTasks('notion', [
+          task('nj', TaskStatus.Progress, { source: 'notion' }), task('no', TaskStatus.Open, { source: 'notion' }), task('nw', TaskStatus.Waiting, { source: 'notion' }),
+        ])
+        expect(notPlannedIds()).toEqual(['nj', 'no', 'nw'])
+        await vi.runAllTimersAsync()
+        // the last write of every task holds its final state: open, not planned, as "Backlog"
+        for (const id of ['nj', 'no', 'nw']) {
+          expect(lastSent(id)).toMatchObject({ status: TaskStatus.Open, notPlanned: true, sourceNotPlanned: 'Backlog' })
+          expect(tasks.task(id)!.pendingSync).toBeUndefined()
+        }
+        // a pick is the user's move too: Notion gets the "today" status back
+        notion.updateTask.mockClear()
+        useTaskSync().planTask('no')
+        await vi.runAllTimersAsync()
+        expect(lastSent('no')).toMatchObject({ status: TaskStatus.Open })
+        expect(lastSent('no')!.notPlanned).toBeUndefined()
+        expect(lastSent('no')!.sourceNotPlanned).toBeUndefined()
+      } finally {
+        delete mapping.notPlanned
+      }
+    })
+
+    it('a Local board: no connection is called at all', async () => {
+      const { newDay } = setup()
+      startFresh(newDay)
+      await vi.runAllTimersAsync()
+      expect(notion.updateTask).not.toHaveBeenCalled()
+      expect(notion.createTask).not.toHaveBeenCalled()
+    })
+
+    it('a fetch after the fresh start keeps the marker, also for a task its connection still reports as open', () => {
+      const { tasks, newDay } = connect([task('no', TaskStatus.Open, { source: 'notion' })])
+      startFresh(newDay)
       tasks.mergeTasks('notion', [task('no', TaskStatus.Open, { source: 'notion', title: 'Renamed there' })])
       expect(tasks.task('no')).toMatchObject({ title: 'Renamed there', notPlanned: true })
       expect(newDay.groupIds.value).toEqual(['no'])
     })
   })
 
-  describe('the Jetzt task\'s time (D2, point 2c, the user\'s decision of 2026-11-16): the pass removes none; the time its timer counted after midnight while the user was away goes only when the user takes it off', () => {
+  describe('the Jetzt task\'s time (#356 D2 point 2c, the user\'s decision of 2026-11-16): nothing removes any; the time its timer counted after midnight while the user was away goes only when the user takes it off', () => {
     let driver: ReturnType<typeof useTaskTimerDriver>
     const stored = (id: string) => useTasksStore().task(id)!.timeSpentSeconds
 
@@ -407,7 +603,7 @@ describe('useNewDay: the pass (#356)', () => {
       // 10 min before midnight, 20 min after it, the user away from 23:50; the return to the app runs the pass
       vi.advanceTimersByTime(30 * 60 * 1000)
       expect(tasks.validAfterMidnight).toMatchObject({ taskId: 'j', day: TODAY })
-      newDay.run()
+      startFresh(newDay)
       // nothing silent: the whole stretch is still on the card, and a question asks what to do with the 20 minutes
       expect(stored('j')).toBe(600 + 30 * 60)
       expect(newDay.timeOffer.value).toEqual({ taskId: 'j', title: 'Task j', seconds: 20 * 60 })
@@ -424,7 +620,7 @@ describe('useNewDay: the pass (#356)', () => {
     it('the second that crosses midnight counts as before it; a stretch under a minute is not asked about and stays', () => {
       const { newDay } = running(at(21, 23, 50))
       vi.advanceTimersByTime((10 * 60 + 5) * 1000)
-      newDay.run()
+      startFresh(newDay)
       // the ticks up to and with the one at 00:00:00 belong to yesterday; the five after them are below the minute
       expect(newDay.timeOffer.value).toBeNull()
       expect(newDay.takeOffTime()).toBe(0)
@@ -434,7 +630,7 @@ describe('useNewDay: the pass (#356)', () => {
     it('other tasks keep their time, also an Offen task with time spent', () => {
       const { newDay } = running(at(21, 23, 50))
       vi.advanceTimersByTime(30 * 60 * 1000)
-      newDay.run()
+      startFresh(newDay)
       expect(stored('o1')).toBe(120)
     })
 
@@ -444,16 +640,18 @@ describe('useNewDay: the pass (#356)', () => {
       // the user moves the task out of Jetzt at 23:55; the app stays open over night
       tasks.updateTask('j', { status: TaskStatus.Waiting })
       vi.advanceTimersByTime(9 * 60 * 60 * 1000)
-      newDay.run()
+      startFresh(newDay)
       expect(stored('j')).toBe(600 + 5 * 60)
-      expect(tasks.task('j')!.status).toBe(TaskStatus.Waiting)
+      expect(newDay.timeOffer.value).toBeNull()
+      // from Wartet it goes off the board with the rest (#387), its time untouched
+      expect(tasks.task('j')).toMatchObject({ status: TaskStatus.Open, notPlanned: true })
     })
 
     it('several midnights passed: only the time after the last one, the one that starts the day of the pass', () => {
       const { newDay } = running(at(20, 23, 50), { lastNewDay: '2026-10-20' })
       // open from the 20th, 23:50 until the 22nd, 00:20: 10 min + a whole day + 20 min
       vi.advanceTimersByTime((10 + 24 * 60 + 20) * 60 * 1000)
-      newDay.run()
+      startFresh(newDay)
       // the offer covers only the 20 minutes after the last midnight
       expect(newDay.timeOffer.value?.seconds).toBe(20 * 60)
       newDay.takeOffTime()
@@ -467,7 +665,7 @@ describe('useNewDay: the pass (#356)', () => {
       vi.setSystemTime(MORNING)
       driver.start() // opened at 09:00: the timer is armed again, then the board mounts and runs the pass
       vi.advanceTimersByTime(2000)
-      newDay.run()
+      startFresh(newDay)
       expect(stored('j')).toBe(600 + 10 * 60 + 2)
     })
 
@@ -478,7 +676,7 @@ describe('useNewDay: the pass (#356)', () => {
       expect(tasks.validAfterMidnight).toMatchObject({ taskId: 'j', day: TODAY, seconds: 30 * 60 })
       vi.setSystemTime(MORNING)
       driver.start()
-      newDay.run()
+      startFresh(newDay)
       newDay.takeOffTime()
       expect(stored('j')).toBe(600 + 10 * 60)
     })
@@ -488,7 +686,7 @@ describe('useNewDay: the pass (#356)', () => {
       vi.advanceTimersByTime(20 * 60 * 1000) // 00:10, the window kept the focus
       tasks.updateTask('j', { status: TaskStatus.Progress })
       vi.advanceTimersByTime(30 * 60 * 1000)
-      newDay.run()
+      startFresh(newDay)
       expect(stored('j')).toBe(600 + 30 * 60)
     })
 
@@ -498,7 +696,7 @@ describe('useNewDay: the pass (#356)', () => {
       tasks.updateTask('j', { status: TaskStatus.Waiting })
       tasks.updateTask('j', { status: TaskStatus.Progress })
       vi.advanceTimersByTime(10 * 60 * 1000)
-      newDay.run()
+      startFresh(newDay)
       expect(stored('j')).toBe(600 + 30 * 60)
     })
 
@@ -508,7 +706,7 @@ describe('useNewDay: the pass (#356)', () => {
       tasks.updateTask('j', { status: TaskStatus.Open })
       tasks.updateTask('o1', { status: TaskStatus.Progress })
       vi.advanceTimersByTime(10 * 60 * 1000)
-      newDay.run()
+      startFresh(newDay)
       expect(stored('j')).toBe(600 + 20 * 60)
       expect(stored('o1')).toBe(120 + 10 * 60)
       expect(tasks.afterMidnight).toBeNull()
@@ -518,7 +716,7 @@ describe('useNewDay: the pass (#356)', () => {
       const { tasks, newDay } = running(at(21, 23, 50))
       vi.advanceTimersByTime(30 * 60 * 1000)
       tasks.setTimeSpent('j', 5)
-      newDay.run()
+      startFresh(newDay)
       expect(stored('j')).toBe(5)
     })
 
@@ -526,7 +724,7 @@ describe('useNewDay: the pass (#356)', () => {
       const { tasks, newDay } = running(at(21, 23, 50))
       vi.advanceTimersByTime(20 * 60 * 1000) // 00:10 on the 22nd: 10 min counted after midnight
       vi.setSystemTime(at(21, 20, 0)) // the clock goes back to the evening before
-      expect(newDay.run()).toEqual([])
+      expect(startFresh(newDay)).toEqual([])
       expect(tasks.tasksProgress.map(t => t.id)).toEqual(['j'])
       vi.advanceTimersByTime(10 * 1000)
       expect(stored('j')).toBe(600 + 20 * 60 + 10)
@@ -537,7 +735,7 @@ describe('useNewDay: the pass (#356)', () => {
       vi.advanceTimersByTime(60 * 1000)
       vi.setSystemTime(at(22, 3, 0)) // the clock jumps ahead; nothing was counted "after midnight" yet
       vi.advanceTimersByTime(3000)
-      newDay.run()
+      startFresh(newDay)
       // the first tick after the jump is the crossing second; only the two after it were counted after the jump,
       // and that is under a minute: nothing is asked, nothing goes
       expect(newDay.timeOffer.value).toBeNull()
@@ -549,7 +747,7 @@ describe('useNewDay: the pass (#356)', () => {
       tasks.afterMidnight = { taskId: 'j', day: YESTERDAY, seconds: 500, spans: [] }
       vi.advanceTimersByTime(60 * 1000)
       vi.setSystemTime(at(22, 9, 0))
-      newDay.run()
+      startFresh(newDay)
       expect(stored('j')).toBe(600 + 60)
     })
 
@@ -558,17 +756,17 @@ describe('useNewDay: the pass (#356)', () => {
       vi.advanceTimersByTime(30 * 60 * 1000) // 00:20, always in the window
       expect(tasks.validAfterMidnight).toMatchObject({ taskId: 'j', day: TODAY, seconds: 0 })
       // the pass has not run (no return, a route change never starts it); the next start or return runs it
-      newDay.run()
+      startFresh(newDay)
       expect(stored('j')).toBe(600 + 30 * 60)
       // the cards went back all the same, and the carried-over count and the recap wait for exactly this pass
       expect(tasks.task('j')).toMatchObject({ status: TaskStatus.Open, notPlanned: true, timerId: null })
-      expect(notPlannedIds()).toEqual(['j', 'o1', 'o2'])
+      expect(notPlannedIds()).toEqual(['j', 'o1', 'o2', 'w'])
     })
 
     it('away from 23:50 to 08:00: only the seconds counted after midnight go, none before it', () => {
       const { newDay } = running(at(21, 23, 50))
       vi.advanceTimersByTime((10 + 8 * 60) * 60 * 1000) // 08:00 the next morning
-      newDay.run()
+      startFresh(newDay)
       newDay.takeOffTime()
       expect(stored('j')).toBe(600 + 10 * 60)
     })
@@ -578,7 +776,7 @@ describe('useNewDay: the pass (#356)', () => {
       vi.advanceTimersByTime(30 * 60 * 1000) // 00:20 in the window
       leaveWindow()
       vi.advanceTimersByTime(7 * 60 * 60 * 1000 + 40 * 60 * 1000) // away until 08:00
-      newDay.run()
+      startFresh(newDay)
       newDay.takeOffTime()
       // 600 s before midnight, 1200 s after it in the window, and the 59 seconds of the grace in which the user still counts as present
       expect(stored('j')).toBe(600 + 600 + 1200 + 59)
@@ -591,7 +789,7 @@ describe('useNewDay: the pass (#356)', () => {
       vi.advanceTimersByTime(30 * 1000) // back within half a minute
       window.dispatchEvent(new Event('focus'))
       vi.advanceTimersByTime(5 * 60 * 1000)
-      newDay.run()
+      startFresh(newDay)
       expect(stored('j')).toBe(600 + 20 * 60 + 30)
     })
 
@@ -600,7 +798,7 @@ describe('useNewDay: the pass (#356)', () => {
       vi.advanceTimersByTime(20 * 60 * 1000) // 00:10: back after 20 minutes away
       // the page's handler: the return follows a real absence, so it runs the pass
       expect(returnedAfterAbsence()).toBe(true)
-      newDay.run()
+      startFresh(newDay)
       expect(newDay.timeOffer.value?.seconds).toBe(10 * 60)
       newDay.takeOffTime()
       expect(stored('j')).toBe(600 + 10 * 60)
@@ -609,7 +807,95 @@ describe('useNewDay: the pass (#356)', () => {
       // working on until 01:00 adds nothing to the card: it has to be planned again and started
       vi.advanceTimersByTime(50 * 60 * 1000)
       expect(stored('j')).toBe(600 + 10 * 60)
-      expect(newDay.run()).toEqual([])
+      expect(startFresh(newDay)).toEqual([])
+    })
+
+    describe('a day that is not started fresh (#387): the question comes with the day check, the timer keeps tracking', () => {
+      const sessions = () => useTaskStatisticsStore().workSessions.map(({ start, end }) => [start, end])
+      const ms = (day: number, hour: number, minute = 0, second = 0) => at(day, hour, minute, second).getTime()
+      /** Away from 23:50 to 08:00, then back in the window: the page's handler runs the day check, nothing else */
+      const backInTheMorning = () => {
+        const context = running(at(21, 23, 50))
+        vi.advanceTimersByTime((10 + 8 * 60) * 60 * 1000)
+        window.dispatchEvent(new Event('focus'))
+        context.newDay.check()
+        return context
+      }
+
+      it('asks about the time after midnight without a fresh start: the task stays in Jetzt and its timer runs on', () => {
+        const { tasks, newDay } = backInTheMorning()
+        expect(newDay.timeOffer.value).toEqual({ taskId: 'j', title: 'Task j', seconds: 8 * 60 * 60 })
+        expect(tasks.task('j')).toMatchObject({ status: TaskStatus.Progress })
+        expect(armedTaskTimerIds()).toEqual(['j'])
+        expect(stored('j')).toBe(600 + (10 + 8 * 60) * 60)
+        expect(notPlannedIds()).toEqual([])
+        // the user works on: the timer counts, and nothing is noted for a later question
+        vi.advanceTimersByTime(10 * 60 * 1000)
+        expect(stored('j')).toBe(600 + (10 + 8 * 60 + 10) * 60)
+        expect(tasks.afterMidnight).toBeNull()
+        expect(newDay.timeOffer.value?.seconds).toBe(8 * 60 * 60)
+      })
+
+      it('"Zeit abziehen" while the timer runs: exactly the offered stretch goes, the seconds collected since stay, and the timer runs on', () => {
+        const { newDay } = backInTheMorning()
+        vi.advanceTimersByTime(4000) // four collected seconds, below the 10 s checkpoint
+        expect(newDay.takeOffTime()).toBe(8 * 60 * 60)
+        expect(stored('j')).toBe(600 + 10 * 60 + 4)
+        expect(armedTaskTimerIds()).toEqual(['j'])
+        vi.advanceTimersByTime(10_000)
+        expect(stored('j')).toBe(600 + 10 * 60 + 4 + 10)
+        expect(newDay.takeOffTime()).toBe(0)
+      })
+
+      it('the Statistik session of a timer that runs on: the night is cut out and the next heartbeats do not stretch a session back over it', () => {
+        const { newDay } = backInTheMorning()
+        newDay.takeOffTime()
+        // the night is gone from the sessions; what follows the return is a session of its own
+        expect(sessions()[0]).toEqual([ms(21, 23, 50), ms(22, 0)])
+        vi.advanceTimersByTime(5 * 60 * 1000) // five heartbeats
+        const after = sessions()
+        expect(after[0]).toEqual([ms(21, 23, 50), ms(22, 0)])
+        expect(after).toHaveLength(2)
+        expect(after[1]![0]).toBeGreaterThanOrEqual(ms(22, 8, 0))
+        expect(after[1]![1]).toBe(ms(22, 8, 5))
+      })
+
+      it('"Zeit behalten" on a skipped day changes nothing and the timer runs on', () => {
+        const { newDay } = backInTheMorning()
+        newDay.keepTime()
+        expect(newDay.timeOffer.value).toBeNull()
+        expect(stored('j')).toBe(600 + (10 + 8 * 60) * 60)
+        expect(armedTaskTimerIds()).toEqual(['j'])
+        expect(sessions()).toEqual([[ms(21, 23, 50), ms(22, 8, 0)]])
+      })
+
+      it('only the time until the day check is asked about: a later absence that day is the user\'s own running timer, as on any day', () => {
+        const { tasks, newDay } = backInTheMorning()
+        newDay.keepTime()
+        leaveWindow()
+        vi.advanceTimersByTime(60 * 60 * 1000) // an hour away at midday, the timer running
+        window.dispatchEvent(new Event('focus'))
+        newDay.check()
+        expect(newDay.timeOffer.value).toBeNull()
+        expect(tasks.afterMidnight).toBeNull()
+      })
+
+      it('the fresh start after the question was raised asks nothing twice and removes nothing', () => {
+        const { tasks, newDay } = backInTheMorning()
+        expect(newDay.freshStart()).toEqual(['j', 'o1', 'o2', 'w'])
+        expect(tasks.task('j')).toMatchObject({ status: TaskStatus.Open, notPlanned: true, timerId: null })
+        expect(newDay.timeOffer.value?.seconds).toBe(8 * 60 * 60)
+        expect(stored('j')).toBe(600 + (10 + 8 * 60) * 60)
+        expect(newDay.takeOffTime()).toBe(8 * 60 * 60)
+        expect(stored('j')).toBe(600 + 10 * 60)
+      })
+
+      it('a fresh start without a check before it (a caller outside the app\'s flow) still loses no question', () => {
+        const { newDay } = running(at(21, 23, 50))
+        vi.advanceTimersByTime(30 * 60 * 1000)
+        newDay.freshStart()
+        expect(newDay.timeOffer.value?.seconds).toBe(20 * 60)
+      })
     })
 
     describe('the Statistik work sessions follow the removal (D3 h): one stretch, cut at the same boundary', () => {
@@ -622,7 +908,7 @@ describe('useNewDay: the pass (#356)', () => {
         useTaskStatisticsStore().workSessions = [yesterdayAfternoon]
         const { newDay } = running(at(21, 23, 50))
         vi.advanceTimersByTime((10 + 8 * 60) * 60 * 1000)
-        newDay.run()
+        startFresh(newDay)
         // the question is open: the sessions are whole until the user answers
         expect(sessions()).toEqual([[yesterdayAfternoon.start, yesterdayAfternoon.end], [ms(21, 23, 50), ms(22, 8, 0)]])
         newDay.takeOffTime()
@@ -636,7 +922,7 @@ describe('useNewDay: the pass (#356)', () => {
         vi.advanceTimersByTime(30 * 60 * 1000) // 00:20 in the window
         leaveWindow()
         vi.advanceTimersByTime(7 * 60 * 60 * 1000 + 40 * 60 * 1000)
-        newDay.run()
+        startFresh(newDay)
         newDay.takeOffTime()
         // the 59 seconds of the grace count as present: the session keeps them with the card's 600 + 1200 + 59 s
         expect(sessions()).toEqual([[ms(21, 23, 50), ms(22, 0, 20, 59)]])
@@ -646,7 +932,7 @@ describe('useNewDay: the pass (#356)', () => {
       it('present through midnight: the session is untouched, and so is the card', () => {
         const { newDay } = running(at(21, 23, 50), { present: true })
         vi.advanceTimersByTime(30 * 60 * 1000)
-        newDay.run()
+        startFresh(newDay)
         expect(sessions()).toEqual([[ms(21, 23, 50), ms(22, 0, 20)]])
         expect(stored('j')).toBe(600 + 30 * 60)
       })
@@ -654,7 +940,7 @@ describe('useNewDay: the pass (#356)', () => {
       it('away 23:50 to 00:10: the ten minutes after midnight leave the session as they leave the card', () => {
         const { newDay } = running(at(21, 23, 50))
         vi.advanceTimersByTime(20 * 60 * 1000)
-        newDay.run()
+        startFresh(newDay)
         newDay.takeOffTime()
         expect(sessions()).toEqual([[ms(21, 23, 50), ms(22, 0)]])
         expect(stored('j')).toBe(600 + 10 * 60)
@@ -663,13 +949,13 @@ describe('useNewDay: the pass (#356)', () => {
       it('exactly once: a second pass the same day and a stopped timer cut nothing more', () => {
         const { newDay } = running(at(21, 23, 50))
         vi.advanceTimersByTime((10 + 8 * 60) * 60 * 1000)
-        newDay.run()
+        startFresh(newDay)
         newDay.takeOffTime()
         const after = sessions()
         const timeAfter = stored('j')
         // a second answer, a second pass and a stopped timer cut and take off nothing more
         expect(newDay.takeOffTime()).toBe(0)
-        newDay.run()
+        startFresh(newDay)
         vi.advanceTimersByTime(60 * 60 * 1000)
         expect(sessions()).toEqual(after)
         expect(stored('j')).toBe(timeAfter)
@@ -694,7 +980,7 @@ describe('useNewDay: the pass (#356)', () => {
 
       it('no silent removal: after the pass the card and the Statistik sessions are whole, and the question names the stretch and the task', () => {
         const { newDay, tasks, recap } = away()
-        newDay.run()
+        startFresh(newDay)
         expect(stored('j')).toBe(600 + 60 * 60)
         expect(sessions()).toEqual([[ms(21, 23, 50), ms(22, 0, 50)]])
         expect(newDay.timeOffer.value).toEqual({ taskId: 'j', title: 'Task j', seconds: 50 * 60 })
@@ -705,7 +991,7 @@ describe('useNewDay: the pass (#356)', () => {
 
       it('"Zeit abziehen": card and Statistik session lose the same stretch, once', () => {
         const { newDay } = away()
-        newDay.run()
+        startFresh(newDay)
         expect(newDay.takeOffTime()).toBe(50 * 60)
         expect(stored('j')).toBe(600 + 10 * 60)
         expect(sessions()).toEqual([[ms(21, 23, 50), ms(22, 0)]])
@@ -717,7 +1003,7 @@ describe('useNewDay: the pass (#356)', () => {
 
       it('"Zeit behalten": everything stays as recorded and the question is gone', () => {
         const { newDay } = away()
-        newDay.run()
+        startFresh(newDay)
         newDay.keepTime()
         expect(newDay.timeOffer.value).toBeNull()
         expect(newDay.takeOffTime()).toBe(0)
@@ -727,7 +1013,7 @@ describe('useNewDay: the pass (#356)', () => {
 
       it('unanswered the time stays, and the question survives a reload that day', () => {
         const { newDay, recap } = away()
-        newDay.run()
+        startFresh(newDay)
         vi.advanceTimersByTime(3 * 60 * 60 * 1000) // later that day
         expect(stored('j')).toBe(600 + 60 * 60)
         const storedOffer = JSON.parse(JSON.stringify(recap.timeOffer))
@@ -743,11 +1029,11 @@ describe('useNewDay: the pass (#356)', () => {
 
       it('the question ends with its day: the next day it is not shown, the next pass drops it, and nothing was removed', () => {
         const { newDay, recap } = away()
-        newDay.run()
+        startFresh(newDay)
         vi.setSystemTime(at(23, 9, 0))
         syncToday() // the shared "today" moves on (the page's timer and every return)
         expect(newDay.timeOffer.value).toBeNull() // before any write: it follows the shared "today"
-        newDay.run()
+        startFresh(newDay)
         expect(recap.timeOffer).toBeNull()
         expect(newDay.takeOffTime()).toBe(0)
         expect(stored('j')).toBe(600 + 60 * 60)
@@ -788,7 +1074,7 @@ describe('useNewDay: the pass (#356)', () => {
 
       it('after the card was planned and started again, the seconds its running timer has not written yet are not lost', () => {
         const { newDay, tasks } = away()
-        newDay.run()
+        startFresh(newDay)
         tasks.updateTask('j', { status: TaskStatus.Progress, notPlanned: undefined })
         vi.setSystemTime(at(22, 9, 0))
         vi.advanceTimersByTime(4000) // four collected seconds, below the 10 s checkpoint
@@ -801,7 +1087,7 @@ describe('useNewDay: the pass (#356)', () => {
         board.setSources({ connected: ['notion'], default: 'notion' })
         useIntegrationHealthStore().recordSuccessfulSync('notion')
         vi.advanceTimersByTime(60 * 60 * 1000)
-        newDay.run()
+        startFresh(newDay)
         const queued = tasks.pendingTimeUpdates.nj?.timeSpentSeconds
         expect(queued).toBe(stored('nj'))
         newDay.takeOffTime()
@@ -814,7 +1100,7 @@ describe('useNewDay: the pass (#356)', () => {
       board.setSources({ connected: ['notion'], default: 'notion' })
       useIntegrationHealthStore().recordSuccessfulSync('notion')
       vi.advanceTimersByTime(30 * 60 * 1000)
-      newDay.run()
+      startFresh(newDay)
       // the question is open: the time is as recorded until the user answers
       expect(stored('nj')).toBe(2400)
       newDay.takeOffTime()
