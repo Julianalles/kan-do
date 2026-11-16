@@ -778,6 +778,15 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await expect.poll(() => groupIds(page, 'waiting')).toEqual(['nd-waiting-1'])
     await expect.poll(() => groupIds(page, 'others')).toEqual(['nd-held-1'])
     expect(await openIds(page)).toEqual([])
+    // desktop (#404): each category heading starts on the left edge of its first card, also when the category has one card,
+    // and over the whole desktop range (the tracks shrink below ~1056 px)
+    for (const width of [1024, 1100, 1280, 1440]) {
+      await page.setViewportSize({ width, height: 900 })
+      for (const [name, firstId] of [['Gestern geplant, noch offen', 'nd-now-1'], ['Zuletzt in Wartet', 'nd-waiting-1'], ['Weitere Aufgaben', 'nd-held-1']] as const) {
+        const card = side(page).locator(`[data-not-planned-id="${firstId}"] .not-planned__card`)
+        await expect.poll(async () => Math.abs((await page.getByRole('heading', { level: 3, name }).boundingBox())!.x - (await card.boundingBox())!.x), { message: `${name} sits over its first card at ${width}px` }).toBeLessThanOrEqual(1)
+      }
+    }
     // the day is started: no notice
     await expect(note(page)).toHaveCount(0)
     expect(await storedRecap(page)).toMatchObject({ lastNewDay: dayKeyDaysAgo(0), sentBack: { day: dayKeyDaysAgo(0), ids: ['nd-now-1', 'nd-open-2', 'nd-open-1'] } })

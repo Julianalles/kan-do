@@ -20,7 +20,7 @@
     - heading "Für morgen" [level=3]
     - paragraph: 2 Aufgaben bleiben auf dem Board, bis du den nächsten Tag planst. Du kannst sie einzeln abwählen.
     - group:
-      - text: Offene Aufgaben anzeigen
+      - text: Offene Aufgaben
       - list "Offene Aufgaben, die auf dem Board bleiben":
         - listitem:
           - checkbox "Konzept ausarbeiten Offen · Kommt in den Papierkorb"

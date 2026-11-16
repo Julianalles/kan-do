@@ -133,3 +133,30 @@ html[data-shell="desktop"] :is(
   -webkit-user-select: text;
   user-select: text;
 }
+
+/* Desktop app (#393): a native button shows the arrow, not the web's pointing hand. The base layer's "Pressable" rule
+   (main.css), Tailwind's `cursor-pointer` (app.config.ts, templates) and the components' own scoped `cursor: pointer` (the
+   task card `.task`, the table rows, the add slot, the capacity echo) set the hand; this block is unlayered and its
+   specificity is above a scoped class rule, so it wins over all of them without `!important`, and only under the desktop
+   marker: the web build keeps the hand. What still wins on its own: `not-allowed` on a disabled control (excluded below),
+   the grabbing cursor during a drag (dnd.css) and the crosshair of the feedback picker (both `!important`). A link inside
+   copyable running text (`data-selectable`) is a link, not a control: it keeps the hand. A control that deliberately shows
+   another cursor is left out by name (`.choice-chip--field` reads as the text field it opens, kd#16) or by the utility
+   (`cursor-text`, `cursor-grab`, `cursor-not-allowed`): add a new deliberate cursor to that `:not()` list. Not `:where()`:
+   a zero-specificity list would lose to every scoped `cursor: pointer` and bring the hand back on those controls. */
+html[data-shell="desktop"] :is(
+  button, [role='button'], [role='tab'], [role='radio'], [role='checkbox'], [role='switch'], [role='menuitem'], [role='option'],
+  summary, a[href], label[for], .cursor-pointer, .plan-arrow, .picker-edit-row, .task, tbody tr
+):not(
+  :disabled, [aria-disabled='true'], [data-selectable] a[href],
+  .choice-chip--field, .cursor-text, .cursor-grab, .cursor-not-allowed
+) {
+  cursor: default;
+}
+
+/* Desktop app (#398): a link or an image is not dragged out of the window as a ghost. `plugins/desktop-shell.client.ts`
+   also cancels `dragstart` on them (the fallback); the board's pointer-driven drag (dnd-kit) is not a native drag. */
+html[data-shell="desktop"] :is(a, img) {
+  -webkit-user-drag: none;
+  user-drag: none;
+}
