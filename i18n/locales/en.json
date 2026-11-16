@@ -170,6 +170,10 @@
       "close": "Close",
       "planned": "One task is planned for today again. | {n} tasks are planned for today again."
     },
+    "sourceBackNote": {
+      "title": "New: tasks from {source} start under “Not planned”.",
+      "description": "One task from Open is now under “All”, in “Not planned”. Plan it for today there. | {n} tasks from Open are now under “All”, in “Not planned”. Plan them for today there."
+    },
     "newDayTimeNote": {
       "title": "Timer ran on for {duration} after midnight",
       "description": "Kan-Do was not in focus. The time is still on the task.",

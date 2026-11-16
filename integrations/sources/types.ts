@@ -50,6 +50,26 @@ export interface TaskSourceAdapter {
    */
   timeWritable?(): Promise<boolean>
 
+  /**
+   * What the source holds a task as that the user puts back to "Nicht geplant" (#357): the Notion status a
+   * put-back is written as (the first mapped "not planned" status). `null` or absent: the source stores no
+   * planning, so plan and put-back stay in kan-do (Local, Todoist, Notion without such a status). `useTaskSync`
+   * writes a plan or a put-back upstream only when this answers a value.
+   */
+  notPlannedHold?(): string | null
+
+  /**
+   * `true` for a source that only knows open and completed (Todoist): a task it reports as open keeps the board
+   * column kan-do holds it in (Jetzt, Wartet), instead of going back to Offen with every fetch (#357).
+   */
+  readonly holdsOnlyOpenDone?: boolean
+
+  /**
+   * `true` when the first time a fetch takes tasks off an existing board is announced to the user with the
+   * one-time note and its put-back button (#357: Todoist, where every task starts not planned since the update).
+   */
+  readonly announcesFirstBack?: boolean
+
   /** Creates a task upstream and resolves to it, source and externalId stamped. */
   create(draft: Partial<Task>): Promise<Task>
 

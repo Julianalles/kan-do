@@ -2,7 +2,7 @@
  * @composable useNewDay
  * @description A new day sends what was planned and not finished back to "Nicht geplant" (#356, epic #334): one
  * pass per local day over Jetzt and Offen, run when the app is opened or returned to after an absence on a later
- * day (never while the user works in the window: not at midnight, not on a route change), with or without a recap. It changes kan-do's own state only, except for
+ * day (never while the user works in the window: not at midnight, not on a route change), with or without a recap. It changes kan-do's own state only (also for a connection that stores planning, #357: the pass is `unplanTasks(..., { local: true })`), except for
  * the one Jetzt task, whose status is written to its connection like the day close's "Fertig" does.
  * @responsibility
  * - `run()`: called by `pages/tasks.vue` before the recap's check, on the app's start (the first board mount of a
@@ -117,7 +117,8 @@ export function useNewDay() {
       if (!isDemoTaskId(task.id) && !back.includes(task.id)) back.push(task.id)
     }
 
-    const sent = unplanTasks(back)
+    // kan-do's own state only: the morning writes nothing to a connection for the cards it sends back (#357, D1)
+    const sent = unplanTasks(back, { local: true })
     recapStore.markNewDay(todayKey, sent, offer)
     return sent
   }

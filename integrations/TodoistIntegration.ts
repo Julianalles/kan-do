@@ -14,6 +14,18 @@ export const TODOIST_TIMEOUT_MS = 10000;
 const COMPLETED_PAGE_SIZE = 200;
 const COMPLETED_PAGE_CAP = 10;
 
+/** Page size of the open-tasks read (the API's maximum). */
+const OPEN_PAGE_SIZE = 200;
+/** Guard against a cursor that never ends: 100 pages are 20 000 open tasks. Reaching it fails the fetch, a part is never shown. */
+const OPEN_PAGE_CAP = 100;
+
+/**
+ * `Task.sourceNotPlanned` of every Todoist task (#357, the user's decision of 2026-11-16): Todoist has no "planned
+ * for today" kan-do follows, so every task starts under "Nicht geplant", whatever its due date, and the plan lives
+ * in kan-do only. The value never changes, so after a task's first fetch a sync never moves it again.
+ */
+export const TODOIST_NOT_PLANNED = 'todoist:open';
+
 type SdkTask = Awaited<ReturnType<TodoistApi['getTask']>>;
 
 const TIMEOUT_MESSAGE_PREFIX = 'Todoist request timeout after';
@@ -93,13 +105,11 @@ export class TodoistIntegration {
   }
 
   /**
-   * Retrieves all active tasks for the board.
-   * For Todoist: Returns tasks scheduled for today (open) and completed today.
-   * 
-   * Note: Unlike Notion, Todoist naturally filters by date ('today' filter).
+   * Retrieves the tasks kan-do holds for Todoist: every open task of the account, whatever its due date (#357:
+   * each starts under "Nicht geplant", `TODOIST_NOT_PLANNED`), and the tasks completed today.
    * Completed tasks from previous days are not included.
-   * 
-   * @returns Array of tasks that should be displayed on the active board
+   *
+   * @returns The open tasks and the ones completed today
    */
   async getActiveBoardTasks(): Promise<Array<Task>> {
     if (!this.apiToken) {
@@ -135,9 +145,9 @@ export class TodoistIntegration {
     // Step 1: Get Completed Tasks (from today), best effort
     const completedTasks = await this.getCompletedBoardTasks();
 
-    // Step 2: Get Active Tasks (scheduled for today), decides the fetch
+    // Step 2: every open task (all pages), decides the fetch
     const activeTasks = this.mapTodoistTaskArrayToTaskArray(
-      await this.getOpenTodayTodoistTasks(),
+      await this.getOpenTodoistTasks(),
     );
 
     return [...completedTasks, ...activeTasks];
@@ -183,8 +193,7 @@ export class TodoistIntegration {
   }
 
   /**
-   * Creates the task in Todoist for a restore from kan-do's trash (#422): due today, so the board fetches it
-   * again; the time box as `<n>min` label, the project by the task's topic. A task that was done is completed
+   * Creates the task in Todoist for a restore from kan-do's trash (#422): due today; the time box as `<n>min` label, the project by the task's topic. A task that was done is completed
    * right after; if only that fails the created task is still returned (the next push corrects the status).
    * Resolves to the new task (its Todoist id as `externalId`). Throws when the task could not be created.
    */
@@ -215,15 +224,29 @@ export class TodoistIntegration {
         if (import.meta.dev) console.warn('Todoist restore: the task was created but not completed', error);
       }
     }
-    return { ...task, id: todoistId, externalId: todoistId, source: 'todoist' };
+    // Held like every Todoist task, so the next fetch does not read the new task as a change and move it
+    return { ...task, id: todoistId, externalId: todoistId, source: 'todoist', sourceNotPlanned: TODOIST_NOT_PLANNED };
   }
 
-  private async getOpenTodayTodoistTasks(): Promise<ITodoistTask[]> {
-    // Note: getTasks() doesn't support filter parameter in current API version
-    // We fetch all tasks and would need to filter client-side if needed
-    const response = await this.todoistApi.getTasks();
-    if (import.meta.dev) console.log('got active Todoist tasks via REST API...', response);
-    return response.results.map((item) => this.toTodoistTask(item));
+  /**
+   * Every open task of the account. `getTasks` is paged by cursor (#357: one page was read, so a larger account
+   * showed only its first page): follows `nextCursor` to the end. A failure on any page rejects the whole read, and
+   * so does a cursor that repeats or does not end within `OPEN_PAGE_CAP` pages: a part of the list would make
+   * `mergeTasks` drop the rest.
+   */
+  private async getOpenTodoistTasks(): Promise<ITodoistTask[]> {
+    const tasks: ITodoistTask[] = [];
+    let cursor: string | null = null;
+    for (let page = 0; page < OPEN_PAGE_CAP; page++) {
+      const response: { results: SdkTask[]; nextCursor: string | null } =
+        await this.todoistApi.getTasks({ cursor, limit: OPEN_PAGE_SIZE });
+      tasks.push(...response.results.map((item) => this.toTodoistTask(item)));
+      const next = response.nextCursor;
+      if (!next) return tasks;
+      if (next === cursor) throw new Error('Todoist: the task list did not advance (repeated cursor)');
+      cursor = next;
+    }
+    throw new Error(`Todoist: the task list did not end after ${OPEN_PAGE_CAP} pages (${tasks.length} tasks read)`);
   }
 
   /**
@@ -321,6 +344,8 @@ export class TodoistIntegration {
         timerId: null,
         isUnplanned: false, // TODO: Implement unplanned detection via labels or custom fields
         source: "todoist" as const,
+        // Completed tasks carry it too: reopening one must not read as a change at the source
+        sourceNotPlanned: TODOIST_NOT_PLANNED,
       };
     });
   }

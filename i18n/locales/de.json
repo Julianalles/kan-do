@@ -170,6 +170,10 @@
       "close": "Schließen",
       "planned": "Eine Aufgabe ist wieder für heute geplant. | {n} Aufgaben sind wieder für heute geplant."
     },
+    "sourceBackNote": {
+      "title": "Neu: Aufgaben aus {source} beginnen unter „Nicht geplant“.",
+      "description": "Eine Aufgabe aus Offen liegt jetzt unter „Alle“ bei „Nicht geplant“. Dort planst du sie für heute ein. | {n} Aufgaben aus Offen liegen jetzt unter „Alle“ bei „Nicht geplant“. Dort planst du sie für heute ein."
+    },
     "newDayTimeNote": {
       "title": "Timer lief nach Mitternacht {duration} weiter",
       "description": "Kan-Do war dabei nicht im Vordergrund. Die Zeit steht noch an der Aufgabe.",

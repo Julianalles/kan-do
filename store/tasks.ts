@@ -13,7 +13,7 @@ import type { SortField, SortDirection } from "~/types/state";
 import { mapHelpers, setHelpers } from "~/utils/mapHelpers";
 import type { CarryOverEntry } from "~/utils/carryOver";
 import { advanceCarryOverEntry, createCarryOverEntry } from "~/utils/carryOver";
-import { isNotPlanned, markerSurvives } from "~/lib/taskPlanning";
+import { isNotPlanned, markerSurvives, sourceMarker } from "~/lib/taskPlanning";
 import { isValidDayKey } from "~/utils/recapDay";
 import { isKnownSource } from "~/utils/sourceMeta";
 import type { IntegrationSourceId, SourceId } from "~/types/taskSource";
@@ -536,9 +536,17 @@ export const useTasksStore = defineStore("tasks", () => {
     const moving = tasks.value.find((el) => el.id === taskId);
     if (!moving || moving.source === target || moving.pendingMove) return null;
     const previous = { pendingSync: moving.pendingSync };
-    moving.pendingMove = { fromSource: moving.source, fromExternalId: moving.externalId, toSource: target };
+    moving.pendingMove = {
+      fromSource: moving.source,
+      fromExternalId: moving.externalId,
+      toSource: target,
+      ...(moving.sourceNotPlanned !== undefined ? { fromSourceNotPlanned: moving.sourceNotPlanned } : {}),
+    };
     moving.source = target;
     moving.externalId = null;
+    // What the old source held the task as says nothing about the new one (#357); the marker itself stays, and
+    // the move keeps the old value for its way back (`restoreMoveOrigin`)
+    delete moving.sourceNotPlanned;
     delete moving.pendingSync;
     pendingSyncRevisions.delete(taskId);
     mapHelpers.delete(pendingTimeUpdates.value, taskId);
@@ -560,6 +568,8 @@ export const useTasksStore = defineStore("tasks", () => {
     if (!moved || !move) return;
     moved.source = move.fromSource;
     moved.externalId = move.fromExternalId;
+    if (move.fromSourceNotPlanned !== undefined) moved.sourceNotPlanned = move.fromSourceNotPlanned;
+    else delete moved.sourceNotPlanned;
     delete moved.pendingMove;
     delete moved.pendingSync;
     pendingSyncRevisions.delete(taskId);
@@ -650,6 +660,19 @@ export const useTasksStore = defineStore("tasks", () => {
     boardStore.reconcileColumnsWithTasks(tasks.value);
     boardStore.moveToEndOfColumn(TaskStatus.Open, planned);
     return planned;
+  }
+
+  /**
+   * Notes what the task's source holds it as (#357, `Task.sourceNotPlanned`): the status a put-back is written as,
+   * or `undefined` once the source holds it as planned. Only `useTaskSync` calls this, around its own write.
+   * @returns whether the value changed
+   */
+  function setSourceNotPlanned(taskId: string, held: string | undefined): boolean {
+    const target = tasks.value.find((el) => el.id === taskId);
+    if (!target || target.sourceNotPlanned === held) return false;
+    if (held === undefined) delete target.sourceNotPlanned;
+    else target.sourceNotPlanned = held;
+    return true;
   }
 
   /**
@@ -1015,10 +1038,14 @@ export const useTasksStore = defineStore("tasks", () => {
    *   to the total the source reads back for it (a unit rounding, `TaskSourceAdapter.timeHolding`): a fetched
    *   value equal to that is the local total, so it is kept as it is and queues no push (#323). `timeWritable: false`
    *   (`TaskSourceAdapter.timeWritable`, a Notion select time property, #331): the source takes no time write, so
-   *   local time above the fetched value queues no push.
+   *   local time above the fetched value queues no push. `holdsOnlyOpenDone` (`TaskSourceAdapter.holdsOnlyOpenDone`,
+   *   Todoist): the source knows no Jetzt or Wartet, so a task it reports as open keeps the column kan-do holds it in.
+   * @returns the ids of the tasks this merge took off today's board: tasks that were in Offen and planned, and that
+   *   the source now holds as not planned (`Task.sourceNotPlanned`, #357). A task seen for the first time is not one.
    */
-  function mergeTasks(source: SourceId, fetchedTasks: Task[], options: { replaceOthers?: boolean; heldTime?: (seconds: number) => number; timeWritable?: boolean } = {}): void {
+  function mergeTasks(source: SourceId, fetchedTasks: Task[], options: { replaceOthers?: boolean; heldTime?: (seconds: number) => number; timeWritable?: boolean; holdsOnlyOpenDone?: boolean } = {}): string[] {
     const boardStore = useBoardStore();
+    const takenOff: string[] = [];
 
     // A completed switch replaces the Local tasks it adopted; another connected integration's tasks stay (#320)
     const otherTasks = tasks.value.filter(task => task.source !== source && !(options.replaceOthers && task.source === 'local'));
@@ -1089,6 +1116,12 @@ export const useTasksStore = defineStore("tasks", () => {
           timerId: existingTask.timerId, // Preserve active timer
         };
 
+        // A source without Jetzt and Wartet (Todoist) says "open" for them too: the column is kan-do's (#357)
+        if (options.holdsOnlyOpenDone && mergedTask.status === TaskStatus.Open
+          && (existingTask.status === TaskStatus.Progress || existingTask.status === TaskStatus.Waiting)) {
+          mergedTask.status = existingTask.status;
+        }
+
         // Keep an in-flight local status change (e.g. an undone completion)
         const statusLock = statusLocks.get(resolvedId);
         if (statusLock) {
@@ -1096,10 +1129,21 @@ export const useTasksStore = defineStore("tasks", () => {
           mergedTask.completedAt = statusLock.completedAt;
         }
 
-        // "Not planned" (#353) is kan-do's own state: the fetch never carries it, so the held task's marker stays,
-        // but only while the task is still Open after the merge (the source moved it on: it is on the board)
-        if (existingTask.notPlanned === true && markerSurvives(existingTask.status, mergedTask.status)) mergedTask.notPlanned = true;
+        // "Not planned" (#353) is kan-do's own state: the held task's marker stays, but only while the task is still
+        // Open after the merge (the source moved it on: it is on the board). A source with a planning state of its
+        // own (#357) moves the task only when that state changed there since the last fetch (`sourceMarker`);
+        // `base` already carries what the source holds now (the local value while a push is outstanding)
+        const heldBefore = existingTask.sourceNotPlanned;
+        const heldNow = mergedTask.sourceNotPlanned;
+        if (heldNow === undefined) delete mergedTask.sourceNotPlanned;
+        const wasNotPlanned = isNotPlanned(existingTask);
+        const sourceMoved = (heldBefore !== undefined) !== (heldNow !== undefined);
+        const notPlannedNow = sourceMoved
+          ? sourceMarker(wasNotPlanned, heldBefore, heldNow) && mergedTask.status === TaskStatus.Open
+          : existingTask.notPlanned === true && markerSurvives(existingTask.status, mergedTask.status);
+        if (notPlannedNow) mergedTask.notPlanned = true;
         else delete mergedTask.notPlanned;
+        if (notPlannedNow && !wasNotPlanned && existingTask.status === TaskStatus.Open) takenOff.push(existingTask.id);
 
         // A done day the user corrected (kd#131) outlives the fetch while both sides hold the task as done: a
         // source without a completion date would report "now", one with a date may still hold the old day
@@ -1123,7 +1167,10 @@ export const useTasksStore = defineStore("tasks", () => {
         // New task from the source: its externalId becomes the id unless another task already uses it
         const id = takenIds.has(fetchedTask.id) ? generateTaskId() : fetchedTask.id;
         takenIds.add(id);
-        mergedTasks.push({ ...fetchedTask, id });
+        // A task seen for the first time starts where its source holds it (#357); the marker is never the fetch's own
+        const { notPlanned: _fetchedMarker, ...fresh } = fetchedTask;
+        const startsNotPlanned = sourceMarker(false, undefined, fresh.sourceNotPlanned, true) && fresh.status === TaskStatus.Open;
+        mergedTasks.push({ ...fresh, id, ...(startsNotPlanned ? { notPlanned: true as const } : {}) });
       }
     });
 
@@ -1171,6 +1218,7 @@ export const useTasksStore = defineStore("tasks", () => {
         console.warn('Failed to sync statistics after merge:', error);
       });
     }
+    return takenOff;
   }
 
   /**
@@ -1575,6 +1623,7 @@ export const useTasksStore = defineStore("tasks", () => {
     addTask,
     planTask,
     planTasks,
+    setSourceNotPlanned,
     unplanTask,
     unplanTasks,
     removeTask,

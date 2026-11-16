@@ -276,11 +276,17 @@ export const useTaskSync = () => {
    * 404, any other 4xx: the source refuses this task) throws, the caller keeps the form open and reports it.
    * A draft with `notPlanned: true` and the status Open makes a task that is not planned (#367: one made while the
    * place "Alle" shows): it goes on top of "Nicht geplant" instead of into Offen. The marker is set here, after the
-   * adapter returned the task, and never reaches an adapter: nothing about it is written to a connection.
+   * adapter returned the task. A source that stores planning (#357, `notPlannedHold`: Notion with a "not planned"
+   * status mapped) creates the task as not planned there too; for every other source nothing about it is written.
    * @returns the task as it was added to the store
    */
   const createTask = async (draftIn: Partial<Task>, source: SourceId): Promise<Task> => {
-    const { notPlanned: asksNotPlanned, ...draft } = draftIn;
+    const { notPlanned: asksNotPlanned, sourceNotPlanned: _held, ...plain } = draftIn;
+    const hold = asksNotPlanned === true && (plain.status === undefined || plain.status === TaskStatus.Open)
+      ? adapterFor(source).notPlannedHold?.() ?? null
+      : null;
+    // The adapter reads both: the marker says "not planned", the held value says as what
+    const draft: Partial<Task> = hold === null ? plain : { ...plain, notPlanned: true, sourceNotPlanned: hold };
     let created: Task;
     let deferredReason: string | null = null;
     let deferredError: unknown = null;
@@ -306,8 +312,11 @@ export const useTaskSync = () => {
 
     // Only an Open task can be not planned (`isNotPlanned`): add-and-start (Jetzt) stays on the board
     const notPlanned = asksNotPlanned === true && created.status === TaskStatus.Open;
-    if (notPlanned) created = { ...created, notPlanned: true };
-    else if (created.notPlanned !== undefined) delete created.notPlanned;
+    if (notPlanned) created = { ...created, notPlanned: true, ...(hold !== null ? { sourceNotPlanned: hold } : {}) };
+    else {
+      if (created.notPlanned !== undefined) delete created.notPlanned;
+      if (hold !== null) delete created.sourceNotPlanned;
+    }
     tasksStore.addTask(created);
     if (notPlanned) boardStore.noteNotPlanned(created.id);
     else if (created.status !== undefined) boardStore.updateTaskPosition(created.id, created.status);
@@ -863,22 +872,66 @@ export const useTaskSync = () => {
   };
 
   /**
-   * Plans a task for today (#353): it leaves "not planned" and lands at the end of Offen. The planned state
-   * lives in kan-do only, so no adapter is called and no `pendingSync` is set; the moves still go through here,
-   * so that a later write to a connection has one place. Returns whether anything changed.
+   * Writes the user's plan or put-back to the sources that store planning (#357): a task of a source whose
+   * adapter answers `notPlannedHold()` (Notion with a "not planned" status mapped) gets the status it is now held
+   * as noted (`sourceNotPlanned`) and is pushed like any edit. Every task is marked pending at once, so a fetch
+   * that lands before its write keeps the local state; the writes then run one after another (rate limits). A
+   * task whose source already holds it that way (kan-do sent it back by itself, the source never knew) and a
+   * task of a source without planning (Local, Todoist) get no write.
    */
-  const planTask = (taskId: string): boolean => tasksStore.planTask(taskId);
+  const writePlanning = (taskIds: readonly string[], back: boolean): void => {
+    const toPush: string[] = [];
+    for (const taskId of taskIds) {
+      const task = tasksStore.task(taskId);
+      if (!task || task.source === 'local') continue;
+      const hold = adapterFor(task.source).notPlannedHold?.() ?? null;
+      if (hold === null) continue;
+      // A put-back keeps the "not planned" status the source already holds the task in (its second or third one)
+      const changed = back
+        ? task.sourceNotPlanned === undefined && tasksStore.setSourceNotPlanned(taskId, hold)
+        : tasksStore.setSourceNotPlanned(taskId, undefined);
+      if (!changed) continue;
+      tasksStore.markPendingSync(taskId);
+      toPush.push(taskId);
+    }
+    if (toPush.length === 0) return;
+    void (async () => {
+      for (const taskId of toPush) {
+        const live = tasksStore.task(taskId);
+        if (live && live.pendingSync) await runSync(live);
+      }
+    })();
+  };
+
+  /**
+   * Plans a task for today (#353): it leaves "not planned" and lands at the end of Offen. The planned state is
+   * kan-do's own; a source that stores planning (#357) gets the task's "today" status written (`writePlanning`),
+   * for every other source no adapter is called and no `pendingSync` is set. Returns whether anything changed.
+   */
+  const planTask = (taskId: string): boolean => planTasks([taskId]).length > 0;
 
   /**
    * "Not today" (#353): takes an Offen task off today's board; it stays held with everything it has (time
    * spent, notes, topic, priority, timebox, its connection, the carried-over count). Refused (`false`) for a task
-   * in any other column. Nothing is written to the task's source, as in `planTask`.
+   * in any other column. A source that stores planning gets its "not planned" status written, as in `planTask`.
    */
-  const unplanTask = (taskId: string): boolean => tasksStore.unplanTask(taskId);
+  const unplanTask = (taskId: string): boolean => unplanTasks([taskId]).length > 0;
 
-  /** Several tasks at once (#356): the new day's pass and "Alle wieder einplanen". Same rules, one board update; returns the ids that changed. */
-  const planTasks = (taskIds: readonly string[]): string[] => tasksStore.planTasks(taskIds);
-  const unplanTasks = (taskIds: readonly string[]): string[] => tasksStore.unplanTasks(taskIds);
+  /**
+   * Several tasks at once (#356): the new day's pass and "Alle wieder einplanen". Same rules, one board update;
+   * returns the ids that changed. `local: true` changes kan-do's own state only and writes to no source: the new
+   * day's pass, which moves cards without a click (#357, the user's open decision D1).
+   */
+  const planTasks = (taskIds: readonly string[], options: { local?: boolean } = {}): string[] => {
+    const planned = tasksStore.planTasks(taskIds);
+    if (!options.local) writePlanning(planned, false);
+    return planned;
+  };
+  const unplanTasks = (taskIds: readonly string[], options: { local?: boolean } = {}): string[] => {
+    const taken = tasksStore.unplanTasks(taskIds);
+    if (!options.local) writePlanning(taken, true);
+    return taken;
+  };
 
   /**
    * Standardized error handling for sync operations
