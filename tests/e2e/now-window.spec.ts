@@ -140,18 +140,80 @@ test.describe('the main window side', () => {
     expect(last.snapshot!.spentSeconds).toBeGreaterThanOrEqual(120)
   })
 
-  test('pause and resume from the pill stop and restart the timer; done completes the task', async ({ page }) => {
+  /** The first card of Wartet, as the user reads the column from the top */
+  const firstWaiting = (page: Page) => page.locator('#column-waiting-list .task-wrapper').first()
+
+  test('pause moves the card to the top of Wartet and the pill keeps it, paused; resume brings it back (#405)', async ({ page }) => {
+    await page.goto('/tasks')
+    await expect.poll(async () => (await syncs(page)).at(-1)?.snapshot?.running).toBe(true)
+    await emitTauriEvent(page, ACTION_EVENT, { kind: 'toggle-pause', taskId: 'jetzt-1' })
+
+    // the card leaves Jetzt for the top of Wartet, though Wartet sorts by "longest wait" by default
+    await expect(page.locator('#column-progress').getByText('Release notes schreiben')).toHaveCount(0)
+    await expect(firstWaiting(page)).toHaveAttribute('data-task-id', 'jetzt-1')
+    await expect(page.locator('#column-waiting-list .task-wrapper[data-task-id="seed-waiting-1"]')).toBeVisible()
+    // the pill still shows it, paused
+    await expect.poll(async () => (await syncs(page)).at(-1)?.snapshot).toMatchObject({ taskId: 'jetzt-1', running: false })
+    // no time counts in Wartet
+    // the Tauri stub holds the persisted state, so the live store is read (after a flush of the collected seconds)
+    const spent = async () => page.evaluate(() => {
+      window.dispatchEvent(new Event('pagehide'))
+      const app = (window as unknown as { useNuxtApp: () => { $pinia: { _s: Map<string, { task: (id: string) => { timeSpentSeconds: number; timerId: number | null; status: number } | null }> } } }).useNuxtApp()
+      const task = app.$pinia._s.get('tasks')!.task('jetzt-1')
+      return task ? { timeSpentSeconds: task.timeSpentSeconds, timerId: task.timerId, status: task.status } : null
+    })
+    await expect.poll(spent).toMatchObject({ status: 2, timerId: null })
+    const first = await spent()
+    await page.waitForTimeout(2200)
+    expect((await spent())!.timeSpentSeconds).toBe(first!.timeSpentSeconds)
+
+    // resume: back in Jetzt, running
+    await emitTauriEvent(page, ACTION_EVENT, { kind: 'toggle-pause', taskId: 'jetzt-1' })
+    await expect(page.locator('#column-progress').getByText('Release notes schreiben')).toBeVisible()
+    await expect(page.locator('#column-waiting-list .task-wrapper[data-task-id="jetzt-1"]')).toHaveCount(0)
+    await expect.poll(async () => (await syncs(page)).at(-1)?.snapshot).toMatchObject({ taskId: 'jetzt-1', running: true })
+  })
+
+  test('done on the paused task completes it from Wartet', async ({ page }) => {
     await page.goto('/tasks')
     await expect.poll(async () => (await syncs(page)).at(-1)?.snapshot?.running).toBe(true)
     await emitTauriEvent(page, ACTION_EVENT, { kind: 'toggle-pause', taskId: 'jetzt-1' })
     await expect.poll(async () => (await syncs(page)).at(-1)?.snapshot?.running).toBe(false)
-    await emitTauriEvent(page, ACTION_EVENT, { kind: 'toggle-pause', taskId: 'jetzt-1' })
-    await expect.poll(async () => (await syncs(page)).at(-1)?.snapshot?.running).toBe(true)
-
     await emitTauriEvent(page, ACTION_EVENT, { kind: 'done', taskId: 'jetzt-1' })
     await expect.poll(async () => (await syncs(page)).at(-1)?.snapshot).toBeNull()
     await expect(page.locator('#column-done').getByText('Release notes schreiben')).toBeVisible()
-    await expect(page.locator('#column-progress').getByText('Release notes schreiben')).toHaveCount(0)
+  })
+
+  test('a card pulled into Jetzt takes the pill over from the paused one', async ({ page }) => {
+    await page.goto('/tasks')
+    await expect.poll(async () => (await syncs(page)).at(-1)?.snapshot?.running).toBe(true)
+    await emitTauriEvent(page, ACTION_EVENT, { kind: 'toggle-pause', taskId: 'jetzt-1' })
+    await expect.poll(async () => (await syncs(page)).at(-1)?.snapshot?.running).toBe(false)
+    await page.locator('.task-wrapper', { hasText: 'Konzept ausarbeiten' }).first().click({ button: 'right' })
+    await page.getByRole('menuitem', { name: 'Status ändern' }).click()
+    await page.getByRole('menuitem', { name: 'Jetzt', exact: true }).click()
+    await expect.poll(async () => (await syncs(page)).at(-1)?.snapshot).toMatchObject({ taskId: 'seed-open-1', running: true })
+  })
+
+  test('the arrival motion plays once on the paused card, and not under reduced motion', async ({ page }) => {
+    await page.goto('/tasks')
+    await expect.poll(async () => (await syncs(page)).at(-1)?.snapshot?.running).toBe(true)
+    await emitTauriEvent(page, ACTION_EVENT, { kind: 'toggle-pause', taskId: 'jetzt-1' })
+    await expect(page.getByTestId('task-pause-arrival')).toHaveCount(1)
+    const card = page.locator('#column-waiting-list .task[data-task-id="jetzt-1"]')
+    await expect(card).toHaveClass(/task--paused-arrival/)
+    // it ends itself
+    await expect(page.getByTestId('task-pause-arrival')).toHaveCount(0, { timeout: 5000 })
+    await expect(card).not.toHaveClass(/task--paused-arrival/)
+  })
+
+  test('reduced motion: the card sits at the top of Wartet and no arrival layer is drawn', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.goto('/tasks')
+    await expect.poll(async () => (await syncs(page)).at(-1)?.snapshot?.running).toBe(true)
+    await emitTauriEvent(page, ACTION_EVENT, { kind: 'toggle-pause', taskId: 'jetzt-1' })
+    await expect(firstWaiting(page)).toHaveAttribute('data-task-id', 'jetzt-1')
+    await expect(page.getByTestId('task-pause-arrival')).toHaveCount(0)
   })
 
   test('an action for a task that is not in Jetzt changes nothing', async ({ page }) => {

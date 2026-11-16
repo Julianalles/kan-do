@@ -15,6 +15,7 @@ const addPendingTimeUpdateMock = vi.fn()
 const removeTaskMock = vi.fn()
 const tasksDoneMock = ref<Task[]>([])
 const tasksProgressMock = ref<Task[]>([])
+const tasksWaitingMock = ref<Task[]>([])
 
 vi.mock('~/store/tasks', () => ({
   useTasksStore: () => ({
@@ -24,17 +25,24 @@ vi.mock('~/store/tasks', () => ({
     removeTask: removeTaskMock,
     get tasksDone() { return tasksDoneMock.value },
     get tasksProgress() { return tasksProgressMock.value },
+    get tasksWaiting() { return tasksWaitingMock.value },
   }),
 }))
 
 const updateTaskPositionMock = vi.fn()
 const startTimeboxNudgeMock = vi.fn()
 const startConfirmationMock = vi.fn()
+const moveToTopOfColumnMock = vi.fn()
+const markPausedMock = vi.fn()
+const clearPausedMock = vi.fn()
 vi.mock('~/store/board', () => ({
   useBoardStore: () => ({
     updateTaskPosition: updateTaskPositionMock,
     startTimeboxNudge: startTimeboxNudgeMock,
     startConfirmation: startConfirmationMock,
+    moveToTopOfColumn: moveToTopOfColumnMock,
+    markPaused: markPausedMock,
+    clearPaused: clearPausedMock,
   }),
 }))
 
@@ -95,11 +103,15 @@ describe('useTaskOperations', () => {
     updateTaskPositionMock.mockReset()
     startTimeboxNudgeMock.mockReset()
     startConfirmationMock.mockReset()
+    moveToTopOfColumnMock.mockReset()
+    markPausedMock.mockReset()
+    clearPausedMock.mockReset()
     updateTaskStatusMock.mockReset().mockResolvedValue(undefined)
     syncPendingChangesMock.mockReset()
     handleErrorMock.mockReset()
     tasksDoneMock.value = []
     tasksProgressMock.value = []
+    tasksWaitingMock.value = []
   })
 
   describe('validateTask', () => {
@@ -298,6 +310,42 @@ describe('useTaskOperations', () => {
 
       expect(await moveTaskToStatus('task-1', TaskStatus.Progress)).toBe(true)
       expect(updateTaskStatusMock).toHaveBeenCalledWith({ taskId: 'task-1', status: TaskStatus.Progress })
+    })
+
+    describe('pause (#405)', () => {
+      it('puts the card first in Wartet, keeps the order the user saw behind it, flags its arrival, and writes through useTaskSync', async () => {
+        taskMock.mockReturnValue(makeTask({ status: TaskStatus.Progress }))
+        tasksWaitingMock.value = [makeTask({ id: 'w1', status: TaskStatus.Waiting }), makeTask({ id: 'w2', status: TaskStatus.Waiting })]
+        const { moveTaskToStatus } = useTaskOperations()
+
+        expect(await moveTaskToStatus('task-1', TaskStatus.Waiting, { pause: true })).toBe(true)
+
+        expect(updateTaskPositionMock).toHaveBeenCalledWith('task-1', TaskStatus.Waiting, TaskStatus.Progress)
+        expect(moveToTopOfColumnMock).toHaveBeenCalledWith(TaskStatus.Waiting, 'task-1', ['w1', 'w2'])
+        expect(markPausedMock).toHaveBeenCalledWith('task-1')
+        expect(updateTaskStatusMock).toHaveBeenCalledWith({ taskId: 'task-1', status: TaskStatus.Waiting })
+      })
+
+      it('is the plain move without the pause option, and a move ends a stale arrival flag', async () => {
+        taskMock.mockReturnValue(makeTask({ status: TaskStatus.Progress }))
+        const { moveTaskToStatus } = useTaskOperations()
+
+        await moveTaskToStatus('task-1', TaskStatus.Waiting)
+
+        expect(moveToTopOfColumnMock).not.toHaveBeenCalled()
+        expect(markPausedMock).not.toHaveBeenCalled()
+        expect(clearPausedMock).toHaveBeenCalledWith('task-1')
+      })
+
+      it('ignores the option for any move other than Jetzt to Wartet', async () => {
+        taskMock.mockReturnValue(makeTask({ status: TaskStatus.Open }))
+        const { moveTaskToStatus } = useTaskOperations()
+
+        await moveTaskToStatus('task-1', TaskStatus.Waiting, { pause: true })
+
+        expect(moveToTopOfColumnMock).not.toHaveBeenCalled()
+        expect(markPausedMock).not.toHaveBeenCalled()
+      })
     })
 
     describe('timebox nudge (#389)', () => {

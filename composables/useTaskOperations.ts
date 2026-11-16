@@ -84,8 +84,11 @@ export const useTaskOperations = () => {
   /**
    * Moves a task to a specific status/column. The single guarded move path for context menu,
    * detail sheet and command palette. Returns false when refused (WIP limit) or the task is missing.
+   * `pause` (#405, the Now window's pause: Jetzt to Wartet): the card goes first into Wartet's order, whatever the
+   * column's sort (`moveToTopOfColumn`), and is flagged for its arrival motion. The write is the same status write as
+   * any move, through `useTaskSync().updateTaskStatus`.
    */
-  const moveTaskToStatus = async (taskId: string, newStatus: TaskStatus): Promise<boolean> => {
+  const moveTaskToStatus = async (taskId: string, newStatus: TaskStatus, options: { pause?: boolean } = {}): Promise<boolean> => {
     const task = tasksStore.task(taskId);
     if (!task) {
       handleError(`Task with id ${taskId} not found`, 'task_operation');
@@ -104,8 +107,18 @@ export const useTaskOperations = () => {
     // Completion into Erledigt offers an undo toast (captured before the card leaves its column)
     const completion = newStatus === TaskStatus.Done ? captureCompletionSnapshot(taskId) : null;
 
+    // The column as the user sees it, read before the card joins it (a pause keeps it behind the card)
+    const pausing = options.pause === true && oldStatus === TaskStatus.Progress && newStatus === TaskStatus.Waiting;
+    const waitingBefore = pausing ? tasksStore.tasksWaiting.map(waiting => waiting.id) : [];
+
     // Update the board first
     boardStore.updateTaskPosition(taskId, newStatus, oldStatus);
+    if (pausing) {
+      boardStore.moveToTopOfColumn(TaskStatus.Waiting, taskId, waitingBefore);
+      boardStore.markPaused(taskId);
+    } else {
+      boardStore.clearPaused(taskId);
+    }
 
     // Then, sync the status change
     const sync = updateTaskStatus({ taskId, status: newStatus });

@@ -8,7 +8,7 @@
 @responsibility
 - Shows the ring, the title (cut with an ellipsis, `data-private`) and the remaining time of the Jetzt task; a task without a timebox shows the title only
 - The time is counted from the snapshot by the wall clock (`lib/nowWindow.ts`), so it runs on while the main window is throttled
-- The last minute turns ring and time amber, over the timebox they stay amber and read `+m:ss`; paused dims the time and sets it in the regular weight. No sound, no animation of the ring
+- The last minute turns ring and time amber, over the timebox they stay amber and read `+m:ss`; paused (#405: the task sits in Wartet after the pill's pause, Jetzt is empty) dims the time and sets it in the regular weight; the button then resumes. No sound, no animation of the ring
 - Hover (or assistive-technology focus) slides in pause/resume and done; the window is not focusable, so a keyboard never reaches it: keyboard users act in the main window (ADR 020, D7)
 - A click on the body asks Rust to bring Kan-Do forward; a press that travels 3 px drags the window (`startDragging`): `data-tauri-drag-region` would swallow the click
 - Reads no store and calls no data command: it gets props only, emits what the user asked for

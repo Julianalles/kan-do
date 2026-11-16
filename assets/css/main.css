@@ -218,6 +218,7 @@
     --done-note-wash: color-mix(in oklab, var(--ui-color-success-100) 70%, var(--ui-color-success-50)); /* Yesterday note (#57): no outline, so darker than the confirmation wash, still short of the drop wash */
     --done-confirm-wash: var(--ui-color-success-50); /* in-card confirmation layer: the calmer of the compared washes */
     --done-wash-duration: var(--duration-base); /* drop wash fade in/out */
+    --pause-arrival-duration: 700ms; /* pause arrival (#405): the neutral layer on a card set down in Wartet, in and out; the keyframe stops in TaskCard are its percentages */
     /* in-card confirmation length: --done-confirm-duration, set on the layer from DONE_CONFIRMATION_MS (store/board.ts) */
 
     /* --- Task Card: Progress State Background --- */
