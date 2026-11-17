@@ -1,14 +1,16 @@
 ---
 name: prepare-release
-description: Prepare a kan-do desktop release - pick the version from the unreleased changes on main, write and validate release-notes/<version>.md, dry-run the release script, push the notes and hand the user the real `npm run release` command. Use when asked to release, cut, ship or prepare a new version.
+description: Prepare a kan-do desktop release - pick the version from the unreleased changes on main, write and validate release-notes/<version>.md, dry-run the release script, push the notes, publish an alpha or beta release itself and hand the user the real `npm run release` command for a stable one. Use when asked to release, cut, ship or prepare a new version.
 argument-hint: "[version | major|minor|patch] [what the notes should cover]"
 ---
 
 # Prepare a release
 
 Releases are cut from HEAD of `main` by `npm run release <version>` (`docs/release.md`). This skill does
-everything before that and hands the user the final command. **Never run `npm run release` without
-`--dry-run`**, never read or touch the signing key, Apple credentials or the release workflow.
+everything before that. A `stable` release ends with the final command handed to the user. **An `alpha` or `beta`
+release the agent publishes itself** (user decision 2026-11-17), after the dry run is clean, with an explicit
+`--stage alpha|beta`. **Never run `npm run release` for `stable`**, never read or touch the signing key, Apple credentials
+or the release workflow.
 
 Default scope: every change on `main` since the latest tag. The argument (free text) may pin the version
 (`0.4.0`, `patch`, ...) and/or narrow what the notes mention ("only highlight the sources work"). It never
@@ -73,13 +75,13 @@ and re-run. Refusals that only concern the uncommitted notes file (dirty tree) a
 
 ## 6. Confirm and push the notes
 
-Ask once (AskUserQuestion): the version with its reason and the rendered Highlights; options "commit as
+`alpha` or `beta`: skip the question, commit the notes and push `main`, re-run the dry run, go to step 7. `stable`: ask once (AskUserQuestion): the version with its reason and the rendered Highlights; options "commit as
 is" / "edit". After a yes commit only the notes file (`docs(release): notes for v<version>`) and push
 `main`. Then re-run the dry run: it must show no refusal.
 
-## 7. Hand over
+## 7. Publish (alpha, beta) or hand over (stable)
 
-Tell the user to run, in this session:
+`alpha` or `beta`: run `npm run release <version> -- --stage <stage>` yourself with `run_in_background` (in `quality` testing mode verify, the full E2E suite, the build and notarization exceed the 10 minute foreground limit; `fast` skips verify and E2E), wait for its notification, never `--skip-verify` or `--skip-e2e`, read its result, then walk the "Verify a release" checklist in `docs/release.md`; on a failure report it with the "Recovery" section and do not retry blindly. `stable`: tell the user to run, in this session:
 
 ```
 ! npm run release <version> -- --stage <stage>

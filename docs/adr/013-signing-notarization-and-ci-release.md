@@ -26,7 +26,7 @@ Accepted (#228 phases 2 and 3, part of epic #221). Phase 1 (CSP) is [ADR 012](01
 
 ## Consequences
 
-- Nothing here has run against Apple or GitHub Actions: the user's real certificate, API key, budget and a tag push are the acceptance tests. They are listed as manual checks in `docs/release.md` and the PR. Agents verify with unit tests and `--dry-run` only.
+- Nothing here has run against Apple or GitHub Actions: the user's real certificate, API key, budget and a tag push are the acceptance tests. They are listed as manual checks in `docs/release.md` and the PR. Agents verify with unit tests and `--dry-run` only (amended 2026-11-17: an agent may also publish an alpha or beta release, never a stable one; `docs/release.md`).
 - **The identity switch** costs exactly one more Keychain re-prompt per item at the first Developer ID release, then none (the designated requirement is bundle id plus Team ID, so renewing the certificate keeps it). The ADR 007 note is updated accordingly.
 - Apple silicon only, as in ADR 009. The DMG itself is not signed or notarized by this pipeline; Gatekeeper evaluates the notarized, stapled app inside it.
 - A leaked repository secret is a leaked signing credential; the runbook lists rotation. Amended 2026-11-06 (public repository): the signing secrets, if stored in GitHub at all, go into an `environment:` with a required reviewer, and third-party actions are pinned by commit SHA. Writing the `.p8` to the runner's temporary disk is the one place a credential touches disk, on an ephemeral VM.

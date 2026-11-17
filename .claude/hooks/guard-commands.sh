@@ -3,7 +3,7 @@
 # Exit 2 with a one-line reason that names the allowed alternative; everything else exits 0 untouched.
 #   - `pkill` of nuxt                  -> stop your own server by its port's PID
 #   - `tauri dev` with the real app identity (npm run tauri:dev, cargo tauri dev, tauri dev) -> sandbox recipe
-#   - `npm run release` without --dry-run, `gh workflow run release` -> --dry-run only, /prepare-release
+#   - `npm run release` without --dry-run or an explicit --stage alpha|beta, `gh workflow run release` -> /prepare-release
 #   - `npm install|i|ci` (and `npx npm@<other version> install`) -> `npx npm@11.19.0 install`
 #   - `npm run terms:approve` (also `run-script`, `-s|--silent` before or after `run`), `node scripts/copy-terms.mjs approve`
 #                                       -> only the user approves decided UI terms (#472)

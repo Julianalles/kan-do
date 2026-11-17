@@ -2,7 +2,7 @@
 
 One command publishes a release from your Mac, and the installed app finds it on the public `jaylouiz/kan-do` repository (no token needed), asks you, saves your data, installs it and relaunches. Decisions and rationale: [ADR 009](adr/009-release-pipeline-and-updater.md). Epic: #221, issue #225.
 
-> **One rule:** no agent ever generates, reads, copies or stores the updater signing key or its password, the Developer ID certificate (`.p12`) or the notarization credentials, and no agent runs a real release or triggers the release workflow. All of that is yours. Agents may run `npm run release <version> -- --dry-run` and nothing else of this document.
+> **One rule:** no agent ever generates, reads, copies or stores the updater signing key or its password, the Developer ID certificate (`.p12`) or the notarization credentials, and no agent triggers the release workflow or runs a **stable** release (#413 follow-up: the user's decision of 2026-11-17). An agent may run `npm run release <version> -- --dry-run` and, for a pre-release, `npm run release <version> -- --stage alpha|beta` (named explicitly; the guard hook refuses a missing or `stable` stage). Everything else of this document, and every secret, is yours.
 
 ## One-time setup (you)
 
@@ -31,7 +31,7 @@ One command publishes a release from your Mac, and the installed app finds it on
 
 By default a release is **ad-hoc signed** (`signingIdentity: "-"` in `tauri.conf.json`): it runs, but a first install needs right-click → *Open*, and macOS asks for Keychain access again after every update, because Keychain items are tied to the app's code identity and an ad-hoc identity changes with every build. A **Developer ID Application** certificate plus **notarization** fixes both. It needs the Apple Developer Program (paid). Decisions: [ADR 013](adr/013-signing-notarization-and-ci-release.md); issue #228 phase 2.
 
-Nothing about this is committed: the repository keeps `-`, and the script switches to Developer ID only when `APPLE_SIGNING_IDENTITY` is set. Everything below is yours; agents only run `--dry-run`, which reports the state without any credential.
+Nothing about this is committed: the repository keeps `-`, and the script switches to Developer ID only when `APPLE_SIGNING_IDENTITY` is set. Everything below is yours; agents run `--dry-run`, which reports the state without any credential, and alpha or beta releases, which use the credentials already in your environment without ever reading or printing them.
 
 1. **Enrol** in the Apple Developer Program and note your **Team ID** (developer.apple.com → Membership).
 2. **Create the certificate.** Keychain Access → *Certificate Assistant* → *Request a Certificate from a Certificate Authority* (save to disk), then developer.apple.com → *Certificates* → **Developer ID Application**, upload the request, download the `.cer` and double-click it. Check:
