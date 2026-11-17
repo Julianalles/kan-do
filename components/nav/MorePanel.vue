@@ -6,8 +6,8 @@
 @usage Rendered inside the UPopover of AppNav; reads stores and composables only, no props
 @avoid Only the popover behind AppNav's ⋯; the places (Heute, Statistik) are the pill's segments, so no rows for them on any route.
 @responsibility
-- Order on the board: Befehle (desktop) -> Ansicht (Karten stapeln + group-by chips) -> Tag abschließen -> Papierkorb (n), Einstellungen, App-Update -> sync footer
-- Ansicht and Tag abschließen exist only while the board is the current place; the rest and the sync footer on every page
+- Groups, set apart by hairlines (#431): Befehle (desktop, a group of its own, no heading: the row names itself) -> "Auf dieser Seite" (Karten stapeln + group-by chips, Tag abschließen) -> "Seiten" (Papierkorb (n), Einstellungen, App-Update, each with a trailing arrow) -> sync footer. One heading level, no heading inside a group; each heading names its `section`
+- "Auf dieser Seite" exists only while the board is the current place; "Seiten" and the sync footer on every page
 - The page the pill shows as its third segment (#583: Einstellungen on /settings*, Papierkorb on /trash*) is not listed here; the row returns when the page leaves the pill. App-Update stays on /settings/updates (a different page). The panel closes on every route change, so a row never appears or disappears while it is open
 - App-Update only in the desktop app (`isTauri()`, absent in the web build, never disabled)
 - Sync footer: a failing source shows its worst problem (title, hint, "Verbindung reparieren") above "Jetzt synchronisieren" + last sync; silent while every source is healthy
@@ -38,85 +38,98 @@
       <USeparator class="my-1" />
     </template>
     <template v-if="onBoard">
-      <section :aria-labelledby="viewHeadingId" class="space-y-3 p-2">
-        <h2 :id="viewHeadingId" class="text-xs font-medium text-muted">{{ t('nav.view') }}</h2>
-        <UFormField :help="t('board.sync.stackHelp')">
-          <USwitch
-            :model-value="groupingEnabled"
-            :label="t('board.sync.stackCards')"
-            data-testid="more-stack"
-            @update:model-value="setGroupingEnabled"
-          />
-        </UFormField>
-        <div v-if="groupingEnabled" class="space-y-2">
-          <div role="group" :aria-label="t('board.sync.groupBy')" class="flex flex-wrap gap-1.5">
-            <ChoiceChip
-              v-for="option in groupingOptions"
-              :key="option.value"
-              :picked="effectiveGroupKey === option.value"
-              :aria-pressed="effectiveGroupKey === option.value"
-              @click="setGroupingKey(option.value)"
-            >
-              {{ option.label }}
-            </ChoiceChip>
+      <section :aria-labelledby="pageHeadingId">
+        <h2 :id="pageHeadingId" class="px-2 pt-2 pb-1 text-xs font-semibold text-muted">{{ t('nav.groupPage') }}</h2>
+        <div class="space-y-3 p-2">
+          <UFormField :help="t('board.sync.stackHelp')">
+            <USwitch
+              :model-value="groupingEnabled"
+              :label="t('board.sync.stackCards')"
+              data-testid="more-stack"
+              @update:model-value="setGroupingEnabled"
+            />
+          </UFormField>
+          <div v-if="groupingEnabled" class="space-y-2">
+            <div role="group" :aria-label="t('board.sync.groupBy')" class="flex flex-wrap gap-1.5">
+              <ChoiceChip
+                v-for="option in groupingOptions"
+                :key="option.value"
+                :picked="effectiveGroupKey === option.value"
+                :aria-pressed="effectiveGroupKey === option.value"
+                @click="setGroupingKey(option.value)"
+              >
+                {{ option.label }}
+              </ChoiceChip>
+            </div>
+            <p class="text-xs text-muted max-md:text-body">{{ t('board.sync.stackHint') }}</p>
           </div>
-          <p class="text-xs text-muted max-md:text-body">{{ t('board.sync.stackHint') }}</p>
         </div>
+        <UButton
+          icon="i-ph-sun-horizon"
+          color="neutral"
+          variant="ghost"
+          block
+          class="justify-start"
+          data-testid="more-day-close"
+          @click="emit('dayClose')"
+        >
+          {{ t('nav.dayClose') }}
+        </UButton>
       </section>
       <USeparator class="my-1" />
+    </template>
+
+    <section :aria-labelledby="placesHeadingId">
+      <h2 :id="placesHeadingId" class="px-2 pt-2 pb-1 text-xs font-semibold text-muted">{{ t('nav.groupPlaces') }}</h2>
       <UButton
-        icon="i-ph-sun-horizon"
+        v-if="thirdItem?.to !== '/trash'"
+        to="/trash"
+        :icon="ICONS.delete"
         color="neutral"
         variant="ghost"
         block
         class="justify-start"
-        data-testid="more-day-close"
-        @click="emit('dayClose')"
+        data-testid="more-trash"
+        @click="emit('close')"
       >
-        {{ t('nav.dayClose') }}
+        <span class="flex w-full items-center justify-between gap-2">
+          <span>{{ trashCount > 0 ? t('nav.trashCount', { n: trashCount }) : t('nav.trash') }}</span>
+          <UIcon :name="ICONS.goOn" class="size-4 text-muted" aria-hidden="true" />
+        </span>
       </UButton>
-      <USeparator class="my-1" />
-    </template>
-
-    <UButton
-      v-if="thirdItem?.to !== '/trash'"
-      to="/trash"
-      :icon="ICONS.delete"
-      color="neutral"
-      variant="ghost"
-      block
-      class="justify-start"
-      data-testid="more-trash"
-      @click="emit('close')"
-    >
-      {{ trashCount > 0 ? t('nav.trashCount', { n: trashCount }) : t('nav.trash') }}
-    </UButton>
-    <UButton
-      v-if="!thirdItem?.to.startsWith('/settings')"
-      to="/settings"
-      icon="i-ph-gear"
-      color="neutral"
-      variant="ghost"
-      block
-      class="justify-start"
-      data-testid="more-settings"
-      @click="emit('close')"
-    >
-      {{ t('nav.settings') }}
-    </UButton>
-    <UButton
-      v-if="isDesktopApp"
-      to="/settings/updates"
-      icon="i-ph-arrow-circle-up"
-      color="neutral"
-      variant="ghost"
-      block
-      class="justify-start"
-      data-testid="more-update"
-      @click="emit('close')"
-    >
-      {{ t('nav.appUpdate') }}
-    </UButton>
+      <UButton
+        v-if="!thirdItem?.to.startsWith('/settings')"
+        to="/settings"
+        icon="i-ph-gear"
+        color="neutral"
+        variant="ghost"
+        block
+        class="justify-start"
+        data-testid="more-settings"
+        @click="emit('close')"
+      >
+        <span class="flex w-full items-center justify-between gap-2">
+          <span>{{ t('nav.settings') }}</span>
+          <UIcon :name="ICONS.goOn" class="size-4 text-muted" aria-hidden="true" />
+        </span>
+      </UButton>
+      <UButton
+        v-if="isDesktopApp"
+        to="/settings/updates"
+        icon="i-ph-arrow-circle-up"
+        color="neutral"
+        variant="ghost"
+        block
+        class="justify-start"
+        data-testid="more-update"
+        @click="emit('close')"
+      >
+        <span class="flex w-full items-center justify-between gap-2">
+          <span>{{ t('nav.appUpdate') }}</span>
+          <UIcon :name="ICONS.goOn" class="size-4 text-muted" aria-hidden="true" />
+        </span>
+      </UButton>
+    </section>
 
     <USeparator class="my-1" />
     <div class="space-y-2">
@@ -191,7 +204,8 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
-const viewHeadingId = useId()
+const pageHeadingId = useId()
+const placesHeadingId = useId()
 const { onBoard, thirdItem } = useAppNav()
 const boardStore = useBoardStore()
 const health = useIntegrationHealthStore()

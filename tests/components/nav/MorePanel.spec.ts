@@ -47,21 +47,36 @@ describe('MorePanel: the Mehr panel (#470)', () => {
     resync.mockClear()
   })
 
-  it('on the board: Ansicht, Tag abschließen, then the page rows, then the sync footer', () => {
+  it('on the board: Auf dieser Seite (stack, Tag abschließen), then Seiten, then the sync footer', () => {
     const w = render()
     const text = w.text()
-    const order = ['Ansicht', 'Karten stapeln', 'Tag abschließen', 'Papierkorb', 'Einstellungen', 'Jetzt synchronisieren']
+    const order = ['Auf dieser Seite', 'Karten stapeln', 'Tag abschließen', 'Seiten', 'Papierkorb', 'Einstellungen', 'Jetzt synchronisieren']
     const positions = order.map(label => text.indexOf(label))
     expect(positions.every(p => p >= 0)).toBe(true)
     expect([...positions].sort((a, b) => a - b)).toEqual(positions)
   })
 
-  it.each(['/statistics', '/trash', '/settings', '/settings/topics'])('on %s there is no Ansicht and no Tag abschließen, but the sync footer stays', (path) => {
+  it('has one heading level: one h2 per group, none for the command group, none inside a group, and arrows only on the places', () => {
+    const w = render()
+    expect(w.findAll('h2').map(h => h.text())).toEqual(['Auf dieser Seite', 'Seiten'])
+    const sections = w.findAll('section')
+    expect(sections).toHaveLength(2)
+    for (const section of sections) expect(section.findAll('h2, h3')).toHaveLength(1)
+    const places = sections[1]!
+    for (const id of ['more-trash', 'more-settings']) {
+      expect(places.find(`[data-testid="${id}"] [class*="i-ph-arrow-right"], [data-testid="${id}"] svg, [data-testid="${id}"] .iconify`).exists() || places.find(`[data-testid="${id}"]`).html().includes('arrow-right')).toBe(true)
+    }
+    expect(w.find('[data-testid="more-day-close"]').html()).not.toContain('arrow-right')
+    expect(w.find('[data-testid="more-commands"]').html()).not.toContain('arrow-right')
+  })
+
+  it.each(['/statistics', '/trash', '/settings', '/settings/topics'])('on %s there is no Auf dieser Seite and no Tag abschließen, but the sync footer stays', (path) => {
     route.path = path
     const w = render()
     expect(w.find('[data-testid="more-stack"]').exists()).toBe(false)
     expect(w.find('[data-testid="more-day-close"]').exists()).toBe(false)
-    expect(w.text()).not.toContain('Ansicht')
+    expect(w.text()).not.toContain('Auf dieser Seite')
+    expect(w.text()).toContain('Seiten')
     expect(w.find('[data-testid="more-sync"]').exists()).toBe(true)
   })
 
