@@ -358,10 +358,19 @@ async function pick(id: string, event: MouseEvent) {
     min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
-    margin-inline: 1rem;
+    /* The content box keeps the 1rem side margins; the scroll box (it clips on both axes) reaches 1rem further out on the
+       left and 2rem into the Heute column on the right, so the card shadow and the pick arrow of the right-hand card
+       are not cut off in a narrow window (#430) */
+    margin-inline: 0 -2rem;
+    padding-inline: 1rem 3rem;
     /* Room for the card shadow and the focus ring at the scroll box's upper edge */
     padding-top: 0.25rem;
     margin-top: -0.25rem;
+  }
+
+  /* The pick arrow reaches over Heute's side padding: this side paints above the next column */
+  .not-planned {
+    z-index: 1;
   }
 
   /* A card put back flies in from Offen: the scroll box must not clip it on the way (usePlanMoves sets the class) */
