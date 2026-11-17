@@ -132,7 +132,7 @@ describe('useBoardSwipe', () => {
     scope.run(() => {
       swipe = useBoardSwipe({ activeTab: tab, lastTab: () => last.value, isEnabled: () => enabled.value, onCommit })
     })
-    // "Planung": two pages, the finger is on the last one and pulls towards a third that is not there
+    // "Alle": two pages, the finger is on the last one and pulls towards a third that is not there
     last.value = 1
     down(300, 300, 0)
     move(100, 302, 16)

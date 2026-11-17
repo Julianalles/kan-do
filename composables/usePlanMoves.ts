@@ -1,6 +1,6 @@
 /**
  * @composable usePlanMoves
- * @description The two moves of the place "Planung" (#354, epic #334) as the user sees them: "Für heute einplanen"
+ * @description The two moves of the place "Alle" (#354, epic #334) as the user sees them: "Für heute einplanen"
  * (a "Meine Aufgaben" card lands at the end of Offen) and "Nicht heute" (an Offen card goes back to the top of
  * "Meine Aufgaben"). The state change is `useTaskSync.planTask` / `unplanTask`; this adds the motion and the
  * screen-reader line.
@@ -78,7 +78,7 @@ async function fly(from: DOMRect | null, find: () => HTMLElement | null): Promis
 
 export function usePlanMoves() {
   async function move(id: string, kind: 'plan' | 'unplan'): Promise<boolean> {
-    // Resolved per move, not per caller: every Offen card on "Planung" holds this composable for its arrow
+    // Resolved per move, not per caller: every Offen card on "Alle" holds this composable for its arrow
     const { planTask, unplanTask } = useTaskSync()
     const task = useTasksStore().task(id)
     if (!task || leaving.has(id)) return false

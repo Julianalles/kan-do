@@ -79,7 +79,6 @@ stays), a folder that already holds data offers "use the data already there" (th
           {{ step === 'confirm' ? t('settings.data.modal.back') : t('common.cancel') }}
         </UButton>
         <UButton
-          size="lg"
           color="primary"
           :loading="working"
           :disabled="!canContinue || working"

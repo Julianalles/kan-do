@@ -42,7 +42,7 @@ test.describe('Command palette', () => {
     await expect(palette(page)).toBeHidden()
   })
 
-  test('a click on the backdrop closes it on the Planung place (#432)', async ({ page }) => {
+  test('a click on the backdrop closes it on the "Alle" place (#432)', async ({ page }) => {
     await page.goto('/all')
     await expect(page).toHaveURL(/\/all$/)
     await expect(column(page, 'open').locator('.task-wrapper').first()).toBeVisible()
@@ -52,7 +52,7 @@ test.describe('Command palette', () => {
     await expect(palette(page)).toBeHidden()
   })
 
-  test('desktop shell: a click on the backdrop, also in the bar row, closes it on the Planung place (#432)', async ({ context, page }) => {
+  test('desktop shell: a click on the backdrop, also in the bar row, closes it on the "Alle" place (#432)', async ({ context, page }) => {
     await installTauriStub(context, {})
     await page.goto('/all')
     await expect(page.locator('html')).toHaveAttribute('data-shell', 'desktop')

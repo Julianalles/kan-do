@@ -122,7 +122,6 @@ immediate: no loading or error state.
     <div ref="actionsRow" class="flex scroll-mb-4 items-center justify-end gap-2">
       <UButton type="button" color="neutral" variant="soft" :label="t('topic.editor.cancel')" data-testid="topic-cancel" @click="emit('close')" />
       <UButton
-        size="lg"
         type="submit"
         color="primary"
         :disabled="!canSave"

@@ -35,7 +35,6 @@
         {{ t('common.cancel') }}
       </UButton>
       <UButton
-        size="lg"
         color="primary"
         :loading="isSaving"
         :disabled="!hasChanges && !alwaysShowSave"

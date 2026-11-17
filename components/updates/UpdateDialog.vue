@@ -69,7 +69,6 @@ current version, says that data is backed up first and the app restarts, and ins
           {{ t('updates.dialog.later') }}
         </UButton>
         <UButton
-          size="lg"
           color="primary"
           :loading="state.installing"
           :disabled="state.installing"

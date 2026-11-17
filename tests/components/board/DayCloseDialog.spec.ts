@@ -84,9 +84,9 @@ describe('DayCloseDialog copy summary', () => {
     expect(copy.attributes('variant')).toBe('soft')
     expect(done.attributes('color')).toBe('primary')
     expect(wrapper.findAll('button[color="primary"]')).toHaveLength(1)
-    // One footer for modal and drawer: the CTA is `lg` in both, the sibling keeps the default `md`
+    // One footer for modal and drawer, one button height (#424): neither button names a size
     expect(copy.attributes('size')).toBeUndefined()
-    expect(done.attributes('size')).toBe('lg')
+    expect(done.attributes('size')).toBeUndefined()
   })
 
   it('routes a clipboard failure through useErrorHandler with the clipboard context, without a success state', async () => {

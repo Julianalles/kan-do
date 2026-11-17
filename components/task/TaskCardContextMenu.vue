@@ -75,7 +75,6 @@
         {{ t('common.cancel') }}
       </UButton>
       <UButton
-        size="lg"
         color="primary"
         :disabled="!isValidTimebox"
         @click="applyCustomTimebox"
