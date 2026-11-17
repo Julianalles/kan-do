@@ -11,7 +11,7 @@
  * bundling step (`tauri bundle`). The compile step (`nuxt generate`, `cargo`, every `build.rs`) and
  * every other child get a neutral environment; the GitHub token goes to `gh` only (`signing.mjs`
  * `SECRET_VARIABLES`). This script itself imports no npm package, so it is the only code that holds the
- * secrets as a whole. Agents run this script with `--dry-run` only.
+ * secrets as a whole. Agents run it with `--dry-run`, or for an alpha or beta release with an explicit `--stage alpha|beta` (guard hook); a stable release is the user's.
  *
  * After `npm run verify` and before the build it runs the full E2E suite (#355): PRs are only gated by the
  * tiered pre-merge hook, so this is the one place the whole suite is mandatory. A pass is stamped for `HEAD`

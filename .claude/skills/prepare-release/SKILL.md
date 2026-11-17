@@ -1,6 +1,6 @@
 ---
 name: prepare-release
-description: Prepare a kan-do desktop release - pick the version from the unreleased changes on main, write and validate release-notes/<version>.md, dry-run the release script, push the notes and hand the user the real `npm run release` command. Use when asked to release, cut, ship or prepare a new version.
+description: Prepare a kan-do desktop release - pick the version from the unreleased changes on main, write and validate release-notes/<version>.md, dry-run the release script, push the notes, publish an alpha or beta release itself and hand the user the real `npm run release` command for a stable one. Use when asked to release, cut, ship or prepare a new version.
 argument-hint: "[version | major|minor|patch] [what the notes should cover]"
 ---
 
@@ -81,7 +81,7 @@ is" / "edit". After a yes commit only the notes file (`docs(release): notes for 
 
 ## 7. Publish (alpha, beta) or hand over (stable)
 
-`alpha` or `beta`: run `npm run release <version> -- --stage <stage>` yourself (Bash `timeout: 600000`; in `fast` testing mode it skips verify and E2E), read its result, then walk the "Verify a release" checklist in `docs/release.md`; on a failure report it with the "Recovery" section and do not retry blindly. `stable`: tell the user to run, in this session:
+`alpha` or `beta`: run `npm run release <version> -- --stage <stage>` yourself with `run_in_background` (in `quality` testing mode verify, the full E2E suite, the build and notarization exceed the 10 minute foreground limit; `fast` skips verify and E2E), wait for its notification, never `--skip-verify` or `--skip-e2e`, read its result, then walk the "Verify a release" checklist in `docs/release.md`; on a failure report it with the "Recovery" section and do not retry blindly. `stable`: tell the user to run, in this session:
 
 ```
 ! npm run release <version> -- --stage <stage>
