@@ -76,8 +76,8 @@ it collapses to one action, "Neu laden".
           </UButton>
         </template>
         <UButton
-          size="lg"
           v-else
+          size="lg"
           color="primary"
           :loading="working"
           :disabled="working || (conflict !== null && !conflict.theirs.readable)"

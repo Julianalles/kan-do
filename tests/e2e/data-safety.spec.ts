@@ -25,6 +25,9 @@ const boardEnvelope = (taskList = SEED_TASKS) => ({
   stores: { 'board-store': buildBoardStore('local'), 'tasks-store': buildTasksStore(taskList) },
 })
 
+/** The settings page sends a board that never onboarded to the welcome flow. */
+const withBoard = (file: ReturnType<typeof envelope>) => ({ ...file, stores: { 'board-store': buildBoardStore('local'), ...file.stores } })
+
 const backup = (patch: Partial<BackupStub> & Pick<BackupStub, 'name' | 'kind' | 'ts'>): BackupStub => ({
   device6: 'e2e000',
   ownDevice: true,
@@ -42,7 +45,14 @@ const rows = (page: Page) => page.getByTestId('data-backup-row')
 async function openDataPage(page: Page, data: DataStubOptions = {}) {
   await installTauriStub(page.context(), { data: { folder: CURRENT, envelope: envelope(tasks(25)), ...data } })
   await page.goto('/settings/data')
-  await expect(page.getByRole('heading', { name: 'Datenordner', level: 2 })).toBeVisible()
+  await expect(page.getByTestId('data-folder-moved')).toBeVisible()
+}
+
+/** The folder, its state and every storage problem sit in the Lokal row of Verbindungen (#438). */
+async function openStoragePage(page: Page, data: DataStubOptions = {}) {
+  await installTauriStub(page.context(), { data: { folder: CURRENT, envelope: withBoard(envelope(tasks(25))), ...data } })
+  await page.goto('/settings?tab=sources')
+  await expect(page.getByTestId('data-folder-path')).toBeVisible()
 }
 
 async function expectNoSeriousA11yViolations(page: Page) {
@@ -279,33 +289,32 @@ test.describe('Conflict', () => {
   })
 
   test('the settings page explains the state and offers "Lösen"', async ({ page }) => {
-    await installTauriStub(page.context(), { data: { folder: CURRENT, envelope: envelope(tasks(2)), theirs: THEIRS() } })
-    await page.goto('/settings/data')
+    await installTauriStub(page.context(), { data: { folder: CURRENT, envelope: withBoard(envelope(tasks(2))), theirs: THEIRS() } })
+    await page.goto('/settings?tab=sources')
+    await expect(page.getByTestId('data-folder-path')).toBeVisible()
     await emitDataStatus(page, { status: 'conflict' })
     await expect(page.getByTestId('data-folder-problem')).toContainText('Die Daten wurden anderswo geändert')
     await conflictDialog(page).getByRole('button', { name: 'Später' }).click()
     await page.getByTestId('data-folder-resolve').click()
     await expect(conflictDialog(page)).toBeVisible()
-    await expect(page.getByTestId('data-backups')).toBeVisible()
   })
 })
 
 test.describe('Folder unavailable', () => {
   test('mid-session: an error notice, the plain sentence on the page, and recovery through "Erneut versuchen"', async ({ page }) => {
-    await openDataPage(page, { retryRecovers: true })
+    await openStoragePage(page, { retryRecovers: true })
     await emitDataStatus(page, { status: 'folder-unavailable', error: 'No such file or directory' })
     await expect(notice(page)).toContainText('Datenordner nicht erreichbar. Das angezeigte Board ist nicht deine gespeicherte Version.')
     await expect(page.getByTestId('data-folder-problem')).toContainText('nicht deine gespeicherte Version')
-    await expect(page.getByTestId('data-backups')).toHaveCount(0)
     await expectNoSeriousA11yViolations(page)
     await notice(page).getByRole('button', { name: 'Erneut versuchen' }).click()
     await expect(notice(page)).toHaveCount(0)
-    await expect(page.getByTestId('data-backups')).toBeVisible()
+    await expect(page.getByTestId('data-folder-problem')).toHaveCount(0)
     expect(await calls(page)).toContain('data_retry')
   })
 
-  test('the page offers a retry and the folder picker', async ({ page }) => {
-    await openDataPage(page)
+  test('the Lokal row offers a retry and the folder picker', async ({ page }) => {
+    await openStoragePage(page)
     await emitDataStatus(page, { status: 'folder-unavailable', error: 'offline' })
     await expect(page.getByTestId('data-folder-retry')).toBeVisible()
     await expect(page.getByTestId('data-folder-choose')).toBeVisible()
@@ -474,7 +483,7 @@ test.describe('Cloud upload state', () => {
     await emitDataStatus(page, { cloudSync: pending() })
     await expect(notice(page)).toContainText(PENDING_TEXT)
     await expect(notice(page)).toHaveAttribute('role', 'status')
-    await expect(notice(page).getByRole('link', { name: 'Details' })).toHaveAttribute('href', '/settings/data')
+    await expect(notice(page).getByRole('link', { name: 'Details' })).toHaveAttribute('href', '/settings?tab=sources')
     await expectNoSeriousA11yViolations(page)
     await emitDataStatus(page, { cloudSync: { state: 'uploaded', since: null, visible: false } })
     await expect(notice(page)).toHaveCount(0)
@@ -517,8 +526,8 @@ test.describe('Cloud upload state', () => {
     await expect(notice(page)).toBeVisible()
   })
 
-  test('on /settings/data: a muted line follows the live state, the iCloud reason shows for an error, no notice duplicate', async ({ page }) => {
-    await openDataPage(page, { cloudSync: { state: 'uploaded', since: null, visible: false } })
+  test('in the Lokal row: a muted line follows the live state, the iCloud reason shows for an error, no "Details" link', async ({ page }) => {
+    await openStoragePage(page, { cloudSync: { state: 'uploaded', since: null, visible: false } })
     await expect(cloudLine(page)).toHaveText('In iCloud gesichert')
     await emitDataStatus(page, { cloudSync: { state: 'uploading', since: SINCE, visible: false } })
     await expect(cloudLine(page)).toHaveText('Wird hochgeladen…')
@@ -533,7 +542,7 @@ test.describe('Cloud upload state', () => {
   })
 
   test('no cloud line for a folder that is not in iCloud', async ({ page }) => {
-    await openDataPage(page)
+    await openStoragePage(page)
     await expect(cloudLine(page)).toHaveCount(0)
   })
 
@@ -559,8 +568,8 @@ test.describe('Cloud upload state', () => {
     await expect(notice(page).getByRole('button', { name: 'Ausblenden' })).toHaveCount(0)
   })
 
-  test('on /settings/data the action still shows and the live line stays after hiding (#284)', async ({ page }) => {
-    await openDataPage(page, { cloudSync: pending() })
+  test('in the Lokal row the action still shows and the live line stays after hiding (#284)', async ({ page }) => {
+    await openStoragePage(page, { cloudSync: pending() })
     await expect(notice(page).getByRole('button', { name: 'Ausblenden' })).toBeVisible()
     await notice(page).getByRole('button', { name: 'Ausblenden' }).click()
     await expect(notice(page)).toHaveCount(0)
@@ -584,7 +593,7 @@ test.describe('Cloud upload state', () => {
     await expect(notice(page)).toBeVisible()
     await expect(notice(page).getByRole('link', { name: 'Details' })).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
-    await page.goto('/settings/data')
+    await page.goto('/settings?tab=sources')
     await expect(cloudLine(page)).toBeVisible()
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
   })

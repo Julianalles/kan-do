@@ -50,7 +50,7 @@ current version, says that data is backed up first and the app restarts, and ins
         />
         <UButton
           v-if="state.installError?.kind === 'data_blocked'"
-          to="/settings/data"
+          to="/settings?tab=sources"
           variant="link"
           color="neutral"
           class="px-0"

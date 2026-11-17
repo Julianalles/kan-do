@@ -26,9 +26,11 @@ const BOARD_ENVELOPE = () => ({
 })
 
 async function openDataPage(page: Page, data?: DataStubOptions) {
-  await installTauriStub(page.context(), data ? { data } : {})
-  await page.goto('/settings/data')
-  await expect(page.getByRole('heading', { name: 'Datenordner', level: 2 })).toBeVisible()
+  // The settings page sends a board that never onboarded to the welcome flow, so the file carries a configured board
+  const withBoard = data?.envelope ? { ...data, envelope: { ...data.envelope, stores: { 'board-store': buildBoardStore('local'), ...data.envelope.stores } } } : data
+  await installTauriStub(page.context(), withBoard ? { data: withBoard } : {})
+  await page.goto('/settings?tab=sources')
+  await expect(page.getByTestId('data-folder-path')).toBeVisible()
 }
 
 async function expectNoSeriousA11yViolations(page: Page) {
@@ -100,22 +102,23 @@ test.describe('Data folder (desktop)', () => {
   test('never writes a token into the data file', async ({ context, page }) => {
     await seedNotionBoard(context)
     await installTauriStub(context)
-    await page.goto('/settings/data')
-    await expect(page.getByRole('heading', { name: 'Datenordner', level: 2 })).toBeVisible()
+    await page.goto('/settings?tab=sources')
+    await expect(page.getByTestId('data-folder-path')).toBeVisible()
     const fileOf = async () => JSON.stringify((await stubState(page)).data.envelope)
     await expect.poll(fileOf).toContain('notionConfig')
     const file = await fileOf()
     expect(file).not.toContain('notion_test_stub')
   })
 
-  test('the palette opens the page', async ({ context, page }) => {
+  test('the palette opens the storage details in the Lokal row', async ({ context, page }) => {
     await seedLocalBoard(context)
     await installTauriStub(context)
     await page.goto('/tasks')
     await expect(page.locator('#column-open-list .task-wrapper')).toHaveCount(2)
     await page.keyboard.press('ControlOrMeta+k')
     await page.getByRole('dialog', { name: 'Befehlspalette' }).getByRole('option', { name: 'Datenordner öffnen' }).click()
-    await expect(page).toHaveURL(/\/settings\/data$/)
+    await expect(page).toHaveURL(/\/settings\?tab=sources$/)
+    await expect(page.getByTestId('source-details-local').getByTestId('data-folder-path')).toBeVisible()
   })
 
   test('the Notion settings header links to the page', async ({ context, page }) => {
@@ -127,7 +130,7 @@ test.describe('Data folder (desktop)', () => {
   })
 
   test.describe('page', () => {
-    test('shows folder, last save and schema, and the two actions', async ({ page }) => {
+    test('the Lokal row shows folder, last save and schema, and the two actions', async ({ page }) => {
       await openDataPage(page, { envelope: ENVELOPE([]), folder: CURRENT })
       await expect(page.getByTestId('data-folder-path')).toContainText('io.github.jaylouiz.kan-do')
       await expect(page.getByTestId('data-folder-saved')).toContainText('Zuletzt gespeichert')
@@ -162,7 +165,7 @@ test.describe('Data folder (desktop)', () => {
       await expect(notice(page)).toHaveAttribute('role', 'status')
       await expectNoSeriousA11yViolations(page)
       await notice(page).getByRole('link', { name: 'Details' }).click()
-      await expect(page).toHaveURL(/\/settings\/data$/)
+      await expect(page).toHaveURL(/\/settings\?tab=sources$/)
     })
 
     test('corrupt file: only "Ordner wählen…" is offered', async ({ page }) => {
@@ -228,7 +231,7 @@ test.describe('Data folder (desktop)', () => {
     })
 
     test('a folder that holds data: "use" switches and reloads the window', async ({ page }) => {
-      await openDataPage(page, { envelope: ENVELOPE([]), pick: TARGET, folders: { [TARGET]: { envelope: ENVELOPE([{ id: 'theirs' }]) } } })
+      await openDataPage(page, { envelope: ENVELOPE([]), pick: TARGET, folders: { [TARGET]: { envelope: { ...ENVELOPE([{ id: 'theirs' }]), stores: { 'board-store': buildBoardStore('local'), 'tasks-store': { tasks: [{ id: 'theirs' }] } } } } } })
       await page.getByRole('button', { name: 'Ordner ändern…' }).click()
       const group = dialog(page).getByRole('radiogroup', { name: /vorhandenen Daten/ })
       await expect(group.getByRole('radio', { name: 'Vorhandene Daten verwenden' })).toBeChecked()
@@ -362,7 +365,7 @@ test.describe('App reset (desktop)', () => {
   test('keeps a pre-restore backup, empties the data file, deletes every Keychain entry and lands on the welcome page', async ({ context, page }) => {
     await installTauriStub(context, { data: { envelope: BOARD_ENVELOPE() }, entries: ALL_ENTRIES })
     await page.goto('/settings/data')
-    await expect(page.getByRole('heading', { name: 'Datenordner', level: 2 })).toBeVisible()
+    await expect(page.getByTestId('data-folder-moved')).toBeVisible()
     await openReset(page)
     await expect(page.getByTestId('reset-kept')).toContainText('legt die App eine Sicherung an')
     await expect(page.getByRole('dialog')).toHaveCount(0)
@@ -378,7 +381,7 @@ test.describe('App reset (desktop)', () => {
   test('a failed backup erases nothing and says so', async ({ context, page }) => {
     await installTauriStub(context, { data: { envelope: BOARD_ENVELOPE(), failBackup: true }, entries: ALL_ENTRIES })
     await page.goto('/settings/data')
-    await expect(page.getByRole('heading', { name: 'Datenordner', level: 2 })).toBeVisible()
+    await expect(page.getByTestId('data-folder-moved')).toBeVisible()
     await openReset(page)
     await page.getByTestId('reset-confirm').click()
     await expect(page.getByTestId('reset-failure')).toContainText('Es wurde nichts gelöscht')
@@ -392,7 +395,7 @@ test.describe('App reset (desktop)', () => {
   test('a refused Keychain keeps the dialog open, names the tokens and the retry finishes', async ({ context, page }) => {
     await installTauriStub(context, { data: { envelope: BOARD_ENVELOPE() }, entries: ALL_ENTRIES, keychainError: true })
     await page.goto('/settings/data')
-    await expect(page.getByRole('heading', { name: 'Datenordner', level: 2 })).toBeVisible()
+    await expect(page.getByTestId('data-folder-moved')).toBeVisible()
     await openReset(page)
     await page.getByTestId('reset-confirm').click()
     await expect(page.getByTestId('reset-failure')).toContainText('Notion, Todoist, GitHub')
@@ -409,7 +412,7 @@ test.describe('App reset (desktop)', () => {
   test('cancelling after a refused Keychain reloads from the erased data instead of leaving the frozen old board', async ({ context, page }) => {
     await installTauriStub(context, { data: { envelope: BOARD_ENVELOPE() }, entries: ALL_ENTRIES, keychainError: true })
     await page.goto('/settings/data')
-    await expect(page.getByRole('heading', { name: 'Datenordner', level: 2 })).toBeVisible()
+    await expect(page.getByTestId('data-folder-moved')).toBeVisible()
     await openReset(page)
     await page.getByTestId('reset-confirm').click()
     await expect(page.getByTestId('reset-failure')).toBeVisible()
@@ -422,7 +425,7 @@ test.describe('App reset (desktop)', () => {
   test('is off, with the reason, while the data folder is unavailable', async ({ context, page }) => {
     await installTauriStub(context, { data: { status: 'folder-unavailable', envelope: BOARD_ENVELOPE() } })
     await page.goto('/settings/data')
-    await expect(page.getByRole('heading', { name: 'Datenordner', level: 2 })).toBeVisible()
+    await expect(page.getByTestId('data-folder-moved')).toBeVisible()
     await expect(page.getByTestId('data-reset-open')).toBeDisabled()
     await expect(page.getByTestId('data-reset-blocked')).toContainText('Datenordner ist nicht erreichbar')
   })
@@ -430,7 +433,7 @@ test.describe('App reset (desktop)', () => {
   test('has no serious a11y violations on the section and its open question', async ({ context, page }) => {
     await installTauriStub(context, { data: { envelope: BOARD_ENVELOPE() } })
     await page.goto('/settings/data')
-    await expect(page.getByRole('heading', { name: 'Datenordner', level: 2 })).toBeVisible()
+    await expect(page.getByTestId('data-folder-moved')).toBeVisible()
     await expectNoSeriousA11yViolations(page)
     await openReset(page)
     await expectNoSeriousA11yViolations(page)

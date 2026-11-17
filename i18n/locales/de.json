@@ -930,8 +930,10 @@
     },
     "data": {
       "pageTitle": "Daten & Speicher",
-      "pageDescription": "Wo deine Aufgaben und Einstellungen auf diesem Gerät liegen.",
+      "pageDescription": "Sicherungen, Export und Import und das Zurücksetzen der App.",
       "link": "Daten & Speicher",
+      "movedToConnections": "Datenordner und Speicherstatus findest du unter Aufgabenspeicher › Lokal.",
+      "movedLink": "Zum Datenordner",
       "folderHeading": "Datenordner",
       "folderPath": "Datenordner: {path}",
       "changeFolder": "Ordner ändern…",

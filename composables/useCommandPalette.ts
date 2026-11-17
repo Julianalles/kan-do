@@ -187,7 +187,7 @@ export function buildCommandGroups({ t, task, canMove, moveTargets = [], current
     dataRows.push(nav('github-access', t('commandPalette.openGithubAccess'), 'i-ph-key', '/settings/github', actions.openGithubSettings))
   }
   if (actions.openDataFolder) {
-    dataRows.push(nav('data-folder', t('commandPalette.openDataFolder'), 'i-ph-folder-open', '/settings/data', actions.openDataFolder))
+    dataRows.push(nav('data-folder', t('commandPalette.openDataFolder'), 'i-ph-folder-open', '/settings?tab=sources', actions.openDataFolder))
   }
   if (actions.openDataTransfer) {
     dataRows.push(nav('data-transfer', t('commandPalette.openDataTransfer'), 'i-ph-download-simple', '/settings/data', actions.openDataTransfer))
@@ -323,7 +323,7 @@ export function useCommandPalette() {
     ...(isTauri()
       ? {
           openGithubSettings: run(() => { void navigateTo('/settings/github') }, { navigates: true }),
-          openDataFolder: run(() => { void navigateTo('/settings/data') }, { navigates: true }),
+          openDataFolder: run(() => { void navigateTo('/settings?tab=sources') }, { navigates: true }),
           // The check (and the dialog or page it leads to) starts only after the palette has left.
           checkForUpdates: run(() => { afterLeave = () => { void appUpdater.checkManually() } }, { navigates: true }),
           openUpdates: run(() => { void navigateTo('/settings/updates') }, { navigates: true }),
