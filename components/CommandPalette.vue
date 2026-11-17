@@ -84,6 +84,8 @@ const { isOpen, groups, hasCard, restoreFocus } = useCommandPalette()
 // Cmd/Ctrl+K is registered in app.vue: this component loads on first open (#288).
 
 const modalUi = {
+  // A click on the scrim in the desktop bar row must dismiss it, not start a window drag (#432, lib/windowDrag.ts)
+  overlay: 'window-drag-exempt',
   content: 'sm:top-20 sm:translate-y-0 sm:max-w-xl overflow-hidden',
 }
 // Variant B "Quiet Desk" (chosen over stock A and dense C, see PR): display-role group headings like the
