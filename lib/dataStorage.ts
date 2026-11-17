@@ -235,6 +235,29 @@ export async function initDataStorage(deps: InitDeps = {}): Promise<DataStatusPa
   return status
 }
 
+/**
+ * Dev seed on desktop (#413): the `?seed=` plugin writes `localStorage`, which the desktop reads only while the data
+ * file does not exist yet, and the very first start has already created that file (empty) by the time the seed runs.
+ * This hands the seeded persisted stores to Rust as well, so the first `npm run tauri:dev` launch opens the demo board.
+ *
+ * Only into a file that holds nothing: web, a read-only runtime, a blocked data status or any persisted key already in
+ * the mirror make it a no-op, so a later launch never overwrites dev data (and real data is never touched). Awaits the
+ * writes, the caller reloads right after. Returns whether it seeded.
+ */
+export async function seedDesktopStores(source: Pick<Storage, 'getItem'>): Promise<boolean> {
+  const active = runtime
+  if (!active || active.readOnly || dataState.status !== 'ok' || active.mirror.size > 0) return false
+  const stores = importLocalStorage(source, PERSISTED_KEYS)
+  const entries = Object.entries(stores)
+  if (!entries.length) return false
+  for (const [key, value] of entries) {
+    active.mirror.set(key, JSON.stringify(value))
+    await active.backend.set(key, value)
+  }
+  await active.backend.flush()
+  return true
+}
+
 /** The state shown when Rust cannot be asked at all: unreadable, so nothing is written. */
 function unreachableStatus(error: DataError): DataStatusPayload {
   return emptyDataStatus({ status: 'read-only-corrupt', error: error.message })
