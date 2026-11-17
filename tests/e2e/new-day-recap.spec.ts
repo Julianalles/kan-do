@@ -101,6 +101,41 @@ test.describe('New-day recap (#385)', () => {
     await expect(planButton(page)).toBeFocused()
   })
 
+  test('the board is never visible before the recap, on a fresh load and back from another page (#427)', async ({ page, context }) => {
+    await seedNewDayBoard(context)
+    // Every frame of the page load: a column of the board that is painted while the recap is not (fully) there is the flash
+    await context.addInitScript(() => {
+      const w = window as unknown as { __flash: string[] }
+      w.__flash = []
+      const sample = () => {
+        const column = document.querySelector('main[data-task-sheet-return] .board')
+        if (column && getComputedStyle(column).visibility === 'visible') {
+          const stage = document.querySelector('[data-testid="new-day-recap"]')
+          if (!stage || getComputedStyle(stage).opacity !== '1') w.__flash.push(stage ? 'fading-in' : 'no-recap')
+        }
+        requestAnimationFrame(sample)
+      }
+      requestAnimationFrame(sample)
+    })
+    await page.goto('/tasks')
+    await expect(recap(page)).toBeVisible()
+    await settleAnimations(page)
+    expect(await page.evaluate(() => (window as unknown as { __flash: string[] }).__flash)).toEqual([])
+
+    // Settings and back: the recap is still open, and the page mounts with it
+    await openSettings(page)
+    await page.evaluate(() => { (window as unknown as { __flash: string[] }).__flash = [] })
+    await goToPlace(page, 'Heute')
+    await expect(recap(page)).toBeVisible()
+    await settleAnimations(page)
+    expect(await page.evaluate(() => (window as unknown as { __flash: string[] }).__flash)).toEqual([])
+
+    // Leaving shows the live board
+    await continueButton(page).click()
+    await expect(recap(page)).toBeHidden()
+    await expect(doneColumn(page)).toBeVisible()
+  })
+
   test('opens on the first return of a new day without a click or navigation, not while the window stays focused (#242)', async ({ page, context }) => {
     // Done today, the marker is today: nothing is due. The page clock is then moved a day on, as after a night.
     await seedNewDayBoard(context, { daysAgo: 0, lastShownDay: dayKeyDaysAgo(0) })

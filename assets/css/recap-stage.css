@@ -46,6 +46,11 @@
     padding: 1.25rem;
   }
 
+  /* Open as the page mounts (#427): the board is hidden behind it, so there is nothing to fade over */
+  .recap-stage[data-instant] {
+    animation: none;
+  }
+
   .recap-stage[data-closing] {
     pointer-events: none;
     animation: none;
@@ -80,4 +85,10 @@
 html[data-recap-stage] .app-nav::before {
   opacity: 0;
   transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+/* A recap that is open as the board page mounts hides the board until it is left (#427): the board is never painted before
+   the recap. `visibility` keeps the layout, so the curtain lifts off a board that is already in place. */
+main[data-recap-cover] {
+  visibility: hidden;
 }

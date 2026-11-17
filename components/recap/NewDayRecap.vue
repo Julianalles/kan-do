@@ -10,6 +10,7 @@ One centred paper sheet (max 44rem, like the welcome sheet) with both decks side
 - Shell only: headline (the title, the theme's 18 px dialog title, kd#179), summary, decks (body), submit panel
 - Not modal (#245), teleported to `#recap-stage-host` (app.vue) so the inert board does not take it along and the bar stays above it: a `role="region"` named by the headline, no scrim, no focus trap. The app bar stays usable and sits above the stage (`--z-bar`); the board is `inert` behind it (`pages/tasks.vue`). Going to settings and coming back finds the same recap, because the state lives in `useNewDayRecap`
 - Focus starts on "Tag planen"; both buttons and Escape inside the stage call `leave()`, which follows the switch (#44); "Tag planen" goes to "Alle" first and then starts the day fresh (`useNewDay().freshStart()`, #387: the only thing here that moves a card), "Direkt zum Board" goes to Heute when "Alle" shows and moves nothing, Escape only dismisses, never navigates and moves nothing; `finishLeave()` after the curtain hands focus to the board
+- Open as the page mounts (an app start, or back from another page, #427): `pages/tasks.vue` runs the day check in setup and hides the board (`data-recap-cover`) until the recap is left, and the stage takes `instant` (no fade-in), so the board is never seen before it
 - Curtain (assets/css/recap-stage.css): `leave()` runs at once (archive, marker, the board is live), the stage stays mounted while the sheet fades (200 ms) and only the photo slides up (700 ms, ease in-out) with a feathered edge; reduced motion: instant. A second click or Escape during the curtain does nothing
 - The photo is the welcome page's (`public/welcome`), decoration only (`alt=""`); until it loads, or if it fails, the layer is the paper colour
 - Phone switcher ("n noch offen" / "n erledigt", a `UTabs` pill: `role="tab"`, `aria-selected`): one RecapDeck mounted at a time, starts on "noch offen" (on "erledigt" when nothing is open, then without a switcher)
@@ -26,6 +27,7 @@ One centred paper sheet (max 44rem, like the welcome sheet) with both decks side
       role="region"
       :aria-labelledby="titleId"
       :data-closing="closing || undefined"
+      :data-instant="instant || undefined"
       :inert="closing || undefined"
       data-testid="new-day-recap"
       data-window-drag-layer
@@ -143,6 +145,9 @@ import { weekdayName } from '~/utils/doneDayLabel'
 
 defineOptions({ name: 'NewDayRecap' })
 
+/** The recap was open as the page mounted (#427): the board behind is hidden, so the stage appears at once, without its fade-in. */
+defineProps<{ instant?: boolean }>()
+
 const { t } = useI18n()
 const { locale } = useLocaleFormat()
 const { isOpen, snapshot, leave, finishLeave } = useNewDayRecap()
@@ -188,8 +193,14 @@ const summary = computed(() => {
   return done === total ? t('recap.summary.all', { when }) : t('recap.summary.partial', { when, n: done, m: total })
 })
 
-function focusPrimary() {
-  document.querySelector<HTMLElement>('[data-recap-primary]')?.focus({ preventScroll: true })
+/**
+ * Focus starts on "Tag planen". The stage may not be in the DOM yet: opened as the page mounts (#427) it is teleported
+ * only once the host is there, a few frames after this runs, so it looks again on each frame (up to a second).
+ */
+function focusPrimary(framesLeft = 60) {
+  const primary = document.querySelector<HTMLElement>('[data-recap-primary]')
+  if (primary) primary.focus({ preventScroll: true })
+  else if (framesLeft > 0 && isOpen.value) requestAnimationFrame(() => focusPrimary(framesLeft - 1))
 }
 
 const titleId = useId()
@@ -276,6 +287,6 @@ watch(isOpen, async (open) => {
   if (!open || typeof window === 'undefined') return
   pickedKind.value = 'undone'
   await nextTick()
-  requestAnimationFrame(focusPrimary)
+  requestAnimationFrame(() => focusPrimary())
 }, { immediate: true })
 </script>

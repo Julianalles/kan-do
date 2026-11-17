@@ -19,6 +19,12 @@ describe('isLayerDragStart', () => {
     expect(isLayerDragStart(down(), 56)).toBe(true)
   })
 
+  it('lets an exempt scrim (the command palette, #432) dismiss instead of drag', () => {
+    const exempt = scrim()
+    exempt.classList.add('window-drag-exempt')
+    expect(isLayerDragStart(down({ target: exempt }), 56)).toBe(false)
+  })
+
   it('ignores a press below the bar row', () => {
     expect(isLayerDragStart(down({ clientY: 56 }), 56)).toBe(false)
   })
