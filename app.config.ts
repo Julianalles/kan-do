@@ -152,8 +152,7 @@ export default defineAppConfig({
       upload: 'i-ph-upload-simple',
       warning: 'i-ph-warning'
     },
-    // Every overlay darkens the page by the shared scrim (`--overlay-scrim`);
-    // only the task sheet opts out (transparent overlay, board-side spotlight).
+    // Every overlay darkens the whole window by the shared scrim (`--overlay-scrim`), the task sheet included (#419).
     modal: {
       slots: {
         // Default width is the "md" step of the shared scale (utils/modalSizes.ts);

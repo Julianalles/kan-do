@@ -1,6 +1,6 @@
 /**
  * E2E: overlay scrim (issue #127). Every modal and drawer overlay darkens the page by the shared
- * `--overlay-scrim`; the task sheet over the board is the one exception (transparent overlay, board-side spotlight); over the statistics page its overlay carries the scrim.
+ * `--overlay-scrim`, the task sheet included (#419): its overlay covers the whole viewport on Planung, Heute and Statistik.
  */
 import { test, expect, type Page } from '@playwright/test'
 import { seedLocalBoard } from './helpers/seed'
@@ -53,11 +53,20 @@ for (const viewport of [{ name: 'desktop', width: 1280, height: 800 }, { name: '
       await expectScrim(page)
     })
 
-    test('task sheet overlay over the board stays transparent', async ({ page }) => {
-      await page.goto('/tasks/seed-open-1')
-      await expect(page.getByRole('dialog')).toBeVisible()
-      await expect(overlay(page)).toHaveCount(1)
-      await expect(overlay(page)).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)')
-    })
+    for (const path of ['/tasks/seed-open-1', '/all/seed-open-1', '/tasks/add', '/all/add']) {
+      test(`task sheet overlay on ${path} is the scrim over the whole viewport`, async ({ page }) => {
+        await page.goto(path)
+        await expect(page.getByRole('dialog')).toBeVisible()
+        await expect(overlay(page)).toHaveCount(1)
+        await expectScrim(page)
+        const box = await overlay(page).evaluate((el) => {
+          const r = el.getBoundingClientRect()
+          return { x: r.x, y: r.y, w: r.width, h: r.height, vw: window.innerWidth, vh: window.innerHeight }
+        })
+        expect(box).toMatchObject({ x: 0, y: 0 })
+        expect(box.w).toBe(box.vw)
+        expect(box.h).toBe(box.vh)
+      })
+    }
   })
 }

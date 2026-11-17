@@ -7,7 +7,7 @@ export default {
   kind: 'compound',
   category: 'overlay',
   description: 'A panel that slides in from the right edge.',
-  usage: 'Only inside ResponsiveOverlay (the task sheet on desktop), width SHEET_WIDTH; it has a transparent overlay so the board stays visible.',
+  usage: 'Only inside ResponsiveOverlay (the task sheet on desktop), width SHEET_WIDTH; its overlay is the shared scrim (the cards behind fade back).',
   avoid: 'Not a general dialog (UModal) and not used directly in feature code.',
   alternatives: ['ResponsiveOverlay', 'UModal', 'UDrawer'],
   theme: 'slideover',
