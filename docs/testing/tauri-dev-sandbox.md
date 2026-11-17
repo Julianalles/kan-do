@@ -68,6 +68,16 @@ find "$LEGACY" -type f -exec shasum {} \; > "$SANDBOX/legacy-before.txt"
 
 After the run: `find "$LEGACY" -type f -exec shasum {} \; | diff "$SANDBOX/legacy-before.txt" -` must be empty (the legacy folder is never written), the new `$SANDBOX/Library/Application Support/io.github.jaylouiz.kan-do.sandbox-$PORT` holds the same files (pointer rewritten to the new folder, `deviceId` unchanged) plus `identifier-migration.json` with `"data": "done"`, and `$SANDBOX/Library/Logs/io.github.jaylouiz.kan-do.sandbox-$PORT/kan-do.log` contains `data copied from the legacy folder and verified` and `Keychain step skipped`.
 
+## Reaching a Jetzt task (#457)
+
+A fresh sandbox `HOME` is a first run: the data file is missing (`needsInit`), the app opens the welcome page, and `?seed` does nothing in the invisible window. A check that needs a board with a task in Jetzt (the floating Now window, `overlay.rs` `create_window`, window events) pre-writes the sandbox data folder **before step 3** of the recipe, with `scripts/sandbox-data.mjs` (a Local board: one Offen task, one Jetzt task; `--no-jetzt` for none; it refuses any folder outside the OS temp dir):
+
+```bash
+node scripts/sandbox-data.mjs "$SANDBOX/Library/Application Support/io.github.jaylouiz.kan-do.sandbox-$PORT"
+```
+
+It writes `kan-do-data.json` (envelope with `board-store`, `tasks-store`, `settings-store`) and a `data-location.json` pointing at that folder, so the load finds a valid file and a saved pointer: no welcome page, no import, no legacy migration. The Rust side then logs what it does with the Jetzt task; read `$SANDBOX/Library/Logs/io.github.jaylouiz.kan-do.sandbox-$PORT/kan-do.log`, e.g. `overlay: sync (enabled true, task true)`, `overlay: window created`, `overlay: would show (sandbox run, not shown)` (the pill is never shown in a sandbox run). For another board shape, edit the script's task list or copy a `kan-do-data.json` a real desktop session wrote (the "Seeding a legacy folder" recipe above shows both files).
+
 ## Capturing the window (only when a picture is needed)
 
 Start the window on screen but behind everything else and unfocused: replace `visible:false` with `visible:true,alwaysOnBottom:true` in step 2 (keep `focus:false` and `KANDO_SANDBOX_BACKGROUND=1`). Find the PID of your own process, verify it, then capture that window only:
@@ -111,3 +121,5 @@ The E2E stub (`tests/e2e/helpers/tauriStub.ts`) is checked against `generate_han
 Run for #623 (macOS, Tauri 2.12; the recipe then still used the identifier `com.julius.kan-do.sandbox` without the port): with the recipe's invisible window and `KANDO_SANDBOX_BACKGROUND=1` the front application (`lsappinfo front`) was identical before the launch and ten seconds after it, the process's windows reported not on screen, and the real data folder's shasums were unchanged. Without `KANDO_SANDBOX_BACKGROUND` tao activates the app at launch (source: `tao` `app_state.rs`, `launched`), which was not run on purpose. The `alwaysOnBottom` capture variant (visible window, unfocused, behind others) was not run: it would show a window on the user's screen; whoever needs it first should check `lsappinfo front` before and after. Its window-id line was corrected from reading tao's source (`always_on_bottom` sets level -1) and checked only against another process's windows (`pgrep -x Finder`): the line printed ids with layers 0 and -2147483603, so a `layer == 0` filter drops windows; the per-port identifier and the single-instance callback guard are covered by the Rust unit tests for the opt-in parsing, not by a live second launch.
 
 Run once for #256 (macOS): the app started under `HOME=<tmp>` with `Library/Logs/com.julius.kan-do.sandbox` and `Library/Caches/com.julius.kan-do.sandbox` created in the sandbox; shasums of every file in `~/Library/Application Support/com.julius.kan-do` (including `data-location.json`) were identical before and after.
+
+Run once for #457 (macOS): `scripts/sandbox-data.mjs` wrote the sandbox folder, the invisible window loaded the board (no welcome page) and the log showed `overlay: sync (enabled true, task true)`, `overlay: window created`, `overlay: pill ready (task true)`, `overlay: would show (sandbox run, not shown)`, plus `data step not needed` and `Keychain step skipped`; the real folders' shasums were unchanged. Not checked: a picture of the pill (it is never shown in a sandbox run).
