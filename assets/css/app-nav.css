@@ -213,15 +213,8 @@
 
   .app-nav-place.app-nav-continue,
   .app-nav-place.app-nav-continue:hover {
-    gap: 0.375rem;
-    padding-inline: 1.125rem 0.875rem;
+    padding-inline: 1.125rem;
     color: var(--ui-text-inverted);
-  }
-
-  .app-nav-continue-icon {
-    width: 1rem;
-    height: 1rem;
-    flex: none;
   }
 
   /* The ring sits outside the green pill, on the paper: the pill is the focus target's shape */
@@ -390,7 +383,7 @@
     }
 
     .app-nav-place.app-nav-continue {
-      padding-inline: 1.25rem 1rem;
+      padding-inline: 1.25rem;
     }
 
     /* The wordmark has no backing on a phone and would print over the cards scrolling under the bar (kd#24): it is not

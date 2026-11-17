@@ -6,6 +6,7 @@ import { setActivePinia, createPinia } from 'pinia'
 import MorePanel from '~/components/nav/MorePanel.vue'
 import { useBoardStore } from '~/store/board'
 import { useIntegrationHealthStore } from '~/store/integrationHealth'
+import { clearPlanningFromRecap, markPlanningFromRecap } from '~/composables/usePlanningFromRecap'
 
 const route = reactive<{ path: string; meta: Record<string, unknown> }>({ path: '/tasks', meta: {} })
 const isTauri = vi.fn(() => false)
@@ -37,6 +38,7 @@ const render = (): VueWrapper => mount(MorePanel, { global: { stubs } })
 describe('MorePanel: the Mehr panel (#470)', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
+    clearPlanningFromRecap()
     useBoardStore().setSources({ connected: ['notion'], default: 'notion' })
     useIntegrationHealthStore().recordSuccessfulSync('notion')
     route.path = '/tasks'
@@ -96,8 +98,9 @@ describe('MorePanel: the Mehr panel (#470)', () => {
     expect(w.find('[data-testid="more-settings"]').exists()).toBe(true)
   })
 
-  // #373: on Planung the pill is only "Weiter zum Board", so the places it leaves out are rows of the panel
-  it.each(['/all', '/all/x'])('on %s Heute and Statistik are rows (above Ansicht) and lead to their pages', async (path) => {
+  // #373, #416: after "Tag planen" the pill is only "Weiter zum Board", so the places it leaves out are rows of the panel
+  it.each(['/all', '/all/x'])('after the recap on %s Heute and Statistik are rows (above Ansicht) and lead to their pages', async (path) => {
+    markPlanningFromRecap()
     route.path = path
     const w = render()
     const today = w.find('[data-testid="more-today"]')
@@ -109,6 +112,13 @@ describe('MorePanel: the Mehr panel (#470)', () => {
     expect(w.text().indexOf('Statistik')).toBeLessThan(w.text().indexOf('Ansicht'))
     await today.trigger('click')
     expect(w.emitted('close')).toHaveLength(1)
+  })
+
+  it('on Planung opened by hand the places are the pill\'s segments: no Heute and Statistik rows', () => {
+    route.path = '/all'
+    const w = render()
+    expect(w.find('[data-testid="more-today"]').exists()).toBe(false)
+    expect(w.find('[data-testid="more-statistics"]').exists()).toBe(false)
   })
 
   it.each(['/tasks', '/statistics', '/trash', '/settings'])('on %s the places are the pill\'s segments: no Heute and Statistik rows', (path) => {

@@ -134,6 +134,7 @@ import { useNewDayRecap } from '~/composables/useNewDayRecap'
 import { useNewDay } from '~/composables/useNewDay'
 import { useBoardPlace } from '~/composables/useBoardPlace'
 import { boardPlaceLocation } from '~/lib/boardPlace'
+import { markPlanningFromRecap } from '~/composables/usePlanningFromRecap'
 import { useDayRecapStore } from '~/store/dayRecap'
 import { useLocaleFormat } from '~/composables/useLocaleFormat'
 import { useIsDesktop } from '~/composables/useIsDesktop'
@@ -232,6 +233,7 @@ function finishCurtain() {
  */
 function leaveToPlan() {
   if (closing.value || !isOpen.value) return
+  markPlanningFromRecap()
   void navigateTo(boardPlaceLocation('all'))
   leaveOnce()
   // Left (not: nothing to leave): the user's click is the fresh start
