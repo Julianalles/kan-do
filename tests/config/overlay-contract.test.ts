@@ -49,6 +49,19 @@ describe('overlay contract: the pill is system glass and shows whichever window 
     expect(rust).toContain('WindowEffect::LiquidGlassRegular, WindowEffect::HudWindow')
   })
 
+  it('keeps the glass corner radius a capsule: half the window height, as the pill\'s CSS radius says', () => {
+    const height = Number(/const WINDOW_HEIGHT: f64 = ([\d.]+);/.exec(rust)?.[1])
+    const radius = Number(/const CORNER_RADIUS: f64 = ([\d.]+);/.exec(rust)?.[1])
+    expect(radius).toBe(height / 2)
+  })
+
+  it('makes the window non-activating on macOS, so a press does not raise kan-do or take the keyboard focus', () => {
+    expect(rust).toContain('NSWindowStyleMask::NonactivatingPanel')
+    expect(rust).toContain('_setPreventsActivation:')
+    expect(rust).toMatch(/make_non_activating\(&window\);/)
+    expect(rust).toMatch(/\.focusable\(false\)[\s\S]*\.accept_first_mouse\(true\)/)
+  })
+
   it('does not look at the main window\'s focus to decide whether to show', () => {
     expect(rust).not.toContain('main_focused')
     expect(rust).not.toContain('on_main_focus')

@@ -75,6 +75,20 @@ test.describe('the pill window (/overlay)', () => {
     expect(await share()).toBe(1)
   })
 
+  test('the line glides on a tick and jumps when the task changes or the timebox runs out (#436)', async ({ context, page }) => {
+    await openPill(context, page, snap({ spentSeconds: 860 }))
+    const fill = page.locator('[data-testid="now-line"] > span')
+    await emitTauriEvent(page, NOW_EVENT, snap({ spentSeconds: 861, at: Date.now() }))
+    await expect(fill).toHaveClass(/is-gliding/)
+    await emitTauriEvent(page, NOW_EVENT, snap({ taskId: 'other', title: 'Other task', spentSeconds: 100, at: Date.now() }))
+    await expect(page.getByTestId('now-title')).toHaveText('Other task')
+    await expect(fill).not.toHaveClass(/is-gliding/)
+    await emitTauriEvent(page, NOW_EVENT, snap({ taskId: 'other', title: 'Other task', spentSeconds: 1499, at: Date.now() }))
+    await emitTauriEvent(page, NOW_EVENT, snap({ taskId: 'other', title: 'Other task', spentSeconds: 1501, at: Date.now() }))
+    await expect(page.getByTestId('now-time')).toHaveText('+0:01')
+    await expect(fill).not.toHaveClass(/is-gliding/)
+  })
+
   test('without a timebox there is no line and the time counts up', async ({ context, page }) => {
     await openPill(context, page, snap({ timeBoxSeconds: null, spentSeconds: 125, running: true }))
     await expect(page.getByTestId('now-title')).toBeVisible()

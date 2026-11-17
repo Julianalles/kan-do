@@ -70,16 +70,16 @@
         </span>
       </div>
       <div v-if="view.line !== null" class="now-line" aria-hidden="true" data-testid="now-line">
-        <span class="now-line__fill" :style="{ width: `${view.line * 100}%` }" />
+        <span class="now-line__fill" :class="{ 'is-gliding': glide }" :style="{ width: `${view.line * 100}%` }" />
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { nowView, type NowSnapshot, type OverlayAction } from '~/lib/nowWindow'
+import { lineAnimates, lineFrame, nowView, type LineFrame, type NowSnapshot, type OverlayAction } from '~/lib/nowWindow'
 
 defineOptions({ name: 'NowWindow' })
 
@@ -100,7 +100,17 @@ let ticker: ReturnType<typeof setInterval> | null = null
 onMounted(() => { ticker = setInterval(() => { now.value = Date.now() }, 1000) })
 onBeforeUnmount(() => { if (ticker) clearInterval(ticker) })
 
-const view = computed(() => nowView(props.snapshot ?? { taskId: '', title: '', timeBoxSeconds: null, spentSeconds: 0, at: now.value, running: false, locale: 'de' }, now.value))
+const shown = computed<NowSnapshot>(() => props.snapshot ?? { taskId: '', title: '', timeBoxSeconds: null, spentSeconds: 0, at: now.value, running: false, locale: 'de' })
+const view = computed(() => nowView(shown.value, now.value))
+
+/** The line glides only on the per-tick shrink; a new task, a new timebox or the step into the overrun set the width without motion (#436). Decided in the render that changes the width, hence the sync flush. */
+const glide = ref(false)
+let lastFrame: LineFrame | null = null
+watch(view, (next) => {
+  const frame = lineFrame(shown.value, next)
+  glide.value = lineAnimates(lastFrame, frame)
+  lastFrame = frame
+}, { immediate: true, flush: 'sync' })
 
 /** The time as a sentence for assistive technology: left, over the timebox, or (no timebox) passed */
 const left = computed(() => {
@@ -183,14 +193,14 @@ function onOpen(): void {
   min-width: 6px; /* the last seconds stay visible */
   border-radius: 9999px;
   background: var(--now-accent);
-  transition: width var(--now-tick);
 }
+.now-line__fill.is-gliding { transition: width var(--now-tick); }
 .is-warning .now-line__fill { background: var(--now-line-warning); }
 .is-warning .now-time { color: var(--now-time-warning); }
 /* Paused: time and line recede in colour and weight (not colour alone, WCAG 1.4.1) */
 .is-paused .now-time { color: var(--now-text-muted); font-weight: 400; }
 .is-paused .now-line__fill { opacity: 0.45; }
 @media (prefers-reduced-motion: reduce) {
-  .now-line__fill { transition: none; }
+  .now-line__fill.is-gliding { transition: none; }
 }
 </style>

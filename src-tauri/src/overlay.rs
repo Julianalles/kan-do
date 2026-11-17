@@ -75,8 +75,8 @@ struct Inner {
     /// The spot waiting to be written, and whether a writer thread is already waiting for it.
     pending_save: Option<(i32, i32)>,
     saver_waiting: bool,
-    /// The main window is closing: the pill must not come back (a `Focused(false)` or a late `overlay_sync` still
-    /// arrives while it closes, and a recreated pill would keep the process alive with no way back in).
+    /// The main window is closing: the pill must not come back (a late `overlay_sync` still arrives while it closes,
+    /// and a recreated pill would keep the process alive with no way back in).
     closing: bool,
 }
 
@@ -216,6 +216,37 @@ fn glass() -> WindowEffectsConfig {
     }
 }
 
+/// A press on the pill must not activate kan-do: that raises the main window and takes the keyboard focus from the
+/// app the user types in (#436). `focusable(false)` only keeps the window from becoming key; the activation on a
+/// mouse-down is a separate rule, and AppKit lifts it for a window with the non-activating panel style. The style
+/// mask is set on the plain `NSWindow` (no new crate, no class swap), plus the window's "prevents activation" flag,
+/// which the system reads from a private selector: it is called only when the window answers it, so a macOS without
+/// it keeps the mask alone. Runs on the main thread, before the window is first shown. No effect off macOS.
+#[cfg(target_os = "macos")]
+fn make_non_activating<R: Runtime>(window: &WebviewWindow<R>) {
+    use objc2::runtime::NSObjectProtocol;
+    use objc2::{msg_send, sel};
+    use objc2_app_kit::{NSWindow, NSWindowStyleMask};
+
+    let target = window.clone();
+    let _ = window.run_on_main_thread(move || {
+        let Ok(ptr) = target.ns_window() else { return };
+        if ptr.is_null() {
+            return;
+        }
+        // SAFETY: `ns_window` is the live NSWindow of this window, and this closure runs on the main thread
+        let ns_window: &NSWindow = unsafe { &*(ptr as *const NSWindow) };
+        ns_window.setStyleMask(ns_window.styleMask() | NSWindowStyleMask::NonactivatingPanel);
+        if ns_window.respondsToSelector(sel!(_setPreventsActivation:)) {
+            // SAFETY: the selector takes one BOOL and returns nothing
+            unsafe { let _: () = msg_send![ns_window, _setPreventsActivation: true]; }
+        }
+    });
+}
+
+#[cfg(not(target_os = "macos"))]
+fn make_non_activating<R: Runtime>(_window: &WebviewWindow<R>) {}
+
 fn create_window<R: Runtime>(app: &AppHandle<R>) -> Option<WebviewWindow<R>> {
     let window = WebviewWindowBuilder::new(app, OVERLAY_LABEL, WebviewUrl::App("overlay".into()))
         .title("kan-do")
@@ -237,6 +268,7 @@ fn create_window<R: Runtime>(app: &AppHandle<R>) -> Option<WebviewWindow<R>> {
         .build()
         .map_err(|error| log::warn!("overlay: window not created: {error}"))
         .ok()?;
+    make_non_activating(&window);
     let saved = position_path(app).and_then(|path| fs::read_to_string(path).ok()).and_then(|text| parse_position(&text));
     let size = window.outer_size().map(|s| (s.width, s.height)).unwrap_or((WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32));
     let (areas, primary) = work_areas(app);
@@ -247,8 +279,8 @@ fn create_window<R: Runtime>(app: &AppHandle<R>) -> Option<WebviewWindow<R>> {
     Some(window)
 }
 
-/// Brings the window in line with the state: created when wanted, destroyed when the setting is off, shown while the
-/// main window is not in front, told the snapshot.
+/// Brings the window in line with the state: created when wanted, destroyed when the setting is off, shown once a task
+/// is shown and the pill is ready (whichever window has the focus), told the snapshot.
 fn apply<R: Runtime>(app: &AppHandle<R>) {
     let (wanted, snapshot, ready) = {
         let state = app.state::<OverlayState>();
@@ -272,7 +304,7 @@ fn apply<R: Runtime>(app: &AppHandle<R>) {
         log::info!("overlay: window created");
     }
     let _ = app.emit_to(OVERLAY_LABEL, STATE_EVENT, &snapshot);
-    if should_show(true, true, ready) {
+    if should_show(wanted, snapshot.is_some(), ready) {
         // A sandbox run puts nothing on the user's screen (docs/testing/tauri-dev-sandbox.md, #623): the decision is
         // logged instead, which is what an unattended check reads
         if crate::sandbox_background() {

@@ -102,3 +102,30 @@ export function nowView(snapshot: NowSnapshot, now: number): NowView {
     paused,
   }
 }
+
+/** What `lineAnimates` compares between two renders of the timer line */
+export interface LineFrame {
+  taskId: string
+  /** The timebox in seconds, `null` without one */
+  box: number | null
+  over: boolean
+  line: number | null
+}
+
+export function lineFrame(snapshot: NowSnapshot, view: NowView): LineFrame {
+  return { taskId: snapshot.taskId, box: snapshot.timeBoxSeconds, over: view.over, line: view.line }
+}
+
+/** The longest step (in seconds of the timebox) the line still glides over: a tick, with a second of slack for a late timer */
+const MAX_GLIDE_SECONDS = 2
+
+/**
+ * Whether the line's width may transition from `prev` to `next`. Only the per-tick shrink does: a new task, a changed
+ * timebox, the step into the overrun (6 px to full), a clock jump or the first frame set the width without motion, so the
+ * line never slides across the pill for something other than time passing (#436).
+ */
+export function lineAnimates(prev: LineFrame | null, next: LineFrame): boolean {
+  if (!prev || prev.line === null || next.line === null || prev.box === null || prev.box !== next.box) return false
+  if (prev.taskId !== next.taskId || prev.over || next.over) return false
+  return Math.abs(prev.line - next.line) * prev.box <= MAX_GLIDE_SECONDS + 1e-6
+}

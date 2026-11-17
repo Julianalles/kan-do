@@ -3,7 +3,7 @@
  * last minute and overrun, the paused state, and the tolerant reading of a snapshot that arrives over the wire.
  */
 import { describe, expect, it } from 'vitest'
-import { nowView, parseSnapshot, spentAt, type NowSnapshot } from '~/lib/nowWindow'
+import { lineAnimates, lineFrame, nowView, parseSnapshot, spentAt, type NowSnapshot } from '~/lib/nowWindow'
 
 const AT = 1_763_300_000_000
 const snap = (extra: Partial<NowSnapshot> = {}): NowSnapshot => ({
@@ -72,5 +72,38 @@ describe('parseSnapshot', () => {
   })
   it('clamps negative spent time to zero', () => {
     expect(parseSnapshot({ ...snap(), spentSeconds: -5 })?.spentSeconds).toBe(0)
+  })
+})
+
+describe('lineAnimates: the timer line glides on a tick and jumps on anything else (#436)', () => {
+  const frame = (extra: Partial<NowSnapshot> = {}, at = AT) => {
+    const snapshot = snap(extra)
+    return lineFrame(snapshot, nowView(snapshot, at))
+  }
+  it('glides from one second to the next', () => {
+    expect(lineAnimates(frame(), frame({}, AT + 1000))).toBe(true)
+    expect(lineAnimates(frame(), frame({}, AT + 2000))).toBe(true)
+  })
+  it('does not animate the first frame', () => {
+    expect(lineAnimates(null, frame())).toBe(false)
+  })
+  it('does not glide when the clock jumps (a resumed window, a wake from sleep)', () => {
+    expect(lineAnimates(frame(), frame({}, AT + 60_000))).toBe(false)
+  })
+  it('jumps when the task changes, even at the same width', () => {
+    expect(lineAnimates(frame(), frame({ taskId: 'b' }))).toBe(false)
+  })
+  it('jumps when the timebox changes', () => {
+    expect(lineAnimates(frame(), frame({ timeBoxSeconds: 3000 }, AT + 1000))).toBe(false)
+  })
+  it('jumps at the timebox instead of growing from the end to full', () => {
+    const last = frame({ spentSeconds: 1499 })
+    const over = frame({ spentSeconds: 1501 })
+    expect(over.over).toBe(true)
+    expect(lineAnimates(last, over)).toBe(false)
+  })
+  it('does not animate with no line, or in the overrun where it stays full', () => {
+    expect(lineAnimates(frame({ timeBoxSeconds: null }), frame({ timeBoxSeconds: null }, AT + 1000))).toBe(false)
+    expect(lineAnimates(frame({ spentSeconds: 1600 }), frame({ spentSeconds: 1600 }, AT + 1000))).toBe(false)
   })
 })
