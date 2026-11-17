@@ -83,7 +83,7 @@ export type PlacePace = 'glide' | 'lift'
 let glideDay: string | null = null
 /** When the recap armed the lift: it is for the move its own click starts, never a later one. */
 let liftAt = 0
-const LIFT_WINDOW_MS = 1000
+const LIFT_WINDOW_MS = 2000
 /** The pace attribute outlives a move that never ends (a retarget, a place that did not change): this is the net. */
 const PACE_NET_MS = 1800
 let paceTimer: ReturnType<typeof setTimeout> | undefined

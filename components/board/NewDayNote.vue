@@ -74,8 +74,10 @@ function start() {
   // Like the recap's button of the same name (#462): what was done before today is archived with the fresh start
   const doneBefore = tasksStore.tasksDonePrevious.map(task => task.id)
   const sent = freshStart()
-  if (sent.length > 0) archiveTasks(doneBefore)
-  if (sent.length > 0) announcement.value = t('board.newDayNote.started', { n: sent.length }, sent.length)
+  if (sent.length > 0) {
+    archiveTasks(doneBefore)
+    announcement.value = t('board.newDayNote.started', { n: sent.length }, sent.length)
+  }
   // The fresh start leads to "Alle", where the day is planned; there the place stays
   if (!isAll.value) void navigateTo(boardPlaceLocation('all'))
   void focusBoard()

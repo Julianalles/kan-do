@@ -400,7 +400,9 @@ const sidesOf = (el: HTMLElement): [HTMLElement[], HTMLElement[]] => [
 watch(place, async (to) => {
   const el = boardEl.value;
   // The day's first move to Heute glides, the recap's lift to "Alle" is slower still (#433): the pace is set before the time is read
-  setPlacePace(takePlacePace(to, dayKey(new Date())));
+  // A retarget in the middle of a slow move keeps that pace, so strip and chip finish on one clock
+  const pace = takePlacePace(to, dayKey(new Date()));
+  if (pace !== null || !placeMoving.value) setPlacePace(pace);
   const { ms, easing } = readPlaceMove(el);
   const token = ++placeMoveToken;
   clearTimeout(placeMoveTimer);

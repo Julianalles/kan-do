@@ -223,7 +223,8 @@ function finishCurtain() {
 function leaveToPlan() {
   if (closing.value || !isOpen.value) return
   // The curtain lifts over 1.4 s and the board glides to Planung beneath it on the same time (#433); not under reduced motion
-  if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+  // (already on "Alle": no move beneath it, so the curtain keeps its 700 ms)
+  if (!isAll.value && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     armLift()
     document.querySelector<HTMLElement>('[data-testid="new-day-recap"]')?.setAttribute('data-pace', 'lift')
   }
