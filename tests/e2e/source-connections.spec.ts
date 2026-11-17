@@ -97,10 +97,10 @@ test.describe('disconnect Notion (#320)', () => {
     await expect(page.getByTestId('disconnect-unsynced')).toHaveCount(0)
     await expect(page.getByTestId('disconnect-sync-first')).toHaveCount(0)
 
-    // Button ladder (#552): the footer row aligns items-center, so the md "Abbrechen" stays 32 px next to the 36 px lg "Trennen"
+    // One height rule (#424): "Abbrechen" and "Trennen" share the primary's 36 px
     // (polled: the dialog scales in, so a first read is a few percent short)
     const height = (id: string) => async () => Math.round((await page.getByTestId(id).boundingBox())?.height ?? 0)
-    await expect.poll(height('disconnect-cancel')).toBe(32)
+    await expect.poll(height('disconnect-cancel')).toBe(36)
     await expect.poll(height('disconnect-anyway')).toBe(36)
 
     await page.getByTestId('disconnect-anyway').click() // "Trennen"
