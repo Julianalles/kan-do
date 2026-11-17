@@ -71,7 +71,14 @@ import { useElementPicker } from "~/composables/useElementPicker";
 import { useOpenedOnce } from "~/composables/useOpenedOnce";
 
 const DayCloseDialog = defineAsyncComponent(() => import("~/components/board/DayCloseDialog.vue"));
-const NewDayRecap = defineAsyncComponent(() => import("~/components/recap/NewDayRecap.vue"));
+const NewDayRecap = defineAsyncComponent({
+  loader: () => import("~/components/recap/NewDayRecap.vue"),
+  // A chunk that fails to load (offline, stale after an update) must not leave the board hidden behind a recap that never comes (#427)
+  onError: (_error, _retry, fail) => {
+    coverBoard.value = false;
+    fail();
+  },
+});
 const FeedbackDialog = defineAsyncComponent(() => import("~/components/feedback/FeedbackDialog.vue"));
 const ElementPickerBar = defineAsyncComponent(() => import("~/components/feedback/ElementPickerBar.vue"));
 
@@ -229,7 +236,7 @@ watch(recap.isOpen, (open) => {
 });
 
 onMounted(() => {
-  // The page init starts its fetch before the first await, so the recap opens over a board that is already loading (#385)
+  // The recap of a due day is already open (the day check ran in setup, #427); the page init starts its fetch right after the mount
   void initializeTasksPageOnMount();
   stopRecapReturn = recap.listenForReturn(onReturn);
 });
