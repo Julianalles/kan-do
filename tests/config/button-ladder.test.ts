@@ -97,6 +97,7 @@ const SMALLER_BY_DESIGN: Record<string, string> = {
   'components/task/TaskStackHeader.vue': 'round close button in the stack header, same look as the header add button',
   'components/task/TaskCard.vue': 'the card-corner menu button (#296): a 28 px circle with a 44 px hit area, tied to the card corner',
   'components/board/NewCardFlow.vue': '`.ncf__nav` on a 128 px card: the head ends 12 px above the answer row',
+  'components/board/BoardFocusBar.vue': '`.board-focus-bar__end`: 28 px round end button inside the 36 px focus pill, 4 px from its edge',
   'components/board/BoardColumnNotice.vue': '`.notice__action`: `xs` action inside the 48 px note strip (#377)',
 }
 
