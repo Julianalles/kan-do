@@ -65,7 +65,6 @@
           <div class="mt-6 flex items-center justify-end">
             <UButton
               color="primary"
-              size="lg"
               :loading="!!wizard?.isValidating"
               :disabled="!wizard?.canProceed"
               data-testid="wizard-proceed"

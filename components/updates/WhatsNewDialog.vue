@@ -39,7 +39,7 @@ version since the last one seen, newest first. Opened by the "Was ist neu" butto
 
     <template #footer>
       <div class="flex w-full justify-end gap-2">
-        <UButton size="lg" color="primary" data-testid="whats-new-close" @click="whatsNew.close()">
+        <UButton color="primary" data-testid="whats-new-close" @click="whatsNew.close()">
           {{ t('whatsNew.close') }}
         </UButton>
       </div>

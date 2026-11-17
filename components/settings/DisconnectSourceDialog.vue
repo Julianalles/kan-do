@@ -79,7 +79,6 @@ Notion settings page now and from the "Verbindungen" page (#324).
         <UButton
           :color="plan && plan.unsyncedCount > 0 ? 'error' : 'primary'"
           :variant="plan && plan.unsyncedCount > 0 ? 'soft' : 'solid'"
-          :size="plan && plan.unsyncedCount > 0 ? undefined : 'lg'"
           :label="plan && plan.unsyncedCount > 0 ? t('sources.disconnect.anyway') : t('sources.disconnect.confirm')"
           :loading="busyAction === 'discard'"
           :disabled="isBusy || !plan"
@@ -89,7 +88,6 @@ Notion settings page now and from the "Verbindungen" page (#324).
         />
         <UButton
           v-if="canSync"
-          size="lg"
           color="primary"
           :label="t('sources.disconnect.syncFirst')"
           :loading="busyAction === 'sync'"

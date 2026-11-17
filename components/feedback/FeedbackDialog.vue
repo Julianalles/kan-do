@@ -256,24 +256,22 @@ v-if="logTail" v-model="draft.include.log" :label="t('feedback.review.itemLog')"
           {{ t('common.undo') }}
         </UButton>
         <UButton color="neutral" variant="soft" @click="close">{{ t('common.cancel') }}</UButton>
-        <UButton size="lg" color="primary" :disabled="!titleValid" data-testid="feedback-next" @click="toReview">{{ t('feedback.next') }}</UButton>
+        <UButton color="primary" :disabled="!titleValid" data-testid="feedback-next" @click="toReview">{{ t('feedback.next') }}</UButton>
       </template>
       <template v-else-if="step === 'annotate'">
         <UButton color="neutral" variant="soft" data-testid="annotate-back" @click="toForm">{{ t('feedback.annotate.back') }}</UButton>
-        <UButton size="lg" color="primary" data-testid="annotate-done" @click="finishAnnotate">{{ t('feedback.annotate.done') }}</UButton>
+        <UButton color="primary" data-testid="annotate-done" @click="finishAnnotate">{{ t('feedback.annotate.done') }}</UButton>
       </template>
       <template v-else>
         <UButton color="neutral" variant="soft" :disabled="sending" data-testid="feedback-back" @click="toForm">{{ t('common.back') }}</UButton>
-        <UButton size="lg" v-if="canSend" color="primary" :loading="sending" data-testid="feedback-send" @click="send">
+        <UButton v-if="canSend" color="primary" :loading="sending" data-testid="feedback-send" @click="send">
           {{ sendLabel }}
         </UButton>
-        <UButton
-          size="lg" v-else-if="routeKnown && sendRoute === 'relay'" color="primary" :loading="sending"
+        <UButton v-else-if="routeKnown && sendRoute === 'relay'" color="primary" :loading="sending"
           data-testid="feedback-send-relay" @click="sendViaRelay">
           {{ problem ? t('feedback.review.retry') : t('feedback.review.sendRelay') }}
         </UButton>
         <UButton
-          size="lg"
           v-else color="primary" :icon="ICONS.external" :disabled="tokenState === 'unknown'" :loading="tokenState === 'unknown'"
           data-testid="feedback-open-browser" @click="openInBrowser">
           {{ t('feedback.review.openOnGithub') }}
