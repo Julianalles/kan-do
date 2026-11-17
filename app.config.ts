@@ -356,16 +356,18 @@ export default defineAppConfig({
         size: 'lg'
       }
     },
-    // The button ladder (kd#177, DESIGN.md "Components"): two heights and four looks. `md` is the default, 32 px: every
-    // button, also the rows' and cards' actions; `lg` is 36 px and the one main action of a surface. Both heights are
-    // written here (`md:h-8`, `md:h-9`), not derived from the text line plus padding, so a change of the interface line height
-    // cannot move them. Looks: solid (the one main action), soft (a neutral action that stands on its own, and the one
+    // The button ladder (kd#177, #424, DESIGN.md "The One Height Rule"): one height and four looks. `md` is the default, 36 px
+    // (48 on a phone): every button, also the rows' and cards' actions, has the height of the main action; `lg` is the same line
+    // for the Nuxt UI components that pass a size down, no call site names it. The height is written here (`md:h-9`), not derived
+    // from the text line plus padding, so a change of the interface line height cannot move it. A solid primary or error button is
+    // also at least 96 px wide (`min-w-24`), so a short label ("Weiter") keeps the wide rectangle. A button that stays smaller is a
+    // listed exception with a reason (tests/config/button-ladder.test.ts `SMALLER_BY_DESIGN`). Looks: solid (the one main action), soft (a neutral action that stands on its own, and the one
     // main action of a row), ghost (every further action in a row, card, menu or toolbar, every icon-only button), link.
     // `sm`, `xl`, `outline` and `subtle` are Nuxt UI's and stay in the merged theme (a theme cannot delete a key) but are
     // unused: tests/config/button-ladder.test.ts fails on them, the `/ui` entry leaves them out (`only`). `xs` is 24 px and exists only for the
     // actions Nuxt UI renders in an alert or toast (`size="xs"`, no template sets it); it takes the 14 px text step of the
     // notice beside it, not Nuxt UI's 12 px (#377); those actions keep their own 44 px phone rule (`.kando-notice-actions`, `.kando-toast-actions` in mobile-nav.css, #284).
-    // On a phone every button is 44 px high (`lg` 48), icon-only ones 44 wide (the heights above apply from `md` up, so a label that wraps grows the button on a phone),
+    // On a phone every labelled button is 48 px high, icon-only ones 44 x 44 (the heights above apply from `md` up, so a label that wraps grows the button on a phone),
     // so no surface applies `.touch-target` by hand. Nuxt UI internals follow the floor, measured at 390 px (#552):
     // calendar header and its Löschen / Heute 44, modal close 44 x 44. The ladder covers buttons only: `USelect` and
     // `UInput` keep their own field heights.
@@ -381,8 +383,10 @@ export default defineAppConfig({
       variants: {
         size: {
           xs: { base: 'md:h-6 py-0.5 text-sm' },
-          md: { base: 'md:h-8 px-3' },
-          lg: { base: 'md:h-9 max-md:min-h-12' }
+          // One height for every button, the primary's (#424, DESIGN.md "The One Height Rule"): 36 px, 48 px on a phone.
+          // `lg` is the same line: Nuxt UI components that pass a size down still land on it, no call site names it.
+          md: { base: 'md:h-9 max-md:min-h-12 px-3 text-sm' },
+          lg: { base: 'md:h-9 max-md:min-h-12 px-3 text-sm' }
         }
       },
       compoundVariants: [
@@ -398,10 +402,12 @@ export default defineAppConfig({
           variant: 'ghost',
           class: 'hover:bg-(--fill-on-canvas) active:bg-(--fill-on-canvas-hover)'
         },
+        // A solid primary or error button keeps the wide rectangle even with a short label ("Weiter", "OK"): 96 px (#424)
+        { color: ['primary', 'error'], variant: 'solid', square: false, class: 'min-w-24 justify-center' },
         // `xs` is the action of an alert or toast: no floor here, the notice's own 44 px rule applies on a phone
         { size: 'xs', class: 'max-md:min-h-0' },
-        // Icon-only buttons: a 44 x 44 target with the icon centred
-        { square: true, class: 'max-md:min-w-11 max-md:justify-center' },
+        // Icon-only buttons: 44 x 44 on a phone, 36 x 36 on desktop (the one height), the icon centred
+        { square: true, class: 'max-md:min-h-11 max-md:min-w-11 max-md:justify-center md:min-w-9' },
         {
           color: 'primary',
           variant: 'solid',

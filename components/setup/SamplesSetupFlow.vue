@@ -24,7 +24,7 @@
       <UIcon name="i-ph-arrow-counter-clockwise" class="mt-0.5 size-5 shrink-0 text-toned" aria-hidden="true" />
       <p class="text-body text-default">{{ t('onboarding.flow.samples.resetNote') }}</p>
     </div>
-    <UButton color="primary" size="lg" block data-testid="samples-confirm" @click="confirm">
+    <UButton color="primary" block data-testid="samples-confirm" @click="confirm">
       {{ t('onboarding.flow.samples.confirm') }}
     </UButton>
   </section>

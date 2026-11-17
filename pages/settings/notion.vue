@@ -31,7 +31,7 @@
       <!-- Main Content -->
       <PageSheet v-if="!isConfigured" class="space-y-4" data-testid="notion-not-configured">
         <p class="text-muted">{{ t('notion.settings.notConfigured.message') }}</p>
-        <UButton color="neutral" variant="soft" size="lg" to="/settings?tab=sources">
+        <UButton color="neutral" variant="soft" to="/settings?tab=sources">
           {{ t('notion.settings.notConfigured.action') }}
         </UButton>
       </PageSheet>
