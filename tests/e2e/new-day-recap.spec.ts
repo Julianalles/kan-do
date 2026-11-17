@@ -770,6 +770,9 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await planButton(page).click()
     await expect(page).toHaveURL(/\/all$/)
     await settled(page)
+    // #416: coming from the recap, the app bar's one way on is the green "Weiter zum Board", without an arrow icon
+    await expect(appNav(page).locator('.app-nav-place')).toHaveText(['Weiter zum Board'])
+    await expect(page.getByTestId('app-nav-continue').locator('svg, .iconify')).toHaveCount(0)
     await expect(page.getByRole('heading', { level: 3, name: 'Gestern geplant, noch offen' })).toBeVisible()
     await expect(page.getByRole('heading', { level: 3, name: 'Zuletzt in Wartet' })).toBeVisible()
     await expect(page.getByRole('heading', { level: 3, name: 'Weitere Aufgaben' })).toBeVisible()
@@ -800,7 +803,10 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     expect(await storedTask(page, 'nd-waiting-1')).toMatchObject({ status: 0, notPlanned: true })
 
     // once per day: a reload and a return to the app move nothing again and bring no recap and no notice
-    await goToPlace(page, 'Planung')
+    // #416: Planung opened by hand keeps the normal pill
+    await appNav(page).getByTestId('app-nav-place-all').click()
+    await expect(page).toHaveURL(/\/all$/)
+    await expect(page.getByTestId('app-nav-continue')).toHaveCount(0)
     await side(page).locator('[data-not-planned-id="nd-open-2"]').getByTestId('not-planned-pick').click()
     await expect.poll(() => openIds(page)).toEqual(['nd-open-2'])
     await page.reload()
@@ -856,6 +862,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await startButton(page).click()
     await expect(page).toHaveURL(/\/all$/)
     await expect(note(page)).toHaveCount(0)
+    await expect(page.getByTestId('app-nav-continue')).toHaveText('Weiter zum Board')
     await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1'])
     await expect.poll(() => groupIds(page, 'waiting')).toEqual(['nd-waiting-1'])
     await expect.poll(() => groupIds(page, 'others')).toEqual(['nd-held-1'])

@@ -39,6 +39,7 @@ import { useNewDayRecap } from '~/composables/useNewDayRecap'
 import { usePlanMoves } from '~/composables/usePlanMoves'
 import { useBoardPlace } from '~/composables/useBoardPlace'
 import { boardPlaceLocation } from '~/lib/boardPlace'
+import { markPlanningFromRecap } from '~/composables/usePlanningFromRecap'
 import { useHeldWhileDragging } from '~/composables/useHeldWhileDragging'
 import { useIsPhone } from '~/composables/useIsDesktop'
 import { focusFirstAvailable } from '~/utils/focusRecovery'
@@ -70,6 +71,7 @@ function start() {
   const sent = freshStart()
   if (sent.length > 0) announcement.value = t('board.newDayNote.started', { n: sent.length }, sent.length)
   // The fresh start leads to "Planung", where the day is planned; there the place stays
+  markPlanningFromRecap()
   if (!isAll.value) void navigateTo(boardPlaceLocation('all'))
   void focusBoard()
 }

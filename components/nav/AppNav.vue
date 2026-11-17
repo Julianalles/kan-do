@@ -16,7 +16,7 @@
 - Tag abschließen: closes the panel, returns focus to ⋯, then opens the dialog, so the dialog's return target is ⋯ and not a removed row
 - Phone: fades out and ignores pointers while a card is dragged (no drop target is covered); the pills and the veil fade (the veil also steps back while the new-day recap stage is mounted, #262: the photo runs behind the bar)
 - The topic focus funnel (#161, BoardFocusTrigger) sits right of ⋯ on the board page only (Heute and Planung), outside the group's flow (`.app-nav-focus`), so the pills do not re-centre when it appears. Phone (#381): out of the flow it was cut off at the right edge of a 360px screen, so while it shows (`has-focus`) the group shifts left by half of funnel and gap, on the nav timeline: group and funnel are centred together and the funnel lies inside the bar's side room. Desktop keeps the centre
-- "Planung" (#373): the pill is one green link "Weiter zum Board" (`app-nav-pill--continue`, to Heute) instead of the three places; Heute and Statistik are rows of the ⋯ panel meanwhile, and no segment carries `aria-current` (the indicator hides)
+- "Planung" entered from the new-day recap or notice (#373, #416): the pill is one green link "Weiter zum Board" (`app-nav-pill--continue`, to Heute, no icon) instead of the three places; on a Planung the user opened by hand the normal pill stays; Heute and Statistik are rows of the ⋯ panel meanwhile, and no segment carries `aria-current` (the indicator hides)
 - Desktop ⋯ tooltip "Mehr, Befehle ⌘K" on every page (the palette is mounted once in app.vue, #224); no tooltip on touch
 -->
 <template>
@@ -36,17 +36,17 @@
           <a :href="href ?? undefined" class="app-nav-brand" :aria-label="t('nav.brand')" data-testid="app-nav-brand" @click="navigate"><span class="app-nav-brand-text">{{ t('nav.brand') }}</span></a>
         </template>
       </NuxtLink>
-      <div ref="pillEl" class="app-nav-pill" :class="{ 'app-nav-pill--continue': onPlanning }" data-testid="app-nav-pill">
+      <div ref="pillEl" class="app-nav-pill" :class="{ 'app-nav-pill--continue': continuesToBoard }" data-testid="app-nav-pill">
         <span ref="indicatorEl" class="app-nav-indicator" aria-hidden="true" />
         <!-- "Planung" (#373): one clear next step, the way on to the board. The places it replaces are rows of the ⋯ panel meanwhile -->
-        <NuxtLink v-if="onPlanning" :to="boardPlaceLocation('today')" custom>
+        <NuxtLink v-if="continuesToBoard" :to="boardPlaceLocation('today')" custom>
           <template #default="{ href, navigate }">
             <a
               :href="href ?? undefined"
               class="app-nav-place app-nav-continue"
               data-testid="app-nav-continue"
               @click="navigate"
-            >{{ t('nav.continue') }}<UIcon :name="ICONS.goOn" class="app-nav-continue-icon" aria-hidden="true" /></a>
+            >{{ t('nav.continue') }}</a>
           </template>
         </NuxtLink>
         <template v-else>
@@ -147,7 +147,7 @@ import MorePanel from '~/components/nav/MorePanel.vue'
 import BoardFocusTrigger from '~/components/board/BoardFocusTrigger.vue'
 import { useAppNav, useLiveRoute, type ThirdItem } from '~/composables/useAppNav'
 import { boardPlaceLocation } from '~/lib/boardPlace'
-import { ICONS } from '~/lib/icons'
+import { clearPlanningFromRecap } from '~/composables/usePlanningFromRecap'
 import { useNavIndicator } from '~/composables/useNavIndicator'
 import { cssTimeMs } from '~/lib/navSpring'
 import { useBoardDragState } from '~/composables/useBoardDragState'
@@ -161,9 +161,9 @@ defineOptions({ name: 'AppNav' })
 
 const { t } = useI18n()
 const route = useLiveRoute()
-const { showsBar, currentPlace, onBoard, thirdItem } = useAppNav()
-/** "Planung" (#373): the pill is one green way on to the board instead of the three places */
-const onPlanning = computed(() => currentPlace.value === 'all')
+const { showsBar, currentPlace, onBoard, thirdItem, continuesToBoard } = useAppNav()
+// The way on to the board belongs to the day start (#416): it ends with the visit to Planung
+watch(currentPlace, (place) => { if (place !== 'all') clearPlanningFromRecap() })
 const { dragState } = useBoardDragState()
 const { hasFocusJob } = useBoardFocus()
 /** The topic focus funnel (BoardFocusTrigger) is on screen: on a phone the group makes room for it (#381) */

@@ -506,6 +506,7 @@
         "components/recap/**",
         "composables/useNewDayRecap.ts",
         "composables/useNewDay.ts",
+        "composables/usePlanningFromRecap.ts",
         "lib/appPresence.ts",
         "components/board/NewDayNote.vue",
         "components/board/NewDayTimeNote.vue",

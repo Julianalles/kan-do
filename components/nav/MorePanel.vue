@@ -37,8 +37,8 @@
       </UButton>
       <USeparator class="my-1" />
     </template>
-    <!-- "Planung" (#373): the pill shows only "Weiter zum Board", so the places it does not show are rows here -->
-    <template v-if="onPlanning">
+    <!-- "Planung" (#373): after "Tag planen" the pill shows only "Weiter zum Board" (#416), so the places it does not show are rows here -->
+    <template v-if="continuesToBoard">
       <UButton
         :to="boardPlaceLocation('today')"
         icon="i-ph-calendar-check"
@@ -221,9 +221,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const viewHeadingId = useId()
-const { onBoard, thirdItem, currentPlace } = useAppNav()
-/** The place "Planung": its pill shows only the way on to the board (#373) */
-const onPlanning = computed(() => currentPlace.value === 'all')
+const { onBoard, thirdItem, continuesToBoard } = useAppNav()
 const boardStore = useBoardStore()
 const health = useIntegrationHealthStore()
 const { groupingOptions, effectiveGroupKey, setGroupingEnabled, setGroupingKey } = useBoardGrouping()

@@ -47,8 +47,8 @@ const openIds = (page: Page) =>
 const item = (page: Page, id: string) => notPlanned(page).locator(`[data-not-planned-id="${id}"]`)
 const openCard = (page: Page, id: string) => page.locator(`#column-open .task-wrapper[data-task-id="${id}"]`)
 const placeLink = (page: Page, place: 'all' | 'board') => page.getByTestId(`app-nav-place-${place}`)
-/** #373: on "Planung" the app bar's pill is one green link on to Heute (the places it leaves out are rows of ⋯) */
-const toHeute = (page: Page) => page.getByTestId('app-nav-continue')
+/** The app bar's Heute segment: on a "Planung" opened by hand the pill keeps its three places (#416; the green "Weiter zum Board" shows only after the recap, new-day-recap.spec.ts) */
+const toHeute = (page: Page) => page.getByTestId('app-nav-place-board')
 
 /** The strip has arrived: no move flag, no running animation */
 async function atRest(page: Page) {
@@ -114,10 +114,11 @@ test.describe('The place "Planung" (#354), desktop', () => {
 
     await placeLink(page, 'all').click()
     await expect(page).toHaveURL(/\/all$/)
-    // #373: the pill is now the one way on to Heute; no segment is current
-    await expect(appNav(page).locator('.app-nav-place')).toHaveText(['Weiter zum Board'])
+    // #416: opened by hand, the pill keeps its three places and Planung is the current one
+    await expect(appNav(page).locator('.app-nav-place')).toHaveText(['Planung', 'Heute', 'Statistik'])
     await expect(toHeute(page)).toHaveAttribute('href', '/tasks')
-    await expect(appNav(page).locator('[aria-current="page"]')).toHaveCount(0)
+    await expect(placeLink(page, 'all')).toHaveAttribute('aria-current', 'page')
+    await expect(page.getByTestId('app-nav-continue')).toHaveCount(0)
     await atRest(page)
     await expect(notPlanned(page).getByRole('heading', { name: 'Meine Aufgaben' })).toBeVisible()
     await expect(page.locator('#column-open')).toBeVisible()
@@ -446,7 +447,7 @@ test.describe('The place "Planung" (#354), desktop', () => {
     await expect(page.getByTestId('not-planned-add')).toBeEnabled()
   })
 
-  test('#373: the arrow beside a "Meine Aufgaben" card shows on hover and keyboard focus only; Heute and Statistik are rows of ⋯', async ({ context, page }) => {
+  test('#373: the arrow beside a "Meine Aufgaben" card shows on hover and keyboard focus only', async ({ context, page }) => {
     await seedLocalBoard(context, BOARD)
     await gotoAll(page)
     const pick = item(page, 'np-1').getByTestId('not-planned-pick')
@@ -465,11 +466,7 @@ test.describe('The place "Planung" (#354), desktop', () => {
     await expect.poll(opacity).toBe('0')
     await pick.focus()
     await expect.poll(opacity).toBe('1')
-    // The pill leaves out Heute and Statistik: they are rows in ⋯
-    await appNav(page).getByTestId('app-nav-more').click()
-    const panel = page.getByTestId('more-panel')
-    await expect(panel.getByTestId('more-today')).toBeVisible()
-    await panel.getByTestId('more-statistics').click()
+    await page.getByTestId('app-nav-place-statistics').click()
     await expect(page).toHaveURL(/\/statistics$/)
     await expect(page.getByTestId('app-nav-place-statistics')).toHaveAttribute('aria-current', 'page')
   })
@@ -603,11 +600,11 @@ test.describe('The place "Planung" (#354), phone', () => {
     await expect(notPlanned(page)).toBeHidden()
   })
 
-  test('the app bar\'s green "Weiter zum Board" (#373) and the places lead across; Heute opens on Offen, "Planung" on "Meine Aufgaben"; no footer bar', async ({ context, page }) => {
+  test('the app bar\'s places lead across; Heute opens on Offen, "Planung" on "Meine Aufgaben"; no footer bar', async ({ context, page }) => {
     await seedLocalBoard(context, BOARD)
     await gotoAll(page)
     const go = toHeute(page)
-    await expect(go).toHaveText('Weiter zum Board')
+    await expect(go).toHaveText('Heute')
     await expect(page.getByTestId('board-continue')).toHaveCount(0)
 
     await go.tap()
@@ -615,7 +612,7 @@ test.describe('The place "Planung" (#354), phone', () => {
     await pageAtRest(page)
     expect(await pageOf(page)).toBe('0')
     await expect(page.locator('#column-open h2')).toBeInViewport()
-    await expect(toHeute(page)).toHaveCount(0)
+    await expect(toHeute(page)).toHaveAttribute('aria-current', 'page')
 
     // From Erledigt (Heute's last page) back to "Planung": one move, however many pages lie between
     await swipe(page, 'left')

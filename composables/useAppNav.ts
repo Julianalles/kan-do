@@ -7,6 +7,7 @@
  *   segment of the pill, #583: ⋯ itself is never selected), else none
  * - `thirdItemOfPath` / `thirdItem`: the page behind ⋯ the route is on (Papierkorb on `/trash*`, Einstellungen on
  *   `/settings*`, linking `/settings`), shown as a third segment in the pill and left out of the Mehr panel meanwhile
+ * - `continuesToBoard`: on Planung and entered from the recap or the notice (#416, usePlanningFromRecap); only then the pill is the "Weiter zum Board" CTA
  * - `showsBar`: false for routes that opt out with `definePageMeta({ appNav: false })` (welcome, ui, error-test, index)
  * - Reads the live router route (`useLiveRoute`), so the selection follows the URL in the same tick
  * - `currentPlace`: the place to mark with `aria-current="page"`; `null` on a route without bar or place. `'more'`
@@ -14,6 +15,7 @@
  */
 import { computed } from 'vue'
 import { useRouter } from 'nuxt/app'
+import { planningFromRecap } from '~/composables/usePlanningFromRecap'
 
 /** The places of the bar: Planung (all, #354), Heute (board), Statistik (statistics) and `more` (a page behind ⋯, shown as the third segment) */
 export type AppNavPlace = 'all' | 'board' | 'statistics' | 'more'
@@ -66,5 +68,8 @@ export function useAppNav() {
   /** The board page shows (Heute or Planung, one page, #354): the Ansicht options, "Tag abschließen" and the topic funnel exist only then */
   const onBoard = computed(() => currentPlace.value === 'board' || currentPlace.value === 'all')
 
-  return { showsBar, currentPlace, onBoard, thirdItem }
+  /** Planung entered from the new-day flow (#416): the pill is the one "Weiter zum Board" link, the places are rows of ⋯ */
+  const continuesToBoard = computed(() => currentPlace.value === 'all' && planningFromRecap.value)
+
+  return { showsBar, currentPlace, onBoard, thirdItem, continuesToBoard }
 }

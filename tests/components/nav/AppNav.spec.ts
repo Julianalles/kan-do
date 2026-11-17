@@ -7,6 +7,7 @@ import AppNav from '~/components/nav/AppNav.vue'
 import { useBoardStore } from '~/store/board'
 import { useIntegrationHealthStore } from '~/store/integrationHealth'
 import { useBoardDragState } from '~/composables/useBoardDragState'
+import { clearPlanningFromRecap, markPlanningFromRecap } from '~/composables/usePlanningFromRecap'
 
 const route = reactive<{ path: string; fullPath: string; meta: Record<string, unknown> }>({ path: '/tasks', fullPath: '/tasks', meta: {} })
 const navigateTo = vi.fn()
@@ -55,6 +56,7 @@ describe('AppNav: the global app bar (#470)', () => {
     useBoardStore().setSources({ connected: ['notion'], default: 'notion' })
     useIntegrationHealthStore().recordSuccessfulSync('notion')
     go('/tasks')
+    clearPlanningFromRecap()
     route.meta = {}
     navigateTo.mockClear()
     openDayClose.mockClear()
@@ -96,14 +98,16 @@ describe('AppNav: the global app bar (#470)', () => {
     expect(current).toEqual([id])
   })
 
-  // #373: on Planung the pill is one green way on to the board; the places it leaves out are rows of the ⋯ panel
-  it.each(['/all', '/all/x', '/all/add'])('on %s the pill is the one link "Weiter zum Board" to /tasks, with no segment and nothing current', async (path) => {
+  // #373, #416: after "Tag planen" Planung's pill is one green way on to the board; the places it leaves out are rows of the ⋯ panel
+  it.each(['/all', '/all/x', '/all/add'])('after the recap on %s the pill is the one link "Weiter zum Board" to /tasks, with no segment, no icon and nothing current', async (path) => {
+    markPlanningFromRecap()
     go(path)
     const w = render()
     await nextTick()
     const link = w.find('[data-testid="app-nav-continue"]')
     expect(link.exists()).toBe(true)
     expect(link.text()).toBe('Weiter zum Board')
+    expect(link.find('uicon-stub').exists()).toBe(false)
     expect(link.attributes('href')).toBe('/tasks')
     expect(w.find('[data-testid="app-nav-pill"]').classes()).toContain('app-nav-pill--continue')
     expect(place(w, 'all').exists()).toBe(false)
@@ -112,7 +116,17 @@ describe('AppNav: the global app bar (#470)', () => {
     expect(w.findAll('[aria-current="page"]')).toHaveLength(0)
   })
 
-  it('leaving Planung brings the three places back and the continue link goes', async () => {
+  it('on Planung opened by hand the normal pill stays, with Planung selected and no continue link', async () => {
+    go('/all')
+    const w = render()
+    await nextTick()
+    expect(w.find('[data-testid="app-nav-continue"]').exists()).toBe(false)
+    expect(w.find('[data-testid="app-nav-pill"]').classes()).not.toContain('app-nav-pill--continue')
+    expect(place(w, 'all').attributes('aria-current')).toBe('page')
+  })
+
+  it('leaving Planung brings the three places back and the continue link goes; coming back by hand shows the normal pill', async () => {
+    markPlanningFromRecap()
     go('/all')
     const w = render()
     await nextTick()
@@ -123,6 +137,10 @@ describe('AppNav: the global app bar (#470)', () => {
     expect(w.find('[data-testid="app-nav-pill"]').classes()).not.toContain('app-nav-pill--continue')
     expect(place(w, 'all').attributes('href')).toBe('/all')
     expect(place(w, 'board').attributes('aria-current')).toBe('page')
+    go('/all')
+    await nextTick()
+    expect(w.find('[data-testid="app-nav-continue"]').exists()).toBe(false)
+    expect(place(w, 'all').attributes('aria-current')).toBe('page')
   })
 
   it('no control is current on an unknown route', async () => {

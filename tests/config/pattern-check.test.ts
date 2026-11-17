@@ -112,7 +112,8 @@ describe('wf_pr_body_check Pattern gate (#586)', () => {
   })
 
   it('asks nothing extra of a diff without UI source files', () => {
-    expect(check(['lib/x.ts', 'tests/e2e/a.spec.ts'], e2e)).toBeNull()
+    // the fixture repo holds tests/e2e/a.spec.ts only, and the name check reads that directory
+    expect(check(['lib/x.ts', 'tests/e2e/a.spec.ts'], e2e.replace('smoke', 'a'))).toBeNull()
   })
 
   it.each(['components/ui/Thing.vue', 'pages/tasks.vue', 'layouts/default.vue', 'app.vue'])('requires a Pattern line when %s changes', (file) => {
