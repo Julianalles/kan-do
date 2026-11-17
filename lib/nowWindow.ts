@@ -1,8 +1,10 @@
+import { getTimeboxRingColor } from '~/utils/timeboxProgress'
+
 /**
  * @module nowWindow
  * @description The pure half of the floating Now window (#383, ADR 020): the names it shares with
  * `src-tauri/src/overlay.rs` (`tests/config/overlay-contract.test.ts` keeps both in step), the snapshot the main
- * window publishes, and what the pill derives from it (remaining time, ring, warning). Plain TypeScript, no store.
+ * window publishes, and what the pill derives from it (remaining time, timer line, warning). Plain TypeScript, no store.
  */
 
 /** Label of the pill window (also the key of `capabilities/overlay.json`). */
@@ -60,17 +62,16 @@ export function spentAt(snapshot: NowSnapshot, now: number): number {
 export type NowTone = 'normal' | 'warning'
 
 export interface NowView {
-  /** `null` without a timebox: the pill then shows the title only */
-  ring: number | null
-  /** Time label, `null` without a timebox: `m:ss`, `h:mm:ss` from an hour, `+m:ss` for the overrun */
-  label: string | null
+  /** Share of the timebox that is left, 1 at the start, 0 at the timebox; over it the line is `1` again and `over` is set (a full warning line: it has run out); `null` without a timebox (no line) */
+  line: number | null
+  /** What `label` says: the time left, the overrun, or (no timebox) the time passed */
+  mode: 'left' | 'over' | 'elapsed'
+  /** Time label: `m:ss`, `h:mm:ss` from an hour, `+m:ss` for the overrun; without a timebox the time passed, counting up */
+  label: string
   tone: NowTone
   over: boolean
   paused: boolean
 }
-
-/** The last minute turns the ring and time amber; over the timebox they stay amber (no sound, D8). */
-export const WARNING_SECONDS = 60
 
 function clock(total: number): string {
   const h = Math.floor(total / 3600)
@@ -80,18 +81,51 @@ function clock(total: number): string {
   return h > 0 ? `${h}:${String(m).padStart(2, '0')}:${ss}` : `${m}:${ss}`
 }
 
+/**
+ * The pill's timer line is a countdown (#436): it starts full and shrinks with the remaining time, in the app's colours
+ * (`getTimeboxRingColor`: primary until 80 % of the timebox is spent, warning above and over it; no sound, D8). A task
+ * without a timebox has no line; its label counts the time passed.
+ */
 export function nowView(snapshot: NowSnapshot, now: number): NowView {
   const spent = spentAt(snapshot, now)
   const box = snapshot.timeBoxSeconds
   const paused = !snapshot.running
-  if (box === null) return { ring: null, label: null, tone: 'normal', over: false, paused }
+  if (box === null) return { line: null, mode: 'elapsed', label: clock(spent), tone: 'normal', over: false, paused }
   const left = box - spent
   const over = left < 0
   return {
-    ring: Math.min(1, spent / box),
+    line: over ? 1 : left / box,
+    mode: over ? 'over' : 'left',
     label: over ? `+${clock(-left)}` : clock(left),
-    tone: left <= WARNING_SECONDS ? 'warning' : 'normal',
+    tone: getTimeboxRingColor((spent / box) * 100) === 'warning' ? 'warning' : 'normal',
     over,
     paused,
   }
+}
+
+/** What `lineAnimates` compares between two renders of the timer line */
+export interface LineFrame {
+  taskId: string
+  /** The timebox in seconds, `null` without one */
+  box: number | null
+  over: boolean
+  line: number | null
+}
+
+export function lineFrame(snapshot: NowSnapshot, view: NowView): LineFrame {
+  return { taskId: snapshot.taskId, box: snapshot.timeBoxSeconds, over: view.over, line: view.line }
+}
+
+/** The longest step (in seconds of the timebox) the line still glides over: a tick, with a second of slack for a late timer */
+const MAX_GLIDE_SECONDS = 2
+
+/**
+ * Whether the line's width may transition from `prev` to `next`. Only the per-tick shrink does: a new task, a changed
+ * timebox, the step into the overrun (6 px to full), a clock jump or the first frame set the width without motion, so the
+ * line never slides across the pill for something other than time passing (#436).
+ */
+export function lineAnimates(prev: LineFrame | null, next: LineFrame): boolean {
+  if (!prev || prev.line === null || next.line === null || prev.box === null || prev.box !== next.box) return false
+  if (prev.taskId !== next.taskId || prev.over || next.over) return false
+  return Math.abs(prev.line - next.line) * prev.box <= MAX_GLIDE_SECONDS + 1e-6
 }

@@ -73,5 +73,5 @@ onBeforeUnmount(() => {
 
 <style>
 html.now-window-page,
-html.now-window-page body { background: transparent; overflow: hidden; }
+html.now-window-page body { background: transparent; overflow: hidden; color-scheme: light dark; }
 </style>

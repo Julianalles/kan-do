@@ -1,14 +1,15 @@
-//! Floating Now window (#383, ADR 020): a small always-on-top pill that shows the Jetzt task and its timer while
-//! kan-do is not the front window.
+//! Floating Now window (#383, ADR 020): a small always-on-top pill of system glass that shows the Jetzt task and its
+//! timer over every other window, kan-do's own included (#436).
 //!
 //! Rust owns the window and decides when it shows. The main window publishes one snapshot of the Jetzt task
 //! (`overlay_sync`, with the setting); the pill window (the Nuxt route `/overlay`) renders what Rust emits as
 //! `overlay://state` and reports clicks as `overlay_action`. The pill never reads or writes the data file
 //! (`data_file::ensure_main_window` refuses it), so it can never become a second writer (ADR 011).
 //!
-//! The pill shows iff the setting is on, a task sits in Jetzt, the pill webview has reported ready and the main
-//! window is not focused. The window is created hidden once the first snapshot with a task arrives, destroyed when
-//! the setting turns off and with the main window (a hidden window alive would keep the app running).
+//! The pill shows iff the setting is on, a task is shown and the pill webview has reported ready (`should_show`),
+//! whichever window has the focus: pressing the pill activates kan-do, and a pill that hid then would vanish under the
+//! pointer and could never be moved (#436). The window is created hidden once the first snapshot with a task arrives,
+//! destroyed when the setting turns off and with the main window (a hidden window alive would keep the app running).
 //!
 //! Its position is machine-local (`overlay-window.json` in the app config dir, written debounced while the user
 //! drags): the data file may sit in iCloud and be opened on a Mac with other displays. A saved spot that is off
@@ -25,6 +26,8 @@ use std::thread;
 use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
+use tauri::utils::config::WindowEffectsConfig;
+use tauri::window::{Effect as WindowEffect, EffectState as WindowEffectState};
 use tauri::{
     AppHandle, Emitter, Manager, PhysicalPosition, Runtime, State, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
     WindowEvent,
@@ -39,8 +42,11 @@ pub const ACTION_EVENT: &str = "overlay://action";
 /// What the pill may ask for. `open` is handled here, the rest is forwarded to the main window.
 pub const OVERLAY_ACTIONS: &[&str] = &["open", "toggle-pause", "done"];
 
-const WINDOW_WIDTH: f64 = 324.0;
-const WINDOW_HEIGHT: f64 = 64.0;
+/// The window is the pill itself (system glass, native shadow): there is no transparent margin around it.
+const WINDOW_WIDTH: f64 = 340.0;
+const WINDOW_HEIGHT: f64 = 60.0;
+/// Corner radius of the glass, in points: the pill's own radius in `NowWindow.vue` matches it.
+const CORNER_RADIUS: f64 = 30.0;
 const DEFAULT_MARGIN: i32 = 16;
 const POSITION_FILE: &str = "overlay-window.json";
 const SAVE_DEBOUNCE: Duration = Duration::from_millis(400);
@@ -62,8 +68,6 @@ pub struct Snapshot {
 struct Inner {
     enabled: bool,
     snapshot: Option<Snapshot>,
-    /// Last focus state the main window reported; `None` until it does (then the window is asked).
-    main_focused: Option<bool>,
     /// The pill webview has mounted and asked for its state.
     ready: bool,
     /// The spot Rust placed the window at: a `Moved` to it is not the user's doing.
@@ -71,8 +75,8 @@ struct Inner {
     /// The spot waiting to be written, and whether a writer thread is already waiting for it.
     pending_save: Option<(i32, i32)>,
     saver_waiting: bool,
-    /// The main window is closing: the pill must not come back (a `Focused(false)` or a late `overlay_sync` still
-    /// arrives while it closes, and a recreated pill would keep the process alive with no way back in).
+    /// The main window is closing: the pill must not come back (a late `overlay_sync` still arrives while it closes,
+    /// and a recreated pill would keep the process alive with no way back in).
     closing: bool,
 }
 
@@ -87,6 +91,12 @@ impl Inner {
         self.closing = true;
         self.ready = false;
     }
+}
+
+/// Whether the pill is on screen: wanted, a task to show, and its webview has reported ready. The focus of the main
+/// window plays no part (#436).
+pub fn should_show(wanted: bool, has_task: bool, ready: bool) -> bool {
+    wanted && has_task && ready
 }
 
 /// Managed state of the pill window.
@@ -192,6 +202,51 @@ fn work_areas<R: Runtime>(app: &AppHandle<R>) -> (Vec<Rect>, usize) {
     (areas, primary)
 }
 
+/// System glass behind the transparent webview: Liquid Glass on macOS 26 and later (the system draws it, so it follows
+/// the user's Liquid Glass and Reduce Transparency settings), the HUD vibrancy material before that (Tauri falls back
+/// when the first effect is unsupported). `Active`: the pill is never the key window, and a vibrancy that follows the
+/// window's active state would draw it flat.
+fn glass() -> WindowEffectsConfig {
+    WindowEffectsConfig {
+        effects: vec![WindowEffect::LiquidGlassRegular, WindowEffect::HudWindow],
+        state: Some(WindowEffectState::Active),
+        radius: Some(CORNER_RADIUS),
+        color: None,
+        interactive: false,
+    }
+}
+
+/// A press on the pill must not activate kan-do: that raises the main window and takes the keyboard focus from the
+/// app the user types in (#436). `focusable(false)` only keeps the window from becoming key; the activation on a
+/// mouse-down is a separate rule, and AppKit lifts it for a window with the non-activating panel style. The style
+/// mask is set on the plain `NSWindow` (no new crate, no class swap), plus the window's "prevents activation" flag,
+/// which the system reads from a private selector: it is called only when the window answers it, so a macOS without
+/// it keeps the mask alone. Runs on the main thread, before the window is first shown. No effect off macOS.
+#[cfg(target_os = "macos")]
+fn make_non_activating<R: Runtime>(window: &WebviewWindow<R>) {
+    use objc2::runtime::NSObjectProtocol;
+    use objc2::{msg_send, sel};
+    use objc2_app_kit::{NSWindow, NSWindowStyleMask};
+
+    let target = window.clone();
+    let _ = window.run_on_main_thread(move || {
+        let Ok(ptr) = target.ns_window() else { return };
+        if ptr.is_null() {
+            return;
+        }
+        // SAFETY: `ns_window` is the live NSWindow of this window, and this closure runs on the main thread
+        let ns_window: &NSWindow = unsafe { &*(ptr as *const NSWindow) };
+        ns_window.setStyleMask(ns_window.styleMask() | NSWindowStyleMask::NonactivatingPanel);
+        if ns_window.respondsToSelector(sel!(_setPreventsActivation:)) {
+            // SAFETY: the selector takes one BOOL and returns nothing
+            unsafe { let _: () = msg_send![ns_window, _setPreventsActivation: true]; }
+        }
+    });
+}
+
+#[cfg(not(target_os = "macos"))]
+fn make_non_activating<R: Runtime>(_window: &WebviewWindow<R>) {}
+
 fn create_window<R: Runtime>(app: &AppHandle<R>) -> Option<WebviewWindow<R>> {
     let window = WebviewWindowBuilder::new(app, OVERLAY_LABEL, WebviewUrl::App("overlay".into()))
         .title("kan-do")
@@ -201,7 +256,8 @@ fn create_window<R: Runtime>(app: &AppHandle<R>) -> Option<WebviewWindow<R>> {
         .minimizable(false)
         .decorations(false)
         .transparent(true)
-        .shadow(false)
+        .effects(glass())
+        .shadow(true)
         .always_on_top(true)
         .visible_on_all_workspaces(true)
         .skip_taskbar(true)
@@ -212,6 +268,7 @@ fn create_window<R: Runtime>(app: &AppHandle<R>) -> Option<WebviewWindow<R>> {
         .build()
         .map_err(|error| log::warn!("overlay: window not created: {error}"))
         .ok()?;
+    make_non_activating(&window);
     let saved = position_path(app).and_then(|path| fs::read_to_string(path).ok()).and_then(|text| parse_position(&text));
     let size = window.outer_size().map(|s| (s.width, s.height)).unwrap_or((WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32));
     let (areas, primary) = work_areas(app);
@@ -222,15 +279,8 @@ fn create_window<R: Runtime>(app: &AppHandle<R>) -> Option<WebviewWindow<R>> {
     Some(window)
 }
 
-fn main_focused<R: Runtime>(app: &AppHandle<R>) -> bool {
-    if let Some(known) = app.state::<OverlayState>().lock().main_focused {
-        return known;
-    }
-    app.get_webview_window("main").and_then(|w| w.is_focused().ok()).unwrap_or(false)
-}
-
-/// Brings the window in line with the state: created when wanted, destroyed when the setting is off, shown while the
-/// main window is not in front, told the snapshot.
+/// Brings the window in line with the state: created when wanted, destroyed when the setting is off, shown once a task
+/// is shown and the pill is ready (whichever window has the focus), told the snapshot.
 fn apply<R: Runtime>(app: &AppHandle<R>) {
     let (wanted, snapshot, ready) = {
         let state = app.state::<OverlayState>();
@@ -254,7 +304,7 @@ fn apply<R: Runtime>(app: &AppHandle<R>) {
         log::info!("overlay: window created");
     }
     let _ = app.emit_to(OVERLAY_LABEL, STATE_EVENT, &snapshot);
-    if ready && !main_focused(app) {
+    if should_show(wanted, snapshot.is_some(), ready) {
         // A sandbox run puts nothing on the user's screen (docs/testing/tauri-dev-sandbox.md, #623): the decision is
         // logged instead, which is what an unattended check reads
         if crate::sandbox_background() {
@@ -263,7 +313,7 @@ fn apply<R: Runtime>(app: &AppHandle<R>) {
             let _ = window.show();
         }
     } else {
-        log::info!("overlay: hidden (ready {ready}, main focused {})", main_focused(app));
+        log::info!("overlay: hidden (ready {ready})");
         let _ = window.hide();
     }
 }
@@ -280,12 +330,6 @@ pub fn destroy<R: Runtime>(app: &AppHandle<R>) {
     if let Some(window) = app.get_webview_window(OVERLAY_LABEL) {
         let _ = window.destroy();
     }
-}
-
-/// The main window gained or lost focus.
-pub fn on_main_focus<R: Runtime>(app: &AppHandle<R>, focused: bool) {
-    app.state::<OverlayState>().lock().main_focused = Some(focused);
-    apply(app);
 }
 
 /// `Builder::on_window_event` for the pill window: remembers where the user drops it.
@@ -402,7 +446,7 @@ pub async fn overlay_action(window: tauri::Window, app: AppHandle, kind: String,
 mod tests {
     use super::*;
 
-    const SIZE: (u32, u32) = (324, 64);
+    const SIZE: (u32, u32) = (340, 60);
     const MAIN: Rect = Rect { x: 0, y: 25, width: 2560, height: 1375 };
     const SIDE: Rect = Rect { x: 2560, y: 0, width: 1920, height: 1080 };
 
@@ -412,10 +456,19 @@ mod tests {
         assert!(inner.wanted());
         inner.begin_close();
         assert!(!inner.ready);
-        // the `Focused(false)` and a late `overlay_sync` of the closing window re-run `apply`
+        // a late `overlay_sync` of the closing window re-runs `apply`
         assert!(!inner.wanted());
         inner.enabled = true;
         assert!(!inner.wanted());
+    }
+
+    #[test]
+    fn the_pill_shows_whenever_it_is_wanted_with_a_task_and_ready() {
+        // no input says anything about the main window's focus (#436)
+        assert!(should_show(true, true, true));
+        assert!(!should_show(false, true, true));
+        assert!(!should_show(true, false, true));
+        assert!(!should_show(true, true, false));
     }
 
     #[test]
@@ -426,13 +479,13 @@ mod tests {
     #[test]
     fn default_is_bottom_right_of_the_primary_work_area() {
         let spot = resolve_position(None, SIZE, &[MAIN, SIDE], 0, 16);
-        assert_eq!(spot, Some((2560 - 324 - 16, 25 + 1375 - 64 - 16)));
+        assert_eq!(spot, Some((2560 - 340 - 16, 25 + 1375 - 60 - 16)));
     }
 
     #[test]
     fn default_follows_the_primary_index() {
         let spot = resolve_position(None, SIZE, &[MAIN, SIDE], 1, 16);
-        assert_eq!(spot, Some((4480 - 324 - 16, 1080 - 64 - 16)));
+        assert_eq!(spot, Some((4480 - 340 - 16, 1080 - 60 - 16)));
     }
 
     #[test]
@@ -444,7 +497,7 @@ mod tests {
     #[test]
     fn a_saved_spot_half_off_the_edge_is_pulled_back_in() {
         // centre still inside the area, window sticks out to the right and below
-        assert_eq!(resolve_position(Some((2390, 1360)), SIZE, &[MAIN], 0, 16), Some((2560 - 324, 25 + 1375 - 64)));
+        assert_eq!(resolve_position(Some((2380, 1360)), SIZE, &[MAIN], 0, 16), Some((2560 - 340, 25 + 1375 - 60)));
         // above the menu bar
         assert_eq!(resolve_position(Some((100, 0)), SIZE, &[MAIN], 0, 16), Some((100, 25)));
     }
@@ -453,11 +506,11 @@ mod tests {
     fn a_saved_spot_on_a_removed_display_falls_back_to_the_default() {
         assert_eq!(
             resolve_position(Some((2800, 100)), SIZE, &[MAIN], 0, 16),
-            Some((2560 - 324 - 16, 25 + 1375 - 64 - 16))
+            Some((2560 - 340 - 16, 25 + 1375 - 60 - 16))
         );
         assert_eq!(
             resolve_position(Some((-5000, -5000)), SIZE, &[MAIN], 0, 16),
-            Some((2560 - 324 - 16, 25 + 1375 - 64 - 16))
+            Some((2560 - 340 - 16, 25 + 1375 - 60 - 16))
         );
     }
 

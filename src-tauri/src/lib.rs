@@ -123,8 +123,6 @@ pub fn run() {
           if *focused {
             window.state::<data_file::DataFile>().poke();
           }
-          // The Now window shows while kan-do is not in front (#383)
-          overlay::on_main_focus(window.app_handle(), *focused);
         }
         _ => {}
       }

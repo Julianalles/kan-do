@@ -1688,6 +1688,7 @@
     "done": "Mark as done",
     "left": "{time} left",
     "over": "{time} over the timebox",
+    "elapsed": "Time spent: {time}",
     "paused": "paused"
   }
 }

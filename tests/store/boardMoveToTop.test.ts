@@ -1,8 +1,7 @@
 /**
  * #405: the Now window's pause sets a card first into Wartet's order. `moveToTopOfColumn` keeps the order the user
  * saw behind the card, keeps ids that are in the stored order but not visible, and switches a sorted column to manual
- * (the sort would otherwise decide: Wartet sorts by "longest wait" by default). `markPaused` / `clearPaused` are the
- * transient arrival flag.
+ * (the sort would otherwise decide: Wartet sorts by "longest wait" by default).
  */
 import { beforeEach, describe, expect, it } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
@@ -48,14 +47,5 @@ describe('board store: moveToTopOfColumn (#405)', () => {
     store.updateTaskPosition('p', TaskStatus.Waiting, TaskStatus.Progress)
     store.moveToTopOfColumn(TaskStatus.Waiting, 'p', ['x', 'p'])
     expect(waiting().taskOrder).toEqual(['p', 'x'])
-  })
-
-  it('flags and clears the arrival, never twice', () => {
-    store.markPaused('a')
-    store.markPaused('a')
-    expect(store.pausedTaskIds).toEqual(['a'])
-    store.clearPaused('a')
-    store.clearPaused('a')
-    expect(store.pausedTaskIds).toEqual([])
   })
 })
