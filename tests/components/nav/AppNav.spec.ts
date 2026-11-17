@@ -18,6 +18,13 @@ vi.mock('nuxt/app', () => ({
   useRoute: () => route,
   navigateTo: (to: string) => navigateTo(to),
 }))
+// The recap's open flag is the one input the bar takes from it (#428); the tests flip it directly
+const recapFlag = vi.hoisted(() => ({ ref: null as unknown as { value: boolean } }))
+vi.mock('~/composables/useNewDayRecap', async () => {
+  const { ref: vueRef } = await import('vue')
+  recapFlag.ref = vueRef(false)
+  return { recapOpen: recapFlag.ref }
+})
 vi.mock('~/composables/useDayClose', () => ({ useDayClose: () => ({ open: openDayClose }) }))
 vi.mock('~/components/nav/MorePanel.vue', () => ({
   default: {
@@ -57,6 +64,7 @@ describe('AppNav: the global app bar (#470)', () => {
     useIntegrationHealthStore().recordSuccessfulSync('notion')
     go('/tasks')
     clearPlanningFromRecap()
+    recapFlag.ref.value = false
     route.meta = {}
     navigateTo.mockClear()
     openDayClose.mockClear()
@@ -99,7 +107,7 @@ describe('AppNav: the global app bar (#470)', () => {
   })
 
   // #373, #416: after "Tag planen" the "Alle" pill is one green way on to the board; the places it leaves out are rows of the ⋯ panel
-  it.each(['/all', '/all/x', '/all/add'])('after the recap on %s the pill is the one link "Weiter zum Board" to /tasks, with no segment, no icon and nothing current', async (path) => {
+  it.each(['/all', '/all/x', '/all/add'])('on %s entered from the notice the pill is the one link "Weiter zum Board" to /tasks, with no segment, no icon and nothing current', async (path) => {
     markPlanningFromRecap()
     go(path)
     const w = render()
@@ -174,6 +182,61 @@ describe('AppNav: the global app bar (#470)', () => {
     expect(more(w).classes()).not.toContain('is-selected')
     expect(place(w, 'board').attributes('aria-current')).toBeUndefined()
     expect(place(w, 'statistics').attributes('aria-current')).toBeUndefined()
+  })
+
+  describe('Rückblick while the new-day recap is open (#428)', () => {
+    const recap = (w: VueWrapper) => w.find('[data-testid="app-nav-place-recap"]')
+
+    it('the pill is Rückblick | Statistik: no Alle and no Heute in the DOM', () => {
+      recapFlag.ref.value = true
+      const w = render()
+      expect(recap(w).exists()).toBe(true)
+      expect(recap(w).text()).toBe('Rückblick')
+      expect(recap(w).attributes('href')).toBe('/tasks')
+      expect(place(w, 'all').exists()).toBe(false)
+      expect(place(w, 'board').exists()).toBe(false)
+      expect(place(w, 'statistics').exists()).toBe(true)
+    })
+
+    it('Rückblick is current on the board page the recap covers, Statistik on /statistics and Rückblick is not', async () => {
+      recapFlag.ref.value = true
+      const w = render()
+      expect(w.findAll('[aria-current="page"]').map(el => el.attributes('data-testid'))).toEqual(['app-nav-place-recap'])
+      go('/statistics')
+      await nextTick()
+      expect(w.findAll('[aria-current="page"]').map(el => el.attributes('data-testid'))).toEqual(['app-nav-place-statistics'])
+      expect(recap(w).classes()).not.toContain('is-selected')
+    })
+
+    it('the recap shows on /all too, and the "Weiter zum Board" pill does not win over it', () => {
+      markPlanningFromRecap()
+      recapFlag.ref.value = true
+      go('/all')
+      const w = render()
+      expect(w.find('[data-testid="app-nav-continue"]').exists()).toBe(false)
+      expect(recap(w).exists()).toBe(true)
+    })
+
+    it('leaving the recap without motion (no WAAPI in jsdom) swaps Rückblick for Alle + Heute at once, Heute current', async () => {
+      recapFlag.ref.value = true
+      const w = render()
+      recapFlag.ref.value = false
+      await nextTick()
+      await nextTick()
+      expect(recap(w).exists()).toBe(false)
+      expect(place(w, 'all').exists()).toBe(true)
+      expect(place(w, 'board').attributes('aria-current')).toBe('page')
+    })
+
+    it('opening the recap swaps Alle + Heute for Rückblick at once', async () => {
+      const w = render()
+      expect(place(w, 'board').exists()).toBe(true)
+      recapFlag.ref.value = true
+      await nextTick()
+      await nextTick()
+      expect(place(w, 'all').exists()).toBe(false)
+      expect(recap(w).exists()).toBe(true)
+    })
   })
 
   describe('third segment (#583)', () => {

@@ -2,14 +2,14 @@
 @component AppNav
 @kind block
 @category navigation
-@description The global app bar (#470, ADR 017): the `kan-do` wordmark (outside any pill, #642), one pill with the three places (Alle, Heute, Statistik; "Alle" (`/all`) is the planning side of the board page, #354) plus, on a page behind ⋯, that page as a third segment (#583), then a separate round ⋯ pill that opens the Mehr panel
+@description The global app bar (#470, ADR 017): the `kan-do` wordmark (outside any pill, #642), one pill with the places (Alle, Heute, Statistik; while the new-day recap is open Rückblick and Statistik, #428; "Alle" (`/all`) is the planning side of the board page, #354) plus, on a page behind ⋯, that page as a third segment (#583), then a separate round ⋯ pill that opens the Mehr panel
 @usage Mounted once in app.vue before <NuxtLayout>, so it survives page transitions; hidden on routes with `appNav: false`
 @avoid Mounted once in app.vue; secondary pages go behind MorePanel, in-page switching is not a job for the app bar.
 @responsibility
-- Brand (#642): the wordmark link sits first in the group, left of the pill and outside it, on the paper veil; DOM and tab order: brand, Alle, Heute, Statistik, third, ⋯. Not shown on a phone (kd#24: it has no backing and printed over the cards scrolling under the bar; Heute links to /tasks)
+- Brand (#642): the wordmark link sits first in the group, left of the pill and outside it, on the paper veil; DOM and tab order: brand, Alle, Heute (or Rückblick while the recap is open), Statistik, third, ⋯. Not shown on a phone (kd#24: it has no backing and printed over the cards scrolling under the bar; Heute links to /tasks)
 - Desktop (≥768px): sticky bar at the top, the group centred. Phone: the same pills float at the bottom (assets/css/app-nav.css)
 - Look and separation from the content behind it (#615): the two pills are flat white sheets with the nav pill shadow (`--shadow-nav-pill`, the named exception of "The Sheets Cast Shadows Rule"), and a paper veil sits behind them (`.app-nav::before`, no pointer events, so the `.titlebar` drag strip and the page stay usable). The page header is not sticky, so the bar is the only thing that stays
-- Selected state is a pure function of the route (useAppNav): Alle on /all*, Heute on /tasks*, Statistik on /statistics, the third segment (Papierkorb, Einstellungen) on /trash and /settings*. ⋯ is never selected and carries no aria-current. An open panel is an overlay, not a navigation: the place keeps its chip, ⋯ shows only a soft "open" fill and aria-expanded
+- Selected state is a function of the route and the recap (useAppNav `selectedPlace`): Alle on /all*, Heute on /tasks*, Rückblick instead of both while the recap is open on the board page, Statistik on /statistics, the third segment (Papierkorb, Einstellungen) on /trash and /settings*. ⋯ is never selected and carries no aria-current. An open panel is an overlay, not a navigation: the place keeps its chip, ⋯ shows only a soft "open" fill and aria-expanded
 - Third segment (#583): grows in the pill when a page behind ⋯ is entered, shrinks away when Heute or Statistik is chosen, re-measures when Einstellungen <-> Papierkorb. MorePanel leaves out the row of the page the pill shows. One 420 ms timeline (`--nav-move`, `--nav-ease` in app-nav.css, 0 under reduced motion) drives the segment and the phone segment padding; a retarget mid-move continues from the current width. The grey pill is content-sized, so its width follows the segment frame by frame on that same timeline (#616); the segment's left margin runs -gap -> 0 with it, so the pill's 1px flex gap does not step in at the first frame or out at the last. The move starts on the second animation frame after the route change, not at the DOM patch (#643): the first frame lays out and paints the new page and, on a slow main thread (WKWebView, a big board), can outlast the whole 420 ms, which left a timeline started before it already over (segment and pill jumped to the end). Until then the segment holds its start state by inline style, and the phone `has-third` class (padding transitions) flips with the move so all three share one start. Direct load and the first paint show the segment without motion
 - One indicator (a fill, no shadow) behind the selected segment: two springs chase the live box of the `aria-current` segment (useNavIndicator, lib/navSpring.ts). `data-moving` on the nav is set until chip and layout are idle (E2E waits on it)
 - A failing source puts a status dot on ⋯ (error for broken, else warning) and the accessible name says so; the panel explains it
@@ -67,7 +67,7 @@
             </template>
           </NuxtLink>
         </div>
-        <div v-if="shownPair" ref="pairEl" class="app-nav-seg app-nav-pair" :inert="pairLeaving || undefined" data-testid="app-nav-pair">
+        <div v-if="shownPair" ref="pairEl" class="app-nav-seg app-nav-pair" data-testid="app-nav-pair">
           <!-- "Alle" (#354): the planning side of the board page, first in the pair. `force`: see lib/boardPlace -->
           <NuxtLink :to="boardPlaceLocation('all')" custom>
             <template #default="{ href, navigate }">
@@ -302,6 +302,8 @@ function moveSegment(el: HTMLElement | null, to: 'natural' | 'gone', from: Third
     { duration: ms, easing: cssVar('--nav-ease') || MOVE_EASE_FALLBACK, fill: to === 'gone' ? 'forwards' : 'none' },
   )
   segmentAnims.set(el, anim)
+  // A segment that unmounted after its move must not stay in the map with its finished `forwards` animation
+  anim.finished.then(() => { if (!el.isConnected && segmentAnims.get(el) === anim) segmentAnims.delete(el) }).catch(() => { /* cancelled by a retarget */ })
   return anim
 }
 
@@ -393,7 +395,6 @@ const shownRecap = ref(recapShown.value)
 /** The Alle + Heute pair on screen: there from the start unless the recap is open, and it grows in while Rückblick leaves */
 const shownPair = ref(!recapShown.value)
 const recapLeaving = computed(() => !recapShown.value && shownRecap.value)
-const pairLeaving = computed(() => recapShown.value && shownPair.value)
 let recapToken = 0
 // The recap opens on its own (the app's start or a return after a long absence), never by a click: the pill starts in its
 // recap shape at once. Only leaving it moves, on the nav's timeline: Rückblick shrinks away while the pair grows in.

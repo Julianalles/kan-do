@@ -42,7 +42,11 @@ export function useNavIndicator({ pill, indicator, motionMs }: Options) {
     if (!pillEl || !selected) return null
     const base = pillEl.getBoundingClientRect().left + pillEl.clientLeft
     const rect = selected.getBoundingClientRect()
-    return { l: rect.left - base, r: rect.right - base }
+    // A segment that grows or shrinks clips its content: the chip follows what shows, not the full-width link behind the clip (#428)
+    const clip = selected.closest<HTMLElement>('.app-nav-seg')?.getBoundingClientRect()
+    const l = clip ? Math.max(rect.left, clip.left) : rect.left
+    const r = clip ? Math.max(l, Math.min(rect.right, clip.right)) : rect.right
+    return { l: l - base, r: r - base }
   }
 
   function paint() {
