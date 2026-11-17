@@ -43,7 +43,7 @@ test.describe('GitHub-Zugriff entry point', () => {
     await seedNotionBoard(context)
     await installTauriStub(context)
     await page.goto('/settings/notion')
-    await expect(page.getByRole('heading', { name: /Notion/ }).first()).toBeVisible()
+    await expect(page.getByPlaceholder('ntn_...')).toBeVisible() // the settled connection tab
     await expect(link(page)).toHaveCount(0)
   })
 
