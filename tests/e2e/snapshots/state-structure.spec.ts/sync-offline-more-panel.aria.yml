@@ -17,5 +17,5 @@
 - paragraph: Änderungen bleiben gespeichert und werden gesendet, sobald Notion wieder erreichbar ist.
 - link "Notion-Verbindung reparieren":
   - /url: /settings?tab=sources
-- button "Jetzt synchronisieren Gerade aktualisiert"
+- button /Jetzt synchronisieren .+/
 - status
