@@ -40,7 +40,7 @@
     "ui:find": "node scripts/ui-find.mjs",
     "copy:concepts": "node scripts/copy-concepts.mjs",
     "tauri": "~/.cargo/bin/cargo tauri",
-    "tauri:dev": "~/.cargo/bin/cargo tauri dev",
+    "tauri:dev": "~/.cargo/bin/cargo tauri dev --config src-tauri/tauri.dev.conf.json",
     "tauri:build": "~/.cargo/bin/cargo tauri build",
     "tauri:bundle": "~/.cargo/bin/cargo tauri bundle",
     "test:e2e": "playwright test -c tests/e2e/playwright.config.ts"

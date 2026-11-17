@@ -1,0 +1,7 @@
+{
+  "productName": "kan-do dev",
+  "identifier": "io.github.jaylouiz.kan-do.dev",
+  "build": {
+    "devUrl": "http://localhost:3000/tasks?seed=demo"
+  }
+}

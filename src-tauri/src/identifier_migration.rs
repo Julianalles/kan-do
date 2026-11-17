@@ -13,7 +13,7 @@
 //!    retried for [`MAX_SECRET_ATTEMPTS`] starts, then the step gives up. Only for the production identifier: the service
 //!    is a fixed constant and sandbox runs must never read or create real entries.
 //!
-//! Debug builds with the production identifier (`tauri dev`) run neither step. Until a release has finished a step they keep
+//! The dev identity of `npm run tauri:dev` (#413) runs neither step and starts empty. Debug builds with the production identifier run neither step either. Until a release has finished a step they keep
 //! using the legacy folder and Keychain service; afterwards they follow the marker, read-only, and use the folder and
 //! service the installed app uses, see [`run_gated`] and [`secrets_settled`] (kd#60).
 //!
@@ -33,6 +33,10 @@ use crate::secrets::{Backend, SecretEntry};
 pub const LEGACY_IDENTIFIER: &str = "com.julius.kan-do";
 /// The identifier of the production app. The Keychain step runs only for this one.
 pub const PRODUCTION_IDENTIFIER: &str = "io.github.jaylouiz.kan-do";
+/// The identifier of `npm run tauri:dev` (`src-tauri/tauri.dev.conf.json`, #413): its own data folder, Keychain service and
+/// single-instance socket, so a dev run never reaches the installed app's data. It never migrates: the legacy folder is the
+/// installed app's history, not the dev run's.
+pub const DEV_IDENTIFIER: &str = "io.github.jaylouiz.kan-do.dev";
 const STATE_FILE: &str = "identifier-migration.json";
 const BACKUPS_DIR: &str = "backups";
 /// Names the app's own writer leaves behind (`data_file`: `.kan-do-data.json.tmp*`, `.kan-do-probe*`); never copied.
@@ -470,6 +474,11 @@ pub fn run_gated(
     default_folder: &Path,
     backends: impl FnOnce() -> Option<(Box<dyn Backend>, Box<dyn Backend>)>,
 ) -> Dirs {
+    if debug_build && identifier == DEV_IDENTIFIER {
+        // #413: a dev identity starts empty; copying the legacy folder would put the user's real data into it
+        log::info!("identifier migration: the dev identity has its own folder and never migrates");
+        return Dirs { config_dir: config_dir.to_path_buf(), default_folder: default_folder.to_path_buf() };
+    }
     if debug_build && identifier == PRODUCTION_IDENTIFIER {
         let marker = read_state(config_dir);
         if matches!(&marker, Ok(state) if matches!(state.data.as_deref(), Some(DONE | SKIPPED))) {
