@@ -1,4 +1,9 @@
 - paragraph: 1 edit in 2 files (de.json, en.json)
+- button "Translate 1 with the agent"
+- button "Publish to main" [disabled]
+- paragraph: "Publish is blocked: 1 edit has a language not translated yet. Click “Translate”, review the drafts below, then publish."
+- text: Not published, your edits are kept
+- paragraph: /the agent did not answer within \d+ s/
 - list:
   - listitem:
     - paragraph: common.back
@@ -9,8 +14,3 @@
       - insertion: Zurück zur Liste
     - paragraph: EN · not translated yet (agent)
     - button "Edit"
-- text: Not published, your edits are kept
-- paragraph: /the agent did not answer within \d+ s/
-- button "Translate 1 with the agent"
-- button "Publish to main" [disabled]
-- paragraph: "Translate first: you review the drafts before anything is pushed."
