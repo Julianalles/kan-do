@@ -409,6 +409,24 @@
       ]
     },
     {
+      "area": "button theme in app.config.ts (#456): the One Height Rule (#424) sets every button's height (36 px, 48 px on a phone); these specs assert a button's height or size, so a theme change is measured by them. Rules match files, not hunks: any app.config.ts change selects the set",
+      "risk": true,
+      "paths": [
+        "app.config.ts"
+      ],
+      "specs": [
+        "source-connections",
+        "day-close",
+        "ui-catalog",
+        "add-task-slot",
+        "add-task-visible",
+        "sources-settings",
+        "archive-feature",
+        "new-day-recap",
+        "app-nav"
+      ]
+    },
+    {
       "area": "dependency and build config (the profile also requires `npm run build`)",
       "risk": true,
       "paths": [

@@ -131,11 +131,18 @@ describe('selectE2e', () => {
   })
 
   it.each([
-    'package.json', 'package-lock.json', 'nuxt.config.ts', 'app.config.ts', 'vercel.json',
+    'package.json', 'package-lock.json', 'nuxt.config.ts', 'vercel.json',
   ])('runs smoke + visual-regression when the dependency or build config %s changes', (file) => {
     const result = select({ files: [file] })
     expect(result).toMatchObject({ tier: 'targeted', unmapped: [] })
     expect(result.specs).toEqual([...new Set([...config.smoke, ...designFor(file), 'visual-regression'])].sort())
+  })
+
+  // #456: app.config.ts is also the button theme (#424): visual-regression plus the specs that assert a button's height
+  it('runs visual-regression and the button-height specs when app.config.ts changes', () => {
+    const result = select({ files: ['app.config.ts'] })
+    expect(result).toMatchObject({ tier: 'targeted', unmapped: [] })
+    expect(result.specs).toEqual(expect.arrayContaining([...config.smoke, ...designFor('app.config.ts'), 'visual-regression', 'source-connections', 'day-close', 'ui-catalog']))
   })
 
   it('runs smoke + a documented set when playwright.config.ts or global-setup.ts changes', () => {
@@ -452,6 +459,15 @@ describe('selectE2e in fast testing mode (#693)', () => {
     const result = fast({ files: ['composables/useBoardDndKit.ts'] })
     expect(result.tier).toBe('fast')
     expect(result.specs).toEqual(expect.arrayContaining(['drag-and-drop', 'stack-motion', ...config.smoke]))
+    expect(result.specs).not.toContain('design-detect')
+  })
+
+  // #456: the One Height Rule (#424) changed the button theme in app.config.ts; the fast gate ran visual-regression and the catalog fingerprint
+  // only, and main went red on the specs that assert a button's height
+  it('runs the specs that assert button heights for a change to app.config.ts, in fast mode', () => {
+    const result = fast({ files: ['app.config.ts'] })
+    expect(result.tier).toBe('fast')
+    expect(result.specs).toEqual(expect.arrayContaining(['source-connections', 'day-close', 'ui-catalog', 'visual-regression', ...config.smoke]))
     expect(result.specs).not.toContain('design-detect')
   })
 
