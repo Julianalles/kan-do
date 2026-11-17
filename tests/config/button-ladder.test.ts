@@ -2,10 +2,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { readdirSync, readFileSync } from 'node:fs'
 import { join, relative, resolve } from 'node:path'
 
-// #552 (audit U4), kd#177: one button size and variant ladder (DESIGN.md "Components"). Two heights: `md` (the default,
-// 32 px) and `lg` (36 px, the one main action of a surface); four looks: solid, soft, ghost, link. The theme in
-// `app.config.ts` carries the explicit heights and the 44 px phone floor; call sites set a size only to climb to `lg`.
-// This test keeps the theme and the call sites from drifting.
+// #552 (audit U4), kd#177, #424: one button size and variant ladder (DESIGN.md "Components", "The One Height Rule").
+// One height for every button, the primary's: `md` (the default, 36 px, 48 px on a phone); `lg` is the same line and
+// no call site names it; four looks: solid, soft, ghost, link. The theme in `app.config.ts` carries the explicit
+// height and the phone floor; a button that stays smaller is a listed exception with a reason. This test keeps the
+// theme and the call sites from drifting.
 
 const root = resolve(__dirname, '../..')
 const FOLDERS = ['components', 'pages', 'layouts']
@@ -73,17 +74,32 @@ const PROP_OBJECT_EXEMPT: Record<string, string> = {
   'components/ui/inline/InlineEditable.vue': 'UInput variant of the inline field, not a button',
 }
 
-/** A solid primary in these files is deliberately not an `lg` CTA; each entry says why. */
-const NOT_A_CTA: Record<string, string> = {}
+/** Files that still write `size="lg"` on a button; `lg` is an alias of the default size, so it is harmless, each entry says why it stays. */
+const LG_ALIAS_ALLOWED: Record<string, string> = {
+  'components/recap/NewDayRecap.vue': 'the recap screen is redesigned in #428; the alias keeps this PR out of its way, #428 drops it',
+}
 
 /** The one link that sits inside running text, so it is text and not a 32 px button (kd#177): it sets `md:h-auto`. */
 const INLINE_TEXT_LINKS = ['components/feedback/FeedbackDialog.vue']
 
-/** The two-line sync button of the Mehr panel (label plus last sync time, about 48 px of content): it grows with its text from `md` up (`md:h-auto md:min-h-8`) instead of spilling out of a fixed 32 px box. */
+/** The two-line sync button of the Mehr panel (label plus last sync time, about 48 px of content): it grows with its text from `md` up (`md:h-auto md:min-h-9`) instead of spilling out of a fixed 36 px box. */
 const TWO_LINE_BUTTONS = ['components/nav/MorePanel.vue']
 
-/** The one CTA that is not a solid primary: "Tag abschließen" is a neutral soft `lg` button (#470). */
-const SOFT_CTA_TESTIDS = ['day-close-cta']
+/**
+ * Buttons that stay 32 px on desktop by design (#424), all drawn by their own unlayered CSS and all 44 px on a phone: the
+ * round icon-only buttons of the board's chrome (the Offen header's add button on the title line, the plan arrows beside a
+ * card, the stack header's close button) and the stack/notice actions, whose geometry is tied to the 32 px title line, the
+ * card corner and the 48 px note strip (`--task-note-height`). A new entry needs a reason a reviewer can weigh.
+ */
+const SMALLER_BY_DESIGN: Record<string, string> = {
+  'components/board/BoardColumnHeader.vue': 'round add button on the 32 px title line, out of the flow',
+  'assets/css/board.css': '`.plan-arrow`: round arrow beside a card, 32 px like the header add button',
+  'components/task/TaskStackHeader.vue': 'round close button in the stack header, same look as the header add button',
+  'components/task/TaskCard.vue': 'the card-corner menu button (#296): a 28 px circle with a 44 px hit area, tied to the card corner',
+  'components/board/NewCardFlow.vue': '`.ncf__nav` on a 128 px card: the head ends 12 px above the answer row',
+  'components/board/BoardFocusBar.vue': '`.board-focus-bar__end`: 28 px round end button inside the 36 px focus pill, 4 px from its edge',
+  'components/board/BoardColumnNotice.vue': '`.notice__action`: `xs` action inside the 48 px note strip (#377)',
+}
 
 describe('button ladder: call sites (#552, kd#177)', () => {
   const tags = buttonTags()
@@ -122,27 +138,29 @@ describe('button ladder: call sites (#552, kd#177)', () => {
     }
   })
 
-  it('makes every solid primary or solid error button `lg`, the one CTA of its surface', () => {
-    const hits = tags.filter((t) => {
-      if (NOT_A_CTA[t.file]) return false
-      // A bound prop is read as its source text: a footer action falls back to `?? 'primary'` / `?? 'solid'`, the
-      // disconnect confirm has a solid branch. Both count, so a ternary cannot hide a CTA from the ladder.
-      const variant = attr(t.attrs, 'variant')
-      const color = attr(t.attrs, 'color') ?? 'primary'
-      const solid = variant === null || /(^|')solid('|$)/.test(variant)
-      const primary = /(^|')(primary|error)('|$)/.test(color)
-      // A bound size counts when its source names `lg` (the disconnect confirm climbs only in its solid branch)
-      return solid && primary && !/(^|')lg('|$)/.test(attr(t.attrs, 'size') ?? '')
-    })
+  it('names `lg` nowhere: every button has the primary\'s height, so the CTA needs no size (#424)', () => {
+    const hits = tags.filter((t) => /(^|')lg('|$)/.test(attr(t.attrs, 'size') ?? '') && LG_ALIAS_ALLOWED[t.file] === undefined)
     expect(hits.map(where)).toEqual([])
   })
 
-  it('has the soft CTA of the board at `lg` too', () => {
-    for (const id of SOFT_CTA_TESTIDS) {
-      const tag = tags.find((t) => attr(t.attrs, 'data-testid') === id)
-      expect(tag, id).toBeDefined()
-      expect(attr(tag!.attrs, 'size'), id).toBe('lg')
+  it('keeps every `lg` exemption and every smaller-by-design file honest: the file exists and says why', () => {
+    for (const [file, why] of [...Object.entries(LG_ALIAS_ALLOWED), ...Object.entries(SMALLER_BY_DESIGN)]) {
+      expect(why.length, file).toBeGreaterThan(10)
+      expect(() => readFileSync(join(root, file), 'utf8'), file).not.toThrow()
     }
+  })
+
+  it('writes no 32 px utility class (h-8, min-h-8, size-8) on a button outside the smaller-by-design list', () => {
+    const files = [...FOLDERS.flatMap((folder) => sourceFiles(join(root, folder))), join(root, 'assets/css/board.css'), join(root, 'assets/css/task-detail.css')]
+    const hits: string[] = []
+    for (const path of files) {
+      const file = relative(root, path)
+      if (SMALLER_BY_DESIGN[file] !== undefined) continue
+      readFileSync(path, 'utf8').split('\n').forEach((text, index) => {
+        if (/\b(?:md:)?(?:h-8|min-h-8|size-8)\b/.test(text) && !/<UIcon/.test(text) && !/\bmin-h-8 w-full\b/.test(text)) hits.push(`${file}:${index + 1}`)
+      })
+    }
+    expect(hits).toEqual([])
   })
 
   it('keeps the removed sizes and looks out of buttons configured as prop objects too (`:close`, alert and toast `actions`, `ButtonProps`)', () => {
@@ -177,7 +195,7 @@ describe('button ladder: theme (#552)', () => {
     defaultVariants?: { size?: string }
     slots?: { base?: string | string[] }
     variants?: { size?: Record<string, { base?: string } | undefined> }
-    compoundVariants?: Array<{ size?: string; square?: boolean; class?: string }>
+    compoundVariants?: Array<{ size?: string; square?: boolean; color?: string | string[]; variant?: string; class?: string }>
   }
 
   const base = (t: ButtonTheme) => [t.slots?.base ?? []].flat().join(' ')
@@ -190,15 +208,27 @@ describe('button ladder: theme (#552)', () => {
     expect(base(await theme())).toContain('max-md:min-h-11')
   })
 
-  it('lifts `lg` to 48 px on a phone', async () => {
-    expect((await theme()).variants?.size?.lg?.base).toContain('max-md:min-h-12')
+  it('writes the desktop height of every size that stays: md 36 (the primary\'s), lg the same line, the notice action xs 24', async () => {
+    const sizes = (await theme()).variants?.size
+    expect(sizes?.md?.base).toMatch(/(^|\s)md:h-9(\s|$)/)
+    expect(sizes?.lg?.base).toBe(sizes?.md?.base)
+    expect(sizes?.xs?.base).toMatch(/(^|\s)md:h-6(\s|$)/)
   })
 
-  it('writes the desktop height of every size that stays: md 32, lg 36, the notice action xs 24', async () => {
+  it('lifts the default size to 48 px on a phone, like the former main action (#424)', async () => {
+    expect((await theme()).variants?.size?.md?.base).toContain('max-md:min-h-12')
+  })
+
+  it('keeps the label of every button at the 14 px interface step', async () => {
     const sizes = (await theme()).variants?.size
-    expect(sizes?.md?.base).toMatch(/(^|\s)md:h-8(\s|$)/)
-    expect(sizes?.lg?.base).toMatch(/(^|\s)md:h-9(\s|$)/)
-    expect(sizes?.xs?.base).toMatch(/(^|\s)md:h-6(\s|$)/)
+    expect(sizes?.md?.base).toMatch(/(^|\s)text-sm(\s|$)/)
+    expect(sizes?.lg?.base).not.toMatch(/text-base/)
+  })
+
+  it('gives a solid primary and a solid error button a 96 px minimum width, not an icon-only one (#424)', async () => {
+    const compound = (await theme()).compoundVariants?.find((c) => c.variant === 'solid' && c.square === false && /min-w-24/.test(c.class ?? ''))
+    expect(compound).toBeDefined()
+    expect([compound!.color].flat().sort()).toEqual(['error', 'primary'])
   })
 
   it('sets the notice action `xs` at the 14 px text step of the notice beside it, not Nuxt UI\'s 12 px (#377)', async () => {
@@ -212,8 +242,10 @@ describe('button ladder: theme (#552)', () => {
     expect(xs?.class).toContain('max-md:min-h-0')
   })
 
-  it('makes icon-only buttons 44 px wide on a phone', async () => {
+  it('makes icon-only buttons 44 px wide on a phone and 36 px wide on desktop', async () => {
     const square = (await theme()).compoundVariants?.find((c) => c.square === true)
     expect(square?.class).toContain('max-md:min-w-11')
+    expect(square?.class).toContain('max-md:min-h-11')
+    expect(square?.class).toContain('md:min-w-9')
   })
 })

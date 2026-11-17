@@ -282,24 +282,26 @@ test.describe('Day close dialog (#98)', () => {
   })
 
   for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
-    test(`hierarchy at ${viewport.width}px: Fertig is the one primary and the heaviest control (#551)`, async ({ page }) => {
+    test(`hierarchy at ${viewport.width}px: Fertig is the one primary, told apart by colour and not by size (#551, #424)`, async ({ page }) => {
       await page.setViewportSize(viewport)
       await page.goto('/tasks')
       await openDayClose(page)
       await expect(dialog(page)).toBeVisible()
 
-      // The button ladder (#552): Fertig is the `lg` CTA, its sibling `md`; the phone floor is the button theme's
+      // The one height rule (#424): both buttons have the primary's height, 36 px, 48 px on a phone
       const phone = viewport.width === 390
-      const floor = phone ? 44 : 32
-      const doneFloor = phone ? 48 : 36
+      const expected = phone ? 48 : 36
       const done = dialog(page).getByTestId('day-close-done-button')
       const copy = dialog(page).getByTestId('day-close-copy')
       // The drawer slides in on a transform: round away the sub-pixel noise of a box measured mid-settle
       const height = async (locator: Locator) => Math.round((await locator.boundingBox())!.height)
-      await expect.poll(() => height(done)).toBeGreaterThanOrEqual(doneFloor)
-      const doneHeight = await height(done)
-      expect(await height(copy)).toBeGreaterThanOrEqual(floor)
-      expect(await height(copy)).toBeLessThan(doneHeight) // Fertig is the heaviest control
+      await expect.poll(() => height(done)).toBeGreaterThanOrEqual(expected)
+      expect(await height(done)).toBe(expected)
+      expect(await height(copy)).toBe(expected)
+      // Fertig is the heaviest control by its fill: the solid green, with the 96 px minimum width
+      expect((await done.boundingBox())!.width).toBeGreaterThanOrEqual(96)
+      await expect(done).toHaveCSS('background-color', /^(?!rgba\(0, 0, 0, 0\)|rgba\(.*, 0\))/)
+      await expect(copy).not.toHaveCSS('background-color', await done.evaluate((el) => getComputedStyle(el).backgroundColor))
     })
   }
 

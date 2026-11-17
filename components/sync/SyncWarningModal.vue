@@ -128,7 +128,6 @@ const answerLabelId = useId()
       <UButton
         :label="answer === 'yes' ? t('sync.warning.apply') : answer === 'no' ? t('sync.warning.keep') : t('sync.warning.choose')"
         :color="answer === null ? 'neutral' : 'primary'"
-        size="lg"
         :disabled="answer === null"
         data-testid="sync-warning-submit"
         @click="submit"

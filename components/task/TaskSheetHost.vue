@@ -60,7 +60,6 @@
             <UButton
               v-for="action in modalFooter.footerConfig.value.primary"
               :key="action.key"
-              size="lg"
               :color="action.color ?? 'primary'"
               :variant="action.variant ?? 'solid'"
               :icon="action.icon"

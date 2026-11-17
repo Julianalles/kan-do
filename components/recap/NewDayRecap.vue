@@ -16,7 +16,7 @@ One centred column (max 44rem) with both decks side by side from 768px, one deck
 - The photo is the welcome page's (`public/welcome`), decoration only (`alt=""`); until it loads, or if it fails, the layer is the paper colour
 - Phone switcher ("n noch offen" / "n erledigt", a `UTabs` pill: `role="tab"`, `aria-selected`): one RecapDeck mounted at a time, starts on "noch offen" (on "erledigt" when nothing is open, then without a switcher)
 - The decks never change size (RecapDeck), so nothing moves while they are looked at
-- Controls sheet: the two buttons right in a container query (`@md`), stacked and full width when narrow with "Tag neu planen" above "Überspringen und Board anzeigen"; the main action's size `lg` on both buttons as the button ladder test asks today (#424 makes it the default; the later PR drops the attribute), no width override beyond the stacked full width
+- Controls sheet: the two buttons right in a container query (`@md`), stacked and full width when narrow with "Tag neu planen" above "Überspringen und Board anzeigen"; default button size on both (One Height Rule, #424), no width override beyond the stacked full width
 -->
 <template>
   <!-- Outside the inert board (<main> in pages/tasks.vue), in app.vue's host: the same stacking context as the app bar, so the bar paints above the photo (#262) -->
@@ -86,7 +86,6 @@ One centred column (max 44rem) with both decks side by side from 768px, one deck
           <div class="recap-stage__controls @container" data-testid="recap-controls">
             <div class="flex flex-col-reverse gap-2 @md:flex-row @md:items-center @md:justify-end">
               <UButton
-                size="lg"
                 color="neutral"
                 variant="ghost"
                 class="w-full justify-center @md:w-auto"
@@ -96,7 +95,6 @@ One centred column (max 44rem) with both decks side by side from 768px, one deck
                 {{ t('recap.continue') }}
               </UButton>
               <UButton
-                size="lg"
                 color="primary"
                 :trailing-icon="ICONS.goOn"
                 class="w-full justify-center @md:w-auto"

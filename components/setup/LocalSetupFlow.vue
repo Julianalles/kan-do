@@ -34,7 +34,7 @@
       />
     </fieldset>
 
-    <UButton color="primary" size="lg" block aria-live="polite" data-testid="local-confirm" @click="confirm">
+    <UButton color="primary" block aria-live="polite" data-testid="local-confirm" @click="confirm">
       {{ notion ? t('onboarding.flow.local.confirmNotion') : t('onboarding.flow.local.confirm') }}
     </UButton>
   </section>

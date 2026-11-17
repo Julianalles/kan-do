@@ -172,7 +172,7 @@
         color="neutral"
         variant="ghost"
         block
-        class="justify-start md:h-auto md:min-h-8"
+        class="justify-start md:h-auto md:min-h-9"
         :loading="isLoading"
         :disabled="isLoading"
         :aria-busy="isLoading"

@@ -4,7 +4,7 @@
 @category overlay
 @description Optional, quiet closing step for the day (#98, #237): one sheet with the day in one look, what got done, what stays on the board for tomorrow, and a copyable summary.
 @usage Mounted once in pages/tasks.vue; opened through useDayClose().open() (Mehr panel row, the Erledigt CTA, command palette).
-Hosted by ResponsiveOverlay (modal at >=768px, drawer below; the same shell as TaskSheet, but not route-bound). The footer markup exists once and has no per-variant look: the theme floor makes both buttons 44px on a phone (Fertig, the one primary, `lg`: 48px) and desktop keeps `md` / `lg` (#551, #552).
+Hosted by ResponsiveOverlay (modal at >=768px, drawer below; the same shell as TaskSheet, but not route-bound). The footer markup exists once and has no per-variant look: both buttons have the one button height (36 px, 48 px on a phone, #424) and Fertig, the solid primary, is at least 96 px wide (#551, #552).
 @avoid Not for a plain confirmation (UModal, ResponsiveOverlay) and not the first-start-of-day recap (NewDayRecap).
 @responsibility
 - Shell only: title, scrolling body (DayCloseBody), footer "Zusammenfassung kopieren" (neutral, first) and "Fertig" (primary, last)
@@ -50,7 +50,7 @@ Hosted by ResponsiveOverlay (modal at >=768px, drawer below; the same shell as T
           </span>
         </span>
       </UButton>
-      <UButton size="lg" color="primary" data-testid="day-close-done-button" @click="finish">
+      <UButton color="primary" data-testid="day-close-done-button" @click="finish">
         {{ t('dayClose.done') }}
       </UButton>
     </template>
