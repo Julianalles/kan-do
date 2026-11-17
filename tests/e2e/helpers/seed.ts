@@ -626,7 +626,7 @@ export interface SeedDayRecapOptions {
   /**
    * The day the user last started fresh on (#387). Default: the same day as `lastShownDay`, so a fresh start is on
    * offer when that day is before today; nothing moves by itself. Today's key: the day is already started (no notice,
-   * "Tag planen" moves nothing), the recap is still due. `null` stores no such field: data from before the fresh start
+   * "Tag neu planen" moves nothing), the recap is still due. `null` stores no such field: data from before the fresh start
    * existed (the update from v0.16.0), which the day check gives its baseline.
    */
   lastNewDay?: string | null

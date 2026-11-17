@@ -78,6 +78,5 @@ export function useAppNav() {
   /** The place to mark: Rückblick while the recap covers the board page, else the route's place */
   const selectedPlace = computed<AppNavSelected | null>(() => (recapShown.value && onBoard.value ? 'recap' : currentPlace.value))
 
-
   return { showsBar, currentPlace, selectedPlace, recapShown, onBoard, thirdItem }
 }

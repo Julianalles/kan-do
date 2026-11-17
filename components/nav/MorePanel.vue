@@ -4,7 +4,7 @@
 @category navigation
 @description Content of the Mehr popover behind the app bar's ⋯ (#470): the board controls and the pages that are not places
 @usage Rendered inside the UPopover of AppNav; reads stores and composables only, no props
-@avoid Only the popover behind AppNav's ⋯; the places (Heute, Statistik) are the pill's segments, rows here only on "Alle" where the pill does not show them.
+@avoid Only the popover behind AppNav's ⋯; the places (Heute, Statistik) are the pill's segments, so no rows for them on any route.
 @responsibility
 - Order on the board: Befehle (desktop) -> Ansicht (Karten stapeln + group-by chips) -> Tag abschließen -> Papierkorb (n), Einstellungen, App-Update -> sync footer
 - Ansicht and Tag abschließen exist only while the board is the current place; the rest and the sync footer on every page

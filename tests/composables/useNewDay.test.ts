@@ -471,7 +471,7 @@ describe('useNewDay: the day check and the fresh start (#387)', () => {
         return { ...context, page }
       }
 
-      it('"Tag planen": the recap is left first, the fresh start still takes yesterday\'s cards off the board', () => {
+      it('"Tag neu planen": the recap is left first, the fresh start still takes yesterday\'s cards off the board', () => {
         const { tasks, recap, newDay, page } = recapMorning()
         page.leave()
         expect(recap.lastShownDay).toBe(TODAY)

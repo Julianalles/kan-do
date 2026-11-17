@@ -96,14 +96,7 @@ describe('MorePanel: the Mehr panel (#470)', () => {
     expect(w.find('[data-testid="more-settings"]').exists()).toBe(true)
   })
 
-  it('on "Alle" opened by hand the places are the pill\'s segments: no Heute and Statistik rows', () => {
-    route.path = '/all'
-    const w = render()
-    expect(w.find('[data-testid="more-today"]').exists()).toBe(false)
-    expect(w.find('[data-testid="more-statistics"]').exists()).toBe(false)
-  })
-
-  it.each(['/tasks', '/statistics', '/trash', '/settings'])('on %s the places are the pill\'s segments: no Heute and Statistik rows', (path) => {
+  it.each(['/all', '/tasks', '/statistics', '/trash', '/settings'])('on %s the places are the pill\'s segments: no Heute and Statistik rows', (path) => {
     route.path = path
     const w = render()
     expect(w.find('[data-testid="more-today"]').exists()).toBe(false)

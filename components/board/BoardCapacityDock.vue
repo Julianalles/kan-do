@@ -2,7 +2,7 @@
 @component BoardCapacityDock
 @kind component
 @category layout
-@description Where the capacity echo (BoardCapacityEcho) sits on the place "Alle" (#354, #373): at the foot of Offen on desktop, as a bar fixed above the app bar on a phone. It holds only the echo; the way on to the board is the app bar's green pill "Weiter zum Board" (#373, it replaced this component's button "Tag starten")
+@description Where the capacity echo (BoardCapacityEcho) sits on the place "Alle" (#354, #373): at the foot of Offen on desktop, as a bar fixed above the app bar on a phone. It holds only the echo; the way on to the board is the app bar's normal pill (#454 removed the green "Weiter zum Board" pill, #373 had replaced this component's button "Tag starten")
 @usage Board.vue renders it twice, never both at once: on desktop in the footer slot of the Offen column (where Erledigt has "Tag abschließen"), on a phone (`phone`) as a bar fixed above the app bar on both pages of "Alle". It takes no room while the echo is not shown.
 @avoid Not a navigation bar and not a button host: the places are in AppNav. Only on "Alle".
 @responsibility
