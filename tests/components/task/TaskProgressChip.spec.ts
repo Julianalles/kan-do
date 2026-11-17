@@ -370,6 +370,13 @@ describe('TaskProgressChip (#388)', () => {
       expect(slot(w).style.getPropertyValue('--chip-p')).toBe('100%')
     })
 
+    it('sets every step into the overrun at once, a late timer tick (a throttled tab) included: the bar never refills visibly (#450)', async () => {
+      const w = render({ timeBoxSeconds: 2700, timeSpentSeconds: 2000, isNow: true })
+      await w.setProps({ timeSpentSeconds: 2800 })
+      expect(fillDuration(w)).toBe('0ms')
+      expect(slot(w).style.getPropertyValue('--chip-p')).toBe('100%')
+    })
+
     it('eases a jump (an edit of the spent time), and a tick inside that ease does not cut it short', async () => {
       const w = render({ timeBoxSeconds: 2700, timeSpentSeconds: 720, isNow: true })
       await w.setProps({ timeSpentSeconds: 721 })
