@@ -299,7 +299,7 @@ describe('withCapacityItem (#132)', () => {
   })
 })
 
-describe('capacityLineState (#354: what the echo on "Planung" reads from the Offen column)', () => {
+describe('capacityLineState (#354: what the echo on "Alle" reads from the Offen column)', () => {
   it('a list without the divider is not full', () => {
     expect(capacityLineState(build([]))).toEqual({ full: false, below: 0 })
   })

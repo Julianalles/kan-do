@@ -374,7 +374,7 @@ describe('NewDayRecap', () => {
       setTestLocale('de')
     })
 
-    it('"Tag planen" leaves the recap, leads to "Planung" and is the fresh start (#387): once, after the recap is left', async () => {
+    it('"Tag planen" leaves the recap, leads to "Alle" and is the fresh start (#387): once, after the recap is left', async () => {
       await open([doneAt(1, 'a')])
       freshStart.mockImplementationOnce(() => {
         // the recap is left (archive, marker) before the cards move
@@ -398,7 +398,7 @@ describe('NewDayRecap', () => {
       expect(freshStart).not.toHaveBeenCalled()
     })
 
-    it('"Direkt zum Board" on "Planung" goes to Heute', async () => {
+    it('"Direkt zum Board" on "Alle" goes to Heute', async () => {
       setCurrentBoardPath('/all')
       await open([doneAt(1, 'a')])
       q('[data-testid="recap-continue"]').click()
@@ -406,7 +406,7 @@ describe('NewDayRecap', () => {
       expect(useNewDayRecap().isOpen.value).toBe(false)
     })
 
-    it('Escape is "Direkt zum Board" without a move: it only dismisses, also on "Planung"', async () => {
+    it('Escape is "Direkt zum Board" without a move: it only dismisses, also on "Alle"', async () => {
       setCurrentBoardPath('/all')
       await open([doneAt(1, 'a')])
       pressEscape()

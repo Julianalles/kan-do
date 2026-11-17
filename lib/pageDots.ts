@@ -1,4 +1,4 @@
-/** Number of phone column pages of Heute (Offen, Jetzt + Wartet, Erledigt); "Planung" has two (#354). */
+/** Number of phone column pages of Heute (Offen, Jetzt + Wartet, Erledigt); "Alle" has two (#354). */
 export const PAGE_DOT_COUNT = 3
 
 /**
