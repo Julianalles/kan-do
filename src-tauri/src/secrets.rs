@@ -1,6 +1,6 @@
 //! Keychain-backed secret store (#223, ADR 007).
 //!
-//! Four fixed entries live under one Keychain service, `io.github.jaylouiz.kan-do` in a release build ([`service_for`] derives it from the running identifier and, for `tauri dev`, the migration marker). The Notion and Todoist tokens
+//! Four fixed entries live under one Keychain service, `io.github.jaylouiz.kan-do` in a release build ([`service_for`] derives it from the running identifier and, for a plain `cargo tauri dev`, the migration marker). The Notion and Todoist tokens
 //! can be read back by the webview (their client code needs the string). The two GitHub tokens
 //! are write-only for JS: it can set, delete and ask for status, and `github::github_request`
 //! performs the calls. Rust code in this process reads them through [`get`].
@@ -25,7 +25,7 @@ use tauri::{AppHandle, Manager, State};
 pub const SERVICE: &str = "io.github.jaylouiz.kan-do";
 
 /// The Keychain service the running build uses, from the identifier it runs under. A debug build with the production
-/// identifier (`tauri dev`) never migrates: until the release's Keychain step is over (`identifier_migration::secrets_settled`
+/// identifier (a plain `cargo tauri dev`) never migrates: until the release's Keychain step is over (`identifier_migration::secrets_settled`
 /// on the marker in `config_dir`, read-only) it keeps the legacy service of the installed 0.11.0, so a dev run neither
 /// creates entries under the new service (which would make the release's step keep them as "new wins") nor strands the
 /// real tokens. Afterwards the installed app lives under [`SERVICE`] and the dev run uses the same entries (kd#60). A release
