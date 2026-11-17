@@ -27,7 +27,7 @@ Most desktop behaviour is answered by a spec with `installTauriStub` (`.claude/r
 
 Only when 1 and 2 cannot answer it. Follow `docs/testing/tauri-dev-sandbox.md` exactly (the source of the
 recipe): throwaway `HOME`, identifier `io.github.jaylouiz.kan-do.sandbox-<port>` (own dev server port; the identifier names the single-instance socket, so runs do not hand over to each other), no secret commands,
-stop only your own PIDs, then prove the real data folder is untouched.
+stop only your own PIDs, then prove the real data folder is untouched. A check that needs a task in Jetzt (floating Now window, `overlay.rs`) pre-writes the sandbox data folder with `node scripts/sandbox-data.mjs <folder>` before launch (doc section "Reaching a Jetzt task"); a fresh `HOME` otherwise shows the welcome page and `?seed` does nothing.
 
 The user runs the production app on this machine while you work. Two standing rules (#623; the guard hook
 blocks the commonest forms of the commands and its message names the way, but it is a guard rail: the rules bind
