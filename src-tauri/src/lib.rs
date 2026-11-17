@@ -134,7 +134,7 @@ pub fn run() {
       // `DataFile` exists and before any command is served, so no call sees the pre-migration data or Keychain.
       app.handle().plugin(logging::plugin())?;
       let dirs = identifier_migration::run(app.handle());
-      // The Keychain service follows the identifier the app runs under (a sandbox gets its own, kd#54) and, for `tauri dev`,
+      // The Keychain service follows the identifier the app runs under (a sandbox gets its own, kd#54) and, for a plain `cargo tauri dev` (production identifier),
       // the migration marker (kd#60), which lives in the config dir: so `Secrets` is managed here, after the migration and
       // before the first command is served.
       let config_dir = app.path().app_config_dir().expect("app config dir");

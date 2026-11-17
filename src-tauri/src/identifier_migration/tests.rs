@@ -417,6 +417,26 @@ fn a_debug_build_with_the_production_identifier_keeps_using_the_legacy_folder_an
     assert!(!secrets_settled(&t.new));
 }
 
+#[test]
+fn the_dev_identity_starts_empty_and_never_copies_or_reads_the_installed_apps_folders() {
+    // #413: `npm run tauri:dev` runs under its own identifier. Even with a legacy install on disk, its folder stays empty.
+    let t = Support::new();
+    t.seed_default_install();
+    let before = snapshot(&t.old);
+    let dirs = run_gated(true, DEV_IDENTIFIER, &t.new, &t.new, || panic!("the dev identity must not open the Keychain"));
+    assert_eq!(dirs, Dirs { config_dir: t.new.clone(), default_folder: t.new.clone() });
+    assert!(!t.new.exists(), "nothing copied, no state file");
+    assert_eq!(snapshot(&t.old), before, "the legacy folder is not written");
+}
+
+#[test]
+fn the_dev_identifier_is_neither_the_production_nor_the_legacy_one() {
+    assert_ne!(DEV_IDENTIFIER, PRODUCTION_IDENTIFIER);
+    assert_ne!(DEV_IDENTIFIER, LEGACY_IDENTIFIER);
+    let conf: Value = serde_json::from_str(include_str!("../../tauri.dev.conf.json")).unwrap();
+    assert_eq!(conf["identifier"], DEV_IDENTIFIER);
+}
+
 /// Writes the marker the release leaves behind (states only) into the new config dir.
 fn put_marker(t: &Support, state: State) {
     write_state(&t.new, &state).unwrap();

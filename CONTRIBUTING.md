@@ -64,7 +64,7 @@ Seeding details and the Notion stub: [.claude/rules/e2e.md](.claude/rules/e2e.md
 ### Run the desktop app (Tauri)
 
 ```bash
-npm run tauri:dev     # native macOS window with hot reload (uses your real app data folder and Keychain)
+npm run tauri:dev     # native macOS window with hot reload, in its own "kan-do dev" identity: own data folder and Keychain, starts on the demo board, never touches an installed kan-do (#413)
 ```
 
 To check desktop behaviour without touching your own data, use the sandboxed run in [docs/testing/tauri-dev-sandbox.md](docs/testing/tauri-dev-sandbox.md). Desktop-only rules (E2E stub, CSP, in-app feedback): [.claude/rules/desktop.md](.claude/rules/desktop.md).
