@@ -147,8 +147,6 @@ const fillShare = computed(() => timerBar.value?.share ?? percent.value)
 const TICK_STEP_MAX = 0.5
 /** Length of the fill's ease; keep in step with `--chip-fill-duration` below */
 const FILL_EASE_MS = 700
-/** The overrun step counts as a timer tick when the bar was at most this many seconds of the timebox from empty (a second of slack for a late timer) */
-const OVERRUN_SLACK_SECONDS = 2
 /** The fill takes its next width at once (a timer tick, or the step into the overrun, which must not refill the bar
  *  visibly): binds `--chip-fill-duration: 0ms`, so no `width` transition starts. Set by a sync watcher, so the render
  *  that writes the new `--chip-p` already carries it. */
@@ -156,11 +154,12 @@ const fillSteps = ref(false)
 let easesUntil = 0
 watch(() => [fillShare.value, timerBar.value?.over === true] as const, ([now, over], [was, wasOver]) => {
   const jump = Math.abs(now - was) >= TICK_STEP_MAX
-  // The tick that crosses the timebox: from (nearly) empty to full, which is a "jump" by size but must not refill visibly.
-  // An edit of the spent time into the overrun is the user's own step and eases like any other.
-  const crossesByTick = over && !wasOver && was <= (OVERRUN_SLACK_SECONDS * 100) / (props.timeBoxSeconds ?? 1)
-  if (jump && !crossesByTick) easesUntil = performance.now() + FILL_EASE_MS
-  fillSteps.value = crossesByTick || (!jump && performance.now() >= easesUntil)
+  if (jump) easesUntil = performance.now() + FILL_EASE_MS
+  fillSteps.value = !jump && performance.now() >= easesUntil
+  if (over && !wasOver) {
+    fillSteps.value = true
+    easesUntil = 0
+  }
 }, { flush: 'sync' })
 
 /** Transitions are on only after the first frames: the footer width is measured after the mount, and a page load
