@@ -43,6 +43,19 @@ describe('overlay contract: names shared with Rust', () => {
   })
 })
 
+describe('overlay contract: the pill is system glass and shows whichever window has the focus (#436)', () => {
+  it('builds the window with Liquid Glass and a vibrancy fallback, on a transparent window', () => {
+    expect(rust).toMatch(/\.transparent\(true\)\s*\.effects\(glass\(\)\)/)
+    expect(rust).toContain('WindowEffect::LiquidGlassRegular, WindowEffect::HudWindow')
+  })
+
+  it('does not look at the main window\'s focus to decide whether to show', () => {
+    expect(rust).not.toContain('main_focused')
+    expect(rust).not.toContain('on_main_focus')
+    expect(read('src-tauri/src/lib.rs')).not.toContain('on_main_focus')
+  })
+})
+
 describe('overlay contract: the pill window is least-privileged', () => {
   const capability = JSON.parse(read('src-tauri/capabilities/overlay.json')) as { windows: string[]; permissions: Array<string | { identifier: string }> }
 

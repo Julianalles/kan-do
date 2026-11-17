@@ -1200,7 +1200,7 @@
     },
     "floatingNow": {
       "label": "Schwebender Timer",
-      "help": "Zeigt deine Aufgabe in „Jetzt“ zusammen mit einem Timer als eigenes kleines Fenster, das immer sichtbar istt."
+      "help": "Zeigt deine Aufgabe in „Jetzt“ zusammen mit einem Timer als eigenes kleines Fenster, das immer sichtbar ist."
     }
   },
   "sources": {
@@ -1685,6 +1685,7 @@
     "done": "Als erledigt markieren",
     "left": "noch {time}",
     "over": "{time} über der Timebox",
+    "elapsed": "Bisher gearbeitet: {time}",
     "paused": "pausiert"
   }
 }

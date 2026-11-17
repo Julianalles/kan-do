@@ -3,7 +3,7 @@
  * last minute and overrun, the paused state, and the tolerant reading of a snapshot that arrives over the wire.
  */
 import { describe, expect, it } from 'vitest'
-import { WARNING_SECONDS, nowView, parseSnapshot, spentAt, type NowSnapshot } from '~/lib/nowWindow'
+import { nowView, parseSnapshot, spentAt, type NowSnapshot } from '~/lib/nowWindow'
 
 const AT = 1_763_300_000_000
 const snap = (extra: Partial<NowSnapshot> = {}): NowSnapshot => ({
@@ -22,27 +22,34 @@ describe('spentAt', () => {
 })
 
 describe('nowView', () => {
-  it('shows the remaining time as m:ss with the ring at the spent share', () => {
+  it('shows the remaining time as m:ss with the line at the share that is left', () => {
     const v = nowView(snap(), AT)
     expect(v.label).toBe('10:40')
-    expect(v.ring).toBeCloseTo(860 / 1500)
-    expect(v).toMatchObject({ tone: 'normal', over: false, paused: false })
+    expect(v.line).toBeCloseTo(640 / 1500)
+    expect(v).toMatchObject({ mode: 'left', tone: 'normal', over: false, paused: false })
+  })
+  it('starts full and ends empty', () => {
+    expect(nowView(snap({ spentSeconds: 0 }), AT).line).toBe(1)
+    expect(nowView(snap({ spentSeconds: 1500 }), AT).line).toBe(0)
   })
   it('reads h:mm:ss from an hour on', () => {
     expect(nowView(snap({ timeBoxSeconds: 7200, spentSeconds: 0 }), AT).label).toBe('2:00:00')
     expect(nowView(snap({ timeBoxSeconds: 3661, spentSeconds: 0 }), AT).label).toBe('1:01:01')
   })
-  it('turns amber in the last minute, not before', () => {
-    expect(nowView(snap({ spentSeconds: 1500 - WARNING_SECONDS - 1 }), AT).tone).toBe('normal')
-    expect(nowView(snap({ spentSeconds: 1500 - WARNING_SECONDS }), AT).tone).toBe('warning')
+  it("turns amber above 80 % of the timebox spent, as the app's bar does (`getTimeboxRingColor`)", () => {
+    expect(nowView(snap({ spentSeconds: 1200 }), AT).tone).toBe('normal')
+    expect(nowView(snap({ spentSeconds: 1201 }), AT).tone).toBe('warning')
     expect(nowView(snap({ spentSeconds: 1499 }), AT).label).toBe('0:01')
   })
-  it('stays amber over the timebox and reads the overrun as +m:ss; the ring is full', () => {
+  it('stays amber over the timebox and reads the overrun as +m:ss; the line is full again (it has run out)', () => {
     const v = nowView(snap({ spentSeconds: 1500 + 130 }), AT)
-    expect(v).toMatchObject({ label: '+2:10', tone: 'warning', over: true, ring: 1 })
+    expect(v).toMatchObject({ label: '+2:10', mode: 'over', tone: 'warning', over: true, line: 1 })
   })
-  it('a task without a timebox shows the title only: no ring, no time, never amber', () => {
-    expect(nowView(snap({ timeBoxSeconds: null, spentSeconds: 99_999 }), AT)).toEqual({ ring: null, label: null, tone: 'normal', over: false, paused: false })
+  it('a task without a timebox has no line and counts the time passed up, never amber', () => {
+    expect(nowView(snap({ timeBoxSeconds: null, spentSeconds: 125 }), AT)).toEqual({ line: null, mode: 'elapsed', label: '2:05', tone: 'normal', over: false, paused: false })
+    expect(nowView(snap({ timeBoxSeconds: null, spentSeconds: 3725 }), AT).label).toBe('1:02:05')
+    expect(nowView(snap({ timeBoxSeconds: null, spentSeconds: 99_999 }), AT).tone).toBe('normal')
+    expect(nowView(snap({ timeBoxSeconds: null, spentSeconds: 125 }), AT + 5000).label).toBe('2:10')
   })
   it('paused is reported and the time does not move', () => {
     const v = nowView(snap({ running: false }), AT + 90_000)

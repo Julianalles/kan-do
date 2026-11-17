@@ -31,12 +31,12 @@ const calls = async (page: Page, cmd: string) => (await stubState(page)).calls.f
 const pill = (page: Page) => page.getByTestId('now-pill')
 
 test.describe('the pill window (/overlay)', () => {
-  test('shows ring, title and remaining time; the title is private; it counts down by the wall clock', async ({ context, page }) => {
+  test('shows title, remaining time and the timer line; the title is private; it counts down by the wall clock', async ({ context, page }) => {
     await openPill(context, page, snap({ running: true }))
     await expect(pill(page)).toBeVisible()
     await expect(page.getByTestId('now-title')).toHaveText('Release notes schreiben')
     await expect(page.getByTestId('now-title')).toHaveAttribute('data-private', '')
-    await expect(page.getByTestId('now-ring')).toBeVisible()
+    await expect(page.getByTestId('now-line')).toBeVisible()
     const first = await page.getByTestId('now-time').innerText()
     expect(first).toMatch(/^\d+:\d{2}$/)
     await expect.poll(() => page.getByTestId('now-time').innerText(), { timeout: 5000 }).not.toBe(first)
@@ -55,18 +55,35 @@ test.describe('the pill window (/overlay)', () => {
     await expect(page.getByTestId('now-pause')).toHaveAccessibleName('Fortsetzen')
   })
 
-  test('the last minute and the overrun are amber; no timebox shows the title only', async ({ context, page }) => {
-    await openPill(context, page, snap({ spentSeconds: 1500 - 50 }))
-    await expect(page.getByTestId('now-time')).toHaveText('0:50')
+  test('the timer line shrinks with the time left, turns amber above 80 % spent and is full and amber again over the timebox', async ({ context, page }) => {
+    // 860 of 1500 s spent: 43 % left, primary
+    await openPill(context, page, snap({ spentSeconds: 860 }))
+    const fill = page.locator('[data-testid="now-line"] > span')
+    const share = async () => Number((await fill.evaluate(el => (el as HTMLElement).style.width)).replace('%', '')) / 100
+    expect(await share()).toBeCloseTo(640 / 1500, 3)
+    await expect(pill(page)).not.toHaveClass(/is-warning/)
+    // 1200 s = exactly 80 %: still primary; one second more: warning (the app's rule, `getTimeboxRingColor`)
+    await emitTauriEvent(page, NOW_EVENT, snap({ spentSeconds: 1200, at: Date.now() }))
+    await expect(page.getByTestId('now-time')).toHaveText('5:00')
+    await expect(pill(page)).not.toHaveClass(/is-warning/)
+    await emitTauriEvent(page, NOW_EVENT, snap({ spentSeconds: 1201, at: Date.now() }))
     await expect(pill(page)).toHaveClass(/is-warning/)
+    expect(await share()).toBeCloseTo(299 / 1500, 3)
     await emitTauriEvent(page, NOW_EVENT, snap({ spentSeconds: 1500 + 130, at: Date.now() }))
     await expect(page.getByTestId('now-time')).toHaveText('+2:10')
     await expect(pill(page)).toHaveClass(/is-warning/)
-    await emitTauriEvent(page, NOW_EVENT, snap({ timeBoxSeconds: null, at: Date.now() }))
+    expect(await share()).toBe(1)
+  })
+
+  test('without a timebox there is no line and the time counts up', async ({ context, page }) => {
+    await openPill(context, page, snap({ timeBoxSeconds: null, spentSeconds: 125, running: true }))
     await expect(page.getByTestId('now-title')).toBeVisible()
-    await expect(page.getByTestId('now-time')).toHaveCount(0)
-    await expect(page.getByTestId('now-ring')).toHaveCount(0)
+    await expect(page.getByTestId('now-line')).toHaveCount(0)
     await expect(pill(page)).not.toHaveClass(/is-warning/)
+    const first = await page.getByTestId('now-time').innerText()
+    expect(first).toMatch(/^2:\d{2}$/)
+    await expect.poll(() => page.getByTestId('now-time').innerText(), { timeout: 5000 }).not.toBe(first)
+    await expect(page.getByTestId('now-open')).toHaveAccessibleDescription(/Bisher gearbeitet/)
   })
 
   test('follows the state events: a new task, none (empty), the language', async ({ context, page }) => {
@@ -81,12 +98,17 @@ test.describe('the pill window (/overlay)', () => {
     await expect(pill(page)).toHaveCount(0)
   })
 
-  test('hover reveals pause and done; they and a click on the body ask Rust, with the task', async ({ context, page }) => {
+  test('pause and done are always visible and inside the pill; they and a click on the body ask Rust, with the task', async ({ context, page }) => {
     await openPill(context, page, snap({ running: true }))
-    const actions = page.getByTestId('now-actions')
-    await expect.poll(() => actions.evaluate(el => el.getBoundingClientRect().width)).toBeLessThan(2)
-    await pill(page).hover()
-    await expect.poll(() => actions.evaluate(el => el.getBoundingClientRect().width)).toBeGreaterThan(40)
+    // no hover needed, and nothing is cut off at the pill's edge (#436)
+    const edge = (await pill(page).boundingBox())!
+    for (const id of ['now-pause', 'now-done']) {
+      await expect(page.getByTestId(id)).toBeVisible()
+      const box = (await page.getByTestId(id).boundingBox())!
+      expect(box.x).toBeGreaterThanOrEqual(edge.x)
+      expect(box.x + box.width).toBeLessThanOrEqual(edge.x + edge.width)
+      expect(box.width).toBeGreaterThanOrEqual(24)
+    }
     await expect(page.getByTestId('now-pause')).toHaveAccessibleName('Pausieren')
     await page.getByTestId('now-pause').click()
     await page.getByTestId('now-done').click()
@@ -220,25 +242,17 @@ test.describe('the main window side', () => {
     await expect.poll(async () => (await syncs(page)).at(-1)?.snapshot).toMatchObject({ taskId: 'seed-open-1', running: true })
   })
 
-  test('the arrival motion plays once on the paused card, and not under reduced motion', async ({ page }) => {
-    await page.goto('/tasks')
-    await expect.poll(async () => (await syncs(page)).at(-1)?.snapshot?.running).toBe(true)
-    await emitTauriEvent(page, ACTION_EVENT, { kind: 'toggle-pause', taskId: 'jetzt-1' })
-    await expect(page.getByTestId('task-pause-arrival')).toHaveCount(1)
-    const card = page.locator('#column-waiting-list .task[data-task-id="jetzt-1"]')
-    await expect(card).toHaveClass(/task--paused-arrival/)
-    // it ends itself
-    await expect(page.getByTestId('task-pause-arrival')).toHaveCount(0, { timeout: 5000 })
-    await expect(card).not.toHaveClass(/task--paused-arrival/)
-  })
-
-  test('reduced motion: the card sits at the top of Wartet and no arrival layer is drawn', async ({ page }) => {
-    await page.emulateMedia({ reducedMotion: 'reduce' })
+  test('pause is a plain move to Wartet: no arrival layer or motion, now or when the window comes back (#436)', async ({ page }) => {
     await page.goto('/tasks')
     await expect.poll(async () => (await syncs(page)).at(-1)?.snapshot?.running).toBe(true)
     await emitTauriEvent(page, ACTION_EVENT, { kind: 'toggle-pause', taskId: 'jetzt-1' })
     await expect(firstWaiting(page)).toHaveAttribute('data-task-id', 'jetzt-1')
     await expect(page.getByTestId('task-pause-arrival')).toHaveCount(0)
+    // the window losing and regaining the focus (a pause from the pill happens with Kan-Do in the background) shows nothing either
+    await page.evaluate(() => { window.dispatchEvent(new Event('blur')); window.dispatchEvent(new Event('focus')); document.dispatchEvent(new Event('visibilitychange')) })
+    await page.waitForTimeout(400)
+    await expect(page.getByTestId('task-pause-arrival')).toHaveCount(0)
+    await expect(page.locator('#column-waiting-list .task[data-task-id="jetzt-1"]')).not.toHaveClass(/paused-arrival/)
   })
 
   test('an action for a task that is not in Jetzt changes nothing', async ({ page }) => {
