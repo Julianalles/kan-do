@@ -18,6 +18,9 @@
  * cards dissolve into the paper instead of ending at the pill's edge. The veil takes no pointer events (the
  * `.titlebar` drag strip and the page stay usable under it).
  *
+ * Rückblick (#428): while the new-day recap is open the pill is Rückblick + Statistik; leaving the recap turns Rückblick
+ * into the pair Alle + Heute on the same timeline.
+ *
  * Third segment (#583): on /settings* and /trash the page appears as a third segment in the pill. One timeline
  * (`--nav-move`, `--nav-ease`, set on `.app-nav`; 0ms under reduced motion, which also switches the JS springs off)
  * drives the segment's growth (AppNav.vue, WAAPI) and the phone segment padding.
@@ -242,6 +245,24 @@
   .app-nav-third-link {
     width: 100%;
     padding-inline: 0;
+    overflow: hidden;
+  }
+
+  /* Rückblick, and the Alle + Heute pair it turns into (#428): wrappers whose width AppNav.vue animates on the same
+     timeline as the third segment. Clipped only while the pill moves, so a focus ring at rest is never cut. */
+  .app-nav-seg {
+    display: flex;
+    flex: none;
+    align-items: center;
+    height: 100%;
+    min-width: 0;
+  }
+
+  .app-nav-pair {
+    gap: 0.0625rem;
+  }
+
+  .app-nav[data-moving] .app-nav-seg {
     overflow: hidden;
   }
 

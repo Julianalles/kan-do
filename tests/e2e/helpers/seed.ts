@@ -632,7 +632,6 @@ export interface SeedDayRecapOptions {
   lastNewDay?: string | null
   /** Stored marker; default: two days back, so the recap is due. `null` leaves the store out (baseline case). */
   lastShownDay?: string | null
-  archiveDone?: boolean
   /** Seed only on the first load of this tab (the recap's own marker must survive a reload). */
   once?: boolean
 }
@@ -642,7 +641,7 @@ export async function seedDayRecapStore(context: BrowserContext, options: SeedDa
   const lastShownDay = options.lastShownDay === undefined ? dayKeyDaysAgo(2) : options.lastShownDay
   const state = lastShownDay === null
     ? null
-    : { lastShownDay, archiveDone: options.archiveDone ?? true, ...(options.lastNewDay === null ? {} : { lastNewDay: options.lastNewDay ?? lastShownDay }) }
+    : { lastShownDay, ...(options.lastNewDay === null ? {} : { lastNewDay: options.lastNewDay ?? lastShownDay }) }
   await context.addInitScript(
     ({ state: s, once }) => {
       if (once) {

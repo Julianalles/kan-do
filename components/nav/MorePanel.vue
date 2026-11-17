@@ -37,7 +37,7 @@
       </UButton>
       <USeparator class="my-1" />
     </template>
-    <!-- "Alle" (#373): after "Tag planen" the pill shows only "Weiter zum Board" (#416), so the places it does not show are rows here -->
+    <!-- "Alle" (#373): after the notice's "Tag planen" the pill shows only "Weiter zum Board" (#416), so the places it does not show are rows here -->
     <template v-if="continuesToBoard">
       <UButton
         :to="boardPlaceLocation('today')"

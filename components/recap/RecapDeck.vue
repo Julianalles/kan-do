@@ -9,7 +9,7 @@ changes size, so nothing on the page moves while it is looked at.
 @avoid Only inside NewDayRecap; a plain list of tasks uses DayCloseTaskRow rows.
 @responsibility
 - `hideHeading`: the heading row turns visually hidden (still the section's name) when the phone switcher already says which deck it is (#44)
-- Layout: heading row (`min-h-10`, `h2` centred above the cards, #242), the deck (card height + 1.25rem, whatever the card content or n), the bar (chevron, counter "1 / n", chevron)
+- Layout: heading row (`min-h-10`, `h3` of the `sub` role centred above the cards, #242, #428: the page headline is the `h2`), the deck (card height + 1.25rem, whatever the card content or n), the bar (chevron, counter "1 / n", chevron)
 - Cards are view-only, a Wartet card in the regular style (no muted filter or toned title, #242): inert, hidden from the accessibility tree, no task sheet. Front card = newest completion (done) or Jetzt/Offen first (undone)
 - With 2+ cards the deck is one tab stop: `role="group"`, `tabindex="0"`, roledescription "Stapel", name "{label}, mit Pfeiltasten wechseln"; ←/→ act only while the deck itself has focus. With 0 or 1 card there is nothing to switch to (#478): no `tabindex`, no roledescription, the name is just "{label}"; all three follow `canMove` when the count crosses 1 <-> 2
 - A visually hidden polite live region announces "2 von 4: Titel" after a settled change (the cards are inert, so this is how a screen reader hears the front card); the counter is decorative
@@ -22,7 +22,7 @@ changes size, so nothing on the page moves while it is looked at.
 <template>
   <section class="recap-deck-group" :aria-labelledby="headingId">
     <header class="recap-deck__heading" :class="{ 'sr-only': hideHeading }">
-      <SectionHeader :id="headingId" tag="h2" tone="muted" data-testid="recap-deck-label">
+      <SectionHeader :id="headingId" tag="h3" size="sub" data-testid="recap-deck-label">
         {{ label }}
       </SectionHeader>
     </header>
@@ -180,7 +180,7 @@ function onPointerDown(event: PointerEvent) {
   min-height: 2.5rem;
   margin-bottom: 0.5rem;
 }
-.recap-deck__heading h2 {
+.recap-deck__heading h3 {
   text-align: center;
 }
 

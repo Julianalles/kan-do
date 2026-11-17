@@ -17,11 +17,10 @@ describe('day recap store', () => {
     freshPinia()
   })
 
-  it('starts with no marker and the switch on, and writes nothing at hydration', async () => {
+  it('starts with no marker and writes nothing at hydration', async () => {
     const store = useDayRecapStore()
     await nextTick()
     expect(store.lastShownDay).toBeNull()
-    expect(store.archiveDone).toBe(true)
     expect(localStorage.getItem('day-recap-store')).toBeNull()
   })
 
@@ -74,7 +73,6 @@ describe('day recap store', () => {
       const store = useDayRecapStore()
       await nextTick()
       expect(store.validLastShownDay).toBe('2026-10-21')
-      expect(store.archiveDone).toBe(false)
       expect(store.validLastNewDay).toBeNull()
       expect(store.validSentBack).toBeNull()
       expect(store.validNoticeClosedDay).toBeNull()
@@ -221,26 +219,28 @@ describe('day recap store', () => {
     localStorage.setItem('day-recap-store', JSON.stringify({ lastShownDay: 'garbage', archiveDone: false }))
     freshPinia()
     const store = useDayRecapStore()
-    expect(store.archiveDone).toBe(false)
     expect(store.validLastShownDay).toBeNull()
     store.markShown('2026-10-22')
     expect(store.lastShownDay).toBe('2026-10-22')
   })
 
-  it('persists the marker and the switch under day-recap-store', async () => {
+  it('persists the marker under day-recap-store', async () => {
     const store = useDayRecapStore()
     store.markShown('2026-10-22')
-    store.setArchiveDone(false)
     await nextTick()
-    expect(JSON.parse(localStorage.getItem('day-recap-store') as string)).toMatchObject({ lastShownDay: '2026-10-22', archiveDone: false, closedTaskIds: [] })
+    const stored = JSON.parse(localStorage.getItem('day-recap-store') as string)
+    expect(stored).toMatchObject({ lastShownDay: '2026-10-22', closedTaskIds: [] })
+    expect(stored).not.toHaveProperty('archiveDone')
   })
 
-  it('restores both after a reload', () => {
+  it('restores the marker after a reload; the switch of before #428 (`archiveDone`) is ignored and not written back', async () => {
     localStorage.setItem('day-recap-store', JSON.stringify({ lastShownDay: '2026-10-21', archiveDone: false }))
     freshPinia()
     const store = useDayRecapStore()
     expect(store.lastShownDay).toBe('2026-10-21')
-    expect(store.archiveDone).toBe(false)
+    store.markShown('2026-10-22')
+    await nextTick()
+    expect(JSON.parse(localStorage.getItem('day-recap-store') as string)).not.toHaveProperty('archiveDone')
   })
 
   it('hydrates closedTaskIds as an empty list without the field and ignores a wrongly shaped one', () => {

@@ -16,7 +16,8 @@
 - Tag abschließen: closes the panel, returns focus to ⋯, then opens the dialog, so the dialog's return target is ⋯ and not a removed row
 - Phone: fades out and ignores pointers while a card is dragged (no drop target is covered); the pills and the veil fade (the veil also steps back while the new-day recap stage is mounted, #262: the photo runs behind the bar)
 - The topic focus funnel (#161, BoardFocusTrigger) sits right of ⋯ on the board page only (Heute and Alle), outside the group's flow (`.app-nav-focus`), so the pills do not re-centre when it appears. Phone (#381): out of the flow it was cut off at the right edge of a 360px screen, so while it shows (`has-focus`) the group shifts left by half of funnel and gap, on the nav timeline: group and funnel are centred together and the funnel lies inside the bar's side room. Desktop keeps the centre
-- "Alle" entered from the new-day recap or notice (#373, #416): the pill is one green link "Weiter zum Board" (`app-nav-pill--continue`, to Heute, no icon) instead of the three places; on an Alle the user opened by hand the normal pill stays; Heute and Statistik are rows of the ⋯ panel meanwhile, and no segment carries `aria-current` (the indicator hides)
+- Rückblick (#428): while the new-day recap is open (`useNewDayRecap().recapOpen`, on every route) the pill is `Rückblick | Statistik` (plus the third segment) instead of Alle and Heute: the user is in the recap or free to visit the board's two places. Rückblick is current on the board page the recap covers and links to Heute's path; on Statistik it is not current. Leaving the recap (both buttons, Escape) turns Rückblick into Alle + Heute: Rückblick shrinks away while the pair grows in, on the one `--nav-move` timeline (`moveSegment`, the third segment's machinery); the pill opens in its recap shape at once, never animated; reduced motion: instant. Neither recap button marks "planning from the recap" any more
+- "Alle" entered from the new-day notice (#373, #416): the pill is one green link "Weiter zum Board" (`app-nav-pill--continue`, to Heute, no icon) instead of the three places; on an Alle the user opened by hand the normal pill stays; Heute and Statistik are rows of the ⋯ panel meanwhile, and no segment carries `aria-current` (the indicator hides)
 - Desktop ⋯ tooltip "Mehr, Befehle ⌘K" on every page (the palette is mounted once in app.vue, #224); no tooltip on touch
 -->
 <template>
@@ -50,38 +51,56 @@
           </template>
         </NuxtLink>
         <template v-else>
-        <!-- "Alle" (#354): the planning side of the board page, first in the pill. `force`: see lib/boardPlace -->
-        <NuxtLink :to="boardPlaceLocation('all')" custom>
-          <template #default="{ href, navigate }">
-            <a
-              :href="href ?? undefined"
-              class="app-nav-place"
-              :class="{ 'is-selected': currentPlace === 'all' }"
-              :aria-current="currentPlace === 'all' ? 'page' : undefined"
-              data-testid="app-nav-place-all"
-              @click="navigate"
-            >{{ t('nav.all') }}</a>
-          </template>
-        </NuxtLink>
-        <NuxtLink :to="boardPlaceLocation('today')" custom>
-          <template #default="{ href, navigate }">
-            <a
-              :href="href ?? undefined"
-              class="app-nav-place"
-              :class="{ 'is-selected': currentPlace === 'board' }"
-              :aria-current="currentPlace === 'board' ? 'page' : undefined"
-              data-testid="app-nav-place-board"
-              @click="navigate"
-            >{{ t('nav.today') }}</a>
-          </template>
-        </NuxtLink>
+        <!-- Rückblick (#428): while the new-day recap is open it stands in for Alle and Heute (the user is in the recap or free to
+             visit the board's two places). Leaving the recap turns it into the pair below on the nav's timeline -->
+        <div v-if="shownRecap" ref="recapEl" class="app-nav-seg" :inert="recapLeaving || undefined" data-testid="app-nav-recap">
+          <NuxtLink :to="boardPlaceLocation('today')" custom>
+            <template #default="{ href, navigate }">
+              <a
+                :href="href ?? undefined"
+                class="app-nav-place"
+                :class="{ 'is-selected': selectedPlace === 'recap' }"
+                :aria-current="selectedPlace === 'recap' ? 'page' : undefined"
+                data-testid="app-nav-place-recap"
+                @click="navigate"
+              >{{ t('nav.recap') }}</a>
+            </template>
+          </NuxtLink>
+        </div>
+        <div v-if="shownPair" ref="pairEl" class="app-nav-seg app-nav-pair" :inert="pairLeaving || undefined" data-testid="app-nav-pair">
+          <!-- "Alle" (#354): the planning side of the board page, first in the pair. `force`: see lib/boardPlace -->
+          <NuxtLink :to="boardPlaceLocation('all')" custom>
+            <template #default="{ href, navigate }">
+              <a
+                :href="href ?? undefined"
+                class="app-nav-place"
+                :class="{ 'is-selected': selectedPlace === 'all' }"
+                :aria-current="selectedPlace === 'all' ? 'page' : undefined"
+                data-testid="app-nav-place-all"
+                @click="navigate"
+              >{{ t('nav.all') }}</a>
+            </template>
+          </NuxtLink>
+          <NuxtLink :to="boardPlaceLocation('today')" custom>
+            <template #default="{ href, navigate }">
+              <a
+                :href="href ?? undefined"
+                class="app-nav-place"
+                :class="{ 'is-selected': selectedPlace === 'board' }"
+                :aria-current="selectedPlace === 'board' ? 'page' : undefined"
+                data-testid="app-nav-place-board"
+                @click="navigate"
+              >{{ t('nav.today') }}</a>
+            </template>
+          </NuxtLink>
+        </div>
         <NuxtLink to="/statistics" custom>
           <template #default="{ href, navigate }">
             <a
               :href="href ?? undefined"
               class="app-nav-place"
-              :class="{ 'is-selected': currentPlace === 'statistics' }"
-              :aria-current="currentPlace === 'statistics' ? 'page' : undefined"
+              :class="{ 'is-selected': selectedPlace === 'statistics' }"
+              :aria-current="selectedPlace === 'statistics' ? 'page' : undefined"
               data-testid="app-nav-place-statistics"
               @click="navigate"
             >{{ t('nav.statistics') }}</a>
@@ -161,7 +180,7 @@ defineOptions({ name: 'AppNav' })
 
 const { t } = useI18n()
 const route = useLiveRoute()
-const { showsBar, currentPlace, onBoard, thirdItem, continuesToBoard } = useAppNav()
+const { showsBar, currentPlace, selectedPlace, recapShown, onBoard, thirdItem, continuesToBoard } = useAppNav()
 // The way on to the board belongs to the day start (#416): it ends with the visit to "Alle"
 watch(currentPlace, (place) => { if (place !== 'all') clearPlanningFromRecap() })
 const { dragState } = useBoardDragState()
@@ -226,7 +245,14 @@ const shownThird = ref<ThirdItem | null>(thirdItem.value)
 const folded = ref(thirdItem.value !== null)
 const leaving = computed(() => thirdItem.value === null && shownThird.value !== null)
 
-let thirdAnim: Animation | null = null
+/** The running move of each animated segment (third, Rückblick, Alle + Heute): a retarget cancels it and continues from its width */
+const segmentAnims = new Map<HTMLElement, Animation>()
+const runningAnim = (el: HTMLElement | null) => (el ? segmentAnims.get(el) ?? null : null)
+function cancelAnim(el: HTMLElement | null) {
+  if (!el) return
+  segmentAnims.get(el)?.cancel()
+  segmentAnims.delete(el)
+}
 /** Bumped per move: a wait for the first frame that was overtaken by a retarget must not start its move */
 let moveToken = 0
 
@@ -242,9 +268,8 @@ function pillGap(): number {
   return pillEl.value ? Number.parseFloat(getComputedStyle(pillEl.value).columnGap) || 0 : 0
 }
 
-/** Width, opacity and margin of the third segment right now (mid-animation values included) */
-function snapshotThird(): ThirdState | null {
-  const el = thirdEl.value
+/** Width, opacity and margin of a segment right now (mid-animation values included) */
+function snapshotSegment(el: HTMLElement | null): ThirdState | null {
   if (!el) return null
   const style = getComputedStyle(el)
   return { width: el.getBoundingClientRect().width, opacity: Number.parseFloat(style.opacity), margin: Number.parseFloat(style.marginLeft) || 0 }
@@ -257,43 +282,46 @@ function afterHeavyFrame(): Promise<void> {
 }
 
 /**
- * Animate the third segment from `from` to its natural width ('natural') or to nothing ('gone'). A running move is
- * cancelled first, so a retarget continues from where the segment is. Null without motion (reduced motion, no WAAPI).
+ * Animate a segment (the third one, Rückblick, or the Alle + Heute pair) from `from` to its natural width ('natural') or to
+ * nothing ('gone'). A running move is cancelled first, so a retarget continues from where the segment is. Null without
+ * motion (reduced motion, no WAAPI). A segment is clipped while it moves, so its content never overhangs a narrow box.
  * The pill is as wide as its content, so its width follows this one animation on the same timeline (#616). The
  * segment's left margin runs from -gap to 0 with it, so the pill's flex gap does not step in at the first frame and
  * out at the last: at width 0 the segment takes no room at all.
  */
-function moveThird(to: 'natural' | 'gone', from: ThirdState): Animation | null {
-  const el = thirdEl.value
-  thirdAnim?.cancel()
-  thirdAnim = null
+function moveSegment(el: HTMLElement | null, to: 'natural' | 'gone', from: ThirdState): Animation | null {
+  cancelAnim(el)
   const ms = motionMs()
   if (!el || ms === 0 || typeof el.animate !== 'function') return null
   const naturalWidth = to === 'gone' ? 0 : el.getBoundingClientRect().width
-  thirdAnim = el.animate(
+  const anim = el.animate(
     [
       { width: `${from.width}px`, opacity: from.opacity, marginLeft: `${from.margin}px` },
       { width: `${naturalWidth}px`, opacity: to === 'gone' ? 0 : 1, marginLeft: `${to === 'gone' ? -pillGap() : 0}px` },
     ],
     { duration: ms, easing: cssVar('--nav-ease') || MOVE_EASE_FALLBACK, fill: to === 'gone' ? 'forwards' : 'none' },
   )
-  return thirdAnim
+  segmentAnims.set(el, anim)
+  return anim
 }
 
-/** Holds the segment at `state` by inline style until its move starts (cleared by `releaseHold`) */
-function holdThird(state: ThirdState) {
-  const el = thirdEl.value
+const moveThird = (to: 'natural' | 'gone', from: ThirdState) => moveSegment(thirdEl.value, to, from)
+const snapshotThird = () => snapshotSegment(thirdEl.value)
+
+/** Holds a segment at `state` by inline style until its move starts (cleared by `releaseHold`) */
+function holdSegment(el: HTMLElement | null, state: ThirdState) {
   if (!el) return
   el.style.width = `${state.width}px`
   el.style.opacity = String(state.opacity)
   el.style.marginLeft = `${state.margin}px`
 }
 
-function releaseHold() {
-  const el = thirdEl.value
+function releaseHold(el: HTMLElement | null = thirdEl.value) {
   if (!el) return
   for (const property of ['width', 'opacity', 'margin-left']) el.style.removeProperty(property)
 }
+
+const holdThird = (state: ThirdState) => holdSegment(thirdEl.value, state)
 
 watch(thirdItem, async (item, previous) => {
   // No bar on screen (or just mounting): nothing to animate, show the final state
@@ -310,10 +338,9 @@ watch(thirdItem, async (item, previous) => {
   const animated = motionMs() > 0 && typeof Element.prototype.animate === 'function'
   // A move still running is stopped where it is: a running animation beats the inline hold, so left alone it would
   // keep going through the wait below and the new move would then start from a width the segment already left
-  if (animated && before && thirdAnim) {
+  if (animated && before && runningAnim(thirdEl.value)) {
     holdThird(before)
-    thirdAnim.cancel()
-    thirdAnim = null
+    cancelAnim(thirdEl.value)
   }
   // The phone padding is a CSS transition, which start on the frame that sees the class change:
   // with motion they flip together with the segment's move (below), so all three share one start
@@ -345,8 +372,8 @@ watch(thirdItem, async (item, previous) => {
   indicator.follow()
 })
 
-// Heute <-> Statistik moves the chip without any layout change
-watch(currentPlace, async () => {
+// Heute <-> Statistik moves the chip without any layout change; so does the recap's Rückblick <-> a place
+watch(selectedPlace, async () => {
   await nextTick()
   indicator.follow()
 })
@@ -358,7 +385,49 @@ watch(showsBar, async (shown) => {
 })
 
 onMounted(() => { void nextTick(() => indicator.jump()) })
-onBeforeUnmount(() => { moveToken++; thirdAnim?.cancel() })
+// ── Rückblick -> Alle + Heute (#428) ──
+const recapEl = ref<HTMLElement | null>(null)
+const pairEl = ref<HTMLElement | null>(null)
+/** The Rückblick segment on screen: outlives `recapShown` while it shrinks away */
+const shownRecap = ref(recapShown.value)
+/** The Alle + Heute pair on screen: there from the start unless the recap is open, and it grows in while Rückblick leaves */
+const shownPair = ref(!recapShown.value)
+const recapLeaving = computed(() => !recapShown.value && shownRecap.value)
+const pairLeaving = computed(() => recapShown.value && shownPair.value)
+let recapToken = 0
+// The recap opens on its own (the app's start or a return after a long absence), never by a click: the pill starts in its
+// recap shape at once. Only leaving it moves, on the nav's timeline: Rückblick shrinks away while the pair grows in.
+watch(recapShown, async (shown) => {
+  const token = ++recapToken
+  const animated = motionMs() > 0 && typeof Element.prototype.animate === 'function'
+  if (shown || !showsBar.value || !navEl.value || !animated) {
+    cancelAnim(recapEl.value)
+    cancelAnim(pairEl.value)
+    shownRecap.value = shown
+    shownPair.value = !shown
+    await nextTick()
+    indicator.jump()
+    return
+  }
+  const recapBefore = snapshotSegment(recapEl.value)
+  indicator.begin()
+  shownPair.value = true
+  await nextTick()
+  const gone = { width: 0, opacity: 0, margin: -pillGap() }
+  holdSegment(pairEl.value, gone)
+  // Like the third segment (#643): the first frame after the click lays out the page; the move starts after it
+  indicator.follow()
+  await afterHeavyFrame()
+  if (token !== recapToken) return
+  releaseHold(pairEl.value)
+  moveSegment(pairEl.value, 'natural', gone)
+  const anim = recapBefore ? moveSegment(recapEl.value, 'gone', recapBefore) : null
+  if (anim) anim.finished.then(() => { if (!recapShown.value && token === recapToken) shownRecap.value = false }).catch(() => { /* retargeted: the new move owns the segment */ })
+  else shownRecap.value = false
+  indicator.follow()
+})
+
+onBeforeUnmount(() => { moveToken++; recapToken++; for (const anim of segmentAnims.values()) anim.cancel() })
 
 /** The dialog stores the focused element as its return target: close the panel and put focus on ⋯ first */
 async function closeAndOpenDayClose() {

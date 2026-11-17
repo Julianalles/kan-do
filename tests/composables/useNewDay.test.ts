@@ -464,7 +464,6 @@ describe('useNewDay: the day check and the fresh start (#387)', () => {
       /** The page's order: the day check, then the recap opens on yesterday's done task */
       function recapMorning() {
         const context = setup({ lastNewDay: null, lastShownDay: YESTERDAY })
-        context.recap.archiveDone = false
         const page = useNewDayRecap()
         context.newDay.check()
         page.check('tasks')

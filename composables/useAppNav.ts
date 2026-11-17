@@ -3,11 +3,14 @@
  * @description Which place of the app bar the current route belongs to (#470, ADR 017). A pure function of the
  * route: the open state of the Mehr panel is never an input, so an open panel can never replace the selected place.
  * @responsibility
- * - `placeOfPath`: `/all*` -> all (Planung, #354: the planning side of the board page), `/tasks*` -> board (Heute), `/statistics` -> statistics, `/trash` and `/settings*` -> more (the third
+ * - `placeOfPath`: `/all*` -> all (Alle, #354: the planning side of the board page), `/tasks*` -> board (Heute), `/statistics` -> statistics, `/trash` and `/settings*` -> more (the third
  *   segment of the pill, #583: ⋯ itself is never selected), else none
  * - `thirdItemOfPath` / `thirdItem`: the page behind ⋯ the route is on (Papierkorb on `/trash*`, Einstellungen on
  *   `/settings*`, linking `/settings`), shown as a third segment in the pill and left out of the Mehr panel meanwhile
- * - `continuesToBoard`: on Planung and entered from the recap or the notice (#416, usePlanningFromRecap); only then the pill is the "Weiter zum Board" CTA
+ * - `continuesToBoard`: on Alle and entered from the notice (#416, usePlanningFromRecap; the recap no longer marks it, #428); only then the pill is the "Weiter zum Board" CTA
+ * - `recapShown` / `selectedPlace` (#428): while the new-day recap is open the pill is `Rückblick | Statistik` on every route (no Alle, no
+ *   Heute: the user is either in the recap or free to visit the planning and the board); `selectedPlace` is `'recap'` while the route is
+ *   the board page the recap sits over, else `currentPlace`. Leaving the recap turns Rückblick into Alle + Heute
  * - `showsBar`: false for routes that opt out with `definePageMeta({ appNav: false })` (welcome, ui, error-test, index)
  * - Reads the live router route (`useLiveRoute`), so the selection follows the URL in the same tick
  * - `currentPlace`: the place to mark with `aria-current="page"`; `null` on a route without bar or place. `'more'`
@@ -16,9 +19,13 @@
 import { computed } from 'vue'
 import { useRouter } from 'nuxt/app'
 import { planningFromRecap } from '~/composables/usePlanningFromRecap'
+import { recapOpen } from '~/composables/useNewDayRecap'
 
-/** The places of the bar: Planung (all, #354), Heute (board), Statistik (statistics) and `more` (a page behind ⋯, shown as the third segment) */
+/** The places of the bar: Alle (all, #354), Heute (board), Statistik (statistics) and `more` (a page behind ⋯, shown as the third segment) */
 export type AppNavPlace = 'all' | 'board' | 'statistics' | 'more'
+
+/** What the pill marks as selected: a place, or Rückblick (#428) while the recap is open on the board page */
+export type AppNavSelected = AppNavPlace | 'recap'
 
 /** True when `path` is `base` itself or below it (`/tasks`, `/tasks/add`, but not `/tasksfoo`) */
 const isUnder = (path: string, base: string): boolean => path === base || path.startsWith(`${base}/`)
@@ -65,11 +72,16 @@ export function useAppNav() {
   const currentPlace = computed<AppNavPlace | null>(() => (showsBar.value ? placeOfPath(route.value.path) : null))
   /** The page behind ⋯ the pill shows as its third segment; null on a primary page, a route without place or without bar */
   const thirdItem = computed<ThirdItem | null>(() => (showsBar.value ? thirdItemOfPath(route.value.path) : null))
-  /** The board page shows (Heute or Planung, one page, #354): the Ansicht options, "Tag abschließen" and the topic funnel exist only then */
+  /** The board page shows (Heute or Alle, one page, #354): the Ansicht options, "Tag abschließen" and the topic funnel exist only then */
   const onBoard = computed(() => currentPlace.value === 'board' || currentPlace.value === 'all')
 
-  /** Planung entered from the new-day flow (#416): the pill is the one "Weiter zum Board" link, the places are rows of ⋯ */
-  const continuesToBoard = computed(() => currentPlace.value === 'all' && planningFromRecap.value)
+  /** The new-day recap is open (#428): the pill shows Rückblick and Statistik instead of Alle and Heute, on every route */
+  const recapShown = computed(() => showsBar.value && recapOpen.value)
+  /** The place to mark: Rückblick while the recap covers the board page, else the route's place */
+  const selectedPlace = computed<AppNavSelected | null>(() => (recapShown.value && onBoard.value ? 'recap' : currentPlace.value))
 
-  return { showsBar, currentPlace, onBoard, thirdItem, continuesToBoard }
+  /** Alle entered from the notice's "Tag planen" (#416): the pill is the one "Weiter zum Board" link, the places are rows of ⋯ */
+  const continuesToBoard = computed(() => currentPlace.value === 'all' && planningFromRecap.value && !recapShown.value)
+
+  return { showsBar, currentPlace, selectedPlace, recapShown, onBoard, thirdItem, continuesToBoard }
 }

@@ -256,7 +256,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
     // `&nomarker=1`: no `lastNewDay` at all, the stored state of a version before the fresh start (the update from v0.16.0)
     const noMarker = url.searchParams.get('nomarker') === '1'
     url.searchParams.delete('nomarker')
-    localStorage.setItem('day-recap-store', JSON.stringify({ lastShownDay: dayKey(lastShown), archiveDone: true, ...(noMarker ? {} : { lastNewDay: dayKey(lastShown) }) }))
+    localStorage.setItem('day-recap-store', JSON.stringify({ lastShownDay: dayKey(lastShown), ...(noMarker ? {} : { lastNewDay: dayKey(lastShown) }) }))
   } else if (seed === 'notion') {
     localStorage.setItem('board-store', JSON.stringify(buildBoardStore('notion')))
     localStorage.setItem('tasks-store', JSON.stringify(tasksStoreFor('notion')))

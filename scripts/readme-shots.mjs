@@ -48,7 +48,7 @@ function markYesterday(ctx) {
     const d = new Date(); d.setDate(d.getDate() - 1)
     const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
     if (!sessionStorage.getItem('shots-marked')) {
-      localStorage.setItem('day-recap-store', JSON.stringify({ lastShownDay: key, archiveDone: true, lastNewDay: key }))
+      localStorage.setItem('day-recap-store', JSON.stringify({ lastShownDay: key, lastNewDay: key }))
       sessionStorage.setItem('shots-marked', '1')
     }
   })
