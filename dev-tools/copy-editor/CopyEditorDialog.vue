@@ -11,10 +11,10 @@ the chosen key or the Publish review. At 390px the panes stack, the editor below
     v-model:open="dialogOpen"
     title="Edit UI copy"
     description="Search every UI text in German and English, edit one language, publish as a pull request."
-    :ui="{ content: 'sm:max-w-4xl max-h-dvh overflow-hidden' }"
+    :ui="{ content: 'sm:max-w-4xl overflow-hidden' }"
   >
     <template #content>
-      <div data-kando-copy-editor class="flex max-h-dvh flex-col" data-testid="copy-editor-dialog">
+      <div data-kando-copy-editor class="flex min-h-0 flex-1 flex-col" data-testid="copy-editor-dialog">
         <div class="flex items-center gap-2 border-b border-default px-4 py-2">
           <p class="font-display text-base">Edit UI copy</p>
           <div class="ml-auto flex items-center gap-1" role="group" aria-label="View">
