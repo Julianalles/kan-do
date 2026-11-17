@@ -26,8 +26,8 @@
     if ($s =~ /^(?:npm\s+run\s+tauri:dev\b|npm\s+run\s+tauri\s+(?:--\s+)?dev\b|(?:"?\S*cargo"?\s+|npx\s+(?:\@tauri-apps\/cli\s+)?)?tauri\s+dev\b)/ && $s !~ $sandbox) {
       print "agents never run tauri dev with the real identity (user data folder and Keychain): follow docs/testing/tauri-dev-sandbox.md (skill desktop-verify)"; last;
     }
-    if ($s =~ /^(?:npm\s+run\s+release(?![\w:-])|node\s+(?:\.\/)?scripts\/release\.mjs\b)/ && $s !~ /(?:^|\s)--dry-run\b/) {
-      print "agents run the release script with --dry-run only (npm run release <version> -- --dry-run); /prepare-release hands the user the real command"; last;
+    if ($s =~ /^(?:npm\s+run\s+release(?![\w:-])|node\s+(?:\.\/)?scripts\/release\.mjs\b)/ && $s !~ /(?:^|\s)--dry-run\b/ && !($s =~ /(?:^|\s)--stage(?:=|\s+)(?:alpha|beta)(?=\s|$)/ && $s !~ /stable/i)) {
+      print "agents run the release script with --dry-run, or for an alpha or beta release with an explicit `--stage alpha|beta` (npm run release <version> -- --stage alpha); a stable release (or none named) is the user's: /prepare-release hands them the command"; last;
     }
     if ($s =~ /^(?:\S*\/)?gh\s+workflow\s+run\s+["']?(?:\S*\/)?release(?:\.ya?ml)?["']?(?:\s|$)/i) {
       print "agents never trigger the release workflow: /prepare-release hands the user the release command"; last;

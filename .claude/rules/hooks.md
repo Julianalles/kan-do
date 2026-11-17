@@ -18,4 +18,4 @@ After merge: GitHub deletes the remote head branch (repo setting "Automatically 
 
 ## Guard hook
 
-A `PreToolUse` Bash hook (`.claude/hooks/guard-commands.sh`) blocks `pkill` of nuxt, `tauri dev` with the real app identity, a real release (`npm run release` without `--dry-run`, `gh workflow run release`), `npm install|i|ci` and an `rm` chained with a git command (kd#203); its message names the allowed command. Do not work around it.
+A `PreToolUse` Bash hook (`.claude/hooks/guard-commands.sh`) blocks `pkill` of nuxt, `tauri dev` with the real app identity, a real release unless it is `--dry-run` or an explicit `--stage alpha|beta` (a stable release, or none named, and `gh workflow run release` stay the user's), `npm install|i|ci` and an `rm` chained with a git command (kd#203); its message names the allowed command. Do not work around it.
