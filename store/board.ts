@@ -173,14 +173,6 @@ export const useBoardStore = defineStore("board", () => {
    */
   const timeboxNudgeTaskId = ref<string | null>(null);
 
-  /**
-   * Pause arrival (#405): ids of cards that the Now window's pause just set down in Wartet and that have not played
-   * their short arrival motion yet. Transient like `confirmingTaskIds`: not persisted, and it lives here because the
-   * move mounts the card fresh in Wartet. The card ends the flag when the motion is over (it waits until the window
-   * is in front, so a pause from the background plays when the user returns).
-   */
-  const pausedTaskIds = ref<string[]>([]);
-
   // Getters
   const columnByTaskStatus = computed(() => (taskStatus: TaskStatus) => {
     return columns.value.find((el) => el.taskStatus === taskStatus) ?? null;
@@ -561,16 +553,6 @@ export const useBoardStore = defineStore("board", () => {
     if (ids.length > 0) notPlannedFromWaiting.value = [...notPlannedFromWaiting.value, ...ids];
   }
 
-  /** Flags `taskId` for the pause arrival motion (#405). */
-  function markPaused(taskId: string) {
-    if (!pausedTaskIds.value.includes(taskId)) pausedTaskIds.value = [...pausedTaskIds.value, taskId];
-  }
-
-  /** Ends the pause arrival flag of `taskId` (motion over, or the card left Wartet). No-op when not flagged. */
-  function clearPaused(taskId: string) {
-    if (pausedTaskIds.value.includes(taskId)) pausedTaskIds.value = pausedTaskIds.value.filter(id => id !== taskId);
-  }
-
   /**
    * Puts `taskId` first in a column (#405: a paused card goes on top of Wartet). `visibleOrder` is the ids of the
    * column as the user sees it now (the sort applied): they stay in that order behind the card, and the ids that are in
@@ -690,7 +672,6 @@ export const useBoardStore = defineStore("board", () => {
     fasterThanPlanTaskIds,
     doneLeaving,
     timeboxNudgeTaskId,
-    pausedTaskIds,
     
     // Getters
     columnByTaskStatus,
@@ -733,8 +714,6 @@ export const useBoardStore = defineStore("board", () => {
     noteFromWaiting,
     moveToEndOfColumn,
     moveToTopOfColumn,
-    markPaused,
-    clearPaused,
   };
 }, {
   persist: {
