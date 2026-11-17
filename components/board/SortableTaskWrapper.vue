@@ -19,7 +19,7 @@ is wrapped in this component so it can be dragged and sorted within/across colum
   wired by aria-describedby (#154). The accessible name stays the task title.
 - Mark a member of an expanded stack with data-from-stack="<group key>" (#147): a click on it is not
   an outside click for the column's expanded stacks
-- "Nicht heute" (#354): on the place "Planung" an Offen card carries a round arrow button on the paper left of it (desktop
+- "Nicht heute" (#354): on the place "Alle" an Offen card carries a round arrow button on the paper left of it (desktop
   only, shown on hover and keyboard focus, named with the task's title); it takes the card off today's board through
   `usePlanMoves().notToday`. Its click and keys stay out of the card's own handlers and the drag
 -->
@@ -93,7 +93,7 @@ function openDetails(event: KeyboardEvent) {
 
 const { deleteTaskWithUndo } = useTaskDeletion()
 
-// "Nicht heute" (#354): only an Offen card on the place "Planung", and never on a phone (no paper beside the card there)
+// "Nicht heute" (#354): only an Offen card on the place "Alle", and never on a phone (no paper beside the card there)
 const { isAll } = useBoardPlace()
 const { notToday } = usePlanMoves()
 const isPhone = useIsPhone()
@@ -141,7 +141,7 @@ function deleteFocusedCard(event: KeyboardEvent) {
     @keydown.delete.self="deleteFocusedCard"
   >
     <slot />
-    <!-- "Nicht heute" (#354): on "Planung" an Offen card has the mirrored arrow on the paper left of it, towards "Nicht
+    <!-- "Nicht heute" (#354): on "Alle" an Offen card has the mirrored arrow on the paper left of it, towards "Nicht
          geplant". Desktop only; on a phone the card menu does it -->
     <UTooltip v-if="showNotToday" :text="t('board.notPlanned.notToday')">
       <UButton

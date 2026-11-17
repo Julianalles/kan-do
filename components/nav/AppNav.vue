@@ -162,7 +162,7 @@ defineOptions({ name: 'AppNav' })
 const { t } = useI18n()
 const route = useLiveRoute()
 const { showsBar, currentPlace, onBoard, thirdItem, continuesToBoard } = useAppNav()
-// The way on to the board belongs to the day start (#416): it ends with the visit to Planung
+// The way on to the board belongs to the day start (#416): it ends with the visit to "Alle"
 watch(currentPlace, (place) => { if (place !== 'all') clearPlanningFromRecap() })
 const { dragState } = useBoardDragState()
 const { hasFocusJob } = useBoardFocus()

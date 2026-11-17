@@ -7,7 +7,7 @@ import { appNav, closeMore, goToPlace, moreButton, morePanel, openMore, openSett
  * bottom). The binding rule is tested as sequences: the selected state follows the route only, an open panel is an
  * overlay and never replaces it.
  */
-/** "Planung" (#354): the first place of the pill, the planning side of the board page */
+/** "Alle" (#354): the first place of the pill, the planning side of the board page */
 const alle = (page: Page) => page.getByTestId('app-nav-place-all')
 const heute = (page: Page) => page.getByTestId('app-nav-place-board')
 const statistik = (page: Page) => page.getByTestId('app-nav-place-statistics')

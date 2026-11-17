@@ -9,10 +9,10 @@
 - Displays column title with appropriate styling
 - Shows the title as plain text in every column, Erledigt included (#273: its check icon is gone; the done cards keep their corner check)
 - Handles visual states for different statuses (waiting, empty)
-- Offen's title fade (#375, `titleFadeKey`): the column is headed "Heute" on the place "Planung" and "Offen" on "Heute". When the place changes, the old title fades out over the new
+- Offen's title fade (#375, `titleFadeKey`): the column is headed "Heute" on the place "Alle" and "Offen" on "Heute". When the place changes, the old title fades out over the new
   one, which fades in, for the length and on the curve of the board's sideways move (`--place-move` 420 ms, `--place-ease`, board.css): one clock for strip, app-bar chip and title. A second
   change mid-fade continues from the opacity the titles stand at. The outgoing title is `aria-hidden` and in the DOM only meanwhile. Reduced motion (`--place-move: 0ms`): no fade, the title just changes
-- Offen (`showAdd`, #248, moved left #264; on the place "Planung" "Meine Aufgaben" has it instead, #380: the task it makes lands there): a round soft icon-only add button at the start of the card-width track (the
+- Offen (`showAdd`, #248, moved left #264; on the place "Alle" "Meine Aufgaben" has it instead, #380: the task it makes lands there): a round soft icon-only add button at the start of the card-width track (the
   cards' left edge), vertically centred on the title line; the title stays centred exactly like the other columns' (the
   button is out of the flow, so it never moves the title). A tooltip names it on hover and focus (UTooltip, off on the
   phone layout like AppNav's: no hover there, and a tap focuses the button). Click, Enter or Space emits `add`; while a draft is open (`addDisabled`) the button stays in place but is
@@ -86,7 +86,7 @@ const props = defineProps<{
   showAdd?: boolean;
   /** A draft is open: the button stays in place but does nothing */
   addDisabled?: boolean;
-  /** Test id of the add button; "Meine Aufgaben" sets its own, so the two headers of "Planung" never share one (#380) */
+  /** Test id of the add button; "Meine Aufgaben" sets its own, so the two headers of "Alle" never share one (#380) */
   addTestId?: string;
   /** Offen only (#375): the place that shows. A title that changes together with it fades; any other title change (a locale, Wartet's "?") is plain */
   titleFadeKey?: string;

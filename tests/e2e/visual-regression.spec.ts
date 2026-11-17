@@ -224,10 +224,10 @@ test.describe('mobile 390px board pages', () => {
 })
 
 // ---------------------------------------------------------------------------
-// The place "Planung" (#354): "Meine Aufgaben" beside Offen
+// The place "Alle" (#354): "Meine Aufgaben" beside Offen
 // ---------------------------------------------------------------------------
 
-test.describe('the place "Planung" (#354)', () => {
+test.describe('the place "Alle" (#354)', () => {
   // Two tasks held off the board (one put back from Jetzt's seed neighbours), the rest of the seed as it is
   const HELD: SeedTask[] = [
     { id: 'vr-held-1', title: 'Angebot kalkulieren', status: 0, priority: 3, activity: null, topic: 'Design', topicColorCode: '#6366f1', notes: null, timeSpentSeconds: 0, timeBoxSeconds: 2700, custom: {}, createdAt: FIXED_NOW, updatedAt: FIXED_NOW, notPlanned: true },

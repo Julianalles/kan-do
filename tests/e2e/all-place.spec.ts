@@ -6,7 +6,7 @@ import { EDGE_HOLD_DWELL_MS } from './helpers/constants'
 import { appNav } from './helpers/appNav'
 
 /**
- * #354 (epic #334): the place "Planung". `/all` is a second path of the board page: "Meine Aufgaben" beside Offen, the
+ * #354 (epic #334): the place "Alle". `/all` is a second path of the board page: "Meine Aufgaben" beside Offen, the
  * two planning moves, the sideways move to Heute, and on a phone two places with their own swipe pages.
  * Local board; a task is "not planned" by its `notPlanned` marker (#353).
  * #355: the drag between "Meine Aufgaben" and Offen, with the board's own drag (page.mouse, keyboard, 390 edge scroll).
@@ -47,7 +47,7 @@ const openIds = (page: Page) =>
 const item = (page: Page, id: string) => notPlanned(page).locator(`[data-not-planned-id="${id}"]`)
 const openCard = (page: Page, id: string) => page.locator(`#column-open .task-wrapper[data-task-id="${id}"]`)
 const placeLink = (page: Page, place: 'all' | 'board') => page.getByTestId(`app-nav-place-${place}`)
-/** The app bar's Heute segment: on a "Planung" opened by hand the pill keeps its three places (#416; the green "Weiter zum Board" shows only after the recap, new-day-recap.spec.ts) */
+/** The app bar's Heute segment: on a "Alle" opened by hand the pill keeps its three places (#416; the green "Weiter zum Board" shows only after the recap, new-day-recap.spec.ts) */
 const toHeute = (page: Page) => page.getByTestId('app-nav-place-board')
 
 /** The strip has arrived: no move flag, no running animation */
@@ -114,7 +114,7 @@ test.describe('The place "Alle" (#354), desktop', () => {
 
     await placeLink(page, 'all').click()
     await expect(page).toHaveURL(/\/all$/)
-    // #416: opened by hand, the pill keeps its three places and Planung is the current one
+    // #416: opened by hand, the pill keeps its three places and Alle is the current one
     await expect(appNav(page).locator('.app-nav-place')).toHaveText(['Alle', 'Heute', 'Statistik'])
     await expect(toHeute(page)).toHaveAttribute('href', '/tasks')
     await expect(placeLink(page, 'all')).toHaveAttribute('aria-current', 'page')
@@ -177,7 +177,7 @@ test.describe('The place "Alle" (#354), desktop', () => {
     expect(await page.evaluate(() => document.querySelector('.board')!.getAnimations().length)).toBe(0)
   })
 
-  test('#375: the column beside "Meine Aufgaben" is headed "Heute" on "Planung" and "Offen" on Heute; the title fades with the move and one title is left', async ({ context, page }) => {
+  test('#375: the column beside "Meine Aufgaben" is headed "Heute" on "Alle" and "Offen" on Heute; the title fades with the move and one title is left', async ({ context, page }) => {
     await seedLocalBoard(context, BOARD)
     await page.goto('/tasks')
     const heading = page.locator('#column-open').getByRole('heading', { level: 2 })
@@ -259,7 +259,7 @@ test.describe('The place "Alle" (#354), desktop', () => {
     expect(await openIds(page)).toEqual(['np-1'])
   })
 
-  test('"Nicht heute" is in the card menu on Heute too, and the card is then found on top under "Planung"', async ({ context, page }) => {
+  test('"Nicht heute" is in the card menu on Heute too, and the card is then found on top under "Alle"', async ({ context, page }) => {
     await seedLocalBoard(context, BOARD)
     await page.goto('/tasks')
     await openCard(page, 'open-2').locator('.task').click({ button: 'right' })
@@ -276,7 +276,7 @@ test.describe('The place "Alle" (#354), desktop', () => {
     expect(await notPlannedIds(page)).toEqual(['open-2', 'np-1', 'np-2'])
   })
 
-  test('a "Meine Aufgaben" card opens its sheet, and closing it returns to "Planung"; the keyboard does both moves', async ({ context, page }) => {
+  test('a "Meine Aufgaben" card opens its sheet, and closing it returns to "Alle"; the keyboard does both moves', async ({ context, page }) => {
     await seedLocalBoard(context, BOARD)
     await gotoAll(page)
 
@@ -354,7 +354,7 @@ test.describe('The place "Alle" (#354), desktop', () => {
     await expect(notPlanned(page).locator('.not-planned__card')).toBeFocused()
   })
 
-  test('a task made on "Planung" is not planned from every entry (#367); on Heute it lands in Offen', async ({ context, page }) => {
+  test('a task made on "Alle" is not planned from every entry (#367); on Heute it lands in Offen', async ({ context, page }) => {
     await seedLocalBoard(context, BOARD)
     await gotoAll(page)
     const titles = () => notPlanned(page).locator('[data-not-planned-id] .task-title-text').allTextContents()
@@ -560,10 +560,10 @@ test.describe('The place "Alle" (#354), phone', () => {
     await touch.end()
   }
 
-  test('"Planung" has two swipe pages and two dots, "Heute" three; a swipe at an edge never leads to the other place', async ({ context, page }) => {
+  test('"Alle" has two swipe pages and two dots, "Heute" three; a swipe at an edge never leads to the other place', async ({ context, page }) => {
     await seedLocalBoard(context, BOARD)
     await gotoAll(page)
-    // "Planung" opens on "Meine Aufgaben"
+    // "Alle" opens on "Meine Aufgaben"
     expect(await pageOf(page)).toBe('0')
     await expect(dots(page)).toHaveCount(2)
     await expect(notPlanned(page).getByRole('heading', { name: 'Meine Aufgaben' })).toBeInViewport()
@@ -572,7 +572,7 @@ test.describe('The place "Alle" (#354), phone', () => {
     await expect.poll(() => pageOf(page)).toBe('1')
     await pageAtRest(page)
     await expect(page.locator('#column-open h2')).toBeInViewport()
-    // The last page of "Planung": a further swipe meets the edge
+    // The last page of "Alle": a further swipe meets the edge
     await swipe(page, 'left')
     await pageAtRest(page)
     expect(await pageOf(page)).toBe('1')
@@ -600,7 +600,7 @@ test.describe('The place "Alle" (#354), phone', () => {
     await expect(notPlanned(page)).toBeHidden()
   })
 
-  test('the app bar\'s places lead across; Heute opens on Offen, "Planung" on "Meine Aufgaben"; no footer bar', async ({ context, page }) => {
+  test('the app bar\'s places lead across; Heute opens on Offen, "Alle" on "Meine Aufgaben"; no footer bar', async ({ context, page }) => {
     await seedLocalBoard(context, BOARD)
     await gotoAll(page)
     const go = toHeute(page)
@@ -614,7 +614,7 @@ test.describe('The place "Alle" (#354), phone', () => {
     await expect(page.locator('#column-open h2')).toBeInViewport()
     await expect(toHeute(page)).toHaveAttribute('aria-current', 'page')
 
-    // From Erledigt (Heute's last page) back to "Planung": one move, however many pages lie between
+    // From Erledigt (Heute's last page) back to "Alle": one move, however many pages lie between
     await swipe(page, 'left')
     await expect.poll(() => pageOf(page)).toBe('1')
     await pageAtRest(page)
