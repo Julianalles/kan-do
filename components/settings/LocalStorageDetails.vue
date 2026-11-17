@@ -28,7 +28,6 @@ so with the few actions that state allows. Moved here from /settings/data so a s
       <p v-if="state.cloudSync?.state === 'error' && state.cloudSync.message" data-selectable class="font-mono text-xs wrap-break-word text-muted">{{ state.cloudSync.message }}</p>
     </div>
     <p v-if="status === 'ok' && conflictCopies.length > 0" class="text-muted" data-testid="data-folder-copies">
-      {{ t('settings.data.notice.conflictCopies') }}
       <NuxtLink to="/settings/data" class="underline focus-ring">{{ t('settings.data.notice.details') }}</NuxtLink>
     </p>
     <div class="flex flex-wrap gap-2">
@@ -60,7 +59,10 @@ so with the few actions that state allows. Moved here from /settings/data so a s
         <UButton v-if="status === 'conflict'" variant="soft" color="neutral" data-testid="data-folder-resolve" @click="openConflict">
           {{ t('settings.data.notice.resolve') }}
         </UButton>
-        <UButton v-if="status !== 'conflict'" variant="soft" color="neutral" data-testid="data-folder-choose" @click="onChangeFolder">
+        <UButton v-if="status === 'read-only-corrupt'" to="/settings/data" variant="soft" color="neutral" data-testid="data-folder-backups">
+          {{ t('settings.data.backups.open') }}
+        </UButton>
+        <UButton v-if="status !== 'conflict'" ref="chooseButton" variant="soft" color="neutral" data-testid="data-folder-choose" @click="onChangeFolder">
           {{ t('settings.data.chooseFolder') }}
         </UButton>
       </div>
@@ -90,6 +92,7 @@ const { state, status, conflictCopies } = dataFolder;
 const modalOpen = ref(false);
 const choice = ref<FolderChoice | null>(null);
 const changeButton = ref<{ $el?: HTMLElement } | null>(null);
+const chooseButton = ref<{ $el?: HTMLElement } | null>(null);
 
 const shortFolder = computed(() => middleEllipsis(state.folder));
 
@@ -139,7 +142,7 @@ async function onChangeFolder() {
 
 /** The modal opens after the native picker, not from a trigger, so focus would fall back to the body. */
 function restoreFocus() {
-  void nextTick(() => changeButton.value?.$el?.focus());
+  void nextTick(() => (changeButton.value ?? chooseButton.value)?.$el?.focus());
 }
 
 async function onReveal() {

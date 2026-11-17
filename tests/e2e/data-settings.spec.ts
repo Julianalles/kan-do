@@ -126,7 +126,7 @@ test.describe('Data folder (desktop)', () => {
     await installTauriStub(context)
     await page.goto('/settings/notion')
     await page.getByTestId('notion-data-link').click()
-    await expect(page).toHaveURL(/\/settings\/data$/)
+    await expect(page).toHaveURL(/\/settings\?tab=sources$/)
   })
 
   test.describe('page', () => {
@@ -173,6 +173,8 @@ test.describe('Data folder (desktop)', () => {
       await expect(notice(page)).toContainText('nicht lesbar')
       await expect(page.getByRole('button', { name: 'Ordner wählen…' })).toBeVisible()
       await expect(page.getByRole('button', { name: 'Hier neu beginnen' })).toHaveCount(0)
+      await expect(page.getByTestId('data-folder-problem')).not.toContainText('Unten')
+      await expect(page.getByTestId('data-folder-backups')).toHaveAttribute('href', '/settings/data')
     })
 
     test('missing file: "Hier neu beginnen" recreates it and the notice goes away', async ({ page }) => {
