@@ -302,6 +302,19 @@
     box-shadow: var(--shadow-nav-pill);
   }
 
+  /* The board's two slow moves (#433, board.css): the chip and the pill follow on the same time and curve */
+  @media (prefers-reduced-motion: no-preference) {
+    html[data-place-pace='glide'] .app-nav {
+      --nav-move: 1200ms;
+      --nav-ease: cubic-bezier(0.45, 0, 0.15, 1);
+    }
+
+    html[data-place-pace='lift'] .app-nav {
+      --nav-move: 1400ms;
+      --nav-ease: cubic-bezier(0.45, 0, 0.15, 1);
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .app-nav {
       --nav-move: 0ms;

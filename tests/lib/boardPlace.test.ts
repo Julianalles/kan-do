@@ -3,7 +3,7 @@
  * a sheet or the add flow opens under the place that shows.
  */
 import { afterEach, describe, expect, it } from 'vitest'
-import { boardBaseOfPath, boardPlaceLocation, boardPlaceOfPath, openColumnTitleKey, readPlaceMove, setCurrentBoardPath } from '~/lib/boardPlace'
+import { armGlide, armLift, resetPlacePace, takePlacePace, boardBaseOfPath, boardPlaceLocation, boardPlaceOfPath, openColumnTitleKey, readPlaceMove, setCurrentBoardPath } from '~/lib/boardPlace'
 import { boardBasePath, todayLocation, useBoardPlace } from '~/composables/useBoardPlace'
 
 describe('board places (#354)', () => {
@@ -74,5 +74,55 @@ describe('board places (#354)', () => {
     el.style.setProperty('--place-move', '0ms')
     expect(readPlaceMove(el).ms).toBe(0)
     el.remove()
+  })
+})
+
+describe('the pace of a place move (#433)', () => {
+  afterEach(() => resetPlacePace())
+
+  it('the first move to Heute after a fresh start glides, once', () => {
+    armGlide('2026-11-17')
+    expect(takePlacePace('all', '2026-11-17')).toBeNull()
+    expect(takePlacePace('today', '2026-11-17')).toBe('glide')
+    expect(takePlacePace('today', '2026-11-17')).toBeNull()
+  })
+
+  it('nothing armed (planning skipped, or a reload) stays at the standard pace', () => {
+    expect(takePlacePace('today', '2026-11-17')).toBeNull()
+  })
+
+  it('an arm from another day is ignored and dropped', () => {
+    armGlide('2026-11-16')
+    expect(takePlacePace('today', '2026-11-17')).toBeNull()
+    expect(takePlacePace('today', '2026-11-16')).toBeNull()
+  })
+
+  it('the recap lifts the move to Alle once, and a move to Heute is not a lift', () => {
+    armLift()
+    expect(takePlacePace('today', '2026-11-17')).toBeNull()
+    armLift()
+    expect(takePlacePace('all', '2026-11-17')).toBe('lift')
+    expect(takePlacePace('all', '2026-11-17')).toBeNull()
+  })
+
+  it('the glide survives the lift to Alle that comes first', () => {
+    armGlide('2026-11-17')
+    armLift()
+    expect(takePlacePace('all', '2026-11-17')).toBe('lift')
+    expect(takePlacePace('today', '2026-11-17')).toBe('glide')
+  })
+
+  it('reduced motion sets no pace', () => {
+    const original = window.matchMedia
+    window.matchMedia = ((q: string) => ({ matches: q.includes('reduce') })) as typeof window.matchMedia
+    try {
+      armGlide('2026-11-17')
+      armLift()
+      expect(takePlacePace('all', '2026-11-17')).toBeNull()
+      expect(takePlacePace('today', '2026-11-17')).toBeNull()
+    }
+    finally {
+      window.matchMedia = original
+    }
   })
 })
