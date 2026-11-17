@@ -54,7 +54,7 @@ for the comparison (source vs. now), not as an "are you sure?"; the replace is r
         <UButton color="neutral" variant="soft" :disabled="working" @click="isOpen = false">
           {{ t('common.cancel') }}
         </UButton>
-        <UButton size="lg" color="primary" :loading="working" :disabled="working" data-testid="data-restore-confirm" @click="onConfirm">
+        <UButton color="primary" :loading="working" :disabled="working" data-testid="data-restore-confirm" @click="onConfirm">
           {{ request?.confirmLabel ?? t('settings.data.restore.confirm') }}
         </UButton>
       </div>

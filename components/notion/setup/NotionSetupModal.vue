@@ -95,7 +95,6 @@
           </UButton>
           <UButton
             color="primary"
-            size="lg"
             :loading="isProceedButtonLoading"
             :disabled="isProceedButtonDisabled"
             data-testid="wizard-proceed"

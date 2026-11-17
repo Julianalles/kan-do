@@ -66,7 +66,6 @@ it collapses to one action, "Neu laden".
             {{ t('settings.data.conflict.loadTheirs') }}
           </UButton>
           <UButton
-            size="lg"
             color="primary"
             :loading="working && pending === 'mine'"
             :disabled="working || theirsIsNewer"
@@ -76,7 +75,6 @@ it collapses to one action, "Neu laden".
           </UButton>
         </template>
         <UButton
-          size="lg"
           v-else
           color="primary"
           :loading="working"

@@ -133,6 +133,8 @@ const showsPill = computed(() => focusTopic.value !== null)
   flex: none;
   width: 1.75rem;
   height: 1.75rem;
+  /* The icon-only floor (`md:min-w-9`) would stretch the circle to an oval */
+  min-width: 1.75rem;
   border-radius: 9999px;
   color: var(--ui-primary);
   transition: background-color var(--duration-fast) ease;

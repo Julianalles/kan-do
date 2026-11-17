@@ -130,7 +130,6 @@
                 icon="i-ph-sun-horizon"
                 color="neutral"
                 variant="soft"
-                size="lg"
                 class="max-md:w-full max-md:justify-center"
                 data-testid="day-close-cta"
                 @click="openDayClose"

@@ -75,10 +75,10 @@
         <p class="mt-3 text-body text-default">{{ t('onboarding.page.intro') }}</p>
         <!-- One filled action: the sheet's only solid green (The One Lamp Rule); the trial is a quiet second way in (#294) -->
         <div class="mt-6 flex flex-col gap-3">
-          <UButton color="primary" size="lg" block data-testid="welcome-choice-local" @click="openFlow('local')">
+          <UButton color="primary" block data-testid="welcome-choice-local" @click="openFlow('local')">
             {{ t('onboarding.page.start') }}
           </UButton>
-          <UButton color="neutral" variant="ghost" size="lg" block data-testid="welcome-choice-samples" @click="openFlow('samples')">
+          <UButton color="neutral" variant="ghost" block data-testid="welcome-choice-samples" @click="openFlow('samples')">
             {{ t('onboarding.page.samples') }}
           </UButton>
         </div>
