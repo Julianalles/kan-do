@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { seedLocalBoard } from './helpers/seed'
 import { moreButton, morePanel } from './helpers/appNav'
+import { installTauriStub } from './helpers/tauriStub'
 
 const column = (page: Page, key: string) => page.locator(`#column-${key}-list`)
 const card = (page: Page, title: string) => page.locator('.task-wrapper', { hasText: title }).first()
@@ -32,6 +33,36 @@ test.describe('Command palette', () => {
     await page.keyboard.press('Escape')
     await expect(palette(page)).toBeHidden()
     await expect(card(page, 'Dokumentation lesen')).toBeFocused()
+  })
+
+  test('a click on the backdrop closes it (#432)', async ({ page }) => {
+    await page.keyboard.press('Control+k')
+    await expect(palette(page)).toBeVisible()
+    await page.mouse.click(5, 400)
+    await expect(palette(page)).toBeHidden()
+  })
+
+  test('a click on the backdrop closes it on the Planung place (#432)', async ({ page }) => {
+    await page.goto('/all')
+    await expect(page).toHaveURL(/\/all$/)
+    await expect(column(page, 'open').locator('.task-wrapper').first()).toBeVisible()
+    await page.keyboard.press('Control+k')
+    await expect(palette(page)).toBeVisible()
+    await page.mouse.click(5, 400)
+    await expect(palette(page)).toBeHidden()
+  })
+
+  test('desktop shell: a click on the backdrop, also in the bar row, closes it on the Planung place (#432)', async ({ context, page }) => {
+    await installTauriStub(context, {})
+    await page.goto('/all')
+    await expect(page.locator('html')).toHaveAttribute('data-shell', 'desktop')
+    await expect(column(page, 'open').locator('.task-wrapper').first()).toBeVisible()
+    for (const y of [400, 20]) {
+      await page.keyboard.press('Control+k')
+      await expect(palette(page)).toBeVisible()
+      await page.mouse.click(5, y)
+      await expect(palette(page)).toBeHidden()
+    }
   })
 
   test('Ctrl+K opens it on every platform (kd#23: Meta+K alone left Windows/Linux out)', async ({ page }) => {
