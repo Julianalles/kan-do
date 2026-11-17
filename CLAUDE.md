@@ -144,7 +144,7 @@ Use `useErrorHandler()` — `handleError(message, context)` instead of `console.
 
 ## Key Reference Docs
 
-- `docs/release.md` + `docs/adr/009-release-pipeline-and-updater.md` + `docs/adr/013-signing-notarization-and-ci-release.md`: releases; `/prepare-release` prepares version and notes and hands the user the command. Agents never touch the updater signing key, the Developer ID certificate or notarization credentials.
+- `docs/release.md` + `docs/adr/009-release-pipeline-and-updater.md` + `docs/adr/013-signing-notarization-and-ci-release.md`: releases; `/prepare-release` prepares version and notes; an alpha or beta release the agent publishes itself (`npm run release <v> -- --stage alpha|beta`), a stable one is handed to the user. Agents never touch the updater signing key, the Developer ID certificate or notarization credentials.
 - `docs/acceptance-criteria.md` — UAC for validation
 - `docs/application-purpose.md` — product vision and non-goals
 - `docs/adr/` — architectural decisions

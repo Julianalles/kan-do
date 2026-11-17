@@ -116,7 +116,9 @@
       "Bash(rm -rf dist)",
       "Bash(rm -rf .e2e-build)",
       "Bash(rm -rf tests/e2e/playwright-report)",
-      "Bash(rm -rf tests/e2e/test-results)"
+      "Bash(rm -rf tests/e2e/test-results)",
+      "Bash(npm run release * -- --stage alpha)",
+      "Bash(npm run release * -- --stage beta)"
     ],
     "deny": [
       "Artifact",
