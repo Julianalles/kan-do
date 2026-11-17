@@ -370,6 +370,13 @@ describe('TaskProgressChip (#388)', () => {
       expect(slot(w).style.getPropertyValue('--chip-p')).toBe('100%')
     })
 
+    it('eases an edit of the spent time into the overrun: only the tick that crosses the timebox is a step (#450)', async () => {
+      const w = render({ timeBoxSeconds: 2700, timeSpentSeconds: 1350, isNow: true })
+      await w.setProps({ timeSpentSeconds: 3000 })
+      expect(fillDuration(w)).toBe('')
+      expect(slot(w).style.getPropertyValue('--chip-p')).toBe('100%')
+    })
+
     it('eases a jump (an edit of the spent time), and a tick inside that ease does not cut it short', async () => {
       const w = render({ timeBoxSeconds: 2700, timeSpentSeconds: 720, isNow: true })
       await w.setProps({ timeSpentSeconds: 721 })
