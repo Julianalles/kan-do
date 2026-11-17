@@ -2,13 +2,18 @@
 @component TaskProgressChip
 @kind primitive
 @category display
-@description The timebox label of a task card as its progress item (#388)
+@description The timebox label of a task card as its progress item (#388); in Jetzt a timer bar that shrinks with the remaining time (#450)
 @usage First item of the TaskCard footer (#584; not on the add sheet's Jetzt draft)
 @avoid Only the timebox label of a task card; not for the add sheet's Jetzt draft.
 @responsibility
 - Outside Jetzt: a light grey chip "45 min" (track and fill half a step lighter since #584) whose grey fill shows the spent share of the timebox (no colour, also not on overrun or done cards)
 - In Jetzt: once the card has settled it springs wider (x axis only) into a bar across the whole footer, anchored at its own
   left edge (the footer start, #584) and growing to the right over the source icon, carry-over dots and priority badge: "12 min ...... 45 min", fill primary, warning above 80 percent
+- In Jetzt the fill is a timer (#450, as the Now window's line, `getTimerBarShare`): it starts full and shrinks toward the left
+  with the remaining time; the colour still follows the spent share; over the timebox it is full and warning again, set at
+  once (the step into the overrun never plays a refill). The labels stay spent and timebox, the progressbar value stays the
+  spent share. Outside Jetzt the fill keeps the spent share (a record, also on done cards): it eases between the two when
+  the card enters or leaves Jetzt
 - No timebox: a spent-time chip that pops in when the card enters Jetzt and counts forward; outside Jetzt it stays
   as a quiet grey chip only once time was spent, otherwise there is no label
 - Reserves its collapsed width in the footer row (hidden sizer), so the carry-over dots are the item that clips in a narrow footer
@@ -30,6 +35,8 @@
   WCAG 1.4.11), the 600 step 4.13:1. Text on every fill keeps 4.5:1 (`a11y.spec.ts`, Jetzt card at 50 %, 85 %, over)
 - A silent progressbar: the value is the percent, no value text and no live region, so per-second updates stay quiet;
   without a timebox the name is the spent time and there is no value
+- The timer bar keeps a minimum fill (2.5 rem: the icon with its padding), so the last stretch never shows a sliver and the icon stays on the fill; the spent label can still straddle the fill's edge (both sides keep 4.5:1)
+- Accepted: the task sheet's ring still shows the spent share while the Jetzt bar shows the share left (a record next to a timer); the overrun differs from a fresh start by colour only (a "+12 min" label would be new copy, out of scope of #450)
 - Accepted: in Jetzt the bar covers the source icon, carry-over dots and priority badge (TaskCard makes the group after the
   chip inert); the spring overshoot may poke a few px past the footer padding, inside the card
 -->
@@ -39,7 +46,7 @@
       v-if="visible"
       class="chip-slot"
       :class="{ 'chip-slot--now': expanded, 'chip-slot--armed': armed }"
-      :style="{ '--chip-p': `${percent}%`, '--chip-fill-duration': fillSteps ? '0ms' : undefined }"
+      :style="{ '--chip-p': `${fillShare}%`, '--chip-fill-duration': fillSteps ? '0ms' : undefined }"
     >
       <span class="chip__sizer" :class="{ 'chip__sizer--boxless-now': !hasBox && expanded }" aria-hidden="true">
         <span class="chip__sizer-icon" />{{ hasBox ? boxLabel : spentLabel }}
@@ -69,7 +76,7 @@
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useLocaleFormat } from '~/composables/useLocaleFormat'
-import { getTimeboxRingColor } from '~/utils/timeboxProgress'
+import { getTimeboxRingColor, getTimerBarShare } from '~/utils/timeboxProgress'
 import { useBoardDragState } from '~/composables/useBoardDragState'
 import { rememberInJetzt, startsExpanded, wasInJetzt } from '~/lib/timeboxChipMemory'
 
@@ -118,20 +125,6 @@ const ariaLabel = computed(() =>
     : t('task.elapsedAria', { time: spentLabel.value }),
 )
 
-/** Largest step of the fill, in percentage points, that is set at once instead of eased: one second of a 200 s timebox */
-const TICK_STEP_MAX = 0.5
-/** Length of the fill's ease; keep in step with `--chip-fill-duration` below */
-const FILL_EASE_MS = 700
-/** The fill takes its next width at once (a timer tick): binds `--chip-fill-duration: 0ms`, so no `width` transition
- *  starts. Set by a sync watcher, so the render that writes the new `--chip-p` already carries it. */
-const fillSteps = ref(false)
-let easesUntil = 0
-watch(percent, (now, was) => {
-  const jump = Math.abs(now - was) >= TICK_STEP_MAX
-  if (jump) easesUntil = performance.now() + FILL_EASE_MS
-  fillSteps.value = !jump && performance.now() >= easesUntil
-}, { flush: 'sync' })
-
 /** Without a timebox the chip exists in Jetzt, and elsewhere only once time was spent */
 const visible = computed(() => hasBox.value || live.value || props.timeSpentSeconds > 0)
 
@@ -142,6 +135,32 @@ const remembered = wasInJetzt(props.taskId)
 const expanded = ref(hasBox.value ? startsExpanded(props.taskId, live.value) : live.value)
 /** A boxless chip that mounts as the card lands in Jetzt pops in (a same-instance change is the Transition's job) */
 const popsOnMount = !hasBox.value && live.value && remembered === false
+
+/** The timer bar (#450): in Jetzt the fill is the share of the timebox that is *left* (full at the start, shrinking
+ *  from the right, full and warning when over, as the Now window's line); outside Jetzt it stays the spent share, a
+ *  record of work on a task that is not running (and of a done one). Follows `expanded`, the bar's own state, so the
+ *  fill changes together with the card's morph. */
+const timerBar = computed(() => (expanded.value ? getTimerBarShare(props.timeSpentSeconds, props.timeBoxSeconds) : null))
+const fillShare = computed(() => timerBar.value?.share ?? percent.value)
+
+/** Largest step of the fill, in percentage points, that is set at once instead of eased: one second of a 200 s timebox */
+const TICK_STEP_MAX = 0.5
+/** Length of the fill's ease; keep in step with `--chip-fill-duration` below */
+const FILL_EASE_MS = 700
+/** The fill takes its next width at once (a timer tick, or the step into the overrun, which must not refill the bar
+ *  visibly): binds `--chip-fill-duration: 0ms`, so no `width` transition starts. Set by a sync watcher, so the render
+ *  that writes the new `--chip-p` already carries it. */
+const fillSteps = ref(false)
+let easesUntil = 0
+watch(() => [fillShare.value, timerBar.value?.over === true] as const, ([now, over], [was, wasOver]) => {
+  const jump = Math.abs(now - was) >= TICK_STEP_MAX
+  if (jump) easesUntil = performance.now() + FILL_EASE_MS
+  fillSteps.value = !jump && performance.now() >= easesUntil
+  if (over && !wasOver) {
+    fillSteps.value = true
+    easesUntil = 0
+  }
+}, { flush: 'sync' })
 
 /** Transitions are on only after the first frames: the footer width is measured after the mount, and a page load
  *  must not play the bar's width from the unmeasured fallback to the footer width */
@@ -282,6 +301,9 @@ watch(() => props.isNow, (now) => {
 }
 .chip-slot--armed .chip__fill { transition: width var(--chip-fill-duration) var(--chip-ease), background-color var(--duration-slow) ease-in-out; }
 .chip--boxless .chip__fill { width: 0; }
+/* The timer bar never shrinks below the icon and its padding (#450 design review): the clock always sits on the fill, the
+   fill stays a pill instead of a sliver, and the step into the overrun is a step from a pill, not from nothing */
+.chip--now:not(.chip--boxless) .chip__fill { min-width: min(2.5rem, 100%); }
 .chip-slot--armed .chip--now .chip__fill { transition-delay: 0ms, var(--chip-settle-delay); }
 
 .chip__content { display: inline-flex; align-items: center; gap: 0.25rem; width: 100%; min-width: 0; }

@@ -173,7 +173,29 @@ describe('TaskProgressChip (#388)', () => {
       expect(bar(w).classes()).toContain('chip--primary')
       await w.setProps({ timeSpentSeconds: 810 })
       expect(bar(w).classes()).toContain('chip--warning')
-      expect(w.find('.chip-slot').attributes('style')).toContain('--chip-p: 81%')
+      expect(w.find('.chip-slot').attributes('style')).toContain('--chip-p: 19%')
+    })
+
+    it('in Jetzt the fill is the share that is left (#450): full at the start, shrinking, full again over the timebox', async () => {
+      const w = render({ timeBoxSeconds: 1000, timeSpentSeconds: 0, isNow: true })
+      const p = () => w.find('.chip-slot').attributes('style')
+      expect(p()).toContain('--chip-p: 100%')
+      await w.setProps({ timeSpentSeconds: 250 })
+      expect(p()).toContain('--chip-p: 75%')
+      await w.setProps({ timeSpentSeconds: 1000 })
+      expect(p()).toContain('--chip-p: 0%')
+      await w.setProps({ timeSpentSeconds: 1200 })
+      expect(p()).toContain('--chip-p: 100%')
+      expect(bar(w).classes()).toContain('chip--warning')
+    })
+
+    it('outside Jetzt the fill stays the spent share, overrun included', () => {
+      expect(render({ timeBoxSeconds: 1000, timeSpentSeconds: 250 }).find('.chip-slot').attributes('style')).toContain('--chip-p: 25%')
+      expect(render({ timeBoxSeconds: 1000, timeSpentSeconds: 1500 }).find('.chip-slot').attributes('style')).toContain('--chip-p: 100%')
+    })
+
+    it('keeps the progressbar value as the spent share in Jetzt (#450: the labels and the name stay)', () => {
+      expect(bar(render({ timeBoxSeconds: 1000, timeSpentSeconds: 250, isNow: true })).attributes('aria-valuenow')).toBe('25')
     })
   })
 
@@ -336,8 +358,23 @@ describe('TaskProgressChip (#388)', () => {
       for (const spent of [721, 722, 723]) {
         await w.setProps({ timeSpentSeconds: spent })
         expect(fillDuration(w)).toBe('0ms')
-        expect(slot(w).style.getPropertyValue('--chip-p')).toBe(`${(spent / 2700) * 100}%`)
+        expect(slot(w).style.getPropertyValue('--chip-p')).toBe(`${((2700 - spent) / 2700) * 100}%`)
       }
+    })
+
+    it('sets the step into the overrun at once: the bar never visibly refills (#450)', async () => {
+      const w = render({ timeBoxSeconds: 2700, timeSpentSeconds: 2699, isNow: true })
+      await w.setProps({ timeSpentSeconds: 2700 })
+      await w.setProps({ timeSpentSeconds: 2701 })
+      expect(fillDuration(w)).toBe('0ms')
+      expect(slot(w).style.getPropertyValue('--chip-p')).toBe('100%')
+    })
+
+    it('sets every step into the overrun at once, a late timer tick (a throttled tab) included: the bar never refills visibly (#450)', async () => {
+      const w = render({ timeBoxSeconds: 2700, timeSpentSeconds: 2000, isNow: true })
+      await w.setProps({ timeSpentSeconds: 2800 })
+      expect(fillDuration(w)).toBe('0ms')
+      expect(slot(w).style.getPropertyValue('--chip-p')).toBe('100%')
     })
 
     it('eases a jump (an edit of the spent time), and a tick inside that ease does not cut it short', async () => {
