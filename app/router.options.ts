@@ -33,7 +33,7 @@ export default <RouterConfig> {
       return { ...boardScrollPosition, behavior: 'instant' };
     }
 
-    // "Planung" <-> "Heute" (#354): one page under two paths, so keep the window where it is (Offen's scroll survives the move)
+    // "Alle" <-> "Heute" (#354): one page under two paths, so keep the window where it is (Offen's scroll survives the move)
     if (isPlaceRoot(to.path) && isPlaceRoot(from.path) && to.path !== from.path) {
       return { left: window.scrollX, top: window.scrollY, behavior: 'instant' };
     }

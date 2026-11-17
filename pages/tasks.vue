@@ -1,7 +1,7 @@
 <!--
 @component TasksPage
 @description Hauptseite mit dem Kanban-Board, Synchronisationssteuerung und Modalen
-@usage Erreichbar unter /tasks (Heute) und /all (Planung, #354: dieselbe Seite, das Board bleibt gemountet), zeigt Board, Setup- und Statistik-Modal
+@usage Erreichbar unter /tasks (Heute) und /all ("Alle", #354: dieselbe Seite, das Board bleibt gemountet), zeigt Board, Setup- und Statistik-Modal
 @responsibility
 - Lädt und aktualisiert Aufgaben periodisch
 - Hosts the task sheet (`TaskSheetHost`, kd#179) for /tasks/:id and /tasks/add; the command palette (mounted in app.vue since #224) opens its dialogs from here
@@ -177,7 +177,7 @@ const handleVisibilityChange = () => {
   }
 };
 
-// "Planung" (`/all`, #354) is a second path of this page: one board, two places, so the way between them is a move of
+// "Alle" (`/all`, #354) is a second path of this page: one board, two places, so the way between them is a move of
 // the mounted board and not a page swap (lib/boardPlace). The fixed key keeps the page instance across both paths.
 definePageMeta({ alias: ['/all'], key: 'board' });
 

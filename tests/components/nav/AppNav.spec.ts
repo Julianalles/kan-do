@@ -72,7 +72,7 @@ describe('AppNav: the global app bar (#470)', () => {
     expect(render().find('[data-testid="app-nav"]').exists()).toBe(false)
   })
 
-  it('links Planung to /all, the brand and Heute to /tasks and Statistik to /statistics; the brand is never current', () => {
+  it('links "Alle" to /all, the brand and Heute to /tasks and Statistik to /statistics; the brand is never current', () => {
     go('/tasks')
     const w = render()
     expect(place(w, 'all').attributes('href')).toBe('/all')
@@ -98,7 +98,7 @@ describe('AppNav: the global app bar (#470)', () => {
     expect(current).toEqual([id])
   })
 
-  // #373, #416: after "Tag planen" Planung's pill is one green way on to the board; the places it leaves out are rows of the ⋯ panel
+  // #373, #416: after "Tag planen" the "Alle" pill is one green way on to the board; the places it leaves out are rows of the ⋯ panel
   it.each(['/all', '/all/x', '/all/add'])('after the recap on %s the pill is the one link "Weiter zum Board" to /tasks, with no segment, no icon and nothing current', async (path) => {
     markPlanningFromRecap()
     go(path)
@@ -116,7 +116,7 @@ describe('AppNav: the global app bar (#470)', () => {
     expect(w.findAll('[aria-current="page"]')).toHaveLength(0)
   })
 
-  it('on Planung opened by hand the normal pill stays, with Planung selected and no continue link', async () => {
+  it('on "Alle" opened by hand the normal pill stays, with "Alle" selected and no continue link', async () => {
     go('/all')
     const w = render()
     await nextTick()
@@ -125,7 +125,7 @@ describe('AppNav: the global app bar (#470)', () => {
     expect(place(w, 'all').attributes('aria-current')).toBe('page')
   })
 
-  it('leaving Planung brings the three places back and the continue link goes; coming back by hand shows the normal pill', async () => {
+  it('leaving "Alle" brings the three places back and the continue link goes; coming back by hand shows the normal pill', async () => {
     markPlanningFromRecap()
     go('/all')
     const w = render()

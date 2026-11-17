@@ -2,7 +2,7 @@
 /**
  * README screenshots (#402): `npm run readme:shots` against a running dev server (`PORT`, default 3000; or `BASE_URL`).
  *
- * Seeds the demo board (`?seed=demo`, `&backlog=1` for Planung), captures every shot headless in English at 1280x800
+ * Seeds the demo board (`?seed=demo`, `&backlog=1` for "Alle"), captures every shot headless in English at 1280x800
  * (device scale 2, the repo's Playwright chromium), frames each one as a fake macOS window (rounded corners, traffic-light
  * dots, no browser chrome, strong shadow) on an almost-white background with spacing, and writes
  *   docs/images/readme-day.png         the day sequence, captions in the image (1 first start ... 5 evening)

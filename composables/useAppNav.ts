@@ -3,11 +3,11 @@
  * @description Which place of the app bar the current route belongs to (#470, ADR 017). A pure function of the
  * route: the open state of the Mehr panel is never an input, so an open panel can never replace the selected place.
  * @responsibility
- * - `placeOfPath`: `/all*` -> all (Alle, #354: the planning side of the board page), `/tasks*` -> board (Heute), `/statistics` -> statistics, `/trash` and `/settings*` -> more (the third
+ * - `placeOfPath`: `/all*` -> all ("Alle", #354: the planning side of the board page), `/tasks*` -> board (Heute), `/statistics` -> statistics, `/trash` and `/settings*` -> more (the third
  *   segment of the pill, #583: ⋯ itself is never selected), else none
  * - `thirdItemOfPath` / `thirdItem`: the page behind ⋯ the route is on (Papierkorb on `/trash*`, Einstellungen on
  *   `/settings*`, linking `/settings`), shown as a third segment in the pill and left out of the Mehr panel meanwhile
- * - `continuesToBoard`: on Alle and entered from the notice (#416, usePlanningFromRecap; the recap no longer marks it, #428); only then the pill is the "Weiter zum Board" CTA
+ * - `continuesToBoard`: on "Alle" and entered from the notice (#416, usePlanningFromRecap; the recap no longer marks it, #428); only then the pill is the "Weiter zum Board" CTA
  * - `recapShown` / `selectedPlace` (#428): while the new-day recap is open the pill is `Rückblick | Statistik` on every route (no Alle, no
  *   Heute: the user is either in the recap or free to visit the planning and the board); `selectedPlace` is `'recap'` while the route is
  *   the board page the recap sits over, else `currentPlace`. Leaving the recap turns Rückblick into Alle + Heute
@@ -21,7 +21,7 @@ import { useRouter } from 'nuxt/app'
 import { planningFromRecap } from '~/composables/usePlanningFromRecap'
 import { recapOpen } from '~/composables/useNewDayRecap'
 
-/** The places of the bar: Alle (all, #354), Heute (board), Statistik (statistics) and `more` (a page behind ⋯, shown as the third segment) */
+/** The places of the bar: "Alle" (all, #354), Heute (board), Statistik (statistics) and `more` (a page behind ⋯, shown as the third segment) */
 export type AppNavPlace = 'all' | 'board' | 'statistics' | 'more'
 
 /** What the pill marks as selected: a place, or Rückblick (#428) while the recap is open on the board page */

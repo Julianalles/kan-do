@@ -114,7 +114,7 @@ describe('MorePanel: the Mehr panel (#470)', () => {
     expect(w.emitted('close')).toHaveLength(1)
   })
 
-  it('on Planung opened by hand the places are the pill\'s segments: no Heute and Statistik rows', () => {
+  it('on "Alle" opened by hand the places are the pill\'s segments: no Heute and Statistik rows', () => {
     route.path = '/all'
     const w = render()
     expect(w.find('[data-testid="more-today"]').exists()).toBe(false)

@@ -43,7 +43,7 @@ describe('board places (#354)', () => {
     expect([place.value, basePath.value]).toEqual(['today', '/tasks'])
   })
 
-  it('"go to Heute" is forced only while "Planung" shows', () => {
+  it('"go to Heute" is forced only while "Alle" shows', () => {
     expect(todayLocation()).toBe('/tasks')
     setCurrentBoardPath('/statistics')
     expect(todayLocation()).toBe('/tasks')
@@ -51,7 +51,7 @@ describe('board places (#354)', () => {
     expect(todayLocation()).toEqual({ path: '/tasks', force: true })
   })
 
-  it('the Offen column is headed "Heute" on "Planung" and "Offen" on "Heute" (#375); by default for the place that shows', () => {
+  it('the Offen column is headed "Heute" on "Alle" and "Offen" on "Heute" (#375); by default for the place that shows', () => {
     expect(openColumnTitleKey('all')).toBe('board.columns.openPlanning')
     expect(openColumnTitleKey('today')).toBe('board.columns.open')
     expect(openColumnTitleKey()).toBe('board.columns.open')
