@@ -101,7 +101,8 @@ describe('usedValues (kd#127: /ui shows what the app uses first)', () => {
 
   it('the manifest carries it on library rows only', () => {
     const manifest = buildManifest() as { name: string, source: string, usedValues?: Record<string, string[]> }[]
-    expect(manifest.find(row => row.name === 'UButton')!.usedValues!.size).toEqual(expect.arrayContaining(['lg']))
+    // No call site sets a UButton size any more (One Height Rule, #424): the row still carries the (empty) map
+    expect(manifest.find(row => row.name === 'UButton')!.usedValues).toBeDefined()
     expect(manifest.filter(row => row.source === 'app').every(row => row.usedValues === undefined)).toBe(true)
   })
 })
