@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { appStorage, dataState, freezeWrites, initDataStorage, isWritesFrozen, PERSISTED_KEYS, resetDataStorage, snapshotMirror, unfreezeWrites, withoutPersistence } from '~/lib/dataStorage'
+import { appStorage, dataState, freezeWrites, initDataStorage, isWritesFrozen, PERSISTED_KEYS, resetDataStorage, seedDesktopStores, snapshotMirror, unfreezeWrites, withoutPersistence } from '~/lib/dataStorage'
 import { nextTick } from 'vue'
 import { createFakeDataBackend } from '../helpers/fakeDataBackend'
 import { CURRENT_SCHEMA_VERSION } from '~/utils/dataFile/envelope'
@@ -333,5 +333,52 @@ describe('frozen writes (app reset, kd#227)', () => {
     freezeWrites()
     resetDataStorage()
     expect(isWritesFrozen()).toBe(false)
+  })
+})
+
+describe('seedDesktopStores (dev seed on desktop, #413)', () => {
+  const seedLocalStorage = () => {
+    localStorage.setItem('tasks-store', JSON.stringify({ tasks: [{ id: 'demo-1' }] }))
+    localStorage.setItem('notionConfig', JSON.stringify({ config: { token: 'ntn_leak' } }))
+    localStorage.setItem('kando-locale', 'de')
+  }
+
+  it('hands the seeded stores to an empty data file, secrets stripped, and flushes', async () => {
+    const backend = createFakeDataBackend({ needsInit: true })
+    await initDataStorage({ backend }) // first start: localStorage still empty, the file is created empty
+    seedLocalStorage()
+
+    expect(await seedDesktopStores(localStorage)).toBe(true)
+    expect(backend.sets['tasks-store']).toEqual({ tasks: [{ id: 'demo-1' }] })
+    expect(JSON.stringify(backend.sets)).not.toContain('ntn_leak')
+    expect(backend.sets['kando-locale']).toBeUndefined()
+    expect(backend.calls.at(-1)).toBe('flush')
+    expect(JSON.parse(appStorage.getItem('tasks-store') as string)).toEqual({ tasks: [{ id: 'demo-1' }] })
+  })
+
+  it('never overwrites a data file that holds anything', async () => {
+    const backend = createFakeDataBackend({ envelope: envelope({ 'settings-store': { focusEnabled: true } }) })
+    await initDataStorage({ backend })
+    seedLocalStorage()
+
+    expect(await seedDesktopStores(localStorage)).toBe(false)
+    expect(backend.calls).not.toContain('set:tasks-store')
+    expect(appStorage.getItem('tasks-store')).toBeNull()
+  })
+
+  it('does nothing on web, read-only or with a blocked status', async () => {
+    seedLocalStorage()
+    expect(await seedDesktopStores(localStorage)).toBe(false) // web: no runtime
+
+    const readOnly = createFakeDataBackend({ status: 'read-only-newer-schema', envelope: envelope({}, 99) })
+    await initDataStorage({ backend: readOnly })
+    expect(await seedDesktopStores(localStorage)).toBe(false)
+    expect(readOnly.calls).not.toContain('set:tasks-store')
+
+    resetDataStorage()
+    const blocked = createFakeDataBackend({ status: 'folder-unavailable' })
+    await initDataStorage({ backend: blocked })
+    expect(await seedDesktopStores(localStorage)).toBe(false)
+    expect(blocked.calls).not.toContain('set:tasks-store')
   })
 })

@@ -38,6 +38,9 @@
  * Every mode but `clear` also writes settings-store with the Fokus overlay (#394) OFF, so touch taps and screenshots
  * are not affected; add `&focus=1` to see the overlay (the app default) on a seeded board.
  *
+ * On desktop (dev), the seeded stores also go into the data file while it is still empty (the first `npm run tauri:dev`
+ * launch, #413); a file with data is never touched.
+ *
  * After seeding, the plugin removes the query param and reloads so the app starts cleanly.
  *
  * Usage:
@@ -58,11 +61,12 @@ import { localDateKey } from '~/utils/carryOver'
 import { dayKey } from '~/utils/recapDay'
 import { buildDemoBoard } from '~/lib/demo-board'
 import { buildDemoDayEndHistory, buildDemoStatisticsHistory, buildDemoWorkSessions } from '~/lib/demo-statistics-history'
+import { seedDesktopStores } from '~/lib/dataStorage'
 import { useSourceConnections } from '~/composables/useSourceConnections'
 import type { IntegrationSourceId } from '~/types/taskSource'
 import { isOverlayWindow } from '~/lib/overlayWindow'
 
-export default defineNuxtPlugin((nuxtApp) => {
+export default defineNuxtPlugin(async (nuxtApp) => {
   if (!__NOTION_STUB_ALLOWED__) return
   if (!import.meta.client) return
   if (isOverlayWindow()) return // the floating Now window seeds nothing (#383)
@@ -313,6 +317,10 @@ export default defineNuxtPlugin((nuxtApp) => {
     // Unknown seed mode — skip reload to avoid infinite loop
     return
   }
+
+  // Desktop reads its data file, not localStorage: the first launch has created that file empty already, so hand the
+  // seeded stores to Rust too (only into an empty file, #413). Awaited: the reload must find them.
+  await seedDesktopStores(localStorage).catch(() => false)
 
   // Remove ?seed= param and reload so the app hydrates from the freshly seeded store
   url.searchParams.delete('seed')
