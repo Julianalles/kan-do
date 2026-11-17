@@ -833,8 +833,8 @@
   {
     "id": "place-all",
     "concept": "The place of the app bar where the day is planned (#354, epic #334): the column \"Meine Aufgaben\" beside the column of today's tasks",
-    "de": "Planung",
-    "en": "Planning",
+    "de": "Alle",
+    "en": "All",
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",

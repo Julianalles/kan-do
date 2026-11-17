@@ -195,6 +195,15 @@
     color: var(--ui-text-highlighted);
   }
 
+  /* Hover (#425): a soft fill under the segment, lighter than the selected chip (--nav-chip), so hover < selected.
+     Pointer devices only, so a touch never leaves it stuck. The selected segment already has its chip. */
+  @media (hover: hover) {
+    .app-nav-place:not(.is-selected, .app-nav-continue):hover {
+      background: var(--fill-on-canvas);
+      border-radius: 9999px;
+    }
+  }
+
   /* The chip is the indicator; the selected segment only takes the strong text colour */
   .app-nav-place.is-selected {
     color: var(--ui-text-highlighted);
@@ -257,6 +266,13 @@
 
   .app-nav-more:hover {
     color: var(--ui-text-highlighted);
+  }
+
+  /* Hover (#425): the same soft fill on the round ⋯, over its white sheet; open keeps its stronger fill */
+  @media (hover: hover) {
+    .app-nav-more:not(.is-open):hover {
+      background: linear-gradient(var(--fill-on-canvas), var(--fill-on-canvas)), var(--ui-bg);
+    }
   }
 
   /* Open = the pressed fill. ⋯ is never selected (#583). */

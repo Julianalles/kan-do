@@ -798,7 +798,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await goToPlace(page, 'Heute')
     await expect(page.locator('#column-waiting .task-wrapper')).toHaveCount(0)
     await expect(page.locator('#column-progress .task-wrapper')).toHaveCount(0)
-    await expect(sentence(page)).toHaveText('3 Aufgaben von gestern liegen in der Planung.')
+    await expect(sentence(page)).toHaveText('3 Aufgaben von gestern liegen unter Alle.')
     expect(await storedTask(page, 'nd-now-1')).toMatchObject({ status: 0, notPlanned: true, timeSpentSeconds: 1800 })
     expect(await storedTask(page, 'nd-waiting-1')).toMatchObject({ status: 0, notPlanned: true })
 
@@ -944,7 +944,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await expect(note(page)).toBeVisible()
     await expectBoardUntouched(page)
 
-    await goToPlace(page, 'Planung')
+    await goToPlace(page, 'Alle')
     await settleAnimations(page)
     await expect(note(page)).toBeVisible()
     // the visit alone moves nothing: Heute holds its cards, the side only what was held before
@@ -974,7 +974,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await expect(board(page)).toBeVisible()
     await expect.poll(() => openIds(page)).toEqual(['nd-open-2', 'nd-open-1'])
     await expect(note(page)).toHaveCount(0)
-    await goToPlace(page, 'Planung')
+    await goToPlace(page, 'Alle')
     await expect(note(page)).toHaveCount(0)
   })
 
@@ -994,7 +994,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await planButton(page).click()
     await settled(page)
     await goToPlace(page, 'Heute')
-    await expect(sentence(page)).toHaveText('Eine Aufgabe von gestern liegt in der Planung.')
+    await expect(sentence(page)).toHaveText('Eine Aufgabe von gestern liegt unter Alle.')
   })
 
   test('the sentence in an empty Offen counts what the topic focus leaves of the group, as "Planung" shows it', async ({ page, context }) => {
@@ -1013,8 +1013,8 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     // the focus leaves one task of the group: the sentence says one, and "Planung" shows exactly that one
     await focusOn('Büro')
     await goToPlace(page, 'Heute')
-    await expect(sentence(page)).toHaveText('Eine Aufgabe von gestern liegt in der Planung.')
-    await sentence(page).getByRole('link', { name: 'Planung' }).click()
+    await expect(sentence(page)).toHaveText('Eine Aufgabe von gestern liegt unter Alle.')
+    await sentence(page).getByRole('link', { name: 'Alle' }).click()
     await expect(page).toHaveURL(/\/all$/)
     await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-open-1'])
     // the focus leaves none of the group (a task that was held before matches): no sentence, no link to nothing
@@ -1183,7 +1183,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
       expect(await storedTask(page, 'nd-now-1')).toMatchObject({ status: 1 })
       expect(await storedSeconds(page)).toBeGreaterThanOrEqual(1800)
       // a "Planung" visit and a reload keep the question; the board stays usable
-      await goToPlace(page, 'Planung')
+      await goToPlace(page, 'Alle')
       await expect(timeNote(page)).toBeVisible()
       await page.reload()
       await expect(board(page)).toBeVisible()

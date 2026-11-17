@@ -164,7 +164,7 @@
       "groupWaiting": "Zuletzt in Wartet",
       "groupOthers": "Weitere Aufgaben"
     },
-    "yesterdayUnderAll": "Eine Aufgabe von gestern liegt in der {all}. | {n} Aufgaben von gestern liegen in der {all}.",
+    "yesterdayUnderAll": "Eine Aufgabe von gestern liegt unter {all}. | {n} Aufgaben von gestern liegen unter {all}.",
     "newDayNote": {
       "title": "Auf dem Board liegt noch der Plan von gestern.",
       "description": "„Tag planen“ legt alles, was nicht erledigt ist, zurück nach „Meine Aufgaben“.",
@@ -198,7 +198,7 @@
     "appUpdate": "App-Update",
     "syncNow": "Jetzt synchronisieren",
     "syncing": "Wird synchronisiert…",
-    "all": "Planung",
+    "all": "Alle",
     "continue": "Weiter zum Board"
   },
   "menu": {
@@ -701,7 +701,7 @@
       },
       "notPlanned": {
         "label": "Nicht geplant",
-        "help": "Status in Notion, die „nicht geplant“ bedeuten. Solche Aufgaben stehen unter „Planung“ bei „Meine Aufgaben“. Stellst du eine Aufgabe zurück, setzt Kan-Do den zuerst gewählten Status. Geladen werden die {n} zuletzt bearbeiteten.",
+        "help": "Status in Notion, die „nicht geplant“ bedeuten. Solche Aufgaben stehen unter „Alle“ bei „Meine Aufgaben“. Stellst du eine Aufgabe zurück, setzt Kan-Do den zuerst gewählten Status. Geladen werden die {n} zuletzt bearbeiteten.",
         "placeholder": "Status auswählen"
       },
       "duplicates": "Die folgenden Status-Werte sind mehrfach zugeordnet: {values}"
@@ -1353,7 +1353,7 @@
     "openUpdates": "Version & Updates",
     "sendFeedback": "Feedback senden",
     "openWhatsNew": "Was ist neu",
-    "openAll": "Planung öffnen"
+    "openAll": "Alle öffnen"
   },
   "recap": {
     "title": "Kurzer Rückblick",

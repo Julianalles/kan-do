@@ -107,7 +107,7 @@ test.describe('The place "Planung" (#354), desktop', () => {
     await seedLocalBoard(context, BOARD)
     await page.goto('/')
     await expect(page).toHaveURL(/\/tasks$/)
-    await expect(appNav(page).locator('.app-nav-place')).toHaveText(['Planung', 'Heute', 'Statistik'])
+    await expect(appNav(page).locator('.app-nav-place')).toHaveText(['Alle', 'Heute', 'Statistik'])
     await expect(placeLink(page, 'board')).toHaveAttribute('aria-current', 'page')
     // Heute shows its three columns, "Meine Aufgaben" is not there for anyone
     await expect(notPlanned(page)).toBeHidden()
@@ -115,7 +115,7 @@ test.describe('The place "Planung" (#354), desktop', () => {
     await placeLink(page, 'all').click()
     await expect(page).toHaveURL(/\/all$/)
     // #416: opened by hand, the pill keeps its three places and Planung is the current one
-    await expect(appNav(page).locator('.app-nav-place')).toHaveText(['Planung', 'Heute', 'Statistik'])
+    await expect(appNav(page).locator('.app-nav-place')).toHaveText(['Alle', 'Heute', 'Statistik'])
     await expect(toHeute(page)).toHaveAttribute('href', '/tasks')
     await expect(placeLink(page, 'all')).toHaveAttribute('aria-current', 'page')
     await expect(page.getByTestId('app-nav-continue')).toHaveCount(0)
@@ -494,7 +494,7 @@ test.describe('The place "Planung" (#354), desktop', () => {
     await toHeute(page).click()
     await expect(page).toHaveURL(/\/tasks$/)
     expect(await page.evaluate(() => window.scrollY)).toBe(before)
-    await appNav(page).locator('.app-nav-place', { hasText: 'Planung' }).click()
+    await appNav(page).locator('.app-nav-place', { hasText: 'Alle' }).click()
     await expect(page).toHaveURL(/\/all$/)
     expect(await page.evaluate(() => window.scrollY)).toBe(before)
   })

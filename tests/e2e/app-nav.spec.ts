@@ -693,7 +693,7 @@ for (const { label, size } of VIEWPORTS) {
     expect(focused.outline).toBe('solid')
     expect(focused.shadow).not.toBe('none')
     if (label === '1280') {
-      await appNav(page).getByRole('link', { name: 'Planung', exact: true }).focus()
+      await appNav(page).getByRole('link', { name: 'Alle', exact: true }).focus()
       await page.keyboard.press('Shift+Tab')
       await expect(appNav(page).getByTestId('app-nav-brand')).toBeFocused()
       expect(await appNav(page).getByTestId('app-nav-brand').evaluate(el => getComputedStyle(el).outlineStyle)).toBe('solid')

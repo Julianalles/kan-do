@@ -198,7 +198,7 @@
     "appUpdate": "App update",
     "syncNow": "Sync now",
     "syncing": "Syncing…",
-    "all": "Planning",
+    "all": "All",
     "continue": "Continue to the board"
   },
   "menu": {
@@ -701,7 +701,7 @@
       },
       "notPlanned": {
         "label": "Not planned",
-        "help": "Notion statuses that mean “not planned”. These tasks are under “Planning”, in “My tasks”. When you put a task back, Kan-Do sets the status you chose first. The {n} most recently edited are loaded.",
+        "help": "Notion statuses that mean “not planned”. These tasks are under “All”, in “My tasks”. When you put a task back, Kan-Do sets the status you chose first. The {n} most recently edited are loaded.",
         "placeholder": "Select statuses"
       },
       "duplicates": "The following status values are mapped more than once: {values}"
@@ -1353,7 +1353,7 @@
     "openUpdates": "Version & updates",
     "sendFeedback": "Send feedback",
     "openWhatsNew": "What's new",
-    "openAll": "Open Planning"
+    "openAll": "Open All"
   },
   "recap": {
     "title": "Quick look back",

@@ -2,11 +2,11 @@
 @component AppNav
 @kind block
 @category navigation
-@description The global app bar (#470, ADR 017): the `kan-do` wordmark (outside any pill, #642), one pill with the three places (Planung, Heute, Statistik; "Planung" (`/all`) is the planning side of the board page, #354) plus, on a page behind ⋯, that page as a third segment (#583), then a separate round ⋯ pill that opens the Mehr panel
+@description The global app bar (#470, ADR 017): the `kan-do` wordmark (outside any pill, #642), one pill with the three places (Alle, Heute, Statistik; "Alle" (`/all`) is the planning side of the board page, #354) plus, on a page behind ⋯, that page as a third segment (#583), then a separate round ⋯ pill that opens the Mehr panel
 @usage Mounted once in app.vue before <NuxtLayout>, so it survives page transitions; hidden on routes with `appNav: false`
 @avoid Mounted once in app.vue; secondary pages go behind MorePanel, in-page switching is not a job for the app bar.
 @responsibility
-- Brand (#642): the wordmark link sits first in the group, left of the pill and outside it, on the paper veil; DOM and tab order: brand, Planung, Heute, Statistik, third, ⋯. Not shown on a phone (kd#24: it has no backing and printed over the cards scrolling under the bar; Heute links to /tasks)
+- Brand (#642): the wordmark link sits first in the group, left of the pill and outside it, on the paper veil; DOM and tab order: brand, Alle, Heute, Statistik, third, ⋯. Not shown on a phone (kd#24: it has no backing and printed over the cards scrolling under the bar; Heute links to /tasks)
 - Desktop (≥768px): sticky bar at the top, the group centred. Phone: the same pills float at the bottom (assets/css/app-nav.css)
 - Look and separation from the content behind it (#615): the two pills are flat white sheets with the nav pill shadow (`--shadow-nav-pill`, the named exception of "The Sheets Cast Shadows Rule"), and a paper veil sits behind them (`.app-nav::before`, no pointer events, so the `.titlebar` drag strip and the page stay usable). The page header is not sticky, so the bar is the only thing that stays
 - Selected state is a pure function of the route (useAppNav): Planung on /all*, Heute on /tasks*, Statistik on /statistics, the third segment (Papierkorb, Einstellungen) on /trash and /settings*. ⋯ is never selected and carries no aria-current. An open panel is an overlay, not a navigation: the place keeps its chip, ⋯ shows only a soft "open" fill and aria-expanded
