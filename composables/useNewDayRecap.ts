@@ -4,7 +4,7 @@
  * owns its open state and the snapshot it shows, and runs the one action when the user leaves it. State is
  * module-level so the page, the overlay and the board share it.
  * @responsibility
- * - `check(routeName)`: called by `pages/tasks.vue` on mount, on a return to the app after an absence (`listenForReturn`:
+ * - `check(routeName)`: called by `pages/tasks.vue` in its setup (so a due recap is open for the first render, #427), on a return to the app after an absence (`listenForReturn`:
  *   window focus, tab visible; #242) and on a route change, never awaited. The page runs the day check first
  *   (`useNewDay().check()`, only on the app's start and on such a return) and skips this check on a day that has not
  *   begun in this window, so the recap never opens under the hands of someone working across midnight. It syncs the

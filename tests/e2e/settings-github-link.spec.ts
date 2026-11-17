@@ -3,7 +3,7 @@ import { seedLocalBoard, seedNotionBoard } from './helpers/seed'
 import { installTauriStub } from './helpers/tauriStub'
 import { openSettings } from './helpers/appNav'
 
-/** #242, #324: the "GitHub-Zugriff" link row on the Verbindungen page and /settings/notion (desktop only). */
+/** #242, #324: the "GitHub-Zugriff" link row on the Verbindungen page (desktop only); /settings/notion has none (#429). */
 
 const link = (page: import('@playwright/test').Page) => page.getByRole('link', { name: /GitHub-Zugriff/ })
 
@@ -39,12 +39,12 @@ test.describe('GitHub-Zugriff entry point', () => {
     expect(await borderBottom(3)).toBe('0px')
   })
 
-  test('desktop, Notion mode: /settings/notion ends with the link', async ({ context, page }) => {
+  test('desktop, Notion mode: /settings/notion has no GitHub link (#429)', async ({ context, page }) => {
     await seedNotionBoard(context)
     await installTauriStub(context)
     await page.goto('/settings/notion')
-    await link(page).click()
-    await expect(page).toHaveURL(/\/settings\/github$/)
+    await expect(page.getByPlaceholder('ntn_...')).toBeVisible() // the settled connection tab
+    await expect(link(page)).toHaveCount(0)
   })
 
   test('web: /settings/notion has no link', async ({ context, page }) => {

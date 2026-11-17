@@ -15,6 +15,8 @@
 const SCRIM_SELECTOR = '[data-slot="overlay"]'
 /** Marker for a custom full-screen layer (today the new-day recap stage, which since #262 runs behind the bar row) that should hand its bar row to the window drag. */
 const LAYER_SELECTOR = '[data-window-drag-layer]'
+/** A scrim that opts out: a press in its bar row dismisses the dialog like anywhere else (the command palette, #432: it sits just below the row, so the row is the background a user clicks). */
+const EXEMPT_CLASS = 'window-drag-exempt'
 const INTERACTIVE_SELECTOR = 'a, button, input, select, textarea, summary, label, [role="button"], [contenteditable]'
 
 interface PressLike {
@@ -29,6 +31,6 @@ export function isLayerDragStart(press: PressLike, barHeight: number): boolean {
   if (press.clientY >= barHeight) return false
   const { target } = press
   if (!(target instanceof Element)) return false
-  if (target.matches(SCRIM_SELECTOR)) return true
+  if (target.matches(SCRIM_SELECTOR)) return !target.classList.contains(EXEMPT_CLASS)
   return target.closest(LAYER_SELECTOR) !== null && target.closest(INTERACTIVE_SELECTOR) === null
 }
