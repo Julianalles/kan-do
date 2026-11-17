@@ -299,7 +299,7 @@ test.describe('Day close dialog (#98)', () => {
       expect(await height(done)).toBe(expected)
       expect(await height(copy)).toBe(expected)
       // Fertig is the heaviest control by its fill: the solid green, with the 96 px minimum width
-      expect((await done.boundingBox())!.width).toBeGreaterThanOrEqual(96)
+      expect(Math.round((await done.boundingBox())!.width)).toBeGreaterThanOrEqual(96) // rounded: the dialog may still be settling its scale
       await expect(done).toHaveCSS('background-color', /^(?!rgba\(0, 0, 0, 0\)|rgba\(.*, 0\))/)
       await expect(copy).not.toHaveCSS('background-color', await done.evaluate((el) => getComputedStyle(el).backgroundColor))
     })

@@ -293,11 +293,11 @@ describe('useNewDayRecap', () => {
   })
 
   describe('leave', () => {
-    it('with the switch on archives the done tasks, moves the marker and closes, without a toast (#463)', () => {
+    it('leaving with `archive` (the planning) archives the done tasks, moves the marker and closes, without a toast (#463)', () => {
       const { tasks, recap: store } = setup()
       const recap = useNewDayRecap()
       recap.check('tasks')
-      recap.leave()
+      recap.leave({ archive: true })
       expect(recap.isOpen.value).toBe(false)
       expect(tasks.archivedTaskIds).toEqual(['d1', 'd2'])
       expect(syncArchiveStatusForTasks).toHaveBeenCalledWith(['d1', 'd2'])
@@ -305,9 +305,8 @@ describe('useNewDayRecap', () => {
       expect(store.lastShownDay).toBe(TODAY)
     })
 
-    it('with the switch off archives nothing, shows no toast, but still moves the marker', () => {
+    it('a plain leave (skip, Escape) archives nothing, shows no toast, but still moves the marker (#428)', () => {
       const { tasks, recap: store } = setup()
-      store.setArchiveDone(false)
       const recap = useNewDayRecap()
       recap.check('tasks')
       recap.leave()
@@ -328,7 +327,7 @@ describe('useNewDayRecap', () => {
         task('d2', TaskStatus.Done, yesterdayAt(15)),
         task('late', TaskStatus.Done, yesterdayAt(10)),
       ]
-      recap.leave()
+      recap.leave({ archive: true })
       expect(tasks.archivedTaskIds).toEqual(['d2'])
     })
 
@@ -336,7 +335,7 @@ describe('useNewDayRecap', () => {
       const { tasks } = setup()
       const recap = useNewDayRecap()
       recap.check('tasks')
-      recap.leave()
+      recap.leave({ archive: true })
       recap.finishLeave()
       expect(tasks.archivedTaskIds).toEqual(['d1', 'd2'])
       useNewDayRecap().check('tasks')

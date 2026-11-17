@@ -198,6 +198,7 @@
     "appUpdate": "App-Update",
     "syncNow": "Jetzt synchronisieren",
     "syncing": "Wird synchronisiert…",
+    "recap": "Rückblick",
     "all": "Alle",
     "continue": "Weiter zum Board"
   },
@@ -1383,9 +1384,8 @@
     "switcher": {
       "label": "Anzeige wählen"
     },
-    "archiveToggle": "Erledigte archivieren",
-    "continue": "Direkt zum Board",
-    "plan": "Tag planen"
+    "continue": "Überspringen und Board anzeigen",
+    "plan": "Tag neu planen"
   },
   "dayClose": {
     "title": "Tag abschließen",

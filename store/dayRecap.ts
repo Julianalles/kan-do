@@ -18,7 +18,7 @@ export function sanitizeSentBack(raw: unknown): SentBack | null {
 }
 
 /**
- * Day marker and toggle of the new-day recap (#385). Persisted under `day-recap-store` through
+ * Day marker of the new-day recap (#385). A stored `archiveDone` (the switch of the recap before #428) is ignored and not written back. Persisted under `day-recap-store` through
  * `appStorage`, so both travel with the data file (export/import, cloud-synced folder) like every other store.
  *
  * It also holds the new day's own state (#356, #387): the day the user last started fresh (`lastNewDay`: the fresh
@@ -36,8 +36,6 @@ export function sanitizeSentBack(raw: unknown): SentBack | null {
 export const useDayRecapStore = defineStore('dayRecap', () => {
   /** Local day (`YYYY-MM-DD`) the recap was last left on; null until the baseline is written. */
   const lastShownDay = ref<string | null>(null)
-  /** "Erledigte archivieren" on the recap page: on by default, remembers the last choice. */
-  const archiveDone = ref(true)
 
   /**
    * Ids the closing step ("Fertig", #292) archived since the recap was last left: the recap still looks back at them
@@ -133,16 +131,12 @@ export const useDayRecapStore = defineStore('dayRecap', () => {
     closedTaskIds.value = [...new Set([...validClosedTaskIds.value, ...ids])].slice(-500)
   }
 
-  function setArchiveDone(value: boolean): void {
-    archiveDone.value = value
-  }
-
   return {
-    lastShownDay, archiveDone, closedTaskIds, validClosedTaskIds, validLastShownDay, markShown, rememberClosed, setArchiveDone,
+    lastShownDay, closedTaskIds, validClosedTaskIds, validLastShownDay, markShown, rememberClosed,
     lastNewDay, sentBack, noticeClosedDay, timeOffer, validLastNewDay, validSentBack, validNoticeClosedDay, validTimeOffer, markNewDay, closeNotice, offerTime, resolveTimeOffer,
   }
 }, {
-  persist: { key: 'day-recap-store', pick: ['lastShownDay', 'archiveDone', 'closedTaskIds', 'lastNewDay', 'sentBack', 'noticeClosedDay', 'timeOffer'] },
+  persist: { key: 'day-recap-store', pick: ['lastShownDay', 'closedTaskIds', 'lastNewDay', 'sentBack', 'noticeClosedDay', 'timeOffer'] },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 } as any)
 

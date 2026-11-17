@@ -2,21 +2,21 @@
 @component NewDayRecap
 @kind block
 @category overlay
-@description "Kurzer Rückblick" (#385, #451, #44, #245): the recap on the first start of a new day, shown as a stage on the welcome photo, behind the app bar, instead of a dialog over the board. A still-open deck and a done deck like the board's Offen → Erledigt, and one submit panel with the switch "Erledigte archivieren" and the two ways out (#356, #387): "Tag planen" (primary: the fresh start, which takes yesterday's unfinished cards off the board, and the way to "Alle") and "Direkt zum Board" (leads to the board and keeps it as it is).
+@description "Kurzer Rückblick" (#385, #451, #44, #245, #428): the recap on the first start of a new day, shown as a stage on the welcome photo, behind the app bar, instead of a dialog over the board. The headline, the summary and the two decks (still open, done: Offen → Erledigt like the board) lie directly on the photo; only the controls sit on a sheet: "Tag neu planen" (primary: the fresh start, which takes yesterday's unfinished cards off the board and archives the done ones, and the way to "Alle") and "Überspringen und Board anzeigen" (leads to the board and keeps it as it is, archives nothing).
 @usage Mounted once in pages/tasks.vue next to DayCloseDialog; opened by useNewDayRecap().check() on mount.
-One centred paper sheet (max 44rem, like the welcome sheet) with both decks side by side from 768px, one deck with a switcher below. The page itself never scrolls; only the stage's scroll area may, on very short windows.
+One centred column (max 44rem) with both decks side by side from 768px, one deck with a switcher below; the controls sheet closes it. The page itself never scrolls; only the stage's scroll area may, on very short windows.
 @avoid Only the first start of a new day; closing the day is DayCloseDialog.
 @responsibility
-- Shell only: headline (the title, the theme's 18 px dialog title, kd#179), summary, decks (body), submit panel
+- Shell only: headline (the page title, SectionHeader `display`), summary, decks (body), controls sheet; no paper sheet around the content (#428). Text lies on the photo, so its tokens must hold AA there (rendered scan)
 - Not modal (#245), teleported to `#recap-stage-host` (app.vue) so the inert board does not take it along and the bar stays above it: a `role="region"` named by the headline, no scrim, no focus trap. The app bar stays usable and sits above the stage (`--z-bar`); the board is `inert` behind it (`pages/tasks.vue`). Going to settings and coming back finds the same recap, because the state lives in `useNewDayRecap`
-- Focus starts on "Tag planen"; both buttons and Escape inside the stage call `leave()`, which follows the switch (#44); "Tag planen" goes to "Alle" first and then starts the day fresh (`useNewDay().freshStart()`, #387: the only thing here that moves a card), "Direkt zum Board" goes to Heute when "Alle" shows and moves nothing, Escape only dismisses, never navigates and moves nothing; `finishLeave()` after the curtain hands focus to the board
+- Focus starts on "Tag neu planen"; both buttons and Escape inside the stage call `leave()`: "Tag neu planen" goes to "Alle" first and then starts the day fresh (`useNewDay().freshStart()`, #387: the only thing here that moves a card) and archives yesterday's done tasks (`leave({ archive: true })`), "Überspringen und Board anzeigen" goes to Heute when "Alle" shows and moves and archives nothing (the done tasks stay in Erledigt under the "Gestern erledigt" note, whose "Gesehen" hides them), Escape only dismisses, never navigates, moves and archives nothing; `finishLeave()` after the curtain hands focus to the board
+- The app bar follows the open state (#428): while the recap is open its pill is Rückblick + Statistik (useAppNav), and leaving it turns Rückblick into Alle + Heute. Neither button marks "planning from the recap" any more (no "Weiter zum Board" pill)
 - Open as the page mounts (an app start, or back from another page, #427): `pages/tasks.vue` runs the day check in setup and hides the board (`data-recap-cover`) until the recap is left, and the stage takes `instant` (no fade-in), so the board is never seen before it
-- Curtain (assets/css/recap-stage.css): `leave()` runs at once (archive, marker, the board is live), the stage stays mounted while the sheet fades (200 ms) and only the photo slides up (700 ms, ease in-out) with a feathered edge; reduced motion: instant. A second click or Escape during the curtain does nothing
+- Curtain (assets/css/recap-stage.css): `leave()` runs at once (archive, marker, the board is live), the stage stays mounted while the content fades (200 ms) and only the photo slides up (700 ms, ease in-out) with a feathered edge; reduced motion: instant. A second click or Escape during the curtain does nothing
 - The photo is the welcome page's (`public/welcome`), decoration only (`alt=""`); until it loads, or if it fails, the layer is the paper colour
 - Phone switcher ("n noch offen" / "n erledigt", a `UTabs` pill: `role="tab"`, `aria-selected`): one RecapDeck mounted at a time, starts on "noch offen" (on "erledigt" when nothing is open, then without a switcher)
 - The decks never change size (RecapDeck), so nothing moves while they are looked at
-- The switch writes `day-recap-store.archiveDone` at once
-- Submit panel: switch left and the buttons right in a container query (`@md`), stacked when narrow with "Tag planen" above "Direkt zum Board"
+- Controls sheet: the two buttons right in a container query (`@md`), stacked and full width when narrow with "Tag neu planen" above "Überspringen und Board anzeigen"; default button size on both (One Height Rule, #424), no width override beyond the stacked full width
 -->
 <template>
   <!-- Outside the inert board (<main> in pages/tasks.vue), in app.vue's host: the same stacking context as the app bar, so the bar paints above the photo (#262) -->
@@ -31,7 +31,7 @@ One centred paper sheet (max 44rem, like the welcome sheet) with both decks side
       :inert="closing || undefined"
       data-testid="new-day-recap"
       data-window-drag-layer
-      @keydown.esc="leaveOnce"
+      @keydown.esc="leaveOnce()"
     >
       <!-- Atmosphere only; the layer is the paper colour until the photo has loaded (or if it never does) -->
       <div class="recap-stage__photo bg-page" aria-hidden="true">
@@ -48,10 +48,10 @@ One centred paper sheet (max 44rem, like the welcome sheet) with both decks side
         >
       </div>
       <div class="recap-stage__scroll">
-        <div class="recap-stage__sheet">
-          <div class="mb-5 text-center">
-            <h2 :id="titleId" class="text-lg font-semibold text-highlighted" data-slot="title">{{ t('recap.title') }}</h2>
-            <p class="mt-1 text-body text-toned" data-testid="recap-summary">{{ summary }}</p>
+        <div class="recap-stage__content">
+          <div class="text-center">
+            <SectionHeader :id="titleId" tag="h2" size="display" data-slot="title">{{ t('recap.title') }}</SectionHeader>
+            <p class="mt-2 text-base text-toned" data-testid="recap-summary">{{ summary }}</p>
           </div>
           <div v-if="snapshot">
             <!-- Phones: one deck at a time. Nothing open: only the done deck, no switcher -->
@@ -82,42 +82,28 @@ One centred paper sheet (max 44rem, like the welcome sheet) with both decks side
               />
             </div>
           </div>
-          <!-- Submit panel: switch left, button right; stacked when the panel is narrow -->
-          <div class="mt-6 border-t border-default pt-4">
-            <div class="@container w-full">
-              <div class="flex flex-col gap-4 @md:flex-row @md:items-center @md:justify-between">
-                <USwitch
-                  v-model="archiveDone"
-                  color="neutral"
-                  size="lg"
-                  :label="t('recap.archiveToggle')"
-                  data-testid="recap-archive-toggle"
-                />
-                <!-- Two ways out (#356): planning first; in a column the primary button is on top -->
-                <div class="flex flex-col-reverse gap-2 @md:flex-row @md:items-center">
-                  <UButton
-                    size="lg"
-                    color="neutral"
-                    variant="ghost"
-                    class="w-full justify-center @md:w-auto"
-                    data-testid="recap-continue"
-                    @click="leaveToToday"
-                  >
-                    {{ t('recap.continue') }}
-                  </UButton>
-                  <UButton
-                    size="lg"
-                    color="primary"
-                    :trailing-icon="ICONS.goOn"
-                    class="w-full justify-center @md:w-auto"
-                    data-recap-primary
-                    data-testid="recap-plan"
-                    @click="leaveToPlan"
-                  >
-                    {{ t('recap.plan') }}
-                  </UButton>
-                </div>
-              </div>
+          <!-- The only sheet (#428): the two ways out; stacked when narrow, in a column the primary button is on top -->
+          <div class="recap-stage__controls @container" data-testid="recap-controls">
+            <div class="flex flex-col-reverse gap-2 @md:flex-row @md:items-center @md:justify-end">
+              <UButton
+                color="neutral"
+                variant="ghost"
+                class="w-full justify-center @md:w-auto"
+                data-testid="recap-continue"
+                @click="leaveToToday"
+              >
+                {{ t('recap.continue') }}
+              </UButton>
+              <UButton
+                color="primary"
+                :trailing-icon="ICONS.goOn"
+                class="w-full justify-center @md:w-auto"
+                data-recap-primary
+                data-testid="recap-plan"
+                @click="leaveToPlan"
+              >
+                {{ t('recap.plan') }}
+              </UButton>
             </div>
           </div>
         </div>
@@ -131,13 +117,12 @@ import { ICONS } from '~/lib/icons'
 import { computed, nextTick, onBeforeUnmount, ref, useId, watch, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
 import RecapDeck from '~/components/recap/RecapDeck.vue'
+import SectionHeader from '~/components/ui/SectionHeader.vue'
 import { navigateTo } from 'nuxt/app'
 import { useNewDayRecap } from '~/composables/useNewDayRecap'
 import { useNewDay } from '~/composables/useNewDay'
 import { useBoardPlace } from '~/composables/useBoardPlace'
 import { boardPlaceLocation } from '~/lib/boardPlace'
-import { markPlanningFromRecap } from '~/composables/usePlanningFromRecap'
-import { useDayRecapStore } from '~/store/dayRecap'
 import { useLocaleFormat } from '~/composables/useLocaleFormat'
 import { useIsDesktop } from '~/composables/useIsDesktop'
 import { dayMonthName } from '~/utils/recapDay'
@@ -153,14 +138,7 @@ const { locale } = useLocaleFormat()
 const { isOpen, snapshot, leave, finishLeave } = useNewDayRecap()
 // Resolved in setup: the fresh start needs the Nuxt-bound move path
 const { freshStart } = useNewDay()
-const recapStore = useDayRecapStore()
 const { isAll } = useBoardPlace()
-
-/** The switch writes straight to the store, so the choice survives a reload and the next recap. */
-const archiveDone = computed({
-  get: () => recapStore.archiveDone,
-  set: (value: boolean) => recapStore.setArchiveDone(value),
-})
 
 /** Phone switcher: the user's pick; with nothing open the done deck is the only one. Reset on every open. */
 const pickedKind = ref<'undone' | 'done'>('undone')
@@ -194,7 +172,7 @@ const summary = computed(() => {
 })
 
 /**
- * Focus starts on "Tag planen". The stage may not be in the DOM yet: opened as the page mounts (#427) it is teleported
+ * Focus starts on "Tag neu planen". The stage may not be in the DOM yet: opened as the page mounts (#427) it is teleported
  * only once the host is there, a few frames after this runs, so it looks again on each frame (up to a second).
  */
 function focusPrimary(framesLeft = 60) {
@@ -238,31 +216,30 @@ function finishCurtain() {
 }
 
 /**
- * "Tag planen" (#356, #387): the board goes to "Alle" first (the same page, so it is there before the photo moves),
- * the recap is left, and the day starts fresh: yesterday's unfinished cards leave the board for "Meine Aufgaben". The
- * recap's own decks are a snapshot and do not change under the curtain.
+ * "Tag neu planen" (#356, #387, #428): the board goes to "Alle" first (the same page, so it is there before the photo moves),
+ * the recap is left with yesterday's done tasks archived, and the day starts fresh: yesterday's unfinished cards leave the
+ * board for "Meine Aufgaben". The recap's own decks are a snapshot and do not change under the curtain.
  */
 function leaveToPlan() {
   if (closing.value || !isOpen.value) return
-  markPlanningFromRecap()
   void navigateTo(boardPlaceLocation('all'))
-  leaveOnce()
+  leaveOnce({ archive: true })
   // Left (not: nothing to leave): the user's click is the fresh start
   if (!isOpen.value) freshStart()
 }
 
-/** "Direkt zum Board" (#356, #387): the board as it is, nothing moves; from "Alle" that is a move to Heute. */
+/** "Überspringen und Board anzeigen" (#356, #387, #428): the board as it is, nothing moves or is archived; from "Alle" that is a move to Heute. */
 function leaveToToday() {
   if (closing.value || !isOpen.value) return
   if (isAll.value) void navigateTo(boardPlaceLocation('today'))
   leaveOnce()
 }
 
-/** Both buttons and Escape: close the recap at once (archive, marker, live board), then let the curtain play. Not repeatable. */
-function leaveOnce() {
+/** Both buttons and Escape: close the recap at once (marker, live board; the archive only for the planning), then let the curtain play. Not repeatable. */
+function leaveOnce(options: { archive?: boolean } = {}) {
   if (closing.value || !isOpen.value) return
   const stage = document.querySelector<HTMLElement>('[data-testid="new-day-recap"]')
-  leave()
+  leave(options)
   if (isOpen.value) return // nothing to leave (no snapshot)
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   if (!stage || reduced) {

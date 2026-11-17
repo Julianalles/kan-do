@@ -1,10 +1,18 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { reactive, ref } from 'vue'
 
+import { markPlanningFromRecap, clearPlanningFromRecap } from '~/composables/usePlanningFromRecap'
 import { placeOfPath, thirdItemOfPath, useAppNav } from '~/composables/useAppNav'
 
 const route = reactive<{ path: string; meta: Record<string, unknown> }>({ path: '/tasks', meta: {} })
 // The bar reads the live router route (#507); Nuxt's lagging `useRoute()` is a trap and throws here
+// The recap's open flag is the one input taken from it (#428)
+const recapFlag = vi.hoisted(() => ({ ref: null as unknown as { value: boolean } }))
+vi.mock('~/composables/useNewDayRecap', async () => {
+  const { ref: vueRef } = await import('vue')
+  recapFlag.ref = vueRef(false)
+  return { recapOpen: recapFlag.ref }
+})
 vi.mock('nuxt/app', () => ({
   useRouter: () => ({ currentRoute: ref(route) }),
   useRoute: () => { throw new Error('useAppNav must read router.currentRoute, not the lagging useRoute()') },
@@ -56,6 +64,42 @@ describe('useAppNav', () => {
   beforeEach(() => {
     route.path = '/tasks'
     route.meta = {}
+    recapFlag.ref.value = false
+    clearPlanningFromRecap()
+  })
+
+  it('selectedPlace is "recap" on the board page while the recap is open, the route\'s place elsewhere (#428)', () => {
+    const nav = useAppNav()
+    expect(nav.selectedPlace.value).toBe('board')
+    recapFlag.ref.value = true
+    expect(nav.recapShown.value).toBe(true)
+    expect(nav.selectedPlace.value).toBe('recap')
+    route.path = '/all'
+    expect(nav.selectedPlace.value).toBe('recap')
+    route.path = '/statistics'
+    expect(nav.selectedPlace.value).toBe('statistics')
+    route.path = '/trash'
+    expect(nav.selectedPlace.value).toBe('more')
+  })
+
+  it('no recap on a route without bar (#428)', () => {
+    recapFlag.ref.value = true
+    route.meta = { appNav: false }
+    const nav = useAppNav()
+    expect(nav.recapShown.value).toBe(false)
+    expect(nav.selectedPlace.value).toBeNull()
+  })
+
+  it('continuesToBoard needs Alle, the notice mark and a closed recap (#428)', () => {
+    const nav = useAppNav()
+    route.path = '/all'
+    markPlanningFromRecap()
+    expect(nav.continuesToBoard.value).toBe(true)
+    recapFlag.ref.value = true
+    expect(nav.continuesToBoard.value).toBe(false)
+    recapFlag.ref.value = false
+    route.path = '/tasks'
+    expect(nav.continuesToBoard.value).toBe(false)
   })
 
   it('selects the place of the route and flags the board', () => {

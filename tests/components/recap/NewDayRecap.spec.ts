@@ -35,12 +35,6 @@ function setDesktop(matches: boolean) {
 
 const stubs = {
   TaskCard: { props: ['task'], template: '<div class="task-card">{{ task.title }}</div>' },
-  USwitch: {
-    inheritAttrs: false,
-    props: ['modelValue', 'label', 'size', 'color'],
-    emits: ['update:modelValue'],
-    template: '<label><input type="checkbox" role="switch" :checked="modelValue" v-bind="$attrs" @change="$emit(\'update:modelValue\', $event.target.checked)" />{{ label }}</label>',
-  },
   UTabs: {
     inheritAttrs: false,
     props: ['modelValue', 'items', 'content', 'variant', 'ui'],
@@ -141,7 +135,7 @@ describe('NewDayRecap', () => {
     const decks = [...document.querySelectorAll('[data-testid^="recap-deck-"][role="group"]')]
     expect(decks.map(el => el.getAttribute('data-testid'))).toEqual(['recap-deck-undone', 'recap-deck-done'])
     const labels = [...document.querySelectorAll('[data-testid="recap-deck-label"]')]
-    expect(labels.map(el => el.tagName)).toEqual(['H2', 'H2'])
+    expect(labels.map(el => el.tagName)).toEqual(['H3', 'H3'])
     expect(labels.map(el => el.textContent?.trim())).toEqual(['2 noch offen', '2 erledigt'])
     for (const [i, deck] of decks.entries()) {
       // heading before the deck in the same group, so it reads and renders above the cards
@@ -294,7 +288,6 @@ describe('NewDayRecap', () => {
     expect(counterOf('undone')).toBe('2 / 2')
     expect(counterOf('done')).toBe('1 / 2')
 
-    useDayRecapStore().setArchiveDone(false)
     q('[data-testid="recap-continue"]').click()
     await vi.advanceTimersByTimeAsync(400)
     expect(page()).toBeNull()
@@ -313,40 +306,34 @@ describe('NewDayRecap', () => {
     expect(window.location.href).toBe(before)
   })
 
-  it('the switch writes the store at once', async () => {
+  it('there is no archive switch any more (#428)', async () => {
     await open([doneAt(1, 'a')])
-    const input = q<HTMLInputElement>('[data-testid="recap-archive-toggle"]')
-    expect(input.checked).toBe(true)
-    input.checked = false
-    input.dispatchEvent(new Event('change'))
-    await nextTick()
-    expect(useDayRecapStore().archiveDone).toBe(false)
+    expect(document.querySelector('[data-testid="recap-archive-toggle"]')).toBeNull()
+    expect(document.querySelector('[role="switch"]')).toBeNull()
   })
 
-  it('the button archives with the switch on', async () => {
+  it('"Tag neu planen" archives the done tasks without a toast', async () => {
     await open([doneAt(1, 'a'), task('o', TaskStatus.Open)])
-    q('[data-testid="recap-continue"]').click()
+    q('[data-testid="recap-plan"]').click()
     await nextTick()
     expect(useTasksStore().archivedTaskIds).toEqual(['a'])
     expect(toastAddMock).not.toHaveBeenCalled()
     expect(useNewDayRecap().isOpen.value).toBe(false)
   })
 
+  it('"Überspringen und Board anzeigen" archives nothing: the done tasks stay for the "Gestern erledigt" note (#428)', async () => {
+    await open([doneAt(1, 'a'), task('o', TaskStatus.Open)])
+    q('[data-testid="recap-continue"]').click()
+    await nextTick()
+    expect(useTasksStore().archivedTaskIds).toEqual([])
+    expect(toastAddMock).not.toHaveBeenCalled()
+    expect(useNewDayRecap().isOpen.value).toBe(false)
+  })
+
   const pressEscape = () => q('[data-testid="recap-continue"]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
 
-  it('Escape in the stage does what the button does: archives when the switch is on, nothing when it is off', async () => {
+  it('Escape in the stage dismisses like the skip: nothing is archived', async () => {
     await open([doneAt(1, 'a')])
-    pressEscape()
-    await nextTick()
-    expect(useTasksStore().archivedTaskIds).toEqual(['a'])
-
-    wrapper?.unmount()
-    resetNewDayRecap()
-    setActivePinia(createPinia())
-    document.body.innerHTML = '<div id="recap-stage-host"></div>'
-    toastAddMock.mockClear()
-    await open([doneAt(1, 'a')])
-    useDayRecapStore().setArchiveDone(false)
     pressEscape()
     await nextTick()
     expect(useTasksStore().archivedTaskIds).toEqual([])
@@ -362,15 +349,15 @@ describe('NewDayRecap', () => {
     })
     afterEach(() => setCurrentBoardPath('/tasks'))
 
-    it('shows "Tag planen" as the primary button and "Direkt zum Board" beside it', async () => {
+    it('shows "Tag neu planen" as the primary button and "Überspringen und Board anzeigen" beside it', async () => {
       await open([doneAt(1, 'a')])
-      expect(q('[data-testid="recap-plan"]').textContent?.trim()).toBe('Tag planen')
+      expect(q('[data-testid="recap-plan"]').textContent?.trim()).toBe('Tag neu planen')
       expect(q('[data-testid="recap-plan"]').hasAttribute('data-recap-primary')).toBe(true)
-      expect(q('[data-testid="recap-continue"]').textContent?.trim()).toBe('Direkt zum Board')
+      expect(q('[data-testid="recap-continue"]').textContent?.trim()).toBe('Überspringen und Board anzeigen')
       setTestLocale('en')
       await nextTick()
-      expect(q('[data-testid="recap-plan"]').textContent?.trim()).toBe('Plan the day')
-      expect(q('[data-testid="recap-continue"]').textContent?.trim()).toBe('Straight to the board')
+      expect(q('[data-testid="recap-plan"]').textContent?.trim()).toBe('Replan the day')
+      expect(q('[data-testid="recap-continue"]').textContent?.trim()).toBe('Skip and show the board')
       setTestLocale('de')
     })
 
@@ -390,7 +377,7 @@ describe('NewDayRecap', () => {
       expect(freshStart).toHaveBeenCalledTimes(1)
     })
 
-    it('"Direkt zum Board" leaves the recap, stays on Heute and starts nothing fresh: the board stays as it is', async () => {
+    it('"Überspringen und Board anzeigen" leaves the recap, stays on Heute and starts nothing fresh: the board stays as it is', async () => {
       await open([doneAt(1, 'a')])
       q('[data-testid="recap-continue"]').click()
       expect(navigateTo).not.toHaveBeenCalled()
@@ -398,7 +385,7 @@ describe('NewDayRecap', () => {
       expect(freshStart).not.toHaveBeenCalled()
     })
 
-    it('"Direkt zum Board" on "Alle" goes to Heute', async () => {
+    it('"Überspringen und Board anzeigen" on "Alle" goes to Heute', async () => {
       setCurrentBoardPath('/all')
       await open([doneAt(1, 'a')])
       q('[data-testid="recap-continue"]').click()
@@ -406,7 +393,7 @@ describe('NewDayRecap', () => {
       expect(useNewDayRecap().isOpen.value).toBe(false)
     })
 
-    it('Escape is "Direkt zum Board" without a move: it only dismisses, also on "Alle"', async () => {
+    it('Escape is "Überspringen und Board anzeigen" without a move: it only dismisses, also on "Alle"', async () => {
       setCurrentBoardPath('/all')
       await open([doneAt(1, 'a')])
       pressEscape()
@@ -450,7 +437,6 @@ describe('NewDayRecap', () => {
       q('[data-testid="recap-continue"]').click()
       await nextTick()
       expect(useNewDayRecap().isOpen.value).toBe(false)
-      expect(useTasksStore().archivedTaskIds).toEqual(['a'])
       expect(page()).not.toBeNull()
       expect(page()!.hasAttribute('data-closing')).toBe(true)
       expect(useNewDayRecap().snapshot.value).not.toBeNull()
@@ -483,11 +469,11 @@ describe('NewDayRecap', () => {
       await open([doneAt(1, 'a'), doneAt(1, 'b')])
       q('[data-testid="recap-continue"]').click()
       await nextTick()
-      useDayRecapStore().setArchiveDone(false)
-      q('[data-testid="recap-continue"]').click()
+      q('[data-testid="recap-plan"]').click()
       pressEscape()
       await nextTick()
-      expect(useTasksStore().archivedTaskIds).toEqual(['a', 'b'])
+      // the first click was the skip: the planning that comes second archives nothing
+      expect(useTasksStore().archivedTaskIds).toEqual([])
     })
 
     it('ends by its own timer when the transition never fires', async () => {
@@ -563,7 +549,6 @@ describe('NewDayRecap', () => {
 
     it('a reopened recap starts on "noch offen" again', async () => {
       await open([doneAt(1, 'a'), task('o', TaskStatus.Open)])
-      useDayRecapStore().setArchiveDone(false)
       tab('done').click()
       await nextTick()
       q('[data-testid="recap-continue"]').click()

@@ -908,7 +908,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Approved by the user on 2026-11-16 (#367) as the recap's button; the user's `npm run terms:approve` makes it decided. Since #387 it is the fresh start itself and also the notice's button (the same action gets the same name; the working name \"Frisch starten\" of #387 is not used, decision D1 d there). The second way out is \"Direkt zum Board\"."
+    "note": "Approved by the user on 2026-11-16 (#367) as the recap's button; the user's `npm run terms:approve` makes it decided. Since #387 it is the fresh start itself and also the notice's button (the same action gets the same name; the working name \"Frisch starten\" of #387 is not used, decision D1 d there). The second way out is \"Direkt zum Board\". Since #428 the recap's button reads \"Tag neu planen\" (entry replan-the-day); the notice's button keeps \"Tag planen\"."
   },
   {
     "id": "straight-to-board",
@@ -918,7 +918,37 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "The user's own wording of 2026-11-16 (#367; the user's `npm run terms:approve` makes it decided); it replaces the proposed \"Direkt zu Heute\" / \"Straight to Today\" (entry straight-to-today). Also what Escape does on the recap."
+    "note": "The user's own wording of 2026-11-16 (#367; the user's `npm run terms:approve` makes it decided); it replaces the proposed \"Direkt zu Heute\" / \"Straight to Today\" (entry straight-to-today). Also what Escape does on the recap. Since #428 the recap's secondary button reads \"Überspringen und Board anzeigen\" (entry skip-and-show-board); this entry stays for the history of the wording."
+  },
+  {
+    "id": "replan-the-day",
+    "concept": "The recap's primary button (#428): the fresh start of the new day, which archives yesterday's done tasks, takes the unfinished ones off the board and leads to \"Alle\"",
+    "de": "Tag neu planen",
+    "en": "Replan the day",
+    "avoidDe": [],
+    "avoidEn": [],
+    "status": "proposed",
+    "note": "The user's own German wording of 2026-11-17 (#428), English by the copy-writer skill; the user's `npm run terms:approve` makes it decided. It replaces \"Tag planen\" on the recap only (entry plan-the-day, which the notice still uses)."
+  },
+  {
+    "id": "skip-and-show-board",
+    "concept": "The recap's secondary button (#428): skips planning, leads to the board and keeps it as it is; archives nothing",
+    "de": "Überspringen und Board anzeigen",
+    "en": "Skip and show the board",
+    "avoidDe": [],
+    "avoidEn": [],
+    "status": "proposed",
+    "note": "The user's own German wording of 2026-11-17 (#428), English by the copy-writer skill; the user's `npm run terms:approve` makes it decided. It replaces \"Direkt zum Board\" (entry straight-to-board). Escape on the recap dismisses without a move, as before."
+  },
+  {
+    "id": "nav-recap",
+    "concept": "The app bar's segment while the new-day recap is open (#428): it stands in for Alle and Heute and turns into them when the recap is left",
+    "de": "Rückblick",
+    "en": "Look back",
+    "avoidDe": [],
+    "avoidEn": [],
+    "status": "proposed",
+    "note": "nav.recap. The short form of the recap's headline (entry recap: \"Kurzer Rückblick\" / \"Quick look back\"); the user's mockup of 2026-11-17 (#428) shows \"Rückblick\". English \"Look back\" because the recap entry avoids \"recap\"."
   },
   {
     "id": "planned-yesterday",

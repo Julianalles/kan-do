@@ -2,16 +2,14 @@
   - heading "Kurzer Rückblick" [level=2]
   - paragraph: Du hast gestern 4 von 6 Aufgaben erledigt.
   - region "2 noch offen":
-    - heading "2 noch offen" [level=2]
+    - heading "2 noch offen" [level=3]
     - group "2 noch offen, mit Pfeiltasten wechseln"
     - button "Vorherige Aufgabe"
     - button "Nächste Aufgabe"
   - region "4 erledigt":
-    - heading "4 erledigt" [level=2]
+    - heading "4 erledigt" [level=3]
     - group "4 erledigt, mit Pfeiltasten wechseln"
     - button "Vorherige Aufgabe"
     - button "Nächste Aufgabe"
-  - switch "Erledigte archivieren" [checked]
-  - text: Erledigte archivieren
-  - button "Direkt zum Board"
-  - button "Tag planen"
+  - button "Überspringen und Board anzeigen"
+  - button "Tag neu planen"

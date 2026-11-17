@@ -12,18 +12,17 @@ import {
 
 const recap = (page: Page) => page.getByTestId('new-day-recap')
 const summary = (page: Page) => page.getByTestId('recap-summary')
-/** "Direkt zum Board": leaves to the board, as the single button did before #356 */
+/** "Überspringen und Board anzeigen": leaves to the board and keeps it as it is (#428) */
 const continueButton = (page: Page) => page.getByTestId('recap-continue')
-/** "Tag planen" (#356): the primary way out, leads to "Alle" */
+/** "Tag neu planen" (#356, #428): the primary way out, leads to "Alle" */
 const planButton = (page: Page) => page.getByTestId('recap-plan')
-const archiveSwitch = (page: Page) => page.getByTestId('recap-archive-toggle')
-/** The footer panel (container) that holds the switch and the button. */
-const panelOf = (page: Page) => archiveSwitch(page).locator('xpath=ancestor::div[contains(@class,"@container")][1]')
+/** The controls sheet (#428) that holds the two buttons. */
+const panelOf = (page: Page) => page.getByTestId('recap-controls')
 const switcher = (page: Page, kind: 'done' | 'undone') => page.getByTestId('recap-switcher').getByRole('tab').nth(kind === 'undone' ? 0 : 1)
 const board = (page: Page) => page.locator('main[data-task-sheet-return]')
 const doneColumn = (page: Page) => page.locator('#column-done')
 const marker = (page: Page) =>
-  page.evaluate(() => JSON.parse(localStorage.getItem('day-recap-store') ?? 'null') as { lastShownDay: string, archiveDone: boolean } | null)
+  page.evaluate(() => JSON.parse(localStorage.getItem('day-recap-store') ?? 'null') as { lastShownDay: string } | null)
 const archived = (page: Page) =>
   page.evaluate(() => (JSON.parse(localStorage.getItem('tasks-store') ?? '{}') as { archivedTaskIds?: string[] }).archivedTaskIds ?? [])
 
@@ -191,17 +190,19 @@ test.describe('New-day recap (#385)', () => {
     expect(await waiting.evaluate(el => getComputedStyle(el).filter)).toBe('none')
   })
 
-  test('switch on: "Weiter zum Board" archives without a toast and does not reopen', async ({ page, context }) => {
+  test('"Tag neu planen" archives the done tasks without a toast and the recap does not reopen', async ({ page, context }) => {
     await seedNewDayBoard(context)
     await page.goto('/tasks')
-    await expect(archiveSwitch(page)).toBeChecked()
+    await expect(recap(page)).toBeVisible()
+    // No archive switch any more (#428)
+    await expect(page.getByTestId('recap-archive-toggle')).toHaveCount(0)
 
-    await continueButton(page).click()
+    await planButton(page).click()
     await expect(recap(page)).toBeHidden()
     await expect.poll(() => archived(page)).toHaveLength(4)
     await expectNoArchiveToast(page)
-    await expect(doneColumn(page).getByTestId('yesterday-ack')).toHaveCount(0)
     await expect.poll(async () => (await marker(page))?.lastShownDay).toBe(dayKeyDaysAgo(0))
+    expect(await page.evaluate(() => JSON.parse(localStorage.getItem('day-recap-store') ?? '{}'))).not.toHaveProperty('archiveDone')
 
     // Sequence: a reload the same day neither reopens the recap nor brings the tasks back
     await page.reload()
@@ -211,53 +212,79 @@ test.describe('New-day recap (#385)', () => {
     expect(await archived(page)).toHaveLength(4)
   })
 
-  test('switch off: the board stays as it is, no toast; the choice survives a reload and the next recap', async ({ page, context }) => {
+  test('"Überspringen und Board anzeigen" archives nothing: the done tasks wait under the "Gestern erledigt" note, and "Gesehen" hides them in one click (#428)', async ({ page, context }) => {
     await seedNewDayBoard(context)
     await page.goto('/tasks')
 
-    await archiveSwitch(page).uncheck()
-    await expect.poll(async () => (await marker(page))?.archiveDone).toBe(false)
     await continueButton(page).click()
     await expect(recap(page)).toBeHidden()
     await expectNoArchiveToast(page)
     expect(await archived(page)).toEqual([])
     await expect(doneColumn(page).getByTestId('yesterday-ack')).toBeVisible()
+    await expect.poll(async () => (await marker(page))?.lastShownDay).toBe(dayKeyDaysAgo(0))
 
-    // Sequence: reload the same day (no recap), then a later day (recap again, switch still off)
+    // Sequence: a reload the same day (no recap), the note is still there; one click archives all four
     await page.reload()
     await expect(board(page)).toBeVisible()
     await expect(recap(page)).toHaveCount(0)
-
-    await page.evaluate((key) => {
-      const state = JSON.parse(localStorage.getItem('day-recap-store') as string)
-      localStorage.setItem('day-recap-store', JSON.stringify({ ...state, lastShownDay: key }))
-    }, dayKeyDaysAgo(1))
-    // Reload on purpose (#512): a later day is a persisted marker change, the recap must open on the next load
-    await page.reload()
-    await expect(recap(page)).toBeVisible()
-    await expect(archiveSwitch(page)).not.toBeChecked()
+    await doneColumn(page).getByTestId('yesterday-ack').click()
+    await expect.poll(() => archived(page)).toHaveLength(4)
+    await expect(doneColumn(page).getByTestId('yesterday-ack')).toHaveCount(0)
   })
 
-  test('Escape follows the switch: archives when on, does nothing when off', async ({ page, context }) => {
+  test('Escape dismisses without archiving and focus goes to the board region, never <body>', async ({ page, context }) => {
     await seedNewDayBoard(context)
     await page.goto('/tasks')
     await expect(recap(page)).toBeVisible()
     await page.keyboard.press('Escape')
     await expect(recap(page)).toBeHidden()
-    await expect.poll(() => archived(page)).toHaveLength(4)
+    expect(await archived(page)).toEqual([])
     await expectNoArchiveToast(page)
-    // Focus goes to the board region, never <body>
     await expect(board(page)).toBeFocused()
   })
 
-  test('Escape with the switch off leaves the board unchanged', async ({ page, context }) => {
-    await seedNewDayBoard(context, { archiveDone: false })
+  test('the app bar follows the recap (#428): Rückblick and Statistik while it is open, Alle and Heute once it is left', async ({ page, context }) => {
+    await seedNewDayBoard(context)
     await page.goto('/tasks')
-    await expect(archiveSwitch(page)).not.toBeChecked()
-    await page.keyboard.press('Escape')
+    await expect(recap(page)).toBeVisible()
+    const bar = appNav(page)
+    await expect(bar.getByTestId('app-nav-place-recap')).toHaveText('Rückblick')
+    await expect(bar.getByTestId('app-nav-place-recap')).toHaveAttribute('aria-current', 'page')
+    await expect(bar.getByTestId('app-nav-place-all')).toHaveCount(0)
+    await expect(bar.getByTestId('app-nav-place-board')).toHaveCount(0)
+    await expect(bar.getByTestId('app-nav-continue')).toHaveCount(0)
+    await expect(bar.getByTestId('app-nav-place-statistics')).toBeVisible()
+
+    // Statistik is a place of its own: Statistik is current, Rückblick leads back to the same open recap
+    await goToPlace(page, 'Statistik')
+    await expect(bar.getByTestId('app-nav-place-statistics')).toHaveAttribute('aria-current', 'page')
+    await expect(bar.getByTestId('app-nav-place-recap')).not.toHaveAttribute('aria-current', 'page')
+    await expect(bar.getByTestId('app-nav-place-board')).toHaveCount(0)
+    await bar.getByTestId('app-nav-place-recap').click()
+    await expect(page).toHaveURL(/\/tasks$/)
+    await expect(recap(page)).toBeVisible()
+    await expect(bar.getByTestId('app-nav-place-recap')).toHaveAttribute('aria-current', 'page')
+
+    // Leaving: Rückblick turns into Alle + Heute (Heute current, the skip stays on the board); the chip and the move settle
+    await continueButton(page).click()
     await expect(recap(page)).toBeHidden()
-    expect(await archived(page)).toEqual([])
-    await expectNoArchiveToast(page)
+    await expect(bar.getByTestId('app-nav-place-recap')).toHaveCount(0)
+    await expect(bar.getByTestId('app-nav-place-all')).toBeVisible()
+    await expect(bar.getByTestId('app-nav-place-board')).toHaveAttribute('aria-current', 'page')
+    await expect(bar).not.toHaveAttribute('data-moving', 'true')
+  })
+
+  test('"Tag neu planen" turns Rückblick into Alle + Heute with Alle current, and the pill is not the "Weiter zum Board" link (#428)', async ({ page, context }) => {
+    await seedNewDayBoard(context)
+    await page.goto('/tasks')
+    await planButton(page).click()
+    await expect(page).toHaveURL(/\/all$/)
+    const bar = appNav(page)
+    await expect(bar.getByTestId('app-nav-place-all')).toHaveAttribute('aria-current', 'page')
+    await expect(bar.getByTestId('app-nav-place-board')).toBeVisible()
+    await expect(bar.getByTestId('app-nav-place-recap')).toHaveCount(0)
+    await expect(bar.getByTestId('app-nav-continue')).toHaveCount(0)
+    await expect(bar).not.toHaveAttribute('data-moving', 'true')
   })
 
   test('a reload the same day does not open it again', async ({ page, context }) => {
@@ -322,32 +349,33 @@ test.describe('New-day recap (#385)', () => {
     expect(hUndone.y + hUndone.height).toBeLessThanOrEqual(undone.y)
     expect(hDone.y + hDone.height).toBeLessThanOrEqual(done.y)
     expect(Math.abs(hUndone.y - hDone.y)).toBeLessThan(1)
-    // headline and sentence above both, the submit panel below both
+    // headline and sentence above both, the controls sheet below both
     const head = (await summary(page).boundingBox())!
-    const panel = (await archiveSwitch(page).boundingBox())!
+    const panel = (await panelOf(page).boundingBox())!
     expect(head.y + head.height).toBeLessThanOrEqual(hUndone.y)
     expect(panel.y).toBeGreaterThanOrEqual(Math.max(undone.y + undone.height, done.y + done.height))
   })
 
-  test('the submit panel groups switch and button: side by side when wide, the arrow icon after the label', async ({ page, context }) => {
+  test('the controls sheet holds the two buttons on one line: skip left of "Tag neu planen", the arrow icon after the label (#428)', async ({ page, context }) => {
     await seedNewDayBoard(context)
     await page.goto('/tasks')
     const panel = panelOf(page)
     await expect(panel).toBeVisible()
-    await settleAnimations(page) // the modal scales in: boxes are measured at rest
+    await settleAnimations(page) // the stage fades in: boxes are measured at rest
     const panelBox = (await panel.boundingBox())!
-    const toggle = (await archiveSwitch(page).boundingBox())!
     const button = (await planButton(page).boundingBox())!
     const skip = (await continueButton(page).boundingBox())!
-    // "Direkt zum Board" left of "Tag planen" (#356), on one line
-    expect(toggle.x + toggle.width).toBeLessThan(skip.x)
+    // "Überspringen und Board anzeigen" left of "Tag neu planen" (#356), on one line, inside the sheet
+    expect(skip.x).toBeGreaterThanOrEqual(panelBox.x)
     expect(skip.x + skip.width).toBeLessThanOrEqual(button.x)
+    expect(button.x + button.width).toBeLessThanOrEqual(panelBox.x + panelBox.width)
     expect(Math.abs(skip.y + skip.height / 2 - (button.y + button.height / 2))).toBeLessThan(2)
-    // one row, both vertically centred in the panel
-    expect(Math.abs(toggle.y + toggle.height / 2 - (button.y + button.height / 2))).toBeLessThan(6)
+    // both vertically centred in the sheet
     expect(Math.abs(panelBox.y + panelBox.height / 2 - (button.y + button.height / 2))).toBeLessThan(2)
-    await expect(continueButton(page)).toHaveAccessibleName('Direkt zum Board')
-    await expect(planButton(page)).toHaveAccessibleName('Tag planen')
+    await expect(continueButton(page)).toHaveAccessibleName('Überspringen und Board anzeigen')
+    await expect(planButton(page)).toHaveAccessibleName('Tag neu planen')
+    // no paper sheet around the content: the headline sits on the photo, only the controls have a surface
+    await expect(page.locator('.recap-stage__sheet')).toHaveCount(0)
     // trailing: the icon is the last child of the button, after the label, and decorative
     const icon = planButton(page).locator('svg[data-slot="trailingIcon"]')
     await expect(icon).toHaveAttribute('aria-hidden', 'true')
@@ -451,11 +479,11 @@ test.describe('New-day recap (#385)', () => {
     await expect.poll(() => live.textContent()).toBe('2 von 4: Steuerunterlagen sortieren')
   })
 
-  test('tab order: deck, previous, next per deck, then the switch and the button; focus starts on the button, no trap (#245)', async ({ page, context }) => {
+  test('tab order: deck, previous, next per deck, then skip and the button; focus starts on the button, no trap (#245)', async ({ page, context }) => {
     await seedNewDayBoard(context)
     await page.goto('/tasks')
     await expect(planButton(page)).toBeFocused()
-    const order = ['recap-deck-undone', 'recap-prev-undone', 'recap-next-undone', 'recap-deck-done', 'recap-prev-done', 'recap-next-done', 'recap-archive-toggle', 'recap-continue', 'recap-plan']
+    const order = ['recap-deck-undone', 'recap-prev-undone', 'recap-next-undone', 'recap-deck-done', 'recap-prev-done', 'recap-next-done', 'recap-continue', 'recap-plan']
     const active = () => page.evaluate(() => document.activeElement?.getAttribute('data-testid') ?? document.activeElement?.closest('[data-testid]')?.getAttribute('data-testid'))
     // Backwards from the button through every stop in reverse
     for (const id of order.slice(0, -1).reverse()) {
@@ -581,7 +609,7 @@ test.describe('New-day recap (#385)', () => {
     await expect(page.getByTestId('recap-photo')).toHaveCSS('opacity', '1')
     const hit = await page.evaluate(() => {
       const at = (x: number, y: number) => document.elementFromPoint(x, y)?.closest('[data-testid="new-day-recap"], [data-testid="app-nav"]')?.getAttribute('data-testid') ?? null
-      const pill = document.querySelector('[data-testid="app-nav-place-board"]')!.getBoundingClientRect()
+      const pill = document.querySelector('[data-testid="app-nav-place-recap"]')!.getBoundingClientRect()
       return { row: at(8, 8), pill: at(pill.x + pill.width / 2, pill.y + pill.height / 2) }
     })
     // The stage reaches the window's top edge (the row above the photo was the page paper); the pills stay above it
@@ -590,8 +618,13 @@ test.describe('New-day recap (#385)', () => {
     await expect.poll(() => appNav(page).evaluate(el => getComputedStyle(el, '::before').opacity)).toBe('0')
     // The brand has no pill: it is read straight on the photo
     await expectContrast(page, appNav(page).locator('.app-nav-brand-text'), 4.5)
-    await expectContrast(page, page.getByTestId('app-nav-place-board'), 4.5)
+    await expectContrast(page, page.getByTestId('app-nav-place-recap'), 4.5)
     await expectContrast(page, page.getByTestId('app-nav-place-statistics'), 4.5)
+    // The headline, the summary and the deck labels lie on the photo, no sheet behind them (#428)
+    await expectContrast(page, recap(page).getByRole('heading', { name: 'Kurzer Rückblick' }), 4.5)
+    await expectContrast(page, summary(page), 4.5)
+    await expectContrast(page, page.getByTestId('recap-deck-label').first(), 4.5)
+    await expectContrast(page, page.getByTestId('recap-deck-label').last(), 4.5)
     // Back on the board the veil returns
     await continueButton(page).click()
     await expect(recap(page)).toHaveCount(0)
@@ -678,6 +711,9 @@ test.describe('New-day recap (#385)', () => {
       })
       expect(await noScroll()).toEqual({ page: true, pageX: true, body: true })
 
+      // The switcher lies on the photo (#428): both labels hold AA over it
+      await expectContrast(page, switcher(page, 'undone'), 4.5)
+      await expectContrast(page, switcher(page, 'done'), 4.5)
       // One deck, "noch offen" first; the switcher says how many are in each
       await expect(switcher(page, 'undone')).toHaveText('2 noch offen')
       await expect(switcher(page, 'done')).toHaveText('4 erledigt')
@@ -692,12 +728,12 @@ test.describe('New-day recap (#385)', () => {
       await expect(deck(page, 'undone')).toHaveCount(0)
       expect(await noScroll()).toEqual({ page: true, pageX: true, body: true })
 
-      // The panel stacks in the thumb zone: switch above, full-width button below, both in view
+      // The controls stack in the thumb zone: "Tag neu planen" on top, full-width skip below, both in view
       const button = continueButton(page)
       await expect(button).toBeInViewport({ ratio: 1 })
-      const toggleBox = (await archiveSwitch(page).boundingBox())!
+      const planBox = (await planButton(page).boundingBox())!
       const box = (await button.boundingBox())!
-      expect(toggleBox.y + toggleBox.height).toBeLessThanOrEqual(box.y)
+      expect(planBox.y + planBox.height).toBeLessThanOrEqual(box.y)
       expect(box.width).toBeGreaterThan(390 - 2 * 40)
       // the stage sits above the phone bar, which stays usable
       expect(box.y + box.height).toBeLessThan(844 - 72)
@@ -712,7 +748,7 @@ test.describe('New-day recap (#385)', () => {
       await expect(recap(page)).toBeHidden()
     })
 
-    test('a touch swipe on the deck advances it and never closes the recap (closing would archive the done tasks)', async ({ page, context }) => {
+    test('a touch swipe on the deck advances it and never closes the recap', async ({ page, context }) => {
       await seedNewDayBoard(context)
       await page.goto('/tasks')
       await expect(recap(page)).toBeVisible()
@@ -796,8 +832,8 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     // the recap looks at yesterday's board: Jetzt, both Offen cards and the Wartet card are "noch offen"
     await expect(summary(page)).toHaveText('Du hast gestern 4 von 8 Aufgaben erledigt.')
     await expect(planButton(page)).toBeFocused()
-    await expect(planButton(page)).toHaveText('Tag planen')
-    await expect(continueButton(page)).toHaveText('Direkt zum Board')
+    await expect(planButton(page)).toHaveText('Tag neu planen')
+    await expect(continueButton(page)).toHaveText('Überspringen und Board anzeigen')
     // the app did nothing by itself: behind the recap the board is as it was left
     await expectBoardUntouched(page)
     expect((await storedRecap(page)).lastNewDay).toBe(dayKeyDaysAgo(2))
@@ -805,9 +841,9 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await planButton(page).click()
     await expect(page).toHaveURL(/\/all$/)
     await settled(page)
-    // #416: coming from the recap, the app bar's one way on is the green "Weiter zum Board", without an arrow icon
-    await expect(appNav(page).locator('.app-nav-place')).toHaveText(['Weiter zum Board'])
-    await expect(page.getByTestId('app-nav-continue').locator('svg, .iconify')).toHaveCount(0)
+    // #428: coming from the recap the pill is the normal one, Rückblick has turned into Alle + Heute and Alle is current
+    await expect(appNav(page).locator('.app-nav-place')).toHaveText(['Alle', 'Heute', 'Statistik'])
+    await expect(page.getByTestId('app-nav-continue')).toHaveCount(0)
     await expect(page.getByRole('heading', { level: 3, name: 'Gestern geplant, noch offen' })).toBeVisible()
     await expect(page.getByRole('heading', { level: 3, name: 'Zuletzt in Wartet' })).toBeVisible()
     await expect(page.getByRole('heading', { level: 3, name: 'Weitere Aufgaben' })).toBeVisible()
@@ -1303,7 +1339,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
   test.describe('390px', () => {
     test.use({ viewport: { width: 390, height: 844 }, hasTouch: true })
 
-    test('the buttons of the recap stack with "Tag planen" on top; the notice stacks its actions below the text, 44 px high, and its button starts the day fresh', async ({ page, context }) => {
+    test('the buttons of the recap stack with "Tag neu planen" on top; the notice stacks its actions below the text, 44 px high, and its button starts the day fresh', async ({ page, context }) => {
       await seedNewDayBoard(context, { tasks: newDayBackTasks() })
       await page.goto('/tasks')
       const plan = (await planButton(page).boundingBox())!

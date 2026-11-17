@@ -1,9 +1,10 @@
 /**
- * New-day recap stage (#245): the welcome photo plus one paper sheet, fixed over the whole window; the sheet sits below
- * the app bar row (the padding takes its height), the photo runs behind it (#262: no paper band above the photo, and the
+ * New-day recap stage (#245, #428): the welcome photo, fixed over the whole window, with the headline, the summary and the
+ * two decks lying directly on it and one paper sheet for the controls only; the content sits below the app bar row (the
+ * padding takes its height), the photo runs behind it (#262: no paper band above the photo, and the
  * bar's paper veil steps back while the stage is mounted, bottom of this file).
  * Not modal: the app bar (z-bar) paints above it, the board stays inert behind it (pages/tasks.vue).
- * Curtain on close: only the photo layer lifts (700 ms, ease in-out) with a feathered bottom edge; the sheet fades
+ * Curtain on close: only the photo layer lifts (700 ms, ease in-out) with a feathered bottom edge; the content fades
  * out (--duration-base). The photo layer reaches --recap-feather below the stage, so the feathered edge is off screen
  * at rest and sweeps through while it slides up. Reduced motion: no fade, no slide (the component closes at once).
  */
@@ -36,14 +37,22 @@
     overscroll-behavior: contain;
   }
 
-  .recap-stage__sheet {
+  /* One centred column, no sheet behind it (#428): the headline, summary and decks lie on the photo */
+  .recap-stage__content {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
     margin: auto;
     width: 100%;
     max-width: 44rem;
+  }
+
+  /* The only sheet: the controls (#428). A white sheet with the one warm shadow, as the Paper Desk rule says */
+  .recap-stage__controls {
     border-radius: var(--ui-radius);
     background: var(--ui-bg);
     box-shadow: var(--shadow-task);
-    padding: 1.25rem;
+    padding: 1rem;
   }
 
   /* Open as the page mounts (#427): the board is hidden behind it, so there is nothing to fade over */

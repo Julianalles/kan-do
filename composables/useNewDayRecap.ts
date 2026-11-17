@@ -19,8 +19,12 @@
  *   nothing in the page. Its still-open deck is yesterday's board: what is on the board now, the recap opens before
  *   any fresh start; what a fresh start of today already took off (a board the automatic pass of #356 emptied this
  *   morning, before the update) is listed first.
- * - `leave()` (button, Escape): archives the snapshot ids still done before today when "Erledigte archivieren" is on
- *   (shared path with the board button; no toast, no undo, #463), moves the marker to the day the recap opened on, closes.
+ * - `leave({ archive })` (button, Escape, #428): archives the snapshot ids still done before today when `archive` is set, which only
+ *   "Tag neu planen" does (the day's planning; shared path with the board button; no toast, no undo, #463). Skipping and Escape
+ *   archive nothing: the done tasks stay in Erledigt under the "Gestern erledigt" note and its "Gesehen" hides them. Moves the
+ *   marker to the day the recap opened on, closes.
+ * - `recapOpen`: the open state as a module-level read-only ref, for the app bar (useAppNav): while it is true the pill shows
+ *   Rückblick instead of Alle and Heute (#428). It needs no store, so the bar never instantiates one for it.
  * - `finishLeave()` after the fade-out: drops the snapshot and hands focus to the board, never to <body>.
  */
 import { computed, readonly, ref } from 'vue'
@@ -49,6 +53,9 @@ export interface RecapSnapshot {
 
 const isOpen = ref(false)
 const snapshot = ref<RecapSnapshot | null>(null)
+
+/** The recap is open (#428): what the app bar reads to show Rückblick instead of Alle and Heute. */
+export const recapOpen = readonly(isOpen)
 
 /** Test seam: a fresh app start. */
 export function resetNewDayRecap(): void {
@@ -138,8 +145,8 @@ export function useNewDayRecap() {
     }
   }
 
-  /** "Weiter zum Board", also Escape: the switch decides whether the done tasks are archived. */
-  function leave(): void {
+  /** "Tag neu planen" (`archive`), "Überspringen und Board anzeigen" and Escape (no archive): only the planning archives the done tasks. */
+  function leave({ archive = false }: { archive?: boolean } = {}): void {
     const current = snapshot.value
     if (!isOpen.value || !current) return
     // The data file went into conflict or became unavailable while the recap was open: close, write nothing
@@ -149,7 +156,7 @@ export function useNewDayRecap() {
     }
     // A fetch may have reopened or deleted one since the snapshot: only what is still done before today goes
     const stillDone = new Set(tasksStore.tasksDonePrevious.map(task => task.id))
-    const ids = recapStore.archiveDone ? current.done.map(task => task.id).filter(id => stillDone.has(id)) : []
+    const ids = archive ? current.done.map(task => task.id).filter(id => stillDone.has(id)) : []
     recapStore.markShown(current.dayKey)
     isOpen.value = false
     archiveTasks(ids)

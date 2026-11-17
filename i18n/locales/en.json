@@ -198,6 +198,7 @@
     "appUpdate": "App update",
     "syncNow": "Sync now",
     "syncing": "Syncing…",
+    "recap": "Look back",
     "all": "All",
     "continue": "Continue to the board"
   },
@@ -1383,9 +1384,8 @@
     "switcher": {
       "label": "Choose a deck"
     },
-    "archiveToggle": "Archive done tasks",
-    "continue": "Straight to the board",
-    "plan": "Plan the day"
+    "continue": "Skip and show the board",
+    "plan": "Replan the day"
   },
   "dayClose": {
     "title": "Close the day",
