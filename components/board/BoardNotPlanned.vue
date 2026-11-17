@@ -363,9 +363,15 @@ async function pick(id: string, event: MouseEvent) {
        are not cut off in a narrow window (#430) */
     margin-inline: 0 -2rem;
     padding-inline: 1rem 3rem;
+    /* The strip reaching into Heute stays click-through; the grid (and the arrow in it) takes the pointer again */
+    pointer-events: none;
     /* Room for the card shadow and the focus ring at the scroll box's upper edge */
     padding-top: 0.25rem;
     margin-top: -0.25rem;
+  }
+
+  .not-planned__body > * {
+    pointer-events: auto;
   }
 
   /* The pick arrow reaches over Heute's side padding: this side paints above the next column */
@@ -397,7 +403,7 @@ async function pick(id: string, event: MouseEvent) {
      share, so it stands over its first card however many cards the category has; centred over two tracks it hung
      beside a single card. It is as wide as the grid and indented by the free space beside the card in its track, so
      the edge holds while the tracks shrink on a narrow desktop (the side is the container: its width less the body's
-     2 x 1rem margins and the 3rem gap, halved, is a track). A phone (one track) keeps its centred headings. */
+     2 x 1rem side room (padding and overhang) and the 3rem gap, halved, is a track). A phone (one track) keeps its centred headings. */
   .not-planned {
     container-type: inline-size;
   }
