@@ -12,7 +12,7 @@ One centred column (max 44rem) with both decks side by side from 768px, one deck
 - Focus starts on "Tag neu planen"; both buttons and Escape inside the stage call `leave()`: "Tag neu planen" goes to "Alle" first and then starts the day fresh (`useNewDay().freshStart()`, #387: the only thing here that moves a card) and archives yesterday's done tasks (`leave({ archive: true })`), "Überspringen und Board anzeigen" goes to Heute when "Alle" shows and moves and archives nothing (the done tasks stay in Erledigt under the "Gestern erledigt" note, whose "Gesehen" hides them), Escape only dismisses, never navigates, moves and archives nothing; `finishLeave()` after the curtain hands focus to the board
 - The app bar follows the open state (#428): while the recap is open its pill is Rückblick + Statistik (useAppNav), and leaving it turns Rückblick into Alle + Heute.
 - Open as the page mounts (an app start, or back from another page, #427): `pages/tasks.vue` runs the day check in setup and hides the board (`data-recap-cover`) until the recap is left, and the stage takes `instant` (no fade-in), so the board is never seen before it
-- Curtain (assets/css/recap-stage.css): `leave()` runs at once (archive, marker, the board is live), the stage stays mounted while the content fades (200 ms) and only the photo slides up (700 ms, ease in-out) with a feathered edge; reduced motion: instant. A second click or Escape during the curtain does nothing
+- Curtain (assets/css/recap-stage.css): `leave()` runs at once (archive, marker, the board is live), the stage stays mounted while the content fades (200 ms) and only the photo slides up (700 ms, ease in-out; "Tag neu planen" lifts it 1.4 s while the board glides to Planung beneath it, `data-pace="lift"`, #433) with a feathered edge; reduced motion: instant. A second click or Escape during the curtain does nothing
 - The photo is the welcome page's (`public/welcome`), decoration only (`alt=""`); until it loads, or if it fails, the layer is the paper colour
 - Phone switcher ("n noch offen" / "n erledigt", a `UTabs` pill: `role="tab"`, `aria-selected`): one RecapDeck mounted at a time, starts on "noch offen" (on "erledigt" when nothing is open, then without a switcher)
 - The decks never change size (RecapDeck), so nothing moves while they are looked at
@@ -122,7 +122,7 @@ import { navigateTo } from 'nuxt/app'
 import { useNewDayRecap } from '~/composables/useNewDayRecap'
 import { useNewDay } from '~/composables/useNewDay'
 import { useBoardPlace } from '~/composables/useBoardPlace'
-import { boardPlaceLocation } from '~/lib/boardPlace'
+import { armLift, boardPlaceLocation } from '~/lib/boardPlace'
 import { useLocaleFormat } from '~/composables/useLocaleFormat'
 import { useIsDesktop } from '~/composables/useIsDesktop'
 import { dayMonthName } from '~/utils/recapDay'
@@ -222,6 +222,12 @@ function finishCurtain() {
  */
 function leaveToPlan() {
   if (closing.value || !isOpen.value) return
+  // The curtain lifts over 1.4 s and the board glides to Planung beneath it on the same time (#433); not under reduced motion
+  // (already on "Alle": no move beneath it, so the curtain keeps its 700 ms)
+  if (!isAll.value && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    armLift()
+    document.querySelector<HTMLElement>('[data-testid="new-day-recap"]')?.setAttribute('data-pace', 'lift')
+  }
   void navigateTo(boardPlaceLocation('all'))
   leaveOnce({ archive: true })
   // Left (not: nothing to leave): the user's click is the fresh start

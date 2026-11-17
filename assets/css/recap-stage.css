@@ -21,6 +21,11 @@
     animation: recap-stage-in var(--recap-enter-duration) var(--ease-emphasized) both;
   }
 
+  /* "Tag neu planen" (#433): the photo lifts slower while the board glides to Planung beneath it (NewDayRecap.vue sets data-pace) */
+  .recap-stage[data-pace='lift'] {
+    --recap-curtain-duration: 1400ms;
+  }
+
   .recap-stage__photo {
     position: absolute;
     inset: 0 0 calc(var(--recap-feather) * -1) 0;

@@ -929,10 +929,14 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await expect(recap(page)).toHaveCount(0)
     await expect(note(page)).toBeVisible()
     await expectBoardUntouched(page)
+    // skipping the recap archived nothing: yesterday's done tasks wait in Erledigt
+    expect(await archived(page)).toEqual([])
 
     await startButton(page).click()
     await expect(page).toHaveURL(/\/all$/)
     await expect(note(page)).toHaveCount(0)
+    // #462: the notice's "Tag neu planen" archives yesterday's done tasks like the recap's button of that name
+    await expect.poll(async () => (await archived(page)).length).toBeGreaterThan(0)
     await expect(page.getByTestId('app-nav-continue')).toHaveCount(0)
     await expect(page.getByTestId('app-nav-place-all')).toHaveAttribute('aria-current', 'page')
     await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1'])
