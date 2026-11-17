@@ -1,11 +1,11 @@
 - region "Lokal starten":
   - button "Zurück"
-  - heading "Lokal ist immer dabei" [level=2]
-  - paragraph: Deine Aufgaben liegen standardmäßig auf diesem Gerät, lokale Aufgaben sind jederzeit möglich. Weitere Dienste verbindest du jetzt oder später in den Einstellungen.
-  - group "Zusätzlich verbinden":
+  - heading "Eine App verbinden?" [level=2]
+  - paragraph: Jetzt oder später kannst du Apps verbinden, in denen du deine Aufgaben organisierst. Oder nutze ausschließlich den Speicher diesem Gerät.
+  - group "Du kannst eine oder mehrere verbinden":
     - text: ""
     - checkbox "Notion"
     - text: Notion
-    - checkbox "Todoist (kommt später)" [disabled]
-    - text: Todoist (kommt später)
+    - checkbox "Todoist (Bald verfübar)" [disabled]
+    - text: Todoist (Bald verfübar)
   - button "Zum Board"

@@ -242,7 +242,7 @@ test.describe('sync question (#369)', () => {
 })
 
 test.describe('welcome page (kd#14)', () => {
-  test('first run: wordmark, tagline, statement, "Loslegen" and the sample start (1280)', async ({ page }) => {
+  test('first run: wordmark, tagline, statement, "Jetzt starten" and the sample start (1280)', async ({ page }) => {
     await page.goto('/welcome')
     await expect(page.getByTestId('welcome-choice-local')).toBeVisible()
     await expect(page.locator('main')).toMatchAriaSnapshot({ name: 'welcome-1280.aria.yml' })

@@ -257,7 +257,7 @@ test.describe('the main window side', () => {
     await expect.poll(async () => (await syncs(page)).at(-1)?.snapshot?.taskId).toBe('jetzt-1')
     await openSettings(page)
     const toggle = page.getByTestId('floating-now-switch')
-    await expect(page.getByText('Schwebendes Jetzt-Fenster')).toBeVisible()
+    await expect(page.getByText('Schwebender Timer')).toBeVisible()
     await expect(toggle).toBeChecked()
     await toggle.click()
     await expect.poll(async () => (await syncs(page)).at(-1)).toEqual({ enabled: false, snapshot: null })

@@ -24,7 +24,7 @@ describe('useSourceList (#324)', () => {
     expect(more.value.map((row) => [row.id, row.state])).toEqual([['notion', 'connectable'], ['todoist', 'soon']])
   })
 
-  it('Notion connected and healthy: relative last-sync line, default moves with setDefaultSource, Notion leaves "Weitere Verbindungen"', () => {
+  it('Notion connected and healthy: relative last-sync line, default moves with setDefaultSource, Notion leaves "Eine App verbinden"', () => {
     const board = useBoardStore()
     board.setSources({ connected: ['notion'], default: 'notion' })
     useIntegrationHealthStore().recordSuccessfulSync('notion', minutesAgo(5))

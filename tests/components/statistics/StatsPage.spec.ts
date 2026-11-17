@@ -114,8 +114,8 @@ describe('StatsVerdict', () => {
 
   it('empty: a sentence, what fills the page and the ring\'s bare outline as a decorative placeholder (kd#106)', () => {
     const w = mountIt(StatsVerdict, { review: deriveReview([], NOW) })
-    expect(w.get('h2').text()).toBe('Noch nichts zu vergleichen.')
-    expect(w.text()).toContain('Erledigte Aufgaben mit Timebox füllen diese Seite.')
+    expect(w.get('h2').text()).toBe('Bereit für deine ersten Aufgaben')
+    expect(w.text()).toContain('Die Seite füllt sich, sobald du einige Aufgaben erledigst.')
     const svg = w.get('[data-testid="stats-verdict-placeholder"] svg')
     expect(w.get('[data-testid="stats-verdict-placeholder"]').classes()).toContain('max-md:hidden')
     expect(svg.attributes('aria-hidden')).toBe('true')

@@ -1,8 +1,8 @@
 - main:
   - paragraph: kan-do
-  - paragraph: Dein fokussiertes Personal Kanban Board für die Aufgaben des Tages.
-  - heading "Richte dein Board ein" [level=1]
-  - paragraph: Du kannst Aufgaben lokal auf diesem Gerät speichern oder externe Aufgaben-Apps wie Notion oder Todoist nutzen.
-  - button "Loslegen"
-  - button "Mit Beispielaufgaben starten"
+  - paragraph: Das Kanban Board mit dem du deine Aufgaben des Tages fokussiert erledigst.
+  - heading "Bereit für deine Aufgaben" [level=1]
+  - paragraph: Du kannst sie lokal auf diesem Gerät speichern oder externe Apps wie Notion oder Todoist verbinden.
+  - button "Jetzt starten"
+  - button "Mit Beispielaufgaben entdecken"
   - paragraph: "/Version: \\d+\\.\\d+\\.0/"

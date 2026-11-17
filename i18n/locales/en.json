@@ -188,7 +188,7 @@
     "statistics": "Statistics",
     "more": "More",
     "moreProblem": "More, connection problem",
-    "commands": "Commands",
+    "commands": "Quick actions",
     "moreWithCommands": "More, {commands}",
     "view": "View",
     "dayClose": "Close the day",
@@ -422,7 +422,7 @@
         "usual": "Things are going as usual.",
         "harder": "Things are more demanding than usual.",
         "thin": "Not enough history to compare yet.",
-        "empty": "Nothing to compare yet.",
+        "empty": "Ready for your first tasks",
         "quiet": "No task was done in the last 7 days."
       },
       "line": {
@@ -430,7 +430,7 @@
         "noUsual": "{n} task done, {share}% of them in the timebox. | {n} tasks done, {share}% of them in the timebox.",
         "noTimebox": "{n} task done. | {n} tasks done.",
         "thin": "In the {baselineDays} days before the last {windowDays} days: {n} task done. A comparison starts with {days} days of history and at least {tasks} done tasks before. | In the {baselineDays} days before the last {windowDays} days: {n} tasks done. A comparison starts with {days} days of history and at least {tasks} done tasks before.",
-        "empty": "Done tasks with a timebox fill this page.",
+        "empty": "This page fills in once you get a few tasks done.",
         "quiet": "In the weeks before it was {n} tasks a week on average."
       },
       "ring": {
@@ -858,11 +858,11 @@
     "tabs": {
       "label": "Groups",
       "board": "Board",
-      "sources": "Connections",
-      "manage": "Manage",
+      "sources": "Task storage",
+      "manage": "System",
       "lead": {
-        "board": "How your board behaves.",
-        "sources": "Where your tasks come from and where new ones go.",
+        "board": "Decide how your board behaves.",
+        "sources": "Decide which connections tasks are shown from and where new ones are saved by default.",
         "manage": "Maintain topics, data, updates and access here.",
         "manageWeb": "Maintain topics and data here."
       }
@@ -870,11 +870,11 @@
     "focus": {
       "heading": "Focus",
       "label": "Now card in focus",
-      "help": "While a task sits in “Now”, the rest of the board steps back. A mouse move or a tap brings it back."
+      "help": "Everything except your task in “Now” fades out softly. Moving the mouse or tapping brings everything back."
     },
     "workingHours": {
       "label": "Working hours per day",
-      "help": "The Capacity line in Open follows this. “Automatic” uses the work you have tracked so far.",
+      "help": "The capacity hint for tasks planned for today follows this. “Automatic” uses the working hours you have tracked so far.",
       "auto": "Automatic"
     },
     "github": {
@@ -1164,13 +1164,13 @@
     },
     "subpages": {
       "data": {
-        "label": "Data & storage",
+        "label": "Import/export and app reset",
         "descriptionWeb": "Export and import",
-        "descriptionDesktop": "Data folder and backups"
+        "descriptionDesktop": "Export or import your tasks, or reset the app."
       },
       "updates": {
         "label": "Updates",
-        "description": "Check the version, open the log"
+        "description": "Check for a new version, see what's new"
       },
       "github": {
         "label": "GitHub access",
@@ -1199,8 +1199,8 @@
       "editRow": "Edit {name}"
     },
     "floatingNow": {
-      "label": "Floating Now window",
-      "help": "Shows the task in “Now” and its time as a small window over other apps while Kan-Do is not in front."
+      "label": "Floating timer",
+      "help": "Shows your task in “Now” together with a timer in its own small window that is always visible."
     }
   },
   "sources": {
@@ -1225,9 +1225,9 @@
       "title": "Connections",
       "description": "Where your tasks live and where new tasks go.",
       "connectedHeading": "Your connections",
-      "lead": "New tasks land in the connection marked “Default”.",
-      "help": "When you add a task you can pick another connection. Tasks you start quickly in “Now” always land here.",
-      "moreHeading": "More connections",
+      "lead": "Choose where new tasks are saved by default.",
+      "help": "When adding a task, you can choose another connection, and you can move tasks at any time.",
+      "moreHeading": "Connect an app",
       "soon": "coming soon"
     },
     "row": {
@@ -1276,23 +1276,23 @@
   },
   "onboarding": {
     "page": {
-      "tagline": "Your focused personal Kanban board for the day's tasks.",
+      "tagline": "The Kanban board that helps you get your day's tasks done with focus.",
       "version": "Version:",
-      "title": "Set up your board",
-      "samples": "Start with sample tasks",
-      "intro": "You can save tasks locally on this device or use external task apps like Notion or Todoist.",
+      "title": "Ready for your tasks",
+      "samples": "Explore with sample tasks",
+      "intro": "You can save them locally on this device or connect external apps like Notion or Todoist.",
       "start": "Get started"
     },
     "flow": {
       "backToChoice": "Back to the choice",
       "local": {
         "label": "Start locally",
-        "title": "Local is always there",
-        "intro": "Your tasks live on this device by default, and local tasks are always possible. You connect further services now or later in Settings.",
+        "title": "Connect an app?",
+        "intro": "Now or later, you can connect the apps where you organize your tasks. Or use only the storage on this device.",
         "confirm": "Go to the board",
-        "legend": "Connect in addition",
+        "legend": "You can connect one or more",
         "notion": "Notion",
-        "todoist": "Todoist (coming later)",
+        "todoist": "Todoist (coming soon)",
         "confirmNotion": "Set up Notion"
       },
       "samples": {

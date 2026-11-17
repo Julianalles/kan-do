@@ -188,7 +188,7 @@
     "statistics": "Statistik",
     "more": "Mehr",
     "moreProblem": "Mehr, Verbindungsproblem",
-    "commands": "Befehle",
+    "commands": "Schnellaktionen",
     "moreWithCommands": "Mehr, {commands}",
     "view": "Ansicht",
     "dayClose": "Tag abschließen",
@@ -422,7 +422,7 @@
         "usual": "Es läuft wie sonst.",
         "harder": "Es läuft fordernder als sonst.",
         "thin": "Noch zu wenig Verlauf für einen Vergleich.",
-        "empty": "Noch nichts zu vergleichen.",
+        "empty": "Bereit für deine ersten Aufgaben",
         "quiet": "In den letzten 7 Tagen wurde nichts erledigt."
       },
       "line": {
@@ -430,7 +430,7 @@
         "noUsual": "{n} Aufgabe erledigt, {share} % davon in der Timebox. | {n} Aufgaben erledigt, {share} % davon in der Timebox.",
         "noTimebox": "{n} Aufgabe erledigt. | {n} Aufgaben erledigt.",
         "thin": "In den {baselineDays} Tagen vor den letzten {windowDays} Tagen: {n} erledigte Aufgabe. Ein Vergleich beginnt mit {days} Tagen Verlauf und mindestens {tasks} erledigten Aufgaben davor. | In den {baselineDays} Tagen vor den letzten {windowDays} Tagen: {n} erledigte Aufgaben. Ein Vergleich beginnt mit {days} Tagen Verlauf und mindestens {tasks} erledigten Aufgaben davor.",
-        "empty": "Erledigte Aufgaben mit Timebox füllen diese Seite.",
+        "empty": "Die Seite füllt sich, sobald du einige Aufgaben erledigst.",
         "quiet": "In den Wochen davor waren es im Schnitt {n} Aufgaben pro Woche."
       },
       "ring": {
@@ -858,11 +858,11 @@
     "tabs": {
       "label": "Gruppen",
       "board": "Board",
-      "sources": "Aufgabenquellen",
-      "manage": "Verwaltung",
+      "sources": "Aufgabenspeicher",
+      "manage": "System",
       "lead": {
-        "board": "Wie sich dein Board verhält.",
-        "sources": "Woher deine Aufgaben kommen und wohin neue gehen.",
+        "board": "Bestimme, wie sich dein Board verhält.",
+        "sources": "Bestimmte, aus welchen Verbindungen Aufgaben angezeigt werden und wo neue standardmäßig gespeichert werden.",
         "manage": "Themen, Daten, Updates und Zugriffe pflegst du hier.",
         "manageWeb": "Themen und Daten pflegst du hier."
       }
@@ -870,11 +870,11 @@
     "focus": {
       "heading": "Fokus",
       "label": "Jetzt-Karte im Fokus",
-      "help": "Solange eine Aufgabe in „Jetzt“ liegt, tritt das übrige Board zurück. Eine Mausbewegung oder ein Tippen blendet es wieder ein."
+      "help": "Alles außer deine Aufgabe in „Jetzt“ wird weich ausgeblendet. Eine Mausbewegung oder ein Tippen blendet alles wieder ein."
     },
     "workingHours": {
       "label": "Arbeitszeit pro Tag",
-      "help": "Danach richtet sich die Kapazitätslinie in Offen. „Automatisch“ nutzt deine bisher erfasste Arbeitszeit.",
+      "help": "Danach richtet der Kapazitätshinweis für heute geplante Aufgaben. „Automatisch“ nutzt deine bisher erfasste Arbeitszeit.",
       "auto": "Automatisch"
     },
     "github": {
@@ -1164,13 +1164,13 @@
     },
     "subpages": {
       "data": {
-        "label": "Daten & Speicher",
+        "label": "Import/Export und App-Reset",
         "descriptionWeb": "Export und Import",
-        "descriptionDesktop": "Speicherordner und Sicherungen"
+        "descriptionDesktop": "Exportiere oder importiere deine Aufgaben oder setze die App zurück."
       },
       "updates": {
         "label": "Updates",
-        "description": "Version prüfen, Protokoll öffnen"
+        "description": "Auf neue Version prüfen, Neugikeiten ansehen"
       },
       "github": {
         "label": "GitHub-Zugriff",
@@ -1199,8 +1199,8 @@
       "editRow": "{name} bearbeiten"
     },
     "floatingNow": {
-      "label": "Schwebendes Jetzt-Fenster",
-      "help": "Zeigt die Aufgabe in „Jetzt“ mit ihrer Zeit als kleines Fenster über anderen Apps, solange Kan-Do nicht vorne ist."
+      "label": "Schwebender Timer",
+      "help": "Zeigt deine Aufgabe in „Jetzt“ zusammen mit einem Timer als eigenes kleines Fenster, das immer sichtbar istt."
     }
   },
   "sources": {
@@ -1225,9 +1225,9 @@
       "title": "Verbindungen",
       "description": "Wo deine Aufgaben liegen und wohin neue Aufgaben gehen.",
       "connectedHeading": "Deine Verbindungen",
-      "lead": "Neue Aufgaben landen in der Verbindung mit „Standard“.",
-      "help": "Beim Hinzufügen kannst du eine andere Verbindung wählen. Schnell gestartete Aufgaben in „Jetzt“ landen immer hier.",
-      "moreHeading": "Weitere Verbindungen",
+      "lead": "Wähle, wo neue Aufgaben standardmäßig gespeichert werden.",
+      "help": "Beim Hinzufügen kannst du eine andere Verbindung wählen und du kannst Aufgaben jederzeit verschieben.",
+      "moreHeading": "Eine App verbinden",
       "soon": "bald verfügbar"
     },
     "row": {
@@ -1276,23 +1276,23 @@
   },
   "onboarding": {
     "page": {
-      "tagline": "Dein fokussiertes Personal Kanban Board für die Aufgaben des Tages.",
+      "tagline": "Das Kanban Board mit dem du deine Aufgaben des Tages fokussiert erledigst.",
       "version": "Version:",
-      "title": "Richte dein Board ein",
-      "samples": "Mit Beispielaufgaben starten",
-      "intro": "Du kannst Aufgaben lokal auf diesem Gerät speichern oder externe Aufgaben-Apps wie Notion oder Todoist nutzen.",
-      "start": "Loslegen"
+      "title": "Bereit für deine Aufgaben",
+      "samples": "Mit Beispielaufgaben entdecken",
+      "intro": "Du kannst sie lokal auf diesem Gerät speichern oder externe Apps wie Notion oder Todoist verbinden.",
+      "start": "Jetzt starten"
     },
     "flow": {
       "backToChoice": "Zurück zur Auswahl",
       "local": {
         "label": "Lokal starten",
-        "title": "Lokal ist immer dabei",
-        "intro": "Deine Aufgaben liegen standardmäßig auf diesem Gerät, lokale Aufgaben sind jederzeit möglich. Weitere Dienste verbindest du jetzt oder später in den Einstellungen.",
+        "title": "Eine App verbinden?",
+        "intro": "Jetzt oder später kannst du Apps verbinden, in denen du deine Aufgaben organisierst. Oder nutze ausschließlich den Speicher diesem Gerät.",
         "confirm": "Zum Board",
-        "legend": "Zusätzlich verbinden",
+        "legend": "Du kannst eine oder mehrere verbinden",
         "notion": "Notion",
-        "todoist": "Todoist (kommt später)",
+        "todoist": "Todoist (Bald verfübar)",
         "confirmNotion": "Mit Notion einrichten"
       },
       "samples": {

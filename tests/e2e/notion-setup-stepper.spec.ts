@@ -365,7 +365,7 @@ test.describe('Notion Setup Stepper', () => {
       await page.goto(baseURL! + '/welcome')
 
       // Entry since #294: Loslegen -> step 2 -> tick Notion -> "Mit Notion einrichten"
-      await page.getByRole('button', { name: 'Loslegen' }).click()
+      await page.getByRole('button', { name: 'Jetzt starten' }).click()
       await page.getByRole('checkbox', { name: 'Notion' }).click()
       await page.getByRole('button', { name: 'Mit Notion einrichten' }).click()
 

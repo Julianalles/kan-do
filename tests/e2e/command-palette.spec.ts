@@ -43,7 +43,7 @@ test.describe('Command palette', () => {
   test('the ⋯ panel has a visible Befehle row that opens it (kd#23)', async ({ page }) => {
     await moreButton(page).click()
     const row = morePanel(page).getByTestId('more-commands')
-    await expect(row).toContainText('Befehle')
+    await expect(row).toContainText('Schnellaktionen')
     await expect(row.locator('kbd')).toHaveCount(2)
     await row.click()
     await expect(morePanel(page)).toBeHidden()
@@ -261,7 +261,7 @@ test.describe('Command palette off the board (kd#224)', () => {
   test('the ⋯ panel offers Befehle off the board, as its first row, and the tooltip teaches the shortcut', async ({ page }) => {
     await page.goto('/statistics')
     await moreButton(page).hover()
-    await expect(page.getByRole('tooltip')).toContainText('Befehle')
+    await expect(page.getByRole('tooltip')).toContainText('Schnellaktionen')
     await moreButton(page).click()
     const row = morePanel(page).getByTestId('more-commands')
     await expect(row).toBeVisible()

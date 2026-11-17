@@ -300,7 +300,7 @@ describe('MorePanel: the Mehr panel (#470)', () => {
 
     it('Befehle is the first row on every page (#224) and emits commands', async () => {
       const w = render()
-      expect(w.find('[data-testid="more-commands"]').text()).toContain('Befehle')
+      expect(w.find('[data-testid="more-commands"]').text()).toContain('Schnellaktionen')
       await w.find('[data-testid="more-commands"]').trigger('click')
       expect(w.emitted('commands')).toHaveLength(1)
       route.path = '/trash'

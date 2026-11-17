@@ -303,12 +303,12 @@ describe('AppNav: the global app bar (#470)', () => {
   it('teaches the palette in the ⋯ tooltip on every page (#224)', async () => {
     const w = render()
     expect(w.find('[data-tooltip]').attributes('data-kbds')).toBe('meta+k')
-    expect(w.find('[data-tooltip]').attributes('data-tooltip')).toBe('Mehr, Befehle')
+    expect(w.find('[data-tooltip]').attributes('data-tooltip')).toBe('Mehr, Schnellaktionen')
 
     go('/settings')
     await nextTick()
     expect(w.find('[data-tooltip]').attributes('data-kbds')).toBe('meta+k')
-    expect(w.find('[data-tooltip]').attributes('data-tooltip')).toBe('Mehr, Befehle')
+    expect(w.find('[data-tooltip]').attributes('data-tooltip')).toBe('Mehr, Schnellaktionen')
   })
 
   it('fades while a card is dragged', async () => {

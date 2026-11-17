@@ -85,7 +85,7 @@ test.describe('Local only', () => {
 
     await expect(page.getByRole('heading', { level: 1, name: 'Einstellungen' })).toBeVisible()
     await expect(page.getByTestId('sources-lead')).toHaveText(
-      'Neue Aufgaben landen in der Verbindung mit „Standard“. Beim Hinzufügen kannst du eine andere Verbindung wählen. Schnell gestartete Aufgaben in „Jetzt“ landen immer hier.',
+      'Wähle, wo neue Aufgaben standardmäßig gespeichert werden. Beim Hinzufügen kannst du eine andere Verbindung wählen und du kannst Aufgaben jederzeit verschieben.',
     )
     await expect(page.getByText('Neue Aufgaben speichern in')).toHaveCount(0)
 
@@ -96,7 +96,7 @@ test.describe('Local only', () => {
     await expect(local.getByRole('button')).toHaveCount(0)
     await expect(page.getByTestId('sources-connected').locator('li')).toHaveCount(1)
 
-    await expect(page.getByRole('heading', { level: 3, name: 'Weitere Verbindungen' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 3, name: 'Eine App verbinden' })).toBeVisible()
     await expect(page.getByTestId('source-more-notion').getByRole('button', { name: 'Notion verbinden' })).toBeVisible()
     const todoist = page.getByTestId('source-more-todoist')
     await expect(todoist).toContainText('bald verfügbar')

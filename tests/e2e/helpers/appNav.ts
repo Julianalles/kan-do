@@ -55,7 +55,7 @@ export async function waitForNavIdle(page: Page): Promise<void> {
 
 /** The three groups of Einstellungen (#691): `?tab=board|sources|manage`, board by default. */
 export type SettingsTab = 'board' | 'sources' | 'manage'
-export const SETTINGS_TAB_NAMES: Record<SettingsTab, string> = { board: 'Board', sources: 'Aufgabenquellen', manage: 'Verwaltung' }
+export const SETTINGS_TAB_NAMES: Record<SettingsTab, string> = { board: 'Board', sources: 'Aufgabenspeicher', manage: 'System' }
 
 /** ⋯ -> Einstellungen: lands on `/settings`. Already on `/settings*`: the page is in the bar, nothing to do. */
 export async function openSettings(page: Page, tab?: SettingsTab): Promise<void> {

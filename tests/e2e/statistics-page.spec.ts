@@ -136,8 +136,8 @@ test.describe('Statistics Page', () => {
   test.describe('states', () => {
     test('empty: the verdict surface and the first-run work-rhythm tile, no question tiles and no zeros', async ({ page, baseURL }) => {
       await page.goto(`${baseURL}/statistics`);
-      await expect(page.getByRole('heading', { level: 2, name: 'Noch nichts zu vergleichen.' })).toBeVisible();
-      await expect(page.getByText('Erledigte Aufgaben mit Timebox füllen diese Seite.')).toBeVisible();
+      await expect(page.getByRole('heading', { level: 2, name: 'Bereit für deine ersten Aufgaben' })).toBeVisible();
+      await expect(page.getByText('Die Seite füllt sich, sobald du einige Aufgaben erledigst.')).toBeVisible();
       await expect(page.getByRole('heading', { level: 2 })).toHaveCount(2); // the verdict and tile 5 (#600)
       await expect(page.getByTestId('stats-tile-2')).toHaveCount(0);
       // only the ring's bare outline, decorative (kd#106): one track circle, no segment, no text alternative

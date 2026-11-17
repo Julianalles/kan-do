@@ -281,7 +281,7 @@ test.describe('Accessibility (axe)', () => {
       }
       await page.setViewportSize(MOBILE_VIEWPORT)
       await page.mouse.move(0, 0) // the tab click left the pointer where a phone-bar item now sits: its tooltip would open
-      await expect(page.getByRole('tab', { name: 'Verwaltung' })).toBeVisible()
+      await expect(page.getByRole('tab', { name: 'System' })).toBeVisible()
       await expectNoSeriousA11yViolations(page)
     })
 

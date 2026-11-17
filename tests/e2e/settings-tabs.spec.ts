@@ -16,7 +16,7 @@ test.describe('Einstellungen tabs (#691)', () => {
   test('three tabs in order, Board active by default and holding only Fokus', async ({ page }) => {
     await page.goto('/tasks')
     await openSettings(page)
-    expect((await tabNames(page)).map(n => n.trim())).toEqual(['Board', 'Aufgabenquellen', 'Verwaltung'])
+    expect((await tabNames(page)).map(n => n.trim())).toEqual(['Board', 'Aufgabenspeicher', 'System'])
     await expect(tab(page, 'Board')).toHaveAttribute('aria-selected', 'true')
     await expect(page.getByTestId('focus-switch')).toBeVisible()
     await expect(page.getByTestId('sources-connected')).toHaveCount(0)
@@ -50,40 +50,40 @@ test.describe('Einstellungen tabs (#691)', () => {
 
     await openSettings(page, 'manage')
     const links = page.getByTestId('settings-subpage-link-label')
-    await expect(links).toHaveText(['Themen und Aktivitäten', 'Daten & Speicher'])
+    await expect(links).toHaveText(['Themen und Aktivitäten', 'Import/Export und App-Reset'])
     await expect(page.getByTestId('settings-tab-lead')).toContainText('Themen und Daten pflegst du hier')
 
     await page.goto('/settings?tab=nonsense')
     await expect(tab(page, 'Board')).toHaveAttribute('aria-selected', 'true')
     await page.goto('/settings?tab=manage')
-    await expect(tab(page, 'Verwaltung')).toHaveAttribute('aria-selected', 'true')
+    await expect(tab(page, 'System')).toHaveAttribute('aria-selected', 'true')
   })
 
   test('back from a sub-page returns to the tab it was opened from', async ({ page }) => {
     await page.goto('/tasks')
     await openSettings(page, 'manage')
-    await page.getByRole('link', { name: /Daten & Speicher/ }).click()
+    await page.getByRole('link', { name: /Import\/Export und App-Reset/ }).click()
     await expect(page).toHaveURL(/\/settings\/data$/)
     await page.goBack()
     await expect(page).toHaveURL(/\/settings\?tab=manage$/)
-    await expect(tab(page, 'Verwaltung')).toHaveAttribute('aria-selected', 'true')
+    await expect(tab(page, 'System')).toHaveAttribute('aria-selected', 'true')
   })
 
   test('leaving a sub-page through the app bar restores its tab', async ({ page }) => {
     await page.goto('/tasks')
     await openSettings(page, 'manage')
-    await page.getByRole('link', { name: /Daten & Speicher/ }).click()
+    await page.getByRole('link', { name: /Import\/Export und App-Reset/ }).click()
     await expect(page).toHaveURL(/\/settings\/data$/)
     await page.getByTestId('app-nav-place-more').click()
     await expect(page).toHaveURL(/\/settings\?tab=manage$/)
-    await expect(tab(page, 'Verwaltung')).toHaveAttribute('aria-selected', 'true')
+    await expect(tab(page, 'System')).toHaveAttribute('aria-selected', 'true')
   })
 
   test('a tab click adds no history entry', async ({ page }) => {
     await page.goto('/settings')
     const before = await page.evaluate(() => history.length)
-    await tab(page, 'Aufgabenquellen').click()
-    await tab(page, 'Verwaltung').click()
+    await tab(page, 'Aufgabenspeicher').click()
+    await tab(page, 'System').click()
     expect(await page.evaluate(() => history.length)).toBe(before)
   })
 
@@ -91,7 +91,7 @@ test.describe('Einstellungen tabs (#691)', () => {
     await page.goto('/settings')
     await tab(page, 'Board').focus()
     await page.keyboard.press('ArrowRight')
-    await expect(tab(page, 'Aufgabenquellen')).toBeFocused()
+    await expect(tab(page, 'Aufgabenspeicher')).toBeFocused()
     await page.keyboard.press('ArrowRight')
     await page.keyboard.press('Enter')
     await expect(page).toHaveURL(/tab=manage$/)
@@ -102,7 +102,7 @@ test.describe('Einstellungen tabs (#691)', () => {
 
     test('all three labels are visible without horizontal scroll', async ({ page }) => {
       await page.goto('/settings')
-      for (const name of ['Board', 'Aufgabenquellen', 'Verwaltung']) await expect(tab(page, name)).toBeInViewport({ ratio: 1 })
+      for (const name of ['Board', 'Aufgabenspeicher', 'System']) await expect(tab(page, name)).toBeInViewport({ ratio: 1 })
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
     })
   })
@@ -114,7 +114,7 @@ test.describe('Einstellungen tabs, desktop app (#691)', () => {
     await installTauriStub(context)
     await page.goto('/settings?tab=manage')
     await expect(page.getByTestId('settings-tab-lead')).toContainText('Updates und Zugriffe')
-    await expect(page.getByTestId('settings-subpage-link-label')).toHaveText(['Themen und Aktivitäten', 'Daten & Speicher', 'Updates', 'GitHub-Zugriff'])
+    await expect(page.getByTestId('settings-subpage-link-label')).toHaveText(['Themen und Aktivitäten', 'Import/Export und App-Reset', 'Updates', 'GitHub-Zugriff'])
     await page.getByRole('link', { name: /^Updates/ }).click()
     await expect(page).toHaveURL(/\/settings\/updates$/)
     await page.goBack()

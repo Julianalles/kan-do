@@ -527,7 +527,7 @@ for (const { label, size } of VIEWPORTS) {
       await page.keyboard.press('Enter')
       await expect(panel).toBeVisible()
       // Opening moves focus inside; the tab order is the row order (no Papierkorb row: it is in the bar).
-      // At 1280 "Befehle" leads on every page (kd#224); a phone has no keyboard, so no such row.
+      // At 1280 "Schnellaktionen" leads on every page (kd#224); a phone has no keyboard, so no such row.
       await expect(panel.getByTestId('more-trash')).toHaveCount(0)
       if (label === '1280') {
         await expect(panel.getByTestId('more-commands')).toBeFocused()
@@ -734,7 +734,7 @@ test.describe('App bar: resize and routes without a bar', () => {
     try {
       const page = await fresh.newPage()
       await page.goto('/welcome')
-      await expect(page.getByRole('button', { name: 'Loslegen' })).toBeVisible()
+      await expect(page.getByRole('button', { name: 'Jetzt starten' })).toBeVisible()
       await expect(page.getByTestId('app-nav')).toHaveCount(0)
       await expect(page.getByRole('navigation', { name: 'Hauptnavigation' })).toHaveCount(0)
     } finally {
