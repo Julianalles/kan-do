@@ -7,7 +7,6 @@
  *   segment of the pill, #583: ⋯ itself is never selected), else none
  * - `thirdItemOfPath` / `thirdItem`: the page behind ⋯ the route is on (Papierkorb on `/trash*`, Einstellungen on
  *   `/settings*`, linking `/settings`), shown as a third segment in the pill and left out of the Mehr panel meanwhile
- * - `continuesToBoard`: on "Alle" and entered from the notice (#416, usePlanningFromRecap; the recap no longer marks it, #428); only then the pill is the "Weiter zum Board" CTA
  * - `recapShown` / `selectedPlace` (#428): while the new-day recap is open the pill is `Rückblick | Statistik` on every route (no Alle, no
  *   Heute: the user is either in the recap or free to visit the planning and the board); `selectedPlace` is `'recap'` while the route is
  *   the board page the recap sits over, else `currentPlace`. Leaving the recap turns Rückblick into Alle + Heute
@@ -18,7 +17,6 @@
  */
 import { computed } from 'vue'
 import { useRouter } from 'nuxt/app'
-import { planningFromRecap } from '~/composables/usePlanningFromRecap'
 import { recapOpen } from '~/composables/useNewDayRecap'
 
 /** The places of the bar: "Alle" (all, #354), Heute (board), Statistik (statistics) and `more` (a page behind ⋯, shown as the third segment) */
@@ -80,8 +78,5 @@ export function useAppNav() {
   /** The place to mark: Rückblick while the recap covers the board page, else the route's place */
   const selectedPlace = computed<AppNavSelected | null>(() => (recapShown.value && onBoard.value ? 'recap' : currentPlace.value))
 
-  /** Alle entered from the notice's "Tag planen" (#416): the pill is the one "Weiter zum Board" link, the places are rows of ⋯ */
-  const continuesToBoard = computed(() => currentPlace.value === 'all' && planningFromRecap.value && !recapShown.value)
-
-  return { showsBar, currentPlace, selectedPlace, recapShown, onBoard, thirdItem, continuesToBoard }
+  return { showsBar, currentPlace, selectedPlace, recapShown, onBoard, thirdItem }
 }

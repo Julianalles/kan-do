@@ -361,7 +361,7 @@ describe('NewDayRecap', () => {
       setTestLocale('de')
     })
 
-    it('"Tag planen" leaves the recap, leads to "Alle" and is the fresh start (#387): once, after the recap is left', async () => {
+    it('"Tag neu planen" leaves the recap, leads to "Alle" and is the fresh start (#387): once, after the recap is left', async () => {
       await open([doneAt(1, 'a')])
       freshStart.mockImplementationOnce(() => {
         // the recap is left (archive, marker) before the cards move
@@ -412,7 +412,7 @@ describe('NewDayRecap', () => {
     })
   })
 
-  it('moves focus to "Tag planen" on open', async () => {
+  it('moves focus to "Tag neu planen" on open', async () => {
     await open([doneAt(1, 'a')])
     await new Promise(resolve => requestAnimationFrame(() => resolve(null)))
     expect(document.activeElement).toBe(q('[data-testid="recap-plan"]'))

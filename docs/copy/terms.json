@@ -898,7 +898,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "The user's own German wording of 2026-11-16 (#373), English by the copy-writer skill; the user's `npm run terms:approve` makes it decided. It replaces \"Tag starten\" / \"Start the day\" (entry start-the-day, removed with the footer button), which had replaced the proposed \"Weiter zu Heute\". Key nav.continue. \"Board\" is the user's word here, as in \"Direkt zum Board\" (straight-to-board)."
+    "note": "The user's own German wording of 2026-11-16 (#373), English by the copy-writer skill; the user's `npm run terms:approve` makes it decided. It replaces \"Tag starten\" / \"Start the day\" (entry start-the-day, removed with the footer button), which had replaced the proposed \"Weiter zu Heute\". Unused since #454: the pill and key nav.continue are removed. \"Board\" is the user's word here, as in \"Direkt zum Board\" (straight-to-board)."
   },
   {
     "id": "plan-the-day",
@@ -908,7 +908,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Approved by the user on 2026-11-16 (#367) as the recap's button; the user's `npm run terms:approve` makes it decided. Since #387 it is the fresh start itself and also the notice's button (the same action gets the same name; the working name \"Frisch starten\" of #387 is not used, decision D1 d there). The second way out is \"Direkt zum Board\". Since #428 the recap's button reads \"Tag neu planen\" (entry replan-the-day); the notice's button keeps \"Tag planen\"."
+    "note": "Approved by the user on 2026-11-16 (#367) as the recap's button; the user's `npm run terms:approve` makes it decided. Since #387 it is the fresh start itself and also the notice's button (the same action gets the same name; the working name \"Frisch starten\" of #387 is not used, decision D1 d there). The second way out is \"Direkt zum Board\". Since #428 the recap's button reads \"Tag neu planen\" (entry replan-the-day); the notice's button reads \"Tag neu planen\" too (#454), so this entry is unused."
   },
   {
     "id": "straight-to-board",
@@ -928,7 +928,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "The user's own German wording of 2026-11-17 (#428), English by the copy-writer skill; the user's `npm run terms:approve` makes it decided. It replaces \"Tag planen\" on the recap only (entry plan-the-day, which the notice still uses)."
+    "note": "The user's own German wording of 2026-11-17 (#428), English by the copy-writer skill; the user's `npm run terms:approve` makes it decided. It replaces \"Tag planen\" on the recap only (entry plan-the-day); since #454 the notice's button reads it as well (the same action gets the same name)."
   },
   {
     "id": "skip-and-show-board",

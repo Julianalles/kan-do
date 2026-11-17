@@ -1,6 +1,6 @@
 import { expect, test, type Page, type Route } from '@playwright/test'
 import { fillerTasks, MIXED_SEED_TASKS, newDayBackTasks, seedAfterMidnight, seedLocalBoard, seedMixedBoard, seedNewDayBoard, SEED_TASKS, type SeedTask } from './helpers/seed'
-import { openDayClose, openMore } from './helpers/appNav'
+import { goToPlace, openDayClose, openMore } from './helpers/appNav'
 import { pinClock, pinnedNow } from './helpers/clock'
 import { settleAnimations } from './helpers/settle'
 import { installTauriStub } from './helpers/tauriStub'
@@ -85,7 +85,7 @@ test.describe('a new day (#356, #387)', () => {
     await seedNewDayBoard(context, { tasks: board() })
     await gotoBoard(page)
     await startFresh(page)
-    await page.getByTestId('app-nav-continue').click()
+    await goToPlace(page, 'Heute')
     await expect(page).toHaveURL(/\/tasks$/)
     await expect(page.getByTestId('open-yesterday-note')).toBeVisible()
     await settleAnimations(page)

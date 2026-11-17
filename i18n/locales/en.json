@@ -167,8 +167,8 @@
     "yesterdayUnderAll": "One task from yesterday is under {all}. | {n} tasks from yesterday are under {all}.",
     "newDayNote": {
       "title": "The board still shows yesterday's plan.",
-      "description": "“Plan the day” puts everything that is not done back under “My tasks”.",
-      "start": "Plan the day",
+      "description": "“Replan the day” puts everything that is not done back under “My tasks”.",
+      "start": "Replan the day",
       "close": "Close",
       "started": "One task is now under “My tasks”. | {n} tasks are now under “My tasks”."
     },
@@ -199,8 +199,7 @@
     "syncNow": "Sync now",
     "syncing": "Syncing…",
     "recap": "Look back",
-    "all": "All",
-    "continue": "Continue to the board"
+    "all": "All"
   },
   "menu": {
     "app": "Kan-Do",

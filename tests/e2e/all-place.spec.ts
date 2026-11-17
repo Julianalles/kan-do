@@ -47,7 +47,7 @@ const openIds = (page: Page) =>
 const item = (page: Page, id: string) => notPlanned(page).locator(`[data-not-planned-id="${id}"]`)
 const openCard = (page: Page, id: string) => page.locator(`#column-open .task-wrapper[data-task-id="${id}"]`)
 const placeLink = (page: Page, place: 'all' | 'board') => page.getByTestId(`app-nav-place-${place}`)
-/** The app bar's Heute segment: on a "Alle" opened by hand the pill keeps its three places (#416; the green "Weiter zum Board" shows only after the recap, new-day-recap.spec.ts) */
+/** The app bar's Heute segment: on a "Alle" opened by hand the pill keeps its three places */
 const toHeute = (page: Page) => page.getByTestId('app-nav-place-board')
 
 /** The strip has arrived: no move flag, no running animation */

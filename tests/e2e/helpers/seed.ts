@@ -606,7 +606,7 @@ export function newDayTasks(daysAgo = 1, options: { allDone?: boolean } = {}): S
 
 /**
  * A full board for the fresh start (#356, #387): `newDayTasks` plus a Jetzt card with time spent, a second Offen card and
- * a task that was not planned before. After "Tag planen" "Meine Aufgaben" holds nd-now-1, nd-open-2, nd-open-1 as the
+ * a task that was not planned before. After "Tag neu planen" "Meine Aufgaben" holds nd-now-1, nd-open-2, nd-open-1 as the
  * group "Gestern geplant, noch offen" (board order, Jetzt first), nd-waiting-1 under "Zuletzt in Wartet" and nd-held-1
  * under "Weitere Aufgaben". Without the done tasks no recap is due and the board shows the notice instead.
  */
@@ -626,7 +626,7 @@ export interface SeedDayRecapOptions {
   /**
    * The day the user last started fresh on (#387). Default: the same day as `lastShownDay`, so a fresh start is on
    * offer when that day is before today; nothing moves by itself. Today's key: the day is already started (no notice,
-   * "Tag planen" moves nothing), the recap is still due. `null` stores no such field: data from before the fresh start
+   * "Tag neu planen" moves nothing), the recap is still due. `null` stores no such field: data from before the fresh start
    * existed (the update from v0.16.0), which the day check gives its baseline.
    */
   lastNewDay?: string | null
