@@ -1,6 +1,6 @@
 /**
  * E2E: overlay scrim (issue #127). Every modal and drawer overlay darkens the page by the shared
- * `--overlay-scrim`, the task sheet included (#419): its overlay covers the whole viewport on Planung, Heute and Statistik.
+ * `--overlay-scrim`, the task sheet included (#419): its overlay covers the whole viewport on "Alle", Heute and Statistik.
  */
 import { test, expect, type Page } from '@playwright/test'
 import { seedLocalBoard } from './helpers/seed'

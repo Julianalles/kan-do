@@ -7,7 +7,7 @@ import { appNav, closeMore, goToPlace, moreButton, morePanel, openMore, openSett
  * bottom). The binding rule is tested as sequences: the selected state follows the route only, an open panel is an
  * overlay and never replaces it.
  */
-/** "Planung" (#354): the first place of the pill, the planning side of the board page */
+/** "Alle" (#354): the first place of the pill, the planning side of the board page */
 const alle = (page: Page) => page.getByTestId('app-nav-place-all')
 const heute = (page: Page) => page.getByTestId('app-nav-place-board')
 const statistik = (page: Page) => page.getByTestId('app-nav-place-statistics')
@@ -693,7 +693,7 @@ for (const { label, size } of VIEWPORTS) {
     expect(focused.outline).toBe('solid')
     expect(focused.shadow).not.toBe('none')
     if (label === '1280') {
-      await appNav(page).getByRole('link', { name: 'Planung', exact: true }).focus()
+      await appNav(page).getByRole('link', { name: 'Alle', exact: true }).focus()
       await page.keyboard.press('Shift+Tab')
       await expect(appNav(page).getByTestId('app-nav-brand')).toBeFocused()
       expect(await appNav(page).getByTestId('app-nav-brand').evaluate(el => getComputedStyle(el).outlineStyle)).toBe('solid')

@@ -833,16 +833,16 @@
   {
     "id": "place-all",
     "concept": "The place of the app bar where the day is planned (#354, epic #334): the column \"Meine Aufgaben\" beside the column of today's tasks",
-    "de": "Planung",
-    "en": "Planning",
+    "de": "Alle",
+    "en": "All",
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Renamed by the user on 2026-11-16 (#375): \"Planung\" / \"Planning\", before \"Alle\" / \"All\" (that wording was approved by the user on 2026-11-16, #367, and never made decided). The user's `npm run terms:approve` makes it decided. The route stays /all. \"Backlog\" is not the name of this place: it is an avoid form of column-open and not registered here, because an avoid form matches as a word prefix across every string."
+    "note": "Named \"Alle\" / \"All\" (#435; first approved by the user on 2026-11-16, #367, then renamed \"Planung\" / \"Planning\" in #375, renamed back in #435, never made decided). The user's `npm run terms:approve` makes it decided. The route stays /all. \"Backlog\" is not the name of this place: it is an avoid form of column-open and not registered here, because an avoid form matches as a word prefix across every string."
   },
   {
     "id": "not-planned",
-    "concept": "The column of \"Planung\" that lists the tasks kan-do holds that are not on today's board (#354)",
+    "concept": "The column of \"Alle\" that lists the tasks kan-do holds that are not on today's board (#354)",
     "de": "Meine Aufgaben",
     "en": "My tasks",
     "avoidDe": [],
@@ -862,13 +862,13 @@
   },
   {
     "id": "planning-today",
-    "concept": "The headline of the Offen column on the place \"Planung\" (#375): there the only question is whether a task is for today",
+    "concept": "The headline of the Offen column on the place \"Alle\" (#375): there the only question is whether a task is for today",
     "de": "Heute",
     "en": "Today",
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "The user's wording of 2026-11-16 (#375). Only the headline (and the column's spoken name) on \"Planung\", key board.columns.openPlanning; on the place \"Heute\" the column is headed \"Offen\", and the status is \"Offen\" everywhere (column-open). The same word as the app bar's place \"Heute\" on purpose: both mean today's plan."
+    "note": "The user's wording of 2026-11-16 (#375). Only the headline (and the column's spoken name) on \"Alle\", key board.columns.openPlanning; on the place \"Heute\" the column is headed \"Offen\", and the status is \"Offen\" everywhere (column-open). The same word as the app bar's place \"Heute\" on purpose: both mean today's plan."
   },
   {
     "id": "plan-for-today",
@@ -892,7 +892,7 @@
   },
   {
     "id": "continue-to-board",
-    "concept": "The one green pill of the app bar on \"Planung\" that leads on to the board (#373; replaces the footer button \"Tag starten\" of #367)",
+    "concept": "The one green pill of the app bar on \"Alle\" that leads on to the board (#373; replaces the footer button \"Tag starten\" of #367)",
     "de": "Weiter zum Board",
     "en": "Continue to the board",
     "avoidDe": [],
@@ -902,7 +902,7 @@
   },
   {
     "id": "plan-the-day",
-    "concept": "The fresh start of a new day (#387): the user's click that takes what was planned and not finished (Jetzt, Offen, Wartet) off the board, onto \"Meine Aufgaben\", and leads to \"Planung\", where the day is planned. The primary way out of the new-day recap (#356, epic #334) and the button of the notice on a board that was not started fresh",
+    "concept": "The fresh start of a new day (#387): the user's click that takes what was planned and not finished (Jetzt, Offen, Wartet) off the board, onto \"Meine Aufgaben\", and leads to \"Alle\", where the day is planned. The primary way out of the new-day recap (#356, epic #334) and the button of the notice on a board that was not started fresh",
     "de": "Tag planen",
     "en": "Plan the day",
     "avoidDe": [],
@@ -962,7 +962,7 @@
   },
   {
     "id": "create-task-not-planned",
-    "concept": "The soft button of an empty \"Meine Aufgaben\" on the place \"Planung\": it opens the add form, and the new task is not planned (#367)",
+    "concept": "The soft button of an empty \"Meine Aufgaben\" on the place \"Alle\": it opens the add form, and the new task is not planned (#367)",
     "de": "Aufgabe erstellen",
     "en": "Create task",
     "avoidDe": [],

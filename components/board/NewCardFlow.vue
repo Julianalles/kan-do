@@ -625,7 +625,7 @@ async function save() {
         notes: notes.value.trim() || null,
         timeBoxSeconds: fields.value.timebox && minutes.value ? minutes.value * 60 : null,
         isUnplanned: false,
-        // On the place "Planung" the saved card goes to "Meine Aufgaben" (#367)
+        // On the place "Alle" the saved card goes to "Meine Aufgaben" (#367)
         ...(newTaskStartsNotPlanned() ? { notPlanned: true as const } : {}),
       },
       defaultSource.value,

@@ -1,7 +1,7 @@
 - heading "Offen" [level=2]
 - button "Aufgabe hinzufügen"
 - paragraph:
-  - text: 3 Aufgaben von gestern liegen in der
-  - link "Planung":
+  - text: 3 Aufgaben von gestern liegen unter
+  - link "Alle":
     - /url: /all
   - text: .

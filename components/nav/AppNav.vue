@@ -2,21 +2,21 @@
 @component AppNav
 @kind block
 @category navigation
-@description The global app bar (#470, ADR 017): the `kan-do` wordmark (outside any pill, #642), one pill with the three places (Planung, Heute, Statistik; "Planung" (`/all`) is the planning side of the board page, #354) plus, on a page behind ⋯, that page as a third segment (#583), then a separate round ⋯ pill that opens the Mehr panel
+@description The global app bar (#470, ADR 017): the `kan-do` wordmark (outside any pill, #642), one pill with the three places (Alle, Heute, Statistik; "Alle" (`/all`) is the planning side of the board page, #354) plus, on a page behind ⋯, that page as a third segment (#583), then a separate round ⋯ pill that opens the Mehr panel
 @usage Mounted once in app.vue before <NuxtLayout>, so it survives page transitions; hidden on routes with `appNav: false`
 @avoid Mounted once in app.vue; secondary pages go behind MorePanel, in-page switching is not a job for the app bar.
 @responsibility
-- Brand (#642): the wordmark link sits first in the group, left of the pill and outside it, on the paper veil; DOM and tab order: brand, Planung, Heute, Statistik, third, ⋯. Not shown on a phone (kd#24: it has no backing and printed over the cards scrolling under the bar; Heute links to /tasks)
+- Brand (#642): the wordmark link sits first in the group, left of the pill and outside it, on the paper veil; DOM and tab order: brand, Alle, Heute, Statistik, third, ⋯. Not shown on a phone (kd#24: it has no backing and printed over the cards scrolling under the bar; Heute links to /tasks)
 - Desktop (≥768px): sticky bar at the top, the group centred. Phone: the same pills float at the bottom (assets/css/app-nav.css)
 - Look and separation from the content behind it (#615): the two pills are flat white sheets with the nav pill shadow (`--shadow-nav-pill`, the named exception of "The Sheets Cast Shadows Rule"), and a paper veil sits behind them (`.app-nav::before`, no pointer events, so the `.titlebar` drag strip and the page stay usable). The page header is not sticky, so the bar is the only thing that stays
-- Selected state is a pure function of the route (useAppNav): Planung on /all*, Heute on /tasks*, Statistik on /statistics, the third segment (Papierkorb, Einstellungen) on /trash and /settings*. ⋯ is never selected and carries no aria-current. An open panel is an overlay, not a navigation: the place keeps its chip, ⋯ shows only a soft "open" fill and aria-expanded
+- Selected state is a pure function of the route (useAppNav): Alle on /all*, Heute on /tasks*, Statistik on /statistics, the third segment (Papierkorb, Einstellungen) on /trash and /settings*. ⋯ is never selected and carries no aria-current. An open panel is an overlay, not a navigation: the place keeps its chip, ⋯ shows only a soft "open" fill and aria-expanded
 - Third segment (#583): grows in the pill when a page behind ⋯ is entered, shrinks away when Heute or Statistik is chosen, re-measures when Einstellungen <-> Papierkorb. MorePanel leaves out the row of the page the pill shows. One 420 ms timeline (`--nav-move`, `--nav-ease` in app-nav.css, 0 under reduced motion) drives the segment and the phone segment padding; a retarget mid-move continues from the current width. The grey pill is content-sized, so its width follows the segment frame by frame on that same timeline (#616); the segment's left margin runs -gap -> 0 with it, so the pill's 1px flex gap does not step in at the first frame or out at the last. The move starts on the second animation frame after the route change, not at the DOM patch (#643): the first frame lays out and paints the new page and, on a slow main thread (WKWebView, a big board), can outlast the whole 420 ms, which left a timeline started before it already over (segment and pill jumped to the end). Until then the segment holds its start state by inline style, and the phone `has-third` class (padding transitions) flips with the move so all three share one start. Direct load and the first paint show the segment without motion
 - One indicator (a fill, no shadow) behind the selected segment: two springs chase the live box of the `aria-current` segment (useNavIndicator, lib/navSpring.ts). `data-moving` on the nav is set until chip and layout are idle (E2E waits on it)
 - A failing source puts a status dot on ⋯ (error for broken, else warning) and the accessible name says so; the panel explains it
 - Tag abschließen: closes the panel, returns focus to ⋯, then opens the dialog, so the dialog's return target is ⋯ and not a removed row
 - Phone: fades out and ignores pointers while a card is dragged (no drop target is covered); the pills and the veil fade (the veil also steps back while the new-day recap stage is mounted, #262: the photo runs behind the bar)
-- The topic focus funnel (#161, BoardFocusTrigger) sits right of ⋯ on the board page only (Heute and Planung), outside the group's flow (`.app-nav-focus`), so the pills do not re-centre when it appears. Phone (#381): out of the flow it was cut off at the right edge of a 360px screen, so while it shows (`has-focus`) the group shifts left by half of funnel and gap, on the nav timeline: group and funnel are centred together and the funnel lies inside the bar's side room. Desktop keeps the centre
-- "Planung" entered from the new-day recap or notice (#373, #416): the pill is one green link "Weiter zum Board" (`app-nav-pill--continue`, to Heute, no icon) instead of the three places; on a Planung the user opened by hand the normal pill stays; Heute and Statistik are rows of the ⋯ panel meanwhile, and no segment carries `aria-current` (the indicator hides)
+- The topic focus funnel (#161, BoardFocusTrigger) sits right of ⋯ on the board page only (Heute and Alle), outside the group's flow (`.app-nav-focus`), so the pills do not re-centre when it appears. Phone (#381): out of the flow it was cut off at the right edge of a 360px screen, so while it shows (`has-focus`) the group shifts left by half of funnel and gap, on the nav timeline: group and funnel are centred together and the funnel lies inside the bar's side room. Desktop keeps the centre
+- "Alle" entered from the new-day recap or notice (#373, #416): the pill is one green link "Weiter zum Board" (`app-nav-pill--continue`, to Heute, no icon) instead of the three places; on an Alle the user opened by hand the normal pill stays; Heute and Statistik are rows of the ⋯ panel meanwhile, and no segment carries `aria-current` (the indicator hides)
 - Desktop ⋯ tooltip "Mehr, Befehle ⌘K" on every page (the palette is mounted once in app.vue, #224); no tooltip on touch
 -->
 <template>
@@ -38,7 +38,7 @@
       </NuxtLink>
       <div ref="pillEl" class="app-nav-pill" :class="{ 'app-nav-pill--continue': continuesToBoard }" data-testid="app-nav-pill">
         <span ref="indicatorEl" class="app-nav-indicator" aria-hidden="true" />
-        <!-- "Planung" (#373): one clear next step, the way on to the board. The places it replaces are rows of the ⋯ panel meanwhile -->
+        <!-- "Alle" (#373): one clear next step, the way on to the board. The places it replaces are rows of the ⋯ panel meanwhile -->
         <NuxtLink v-if="continuesToBoard" :to="boardPlaceLocation('today')" custom>
           <template #default="{ href, navigate }">
             <a
@@ -50,7 +50,7 @@
           </template>
         </NuxtLink>
         <template v-else>
-        <!-- "Planung" (#354): the planning side of the board page, first in the pill. `force`: see lib/boardPlace -->
+        <!-- "Alle" (#354): the planning side of the board page, first in the pill. `force`: see lib/boardPlace -->
         <NuxtLink :to="boardPlaceLocation('all')" custom>
           <template #default="{ href, navigate }">
             <a
@@ -162,7 +162,7 @@ defineOptions({ name: 'AppNav' })
 const { t } = useI18n()
 const route = useLiveRoute()
 const { showsBar, currentPlace, onBoard, thirdItem, continuesToBoard } = useAppNav()
-// The way on to the board belongs to the day start (#416): it ends with the visit to Planung
+// The way on to the board belongs to the day start (#416): it ends with the visit to "Alle"
 watch(currentPlace, (place) => { if (place !== 'all') clearPlanningFromRecap() })
 const { dragState } = useBoardDragState()
 const { hasFocusJob } = useBoardFocus()

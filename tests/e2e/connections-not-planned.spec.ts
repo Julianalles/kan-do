@@ -87,7 +87,7 @@ test.describe('Todoist: a task seen for the first time starts under "Meine Aufga
     // every page of open tasks was read
     await expect.poll(() => requests.filter((request) => request.startsWith('GET /api/v1/tasks?')).some((request) => request.includes('cursor=page-2'))).toBe(true)
 
-    // under "Planung": only the task from the second page, which kan-do sees for the first time
+    // under "Alle": only the task from the second page, which kan-do sees for the first time
     await page.goto('/all')
     await expect(notPlanned(page).locator('[data-not-planned-id]')).toHaveText([/Neu aus Todoist/])
     await expect(column(page, 'open').locator('.task-wrapper')).toHaveText([/Angebot schreiben/, /Rechnung prüfen/])
@@ -99,7 +99,7 @@ test.describe('Todoist: a task seen for the first time starts under "Meine Aufga
     await page.reload()
     await expect(column(page, 'open').locator('.task-wrapper')).toHaveText([/Angebot schreiben/, /Rechnung prüfen/, /Neu aus Todoist/])
     await expect(notPlanned(page).locator('[data-not-planned-id]')).toHaveCount(0)
-    // "Planung" shows Offen only: Jetzt and Wartet are checked on Heute (the bar's pill "Weiter zum Board", #373)
+    // "Alle" shows Offen only: Jetzt and Wartet are checked on Heute (the bar's pill "Weiter zum Board", #373)
     await goToPlace(page, 'Heute')
     await expect(column(page, 'progress').getByText('Plan zeichnen')).toBeVisible()
     await expect(column(page, 'waiting').getByText('Rückruf abwarten')).toBeVisible()
@@ -161,7 +161,7 @@ test.describe('Notion: statuses that mean "not planned" (#357)', () => {
     await page.getByRole('menuitem', { name: 'Nicht heute' }).click()
     await expect(column(page, 'open').getByText(TITLE)).toHaveCount(0)
     // without a reload: the seed would put the card back, and Notion still holds it as "Today"
-    await page.getByRole('link', { name: 'Planung' }).click()
+    await page.getByRole('link', { name: 'Alle', exact: true }).click()
     await expect(notPlanned(page).getByText(TITLE)).toBeVisible()
     expect(writes).toEqual([])
   })

@@ -3,7 +3,7 @@
 @kind component
 @category feedback
 @description The question after a night in which the Jetzt timer ran on while kan-do was not in focus (#356, the user's decision of 2026-11-16: nothing is removed silently; since #387 it comes with the app's start or return, whether or not the user starts the day fresh, and a task that stayed in Jetzt keeps tracking): it says how long the timer ran on after midnight, names the task, and offers "Zeit abziehen" and "Zeit behalten".
-@usage <NewDayTimeNote /> above the board in pages/tasks.vue, next to NewDayNote (the two stack when both apply); it shows on Heute and on "Planung". State and both actions live in `useNewDay` (`timeOffer`, `takeOffTime`, `keepTime`).
+@usage <NewDayTimeNote /> above the board in pages/tasks.vue, next to NewDayNote (the two stack when both apply); it shows on Heute and on "Alle". State and both actions live in `useNewDay` (`timeOffer`, `takeOffTime`, `keepTime`).
 @avoid Not the notice that offers the fresh start (NewDayNote) and not a blocking dialog: unanswered, the time stays as recorded and the question ends with its day. Never asked for a stretch under a minute.
 @responsibility
 - Same pattern as NewDayNote (DataStorageNotice): a subtle neutral UAlert, `role="status"`, no call-site `:ui`, two link actions with the notices' 44 px hit area on touch (`kando-notice-actions`), beside the text on desktop and below it on a phone

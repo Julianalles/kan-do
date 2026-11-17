@@ -40,7 +40,7 @@ test.describe('empty states', () => {
   })
 })
 
-test.describe('the place "Planung" (#354)', () => {
+test.describe('the place "Alle" (#354)', () => {
   async function gotoAll(page: Page) {
     await page.goto('/all')
     await expect(page.locator('.board')).toHaveAttribute('data-place', 'all')
@@ -80,7 +80,7 @@ test.describe('a new day (#356, #387)', () => {
     await expect(page.getByTestId('not-planned')).toMatchAriaSnapshot({ name: 'not-planned-new-day-groups-1280.aria.yml' })
   })
 
-  test('an empty Offen on Heute says how many tasks of yesterday wait under "Planung", with a link (390)', async ({ context, page }) => {
+  test('an empty Offen on Heute says how many tasks of yesterday wait under "Alle", with a link (390)', async ({ context, page }) => {
     await page.setViewportSize(MOBILE)
     await seedNewDayBoard(context, { tasks: board() })
     await gotoBoard(page)

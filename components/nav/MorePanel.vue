@@ -4,9 +4,9 @@
 @category navigation
 @description Content of the Mehr popover behind the app bar's ⋯ (#470): the board controls and the pages that are not places
 @usage Rendered inside the UPopover of AppNav; reads stores and composables only, no props
-@avoid Only the popover behind AppNav's ⋯; the places (Heute, Statistik) are the pill's segments, rows here only on "Planung" where the pill does not show them.
+@avoid Only the popover behind AppNav's ⋯; the places (Heute, Statistik) are the pill's segments, rows here only on "Alle" where the pill does not show them.
 @responsibility
-- Order on the board: Befehle (desktop) -> Heute, Statistik (only on "Planung", #373: the pill shows just "Weiter zum Board" there, so the places it leaves out are rows here) -> Ansicht (Karten stapeln + group-by chips) -> Tag abschließen -> Papierkorb (n), Einstellungen, App-Update -> sync footer
+- Order on the board: Befehle (desktop) -> Heute, Statistik (only on "Alle", #373: the pill shows just "Weiter zum Board" there, so the places it leaves out are rows here) -> Ansicht (Karten stapeln + group-by chips) -> Tag abschließen -> Papierkorb (n), Einstellungen, App-Update -> sync footer
 - Ansicht and Tag abschließen exist only while the board is the current place; the rest and the sync footer on every page
 - The page the pill shows as its third segment (#583: Einstellungen on /settings*, Papierkorb on /trash*) is not listed here; the row returns when the page leaves the pill. App-Update stays on /settings/updates (a different page). The panel closes on every route change, so a row never appears or disappears while it is open
 - App-Update only in the desktop app (`isTauri()`, absent in the web build, never disabled)
@@ -37,7 +37,7 @@
       </UButton>
       <USeparator class="my-1" />
     </template>
-    <!-- "Planung" (#373): after "Tag planen" the pill shows only "Weiter zum Board" (#416), so the places it does not show are rows here -->
+    <!-- "Alle" (#373): after "Tag planen" the pill shows only "Weiter zum Board" (#416), so the places it does not show are rows here -->
     <template v-if="continuesToBoard">
       <UButton
         :to="boardPlaceLocation('today')"
