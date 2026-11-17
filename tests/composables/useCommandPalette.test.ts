@@ -56,7 +56,6 @@ describe('buildCommandGroups', () => {
       ['/trash', 'trash', false],
       ['/settings', 'settings', false],
       ['/settings/github', 'github-access', true],
-      ['/settings/data', 'data-folder', true],
       ['/settings/updates', 'updates', true],
     ]
     it.each(hiddenOn)('on %s the row "%s" is not offered, all others stay', (path, hidden, desktop) => {

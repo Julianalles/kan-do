@@ -25,10 +25,6 @@
   undo; static under reduced motion
 - Completion burst (#692, #295, DESIGN.md "Behaviour"): `TaskCompletionBurst` on the same trigger as the check
   spring, around the card for ~1.2 s; decorative, none under reduced motion
-- Pause arrival (#405): a card the Now window's pause set down at the top of Wartet (board store `pausedTaskIds`) settles
-  into place (a 6 px set-down, 200 ms) under a neutral layer with a thin pause glyph that fades out, ~0.7 s; decoration only,
-  `aria-hidden`. It waits until the window is in front, so a pause from the background plays when the user returns, and
-  plays once; no layer and no motion under reduced motion
 - Timebox nudge (#389): a Jetzt card without a timebox shows the in-card question (board store
   `timeboxNudgeTaskId`); its own content is hidden under it (`task--nudged`, rules in TaskTimeboxNudge)
 - Menu button (#296): inside a `TaskCardContextMenu` (it provides the opener, `lib/taskCardMenu.ts`) the card shows a
@@ -48,7 +44,7 @@
 <template>
   <UCard
     class="task"
-    :class="[taskClass, { muted, 'task--draft': draft, 'task--confirming': isConfirming, 'task--celebrating': burstPlaying, 'task--nudged': isNudged, 'task--readonly': readonly, 'task--swap-target': isSwapTarget, 'task--paused-arrival': pauseArriving, 'task--returning': isTaskReturning(task.id) }]"
+    :class="[taskClass, { muted, 'task--draft': draft, 'task--confirming': isConfirming, 'task--celebrating': burstPlaying, 'task--nudged': isNudged, 'task--readonly': readonly, 'task--swap-target': isSwapTarget, 'task--returning': isTaskReturning(task.id) }]"
     :data-task-id="readonly ? undefined : task.id"
     :data-current="isCurrent ? '' : undefined"
     :data-sheet-active="spotlightTaskId === task.id ? '' : undefined"
@@ -108,17 +104,6 @@
         <span>{{ t('task.fasterThanPlan') }}</span>
       </span>
       <UIcon v-else name="i-ph-check-bold" class="task-confirm__icon" />
-    </span>
-    <!-- Pause arrival (#405): a neutral layer with the pause glyph over the card that was just set down in Wartet.
-         Visual only: the move itself is what the user can read (the card sits at the top of Wartet). -->
-    <span
-      v-if="pauseArriving"
-      class="task-pause-layer"
-      aria-hidden="true"
-      data-testid="task-pause-arrival"
-      @animationend.self="endPauseArrival"
-    >
-      <UIcon name="i-ph-pause" class="task-pause-layer__icon" />
     </span>
     <!-- Completion burst (#692): the earned celebration around the card; decorative, owns its ~0.9 s lifetime -->
     <TaskCompletionBurst v-if="burstPlaying" @done="burstPlaying = false" />
@@ -324,54 +309,6 @@ watch(isConfirming, (on) => {
 watch(isDone, (done) => {
   if (!done) burstPlaying.value = false;
 });
-/**
- * Pause arrival (#405): the Now window's pause sets the card down at the top of Wartet and flags it in the board store.
- * The motion starts when the user can see it: now when the window is in front, else on its next focus (a pause from the
- * pill happens with Kan-Do in the background). It plays once; its layer ends the flag, a card that leaves Wartet or a
- * user who prefers reduced motion ends it without playing.
- */
-const isPausedFlag = computed(
-  () => props.task.status === TaskStatus.Waiting && !props.preview && boardStore.pausedTaskIds.includes(props.task.id),
-);
-const pauseArriving = ref(false);
-const windowInFront = () => document.visibilityState === "visible" && document.hasFocus();
-function startPauseArrival() {
-  stopWaitingForFront();
-  if (isPausedFlag.value) pauseArriving.value = true;
-}
-function waitForFront() {
-  if (windowInFront()) {
-    startPauseArrival();
-    return;
-  }
-  window.addEventListener("focus", startPauseArrival, { once: true });
-  document.addEventListener("visibilitychange", onVisibleAgain);
-}
-function onVisibleAgain() {
-  if (windowInFront()) startPauseArrival();
-}
-function stopWaitingForFront() {
-  window.removeEventListener("focus", startPauseArrival);
-  document.removeEventListener("visibilitychange", onVisibleAgain);
-}
-function endPauseArrival() {
-  pauseArriving.value = false;
-  boardStore.clearPaused(props.task.id);
-}
-watch(
-  isPausedFlag,
-  (on) => {
-    if (!import.meta.client) return;
-    if (!on) {
-      stopWaitingForFront();
-      pauseArriving.value = false;
-      boardStore.clearPaused(props.task.id);
-    } else if (prefersReducedMotion()) boardStore.clearPaused(props.task.id);
-    else waitForFront();
-  },
-  { immediate: true },
-);
-onBeforeUnmount(stopWaitingForFront);
 const isInProgress = computed(() => props.task.status === TaskStatus.Progress);
 /** The running card a dragged card would swap out (#162): it shows the swap state while the drop would swap */
 const isSwapTarget = computed(() => !props.preview && dragState.value.swapTaskId === props.task.id);
@@ -582,49 +519,6 @@ const openDetails = (event: MouseEvent) => {
 
 .board:not(.dragging) .task:not(.task--readonly, .task--draft, .kando-dnd-placeholder, .stacked-task):active {
   background-color: var(--task-card-hover-bg);
-}
-
-/* Pause arrival (#405, D6: a look choice of the build): the card is set down at the top of Wartet, 6 px above its place
-   and settling in 200 ms (--duration-base), while a neutral layer with a thin pause glyph fades in (150 ms), holds a
-   beat (250 ms) and fades out to the card (300 ms): one everyday-sized beat of --pause-arrival-duration (700 ms), the
-   layer peaking at 0.92 so the title stays faintly there. The settle is the one divergence from the done layer, which
-   never moves the card: a card that arrives somewhere new is set down, a card that stays is not. Transform and opacity only. Not under reduced motion: the card
-   just sits at the top (the layer is not drawn). The wash is one tonal step below the card (muted surface), the glyph the muted text
-   step: the neutral counterpart of the green done layer, because pausing is not a completion. */
-.task--paused-arrival {
-  animation: task-pause-settle var(--duration-base) var(--ease-emphasized);
-}
-@keyframes task-pause-settle {
-  from { transform: translateY(-6px); }
-  to { transform: translateY(0); }
-}
-.task-pause-layer {
-  position: absolute;
-  inset: 0;
-  z-index: var(--z-card-layer);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--task-card-radius);
-  background-color: var(--ui-bg-muted);
-  color: var(--ui-text-muted);
-  pointer-events: none;
-  opacity: 0;
-  animation: task-pause-layer var(--pause-arrival-duration) linear forwards;
-}
-.task-pause-layer__icon {
-  width: 2rem;
-  height: 2rem;
-}
-@keyframes task-pause-layer {
-  0% { opacity: 0; animation-timing-function: var(--ease-emphasized); }
-  21.4% { opacity: 0.92; } /* 150 ms of 700 */
-  57.1% { opacity: 0.92; animation-timing-function: var(--ease-standard); } /* hold to 400 ms */
-  100% { opacity: 0; } /* 300 ms out */
-}
-@media (prefers-reduced-motion: reduce) {
-  .task--paused-arrival { animation: none; }
-  .task-pause-layer { display: none; }
 }
 
 /* A trash entry (#422) is a picture of the card, not a control */

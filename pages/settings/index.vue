@@ -4,15 +4,15 @@
 sized up to read as the page's navigation, #333: `size="xl"`, which the theme draws with 16 px labels, 44 px high at every width and a 2 px indicator; the other tab strips keep `md`),
 one shown at a time, the active one in the URL as `?tab=board|sources|manage` (default board, unknown value = board):
 Board (the Fokus option and the working hours of the capacity divider, #306), Aufgabenquellen (the former "Aufgaben-Quellen" page, #324: every source with its health, the default
-for new tasks, repair / configure / connect / disconnect) and Verwaltung (hairline rows to Themen und Aktivitäten, Daten &
-Speicher, and on desktop Updates and GitHub-Zugriff).
+for new tasks, repair / configure / connect / disconnect) and Verwaltung (hairline rows to Themen und Aktivitäten, Backup und
+App-Reset, and on desktop Updates and GitHub-Zugriff).
 `/settings/sources` redirects here.
 @usage Board gear, command palette "Einstellungen", the sync popover's "Verbindung reparieren"
 @responsibility
 - "Fokus": one switch row, "Jetzt-Karte im Fokus" (`settingsStore.focusEnabled`); takes effect on the board at once; on phone the 36×20 switch has a 44 px hit area (an invisible `::after`, kd#27)
 - "Schwebendes Jetzt-Fenster" (#383): a switch row below "Fokus", desktop only (`settingsStore.floatingNowEnabled`, default on); the main window pushes the setting to Rust at once, which hides or destroys the window
 - Aufgabenquellen is one sheet (#333: one concern): "Deine Verbindungen" (h2), the lead, the connected rows, then a separator and "Weitere Verbindungen" a level below (h3, the `sub` role); separator and heading drop out when nothing is left to connect
-- List Lokal (always) and the connected integrations as hairline rows; the default carries the "Standard" badge; a row's name and actions share one line at every width (`SourceRow`: the "…" menu)
+- List Lokal (always; on desktop its row carries `LocalStorageDetails`: data folder, last saved, storage problems and their actions, #438) and the connected integrations as hairline rows; the default carries the "Standard" badge; a row's name and actions share one line at every width (`SourceRow`: the "…" menu)
 - "Als Standard festlegen" changes the default at once (`boardStore.setDefaultSource`)
 - Repair of a broken Notion (rejected token, missing config) opens the Notion setup at the token step
   (`force-setup`, so a new token can be entered); a merely degraded one opens it in settings mode.
@@ -113,7 +113,11 @@ Speicher, and on desktop Updates and GitHub-Zugriff).
                   @repair="onRepair"
                   @open-settings="onOpenSettings"
                   @disconnect="onDisconnect"
-                />
+                >
+                  <template v-if="row.id === 'local' && isDesktop" #details>
+                    <LocalStorageDetails />
+                  </template>
+                </SourceRow>
               </ul>
 
               <!-- One sheet, one concern (#333): what can still be connected follows a separator, a level below -->
@@ -182,6 +186,7 @@ import { useI18n } from 'vue-i18n'
 import { navigateTo } from 'nuxt/app'
 import { useRoute, useRouter } from 'vue-router'
 import SourceRow from '~/components/settings/SourceRow.vue'
+import LocalStorageDetails from '~/components/settings/LocalStorageDetails.vue'
 import DisconnectSourceDialog from '~/components/settings/DisconnectSourceDialog.vue'
 import NotionSetupModal from '~/components/notion/setup/NotionSetupModal.vue'
 import { useBoardStore } from '~/store/board'
@@ -192,6 +197,7 @@ import { useSourceConnections } from '~/composables/useSourceConnections'
 import { useIntegrationManager } from '~/composables/useIntegrationManager'
 import { useErrorHandler } from '~/composables/useErrorHandler'
 import { isTauri } from '~/utils/isTauri'
+import { useDataFolder } from '~/composables/useDataFolder'
 import ListRow from '~/components/ui/ListRow.vue'
 import { ICONS } from '~/lib/icons'
 import { isIntegrationSourceId } from '~/lib/taskSources'
@@ -216,6 +222,8 @@ const { handleError } = useErrorHandler()
 
 // The Keychain and updater pages exist on desktop only.
 const isDesktop = isTauri()
+const dataFolder = useDataFolder()
+const dataStatus = dataFolder.status
 
 // The active group lives in the URL (`?tab=`): back from a sub-page re-opens the same tab, a link can point at one
 const TAB_IDS = ['board', 'sources', 'manage'] as const
@@ -278,8 +286,11 @@ const isDisconnectOpen = ref(false)
 const disconnectTarget = ref<IntegrationSourceId | null>(null)
 
 // A board that never onboarded has no sources to manage: the welcome flow picks the first one
-onMounted(() => {
-  if (!boardStore.isOnboarded) void navigateTo('/welcome')
+// Exception (#438): a data file that is missing, unreadable or unreachable hydrates an empty board, and the Lokal row is where that is fixed
+onMounted(async () => {
+  if (boardStore.isOnboarded) return
+  if (isDesktop) await dataFolder.refresh().catch(() => undefined)
+  if (!(isDesktop && dataStatus.value !== 'ok')) void navigateTo('/welcome')
 })
 
 const onSetDefault = (id: SourceId) => {

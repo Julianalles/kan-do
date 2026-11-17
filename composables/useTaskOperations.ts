@@ -86,7 +86,7 @@ export const useTaskOperations = () => {
    * Moves a task to a specific status/column. The single guarded move path for context menu,
    * detail sheet and command palette. Returns false when refused (WIP limit) or the task is missing.
    * `pause` (#405, the Now window's pause: Jetzt to Wartet): the card goes first into Wartet's order, whatever the
-   * column's sort (`moveToTopOfColumn`), and is flagged for its arrival motion. The write is the same status write as
+   * column's sort (`moveToTopOfColumn`); it plays no arrival motion of its own (#436). The write is the same status write as
    * any move, through `useTaskSync().updateTaskStatus`.
    * `resume` (#405, the pill's resume: Wartet to Jetzt): the same stint goes on, so the timer driver keeps the
    * after-midnight note (#356) and the card gets no timebox question (#389) again.
@@ -121,12 +121,7 @@ export const useTaskOperations = () => {
     // stand around that write, not around the column move
     const asResume = <T>(run: () => T): T => (resuming ? withResumeEntry(taskId, run) : run());
     boardStore.updateTaskPosition(taskId, newStatus, oldStatus);
-    if (pausing) {
-      boardStore.moveToTopOfColumn(TaskStatus.Waiting, taskId, waitingBefore);
-      boardStore.markPaused(taskId);
-    } else {
-      boardStore.clearPaused(taskId);
-    }
+    if (pausing) boardStore.moveToTopOfColumn(TaskStatus.Waiting, taskId, waitingBefore);
 
     // Then, sync the status change. The store is written before its first await, so the marker covers the watcher's run
     const sync = asResume(() => updateTaskStatus({ taskId, status: newStatus }));

@@ -931,8 +931,10 @@
     },
     "data": {
       "pageTitle": "Daten & Speicher",
-      "pageDescription": "Wo deine Aufgaben und Einstellungen auf diesem Gerät liegen.",
+      "pageDescription": "Sicherungen, Export und Import und das Zurücksetzen der App.",
       "link": "Daten & Speicher",
+      "movedToConnections": "Datenordner und Speicherstatus findest du unter Aufgabenspeicher › Lokal.",
+      "movedLink": "Zum Datenordner",
       "folderHeading": "Datenordner",
       "folderPath": "Datenordner: {path}",
       "changeFolder": "Ordner ändern…",
@@ -944,7 +946,7 @@
       "problemHeading": "Speichern ist gerade nicht möglich",
       "state": {
         "newerSchema": "Dieser Ordner enthält Daten einer neueren Version. Aktualisiere die App; bis dahin wird nichts geschrieben.",
-        "corrupt": "Die Datendatei in diesem Ordner ist nicht lesbar. Sie bleibt unverändert; solange wird nichts geschrieben. Unten kannst du eine Sicherung wiederherstellen.",
+        "corrupt": "Die Datendatei in diesem Ordner ist nicht lesbar. Sie bleibt unverändert; solange wird nichts geschrieben.",
         "missing": "In diesem Ordner fehlt die Datendatei. Bis du hier neu beginnst oder einen anderen Ordner wählst, wird nichts geschrieben.",
         "writeFailed": "Speichern in diesem Ordner ist fehlgeschlagen. Deine Änderungen bleiben in der App. Es wird weiter versucht.",
         "folderUnavailable": "Der Datenordner ist nicht erreichbar. Das angezeigte Board ist nicht deine gespeicherte Version. Änderungen bleiben im Speicher, bis der Ordner wieder da ist.",
@@ -999,6 +1001,7 @@
       },
       "backups": {
         "heading": "Sicherungen",
+        "open": "Sicherungen öffnen",
         "last": "Letzte Sicherung: {time}",
         "none": "Noch keine Sicherung",
         "now": "Jetzt sichern",
@@ -1201,7 +1204,7 @@
     },
     "floatingNow": {
       "label": "Schwebender Timer",
-      "help": "Zeigt deine Aufgabe in „Jetzt“ zusammen mit einem Timer als eigenes kleines Fenster, das immer sichtbar istt."
+      "help": "Zeigt deine Aufgabe in „Jetzt“ zusammen mit einem Timer als eigenes kleines Fenster, das immer sichtbar ist."
     }
   },
   "sources": {
@@ -1685,6 +1688,7 @@
     "done": "Als erledigt markieren",
     "left": "noch {time}",
     "over": "{time} über der Timebox",
+    "elapsed": "Bisher gearbeitet: {time}",
     "paused": "pausiert"
   }
 }

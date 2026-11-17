@@ -931,8 +931,10 @@
     },
     "data": {
       "pageTitle": "Data & storage",
-      "pageDescription": "Where your tasks and settings live on this device.",
+      "pageDescription": "Backups, export and import, and resetting the app.",
       "link": "Data & storage",
+      "movedToConnections": "Find the data folder and its status under Task storage › Local.",
+      "movedLink": "Go to the data folder",
       "folderHeading": "Data folder",
       "folderPath": "Data folder: {path}",
       "changeFolder": "Change folder…",
@@ -944,7 +946,7 @@
       "problemHeading": "Saving is not possible right now",
       "state": {
         "newerSchema": "This folder holds data from a newer version. Update the app; until then nothing is written.",
-        "corrupt": "The data file in this folder cannot be read. It stays as it is; nothing is written meanwhile. Below you can restore a backup.",
+        "corrupt": "The data file in this folder cannot be read. It stays as it is; nothing is written meanwhile.",
         "missing": "The data file is missing from this folder. Nothing is written until you start fresh here or choose another folder.",
         "writeFailed": "Saving to this folder failed. Your changes stay in the app. The app keeps trying.",
         "folderUnavailable": "The data folder cannot be reached. The board shown is not your saved version. Changes stay in memory until the folder is back.",
@@ -999,6 +1001,7 @@
       },
       "backups": {
         "heading": "Backups",
+        "open": "Open backups",
         "last": "Last backup: {time}",
         "none": "No backup yet",
         "now": "Back up now",
@@ -1685,6 +1688,7 @@
     "done": "Mark as done",
     "left": "{time} left",
     "over": "{time} over the timebox",
+    "elapsed": "Time spent: {time}",
     "paused": "paused"
   }
 }

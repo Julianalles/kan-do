@@ -15,7 +15,8 @@ import { installTauriStub } from './helpers/tauriStub'
  */
 
 const ROUTES: Array<{ path: string, ready: (page: Page) => ReturnType<Page['locator']> }> = [
-  { path: '/settings/data', ready: page => page.getByRole('heading', { name: 'Datenordner', level: 2 }) },
+  { path: '/settings?tab=sources', ready: page => page.getByTestId('data-folder-path') },
+  { path: '/settings/data', ready: page => page.getByTestId('data-folder-moved') },
   { path: '/settings/github', ready: page => page.getByRole('region', { name: 'Updates' }) },
 ]
 const VIEWPORTS = [
@@ -38,7 +39,7 @@ for (const route of ROUTES.filter(r => !only || only.includes(r.path))) {
       await expect(route.ready(page)).toBeVisible()
       await settleAnimations(page)
       mkdirSync(shotsDir!, { recursive: true })
-      await page.screenshot({ path: join(shotsDir!, `${route.path.slice(1).replace(/\//g, '-')}-${viewport.name}.png`), fullPage: true })
+      await page.screenshot({ path: join(shotsDir!, `${route.path.slice(1).replace(/[/?=]/g, '-')}-${viewport.name}.png`), fullPage: true })
     })
   }
 }

@@ -196,12 +196,13 @@ test.describe('Update dialog (desktop)', () => {
     { reason: 'folder-unavailable', text: 'Datenordner nicht erreichbar. Es wurde nichts geändert.' },
     { reason: 'unreadable', text: 'Die Datendatei ist nicht lesbar. Löse das zuerst; es wurde nichts geändert.' },
   ]) {
-    test(`refuses with "${blocked.reason}" before touching anything`, async ({ page }) => {
+    test(`refuses with "${blocked.reason}" before touching anything`, async ({ context, page }) => {
+      await seedLocalBoard(context) // the Verbindungen page, where the dialog's link lands, needs a configured board
       await openDialog(page, { installFailure: { kind: 'data_blocked', reason: blocked.reason } })
       await updateDialog(page).getByTestId('update-install').click()
       await expect(updateDialog(page).getByTestId('update-error')).toHaveText(blocked.text)
       await updateDialog(page).getByTestId('update-open-data').click()
-      await expect(page).toHaveURL(/\/settings\/data$/)
+      await expect(page).toHaveURL(/\/settings\?tab=sources$/)
     })
   }
 

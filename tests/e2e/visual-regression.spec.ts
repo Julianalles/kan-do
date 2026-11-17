@@ -1204,7 +1204,7 @@ for (const { size, viewport } of CORE_VIEWPORTS) {
           },
         })
         await page.goto('/settings/data')
-        await expect(page.getByRole('heading', { name: 'Datenordner', level: 2 })).toBeVisible()
+        await expect(page.getByTestId('data-folder-moved')).toBeVisible()
         await emitDataStatus(page, { status, ...extra })
         const notice = page.getByTestId('data-storage-notice')
         await expect(notice).toBeVisible()

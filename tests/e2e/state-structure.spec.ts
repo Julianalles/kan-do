@@ -542,12 +542,12 @@ test.describe('the floating Now window (#383)', () => {
     await expect(page.getByTestId('now-pill')).toBeVisible()
   }
 
-  test('paused pill with a timebox: ring, title, time, and the resume and done buttons', async ({ context, page }) => {
+  test('paused pill with a timebox: title, time, and the resume and done buttons', async ({ context, page }) => {
     await openPill(context, page)
     await expect(page.getByTestId('now-pill')).toMatchAriaSnapshot({ name: 'now-window-paused.aria.yml' })
   })
 
-  test('running pill without a timebox: the title only', async ({ context, page }) => {
+  test('running pill without a timebox: the title and the time passed', async ({ context, page }) => {
     await openPill(context, page, { timeBoxSeconds: null, running: true })
     await expect(page.getByTestId('now-pill')).toMatchAriaSnapshot({ name: 'now-window-no-timebox.aria.yml' })
   })

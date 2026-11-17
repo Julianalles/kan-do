@@ -62,9 +62,9 @@ test.describe('Native feel (desktop)', () => {
   })
 
   test('a double click on a control label selects nothing, content on a page stays selectable', async ({ page }) => {
-    await page.goto('/settings/data')
+    await page.goto('/settings?tab=sources')
     await expect(page.locator('html')).toHaveAttribute('data-shell', 'desktop')
-    const heading = page.getByRole('heading', { name: 'Datenordner', level: 2 })
+    const heading = page.getByRole('heading', { name: 'Deine Verbindungen', level: 2 })
     await expect(heading).toBeVisible()
 
     const button = page.getByTestId('data-folder-change')
@@ -88,8 +88,8 @@ test.describe('Native feel (desktop)', () => {
   })
 
   test('no browser context menu on a label, but the native one in a text field', async ({ page }) => {
-    await page.goto('/settings/data')
-    await expect(page.getByRole('heading', { name: 'Datenordner', level: 2 })).toBeVisible()
+    await page.goto('/settings?tab=sources')
+    await expect(page.getByTestId('data-folder-change')).toBeVisible()
     expect(await contextMenuCancelled(page, '[data-testid="data-folder-change"]')).toBe(true)
     expect(await contextMenuCancelled(page, 'body')).toBe(true)
 
@@ -174,7 +174,7 @@ test.describe('Native feel (desktop)', () => {
   })
 
   test('controls show the arrow cursor, a disabled one not-allowed, a link in copyable text the hand (#393)', async ({ page }) => {
-    await page.goto('/settings/data')
+    await page.goto('/settings?tab=sources')
     await expect(page.getByTestId('data-folder-change')).toBeVisible()
     expect(await page.getByTestId('data-folder-change').evaluate(el => getComputedStyle(el).cursor)).toBe('default')
     expect(await cursorOf(page, '<button type="button">x</button>')).toBe('default')

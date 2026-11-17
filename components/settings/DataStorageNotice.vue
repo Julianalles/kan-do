@@ -113,7 +113,7 @@ const actions = computed(() => {
     return [{ ...base, label: t('settings.data.notice.retry'), loading: retrying.value, onClick: onRetry }];
   }
   const list: ButtonProps[] = [];
-  if (props.showDetails) list.push({ ...base, label: t('settings.data.notice.details'), to: '/settings/data' });
+  if (props.showDetails) list.push({ ...base, label: t('settings.data.notice.details'), to: '/settings?tab=sources' });
   // Only when the cloud notice is on screen AND still live: while a drag holds it, `dismissCloudNotice` would
   // hide a notice the user has not seen yet, so the action waits for the drop.
   if (isCloudNotice.value && cloudNotice.value !== null) list.push({ ...base, label: t('settings.data.notice.hide'), onClick: dismissCloudNotice });

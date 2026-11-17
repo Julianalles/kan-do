@@ -18,7 +18,7 @@
       <template #actions>
         <UButton
           v-if="isDesktop"
-          to="/settings/data"
+          to="/settings?tab=sources"
           color="neutral"
           variant="ghost"
           icon="i-ph-folder-open"
