@@ -1,4 +1,4 @@
-import { getTimeboxRingColor } from '~/utils/timeboxProgress'
+import { getTimeboxRingColor, getTimerBarShare } from '~/utils/timeboxProgress'
 
 /**
  * @module nowWindow
@@ -92,9 +92,10 @@ export function nowView(snapshot: NowSnapshot, now: number): NowView {
   const paused = !snapshot.running
   if (box === null) return { line: null, mode: 'elapsed', label: clock(spent), tone: 'normal', over: false, paused }
   const left = box - spent
-  const over = left < 0
+  const bar = getTimerBarShare(spent, box)
+  const over = bar?.over ?? false
   return {
-    line: over ? 1 : left / box,
+    line: bar ? bar.share / 100 : null,
     mode: over ? 'over' : 'left',
     label: over ? `+${clock(-left)}` : clock(left),
     tone: getTimeboxRingColor((spent / box) * 100) === 'warning' ? 'warning' : 'normal',

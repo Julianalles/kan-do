@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getTimeboxRingColor, isUnderOneMinute } from '~/utils/timeboxProgress';
+import { getTimeboxRingColor, getTimerBarShare, isUnderOneMinute } from '~/utils/timeboxProgress';
 
 describe('getTimeboxRingColor', () => {
   it.each([
@@ -27,5 +27,33 @@ describe('isUnderOneMinute', () => {
     expect(isUnderOneMinute(1)).toBe(true);
     expect(isUnderOneMinute(59)).toBe(true);
     expect(isUnderOneMinute(60)).toBe(false);
+  });
+});
+
+describe('getTimerBarShare (#450)', () => {
+  it('has no bar without a timebox', () => {
+    expect(getTimerBarShare(600, null)).toBeNull();
+    expect(getTimerBarShare(600, 0)).toBeNull();
+    expect(getTimerBarShare(600, -5)).toBeNull();
+  });
+
+  it('starts full and shrinks with the remaining time', () => {
+    expect(getTimerBarShare(0, 3600)).toEqual({ share: 100, over: false });
+    expect(getTimerBarShare(900, 3600)).toEqual({ share: 75, over: false });
+    expect(getTimerBarShare(1800, 3600)).toEqual({ share: 50, over: false });
+    expect(getTimerBarShare(3420, 3600)).toEqual({ share: 5, over: false });
+  });
+
+  it('is empty at the timebox and not yet over', () => {
+    expect(getTimerBarShare(3600, 3600)).toEqual({ share: 0, over: false });
+  });
+
+  it('is full again once over the timebox (it has run out, not nothing left)', () => {
+    expect(getTimerBarShare(3601, 3600)).toEqual({ share: 100, over: true });
+    expect(getTimerBarShare(9000, 3600)).toEqual({ share: 100, over: true });
+  });
+
+  it('reads negative spent time as nothing spent', () => {
+    expect(getTimerBarShare(-30, 3600)).toEqual({ share: 100, over: false });
   });
 });

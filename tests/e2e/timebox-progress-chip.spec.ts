@@ -1,6 +1,6 @@
 /**
  * E2E (#388): the timebox label of a card is its progress item. Outside Jetzt a grey chip whose fill is the spent
- * share; in Jetzt, after the card settled, a bar across the whole footer (`12 min ...... 45 min`) in primary and
+ * share; in Jetzt, after the card settled, a timer bar across the whole footer (`12 min ...... 45 min`, #450: the fill is the share that is left) in primary and
  * warning above 80 %; leaving Jetzt springs back to the grey chip with the fill kept. The ring is gone from the
  * cards (the task sheet keeps its own). Time is seeded (`timeSpentSeconds`), never waited for; reads after the
  * spring poll, never one-shot.
@@ -137,7 +137,8 @@ test.describe('timebox progress chip (#388)', () => {
       app.$pinia._s.get('tasks')!.setTimeSpent('seed-progress-1', 2700)
     })
     await expect.poll(eases).toBeGreaterThanOrEqual(1)
-    await expect.poll(() => fillShare(chip(page, JETZT_ID)), { timeout: 5000 }).toBeGreaterThan(0.74)
+    // 2700 of 3600 s spent: a quarter of the timer bar is left (#450)
+    await expect.poll(async () => Math.abs((await fillShare(chip(page, JETZT_ID))) - 0.25), { timeout: 5000 }).toBeLessThan(0.02)
 
     // Ticks after the ease has ended are steps again: no further ease (a tick inside the ease retargets it, which counts as one more)
     await settleAnimations(page)
@@ -159,18 +160,19 @@ test.describe('timebox progress chip (#388)', () => {
     expect(Math.abs((await chip(page, 'seed-open-2').boundingBox())!.x - (await footerX('seed-open-2')))).toBeLessThanOrEqual(1)
   })
 
-  for (const [label, spent, tone, value] of [
-    ['50 %', 1800, 'primary', '50'],
-    ['85 %', 3060, 'warning', '85'],
-    ['over the timebox', 4300, 'warning', '100'],
+  for (const [label, spent, tone, value, left] of [
+    ['50 %', 1800, 'primary', '50', 0.5],
+    ['85 %', 3060, 'warning', '85', 0.15],
+    ['over the timebox', 4300, 'warning', '100', 1],
   ] as const) {
-    test(`Jetzt bar at ${label} is ${tone}`, async ({ context, page }) => {
+    test(`Jetzt bar at ${label} is ${tone} and shrinks to the share that is left (#450)`, async ({ context, page }) => {
       await seedLocalBoard(context, withJetztSpent(spent))
       await page.goto('/tasks')
       await expectBar(page, JETZT_ID)
       const jetzt = chip(page, JETZT_ID)
       await expect(jetzt).toHaveClass(new RegExp(`chip--${tone}`))
       await expect(jetzt).toHaveAttribute('aria-valuenow', value)
+      await expect.poll(async () => Math.abs((await fillShare(jetzt)) - left), { timeout: 5000 }).toBeLessThan(0.02)
       // Everything else is grey: only the Jetzt card is coloured
       await expect(page.locator(`${CHIP}.chip--primary, ${CHIP}.chip--warning`)).toHaveCount(1)
     })
