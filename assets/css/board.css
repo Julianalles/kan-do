@@ -22,7 +22,7 @@
    * - Isolates stacking context to control z-index hierarchy
    */
   :where(.board) {
-    position: relative;        /* Positioning context for ::before overlay */
+    position: relative;        /* Positioning context for the focus overlay */
     isolation: isolate;         /* Creates stacking context for z-index control */
 
     /* Visual styling */

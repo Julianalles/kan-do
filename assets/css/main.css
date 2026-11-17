@@ -240,9 +240,6 @@
     --sheet-fade-opacity: 0.55;
     /* Shared board scrim (#123); #127 reuses it for modals. */
     --overlay-scrim: rgb(var(--shadow-color) / 0.17);
-    /* The same scrim as an opaque tone on the paper: for a surface a browser reads a solid colour from (the phone's
-       page dots strip, which colours the status bar; board-focus-overlay.css). Keep the share in step. */
-    --overlay-scrim-on-page: color-mix(in srgb, rgb(var(--shadow-color)) 17%, var(--ui-page-bg));
     --sheet-fade-duration: var(--duration-base);
     --sheet-fade-easing: var(--ease-emphasized);
 
