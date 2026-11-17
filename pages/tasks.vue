@@ -5,10 +5,11 @@
 @responsibility
 - Lädt und aktualisiert Aufgaben periodisch
 - Hosts the task sheet (`TaskSheetHost`, kd#179) for /tasks/:id and /tasks/add; the command palette (mounted in app.vue since #224) opens its dialogs from here
+- Runs the day check in setup, so a due recap is open for the first render and the board is hidden behind it until it is left (#427)
 - Sync, Ansicht und Tag abschließen laufen über die App-Leiste (Mehr-Panel, #470), nicht über das Board
 -->
 <template>
-  <main data-task-sheet-return :inert="recap.isOpen.value || undefined">
+  <main data-task-sheet-return :inert="recap.isOpen.value || undefined" :data-recap-cover="coverBoard || undefined">
     <h1 class="sr-only">{{ t('board.pageHeading') }}</h1>
     <DataStorageNotice class="relative z-10 mx-auto mt-3 w-auto max-w-3xl" />
     <!-- The new day's two notes: the notice that offers the fresh start on a day the user has not planned (#387), and
@@ -26,7 +27,7 @@
     </TaskSheetHost>
     <!-- Closed at start: each loads on its first open (#288) and stays mounted after -->
     <DayCloseDialog v-if="dayCloseOpened" />
-    <NewDayRecap v-if="recapOpened" />
+    <NewDayRecap v-if="recapOpened" :instant="coverBoard" />
     <FeedbackDialog v-if="feedbackOpened" />
     <ElementPickerBar v-if="pickerOpened" />
 
@@ -212,11 +213,24 @@ async function initializeTasksPageOnMount() {
   ensureOptionsAvailable();
 }
 
+// The day check runs in setup, not in `onMounted` (#427): the stores are hydrated by now (a synchronous mirror), and a
+// recap that is due is open for the page's first render, so the board is never painted before it. The board of an app
+// start is "the app was opened"; a later mount (another page and back) is not.
+if (import.meta.client) checkDay(takeAppStart());
+/**
+ * A recap that is open as the page mounts (an app start, or back from another page with the recap still open) hides
+ * the board (`data-recap-cover`, `visibility: hidden`) and appears at once, without its fade-in, so the board is
+ * never seen before it (#427). It stays on until the recap is left: the curtain then lifts off a live board. A recap
+ * that opens later (a return to the app) keeps its fade-in over the board the user was looking at.
+ */
+const coverBoard = ref(recap.isOpen.value);
+watch(recap.isOpen, (open) => {
+  if (!open) coverBoard.value = false;
+});
+
 onMounted(() => {
   // The page init starts its fetch before the first await, so the recap opens over a board that is already loading (#385)
   void initializeTasksPageOnMount();
-  // The board of an app start is "the app was opened"; a later mount (another page and back) is not
-  checkDay(takeAppStart());
   stopRecapReturn = recap.listenForReturn(onReturn);
 });
 let stopRecapReturn = () => {};
