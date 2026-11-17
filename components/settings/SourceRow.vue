@@ -7,6 +7,7 @@
 @usage <SourceRow v-for="row in connected" :key="row.id" :row="row" @set-default="..." @repair="..." @open-settings="..." @disconnect="..." />
 @avoid Only a connected source on the Verbindungen page.
 @responsibility
+- `#details` slot: extra content for one row (Lokal: `LocalStorageDetails`) on its own full-width line below, aligned with the name
 - Show the badge as text on the default row, "Als Standard festlegen" on every other row
 - Status line: muted, warning tone for "Verbindung prüfen" (never an error colour, never a toast); the time
   text is plain, a separate visually hidden live region announces only the warning, so the 30 s refresh of
@@ -70,6 +71,10 @@
         :data-testid="`source-actions-${row.id}`"
       />
     </UDropdownMenu>
+    <!-- Local only (#438): where the data lives and its health, on a line of its own under the row, aligned with the name -->
+    <div v-if="$slots.details" class="basis-full ps-9 pb-2" :data-testid="`source-details-${row.id}`">
+      <slot name="details" />
+    </div>
   </ListRow>
 </template>
 
