@@ -7,6 +7,7 @@
 @avoid Only hosts the nested task routes; other overlays use ResponsiveOverlay directly.
 @responsibility
 - Hosted by ResponsiveOverlay: a slideover (side right) at >=768px and a bottom drawer below; the shell owns the breakpoint, the frozen variant and the open/close echo guard
+- Dim: its overlay is the shared scrim over the whole window on every host page (#419), the board needs no backdrop of its own
 - Close: the slideover shows the shell's close button in its top end corner (kd#201: a mouse user finds the way out; the detail header clears it with end padding, `TaskDetailContent`); the drawer has none, a swipe and the dimmed page close it. Escape and an outside press close both as before
 - Focus on open (the drawer: ResponsiveOverlay moves it in, #566), focus trap and focus return come from reka's FocusScope
 - Detail route: ignores an outside pointer-down in the first moments after it opened: the second click of a double-click on a card lands on the overlay and must not dismiss the sheet (kd#25)
@@ -47,10 +48,8 @@ import ResponsiveOverlay from '~/components/ui/ResponsiveOverlay.vue';
 
 defineOptions({ name: 'TaskSheet' });
 
-// On the board the overlay is transparent on purpose: the board-side backdrop (sheet.css) darkens instead, so the open card stays bright. Must beat the global `overlay` variant scrim (app.config.ts).
-// A page without a board (statistics) has no card to spare: the overlay carries the shared scrim itself.
-const BOARD_OVERLAY_CLASS = 'task-sheet bg-transparent';
-const PAGE_OVERLAY_CLASS = 'task-sheet bg-(--overlay-scrim)';
+// The overlay carries the shared scrim over the whole viewport on every host page (#419): a backdrop inside the board only covered the board's own box. Must beat the global `overlay` variant scrim (app.config.ts).
+const SHEET_OVERLAY_CLASS = 'task-sheet bg-(--overlay-scrim)';
 
 interface Props {
   /** Whether the sheet is open (driven by the route in the host). */
@@ -61,13 +60,10 @@ interface Props {
   hideTitle?: boolean;
   /** Body padding is owned by the hosted content (detail route). */
   flushBody?: boolean;
-  /** The hosting page is not the board: the overlay dims it (the board dims itself, sheet.css). */
-  dimsPage?: boolean;
 }
 
-const props = withDefaults(defineProps<Props>(), { hideTitle: false, flushBody: false, dimsPage: false });
+const props = withDefaults(defineProps<Props>(), { hideTitle: false, flushBody: false });
 const { takeReturnFocusTaskId } = useTaskSheet();
-const sheetOverlayClass = computed(() => (props.dimsPage ? PAGE_OVERLAY_CLASS : BOARD_OVERLAY_CLASS));
 
 const emit = defineEmits<{
   'update:open': [value: boolean];
@@ -95,14 +91,14 @@ const bodyClass = computed(() => (props.flushBody ? 'p-0 sm:p-0 min-h-0 overflow
 const slideoverBodyClass = computed(() => (props.flushBody ? 'p-0 sm:p-0 min-h-0 flex flex-col overflow-hidden' : bodyClass.value));
 
 const desktopUi = computed(() => ({
-  overlay: sheetOverlayClass.value,
+  overlay: SHEET_OVERLAY_CLASS,
   content: `task-sheet ${SHEET_WIDTH}${props.hideTitle ? ' divide-y-0' : ''}`,
   header: headerClass.value,
   body: slideoverBodyClass.value,
   footer: 'sheet-footer',
 }));
 const mobileUi = computed(() => ({
-  overlay: sheetOverlayClass.value,
+  overlay: SHEET_OVERLAY_CLASS,
   content: 'task-sheet',
   header: props.hideTitle ? 'sr-only' : 'px-4 pb-2',
   body: bodyClass.value,

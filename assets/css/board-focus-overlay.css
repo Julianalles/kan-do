@@ -220,10 +220,10 @@ html[data-sheet-open] .app-nav::before,
     transition: background-color var(--focus-in-duration) var(--focus-in-ease);
   }
 
-  /* An open task sheet dims the board with the flat scrim (sheet.css): the strip, and with it the status bar, takes
-     the same tone over the paper, so the scrim does not stop at a bright bar */
+  /* An open task sheet dims the whole window with the shared scrim (an overlay above the strip): the strip keeps no
+     fill of its own, or the top band would be dimmed twice. The status bar samples the scrim itself. */
   .board-container[data-sheet-task-id] .page-dots {
-    background-color: var(--overlay-scrim-on-page);
+    background-color: transparent;
   }
 
   /* #290: the drawer's handle bar is the only bar at the top: the page indicator steps out while a sheet is open

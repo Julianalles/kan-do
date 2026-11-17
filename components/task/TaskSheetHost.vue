@@ -7,7 +7,6 @@
 @avoid Not a dialog host; other overlays use ResponsiveOverlay or AppDialog directly. The sheet itself is TaskSheet.
 @responsibility
 - Open while a nested route is active and the sheet is not dismissed; every close goes through `useTaskSheet` (the sheet animates out first, then the route returns to the host page)
-- Dim the page behind the sheet when the host is not the board (the board dims itself, `sheet.css`)
 - Title: the add route's title (visible), else the task's title (screen-reader only on the detail route, where the body holds the editable title)
 - Render the footer actions a route registered through `useModalFooter` (the add form's secondary, tertiary and primary buttons and its `lead` line)
 - Re-arm the sheet when the route changes (`resetTaskSheet`)
@@ -19,7 +18,6 @@
     :title="modalTitle"
     :hide-title="route.name !== 'tasks-add'"
     :flush-body="route.name !== 'tasks-add'"
-    :dims-page="!isBoardPage"
     @update:open="handleSheetOpenChange"
     @after-leave="handleSheetAfterLeave"
   >
@@ -84,7 +82,6 @@ import { computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'nuxt/app';
 import { useTasksStore } from '~/store/tasks';
-import { boardPlaceOfPath } from '~/lib/boardPlace';
 import { useModalFooter } from '~/composables/useModalFooter';
 import { useTaskSheet } from '~/composables/useTaskSheet';
 import TaskSheet from '~/components/task/TaskSheet.vue';
@@ -99,9 +96,6 @@ const taskSheet = useTaskSheet();
 
 /** A nested route of the hosting page (`/tasks/:id`, `/tasks/add`, `/statistics/:id`) is active. */
 const isNestedRoute = computed(() => route.matched.length > 1);
-
-/** The board dims itself under the sheet (sheet.css); any other host page is dimmed by the sheet's overlay. */
-const isBoardPage = computed(() => boardPlaceOfPath(route.path) !== null);
 
 /** The task of the detail route (null on the add route and on a page without a nested route). */
 const task = computed(() => (isNestedRoute.value ? tasksStore.task(route.params.id as string) : null));

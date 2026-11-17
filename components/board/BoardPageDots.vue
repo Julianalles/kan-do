@@ -10,7 +10,7 @@
 - Follows a live swipe: the pill stretches from one dot to the next with the finger, then settles on the board's own timing
 - Pure indicator: not focusable, not tappable (`pointer-events: none`, `aria-hidden`), so it is no tab bar (#470, ADR 017); the page is
   already exposed by the column headings and `data-mobile-page`, a hidden "page 2 of 3" would say it twice
-- Always visible on a phone, on all three pages, also while the Jetzt focus overlay is lit (kd#207; only its paper veil fades out then). While a task sheet is open the dots themselves fade out (#290): the drawer handle is then the only bar at the top, the strip keeps the scrim tone
+- Always visible on a phone, on all three pages, also while the Jetzt focus overlay is lit (kd#207; only its paper veil fades out then). While a task sheet is open the dots themselves fade out (#290): the drawer handle is then the only bar at the top, the strip keeps no fill of its own, the window scrim covers it
 - Phone only (display none from 768 px; scoped CSS, since an unlayered `display: flex` beats the layered `md:hidden`); `prefers-reduced-motion` drops the settle transition
 Accepted trade-off: dots 6 px (`--page-dot`), active pill 20 px; colours `--ui-border-accented` and `--ui-text-muted`, no text.
 -->
