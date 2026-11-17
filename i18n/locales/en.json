@@ -164,7 +164,7 @@
       "groupWaiting": "Last in Waiting",
       "groupOthers": "More tasks"
     },
-    "yesterdayUnderAll": "One task from yesterday is in {all}. | {n} tasks from yesterday are in {all}.",
+    "yesterdayUnderAll": "One task from yesterday is under {all}. | {n} tasks from yesterday are under {all}.",
     "newDayNote": {
       "title": "The board still shows yesterday's plan.",
       "description": "“Plan the day” puts everything that is not done back under “My tasks”.",

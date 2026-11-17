@@ -161,7 +161,7 @@ test.describe('Notion: statuses that mean "not planned" (#357)', () => {
     await page.getByRole('menuitem', { name: 'Nicht heute' }).click()
     await expect(column(page, 'open').getByText(TITLE)).toHaveCount(0)
     // without a reload: the seed would put the card back, and Notion still holds it as "Today"
-    await page.getByRole('link', { name: 'Alle' }).click()
+    await page.getByRole('link', { name: 'Alle', exact: true }).click()
     await expect(notPlanned(page).getByText(TITLE)).toBeVisible()
     expect(writes).toEqual([])
   })

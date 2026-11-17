@@ -838,7 +838,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Renamed by the user on 2026-11-16 (#375): \"Planung\" / \"Planning\", before \"Alle\" / \"All\" (that wording was approved by the user on 2026-11-16, #367, and never made decided). The user's `npm run terms:approve` makes it decided. The route stays /all. \"Backlog\" is not the name of this place: it is an avoid form of column-open and not registered here, because an avoid form matches as a word prefix across every string."
+    "note": "Named \"Alle\" / \"All\" (#435; first approved by the user on 2026-11-16, #367, then renamed \"Planung\" / \"Planning\" in #375, renamed back in #435, never made decided). The user's `npm run terms:approve` makes it decided. The route stays /all. \"Backlog\" is not the name of this place: it is an avoid form of column-open and not registered here, because an avoid form matches as a word prefix across every string."
   },
   {
     "id": "not-planned",

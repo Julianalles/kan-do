@@ -200,7 +200,6 @@
   @media (hover: hover) {
     .app-nav-place:not(.is-selected, .app-nav-continue):hover {
       background: var(--fill-on-canvas);
-      border-radius: 9999px;
     }
   }
 
@@ -209,7 +208,7 @@
     color: var(--ui-text-highlighted);
   }
 
-  /* "Planung" (#373): the pill is one green way on to the board, the app bar's one suggested next step. The places it
+  /* "Alle" (#373): the pill is one green way on to the board, the app bar's one suggested next step. The places it
      leaves out are rows of the ⋯ panel. It keeps the pill's shadow and size rules (content-sized, #616) and has no
      indicator (nothing carries aria-current). */
   .app-nav-pill--continue {

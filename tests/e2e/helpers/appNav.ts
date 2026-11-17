@@ -102,9 +102,9 @@ export async function resync(page: Page): Promise<void> {
   await expect(row).toBeEnabled()
 }
 
-/** Planung / Heute / Statistik in the bar: one click. Waits for the destination route ("Planung" is `/all`, the planning side of the board page, #354). */
+/** Alle / Heute / Statistik in the bar: one click. Waits for the destination route ("Alle" is `/all`, the planning side of the board page, #354). */
 export async function goToPlace(page: Page, place: 'Alle' | 'Heute' | 'Statistik'): Promise<void> {
-  // On "Planung" the pill is one link, "Weiter zum Board" (#373); Statistik is a row of ⋯ there
+  // On "Alle" the pill is one link, "Weiter zum Board" (#373); Statistik is a row of ⋯ there
   const continueLink = appNav(page).getByTestId('app-nav-continue')
   if (await continueLink.isVisible()) {
     if (place === 'Alle') return

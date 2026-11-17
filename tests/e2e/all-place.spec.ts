@@ -100,7 +100,7 @@ async function gotoAll(page: Page) {
   await atRest(page)
 }
 
-test.describe('The place "Planung" (#354), desktop', () => {
+test.describe('The place "Alle" (#354), desktop', () => {
   test.use({ viewport: { width: 1280, height: 800 } })
 
   test('is the first place of the app bar; the start page stays Heute', async ({ context, page }) => {
@@ -538,7 +538,7 @@ test.describe('The place "Planung" (#354), desktop', () => {
   })
 })
 
-test.describe('The place "Planung" (#354), phone', () => {
+test.describe('The place "Alle" (#354), phone', () => {
   test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } })
 
   const dots = (page: Page) => page.locator('[data-testid="page-dots"] .page-dot')
@@ -945,7 +945,7 @@ test.describe('Drag between "Meine Aufgaben" and Offen (#355), 390', () => {
   })
 })
 
-test.describe('The app bar with "Planung" on a small phone (#354)', () => {
+test.describe('The app bar with "Alle" on a small phone (#354)', () => {
   test.use({ hasTouch: true, isMobile: true, viewport: { width: 360, height: 740 } })
 
   test('four segments and ⋯ stay inside a 360 px screen', async ({ context, page }) => {
