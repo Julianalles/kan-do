@@ -174,7 +174,7 @@ UI work: UX direction is settled in the issue first. Throwaway prototypes live o
 
 ## README screenshots
 
-The README images are generated, not hand-edited. After a release or a visible UI change, start a dev server (`npm run dev`) and run `PORT=3000 npm run readme:shots` (or `BASE_URL=<url>`). The script (`scripts/readme-shots.mjs`) seeds the demo board (`?seed=demo`, `&backlog=1` for Planung), captures each shot in English at 1280 px with the repo's Playwright Chromium, frames it as a macOS window on an almost-white background and rewrites `docs/images/readme-day.png` and `docs/images/readme-statistics.png`. Shots and captions live in its `SHOTS` list; `-- --only=<key>` recaptures one shot. Commit the two PNGs. It is not a test and runs in no gate.
+The README images are generated, not hand-edited. After a release or a visible UI change, start a dev server (`npm run dev`) and run `PORT=3000 npm run readme:shots` (or `BASE_URL=<url>`). The script (`scripts/readme-shots.mjs`) seeds the demo board (`?seed=demo`, `&backlog=1` for "Alle"), captures each shot in English at 1280 px with the repo's Playwright Chromium, frames it as a macOS window on an almost-white background and rewrites `docs/images/readme-day.png` and `docs/images/readme-statistics.png`. Shots and captions live in its `SHOTS` list; `-- --only=<key>` recaptures one shot. Commit the two PNGs. It is not a test and runs in no gate.
 
 ## Building and deploying
 

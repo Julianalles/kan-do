@@ -1,5 +1,5 @@
 /**
- * #375: the Offen column is headed "Heute" on the place "Planung" and "Offen" on "Heute". A drag announcement names
+ * #375: the Offen column is headed "Heute" on the place "Alle" and "Offen" on "Heute". A drag announcement names
  * the column as its headline reads on the place that shows, so the spoken and the visible name never disagree.
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -31,7 +31,7 @@ describe('useBoardAnnouncements: the column name follows the place (#375)', () =
     expect(over(TaskStatus.Open)).toBe('„task-1“ nach Spalte Offen, Position 1 verschoben.')
   })
 
-  it('names the same column "Heute" on the place "Planung", also under a sheet path', () => {
+  it('names the same column "Heute" on the place "Alle", also under a sheet path', () => {
     setCurrentBoardPath('/all')
     expect(over(TaskStatus.Open)).toBe('„task-1“ nach Spalte Heute, Position 1 verschoben.')
     setCurrentBoardPath('/all/task-1')

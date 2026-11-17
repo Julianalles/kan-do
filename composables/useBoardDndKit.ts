@@ -33,7 +33,7 @@ import { NOT_PLANNED_GROUP, isNotPlannedZone, resolvePlanDrop } from '~/utils/pl
  *   Dropping it moves every member as one block: members are snapshotted at drag start, a block of
  *   2+ never fits Jetzt, and a block completed in Erledigt gets ONE undo toast (the deliberate
  *   exception to #136: after a merge the reverse drag would also move tasks done before)
- * - The place "Planung" (#355): a card under "Meine Aufgaben" is a sortable of the group `NOT_PLANNED_GROUP`, the side one
+ * - The place "Alle" (#355): a card under "Meine Aufgaben" is a sortable of the group `NOT_PLANNED_GROUP`, the side one
  *   droppable (`data.notPlannedZone`). Dropped on Offen the card is planned (`planTask`) and placed in the previewed slot;
  *   an Offen card or stack dropped on the side is taken off today's board (`unplanTask`); a "Meine Aufgaben" card
  *   dropped anywhere else goes back. The rule is `resolvePlanDrop`; these drops never change a status, so the WIP
@@ -364,7 +364,7 @@ export function useBoardDndKit() {
     if ((targetGroup as unknown) === NOT_PLANNED_GROUP) targetGroup = undefined
     dragState.value.hoverTargetStatus = targetGroup ?? null
 
-    // A "Meine Aufgaben" card goes to Offen only (#355). The other columns are out of reach on "Planung" (inert, out of
+    // A "Meine Aufgaben" card goes to Offen only (#355). The other columns are out of reach on "Alle" (inert, out of
     // layout); should one be hit all the same, the card must not be sorted into it
     if (fromNotPlanned && targetGroup !== undefined && targetGroup !== TaskStatus.Open) {
       dragState.value.isDropBlocked = false

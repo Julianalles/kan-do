@@ -34,7 +34,7 @@ const COLUMN_KEYS: Partial<Record<TaskStatus, string>> = {
  *   dragging at once for a mouse, and a plain click must still expand
  * - a single card over a Jetzt that holds one task announces the swap (#162): the drop switches them and
  *   the running task moves to Wartet; the drop then names both
- * - the place "Planung" (#355): "Meine Aufgaben" is named like a column; an Offen card over that side hears what the
+ * - the place "Alle" (#355): "Meine Aufgaben" is named like a column; an Offen card over that side hears what the
  *   drop does, and the drop says the result once ("… ist für heute geplant." / "… ist nicht mehr für heute geplant.",
  *   the lines of the arrows), by the rule the drop handler uses (`resolvePlanDrop`). A "Meine Aufgaben" card's handle
  *   needs the same drag threshold as a stack's control: a plain click opens its sheet
@@ -54,7 +54,7 @@ export function useBoardAnnouncements() {
 
   const columnName = (status: TaskStatus | typeof NOT_PLANNED_GROUP | undefined) => {
     if (status === NOT_PLANNED_GROUP) return translate('board.notPlanned.title')
-    // Offen is named as its headline reads on the place that shows (#375): "Heute" on "Planung"
+    // Offen is named as its headline reads on the place that shows (#375): "Heute" on "Alle"
     const key = status === undefined ? undefined : status === TaskStatus.Open ? openColumnTitleKey() : COLUMN_KEYS[status]
     return key ? translate(key) : ''
   }

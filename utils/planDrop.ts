@@ -1,7 +1,7 @@
 import { TaskStatus } from '~/types/taskStatus'
 
 /**
- * The drag between "Meine Aufgaben" and Offen on the place "Planung" (#355, epic #334).
+ * The drag between "Meine Aufgaben" and Offen on the place "Alle" (#355, epic #334).
  *
  * A card under "Meine Aufgaben" is a sortable of this group: it can be picked up, but the group takes no card
  * (each of its sortables accepts only itself), so nothing is sorted inside the side. The side as a whole is one

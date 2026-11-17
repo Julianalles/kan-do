@@ -1,6 +1,6 @@
 /**
  * @module lib/boardPlace
- * @description The two places of the board (#354, epic #334): "Planung" (`/all`, planning: "Meine Aufgaben" beside
+ * @description The two places of the board (#354, epic #334): "Alle" (`/all`, planning: "Meine Aufgaben" beside
  * Offen) and "Heute" (`/tasks`, the board). Both are paths of one page (`pages/tasks.vue`, `alias: ['/all']`), so
  * the board stays mounted and Offen is the same column in both. Path helpers plus the current path as module state:
  * `plugins/board-place.client.ts` mirrors the live router route into it (sync, so it changes in the same tick as the
@@ -41,7 +41,7 @@ const path = ref<string>(BOARD_PLACE_PATHS.today)
 export const currentBoardPath = readonly(path)
 
 /**
- * A task made now starts as not planned (#367): the place "Planung" shows, also under its sheet (`/all/add`). Every
+ * A task made now starts as not planned (#367): the place "Alle" shows, also under its sheet (`/all/add`). Every
  * caller of `useTaskSync().createTask` that adds a new task to Offen passes this as the draft's `notPlanned`.
  */
 export function newTaskStartsNotPlanned(): boolean {
@@ -49,7 +49,7 @@ export function newTaskStartsNotPlanned(): boolean {
 }
 
 /**
- * Locale key of the Offen column's name on a place (#375): "Heute" on "Planung" (there the only question is whether a
+ * Locale key of the Offen column's name on a place (#375): "Heute" on "Alle" (there the only question is whether a
  * task is for today), "Offen" on "Heute". The headline and the drag announcements both read it, so the visible and the
  * spoken name of the column never disagree on one place. The status itself is "Offen" everywhere (`taskStatus.open`).
  */
