@@ -23,7 +23,7 @@ if (!target) {
   process.exit(2)
 }
 const folder = resolve(target)
-const roots = [tmpdir(), '/tmp', '/private/tmp', '/var/folders'].map((p) => { try { return realpathSync(p) } catch { return p } })
+const roots = [tmpdir()].map((p) => { try { return realpathSync(p) } catch { return p } })
 // check before creating anything: the nearest existing ancestor decides (symlinks resolved)
 let probe = folder
 while (!existsSync(probe)) probe = dirname(probe)
