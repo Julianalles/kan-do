@@ -12,7 +12,7 @@
 - Provides visual feedback during task interactions
 - Two places, one strip (#354, epic #334): "Alle" (`/all`: BoardNotPlanned beside Offen) and "Heute" (`/tasks`: Offen, Jetzt + Wartet, Erledigt). Both are paths of one page, so this
   component stays mounted and Offen is the same column in both; `data-place` on `.board` says which shows. A change of place moves the whole strip sideways in one move (420 ms on the app bar's curve,
-  `--place-move` / `--place-ease` in board.css, nothing under reduced motion): desktop a transform animation over the layout change (FLIP, a retarget continues from where the strip is), phone the
+  `--place-move` / `--place-ease` in board.css, nothing under reduced motion; the day's first move to Heute after the fresh start glides 1.2 s and the recap's "Tag neu planen" lifts it 1.4 s, `html[data-place-pace]`, #433): desktop a transform animation over the layout change (FLIP, a retarget continues from where the strip is), phone the
   strip's own transform on that timing. `data-place-moving` is set meanwhile; the side out of view is `inert`, and once the move is over it is out of layout (desktop) or hidden (phone), so
   neither pointer, keyboard, reader nor a drag reaches it. The Jetzt focus overlay never shows on "Alle" nor during the move
 - One-off (owner, #351, 2026-11-16): "Alle" and "Heute" show Offen with the same look and vertical position, so the way between them reads as one sideways move of the board; no general rule for other places
@@ -219,7 +219,8 @@ import BoardPageDots from "~/components/board/BoardPageDots.vue";
 import BoardNotPlanned from "~/components/board/BoardNotPlanned.vue";
 import BoardCapacityDock from "~/components/board/BoardCapacityDock.vue";
 import { useBoardPlace } from "~/composables/useBoardPlace";
-import { readPlaceMove } from "~/lib/boardPlace";
+import { readPlaceMove, setPlacePace, takePlacePace } from "~/lib/boardPlace";
+import { dayKey } from "~/utils/recapDay";
 import { useNewDay } from "~/composables/useNewDay";
 import { usePlanMoves } from "~/composables/usePlanMoves";
 import FocusOverlay from "~/components/board/FocusOverlay.vue";
@@ -385,6 +386,7 @@ function endPlaceMove(token: number) {
   placeFades = [];
   placeMove = null;
   placeMoving.value = false;
+  setPlacePace(null);
 }
 
 /** The sides that are in view on one place only: [those of "Alle"], [those of "Heute"] */
@@ -397,6 +399,8 @@ const sidesOf = (el: HTMLElement): [HTMLElement[], HTMLElement[]] => [
 // where it stands now (mid-move included) and animated from there to where the layout puts it.
 watch(place, async (to) => {
   const el = boardEl.value;
+  // The day's first move to Heute glides, the recap's lift to "Alle" is slower still (#433): the pace is set before the time is read
+  setPlacePace(takePlacePace(to, dayKey(new Date())));
   const { ms, easing } = readPlaceMove(el);
   const token = ++placeMoveToken;
   clearTimeout(placeMoveTimer);
@@ -411,6 +415,7 @@ watch(place, async (to) => {
     placeMoving.value = travels;
     stripPage.value = target;
     if (travels) placeMoveTimer = setTimeout(() => endPlaceMove(token), ms + 40);
+    else setPlacePace(null);
     return;
   }
 

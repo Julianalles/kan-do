@@ -23,6 +23,7 @@
  *   title, notes, topic, priority, time box, time spent and source are untouched. The board day counted for today is
  *   taken back for the cards it takes off (`tasksStore.takeBackCarryOver`), so today counts only for what is planned
  *   again. It removes no time.
+ * - The fresh start also arms the day's one slow move (#433, `armGlide`): the first move to Heute after it glides.
  * - `isNewDayDue()`: a local day has passed since the last fresh start (or, before the first one, since the recap's
  *   marker), i.e. today has not been started fresh.
  * - `groupIds`: the Jetzt and Offen tasks of today's fresh start that are still not planned, i.e. the group
@@ -47,6 +48,7 @@ import { useTaskSync } from '~/composables/useTaskSync'
 import { checkpointTaskTimer, resumeTaskTimer, stopTaskTimer } from '~/composables/useTaskTimerDriver'
 import { cutWorkSessions } from '~/composables/useWorkSessionTracking'
 import { dataState } from '~/lib/dataStorage'
+import { armGlide } from '~/lib/boardPlace'
 import { isDemoTaskId } from '~/lib/demoIds'
 import { isNotPlanned } from '~/lib/taskPlanning'
 import { dayKey } from '~/utils/recapDay'
@@ -203,6 +205,8 @@ export function useNewDay() {
     recapStore.markNewDay(todayKey, group.filter(id => sent.includes(id)))
     // The cards were on the board this morning and counted the day: only what is planned again counts it
     tasksStore.takeBackCarryOver(sent, todayKey)
+    // The first move to Heute after this start is the day's one slow move (#433)
+    armGlide(todayKey)
     return sent
   }
 

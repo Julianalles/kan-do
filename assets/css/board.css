@@ -109,6 +109,21 @@
     }
   }
 
+  /* The two moves worth watching (#433), set by Board.vue through `html[data-place-pace]` (lib/boardPlace.ts) and
+     never under reduced motion: the first move to Heute after the day's fresh start glides, the move to "Alle" under
+     the recap's lifting curtain is slower still. The app bar (app-nav.css) takes the same time, so the chip travels with the board. */
+  @media (prefers-reduced-motion: no-preference) {
+    html[data-place-pace='glide'] .board-container {
+      --place-move: 1200ms;
+      --place-ease: cubic-bezier(0.45, 0, 0.15, 1);
+    }
+
+    html[data-place-pace='lift'] .board-container {
+      --place-move: 1400ms;
+      --place-ease: cubic-bezier(0.45, 0, 0.15, 1);
+    }
+  }
+
   /* ── Mobile: transform-based single-column navigation ── */
   /*
    * The board is three container widths wide (Offen, Jetzt + Wartet, Erledigt), and the "Meine Aufgaben" page of the

@@ -70,6 +70,68 @@ export function readPlaceMove(el: Element | null): { ms: number, easing: string 
   return { ms, easing: style.getPropertyValue('--place-ease').trim() || 'ease' }
 }
 
+/**
+ * The pace of the next move between the places (#433): `glide` is the first move to Heute after the day's fresh start
+ * (1.2 s), `lift` the move to "Alle" under the recap's lifting curtain (1.4 s). Both only name a pace: the times are
+ * board.css and app-nav.css's (`html[data-place-pace]` overrides `--place-move` / `--nav-move`, so strip, column
+ * titles, app bar chip and phone strip keep one clock). Runtime state only: a reload never replays a glide, and
+ * reduced motion never sets one.
+ */
+export type PlacePace = 'glide' | 'lift'
+
+/** The local day (key) a fresh start armed the glide for; consumed by the first move to Heute. */
+let glideDay: string | null = null
+/** When the recap armed the lift: it is for the move its own click starts, never a later one. */
+let liftAt = 0
+const LIFT_WINDOW_MS = 1000
+/** The pace attribute outlives a move that never ends (a retarget, a place that did not change): this is the net. */
+const PACE_NET_MS = 1800
+let paceTimer: ReturnType<typeof setTimeout> | undefined
+
+const prefersReducedMotion = (): boolean => typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
+
+/** A fresh start ran on `dayKey`: the next move to Heute is the day's first and glides. */
+export function armGlide(dayKey: string): void {
+  glideDay = dayKey
+}
+
+/** The recap's "Tag neu planen" starts the move to "Alle" next: it lifts. No-op under reduced motion. */
+export function armLift(): void {
+  if (!prefersReducedMotion()) liftAt = Date.now()
+}
+
+/** The pace of a move to `to` on `dayKey`, consuming what was armed: a glide only by a move to Heute on its own day. */
+export function takePlacePace(to: BoardPlace, dayKey: string): PlacePace | null {
+  const lifted = liftAt > 0 && Date.now() - liftAt <= LIFT_WINDOW_MS
+  liftAt = 0
+  if (to === 'all' && lifted) return 'lift'
+  if (to === 'today' && glideDay !== null) {
+    const armed = glideDay === dayKey
+    glideDay = null
+    if (armed && !prefersReducedMotion()) return 'glide'
+  }
+  return null
+}
+
+/** Put the pace on <html> for the move that starts now (null: back to the standard 420 ms); a net clears it later. */
+export function setPlacePace(pace: PlacePace | null): void {
+  if (typeof document === 'undefined') return
+  clearTimeout(paceTimer)
+  if (pace === null) {
+    document.documentElement.removeAttribute('data-place-pace')
+    return
+  }
+  document.documentElement.setAttribute('data-place-pace', pace)
+  paceTimer = setTimeout(() => setPlacePace(null), PACE_NET_MS)
+}
+
+/** Test seam: nothing armed. */
+export function resetPlacePace(): void {
+  glideDay = null
+  liftAt = 0
+  setPlacePace(null)
+}
+
 /** Called by `plugins/board-place.client.ts` on every route change (and by tests that pose as a place). */
 export function setCurrentBoardPath(next: string): void {
   path.value = next
