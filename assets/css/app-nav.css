@@ -201,7 +201,7 @@
   /* Hover (#425): a soft fill under the segment, lighter than the selected chip (--nav-chip), so hover < selected.
      Pointer devices only, so a touch never leaves it stuck. The selected segment already has its chip. */
   @media (hover: hover) {
-    .app-nav-place:not(.is-selected, .app-nav-continue):hover {
+    .app-nav-place:not(.is-selected):hover {
       background: var(--fill-on-canvas);
     }
   }
@@ -209,28 +209,6 @@
   /* The chip is the indicator; the selected segment only takes the strong text colour */
   .app-nav-place.is-selected {
     color: var(--ui-text-highlighted);
-  }
-
-  /* "Alle" (#373): the pill is one green way on to the board, the app bar's one suggested next step. The places it
-     leaves out are rows of the ⋯ panel. It keeps the pill's shadow and size rules (content-sized, #616) and has no
-     indicator (nothing carries aria-current). */
-  .app-nav-pill--continue {
-    background: var(--ui-primary);
-  }
-
-  .app-nav-pill--continue:hover {
-    background: var(--ui-color-primary-700);
-  }
-
-  .app-nav-place.app-nav-continue,
-  .app-nav-place.app-nav-continue:hover {
-    padding-inline: 1.125rem;
-    color: var(--ui-text-inverted);
-  }
-
-  /* The ring sits outside the green pill, on the paper: the pill is the focus target's shape */
-  .app-nav-continue:focus-visible {
-    outline-offset: 0.125rem;
   }
 
   /* The third segment (#583): a wrapper whose width AppNav.vue animates; the link clips its label while it is narrow */
@@ -416,10 +394,6 @@
 
     .app-nav-third-label {
       padding-inline: 0.75rem;
-    }
-
-    .app-nav-place.app-nav-continue {
-      padding-inline: 1.25rem;
     }
 
     /* The wordmark has no backing on a phone and would print over the cards scrolling under the bar (kd#24): it is not

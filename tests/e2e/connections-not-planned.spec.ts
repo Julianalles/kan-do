@@ -99,7 +99,7 @@ test.describe('Todoist: a task seen for the first time starts under "Meine Aufga
     await page.reload()
     await expect(column(page, 'open').locator('.task-wrapper')).toHaveText([/Angebot schreiben/, /Rechnung prüfen/, /Neu aus Todoist/])
     await expect(notPlanned(page).locator('[data-not-planned-id]')).toHaveCount(0)
-    // "Alle" shows Offen only: Jetzt and Wartet are checked on Heute (the bar's pill "Weiter zum Board", #373)
+    // "Alle" shows Offen only: Jetzt and Wartet are checked on Heute
     await goToPlace(page, 'Heute')
     await expect(column(page, 'progress').getByText('Plan zeichnen')).toBeVisible()
     await expect(column(page, 'waiting').getByText('Rückruf abwarten')).toBeVisible()

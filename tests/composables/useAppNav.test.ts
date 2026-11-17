@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { reactive, ref } from 'vue'
 
-import { markPlanningFromRecap, clearPlanningFromRecap } from '~/composables/usePlanningFromRecap'
 import { placeOfPath, thirdItemOfPath, useAppNav } from '~/composables/useAppNav'
 
 const route = reactive<{ path: string; meta: Record<string, unknown> }>({ path: '/tasks', meta: {} })
@@ -65,7 +64,6 @@ describe('useAppNav', () => {
     route.path = '/tasks'
     route.meta = {}
     recapFlag.ref.value = false
-    clearPlanningFromRecap()
   })
 
   it('selectedPlace is "recap" on the board page while the recap is open, the route\'s place elsewhere (#428)', () => {
@@ -88,18 +86,6 @@ describe('useAppNav', () => {
     const nav = useAppNav()
     expect(nav.recapShown.value).toBe(false)
     expect(nav.selectedPlace.value).toBeNull()
-  })
-
-  it('continuesToBoard needs Alle, the notice mark and a closed recap (#428)', () => {
-    const nav = useAppNav()
-    route.path = '/all'
-    markPlanningFromRecap()
-    expect(nav.continuesToBoard.value).toBe(true)
-    recapFlag.ref.value = true
-    expect(nav.continuesToBoard.value).toBe(false)
-    recapFlag.ref.value = false
-    route.path = '/tasks'
-    expect(nav.continuesToBoard.value).toBe(false)
   })
 
   it('selects the place of the route and flags the board', () => {

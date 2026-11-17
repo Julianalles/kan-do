@@ -826,7 +826,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     expect(await storedTask(page, 'nd-waiting-1')).toMatchObject({ status: 2 })
   }
 
-  test('"Tag planen" is the fresh start: nothing moved before the click; then Jetzt and Offen are the group on top, Wartet its own category, and the board is empty', async ({ page, context }) => {
+  test('"Tag neu planen" is the fresh start: nothing moved before the click; then Jetzt and Offen are the group on top, Wartet its own category, and the board is empty', async ({ page, context }) => {
     await seedNewDayBoard(context, { tasks: newDayBackTasks() })
     await page.goto('/tasks')
     // the recap looks at yesterday's board: Jetzt, both Offen cards and the Wartet card are "noch offen"
@@ -920,8 +920,8 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await expect(note(page)).toBeVisible()
     await expect(note(page)).toHaveAttribute('role', 'status')
     await expect(note(page)).toContainText('Auf dem Board liegt noch der Plan von gestern.')
-    await expect(note(page)).toContainText('„Tag planen“ legt alles, was nicht erledigt ist, zurück nach „Meine Aufgaben“.')
-    await expect(startButton(page)).toHaveText('Tag planen')
+    await expect(note(page)).toContainText('„Tag neu planen“ legt alles, was nicht erledigt ist, zurück nach „Meine Aufgaben“.')
+    await expect(startButton(page)).toHaveText('Tag neu planen')
 
     // a reload keeps the board and the notice; no recap again
     await page.reload()
@@ -933,7 +933,8 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await startButton(page).click()
     await expect(page).toHaveURL(/\/all$/)
     await expect(note(page)).toHaveCount(0)
-    await expect(page.getByTestId('app-nav-continue')).toHaveText('Weiter zum Board')
+    await expect(page.getByTestId('app-nav-continue')).toHaveCount(0)
+    await expect(page.getByTestId('app-nav-place-all')).toHaveAttribute('aria-current', 'page')
     await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1'])
     await expect.poll(() => groupIds(page, 'waiting')).toEqual(['nd-waiting-1'])
     await expect.poll(() => groupIds(page, 'others')).toEqual(['nd-held-1'])
@@ -946,7 +947,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
   // The update from v0.16.0: the stored state has the recap's marker but none of a fresh start. Leaving the recap
   // moves the recap's marker to today, which must not make today look started.
   test.describe('data stored before the fresh start existed (no `lastNewDay`)', () => {
-    test('"Tag planen" in the recap takes yesterday\'s cards off the board, once', async ({ page, context }) => {
+    test('"Tag neu planen" in the recap takes yesterday\'s cards off the board, once', async ({ page, context }) => {
       await seedNewDayBoard(context, { tasks: newDayBackTasks(), lastNewDay: null })
       await page.goto('/tasks')
       await expect(planButton(page)).toBeFocused()
@@ -1286,7 +1287,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
       expect(await storedSeconds(page)).toBeLessThan(1200 + 120)
     })
 
-    test('with "Tag planen": the cards go off the board, the time is whole, and "Zeit abziehen" takes exactly that time off the card', async ({ page, context }) => {
+    test('with "Tag neu planen": the cards go off the board, the time is whole, and "Zeit abziehen" takes exactly that time off the card', async ({ page, context }) => {
       await openBoard(page, context, 600, 'plan')
       await expect(timeNote(page)).toContainText('Timer lief nach Mitternacht 10 min weiter')
       expect(await storedTask(page, 'nd-now-1')).toMatchObject({ status: 0, notPlanned: true, timeSpentSeconds: 1800 })

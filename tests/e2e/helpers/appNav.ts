@@ -107,17 +107,11 @@ export async function resync(page: Page): Promise<void> {
  * While the new-day recap is open the pill is Rückblick + Statistik (#428): "Heute" is then the Rückblick link, which leads back to the open recap.
  */
 export async function goToPlace(page: Page, place: 'Alle' | 'Heute' | 'Statistik'): Promise<void> {
-  // On "Alle" the pill is one link, "Weiter zum Board" (#373); Statistik is a row of ⋯ there
-  const continueLink = appNav(page).getByTestId('app-nav-continue')
   const recapLink = appNav(page).getByTestId('app-nav-place-recap')
   if (await recapLink.isVisible()) {
     if (place === 'Heute') await recapLink.click()
     else if (place === 'Statistik') await appNav(page).getByRole('link', { name: place, exact: true }).click()
     else throw new Error('Alle is not in the pill while the recap is open')
-  } else if (await continueLink.isVisible()) {
-    if (place === 'Alle') return
-    if (place === 'Heute') await continueLink.click()
-    else await (await openMore(page)).getByTestId('more-statistics').click()
   } else {
     await appNav(page).getByRole('link', { name: place, exact: true }).click()
   }

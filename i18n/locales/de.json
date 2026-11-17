@@ -167,8 +167,8 @@
     "yesterdayUnderAll": "Eine Aufgabe von gestern liegt unter {all}. | {n} Aufgaben von gestern liegen unter {all}.",
     "newDayNote": {
       "title": "Auf dem Board liegt noch der Plan von gestern.",
-      "description": "„Tag planen“ legt alles, was nicht erledigt ist, zurück nach „Meine Aufgaben“.",
-      "start": "Tag planen",
+      "description": "„Tag neu planen“ legt alles, was nicht erledigt ist, zurück nach „Meine Aufgaben“.",
+      "start": "Tag neu planen",
       "close": "Schließen",
       "started": "Eine Aufgabe liegt jetzt unter „Meine Aufgaben“. | {n} Aufgaben liegen jetzt unter „Meine Aufgaben“."
     },
@@ -199,8 +199,7 @@
     "syncNow": "Jetzt synchronisieren",
     "syncing": "Wird synchronisiert…",
     "recap": "Rückblick",
-    "all": "Alle",
-    "continue": "Weiter zum Board"
+    "all": "Alle"
   },
   "menu": {
     "app": "Kan-Do",
