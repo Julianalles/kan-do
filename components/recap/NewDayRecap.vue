@@ -232,6 +232,9 @@ async function leaveToPlan() {
   try {
     await navigateTo(boardPlaceLocation('all'))
   }
+  catch {
+    // A refused navigation must not keep the recap open: the day is planned either way, the board shows where it is
+  }
   finally {
     planning.value = false
   }

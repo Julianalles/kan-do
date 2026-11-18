@@ -406,6 +406,17 @@ describe('NewDayRecap', () => {
       expect(freshStart).not.toHaveBeenCalled()
     })
 
+    it('a refused navigation still leaves the recap and starts the day fresh (#490)', async () => {
+      navigateTo.mockRejectedValueOnce(new Error('aborted'))
+      await open([doneAt(1, 'a')])
+      q('[data-testid="recap-plan"]').click()
+      await nextTick()
+      await nextTick()
+      expect(useNewDayRecap().isOpen.value).toBe(false)
+      expect(freshStart).toHaveBeenCalledTimes(1)
+      expect(useTasksStore().archivedTaskIds).toEqual(['a'])
+    })
+
     it('a second click during the curtain neither navigates, leaves nor starts fresh again', async () => {
       await open([doneAt(1, 'a')])
       q('[data-testid="recap-plan"]').click()

@@ -419,7 +419,8 @@ watch(place, async (to) => {
     const travels = target !== stripPage.value && ms > 0;
     if (pace === 'lift') {
       placeSnap.value = true;
-      requestAnimationFrame(() => requestAnimationFrame(() => { placeSnap.value = false; }));
+      // a timer, not rAF: a hidden window never runs animation frames and would leave the strip without its page transition
+      setTimeout(() => { placeSnap.value = false; }, 100);
     }
     placeMoving.value = travels;
     stripPage.value = target;
