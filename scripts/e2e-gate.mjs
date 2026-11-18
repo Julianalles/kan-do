@@ -45,8 +45,10 @@ const HELPER_DIR = 'tests/e2e/helpers/'
 const DOCS_ONLY = /^(docs\/|\.claude\/)|\.md$/
 /** The gate's own rules, hook and script (#446): they decide what every later PR runs, so they are never docs-only. */
 const GATE_FILES = /^(\.claude\/hooks\/e2e-[^/]+|scripts\/e2e-gate\.mjs)$/
+/** Files below `docs/` the app reads at runtime (#486): the term registry feeds the live copy editor and its E2E spec, so they are never docs-only. */
+const RUNTIME_DOCS = /^docs\/copy\/terms[^/]*\.json$/
 /** @param {string} file */
-const isDocsOnly = file => DOCS_ONLY.test(file) && !GATE_FILES.test(file)
+const isDocsOnly = file => DOCS_ONLY.test(file) && !GATE_FILES.test(file) && !RUNTIME_DOCS.test(file)
 /** Files below `tests/` the E2E suite never reads: unit tests, their helpers and fixtures. `tests/e2e/` and the Notion stub fixtures are E2E inputs. */
 const UNIT_ONLY = /^tests\/(?!e2e\/|fixtures\/notion\/)/
 /** Style-only paths (#375): stylesheets and the visual-regression baselines; docs count too (`DOCS_ONLY`). */
