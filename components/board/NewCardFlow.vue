@@ -712,7 +712,7 @@ function onKeydown(event: KeyboardEvent) {
     const value = current.value.suggestions[Number(event.key) - 1];
     if (value) pick(value);
   } else if (event.key === '4' && hasList.value) {
-    // The fourth cell: Mehr opens the rest with its search (kd#16), the dots icon the full timebox list (kd#119)
+    // The fourth cell: the dots icon opens the full timebox list (kd#119)
     openList(event);
   }
 }
@@ -1040,7 +1040,7 @@ onBeforeUnmount(() => {
 }
 
 /* ---------- Answer grid (kd#16) ----------
-   Thema and Aktivität: three value pills and the Mehr cell; Timebox: its pills and the dots icon. Two columns, so a long name has half
+   Timebox: its pills and the dots icon. Two columns, so a long name has half
    the row instead of a third (it is still cut, in the middle: MiddleEllipsis, whose title attribute carries it). The steps are as tall as the
    grid needs: head, two rows, the room under them (about 20 px more than a card with one row of pills). */
 .ncf__row--grid {
@@ -1080,11 +1080,6 @@ onBeforeUnmount(() => {
   min-width: 0;
   flex: 1 1 auto;
   text-align: left;
-}
-
-/* Mehr reads as a field (ChoiceChip `field`): its key cue sits at the far end */
-.ncf__row--grid .choice-chip--field > .ncf__key {
-  margin-left: auto;
 }
 
 /* The two save controls (the title's check, the Notiz row's save) are UButton soft primary (#71): the theme brings the

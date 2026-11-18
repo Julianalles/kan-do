@@ -1,7 +1,7 @@
 /**
  * @module quickAddSuggestions
  * @description Pure suggestion logic of the guided new-card flow (#649, kd#16): which values a step offers as pills and
- * which stay behind "all options" (three pills and a fourth cell on every step: Mehr with a search and "Neu" on Thema and Aktivität, the dots icon on Timebox, kd#119). No Pinia here, so the rules are testable on their own; `NewCardFlow` feeds
+ * which stay behind "all options" (Thema and Aktivität are a combobox over `all`, #434; Timebox: three pills and the dots icon, kd#119). No Pinia here, so the rules are testable on their own; `NewCardFlow` feeds
  * it the tasks and the option pools.
  *
  * Rule: a value is ranked by how often tasks use it (ties keep the pool's order), values that no task uses follow
@@ -12,11 +12,8 @@
 /** Pills of the generic `toStep` split; everything else sits behind "all options" */
 export const SUGGESTION_COUNT = 2
 
-/** Pills shown on Thema and Aktivität (kd#16): the fourth grid cell is Mehr, which opens the rest with a search */
-export const ENTRY_PILL_COUNT = 3
-
-/** Pills shown on Timebox (kd#119): as many as Thema and Aktivität, the fourth grid cell is the dots icon */
-export const TIMEBOX_PILL_COUNT = ENTRY_PILL_COUNT
+/** Pills shown on Timebox (kd#119): the fourth grid cell is the dots icon */
+export const TIMEBOX_PILL_COUNT = 3
 
 /** The full timebox list behind "all options", in minutes */
 export const TIMEBOX_MINUTES = [15, 30, 45, 60, 90, 120] as const
@@ -29,7 +26,7 @@ export interface SuggestionStep {
   /** The pills (the step's first values) */
   suggestions: string[]
   /**
-   * What the list behind the pills holds. Timebox (the dots icon): all values, the pills stay in it. Thema and Aktivität (Mehr, kd#16): only the values that are not pills.
+   * What the list behind the pills holds. Timebox (the dots icon): all values, the pills stay in it. Thema and Aktivität: empty (the combobox reads `all`).
    */
   rest: string[]
 }
@@ -56,9 +53,9 @@ interface TaskLike {
   activity?: string | null
 }
 
-/** Thema and Aktivität (kd#16): three pills, the Mehr list holds the values after them. */
+/** Thema and Aktivität are a combobox (#434): the flow reads only `all`. */
 function toEntryStep(all: string[]): SuggestionStep {
-  return { all, suggestions: all.slice(0, ENTRY_PILL_COUNT), rest: all.slice(ENTRY_PILL_COUNT) }
+  return { all, suggestions: [], rest: [] }
 }
 
 export function topicStep(tasks: readonly TaskLike[], pool: readonly string[]): SuggestionStep {
@@ -113,8 +110,8 @@ export function newValueFor(query: string, all: readonly string[], rules: NewVal
   return text && !all.some((value) => same(value, text)) ? text : null
 }
 
-/** The values of the Mehr list that contain the typed text (any case); everything when it is blank */
-export function filterRest(rest: readonly string[], query: string): string[] {
+/** The values of a list that contain the typed text (any case); everything when it is blank */
+export function filterRest(values: readonly string[], query: string): string[] {
   const text = query.replace(/\s+/g, ' ').trim().toLocaleLowerCase()
-  return text ? rest.filter((value) => value.toLocaleLowerCase().includes(text)) : [...rest]
+  return text ? values.filter((value) => value.toLocaleLowerCase().includes(text)) : [...values]
 }

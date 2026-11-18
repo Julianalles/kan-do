@@ -407,7 +407,6 @@ describe('NewCardFlow (#649)', () => {
     expect(stepKey()).toBe('timebox')
     expect(pills().map((pill) => pill.text())).toEqual(['15 min', '30 min', '60 min'].map((v) => expect.stringContaining(v)))
     expect(w.get('[data-testid="new-card-more"]').attributes('aria-keyshortcuts')).toBe('4')
-    expect(w.get('[data-testid="new-card-more"]').classes()).not.toContain('choice-chip--field')
   })
 
   it('#434: Enter on an empty field continues without a value, also while the list shows its own first highlight; an entry walked to with the arrows is taken', async () => {

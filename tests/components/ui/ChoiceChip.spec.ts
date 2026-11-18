@@ -29,12 +29,11 @@ describe('ChoiceChip (#72)', () => {
     expect(wrapper.classes()).not.toContain('min-h-8')
   })
 
-  it('picked, current and field are classes the style keys on', () => {
-    const wrapper = mount(ChoiceChip, { props: { picked: true, current: true, field: true } })
-    expect(wrapper.classes()).toEqual(expect.arrayContaining(['is-picked', 'is-current', 'choice-chip--field']))
+  it('picked and current are classes the style keys on', () => {
+    const wrapper = mount(ChoiceChip, { props: { picked: true, current: true } })
+    expect(wrapper.classes()).toEqual(expect.arrayContaining(['is-picked', 'is-current']))
     const plain = mount(ChoiceChip)
     expect(plain.classes()).not.toContain('is-picked')
-    expect(plain.classes()).not.toContain('choice-chip--field')
   })
 
   it('a disabled chip does not emit a click', async () => {

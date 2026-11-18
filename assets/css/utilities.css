@@ -141,7 +141,7 @@ html[data-shell="desktop"] :is(
    marker: the web build keeps the hand. What still wins on its own: `not-allowed` on a disabled control (excluded below),
    the grabbing cursor during a drag (dnd.css) and the crosshair of the feedback picker (both `!important`). A link inside
    copyable running text (`data-selectable`) is a link, not a control: it keeps the hand. A control that deliberately shows
-   another cursor is left out by name (`.choice-chip--field` reads as the text field it opens, kd#16) or by the utility
+   another cursor is left out by the utility
    (`cursor-text`, `cursor-grab`, `cursor-not-allowed`): add a new deliberate cursor to that `:not()` list. Not `:where()`:
    a zero-specificity list would lose to every scoped `cursor: pointer` and bring the hand back on those controls. */
 html[data-shell="desktop"] :is(
@@ -149,7 +149,7 @@ html[data-shell="desktop"] :is(
   summary, a[href], label[for], .cursor-pointer, .plan-arrow, .picker-edit-row, .task, tbody tr
 ):not(
   :disabled, [aria-disabled='true'], [data-selectable] a[href],
-  .choice-chip--field, .cursor-text, .cursor-grab, .cursor-not-allowed
+  .cursor-text, .cursor-grab, .cursor-not-allowed
 ) {
   cursor: default;
 }

@@ -9,7 +9,7 @@
  * `settle()` waits for fonts + rendered icon SVGs so baselines never capture half-loaded icons.
  *
  * Core flows (#63, the diff basis for the UI kit refactor of epic #58), each at 1280 and 390, light: the guided new card
- * (title, a question, the Mehr list, saving), the day-close dialog and drawer, the new-day recap, /statistics (verdict and
+ * (title, a question, the value list, saving), the day-close dialog and drawer, the new-day recap, /statistics (verdict and
  * one open tile), /trash (filled, empty), the Mehr panel, /settings and /settings/topics, the Notion setup wizard
  * (first and mapping step) and LocalSetupFlow on /welcome, the task sheet's add form, and the toast and UAlert notice
  * styles. Day-sensitive flows pin the page clock to `FIXED_NOW` and seed relative to it. These are macOS pixels; the
@@ -816,7 +816,7 @@ const coreTask = (task: Pick<SeedTask, 'id' | 'title' | 'status'> & Partial<Seed
 
 // --- Guided new card (#649, kd#16) ----------------------------------------
 
-/** More than three topics and activities, so the Mehr cell has a list behind the three pills (kd#16). */
+/** More than three topics and activities, so the combobox list has several entries to show (kd#16, #434). */
 const NEW_CARD_SEED: SeedTask[] = [
   ...SEED,
   ...['Marketing:Recherche', 'Büro:Abstimmung', 'Vertrieb:Telefonat', 'Finanzen:Auswertung'].map((pair, index) => {
