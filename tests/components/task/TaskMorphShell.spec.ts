@@ -39,6 +39,7 @@ beforeEach(() => {
   recorded = []
   reduced = false
   vi.stubGlobal('CSS', { escape: (value: string) => value })
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => { void Promise.resolve().then(() => callback(0)); return 0 })
   vi.stubGlobal('innerWidth', 1280)
   vi.stubGlobal('innerHeight', 800)
   vi.stubGlobal('matchMedia', (query: string) => ({ matches: reduced && query.includes('reduced-motion'), media: query, addEventListener: vi.fn(), removeEventListener: vi.fn() }))

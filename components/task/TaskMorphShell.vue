@@ -20,7 +20,7 @@
 <template>
   <DialogRoot :open="shown" @update:open="onUpdateOpen">
     <DialogPortal>
-      <DialogOverlay ref="scrimRef" class="fixed inset-0 z-(--z-overlay) bg-(--overlay-scrim)" />
+      <DialogOverlay ref="scrimRef" data-slot="overlay" class="fixed inset-0 z-(--z-overlay) bg-(--overlay-scrim)" />
       <DialogContent
         ref="panelRef"
         class="task-morph-panel fixed z-(--z-overlay) flex flex-col overflow-hidden rounded-(--task-sheet-radius) bg-elevated shadow-(--shadow-overlay) outline-none"
@@ -156,11 +156,14 @@ const settle = () => {
   if (innerRef.value) Object.assign(innerRef.value.style, { width: '', height: '', flexShrink: '' });
 };
 
-/** The dialog content mounts a tick or two after `shown` flips (its portal waits for the host to mount, e.g. a deep link that opens at once). */
+/**
+ * The dialog content mounts after `shown` flips: at once when the shell was already mounted closed, but a sheet that is open
+ * from the first render (a deep link) waits for the page to mount first, through the portal. Poll per frame, at most a second.
+ */
 async function panelReady(mine: number): Promise<boolean> {
-  for (let attempt = 0; attempt < 10 && mine === generation; attempt++) {
+  for (let frame = 0; frame < 60 && mine === generation; frame++) {
     if (panel() && innerRef.value) return true;
-    await nextTick();
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
   }
   return mine === generation && !!panel() && !!innerRef.value;
 }

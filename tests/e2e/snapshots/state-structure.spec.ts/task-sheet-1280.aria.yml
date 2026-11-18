@@ -1,6 +1,6 @@
 - dialog "Konzept ausarbeiten":
-  - paragraph
   - heading "Konzept ausarbeiten" [level=2]
+  - button "Schließen"
   - 'button "Titel: Konzept ausarbeiten"'
   - text: Status
   - 'button "Status: Offen"'
