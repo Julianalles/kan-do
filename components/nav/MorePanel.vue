@@ -7,7 +7,7 @@
 @avoid Only the popover behind AppNav's ⋯; the places (Heute, Statistik) are the pill's segments, so no rows for them on any route.
 @responsibility
 - Groups, set apart by hairlines (#431): Befehle (desktop, a group of its own, no heading: the row names itself) -> "Auf dieser Seite" (Karten stapeln + group-by chips, Tag abschließen) -> "Seiten" (Papierkorb (n), Einstellungen, App-Update, each with a trailing arrow) -> sync footer. One heading level, no heading inside a group; each heading names its `section`
-- "Auf dieser Seite" exists only while the board is the current place; "Seiten" and the sync footer on every page
+- "Auf dieser Seite" exists only while the board is the current place; its "Tag abschließen" is disabled while the new-day recap is open (the two never stand together, #480); "Seiten" and the sync footer on every page
 - The page the pill shows as its third segment (#583: Einstellungen on /settings*, Papierkorb on /trash*) is not listed here; the row returns when the page leaves the pill. App-Update stays on /settings/updates (a different page). The panel closes on every route change, so a row never appears or disappears while it is open
 - App-Update only in the desktop app (`isTauri()`, absent in the web build, never disabled)
 - Sync footer: a failing source shows its worst problem (title, hint, "Verbindung reparieren") above "Jetzt synchronisieren" + last sync; silent while every source is healthy
@@ -71,6 +71,7 @@
           block
           class="justify-start"
           data-testid="more-day-close"
+          :disabled="recapShown"
           @click="emit('dayClose')"
         >
           {{ t('nav.dayClose') }}
@@ -206,7 +207,7 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const pageHeadingId = useId()
 const placesHeadingId = useId()
-const { onBoard, thirdItem } = useAppNav()
+const { onBoard, thirdItem, recapShown } = useAppNav()
 const boardStore = useBoardStore()
 const health = useIntegrationHealthStore()
 const { groupingOptions, effectiveGroupKey, setGroupingEnabled, setGroupingKey } = useBoardGrouping()

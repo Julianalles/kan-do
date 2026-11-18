@@ -6,10 +6,11 @@
  * @responsibility Open/close, focus capture and restore; `freeze()` copies the day as the sheet showed it when the user
  * pressed "Tag abschließen", so the sheet keeps its content while the curtain plays over the emptied board. This composable acts
  * on nothing: the one action with an effect is `useDayCloseAction().finishDay` (kept apart so a caller that only opens the
- * stage, like the palette, never pulls the sync path in). Today's done tasks and the Offen/Jetzt/Wartet tasks as the sheet's data.
+ * stage, like the palette, never pulls the sync path in). `open()` does nothing while the new-day recap is open. Today's done tasks and the Offen/Jetzt/Wartet tasks as the sheet's data.
  */
 import { computed, readonly, ref } from 'vue'
 import { useTasksStore } from '~/store/tasks'
+import { recapIsOpen } from '~/lib/recapOpenState'
 import type { Task } from '~/types/task'
 
 // Module-level: one stage per app. `typeof document` guards (not import.meta.client) keep this unit-testable.
@@ -22,8 +23,12 @@ const closing = ref<{ done: Task[], inFlight: Task[] } | null>(null)
 export function useDayClose() {
   const tasksStore = useTasksStore()
 
+  /**
+   * Opens the stage. Never over the new-day recap: the two key moments do not stand together (both own `#recap-stage-host` and
+   * `data-recap-stage`, and the morning's close would take the board off under the recap), so with the recap open it does nothing.
+   */
   function open(): void {
-    if (isOpen.value) return
+    if (recapIsOpen.value || isOpen.value) return
     returnFocusTo = typeof document !== 'undefined' && document.activeElement instanceof HTMLElement ? document.activeElement : null
     closing.value = null
     isOpen.value = true

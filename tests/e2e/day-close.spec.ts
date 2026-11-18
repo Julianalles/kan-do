@@ -19,7 +19,7 @@ const cancelButton = (page: Page) => page.getByTestId('day-close-cancel')
 /** Everything a close may change, read from the stored state. The running timer ticks, so time is a separate read. */
 const readStored = (page: Page) => page.evaluate(() => {
   const tasks = JSON.parse(localStorage.getItem('tasks-store') ?? '{}') as { tasks?: Array<Record<string, unknown>>, archivedTaskIds?: string[], deletedTaskIds?: string[] }
-  const recap = JSON.parse(localStorage.getItem('day-recap-store') ?? '{}') as { lastNewDay?: string, sentBack?: { day: string, ids: string[] } }
+  const recap = JSON.parse(localStorage.getItem('day-recap-store') ?? '{}') as { lastNewDay?: string, sentBack?: { day: string, ids: string[], waiting?: string[] } }
   return {
     tasks: Object.fromEntries((tasks.tasks ?? []).map(task => [task.id as string, { status: task.status, notPlanned: task.notPlanned ?? false, timerId: task.timerId ?? null, timeSpentSeconds: task.timeSpentSeconds as number, notes: task.notes ?? null }])),
     archived: [...(tasks.archivedTaskIds ?? [])].sort(),
@@ -204,7 +204,7 @@ test.describe('Day close stage (#480)', () => {
     expect(stored.archived).toEqual(['seed-done-1', 'seed-done-2'])
     // Tomorrow is the started day, with the group of the Jetzt and Offen tasks (Jetzt first)
     expect(stored.lastNewDay).toBe(dayKey(1))
-    expect(stored.sentBack).toEqual({ day: dayKey(1), ids: ['seed-progress-1', 'seed-open-1', 'seed-open-2'] })
+    expect(stored.sentBack).toEqual({ day: dayKey(1), ids: ['seed-progress-1', 'seed-open-1', 'seed-open-2'], waiting: ['seed-waiting-1'] })
     // Focus is never lost to <body>
     await page.waitForTimeout(600)
     expect(await page.evaluate(() => document.activeElement === document.body)).toBe(false)
@@ -245,7 +245,7 @@ test.describe('Day close stage (#480)', () => {
     }
     // The marker is not overwritten by the morning's own checks
     const stored = (await readStored(page))!
-    expect(stored.sentBack).toEqual({ day: dayKey(1), ids: ['seed-progress-1', 'seed-open-1', 'seed-open-2'] })
+    expect(stored.sentBack).toEqual({ day: dayKey(1), ids: ['seed-progress-1', 'seed-open-1', 'seed-open-2'], waiting: ['seed-waiting-1'] })
     expect(stored.lastNewDay).toBe(dayKey(1))
   })
 

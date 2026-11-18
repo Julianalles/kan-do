@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { createApp, nextTick } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { createPersistedState } from 'pinia-plugin-persistedstate'
-import { useDayRecapStore } from '~/store/dayRecap'
+import { sanitizeSentBack, useDayRecapStore } from '~/store/dayRecap'
 
 function freshPinia() {
   const pinia = createPinia()
@@ -67,6 +67,19 @@ describe('day recap store', () => {
       // a later day replaces the group, as any start does
       expect(store.markDayClosed('2026-10-24', ['d'])).toBe(true)
       expect(store.sentBack).toEqual({ day: '2026-10-24', ids: ['d'] })
+    })
+
+    it('markDayClosed keeps the Wartet ids the close took off apart from the group; a second close adds to them, none writes no field, a stored `waiting` is sanitized', () => {
+      const store = useDayRecapStore()
+      expect(store.markDayClosed('2026-10-23', ['a'], ['w1'])).toBe(true)
+      expect(store.sentBack).toEqual({ day: '2026-10-23', ids: ['a'], waiting: ['w1'] })
+      store.markDayClosed('2026-10-23', ['b'], ['w2', 'w1'])
+      expect(store.sentBack).toEqual({ day: '2026-10-23', ids: ['b', 'a'], waiting: ['w2', 'w1'] })
+      store.markDayClosed('2026-10-24', ['c'])
+      expect(store.sentBack).toEqual({ day: '2026-10-24', ids: ['c'] })
+      expect(store.sentBack).not.toHaveProperty('waiting')
+      expect(sanitizeSentBack({ day: '2026-10-24', ids: [], waiting: ['x', 3, null] })).toEqual({ day: '2026-10-24', ids: [], waiting: ['x'] })
+      expect(sanitizeSentBack({ day: '2026-10-24', ids: [], waiting: 'x' })).toEqual({ day: '2026-10-24', ids: [] })
     })
 
     it('markDayClosed writes nothing for a day before the stored marker (clock set back) or a malformed day', () => {

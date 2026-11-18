@@ -93,8 +93,8 @@ export function useDayCloseAction() {
     dayClose.freeze()
     dayClose.close()
     archiveDone()
-    const { group } = takeOffBoard()
-    recapStore.markDayClosed(nextDayKey(now), group)
+    const { group, fromWaiting } = takeOffBoard()
+    recapStore.markDayClosed(nextDayKey(now), group, fromWaiting)
     return true
   }
 

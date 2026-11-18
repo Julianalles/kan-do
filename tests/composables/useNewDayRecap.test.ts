@@ -116,6 +116,20 @@ describe('useNewDayRecap', () => {
       expect(recap.isOpen.value).toBe(false)
     })
 
+    it('the day close does not open over the open recap (the two never stand together)', () => {
+      setup()
+      const recap = useNewDayRecap()
+      recap.check('tasks')
+      expect(recap.isOpen.value).toBe(true)
+      const dayClose = useDayClose()
+      dayClose.open()
+      expect(dayClose.isOpen.value).toBe(false)
+      recap.leave()
+      dayClose.open()
+      expect(dayClose.isOpen.value).toBe(true)
+      dayClose.close()
+    })
+
     it('does not open over an open day-close dialog (never modal on modal)', () => {
       setup()
       const dayClose = useDayClose()
@@ -271,6 +285,28 @@ describe('useNewDayRecap', () => {
       recap.leave()
       expect(store.lastShownDay).toBe(TODAY)
       expect(syncArchiveStatusForTasks).toHaveBeenCalledTimes(1)
+    })
+
+    it('lists only the Wartet tasks this close took off, not the ones an earlier start left in notPlannedFromWaiting (weeks ago)', async () => {
+      const { tasks, board } = setup({ lastShownDay: '2026-10-20' })
+      // a Wartet task of an earlier fresh start: still held, still in the persisted category, not yesterday's
+      tasks.addTask({ ...task('stale', TaskStatus.Open), notPlanned: true })
+      board.noteFromWaiting(['stale'])
+      await closeTheDayYesterdayEvening()
+      expect(board.notPlannedFromWaiting).toEqual(['stale', 'w1'])
+      const recap = useNewDayRecap()
+      recap.check('tasks')
+      expect(recap.snapshot.value!.undone.map(t => t.id)).toEqual(['o1', 'w1'])
+    })
+
+    it('a stored group without `waiting` (a fresh start, data from before it) adds nothing from notPlannedFromWaiting', () => {
+      const { tasks, board, recap: store } = setup()
+      tasks.addTask({ ...task('stale', TaskStatus.Open), notPlanned: true })
+      board.noteFromWaiting(['stale'])
+      store.sentBack = { day: TODAY, ids: [] }
+      const recap = useNewDayRecap()
+      recap.check('tasks')
+      expect(recap.snapshot.value!.undone.map(t => t.id)).toEqual(['o1', 'w1'])
     })
 
     it('does not show them a second time the day after the recap was left', async () => {

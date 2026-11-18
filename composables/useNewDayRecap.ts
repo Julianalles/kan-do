@@ -15,7 +15,7 @@
  *   crossed while the window stays focused never opens it; the next return does.
  * - Tasks a day close archived (`dayRecap.closedTaskIds`, #292) count as done before today, so closing the day does not
  *   cancel the next morning's recap; the marker moving clears them.
- * - A day close of the evening before (#480) took its unfinished tasks off the board and marked today as started: the still-open deck lists them from `sentBack` (Jetzt, Offen) and the Wartet ones from `boardStore.notPlannedFromWaiting`.
+ * - A day close of the evening before (#480) took its unfinished tasks off the board and marked today as started: the still-open deck lists them from `sentBack` (Jetzt, Offen in `ids`, the Wartet ones in `waiting`; never the whole `boardStore.notPlannedFromWaiting`, which keeps the Wartet tasks of every earlier start).
  * - The snapshot is a copy taken at open: a fetch landing later, and the fresh start "Tag neu planen" runs (#387), change
  *   nothing in the page. Its still-open deck is yesterday's board: what is on the board now, the recap opens before
  *   any fresh start; what a fresh start of today already took off (a board the automatic pass of #356 emptied this
@@ -36,6 +36,7 @@ import { useDayRecapStore } from '~/store/dayRecap'
 import { useDayClose } from '~/composables/useDayClose'
 import { useArchiveDoneTasks } from '~/composables/useArchiveDoneTasks'
 import { dataState } from '~/lib/dataStorage'
+import { recapIsOpen } from '~/lib/recapOpenState'
 import { newestCompletedAt } from '~/utils/doneDayLabel'
 import { dayKey, isRecapDue, recapWhen, type RecapWhen } from '~/utils/recapDay'
 import { TaskStatus } from '~/types/taskStatus'
@@ -52,7 +53,7 @@ export interface RecapSnapshot {
   dayKey: string
 }
 
-const isOpen = ref(false)
+const isOpen = recapIsOpen
 const snapshot = ref<RecapSnapshot | null>(null)
 
 /** The recap is open (#428): what the app bar reads to show Rückblick instead of Alle and Heute. */
@@ -83,7 +84,8 @@ export function useNewDayRecap() {
     const sentBack = recapStore.validSentBack
     // Today's start took these off the board: the Jetzt and Offen group, then the ones that came out of Wartet. A day close
     // of yesterday evening (#480) is such a start: the morning's recap still shows its unfinished tasks
-    const backIds = sentBack && sentBack.day === todayKey ? [...sentBack.ids, ...boardStore.notPlannedFromWaiting] : []
+    // the Wartet ones are the close's own (`sentBack.waiting`), never the whole persisted `notPlannedFromWaiting`, which keeps tasks of every earlier start
+    const backIds = sentBack && sentBack.day === todayKey ? [...sentBack.ids, ...(sentBack.waiting ?? [])] : []
     const back = [...new Set(backIds)]
       .map(id => tasksStore.task(id))
       .filter((task): task is Task => !!task && task.status !== TaskStatus.Done)

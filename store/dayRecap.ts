@@ -7,14 +7,17 @@ import { sanitizeAfterMidnight, type AfterMidnightCount } from '~/store/tasks'
 export interface SentBack {
   day: string
   ids: string[]
+  /** Only a day close (#480) writes it: the Wartet tasks it took off the board, the recap's "Zuletzt in Wartet" of that one morning. Absent = none (a fresh start, older data). */
+  waiting?: string[]
 }
 
 /** A stored `sentBack` as a trusted value: anything but `{ day: YYYY-MM-DD, ids: string[] }` reads as null. */
 export function sanitizeSentBack(raw: unknown): SentBack | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null
-  const { day, ids } = raw as { day?: unknown, ids?: unknown }
+  const { day, ids, waiting } = raw as { day?: unknown, ids?: unknown, waiting?: unknown }
   if (!isValidDayKey(day) || !Array.isArray(ids)) return null
-  return { day, ids: ids.filter((id): id is string => typeof id === 'string') }
+  const strings = (list: unknown[]) => list.filter((id): id is string => typeof id === 'string')
+  return { day, ids: strings(ids), ...(Array.isArray(waiting) ? { waiting: strings(waiting) } : {}) }
 }
 
 /**
@@ -92,17 +95,20 @@ export const useDayRecapStore = defineStore('dayRecap', () => {
    * day) counts as started and its group "Gestern geplant, noch offen" (`ids`, Jetzt first, then Offen) shows that
    * morning. `sentBack` keeps its meaning, valid for that one day: the day is tomorrow, written tonight. Monotonic like
    * `markNewDay`, but a second close on the same evening adds its ids in front of the earlier ones instead of being
-   * refused; a day before the stored marker (a clock set back) writes nothing.
+   * refused; a day before the stored marker (a clock set back) writes nothing. `waiting` (the Wartet tasks the close took off, kept
+   * apart from the group) is stored the same way, so the next morning's recap lists only what this evening took off, never an
+   * older fresh start's `notPlannedFromWaiting` entries.
    * @returns whether the marker or the group changed
    */
-  function markDayClosed(nextDay: string, ids: string[]): boolean {
+  function markDayClosed(nextDay: string, ids: string[], waiting: string[] = []): boolean {
     if (!isValidDayKey(nextDay)) return false
     const current = validLastNewDay.value
     if (current !== null && nextDay < current) return false
     const earlier = validSentBack.value
-    const kept = earlier && earlier.day === nextDay ? earlier.ids : []
+    const same = earlier && earlier.day === nextDay ? earlier : null
+    const allWaiting = [...new Set([...waiting, ...(same?.waiting ?? [])])]
     lastNewDay.value = nextDay
-    sentBack.value = { day: nextDay, ids: [...new Set([...ids, ...kept])] }
+    sentBack.value = { day: nextDay, ids: [...new Set([...ids, ...(same?.ids ?? [])])], ...(allWaiting.length > 0 ? { waiting: allWaiting } : {}) }
     return true
   }
 

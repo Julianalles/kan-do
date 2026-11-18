@@ -117,7 +117,7 @@ describe('useDayCloseAction.finishDay (#480)', () => {
     tasks.setTasks([makeTask('o1', TaskStatus.Open), makeTask('p', TaskStatus.Progress), makeTask('w', TaskStatus.Waiting)])
     closeDay()
     expect(recap.validLastNewDay).toBe(TOMORROW)
-    expect(recap.validSentBack).toEqual({ day: TOMORROW, ids: ['p', 'o1'] })
+    expect(recap.validSentBack).toEqual({ day: TOMORROW, ids: ['p', 'o1'], waiting: ['w'] })
     expect(board.notPlannedFromWaiting).toEqual(['w'])
   })
 
@@ -133,7 +133,7 @@ describe('useDayCloseAction.finishDay (#480)', () => {
     expect(newDay.check()).toBe(true)
     expect(newDay.noticeShown.value).toBe(false)
     expect(newDay.freshStart()).toEqual([])
-    expect(recap.validSentBack).toEqual({ day: TOMORROW, ids: ['p', 'o1'] })
+    expect(recap.validSentBack).toEqual({ day: TOMORROW, ids: ['p', 'o1'], waiting: ['w'] })
     expect(newDay.groupIds.value).toEqual(['p', 'o1'])
     expect(newDay.waitingIds.value).toEqual(['w'])
   })
