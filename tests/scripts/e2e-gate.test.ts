@@ -240,6 +240,13 @@ describe('selectE2e', () => {
       expect(select({ files: [file] }).tier).toBe('targeted')
     })
 
+    it.each(['docs/copy/terms.json', 'docs/copy/terms.lock.json'])('does not treat the term registry %s as docs-only and runs the copy-editor spec (#486)', (file) => {
+      const result = select({ files: [file] })
+      expect(result.tier).toBe('targeted')
+      expect(result.specs).toEqual(expect.arrayContaining([...config.smoke, 'copy-editor']))
+      expect(select({ files: ['docs/copy/voice.md'] }).tier).toBe('skip')
+    })
+
     it('keeps the rest of .claude/ docs-only', () => {
       expect(select({ files: ['.claude/hooks/verify.sh', '.claude/rules/e2e.md', '.claude/issue-workflow.md'] }).tier).toBe('skip')
     })
