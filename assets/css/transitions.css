@@ -36,7 +36,7 @@
 }
 .welcome-root.page-leave-active {
   position: fixed;
-  inset: 0 0 calc(var(--welcome-curtain-feather) * -1) 0; /* reaches the feather below the window: the soft edge is off screen at rest and sweeps in as the layer rises (as the recap's photo) */
+  inset: 0;
   z-index: calc(var(--z-bar) + 1); /* above the app bar, which mounts outside the page: the curtain reveals it */
   transition: transform var(--welcome-curtain-duration) var(--ease-emphasized), opacity var(--welcome-curtain-duration) var(--welcome-curtain-fade-ease);
   -webkit-mask-image: linear-gradient(to bottom, var(--ui-bg) calc(100% - var(--welcome-curtain-feather)), transparent);

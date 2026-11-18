@@ -4,6 +4,7 @@
  * padding takes its height), the photo runs behind it (#262: no paper band above the photo, and the
  * bar's paper veil steps back while the stage is mounted, bottom of this file).
  * Not modal: the app bar (z-bar) paints above it, the board stays inert behind it (pages/tasks.vue).
+ * Enter (#463, "Dawn"): the whole stage fades in over --recap-enter-duration (1.4 s), also on an app start. A click mid-fade lets the fade finish under the curtain (no jump to full opacity).
  * Curtain on close: only the photo layer lifts (700 ms, ease in-out) with a feathered bottom edge; the content fades
  * out (--duration-base). The photo layer reaches --recap-feather below the stage, so the feathered edge is off screen
  * at rest and sweeps through while it slides up. Reduced motion: no fade, no slide (the component closes at once).
