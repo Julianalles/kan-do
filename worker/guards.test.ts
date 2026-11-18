@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from 'vitest'
 import { FORBIDDEN_ORIGIN, RATE_LIMITED, foreignOrigin, guard, isNotionPath, type GuardEnv } from './guards'
+import { limiterName } from './limiter'
 import { limiterNamespace } from './testing'
 
 const SITE = 'https://kando.example.workers.dev'
@@ -107,12 +108,22 @@ describe('rate limit', () => {
     return { ...setup({ NOTION_LIMITER: namespace }), hit, keys }
   }
 
-  it('allowed: the app answers, counted under CF-Connecting-IP', async () => {
+  it('allowed: the app answers, counted under a keyed hash of CF-Connecting-IP, never the address itself', async () => {
     const { app, run, hit, keys } = withLimiter(true)
     expect((await run('/api/notion/pages', { 'CF-Connecting-IP': '203.0.113.7' })).status).toBe(200)
-    expect(keys).toEqual(['203.0.113.7'])
+    expect(keys).toEqual([await limiterName('203.0.113.7', undefined)])
+    expect(keys[0]).not.toContain('203.0.113.7')
     expect(hit).toHaveBeenCalledOnce()
     expect(app).toHaveBeenCalledOnce()
+  })
+
+  it('the gate secret keys the object name, and the secret itself never reaches the object', async () => {
+    const { namespace, hit, keys } = limiterNamespace(true)
+    const { run } = setup({ NOTION_LIMITER: namespace, GATE_SECRET: 'top-secret-value' })
+    await run('/api/notion/pages', { 'CF-Connecting-IP': '203.0.113.7' })
+    expect(keys).toEqual([await limiterName('203.0.113.7', 'top-secret-value')])
+    expect(keys[0]).not.toBe(await limiterName('203.0.113.7', undefined))
+    expect(JSON.stringify([keys, hit.mock.calls])).not.toContain('top-secret-value')
   })
 
   it('limited: 429 RATE_LIMITED with Retry-After, the app is never called', async () => {
@@ -153,14 +164,14 @@ describe('rate limit', () => {
   it('without CF-Connecting-IP all clients share one key rather than skipping the limit', async () => {
     const { run, keys } = withLimiter(true)
     await run('/api/notion/pages')
-    expect(keys).toEqual(['unknown'])
+    expect(keys).toEqual([await limiterName('unknown', undefined)])
   })
 
   it('clients of one IPv6 /64 share a key', async () => {
     const { run, keys } = withLimiter(true)
     await run('/api/notion/pages', { 'CF-Connecting-IP': '2001:db8:1:2:aaaa::1' })
     await run('/api/notion/pages', { 'CF-Connecting-IP': '2001:DB8:1:2:bbbb:cccc:dddd:eeee' })
-    expect(keys).toEqual(['2001:db8:1:2', '2001:db8:1:2'])
+    expect(keys).toEqual(Array(2).fill(await limiterName('2001:db8:1:2', undefined)))
   })
 
   it('only /api/notion/* is counted', async () => {

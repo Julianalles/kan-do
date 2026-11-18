@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { CHECKPOINT, LIMIT, LIMIT_PERIOD_SECONDS, NotionLimiter, WindowCounter, clientKey, type LimiterStorage } from './limiter'
+import { CHECKPOINT, LIMIT, LIMIT_PERIOD_SECONDS, NotionLimiter, WindowCounter, clientKey, limiterName, type LimiterStorage } from './limiter'
 
 describe('WindowCounter', () => {
   it('allows `limit` hits per window and refuses the rest, however fast they come', () => {
@@ -42,9 +42,17 @@ describe('NotionLimiter across an eviction (storage checkpoints)', () => {
 
   const hit = async (limiter: NotionLimiter) =>
     ((await (await limiter.fetch(new Request('https://limiter.invalid/hit', { method: 'POST' }))).json()) as { success: boolean }).success
-  const memory = (): LimiterStorage & { data: Map<string, unknown>, put: ReturnType<typeof vi.fn> } => {
+  const memory = (): LimiterStorage & { data: Map<string, unknown>, alarm: { at: number | null }, put: ReturnType<typeof vi.fn> } => {
     const data = new Map<string, unknown>()
-    return { data, get: async (k: string) => data.get(k), put: vi.fn(async (k: string, v: unknown) => { data.set(k, v) }) }
+    const alarm: { at: number | null } = { at: null }
+    return {
+      data,
+      alarm,
+      get: async (k: string) => data.get(k),
+      put: vi.fn(async (k: string, v: unknown) => { data.set(k, v) }),
+      setAlarm: async (at: number) => { alarm.at = at },
+      deleteAll: async () => { data.clear() }, // the real one leaves a pending alarm alone; the handler's run consumes it
+    }
   }
 
   it('a client cannot reset its window by pausing until the object is evicted', async () => {
@@ -91,7 +99,7 @@ describe('NotionLimiter across an eviction (storage checkpoints)', () => {
 
   it('a failing storage never blocks an answer: it logs and counts in memory', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const storage: LimiterStorage = { get: async () => { throw new Error('read') }, put: async () => { throw new Error('write') } }
+    const storage: LimiterStorage = { ...memory(), get: async () => { throw new Error('read') }, put: async () => { throw new Error('write') } }
     const limiter = new NotionLimiter({ storage })
     const answers: boolean[] = []
     for (let i = 0; i < LIMIT + 5; i++) answers.push(await hit(limiter))
@@ -149,6 +157,112 @@ describe('NotionLimiter across an eviction (storage checkpoints)', () => {
     const storage = memory()
     storage.data.set('window', 'garbage')
     expect(await hit(new NotionLimiter({ storage }))).toBe(true)
+  })
+})
+
+describe('NotionLimiter cleans up after its window (no client data outlives it, #508)', () => {
+  afterEach(() => vi.useRealTimers())
+
+  const hit = async (limiter: NotionLimiter) =>
+    ((await (await limiter.fetch(new Request('https://limiter.invalid/hit', { method: 'POST' }))).json()) as { success: boolean }).success
+  const memory = () => {
+    const data = new Map<string, unknown>()
+    const alarm: { at: number | null } = { at: null }
+    const storage: LimiterStorage = {
+      get: async k => data.get(k),
+      put: async (k, v) => { data.set(k, v) },
+      setAlarm: async at => { alarm.at = at },
+      deleteAll: async () => { data.clear() },
+    }
+    return { data, alarm, storage }
+  }
+
+  it('sets the alarm for the window end before anything is stored, and the alarm after the window deletes everything', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(7_000_000)
+    const { data, alarm, storage } = memory()
+    const limiter = new NotionLimiter({ storage })
+    for (let i = 0; i < 50; i++) await hit(limiter)
+    expect(data.size).toBe(1)
+    expect(alarm.at).toBe(7_000_000 + LIMIT_PERIOD_SECONDS * 1000)
+
+    vi.setSystemTime(alarm.at!)
+    await new NotionLimiter({ storage }).alarm() // a new instance: the object was evicted and the alarm woke it
+    expect(data.size).toBe(0) // not a key left, one period after the window began at most
+  })
+
+  it('after the cleanup the object counts a fresh window', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(8_000_000)
+    const { data, alarm, storage } = memory()
+    const limiter = new NotionLimiter({ storage })
+    for (let i = 0; i < LIMIT + 1; i++) await hit(limiter)
+    vi.setSystemTime(alarm.at!)
+    await limiter.alarm()
+    expect(data.size).toBe(0)
+    expect(await hit(limiter)).toBe(true)
+    expect(data.size).toBe(1)
+    expect(alarm.at).toBe(8_000_000 + LIMIT_PERIOD_SECONDS * 1000 * 2)
+  })
+
+  it('an alarm that runs inside a current window keeps its state and sets the alarm again for its end', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(9_000_000)
+    const { data, alarm, storage } = memory()
+    await hit(new NotionLimiter({ storage }))
+    vi.setSystemTime(9_000_000 + 30_000)
+    await new NotionLimiter({ storage }).alarm()
+    expect(data.size).toBe(1)
+    expect(alarm.at).toBe(9_000_000 + 60_000)
+  })
+
+  it('an alarm on an empty object stores nothing and a failing read or delete is rethrown for a retry', async () => {
+    const { data, storage } = memory()
+    await new NotionLimiter({ storage }).alarm()
+    expect(data.size).toBe(0)
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    await expect(new NotionLimiter({ storage: { ...storage, get: async () => { throw new Error('read') } } }).alarm()).rejects.toThrow()
+    await expect(new NotionLimiter({ storage: { ...storage, deleteAll: async () => { throw new Error('delete') } } }).alarm()).rejects.toThrow('delete')
+    spy.mockRestore()
+  })
+
+  it('stores nothing when the alarm cannot be set, and counts in memory', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(10_000_000)
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const { data, storage } = memory()
+    const limiter = new NotionLimiter({ storage: { ...storage, setAlarm: async () => { throw new Error('alarm') } } })
+    for (let i = 0; i < LIMIT + 1; i++) await hit(limiter)
+    expect(data.size).toBe(0)
+    expect(await hit(limiter)).toBe(false)
+    spy.mockRestore()
+  })
+})
+
+describe('limiterName (the object name is no IP)', () => {
+  const hex = /^[0-9a-f]{64}$/
+
+  it('is a 64-character hex digest that contains no part of the address', async () => {
+    for (const key of ['203.0.113.7', '2001:db8:1:2', 'unknown']) {
+      const name = await limiterName(key, 's3cret')
+      expect(name).toMatch(hex)
+      expect(name).not.toContain(key)
+      expect(name).not.toContain(key.replace(/[.:]/g, ''))
+    }
+  })
+
+  it('is stable per client and secret, and differs by client and by secret', async () => {
+    expect(await limiterName('203.0.113.7', 'a')).toBe(await limiterName('203.0.113.7', 'a'))
+    expect(await limiterName('203.0.113.7', 'a')).not.toBe(await limiterName('203.0.113.8', 'a'))
+    expect(await limiterName('203.0.113.7', 'a')).not.toBe(await limiterName('203.0.113.7', 'b'))
+  })
+
+  it('is not the plain sha-256 of the key (the unkeyed hash of an IPv4 address is brute-forceable) and works without a secret', async () => {
+    const plain = [...new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('203.0.113.7')))].map(b => b.toString(16).padStart(2, '0')).join('')
+    expect(await limiterName('203.0.113.7', 'a')).not.toBe(plain)
+    const unkeyed = await limiterName('203.0.113.7')
+    expect(unkeyed).toMatch(hex)
+    expect(unkeyed).toBe(await limiterName('203.0.113.7', ''))
   })
 })
 

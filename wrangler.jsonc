@@ -28,7 +28,8 @@
   // counted for `/api/notion/*` only, by one Durable Object per client so the count is exact across isolates and locations. The Workers
   // Rate Limiting binding of #503 (`ratelimits`) never limited on the live instance (approximate, per-location counts; Free on
   // workers.dev answered `success: true` for 1200 requests in 28 s), so it is gone. Free needs a SQLite-backed class (`new_sqlite_classes`); the
-  // object checkpoints its window there a few times per window, so an eviction does not reset it. A missing or failing binding lets requests through (the guard never blocks by itself).
+  // object checkpoints its window there a few times per window, so an eviction does not reset it, and an alarm at the window's end deletes it (no
+  // client data outlives its window); the object is named by an HMAC of the client key (keyed with GATE_SECRET), never by the IP. A missing or failing binding lets requests through (the guard never blocks by itself).
   "durable_objects": { "bindings": [{ "name": "NOTION_LIMITER", "class_name": "NotionLimiter" }] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["NotionLimiter"] }],
   "observability": { "enabled": true },

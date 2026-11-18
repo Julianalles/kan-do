@@ -5,13 +5,14 @@
  * location and eventually consistent, and on Workers Free on workers.dev it answered `success: true` for 1200 requests
  * in 28 s against a 120 per 60 s limit (cloudflare/developer-platform#123 reports the same).
  *
- * The object is addressed by `idFromName(clientKey)` and answers `POST` with `{ success }`. A Durable Object serves
+ * The object is addressed by `idFromName(limiterName(clientKey))` (a keyed hash: no IP in a name) and answers `POST` with `{ success }`. A Durable Object serves
  * its requests one after the other, so the count is exact while the object lives. An idle object is evicted after
  * about ten seconds and loses its memory, which would let a client reset its window by pausing: so the window is also
  * checkpointed to the object's storage, in steps of `CHECKPOINT` hits (the first hit of a window, then every tenth),
  * each checkpoint rounded up, so a restored count is never below the true one and at most 9 above it. That keeps a
  * client's writes at a few per window, far below the Free quota of 100,000 rows a day. A failing storage never
- * blocks an answer: the count then lives in memory only. Written as the plain `fetch` class (no `cloudflare:workers`
+ * blocks an answer: the count then lives in memory only. Nothing outlives its window: the first write of a window sets an
+ * alarm at the window's end, which deletes everything the object stored (`alarm()`). Written as the plain `fetch` class (no `cloudflare:workers`
  * import) so `limiter.test.ts` runs it in Node.
  */
 
@@ -49,6 +50,16 @@ export class WindowCounter {
     return { windowStart: this.windowStart, count: this.count }
   }
 
+  /** Is `now` inside the window that started at `windowStart`? */
+  isCurrent(now: number): boolean {
+    return now >= this.windowStart && now - this.windowStart < this.periodMs
+  }
+
+  reset(): void {
+    this.windowStart = 0
+    this.count = 0
+  }
+
   restore(saved: WindowState): void {
     this.windowStart = saved.windowStart
     this.count = Math.max(0, Math.min(saved.count, this.limit))
@@ -59,6 +70,8 @@ export class WindowCounter {
 export interface LimiterStorage {
   get: (key: string) => Promise<unknown>
   put: (key: string, value: unknown) => Promise<void>
+  setAlarm: (scheduledTime: number) => Promise<void>
+  deleteAll: () => Promise<void>
 }
 
 const isState = (v: unknown): v is WindowState =>
@@ -70,6 +83,8 @@ export class NotionLimiter {
   private ready?: Promise<boolean>
   /** What storage holds: a window start and the count it would restore. */
   private saved: WindowState = { windowStart: -1, count: 0 }
+  /** The window start the pending alarm (the cleanup at the window's end) is set for. */
+  private alarmFor = -1
 
   constructor(state?: { storage: LimiterStorage }) {
     this.storage = state?.storage
@@ -90,6 +105,7 @@ export class NotionLimiter {
       if (isState(saved)) {
         this.counter.restore(saved)
         this.saved = saved
+        this.alarmFor = saved.windowStart // the alarm was set before this window was written
       }
       return true
     } catch (error) {
@@ -99,11 +115,44 @@ export class NotionLimiter {
     }
   }
 
-  /** Writes the window when it is a new one or the count passed the stored one; rounded up to the next step. */
+  /**
+   * The cleanup at the window's end: storage holds a client's window only for that window, so nothing derived from a
+   * client outlives it by more than one period (#508, the Worker stores nothing of a visitor, epic #279). A window that
+   * is still current (the alarm ran early, or a new window began meanwhile) schedules the alarm again for its end. A
+   * failure throws, so Cloudflare retries the alarm.
+   */
+  async alarm(): Promise<void> {
+    if (!this.storage) return
+    if (!(await (this.ready ??= this.load()))) throw new Error('limiter: could not read the window, retrying the cleanup')
+    const { windowStart } = this.counter.state()
+    if (this.counter.isCurrent(Date.now())) {
+      await this.storage.setAlarm(windowStart + LIMIT_PERIOD_SECONDS * 1000)
+      this.alarmFor = windowStart
+      return
+    }
+    await this.storage.deleteAll()
+    this.counter.reset()
+    this.saved = { windowStart: -1, count: 0 }
+    this.alarmFor = -1
+  }
+
+  /**
+   * Writes the window when it is a new one or the count passed the stored one; rounded up to the next step. The alarm
+   * that deletes it is set first, so nothing is ever stored without a cleanup pending.
+   */
   private async checkpoint(): Promise<void> {
     if (!this.storage) return
     const { windowStart, count } = this.counter.state()
     if (windowStart === this.saved.windowStart && count <= this.saved.count) return
+    try {
+      if (this.alarmFor !== windowStart) {
+        await this.storage.setAlarm(windowStart + LIMIT_PERIOD_SECONDS * 1000)
+        this.alarmFor = windowStart
+      }
+    } catch (error) {
+      console.error('limiter: could not set the cleanup alarm, counting in memory only', error)
+      return
+    }
     const next = { windowStart, count: Math.min(LIMIT, count + CHECKPOINT - 1) }
     try {
       await this.storage.put('window', next)
@@ -112,6 +161,20 @@ export class NotionLimiter {
       console.error('limiter: could not write the window, counting in memory only', error)
     }
   }
+}
+
+/**
+ * The name of a client's Durable Object: HMAC-SHA-256 of its `clientKey`, hex, keyed with the Worker's gate secret, so the
+ * object's name (which Cloudflare keeps and shows in its dashboard and logs) is no IP address and, without the key, cannot
+ * be turned back into one (an unkeyed hash of an IPv4 address falls to a 2^32 search). A Worker without the secret (the
+ * gate off, a test) keys with a public constant: the name is then still no plain IP, and the cleanup alarm bounds how
+ * long it exists. The secret is only ever used as the HMAC key, never stored or returned.
+ */
+export async function limiterName(key: string, secret?: string): Promise<string> {
+  const material = new TextEncoder().encode(secret || 'kando-limiter-unkeyed')
+  const hmacKey = await crypto.subtle.importKey('raw', material, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign'])
+  const mac = await crypto.subtle.sign('HMAC', hmacKey, new TextEncoder().encode(`kando-limiter:v1:${key}`))
+  return [...new Uint8Array(mac)].map(b => b.toString(16).padStart(2, '0')).join('')
 }
 
 /**

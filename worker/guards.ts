@@ -7,12 +7,12 @@
  *    refused with 403 `FORBIDDEN_ORIGIN`, so no other website can use a visitor's browser as a Notion proxy. A request
  *    without `Origin` (curl, server to server) passes: this is no authentication, the visitor's own token still is.
  * 2. Rate limit: the Durable Object `NOTION_LIMITER` (`limiter.ts`, `durable_objects` in `wrangler.jsonc`), one object
- *    per client (`CF-Connecting-IP`), exact across isolates and locations; over the limit answers 429 `RATE_LIMITED`
+ *    per client (`CF-Connecting-IP`, named by a keyed hash, no IP at rest), exact across isolates and locations; over the limit answers 429 `RATE_LIMITED`
  *    (the client retries 429 with backoff). Without the binding (a test) or when the object fails (its Free quota
  *    included), the request passes: the guard never blocks the app by itself. The Workers Rate Limiting binding it
  *    replaced (#503) did not limit on the live instance (#508).
  */
-import { LIMIT_PERIOD_SECONDS, clientKey } from './limiter'
+import { LIMIT_PERIOD_SECONDS, clientKey, limiterName } from './limiter'
 
 /** Same shape as the server routes' errors (`createError`), so the client reads `data.error` and `data.message` alike. */
 export const FORBIDDEN_ORIGIN = 'FORBIDDEN_ORIGIN'
@@ -20,6 +20,8 @@ export const RATE_LIMITED = 'RATE_LIMITED'
 export interface GuardEnv {
   /** The `NotionLimiter` Durable Object namespace. When it is missing (a config without it, a test) the limiter is skipped. */
   NOTION_LIMITER?: DurableObjectNamespace
+  /** The gate's secret, reused only as the key of the limiter object names (`limiterName`); never stored or logged. */
+  GATE_SECRET?: string
 }
 
 export type AppHandler = (request: Request) => Promise<Response>
@@ -74,7 +76,7 @@ export async function overLimit(request: Request, env: GuardEnv): Promise<boolea
   const limiter = env.NOTION_LIMITER
   if (!limiter) return false
   try {
-    const stub = limiter.get(limiter.idFromName(clientKey(request.headers.get('CF-Connecting-IP'))))
+    const stub = limiter.get(limiter.idFromName(await limiterName(clientKey(request.headers.get('CF-Connecting-IP')), env.GATE_SECRET)))
     const { success } = await (await stub.fetch('https://limiter.invalid/hit', { method: 'POST' })).json<{ success: boolean }>()
     return success === false // anything but a clear "no" lets the request through
   } catch (error) {
