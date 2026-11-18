@@ -6,10 +6,10 @@ export default {
   source: 'app',
   alternatives: ['StatsVerdict'],
   variants: [
-    { id: 'mixed', props: { openCount: 2, totalSeconds: 8400, done: [{ id: 'cat-1', source: 'local', externalId: null, status: 3, title: 'Angebot schreiben', activity: 'Planung', topic: 'Angebote', topicColorCode: null, priority: 1, notes: null, timeBoxSeconds: 3600, timeSpentSeconds: 4500, timerId: null }, { id: 'cat-2', source: 'local', externalId: null, status: 3, title: 'Steuerunterlagen sortieren', activity: 'Planung', topic: 'Angebote', topicColorCode: null, priority: 1, notes: null, timeBoxSeconds: 3600, timeSpentSeconds: 2700, timerId: null }, { id: 'cat-3', source: 'local', externalId: null, status: 3, title: 'Rückfrage beantwortet', activity: 'Planung', topic: 'Angebote', topicColorCode: null, priority: 1, notes: null, timeBoxSeconds: null, timeSpentSeconds: 0, timerId: null }] } },
-    { id: 'all-done', props: { openCount: 0, totalSeconds: 3600, done: [{ id: 'cat-1', source: 'local', externalId: null, status: 3, title: 'Angebot schreiben', activity: 'Planung', topic: 'Angebote', topicColorCode: null, priority: 1, notes: null, timeBoxSeconds: 3600, timeSpentSeconds: 3600, timerId: null }] } },
+    { id: 'mixed', props: { doneCount: 3, openCount: 2 } },
+    { id: 'all-done', props: { doneCount: 4, openCount: 0 } },
   ],
   states: [
-    { id: 'empty', state: 'empty', props: { openCount: 0, totalSeconds: 0, done: [] } },
+    { id: 'empty', state: 'empty', props: { doneCount: 0, openCount: 0 } },
   ],
 } satisfies CatalogEntry

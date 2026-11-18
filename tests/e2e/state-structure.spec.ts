@@ -432,15 +432,16 @@ test.describe('new-day recap (#44)', () => {
   })
 })
 
-test.describe('day close sheet (#237)', () => {
-  const sheet = (page: Page) => page.getByRole('dialog', { name: 'Tag abschließen' })
-  /** Fixed data on the pinned day, so the date, the sums and the facts read the same on every run. */
+test.describe('day close stage (#237, #480)', () => {
+  const stage = (page: Page) => page.getByTestId('day-close-stage')
+  /** Fixed data on the pinned day, so the date, the counts and the facts read the same on every run. */
   const doneAt = () => new Date(pinnedNow().getTime() - 3_600_000).toISOString()
   const task = (id: string, title: string, status: SeedTask['status'], extra: Partial<SeedTask> = {}): SeedTask =>
     ({ id, title, status, priority: 2, timeSpentSeconds: 0, timeBoxSeconds: null, custom: {}, ...extra })
   const DONE: SeedTask[] = [
-    task('dc-1', 'Angebot schreiben', 3, { timeSpentSeconds: 4500, timeBoxSeconds: 3600, completedAt: doneAt() }),
-    task('dc-2', 'Steuerunterlagen sortieren', 3, { timeSpentSeconds: 2700, timeBoxSeconds: 3600, completedAt: doneAt() }),
+    task('dc-1', 'Angebot schreiben', 3, { topic: 'Angebote', timeSpentSeconds: 4500, timeBoxSeconds: 3600, completedAt: doneAt() }),
+    task('dc-2', 'Steuerunterlagen sortieren', 3, { topic: 'Steuern', timeSpentSeconds: 2700, timeBoxSeconds: 3600, completedAt: doneAt() }),
+    task('dc-6', 'Rückfrage beantwortet', 3, { completedAt: doneAt() }),
   ]
   const OPEN: SeedTask[] = [
     task('dc-3', 'Konzept ausarbeiten', 0),
@@ -448,48 +449,46 @@ test.describe('day close sheet (#237)', () => {
     task('dc-5', 'Blocker klären', 2),
   ]
 
-  test('modal: the summary, the done rows and "Für morgen" with the list open and one task deselected (1280)', async ({ context, page }) => {
-    await pinClock(context) // the sheet shows today's date
+  test('both charts and the consequence line (1280)', async ({ context, page }) => {
+    await pinClock(context) // the stage shows today's date
     await seedLocalBoard(context, [...DONE, ...OPEN])
     await page.goto('/tasks')
     await openDayClose(page)
-    await expect(sheet(page)).toBeVisible()
-    await sheet(page).getByTestId('day-close-open-details').locator('summary').click()
-    await sheet(page).getByRole('checkbox').first().click()
+    await expect(stage(page)).toBeVisible()
     await settleAnimations(page)
-    await expect(sheet(page)).toMatchAriaSnapshot({ name: 'day-close-modal-1280.aria.yml' })
+    await expect(stage(page)).toMatchAriaSnapshot({ name: 'day-close-stage-1280.aria.yml' })
   })
 
-  test('drawer: the summary and "Für morgen" with the list closed (390)', async ({ context, page }) => {
+  test('both charts and the stacked buttons (390)', async ({ context, page }) => {
     await page.setViewportSize(MOBILE)
     await pinClock(context)
     await seedLocalBoard(context, [...DONE, ...OPEN])
     await page.goto('/tasks')
     await openDayClose(page)
-    await expect(sheet(page)).toBeVisible()
+    await expect(stage(page)).toBeVisible()
     await settleAnimations(page)
-    await expect(sheet(page)).toMatchAriaSnapshot({ name: 'day-close-drawer-390.aria.yml' })
+    await expect(stage(page)).toMatchAriaSnapshot({ name: 'day-close-stage-390.aria.yml' })
   })
 
-  test('nothing left open: the trophy headline and no "Für morgen" (390)', async ({ context, page }) => {
+  test('nothing left open: the trophy headline, no Themen chart, the second sentence only (390)', async ({ context, page }) => {
     await page.setViewportSize(MOBILE)
     await pinClock(context)
-    await seedLocalBoard(context, DONE)
+    await seedLocalBoard(context, DONE.filter(done => !done.topic))
     await page.goto('/tasks')
     await openDayClose(page)
-    await expect(sheet(page)).toBeVisible()
+    await expect(stage(page)).toBeVisible()
     await settleAnimations(page)
-    await expect(sheet(page)).toMatchAriaSnapshot({ name: 'day-close-all-done-390.aria.yml' })
+    await expect(stage(page)).toMatchAriaSnapshot({ name: 'day-close-all-done-390.aria.yml' })
   })
 
-  test('nothing done and nothing open: the empty sheet (1280)', async ({ context, page }) => {
+  test('nothing done and nothing open: the one quiet line (1280)', async ({ context, page }) => {
     await pinClock(context)
     await seedLocalBoard(context, [])
     await page.goto('/tasks')
     await openDayClose(page)
-    await expect(sheet(page)).toBeVisible()
+    await expect(stage(page)).toBeVisible()
     await settleAnimations(page)
-    await expect(sheet(page)).toMatchAriaSnapshot({ name: 'day-close-empty-1280.aria.yml' })
+    await expect(stage(page)).toMatchAriaSnapshot({ name: 'day-close-empty-1280.aria.yml' })
   })
 })
 

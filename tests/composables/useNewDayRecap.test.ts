@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useDayClose } from '~/composables/useDayClose'
+import { useDayCloseAction } from '~/composables/useDayCloseAction'
 import { useNewDayRecap, resetNewDayRecap } from '~/composables/useNewDayRecap'
 import { useTasksStore } from '~/store/tasks'
 import { useBoardStore } from '~/store/board'
@@ -13,8 +14,20 @@ import { TaskStatus } from '~/types/taskStatus'
 import type { Task } from '~/types/task'
 
 const syncArchiveStatusForTasks = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
-vi.mock('~/composables/useTaskSync', () => ({ useTaskSync: () => ({ syncArchiveStatusForTasks }) }))
-vi.mock('~/composables/useTaskOperations', () => ({ useTaskOperations: () => ({ stopTimer: vi.fn(), moveTaskToStatus: vi.fn() }) }))
+// The day close takes its unfinished tasks off the board through the shared take-off (#480): local effects only
+vi.mock('~/composables/useTaskSync', () => ({
+  useTaskSync: () => ({
+    syncArchiveStatusForTasks,
+    unplanTasks: (ids: string[]) => useTasksStore().unplanTasks(ids),
+    updateTaskStatuses: async (ids: string[], status: TaskStatus) => { for (const id of ids) useTasksStore().updateTask(id, { status }) },
+  }),
+}))
+vi.mock('~/composables/useTaskOperations', () => ({
+  useTaskOperations: () => ({
+    stopTimer: vi.fn(),
+    moveTaskToStatus: async (id: string, status: TaskStatus) => { useTasksStore().updateTask(id, { status }); return true },
+  }),
+}))
 vi.mock('~/store/taskStatistics', () => ({
   useTaskStatisticsStore: () => ({ syncExistingDoneTasks: vi.fn(), updateTaskRecord: vi.fn() }),
 }))
@@ -238,12 +251,14 @@ describe('useNewDayRecap', () => {
       vi.setSystemTime(new Date(2026, 9, 21, 18, 0))
       syncToday()
       vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('reduce'), media: query }))
-      await useDayClose().finish()
+      const dayClose = useDayClose()
+      dayClose.open()
+      useDayCloseAction().finishDay()
       vi.setSystemTime(NOW)
       syncToday()
     }
 
-    it('still opens next morning with the tasks the day close archived, and the undone deck', async () => {
+    it('still opens next morning with the tasks the day close archived, and the undone deck (Jetzt and Offen, then the Wartet ones the close took out)', async () => {
       const { tasks, recap: store } = setup({ lastShownDay: '2026-10-20' })
       await closeTheDayYesterdayEvening()
       expect(tasks.tasksDonePrevious).toEqual([])

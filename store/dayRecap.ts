@@ -87,6 +87,25 @@ export const useDayRecapStore = defineStore('dayRecap', () => {
     return true
   }
 
+  /**
+   * The user closed the day (#480): the close took the unfinished cards off the board itself, so `nextDay` (the next local
+   * day) counts as started and its group "Gestern geplant, noch offen" (`ids`, Jetzt first, then Offen) shows that
+   * morning. `sentBack` keeps its meaning, valid for that one day: the day is tomorrow, written tonight. Monotonic like
+   * `markNewDay`, but a second close on the same evening adds its ids in front of the earlier ones instead of being
+   * refused; a day before the stored marker (a clock set back) writes nothing.
+   * @returns whether the marker or the group changed
+   */
+  function markDayClosed(nextDay: string, ids: string[]): boolean {
+    if (!isValidDayKey(nextDay)) return false
+    const current = validLastNewDay.value
+    if (current !== null && nextDay < current) return false
+    const earlier = validSentBack.value
+    const kept = earlier && earlier.day === nextDay ? earlier.ids : []
+    lastNewDay.value = nextDay
+    sentBack.value = { day: nextDay, ids: [...new Set([...ids, ...kept])] }
+    return true
+  }
+
   /** "Schließen" on the notice that offers the fresh start: it stays away for `day`. */
   function closeNotice(day: string): void {
     if (isValidDayKey(day)) noticeClosedDay.value = day
@@ -133,7 +152,7 @@ export const useDayRecapStore = defineStore('dayRecap', () => {
 
   return {
     lastShownDay, closedTaskIds, validClosedTaskIds, validLastShownDay, markShown, rememberClosed,
-    lastNewDay, sentBack, noticeClosedDay, timeOffer, validLastNewDay, validSentBack, validNoticeClosedDay, validTimeOffer, markNewDay, closeNotice, offerTime, resolveTimeOffer,
+    lastNewDay, sentBack, noticeClosedDay, timeOffer, validLastNewDay, validSentBack, validNoticeClosedDay, validTimeOffer, markNewDay, markDayClosed, closeNotice, offerTime, resolveTimeOffer,
   }
 }, {
   persist: { key: 'day-recap-store', pick: ['lastShownDay', 'closedTaskIds', 'lastNewDay', 'sentBack', 'noticeClosedDay', 'timeOffer'] },

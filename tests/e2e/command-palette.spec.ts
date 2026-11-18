@@ -334,7 +334,7 @@ test.describe('Command palette off the board (kd#224)', () => {
     await page.keyboard.type('abschließen')
     await page.keyboard.press('Enter')
     await expect(page).toHaveURL(/\/tasks$/)
-    await expect(page.getByRole('dialog', { name: 'Tag abschließen' })).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Tag abschließen' })).toBeVisible()
   })
 
   test('there is no palette on the welcome page (no app bar)', async ({ page }) => {

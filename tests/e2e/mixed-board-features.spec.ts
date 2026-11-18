@@ -8,7 +8,7 @@ import {
   MIXED_SEED_TASKS,
   type SeedTask,
 } from './helpers/seed'
-import { openDayClose, openMore } from './helpers/appNav'
+import { goToPlace, openDayClose, openMore } from './helpers/appNav'
 
 /**
  * Existing features on a mixed board (#325, epic #264 section 8): delete, "Gesehen", day close, the command
@@ -246,7 +246,7 @@ test.describe('"Gesehen" works across sources (#325)', () => {
 // ---------------------------------------------------------------------------------------------------------------
 
 test.describe('day close and statistics ignore sources (#325)', () => {
-  test('the day-close sheet lists Notion and Local tasks together without source icons; the board still shows them', async ({ context, page }) => {
+  test('the day-close stage counts Notion and Local tasks together without source icons and closing takes both off the board; the board still shows them', async ({ context, page }) => {
     await seedMixedBoard(context, ARCHIVE_TASKS.map((t) => (t.id === 'page-4' ? { ...t, completedAt: TODAY } : t)).concat([
       mixedTask({ id: 'local-open-x', title: 'Lokal: Noch offen', status: 0, source: 'local' }),
     ]), { once: true })
@@ -254,14 +254,18 @@ test.describe('day close and statistics ignore sources (#325)', () => {
     await expect(page.getByTestId('task-source-icon').first()).toBeVisible() // the board does show them
 
     await openDayClose(page)
-    const dialog = page.getByRole('dialog', { name: 'Tag abschließen' })
-    await expect(dialog).toBeVisible()
-    await expect(dialog.getByText('Retrospektive nachbereiten')).toBeVisible() // Notion win
-    await expect(dialog.getByText('Lokal: Heute geschafft')).toBeVisible() // Local win
-    await dialog.getByTestId('day-close-open-details').locator('summary').click() // the open tasks sit in the "Für morgen" list
-    await expect(dialog.getByText(NOTION_TITLE)).toBeVisible() // Notion in flight
-    await expect(dialog.getByText('Lokal: Noch offen')).toBeVisible() // Local in flight
-    await expect(dialog.getByTestId('task-source-icon')).toHaveCount(0)
+    const stage = page.getByRole('region', { name: 'Tag abschließen' })
+    await expect(stage).toBeVisible()
+    // Two wins (a Notion and a Local one) and two tasks in flight (a Notion and a Local one): one count, no source split
+    await expect(stage.getByTestId('day-close-headline')).toHaveText('2 von 6 geplanten Aufgaben erledigt')
+    await expect(stage.getByTestId('task-source-icon')).toHaveCount(0)
+    await stage.getByTestId('day-close-done-button').click()
+    await expect(stage).toBeHidden()
+    // Both leave the board for "Alle", whatever their source
+    await expect(column(page, 'open').locator('.task-wrapper')).toHaveCount(0)
+    await goToPlace(page, 'Alle')
+    await expect(page.locator('[data-not-planned-id]', { hasText: NOTION_TITLE })).toHaveCount(1)
+    await expect(page.locator('[data-not-planned-id]', { hasText: 'Lokal: Noch offen' })).toHaveCount(1)
   })
 
   test('statistics show no source split, filter or icon', async ({ context, page }) => {

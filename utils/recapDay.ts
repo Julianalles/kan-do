@@ -53,3 +53,8 @@ export function recapWhen(newest: Date, today: Date): RecapWhen {
 export function dayMonthName(date: Date, locale: AppLocale): string {
   return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long' }).format(date)
 }
+
+/** The local calendar day after `date` as `YYYY-MM-DD` (built from the date parts, so a daylight-saving change never skips or repeats a day). */
+export function nextDayKey(date: Date): string {
+  return dayKey(new Date(date.getFullYear(), date.getMonth(), date.getDate() + 1))
+}

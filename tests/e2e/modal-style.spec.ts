@@ -1,6 +1,5 @@
 import { test, expect } from '@playwright/test';
 import { seedLocalBoard } from './helpers/seed';
-import { openDayClose } from './helpers/appNav';
 
 test.describe('Modal Style Validation', () => {
   test.beforeEach(async ({ context }) => {
@@ -41,15 +40,12 @@ test.describe('Modal Style Validation', () => {
         expect(style.family).toContain('Fraunces');
       };
 
-      test('the add-task sheet and the end-of-day dialog share it', async ({ page }) => {
+      test('the add-task sheet has it', async ({ page }) => {
         await page.goto('/tasks/add');
-        await expectSubhead(page.getByRole('dialog').locator('[data-slot="title"]'));
-        await page.goto('/tasks');
-        await openDayClose(page);
         await expectSubhead(page.getByRole('dialog').locator('[data-slot="title"]'));
       });
 
-      // The new-day recap is no longer a dialog since #245 (a non-modal photo stage, no dialog role), so it has no theme title to check here.
+      // The new-day recap (#245) and the day close (#480) are not dialogs (non-modal photo stages, no dialog role), so they have no theme title to check here.
     });
   }
 });

@@ -39,10 +39,10 @@ const openers: Array<{ name: string, ignore?: string, open: (page: Page) => Prom
     },
   },
   {
-    name: 'dialog',
+    name: 'day-close stage',
     open: async (page) => {
       await openDayClose(page)
-      await expect(page.getByRole('dialog', { name: 'Tag abschließen' })).toBeVisible()
+      await expect(page.getByRole('region', { name: 'Tag abschließen' })).toBeVisible()
     },
   },
   {

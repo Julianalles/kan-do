@@ -7,8 +7,9 @@
  *   ?seed=local   — Local source, pre-populated tasks across all 4 columns
  *   ?seed=dayclose[&alldone=1] — Local source, board tailored to review the end-of-day closing sheet (#98, #237):
  *                   several tasks done today (three with a timebox: over, under, within; one without time, one with a long
- *                   title), one done yesterday, stale Offen/Jetzt/Wartet cards, a fresh card without carry-over;
- *                   `&alldone=1` leaves nothing open
+ *                   title; two topics, one task without), one done yesterday, stale Offen/Jetzt/Wartet cards, a fresh card
+ *                   without carry-over; `&alldone=1` leaves nothing open (the trophy headline). The day-close stage (#480)
+ *                   opens from "Tag abschließen" (app bar, Erledigt CTA)
  *   ?seed=newday[-all][&daysago=n] — Local source, first start on a new day (#385): four tasks done n days ago (default 1),
  *                   not archived, plus an open and a waiting card; `newday-all` has nothing open. Writes `day-recap-store`
  *                   with `lastShownDay` n+1 days back, so the recap opens (`&daysago=3` reads "am Montag"-style copy).
@@ -105,10 +106,10 @@ export default defineNuxtPlugin(async (nuxtApp) => {
     return new Date(Math.max(Date.now() - h * 3_600_000, startOfToday + (5 - h) * 10_000)).toISOString()
   }
   const dayCloseTasks = [
-    { id: 'dc-done-1', title: 'Angebot an Kunden schicken', status: 3, priority: 2, activity: 'Planung', topic: null, topicColorCode: null, timeSpentSeconds: 4500, timeBoxSeconds: 3600, completedAt: hoursAgo(1), custom: {}, createdAt: yesterday, updatedAt: now },
-    { id: 'dc-done-2', title: 'Steuerunterlagen sortieren', status: 3, priority: 3, activity: null, topic: null, topicColorCode: null, timeSpentSeconds: 2700, timeBoxSeconds: 3600, completedAt: hoursAgo(2), custom: {}, createdAt: yesterday, updatedAt: now },
+    { id: 'dc-done-1', title: 'Angebot an Kunden schicken', status: 3, priority: 2, activity: 'Planung', topic: 'Angebote', topicColorCode: null, timeSpentSeconds: 4500, timeBoxSeconds: 3600, completedAt: hoursAgo(1), custom: {}, createdAt: yesterday, updatedAt: now },
+    { id: 'dc-done-2', title: 'Steuerunterlagen sortieren', status: 3, priority: 3, activity: null, topic: 'Steuern', topicColorCode: null, timeSpentSeconds: 2700, timeBoxSeconds: 3600, completedAt: hoursAgo(2), custom: {}, createdAt: yesterday, updatedAt: now },
     { id: 'dc-done-3', title: 'Kurze Rückfrage beantwortet (ohne erfasste Zeit)', status: 3, priority: 3, activity: null, topic: null, topicColorCode: null, timeSpentSeconds: 0, timeBoxSeconds: null, completedAt: hoursAgo(3), custom: {}, createdAt: now, updatedAt: now },
-    { id: 'dc-done-4', title: 'Sehr langer Aufgabentitel, der in der Zusammenfassung sauber umbrechen muss, ohne die Zeile zu sprengen oder die Zeit zu verdrängen', status: 3, priority: 3, activity: null, topic: null, topicColorCode: null, timeSpentSeconds: 1200, timeBoxSeconds: 1200, completedAt: hoursAgo(4), custom: {}, createdAt: yesterday, updatedAt: now },
+    { id: 'dc-done-4', title: 'Sehr langer Aufgabentitel, der in der Zusammenfassung sauber umbrechen muss, ohne die Zeile zu sprengen oder die Zeit zu verdrängen', status: 3, priority: 3, activity: null, topic: 'Angebote', topicColorCode: null, timeSpentSeconds: 1200, timeBoxSeconds: 1200, completedAt: hoursAgo(4), custom: {}, createdAt: yesterday, updatedAt: now },
     { id: 'dc-done-old', title: 'Gestern erledigt (darf im Dialog nicht erscheinen)', status: 3, priority: 3, activity: null, topic: null, topicColorCode: null, timeSpentSeconds: 900, timeBoxSeconds: null, completedAt: yesterday, custom: {}, createdAt: yesterday, updatedAt: yesterday },
     { id: 'dc-progress-1', title: 'Präsentation vorbereiten', status: 1, priority: 1, activity: 'Entwicklung', topic: 'Backend', topicColorCode: '#10b981', timeSpentSeconds: 1800, timeBoxSeconds: 3600, custom: {}, createdAt: now, updatedAt: now },
     { id: 'dc-open-stale', title: 'Steuerberater anrufen', status: 0, priority: 2, activity: null, topic: null, topicColorCode: null, timeSpentSeconds: 0, timeBoxSeconds: null, custom: {}, createdAt: yesterday, updatedAt: yesterday },
@@ -237,7 +238,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
     // plus eight weeks of history, so the Statistik page shows a verdict and trends (#469)
     localStorage.setItem('taskStatistics', JSON.stringify({ completionRecords: [...buildDemoStatisticsHistory(), ...demo.completionRecords], dayEndInFlight: buildDemoDayEndHistory(), workSessions: buildDemoWorkSessions() }))
   } else if (seed === 'dayclose') {
-    // `&alldone=1`: nothing left open (the trophy headline, no "Für morgen" section)
+    // `&alldone=1`: nothing left open (the trophy headline, the shorter consequence line)
     const allDone = url.searchParams.get('alldone') === '1'
     url.searchParams.delete('alldone')
     const list = allDone ? dayCloseTasks.filter(task => task.status === 3) : dayCloseTasks

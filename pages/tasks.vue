@@ -9,7 +9,7 @@
 - Sync, Ansicht und Tag abschließen laufen über die App-Leiste (Mehr-Panel, #470), nicht über das Board
 -->
 <template>
-  <main data-task-sheet-return :inert="recap.isOpen.value || undefined" :data-recap-cover="coverBoard || undefined">
+  <main data-task-sheet-return :inert="recap.isOpen.value || dayClose.isOpen.value || undefined" :data-recap-cover="coverBoard || undefined">
     <h1 class="sr-only">{{ t('board.pageHeading') }}</h1>
     <DataStorageNotice class="relative z-10 mx-auto mt-3 w-auto max-w-3xl" />
     <!-- The new day's two notes: the notice that offers the fresh start on a day the user has not planned (#387), and
@@ -26,7 +26,7 @@
       <NuxtPage />
     </TaskSheetHost>
     <!-- Closed at start: each loads on its first open (#288) and stays mounted after -->
-    <DayCloseDialog v-if="dayCloseOpened" />
+    <DayCloseStage v-if="dayCloseOpened" />
     <NewDayRecap v-if="recapOpened" />
     <FeedbackDialog v-if="feedbackOpened" />
     <ElementPickerBar v-if="pickerOpened" />
@@ -70,7 +70,7 @@ import { useFeedback } from "~/composables/useFeedback";
 import { useElementPicker } from "~/composables/useElementPicker";
 import { useOpenedOnce } from "~/composables/useOpenedOnce";
 
-const DayCloseDialog = defineAsyncComponent(() => import("~/components/board/DayCloseDialog.vue"));
+const DayCloseStage = defineAsyncComponent(() => import("~/components/board/DayCloseStage.vue"));
 const NewDayRecap = defineAsyncComponent({
   loader: () => import("~/components/recap/NewDayRecap.vue"),
   // A chunk that fails to load (offline, stale after an update) must not leave the board hidden behind a recap that never comes (#427)
@@ -128,7 +128,8 @@ const checkDay = (start: boolean) => {
 const onReturn = () => {
   if (returnedAfterAbsence()) checkDay(true);
 };
-const dayCloseOpened = useOpenedOnce(useDayClose().isOpen);
+const dayClose = useDayClose();
+const dayCloseOpened = useOpenedOnce(dayClose.isOpen);
 const recapOpened = useOpenedOnce(recap.isOpen);
 const feedback = useFeedback();
 const picker = useElementPicker();

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dayKey, dayMonthName, isRecapDue, isValidDayKey, recapWhen } from '~/utils/recapDay'
+import { dayKey, dayMonthName, isRecapDue, isValidDayKey, nextDayKey, recapWhen } from '~/utils/recapDay'
 
 describe('dayKey', () => {
   it('is the local calendar day, zero padded', () => {
@@ -67,5 +67,13 @@ describe('dayMonthName', () => {
     const date = new Date(2026, 9, 14)
     expect(dayMonthName(date, 'de')).toBe('14. Oktober')
     expect(dayMonthName(date, 'en')).toBe('October 14')
+  })
+})
+
+describe('nextDayKey (#480)', () => {
+  it('is the next local calendar day, across a month end and a year end', () => {
+    expect(nextDayKey(new Date(2026, 9, 22, 23, 59))).toBe('2026-10-23')
+    expect(nextDayKey(new Date(2026, 9, 31, 21, 0))).toBe('2026-11-01')
+    expect(nextDayKey(new Date(2026, 11, 31, 0, 5))).toBe('2027-01-01')
   })
 })

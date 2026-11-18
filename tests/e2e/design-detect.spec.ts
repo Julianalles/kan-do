@@ -7,6 +7,7 @@ import { chromium, expect, test, type Browser, type BrowserContext, type Page } 
 import { seedLocalBoard, SEED_TASKS } from './helpers/seed'
 import { settleAnimations } from './helpers/settle'
 import { showColumnPage } from './helpers/dnd'
+import { openDayClose } from './helpers/appNav'
 
 /**
  * Rendered Impeccable detector matrix: every main surface and state at 1280 and 390, scanned with
@@ -139,6 +140,17 @@ const SURFACES: Surface[] = [
       await page.goto('/welcome')
       await expect(page.getByTestId('welcome-choice-local')).toBeVisible()
       await expect(page.getByTestId('welcome-photo')).toHaveCSS('opacity', '1')
+    },
+  },
+  {
+    name: 'day close stage',
+    open: async (page, context) => {
+      await seedLocalBoard(context)
+      await gotoBoard(page)
+      await openDayClose(page)
+      await expect(page.getByTestId('day-close-stage')).toBeVisible()
+      await expect(page.getByTestId('day-close-photo')).toHaveCSS('opacity', '1')
+      await settleAnimations(page)
     },
   },
   {

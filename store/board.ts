@@ -162,7 +162,7 @@ export const useBoardStore = defineStore("board", () => {
 
   /**
    * Day close (#292): true while the Erledigt list fades out before its tasks are archived. Transient and
-   * client-only like `confirmingTaskIds`: not persisted; `useDayClose().finish` sets and clears it.
+   * client-only like `confirmingTaskIds`: not persisted; `useDayCloseAction().finishDay` sets and clears it.
    */
   const doneLeaving = ref(false);
 
