@@ -384,7 +384,7 @@ test.describe('Notion Setup Stepper', () => {
       // We deliberately do not proceed here as token validation would require API
     })
 
-    test('the intro "Vorbereitung" comes first: Los geht\'s leads to the token, Back returns with the typed token kept, Back again leaves (#441)', async ({ page, baseURL }) => {
+    test('the intro "Vorbereitung" comes first: Weiter leads to the token, Back returns with the typed token kept, Back again leaves (#441)', async ({ page, baseURL }) => {
       await page.goto(baseURL! + '/welcome')
       await page.getByRole('button', { name: 'Jetzt starten' }).click()
       await page.getByRole('checkbox', { name: 'Notion' }).click()
@@ -399,7 +399,7 @@ test.describe('Notion Setup Stepper', () => {
       await expect(flow.getByRole('heading', { name: 'Vorbereitung' })).toHaveClass(/sr-only/)
 
       const proceed = page.getByTestId('wizard-proceed')
-      await expect(proceed).toHaveText('Los geht’s')
+      await expect(proceed).toHaveText('Weiter')
       await proceed.click()
       const token = flow.getByPlaceholder('Integrationstoken eingeben')
       await expect(token).toBeVisible()

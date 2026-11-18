@@ -5,5 +5,5 @@
 - paragraph: Zeigt deine Aufgabe in „Jetzt“ zusammen mit einem Timer als eigenes kleines Fenster, das immer sichtbar ist.
 - switch "Schwebender Timer" [checked]
 - text: Arbeitszeit pro Tag
-- paragraph: Danach richtet der Kapazitätshinweis für heute geplante Aufgaben. „Automatisch“ nutzt deine bisher erfasste Arbeitszeit.
+- paragraph: Der Kapazitätshinweis für heute geplante Aufgaben richtet sich hiernach. „Automatisch“ nutzt deine bisher erfasste Arbeitszeit.
 - combobox "Arbeitszeit pro Tag": Automatisch

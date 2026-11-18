@@ -52,8 +52,8 @@ test('welcome start: one filled green "Jetzt starten", "Beispiel anzeigen" soft 
   const samples = page.getByRole('button', { name: 'Beispiel anzeigen' })
   await expect(start).toBeVisible()
   await expect(samples).toBeVisible()
-  await expect(page.getByText(/Du kannst sie lokal auf diesem Gerät speichern/)).toBeVisible()
-  await expect(page.getByText('Du bist erst einmal nur neugierig? Dann schau dich zunächst in der App mit Beispielaufgaben um.')).toBeVisible()
+  await expect(page.getByText(/Du kannst Aufgaben lokal auf diesem Gerät speichern/)).toBeVisible()
+  await expect(page.getByText('Nur neugierig? Dann schau dir die App mit Beispielaufgaben an.')).toBeVisible()
   await expect(page.getByRole('button', { name: 'In Notion' })).toHaveCount(0)
   await expect(page.locator('main.bg-page')).toBeVisible()
 
@@ -74,7 +74,7 @@ test('welcome start: one filled green "Jetzt starten", "Beispiel anzeigen" soft 
   expect(brandBox!.y + brandBox!.height).toBeLessThanOrEqual(sheetBox!.y)
   expect(Math.abs(brandBox!.x - titleBox!.x)).toBeLessThan(1)
   await expect(sheet.getByText('kan-do', { exact: true })).toHaveCount(0)
-  await expectContrast(page, page.getByText(/Du kannst sie lokal auf diesem Gerät speichern/), 4.5)
+  await expectContrast(page, page.getByText(/Du kannst Aufgaben lokal auf diesem Gerät speichern/), 4.5)
 })
 
 test('welcome has no horizontal overflow at 390px, the headline stays within two lines and the sheet is lower than the old three-row one (#294)', async ({ page, baseURL }) => {
@@ -199,8 +199,8 @@ test('the samples row opens its own step 2: the reset note, the way back and one
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(flow.getByRole('heading', { name: 'Beispielaufgaben' })).toBeFocused() // after the swap, like every step
   const note = page.getByTestId('samples-reset-note')
-  await expect(note).toContainText('Einstellungen › Daten & Speicher')
-  await expect(note).toContainText('Beispielaufgaben')
+  await expect(note).toContainText('In den Einstellungen')
+  await expect(note).toContainText('zurücksetzen')
   await expect(note).toContainText('Statistik')
   await expect(flow.getByRole('button', { name: 'Board ansehen' })).toBeVisible()
   await expect(page.getByTestId('setup-back')).toHaveText('Zurück zur Auswahl')
@@ -323,7 +323,7 @@ test('Loslegen -> Notion ticked -> setup on the stub -> Notion is connected and 
 test('welcome: the small texts on the sheet keep AA contrast (kd#14)', async ({ page, baseURL }) => {
   await page.goto(baseURL! + '/welcome')
   await expect(page.getByTestId('welcome-photo')).toHaveCSS('opacity', '1')
-  await expectContrast(page, page.getByText(/Du kannst sie lokal auf diesem Gerät speichern/), 4.5)
+  await expectContrast(page, page.getByText(/Du kannst Aufgaben lokal auf diesem Gerät speichern/), 4.5)
   await expectContrast(page, page.getByText(/^Version:/), 4.5)
   await expectContrast(page, page.getByText('Das Kanban Board mit dem du deine Aufgaben des Tages fokussiert erledigst.'), 4.5)
 })

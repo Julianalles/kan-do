@@ -6,8 +6,8 @@
   - text: Karten stapeln Stapelt ähnliche Aufgaben in den Spalten Offen, Wartet und Erledigt.
   - button "Tag abschließen"
 - separator
-- region "Seiten":
-  - heading "Seiten" [level=2]
+- region "Navigation":
+  - heading "Navigation" [level=2]
   - link "Papierkorb":
     - /url: /trash
   - link "Einstellungen":
