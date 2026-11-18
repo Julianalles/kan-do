@@ -518,8 +518,8 @@
     },
     "allTasks": "All done tasks ({n})",
     "rhythm": {
-      "line": "Mostly between {from}:00 and {to}:00, which holds {share} % of your time.",
-      "lineOutside": "{share} % of your time falls before {first}:00 or after {last}:00.",
+      "line": "Mostly between {from}:00 and {to}:00, which holds {share}% of your time.",
+      "lineOutside": "{share}% of your time falls before {first}:00 or after {last}:00.",
       "lineStartWorkdays": "On weekdays you usually start at {time}.",
       "lineStart": "You usually start at {time}.",
       "thin": "Not enough data yet. Kan-Do now keeps track of when the timer runs. After five days with tracked time, your rhythm shows up here.",
@@ -531,9 +531,9 @@
       "workdaysOnly": "Mon to Fri",
       "rowEnd": "Usual end",
       "rowLongest": "You work longest on",
-      "barsLabel": "Time worked by hour. Most time between {from}:00 and {to}:00, {share} % of your time.",
+      "barsLabel": "Time worked by hour. Most time between {from}:00 and {to}:00, {share}% of your time.",
       "gridLabel": "Average time worked by weekday and hour, last 8 weeks.",
-      "gridLabelPeak": "Most time between {from}:00 and {to}:00 ({share} % of your time).",
+      "gridLabelPeak": "Most time between {from}:00 and {to}:00 ({share}% of your time).",
       "gridLabelLongest": "Longest on {weekday}."
     }
   },
@@ -748,7 +748,7 @@
       },
       "status": {
         "label": "Status",
-        "help": "Field for the task status (e.g. Today, Doing, Waiting, Done).",
+        "help": "Field for the task status, such as Today, Doing, Waiting or Done.",
         "placeholder": "Select status field"
       },
       "dueDate": {
@@ -797,20 +797,20 @@
       "noField": "No field",
       "unplanned": {
         "label": "Unplanned",
-        "help": "Marker for unplanned tasks (reactive work). Direct field: checkbox. Value-based: specific value (e.g. tag).",
+        "help": "Marker for unplanned tasks (reactive work). Direct field: checkbox. Value-based: specific value, such as a tag.",
         "modeNone": "No mapping",
         "modeBoolean": "Direct field (checkbox)",
         "modeValue": "Value-based (tag/select)",
         "selectField": "Select field",
         "checkboxPlaceholder": "Select checkbox field",
         "valuePlaceholder": "Select or enter value",
-        "valueInputPlaceholder": "Enter value (e.g. 'unplanned')"
+        "valueInputPlaceholder": "Enter value, such as “unplanned”"
       },
       "unit": {
         "seconds": "Seconds",
         "minutes": "Minutes",
         "hours": "Hours",
-        "formatted": "Formatted (e.g. “15 min”, “2h”)"
+        "formatted": "Formatted, such as “15 min” or “2h”"
       },
       "unitPlaceholder": "Select unit"
     },

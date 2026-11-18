@@ -1,9 +1,18 @@
 import { nextTick } from 'vue'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { EDITS_STORAGE_KEY } from '~/dev-tools/copy-editor/constants'
 import { ALL_KEYS, baseValue, checkText, clearPublished, currentValue, edits, markPublished, needsTranslation, pendingEdits, revertEdit, saveEdit, setDraft } from '~/dev-tools/copy-editor/edits'
 import { keysForElement } from '~/dev-tools/copy-editor/picker'
 import { recordTranslation, resetRecorder } from '~/lib/copy-editor/recorder'
+
+// A fixture registry: the real one has no avoid forms or decided terms right now (cleared 2026-11-18, re-lock in #478),
+// and this test checks the blocking mechanism, not the registry's content.
+vi.mock('~/docs/copy/terms.json', () => ({
+  default: [
+    { id: 'src', concept: 'c', de: 'Verbindung', en: 'connection', avoidDe: ['Quelle'], avoidEn: [], status: 'decided' },
+    { id: 'task', concept: 'c', de: 'Aufgabe', en: 'task', avoidDe: ['Ticket'], avoidEn: [], status: 'proposed' },
+  ],
+}))
 
 const KEY = 'board.columns.open'
 
