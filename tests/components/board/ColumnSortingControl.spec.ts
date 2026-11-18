@@ -41,7 +41,7 @@ describe('ColumnSortingControl', () => {
   })
 
   it.each([
-    [TaskStatus.Open, { field: 'manual', direction: 'asc' }, 'Manuell'],
+    [TaskStatus.Open, { field: 'manual', direction: 'asc' }, 'Manuell sortiert'],
     [TaskStatus.Open, { field: 'priority', direction: 'desc' }, 'Priorität, höchste zuerst'],
     [TaskStatus.Open, { field: 'dateCreated', direction: 'desc' }, 'Erstellt, neueste zuerst'],
     [TaskStatus.Open, { field: 'dateCreated', direction: 'asc' }, 'Erstellt, älteste zuerst'],
@@ -70,13 +70,13 @@ describe('ColumnSortingControl', () => {
 
   it('treats a missing sorting as manual', () => {
     const wrapper = mountControl(TaskStatus.Open, undefined)
-    expect(options(wrapper).find(o => o.checked)?.label).toBe('Manuell')
+    expect(options(wrapper).find(o => o.checked)?.label).toBe('Manuell sortiert')
   })
 
   it('offers the per-column option sets', () => {
     expect(options(mountControl(TaskStatus.Open)).length).toBe(4)
-    expect(options(mountControl(TaskStatus.Waiting)).map(o => o.label)).toEqual(['Manuell', 'Längste Wartezeit', 'Kürzeste Wartezeit'])
-    expect(options(mountControl(TaskStatus.Done)).map(o => o.label)).toEqual(['Manuell', 'Zuerst erledigt', 'Zuletzt erledigt'])
+    expect(options(mountControl(TaskStatus.Waiting)).map(o => o.label)).toEqual(['Manuell sortiert', 'Längste Wartezeit', 'Kürzeste Wartezeit'])
+    expect(options(mountControl(TaskStatus.Done)).map(o => o.label)).toEqual(['Manuell sortiert', 'Zuerst erledigt', 'Zuletzt erledigt'])
   })
 
   it('emits change(field, direction) per option', () => {
