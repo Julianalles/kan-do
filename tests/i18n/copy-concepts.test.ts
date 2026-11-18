@@ -70,6 +70,8 @@ const dirty: Locales = {
     'e.failed': 'Export failed.',
     'e.could': 'The update could not be loaded.',
     'e.cannot': 'This cannot be deleted.',
+    'e.cant': "This can't be deleted.",
+    'e.couldnt': "The update couldn't be loaded.",
     'f.yes': 'Yes',
     'f.no': 'No',
     'f.ok': 'OK',
@@ -131,7 +133,7 @@ describe('detectors', () => {
 
   it('finds error phrasing in both languages', () => {
     expect(find(rows, 'error-phrasing', 'de')).toEqual(['e.cannot', 'e.could', 'e.failed'])
-    expect(find(rows, 'error-phrasing', 'en')).toEqual(['e.cannot', 'e.could', 'e.failed'])
+    expect(find(rows, 'error-phrasing', 'en')).toEqual(['e.cannot', 'e.cant', 'e.could', 'e.couldnt', 'e.failed', 'g.contraction'])
   })
 
   it('finds button-like values only when the whole value is OK/Ja/Nein/Yes/No', () => {
@@ -140,7 +142,7 @@ describe('detectors', () => {
   })
 
   it('finds contractions (both apostrophes) and spelled-out forms', () => {
-    expect(find(rows, 'contractions', 'en')).toEqual(['g.contraction', 'g.curly'])
+    expect(find(rows, 'contractions', 'en')).toEqual(['e.cant', 'e.couldnt', 'g.contraction', 'g.curly'])
     expect(find(rows, 'spelled-out', 'en')).toEqual(['e.cannot', 'e.could', 'g.spelled'])
   })
 
