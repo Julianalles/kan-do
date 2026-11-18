@@ -45,7 +45,7 @@ PORT=3101 npm run test:e2e -- tests/e2e/visual-regression.spec.ts --update-snaps
 
 ### Board Invariants
 
-- Four columns in fixed order: **Offen → Jetzt → Wartet → Erledigt**
+- Four columns in fixed order: **Offen → Jetzt → Wartet → Erledigt** (also the UI status labels E2E asserts)
 - **WIP limit**: "Jetzt" accepts at most one task — enforced in `onDragOver` via `event.preventDefault()`
 - Offline-first: local cache is authoritative; reconcile on reconnect
 
@@ -92,10 +92,8 @@ Rules live in `DESIGN.md` (direction, tokens, named rules, recurring patterns; p
 
 - Code, comments, commits, docs: **English**
 - UI copy: **German by default, English supported, via i18n keys** — `import { useI18n } from 'vue-i18n'`, `const { t } = useI18n()`, never hardcoded strings in templates (ESLint `no-raw-text`). Outside component setup use `translate()` from `lib/i18n.ts`.
-- UI copy goes through the `copy-writer` skill and the term registry `docs/copy/terms.json` (rules: `docs/copy/voice.md`); only the user approves a `decided` term.
+- UI copy goes through the `copy-writer` skill and the term registry `docs/copy/terms.json` (rules: `docs/copy/voice.md`); a designed surface gets its final copy in a copy pass (profile "Copy"). Only the user runs `npm run terms:approve`.
 - Locales: `i18n/locales/de.json` + `en.json` (vue-i18n syntax, not ICU); every key in both. Check with `npm run i18n:check`.
-
-UI status labels (used in E2E assertions): `Offen`, `Jetzt`, `Wartet`, `Erledigt`
 
 ## Design canvas
 
