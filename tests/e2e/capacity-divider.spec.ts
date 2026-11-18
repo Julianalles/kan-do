@@ -49,7 +49,7 @@ test.describe('Capacity divider in Offen (#132)', () => {
     await expect(divider(page)).toBeVisible()
     await expect.poll(() => layout(page)).toBe('a b c | d')
     await expect(divider(page).getByRole('separator', { name: 'Kapazität' })).toBeVisible()
-    await expect(divider(page)).toContainText('wichtigsten Aufgaben über dieser Linie')
+    await expect(divider(page)).toContainText('Plane wichtige Aufgaben darüber ein')
   })
 
   test('is not there when everything fits', async ({ context, page }) => {
@@ -130,7 +130,7 @@ test.describe('Capacity divider in Offen (#132)', () => {
     await expect(info).toBeFocused()
     await page.keyboard.press('Enter')
     await expect(page.getByTestId('capacity-info-text')).toContainText('lernt mit')
-    await expect(page.getByTestId('capacity-info-estimates')).toContainText('Du musst dafür nichts einrichten')
+    await expect(page.getByTestId('capacity-info-estimates')).toContainText('Ohne genug ähnliche Aufgaben zählt sie 30 Minuten')
     await page.keyboard.press('Escape')
     await expect(page.getByTestId('capacity-info-text')).toHaveCount(0)
   })
