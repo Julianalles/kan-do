@@ -36,7 +36,7 @@ export class WindowCounter {
   constructor(private readonly limit: number, private readonly periodMs: number) {}
 
   hit(now: number): boolean {
-    if (now - this.windowStart >= this.periodMs) {
+    if (now < this.windowStart || now - this.windowStart >= this.periodMs) { // a start in the future (bad data, a clock step) is no window
       this.windowStart = now
       this.count = 0
     }
@@ -51,7 +51,7 @@ export class WindowCounter {
 
   restore(saved: WindowState): void {
     this.windowStart = saved.windowStart
-    this.count = Math.min(saved.count, this.limit)
+    this.count = Math.max(0, Math.min(saved.count, this.limit))
   }
 }
 
@@ -67,7 +67,7 @@ const isState = (v: unknown): v is WindowState =>
 export class NotionLimiter {
   private readonly counter = new WindowCounter(LIMIT, LIMIT_PERIOD_SECONDS * 1000)
   private readonly storage?: LimiterStorage
-  private loaded = false
+  private ready?: Promise<boolean>
   /** What storage holds: a window start and the count it would restore. */
   private saved: WindowState = { windowStart: -1, count: 0 }
 
@@ -76,22 +76,26 @@ export class NotionLimiter {
   }
 
   async fetch(_request: Request): Promise<Response> {
-    if (!this.loaded) await this.load() // a Durable Object takes no other event while it waits for storage
+    // One read, shared by requests that arrive while it runs; a failed read is retried by the next request, and until it
+    // succeeds nothing is written, so the stored window is never overwritten by a count that started from zero.
+    const read = await (this.ready ??= this.load())
     const success = this.counter.hit(Date.now())
-    await this.checkpoint()
+    if (read) await this.checkpoint()
     return Response.json({ success })
   }
 
-  private async load(): Promise<void> {
-    this.loaded = true
+  private async load(): Promise<boolean> {
     try {
       const saved = await this.storage?.get('window')
       if (isState(saved)) {
         this.counter.restore(saved)
         this.saved = saved
       }
+      return true
     } catch (error) {
+      this.ready = undefined // the next request reads again: counting from zero is only for the requests in between
       console.error('limiter: could not read the window, counting from zero', error)
+      return false
     }
   }
 
@@ -101,9 +105,9 @@ export class NotionLimiter {
     const { windowStart, count } = this.counter.state()
     if (windowStart === this.saved.windowStart && count <= this.saved.count) return
     const next = { windowStart, count: Math.min(LIMIT, count + CHECKPOINT - 1) }
-    this.saved = next // also after a failed write: retrying every hit would only repeat the failure
     try {
       await this.storage.put('window', next)
+      this.saved = next // a failed write is tried again with the next hit
     } catch (error) {
       console.error('limiter: could not write the window, counting in memory only', error)
     }
@@ -117,14 +121,26 @@ export class NotionLimiter {
 export function clientKey(ip: string | null): string {
   if (!ip) return 'unknown'
   if (!ip.includes(':')) return ip
-  const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i.exec(ip) // IPv4 in IPv6 clothes: the same client as the plain address
-  if (mapped) return mapped[1]!
   const [head] = ip.split('%') // a zone id never reaches Cloudflare, but never let it split a key
   const groups = expandIpv6(head ?? ip)
-  return groups ? groups.slice(0, 4).join(':') : ip
+  if (!groups) return ip
+  // IPv4 in IPv6 clothes (`::ffff:a.b.c.d` or `::ffff:xxxx:xxxx`): the same client as the plain address
+  if (groups.slice(0, 5).every(g => g === '0') && groups[5] === 'ffff') {
+    const hi = parseInt(groups[6]!, 16)
+    const lo = parseInt(groups[7]!, 16)
+    return `${hi >> 8}.${hi & 255}.${lo >> 8}.${lo & 255}`
+  }
+  return groups.slice(0, 4).join(':')
 }
 
 function expandIpv6(ip: string): string[] | null {
+  // A dotted IPv4 tail (`::ffff:203.0.113.7`) is two groups.
+  const dotted = /^(.*:)(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(ip)
+  if (dotted) {
+    const octets = dotted.slice(2).map(Number)
+    if (octets.some(o => o > 255)) return null
+    ip = `${dotted[1]}${((octets[0]! << 8) | octets[1]!).toString(16)}:${((octets[2]! << 8) | octets[3]!).toString(16)}`
+  }
   const lower = ip.toLowerCase()
   const parts = lower.split('::')
   if (parts.length > 2) return null

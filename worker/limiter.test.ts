@@ -100,6 +100,51 @@ describe('NotionLimiter across an eviction (storage checkpoints)', () => {
     spy.mockRestore()
   })
 
+  it('a failed read is retried by the next request, the stored count is not lost for good', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(4_000_000)
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const storage = memory()
+    const writer = new NotionLimiter({ storage })
+    for (let i = 0; i < 100; i++) await hit(writer) // stored: 100 (rounded up to 109)
+    let failures = 1
+    const flaky: LimiterStorage = { ...storage, get: async (k: string) => { if (failures-- > 0) throw new Error('read'); return storage.get(k) } }
+    const limiter = new NotionLimiter({ storage: flaky })
+    expect(await hit(limiter)).toBe(true) // the failed read: counted from zero, this once
+    let allowed = 0
+    while (await hit(limiter)) allowed++
+    expect(allowed).toBeLessThanOrEqual(LIMIT - 100) // the second request read the stored count (from zero it would be 119)
+    expect(storage.data.get('window')).toMatchObject({ count: expect.any(Number) }) // and the failed read overwrote nothing
+    spy.mockRestore()
+  })
+
+  it('a failed write is tried again with the next hit', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(5_000_000)
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const storage = memory()
+    storage.put.mockRejectedValueOnce(new Error('write'))
+    const limiter = new NotionLimiter({ storage })
+    await hit(limiter)
+    expect(storage.data.has('window')).toBe(false)
+    await hit(limiter)
+    expect(storage.data.has('window')).toBe(true)
+    spy.mockRestore()
+  })
+
+  it('a stored window start in the future is no window: the client is not locked out', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(6_000_000)
+    const storage = memory()
+    storage.data.set('window', { windowStart: 6_000_000 + 1e12, count: LIMIT })
+    expect(await hit(new NotionLimiter({ storage }))).toBe(true)
+    storage.data.set('window', { windowStart: 6_000_000, count: -50 })
+    const limiter = new NotionLimiter({ storage })
+    let allowed = 0
+    while (await hit(limiter)) allowed++
+    expect(allowed).toBe(LIMIT) // a negative stored count gives no extra budget
+  })
+
   it('a stored value of the wrong shape is ignored', async () => {
     const storage = memory()
     storage.data.set('window', 'garbage')
@@ -118,6 +163,8 @@ describe('clientKey', () => {
       expect(clientKey(ip), ip).toBe(key)
     }
     expect(clientKey('::ffff:203.0.113.7')).toBe('203.0.113.7') // the same client as its plain IPv4
+    expect(clientKey('::FFFF:cb00:7107')).toBe('203.0.113.7')
+    expect(clientKey('::ffff:999.1.1.1')).toBe('::ffff:999.1.1.1')
     expect(clientKey('::1')).toBe('0:0:0:0')
     expect(clientKey('2001:db8::5')).toBe('2001:db8:0:0')
   })
