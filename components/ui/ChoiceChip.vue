@@ -3,7 +3,7 @@
 @kind primitive
 @category input
 @description The one control for "pick one of a few" (#72, kd#178): a pill-shaped answer chip at the field height (36 px, 44 px on a phone), in the primary wash with primary text; a darker wash on hover, the solid primary when picked. The new-card flow's answers, the timebox nudge's presets, its icon controls and the board menu's grouping choice are this one chip.
-@usage <ChoiceChip :picked="picked === value" :current="value === current" @click="pick(value)">{{ label }}</ChoiceChip>; `square` for an icon alone where the options are symbols (give it an `aria-label`); `field` makes it read as the search field it opens (dashed outline, muted). A toggle that stays on beside others is the chip too: bind `picked` and keep `aria-pressed`. Native attributes (`disabled`, `aria-*`, `data-testid`, `type`) land on the button.
+@usage <ChoiceChip :picked="picked === value" :current="value === current" @click="pick(value)">{{ label }}</ChoiceChip>; `square` for an icon alone where the options are symbols (give it an `aria-label`). A toggle that stays on beside others is the chip too: bind `picked` and keep `aria-pressed`. Native attributes (`disabled`, `aria-*`, `data-testid`, `type`) land on the button.
 @avoid Not for an action (UButton), not for a property value of the task sheet (a list value is a TaskPropertySelect, a free one an InlineEditable; DESIGN.md "Components") and not for an option inside a list (a row of the select menu's item look, as NewCardOptionList). Options with a description are a ChoiceCard.
 @responsibility
 - Render one native `<button type="button">`; the host decides what a click means and sets `picked` (the answer just given, or the toggle that is on: solid primary, pressed in) and `current` (the value already set: a hairline ring)
@@ -15,7 +15,7 @@
   <button
     type="button"
     class="choice-chip focus-ring"
-    :class="{ 'is-picked': picked, 'is-current': current, 'choice-chip--field': field, 'choice-chip--square': square }"
+    :class="{ 'is-picked': picked, 'is-current': current, 'choice-chip--square': square }"
   >
     <slot />
   </button>
@@ -30,12 +30,10 @@ withDefaults(
     picked?: boolean;
     /** The value that is already set (hairline ring) */
     current?: boolean;
-    /** A chip that reads as the search field it opens: dashed outline, muted, text cursor */
-    field?: boolean;
     /** Holds only an icon: as wide as it is tall (give it an `aria-label`) */
     square?: boolean;
   }>(),
-  { picked: false, current: false, field: false, square: false },
+  { picked: false, current: false, square: false },
 );
 </script>
 
@@ -79,20 +77,6 @@ withDefaults(
 
 .choice-chip.is-current:not(.is-picked) {
   box-shadow: inset 0 0 0 1px var(--ui-border-accented);
-}
-
-/* field: looks like the input it opens (dashed outline, muted text), so it reads as a field and not as a value (kd#16) */
-.choice-chip--field {
-  justify-content: flex-start;
-  border: 1px dashed var(--ui-border-accented);
-  background: transparent;
-  color: var(--ui-text-muted);
-  cursor: text;
-}
-
-.choice-chip.choice-chip--field:hover:not(:disabled) {
-  background: var(--ui-bg-muted);
-  color: var(--ui-text-highlighted);
 }
 
 @media (prefers-reduced-motion: reduce) {

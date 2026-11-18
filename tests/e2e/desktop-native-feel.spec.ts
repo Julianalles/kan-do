@@ -193,7 +193,6 @@ test.describe('Native feel (desktop)', () => {
     // a control that sets its own cursor (text, grab, not-allowed) is not overridden by the arrow rule
     expect(await cursorOf(page, '<button type="button" class="cursor-text">x</button>')).toBe('text')
     expect(await cursorOf(page, '<button type="button" class="cursor-grab">x</button>')).toBe('grab')
-    expect(await cursorOf(page, '<button type="button" class="choice-chip--field">x</button>')).not.toBe('default')
   })
 })
 

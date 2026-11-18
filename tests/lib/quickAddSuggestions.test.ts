@@ -21,13 +21,11 @@ describe('quickAddSuggestions (#649)', () => {
     expect(topicStep([], []).suggestions).toEqual([])
   })
 
-  it('Thema and Aktivität (kd#16): three pills, the Mehr list holds only the values after them', () => {
-    const three = topicStep([], ['A', 'B', 'C'])
-    expect(three.suggestions).toEqual(['A', 'B', 'C'])
-    expect(three.rest).toEqual([])
-    const five = activityStep([], ['A', 'B', 'C', 'D', 'E'], null)
-    expect(five.suggestions).toEqual(['A', 'B', 'C'])
-    expect(five.rest).toEqual(['D', 'E'])
+  it('Thema and Aktivität are a combobox (#434): all values, no pills, no separate rest', () => {
+    const step = activityStep([], ['A', 'B', 'C', 'D', 'E'], null)
+    expect(step.all).toEqual(['A', 'B', 'C', 'D', 'E'])
+    expect(step.suggestions).toEqual([])
+    expect(step.rest).toEqual([])
   })
 
   it('activities: the chosen topic first, then the board', () => {
