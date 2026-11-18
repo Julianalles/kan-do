@@ -20,7 +20,7 @@ export default {
   },
   states: [
     { id: 'disabled', state: 'disabled', props: { disabled: true, placeholder: { $t: 'task.form.titlePlaceholder' } } },
-    { id: 'loading', state: 'loading', props: { loading: true, placeholder: { $t: 'board.quickAdd.search' } } },
+    { id: 'loading', state: 'loading', props: { loading: true, placeholder: { $t: 'task.form.titlePlaceholder' } } },
     { id: 'error', state: 'error', props: { color: 'error', highlight: true, modelValue: '' , placeholder: { $t: 'task.form.titlePlaceholder' } } },
     { id: 'focus', state: 'focus', props: { placeholder: { $t: 'task.form.titlePlaceholder' } } },
     { id: 'long-text', state: 'long-text', label: 'long German value', props: { modelValue: { $t: 'board.dropToComplete' } } },

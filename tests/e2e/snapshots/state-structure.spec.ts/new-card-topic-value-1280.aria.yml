@@ -1,0 +1,7 @@
+- group "Neue Aufgabe":
+  - group "Thema?":
+    - button "Zurück"
+    - paragraph: Thema?
+    - button "Überspringen"
+    - combobox "Thema?" [expanded]: Gartenpflege
+    - button "Optionen anzeigen" [expanded]

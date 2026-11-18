@@ -49,6 +49,23 @@ const stubs = {
     template: '<input ref="inputRef" :value="modelValue" v-bind="$attrs" @input="$emit(\'update:modelValue\', $event.target.value)" />',
   },
   UDrawer: true,
+  // The combobox of Thema and Aktivität (#434): an input (its text is the search term), the step's values as buttons, a "create" button while a new value is offered
+  UInputMenu: {
+    name: 'UInputMenu',
+    inheritAttrs: false,
+    props: ['modelValue', 'searchTerm', 'items', 'createItem', 'placeholder'],
+    emits: ['update:modelValue', 'update:searchTerm', 'create', 'highlight'],
+    setup(_: unknown, { expose }: { expose: (e: Record<string, unknown>) => void }) {
+      const inputRef = ref<HTMLInputElement | null>(null)
+      expose({ inputRef })
+      return { inputRef }
+    },
+    template: `<div class="combo">
+      <input ref="inputRef" :value="searchTerm || modelValue || ''" :placeholder="placeholder" v-bind="$attrs" @input="$emit('update:searchTerm', $event.target.value)" />
+      <button v-for="item in items" :key="item" type="button" class="combo-item" @click="$emit('update:modelValue', item)">{{ item }}</button>
+      <button v-if="createItem" type="button" class="combo-create" @click="$emit('create', searchTerm)">create</button>
+    </div>`,
+  },
   Transition: { template: '<slot />' },
 }
 
@@ -71,6 +88,15 @@ async function afterPick() {
   await vi.advanceTimersByTimeAsync(250)
   await nextTick()
 }
+
+const combo = () => w.get('[data-testid="new-card-combo"]')
+const comboItems = () => w.findAll('.combo-item').map((item) => item.text())
+/** A pick in the combobox of Thema or Aktivität, as a click on its entry */
+async function pickCombo(value: string) {
+  await w.findAll('.combo-item').find((item) => item.text() === value)!.trigger('click')
+}
+/** The list's own highlight (it highlights the first entry by itself when it opens) */
+const highlight = (value: string | null) => w.findComponent({ name: 'UInputMenu' }).vm.$emit('highlight', value === null ? undefined : { value })
 
 beforeEach(() => {
   vi.useFakeTimers()
@@ -110,14 +136,14 @@ describe('NewCardFlow (#649)', () => {
     mountFlow()
     await confirmTitle()
     expect(stepKey()).toBe('topic')
-    // Design is the most used topic: key 1
-    await pressOnPanel('1')
+    // Design is the most used topic: it leads the list
+    expect(comboItems()[0]).toBe('Design')
+    await pickCombo('Design')
     await afterPick()
     expect(stepKey()).toBe('activity')
-    // Planung leads under Design; key 2 = the second suggestion
-    const pills = w.get('[data-testid="new-card-options"]').findAll('button.ncf__pill')
-    expect(pills[0]!.text()).toContain('Planung')
-    await pressOnPanel('2')
+    // Planung leads under Design
+    expect(comboItems()[0]).toBe('Planung')
+    await pickCombo('Entwicklung')
     await afterPick()
     expect(stepKey()).toBe('timebox')
     await pressOnPanel('2') // 30 min
@@ -131,7 +157,7 @@ describe('NewCardFlow (#649)', () => {
     const [draft, source] = sync.createTask.mock.calls[0]!
     expect(source).toBe('local')
     expect(draft).toMatchObject({ title: 'Angebot schreiben', status: 0, topic: 'Design', topicColorCode: '#6366f1', timeBoxSeconds: 1800, notes: 'Mit Preisliste', priority: 2 })
-    expect(draft.activity).toBe(pills[1]!.text().replace(/\s*2$/, '').trim())
+    expect(draft.activity).toBe('Entwicklung')
     expect(w.emitted('saved')![0]).toEqual(['local_1'])
     expect(toastAddMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'Aufgabe hinzugefügt' }))
     // One row (title and Details): no description line that wraps over the saved card at 390 px (#665)
@@ -227,7 +253,7 @@ describe('NewCardFlow (#649)', () => {
       return this.classList.contains('task-title-text') ? w.get('[data-testid="new-card-flow"]').element : null
     })
     await confirmTitle()
-    await pressOnPanel('1') // Thema Design
+    await pickCombo('Design') // Thema Design
     await afterPick()
     await pressOnPanel('Escape') // Aktivität → Thema
     await pressOnPanel('Escape') // Thema → title
@@ -312,7 +338,7 @@ describe('NewCardFlow (#649)', () => {
     sync.createTask.mockClear()
     mountFlow()
     await confirmTitle('Mit Thema')
-    await pressOnPanel('1') // pick: its advance is pending
+    await pickCombo('Design') // pick: its advance is pending
     await w.get('[data-testid="new-card-step"]').trigger('keydown', { key: 'Enter', metaKey: true })
     await flushPromises()
     await afterPick() // the pending advance must not fire a second save
@@ -340,7 +366,7 @@ describe('NewCardFlow (#649)', () => {
     mountFlow()
     await confirmTitle()
     expect(w.get('.task-face').attributes('data-topic')).toBeUndefined()
-    await pressOnPanel('1')
+    await pickCombo('Design')
     expect(w.get('.task-face').attributes('data-topic')).toBe('Design')
     expect(w.get('.task-face').attributes('data-title')).toBe('Angebot schreiben')
     // the colour its siblings with the topic show, already on the face (#672)
@@ -351,7 +377,7 @@ describe('NewCardFlow (#649)', () => {
     topicColor.colors = {}
     mountFlow()
     await confirmTitle()
-    await pressOnPanel('1')
+    await pickCombo('Design')
     expect(w.get('.task-face').attributes('data-color')).toBeUndefined()
     await afterPick()
     await pressOnPanel('Enter')
@@ -361,18 +387,22 @@ describe('NewCardFlow (#649)', () => {
     expect(sync.createTask.mock.calls[0]![0]).toMatchObject({ topic: 'Design', topicColorCode: null })
   })
 
-  it('kd#16: Thema and Aktivität show up to three pills and the Mehr cell (key 4); Timebox shows three pills and the dots icon (key 4, kd#119)', async () => {
+  it('#434: Thema and Aktivität are a combobox on the whole ranked list, no pills and no number keys; Timebox keeps three pills and the dots icon (key 4, kd#119)', async () => {
     mountFlow()
     await confirmTitle()
     const pills = () => w.get('[data-testid="new-card-options"]').findAll('button.ncf__pill:not(.ncf__pill--more)')
-    expect(pills().map((pill) => pill.text())).toEqual(['Design', 'Backend', 'Büro'].map((v) => expect.stringContaining(v)))
-    expect(pills().map((pill) => pill.attributes('aria-keyshortcuts'))).toEqual(['1', '2', '3'])
-    const more = w.get('[data-testid="new-card-more"]')
-    expect(more.classes()).toContain('choice-chip--field')
-    expect(more.text()).toBe('Mehr')
-    expect(more.attributes('aria-keyshortcuts')).toBe('4')
+    expect(pills()).toHaveLength(0)
+    expect(w.find('[data-testid="new-card-more"]').exists()).toBe(false)
+    expect(comboItems()).toEqual(['Design', 'Backend', 'Büro'])
+    expect(combo().attributes('placeholder')).toBe('Thema wählen')
+    // digits are text in the field: they pick nothing on the step
+    await pressOnPanel('1')
+    await pressOnPanel('4')
+    expect(w.get('.task-face').attributes('data-topic')).toBeUndefined()
+    expect(stepKey()).toBe('topic')
     await pressOnPanel('Enter')
-    expect(w.get('[data-testid="new-card-more"]').attributes('aria-keyshortcuts')).toBe('4')
+    expect(stepKey()).toBe('activity')
+    expect(combo().attributes('placeholder')).toBe('Aktivität wählen')
     await pressOnPanel('Enter')
     expect(stepKey()).toBe('timebox')
     expect(pills().map((pill) => pill.text())).toEqual(['15 min', '30 min', '60 min'].map((v) => expect.stringContaining(v)))
@@ -380,62 +410,156 @@ describe('NewCardFlow (#649)', () => {
     expect(w.get('[data-testid="new-card-more"]').classes()).not.toContain('choice-chip--field')
   })
 
-  it('kd#16: key 3 picks the third value; with one value Mehr stays for the new one, a step without values is still skipped', async () => {
+  it('#434: Enter on an empty field continues without a value, also while the list shows its own first highlight; an entry walked to with the arrows is taken', async () => {
     mountFlow()
     await confirmTitle()
-    await pressOnPanel('3') // the third topic by use: Büro
-    expect(w.get('.task-face').attributes('data-topic')).toBe('Büro')
-    w.unmount()
-
-    options.topics = ['Design']
-    tasks.list = [{ topic: 'Design', activity: null }]
-    options.activities = []
-    mountFlow()
-    await confirmTitle()
+    await highlight('Design') // the list highlights its first entry the moment it opens: no choice yet
+    await combo().trigger('keydown', { key: 'Enter' })
+    await nextTick()
+    expect(stepKey()).toBe('activity')
+    expect(w.get('.task-face').attributes('data-topic')).toBeUndefined()
+    await pressOnPanel('Escape')
     expect(stepKey()).toBe('topic')
-    expect(w.find('[data-testid="new-card-more"]').exists()).toBe(true)
-    await pressOnPanel('Enter')
-    expect(stepKey()).toBe('timebox') // no activities at all: the step is not asked
+    // walked with ↓: the entry is the list's to take (it emits the pick itself), Enter must not also skip
+    await combo().trigger('keydown', { key: 'ArrowDown' })
+    await highlight('Backend')
+    await combo().trigger('keydown', { key: 'Enter' })
+    expect(stepKey()).toBe('topic')
   })
 
-  it('kd#16: a source without free values shows no Mehr cell when three values fit the pills', async () => {
-    target.source = 'todoist'
+  it('#434: a value shows when coming back; deleting the text or the clear button takes it away, Enter then continues without it', async () => {
     mountFlow()
     await confirmTitle()
-    expect(stepKey()).toBe('topic')
-    expect(w.find('[data-testid="new-card-more"]').exists()).toBe(false)
-    w.unmount()
-
-    options.topics = ['A', 'B', 'C', 'D']
-    mountFlow()
-    await confirmTitle()
-    expect(w.find('[data-testid="new-card-more"]').exists()).toBe(true) // the fourth value is behind Mehr, search only
-    expect(w.find('[data-testid="new-card-new"]').exists()).toBe(false)
-  })
-
-  it('kd#16: a new topic typed into the Mehr list is picked and saved as typed', async () => {
-    mountFlow()
-    await confirmTitle()
-    const search = w.get('[data-testid="new-card-search"]')
-    await search.setValue('  Frisch  ')
-    expect(w.get('[data-testid="new-card-new"]').text()).toBe('Neu: „Frisch“')
-    await search.trigger('keydown', { key: 'Enter' })
+    await pickCombo('Design')
     await afterPick()
+    await pressOnPanel('Escape')
+    expect(stepKey()).toBe('topic')
+    expect(w.findComponent({ name: 'UInputMenu' }).props('modelValue')).toBe('Design')
+    expect(w.get('.task-face').attributes('data-topic')).toBe('Design')
+    await combo().setValue('')
+    expect(w.get('.task-face').attributes('data-topic')).toBeUndefined()
+    await combo().trigger('keydown', { key: 'Enter' })
+    await nextTick()
     expect(stepKey()).toBe('activity')
     await pressOnPanel('Enter')
     await pressOnPanel('Enter')
     await w.get('form.ncf__row').trigger('submit')
     await flushPromises()
-    expect(sync.createTask.mock.calls[0]![0]).toMatchObject({ topic: 'Frisch' })
-  })
+    expect(sync.createTask.mock.calls[0]![0]).toMatchObject({ topic: null })
 
-  it('kd#16: Enter on a name an existing topic has picks that one, with its own spelling', async () => {
+    // the list's clear button resets its model: the step's value goes
+    w.unmount()
     mountFlow()
     await confirmTitle()
-    await w.get('[data-testid="new-card-search"]').setValue('design')
-    expect(w.find('[data-testid="new-card-new"]').exists()).toBe(false)
-    await w.get('[data-testid="new-card-search"]').trigger('keydown', { key: 'Enter' })
+    await pickCombo('Design')
+    await afterPick()
+    await pressOnPanel('Escape')
+    w.findComponent({ name: 'UInputMenu' }).vm.$emit('update:modelValue', null)
+    await nextTick()
+    expect(w.get('.task-face').attributes('data-topic')).toBeUndefined()
+  })
+
+  it('#434: Esc and Backspace/Delete in the field: Esc goes back, Backspace and Delete only edit text', async () => {
+    mountFlow()
+    await confirmTitle('Bleibt')
+    await pressOnPanel('Enter')
+    expect(stepKey()).toBe('activity')
+    await combo().trigger('keydown', { key: 'Backspace' })
+    await combo().trigger('keydown', { key: 'Delete' })
+    expect(stepKey()).toBe('activity')
+    await combo().trigger('keydown', { key: 'Escape' })
+    expect(stepKey()).toBe('topic')
+  })
+
+  it('#434: a source without free values offers no new value; the field only filters', async () => {
+    target.source = 'todoist'
+    mountFlow()
+    await confirmTitle()
+    expect(stepKey()).toBe('topic')
+    await combo().setValue('Neu')
+    expect(w.find('.combo-create').exists()).toBe(false)
+    w.unmount()
+
+    target.source = 'local'
+    mountFlow()
+    await confirmTitle()
+    await combo().setValue('Neu')
+    expect(w.find('.combo-create').exists()).toBe(true)
+    // an existing name (any case) is no new value
+    await combo().setValue('design')
+    expect(w.find('.combo-create').exists()).toBe(false)
+  })
+
+  it('#434: a new topic typed into the field is picked and saved as typed (Enter, or the "Neu" row)', async () => {
+    mountFlow()
+    await confirmTitle()
+    await combo().setValue('  Frisch  ')
+    expect(w.find('.combo-create').exists()).toBe(true)
+    await combo().trigger('keydown', { key: 'Enter' })
+    await afterPick()
+    expect(stepKey()).toBe('activity')
+    expect(w.get('.task-face').attributes('data-topic')).toBe('Frisch')
+    await pressOnPanel('Enter')
+    await pressOnPanel('Enter')
+    await w.get('form.ncf__row').trigger('submit')
+    await flushPromises()
+    expect(sync.createTask.mock.calls[0]![0]).toMatchObject({ topic: 'Frisch' })
+
+    w.unmount()
+    mountFlow()
+    await confirmTitle()
+    await combo().setValue('Garten')
+    await w.get('.combo-create').trigger('click')
+    expect(w.get('.task-face').attributes('data-topic')).toBe('Garten')
+  })
+
+  it('#434: Enter on typed text takes the exact match (its own spelling), else the first match, and never creates a partial match', async () => {
+    mountFlow()
+    await confirmTitle()
+    await combo().setValue('design')
+    expect(w.find('.combo-create').exists()).toBe(false)
+    await combo().trigger('keydown', { key: 'Enter' })
     expect(w.get('.task-face').attributes('data-topic')).toBe('Design')
+    w.unmount()
+
+    mountFlow()
+    await confirmTitle()
+    await combo().setValue('bac') // a partial match: Backend, not a new topic "bac"
+    await combo().trigger('keydown', { key: 'Enter' })
+    expect(w.get('.task-face').attributes('data-topic')).toBe('Backend')
+  })
+
+  it('#434: the combobox list is capped to the room above the on-screen keyboard (the visual viewport), never below two rows', async () => {
+    const listeners: Record<string, () => void> = {}
+    const viewport = { height: 400, offsetTop: 0, addEventListener: (type: string, fn: () => void) => { listeners[type] = fn }, removeEventListener: vi.fn() }
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: viewport })
+    const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ bottom: 200 } as DOMRect)
+    const room = () => document.documentElement.style.getPropertyValue('--combo-list-room')
+    mountFlow()
+    await confirmTitle()
+    expect(room()).toBe('min(15rem, 184px)') // 400 - 200 - 16
+    // the keyboard comes up: the visual viewport shrinks and tells so
+    viewport.height = 300
+    listeners.resize!()
+    expect(room()).toBe('min(15rem, 96px)') // 300 - 200 - 16 = 84 is under two rows: the floor
+    viewport.height = 500
+    listeners.resize!()
+    expect(room()).toBe('min(15rem, 284px)')
+    w.unmount()
+    expect(room()).toBe('') // the property goes with the card
+    rect.mockRestore()
+    Object.defineProperty(window, 'visualViewport', { configurable: true, value: undefined })
+  })
+
+  it('#434: the Enter that commits an IME composition in the field is no Enter', async () => {
+    mountFlow()
+    await confirmTitle()
+    await combo().setValue('にほん')
+    await combo().trigger('keydown', { key: 'Enter', isComposing: true })
+    await combo().trigger('keydown', { key: 'Enter', keyCode: 229 })
+    await nextTick()
+    expect(stepKey()).toBe('topic')
+    expect(w.get('.task-face').attributes('data-topic')).toBeUndefined()
   })
 
   it('skips Thema and Aktivität on a board without values and when the source lacks the field', async () => {
@@ -462,9 +586,9 @@ describe('NewCardFlow (#649)', () => {
     sync.createTask.mockRejectedValueOnce(new Error('offline'))
     mountFlow()
     await confirmTitle()
-    await pressOnPanel('1')
+    await pickCombo('Design')
     await afterPick()
-    await pressOnPanel('1')
+    await pickCombo('Planung')
     await afterPick()
     await pressOnPanel('1')
     await afterPick()

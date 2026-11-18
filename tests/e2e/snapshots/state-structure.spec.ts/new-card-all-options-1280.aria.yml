@@ -1,3 +1,6 @@
-- group "Thema?":
-  - textbox "Suchen oder neu …"
-  - button "Vertrieb"
+- listbox:
+  - group:
+    - option "Design"
+    - option "Backend"
+    - option "Büro"
+    - option "Vertrieb"

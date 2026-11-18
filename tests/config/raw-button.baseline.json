@@ -4,7 +4,7 @@
     "reason": "keep: card-shaped slot with a reserved box UButton ghost block cannot reproduce (#71)"
   },
   "components/board/NewCardOptionList.vue": {
-    "count": 2,
+    "count": 1,
     "reason": "keep: the rows of the select menu's item look inside the new-card popover and drawer, which have no menu primitive (kd#15, kd#178); not a button look"
   },
   "components/nav/AppNav.vue": {

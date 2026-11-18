@@ -228,9 +228,27 @@ export default defineAppConfig({
         }
       }
     },
+    // The combobox of the new-card flow's Thema and Aktivität steps (#434): a field like every field (`--field-h`, the `lg`
+    // size, `text-muted` placeholder), its list a sheet above the cards below it (`z-(--z-popover)`, the warm overlay shadow),
+    // rows 32 px (`min-h-8`), at least 44 px below `md` and centred (the phone floor, #342). The list holds about 5 rows, then scrolls.
     inputMenu: {
       slots: {
-        content: 'rounded-lg shadow-(--shadow-overlay)'
+        base: 'h-(--field-h) disabled:cursor-not-allowed disabled:opacity-50',
+        // About 5 rows, then it scrolls (`--combo-list-room`, assets/css/main.css; NewCardFlow lowers it above the on-screen keyboard)
+        content: 'z-(--z-popover) max-h-(--combo-list-room) rounded-lg shadow-(--shadow-overlay)',
+        // The highlighted row (arrows, the first match while typing) takes the paper tone of a menu row's hover: Nuxt UI's `bg-elevated` is white here, as white as the list (DESIGN.md "Fill on a sheet", like `dropdownMenu` and `contextMenu`)
+        item: 'min-h-8 max-md:min-h-11 max-md:items-center p-1.5 cursor-pointer data-highlighted:not-data-disabled:before:bg-muted'
+      },
+      variants: {
+        // The single-select theme sets `placeholder:text-dimmed` on the base: `text-muted` is the placeholder of every field (2.5:1 is below AA, Receding Text Rule, #646)
+        multiple: {
+          false: {
+            base: 'placeholder:text-muted'
+          }
+        }
+      },
+      defaultVariants: {
+        size: 'lg'
       }
     },
     // Toasts (e.g. a failed save) must stay visible above the open task sheet.

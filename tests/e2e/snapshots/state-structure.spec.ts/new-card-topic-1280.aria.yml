@@ -3,7 +3,5 @@
     - button "Zurück"
     - paragraph: Thema?
     - button "Überspringen"
-    - button "Design"
-    - button "Backend"
-    - button "Büro"
-    - button "Mehr"
+    - combobox "Thema?" [expanded]
+    - button "Optionen anzeigen" [expanded]

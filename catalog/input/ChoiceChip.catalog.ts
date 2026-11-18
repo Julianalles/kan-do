@@ -8,7 +8,7 @@ export default {
   alternatives: ['ChoiceCard', 'UButton', 'TaskPropertySelect', 'PropertyValueTrigger', 'SwatchRadioGroup'],
   variants: [
     { id: 'chip', slot: { $t: 'topic.hue.red' } },
-    { id: 'field', label: 'as field (Mehr)', props: { field: true }, slot: { $t: 'board.quickAdd.more' } },
+    { id: 'field', label: 'as field (Mehr)', props: { field: true }, slot: { $t: 'board.quickAdd.placeholderTopic' } },
     { id: 'square', label: 'icon only', props: { square: true, 'aria-label': { $t: 'board.quickAdd.allOptions' } }, slot: '…' },
   ],
   states: [

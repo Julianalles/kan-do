@@ -263,6 +263,9 @@
      * The phone and touch screens get the 44 px floor. --- */
     --field-h: 2.25rem;
 
+    /* The tallest a combobox list gets (about 5 rows, then it scrolls, #434): app.config.ts `inputMenu` caps the list at it; NewCardFlow sets a smaller one on the root while the on-screen keyboard leaves less room. */
+    --combo-list-room: 15rem;
+
     /* --- Drag & Drop: Animation Timings --- */
     /* Synchronized with the DnD layer (useColumnDragAndDrop). */
     /* Note: DnD handles position/transform; CSS transitions handle visual properties only. */
