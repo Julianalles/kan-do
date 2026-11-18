@@ -76,7 +76,7 @@ describe('useDayCloseData selection', () => {
     setActivePinia(createPinia())
   })
 
-  it('lists only tasks completed today and sums their time; archived and yesterday are excluded', () => {
+  it('lists only tasks completed today; archived and yesterday are excluded', () => {
     const store = useTasksStore()
     const yesterday = new Date(Date.now() - 36 * 3_600_000)
     store.addTask(makeTask('today', TaskStatus.Done, { completedAt: new Date(), timeSpentSeconds: 600 }))
@@ -85,9 +85,8 @@ describe('useDayCloseData selection', () => {
     store.addTask(makeTask('archived', TaskStatus.Done, { completedAt: new Date(), timeSpentSeconds: 1000 }))
     store.archiveTasks(['archived'])
 
-    const { done, totalSeconds } = useDayCloseData()
+    const { done } = useDayCloseData()
     expect(done.value.map(t => t.id).sort()).toEqual(['today', 'today2'])
-    expect(totalSeconds.value).toBe(900)
   })
 
   it('lists Offen, Jetzt and Wartet in column order and never Erledigt', () => {
@@ -105,13 +104,12 @@ describe('useDayCloseData selection', () => {
     store.addTask(makeTask('o', TaskStatus.Open))
     store.addTask(makeTask('off', TaskStatus.Open, { notPlanned: true, timeSpentSeconds: 500 }))
     store.addTask(makeTask('p', TaskStatus.Progress))
-    const { inFlight, done, totalSeconds } = useDayCloseData()
+    const { inFlight, done } = useDayCloseData()
     expect(inFlight.value.map(t => t.id)).toEqual(['o', 'p'])
     expect(done.value).toEqual([])
-    expect(totalSeconds.value).toBe(0)
   })
 
-  it('lists tasks of every source together, in the same rows and sums (#325)', () => {
+  it('lists tasks of every source together, together (#325)', () => {
     const store = useTasksStore()
     store.addTask(makeTask('n-done', TaskStatus.Done, { source: 'notion', externalId: 'n-done', completedAt: new Date(), timeSpentSeconds: 600 }))
     store.addTask(makeTask('l-done', TaskStatus.Done, { completedAt: new Date(), timeSpentSeconds: 300 }))
@@ -119,9 +117,8 @@ describe('useDayCloseData selection', () => {
     store.addTask(makeTask('l-wait', TaskStatus.Waiting))
     store.addTask(makeTask('l-old', TaskStatus.Done, { completedAt: new Date(Date.now() - 36 * 3_600_000), timeSpentSeconds: 9999 }))
 
-    const { done, totalSeconds, inFlight } = useDayCloseData()
+    const { done, inFlight } = useDayCloseData()
     expect(done.value.map(t => t.id).sort()).toEqual(['l-done', 'n-done'])
-    expect(totalSeconds.value).toBe(900)
     expect(inFlight.value.map(t => t.id)).toEqual(['n-open', 'l-wait'])
   })
 })

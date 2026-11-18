@@ -1416,42 +1416,24 @@
   },
   "dayClose": {
     "title": "Close the day",
-    "description": "A look back at today and what is still on the board.",
     "nothingDone": "Nothing done today yet.",
     "headline": "{done} of {planned} planned task done | {done} of {planned} planned tasks done",
     "allDone": "All tasks done",
-    "totalLabel": "Total time",
-    "boxCaption": "{kept} of {total} timebox kept | {kept} of {total} timeboxes kept",
-    "doneListLabel": "{n} task done today | {n} tasks done today",
-    "rowDone": "Done",
-    "box": {
-      "within": "Within the timebox",
-      "under": "{n} min under the timebox",
-      "over": "{n} min over the timebox"
+    "timebox": {
+      "heading": "Timebox",
+      "under": "well under the timebox",
+      "within": "about within the timebox",
+      "over": "well over the timebox",
+      "caption": "Based on {n} done task with a timebox and tracked time. | Based on {n} done tasks with a timebox and tracked time."
     },
-    "tomorrowHeading": "For tomorrow",
-    "tomorrow": "No task stays on the board. | One task stays on the board until you plan the next day. You can deselect it. | {n} tasks stay on the board until you plan the next day. You can deselect them one by one.",
-    "showOpen": "Open tasks",
-    "openListLabel": "Open tasks that stay on the board",
-    "trash": {
-      "local": "Goes to the trash",
-      "notion": "Goes to the trash, also in Notion",
-      "todoist": "Goes to the trash, also in Todoist"
+    "topics": {
+      "heading": "Topics",
+      "count": "{n} task | {n} tasks"
     },
-    "nothingInFlight": "Nothing left open.",
-    "copy": "Copy summary",
-    "copied": "Summary copied",
-    "copiedButton": "Copied",
-    "done": "Done",
-    "markdown": {
-      "heading": "Day summary, {date}",
-      "done": "Done",
-      "total": "Total: {time}",
-      "nothingDone": "Nothing done today yet.",
-      "inFlight": "Not done yet",
-      "nothingInFlight": "Nothing left open."
-    },
-    "backToOpen": "Goes back to Open"
+    "consequence": "You can plan your unfinished tasks again tomorrow. Your done tasks are archived.",
+    "consequenceDoneOnly": "Your done tasks are archived.",
+    "cancel": "Cancel, nothing changes",
+    "finish": "Close the day"
   },
   "secrets": {
     "unavailableTitle": "Keychain not available",

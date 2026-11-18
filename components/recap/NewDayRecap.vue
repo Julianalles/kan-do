@@ -3,9 +3,9 @@
 @kind block
 @category overlay
 @description "Kurzer Rückblick" (#385, #451, #44, #245, #428): the recap on the first start of a new day, shown as a stage on the welcome photo, behind the app bar, instead of a dialog over the board. The headline, the summary and the two decks (still open, done: Offen → Erledigt like the board) lie directly on the photo; only the controls sit on a sheet: "Tag neu planen" (primary: the fresh start, which takes yesterday's unfinished cards off the board and archives the done ones, and the way to "Alle") and "Überspringen und Board anzeigen" (leads to the board and keeps it as it is, archives nothing).
-@usage Mounted once in pages/tasks.vue next to DayCloseDialog; opened by useNewDayRecap().check() on mount.
+@usage Mounted once in pages/tasks.vue next to DayCloseStage; opened by useNewDayRecap().check() on mount.
 One centred column (max 44rem) with both decks side by side from 768px, one deck with a switcher below; the controls sheet closes it. The page itself never scrolls; only the stage's scroll area may, on very short windows.
-@avoid Only the first start of a new day; closing the day is DayCloseDialog.
+@avoid Only the first start of a new day; closing the day is DayCloseStage.
 @responsibility
 - Shell only: headline (the page title, SectionHeader `display`), summary, decks (body), controls sheet; no paper sheet around the content (#428). Text lies on the photo, so its tokens must hold AA there (rendered scan)
 - Not modal (#245), teleported to `#recap-stage-host` (app.vue) so the inert board does not take it along and the bar stays above it: a `role="region"` named by the headline, no scrim, no focus trap. The app bar stays usable and sits above the stage (`--z-bar`); the board is `inert` behind it (`pages/tasks.vue`). Going to settings and coming back finds the same recap, because the state lives in `useNewDayRecap`

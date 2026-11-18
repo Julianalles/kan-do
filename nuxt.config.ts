@@ -48,7 +48,7 @@ export default defineNuxtConfig({
     // Closed-at-start dialogs load on first open (#288): Nuxt would still prefetch every dynamic chunk after load, which
     // fetches the code the lazy mount exists to avoid. Their chunks stay out of the prefetch and preload hints.
     'build:manifest'(manifest) {
-      const lazyDialogs = /(^|\/)(CommandPalette|DayCloseDialog|NewDayRecap|FeedbackDialog|ElementPickerBar|UpdateDialog|WhatsNewDialog)\.vue$/
+      const lazyDialogs = /(^|\/)(CommandPalette|DayCloseStage|NewDayRecap|FeedbackDialog|ElementPickerBar|UpdateDialog|WhatsNewDialog)\.vue$/
       for (const [key, entry] of Object.entries(manifest)) {
         if (lazyDialogs.test(key) || (entry.src && lazyDialogs.test(entry.src))) {
           entry.prefetch = false

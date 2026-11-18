@@ -29,11 +29,11 @@ _Avoid_: component (that's the code unit; one pattern can span several component
 
 **Primitive**: the smallest UI unit: one visual job, driven by props alone, no store and no knowledge of other components. Example: `StatsRing` (a ring), `TopicMark` (the dot before a topic name). `@kind primitive`.
 
-**Component**: a UI unit with one job in the app's domain that composes primitives or Nuxt UI parts and is used by one or more parents, and that is not designed to be assembled with siblings. Example: `DayCloseTaskRow` (one "not done yet" row), `SourceRow` (one connected source). `@kind component`.
+**Component**: a UI unit with one job in the app's domain that composes primitives or Nuxt UI parts and is used by one or more parents, and that is not designed to be assembled with siblings. Example: `DayCloseTimebox` (the Timebox chart of the day close), `SourceRow` (one connected source). `@kind component`.
 
 **Compound component**: a parent together with the child components that only work in it, wired through slots or provide/inject, so the parts are used together. Example: `ResponsiveOverlay` (shell with `#body`, `#footer` slots), `TaskStack` with `TaskStackHeader` and `TaskStackPill`. `@kind compound`.
 
-**Block**: a feature-sized surface that a page or `app.vue` mounts, feeding itself from stores, composables or the route rather than props, and that orchestrates components. Example: `DayCloseDialog`, `StatsTiles`, `AppNav`. `@kind block`.
+**Block**: a feature-sized surface that a page or `app.vue` mounts, feeding itself from stores, composables or the route rather than props, and that orchestrates components. Example: `DayCloseStage`, `StatsTiles`, `AppNav`. `@kind block`.
 
 **Kit**: what a new screen is built from: every Nuxt UI component in use, everything under `components/ui/`, and an app component with three or more consumers (`TaskCard`, `TopicMark`). The manifest derives it (`tier: kit`, `scripts/ui-manifest.mjs`); it is never tagged by hand, so a part that gains consumers joins the kit by itself.
 

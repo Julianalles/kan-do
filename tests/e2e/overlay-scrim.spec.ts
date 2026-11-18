@@ -4,7 +4,6 @@
  */
 import { test, expect, type Page } from '@playwright/test'
 import { seedLocalBoard } from './helpers/seed'
-import { openDayClose } from './helpers/appNav'
 
 const overlay = (page: Page) => page.locator('[data-slot="overlay"]:visible')
 
@@ -35,14 +34,6 @@ test.beforeEach(async ({ context }) => {
 for (const viewport of [{ name: 'desktop', width: 1280, height: 800 }, { name: 'mobile', width: 390, height: 844 }]) {
   test.describe(viewport.name, () => {
     test.use({ viewport: { width: viewport.width, height: viewport.height } })
-
-    test('day close overlay is a slight dark scrim, never a light wash', async ({ page }) => {
-      await page.goto('/tasks')
-      await openDayClose(page)
-      await expect(page.getByRole('dialog', { name: 'Tag abschließen' })).toBeVisible()
-      await expect(overlay(page)).toHaveCount(1)
-      await expectScrim(page)
-    })
 
     test('command palette overlay uses the same scrim', async ({ page }) => {
       await page.goto('/tasks')

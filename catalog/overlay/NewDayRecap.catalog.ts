@@ -4,7 +4,7 @@ import type { CatalogEntry } from '../types'
 export default {
   component: 'NewDayRecap',
   source: 'app',
-  alternatives: ['DayCloseDialog', 'ResponsiveOverlay'],
+  alternatives: ['DayCloseStage', 'ResponsiveOverlay'],
   screen: '/tasks',
   sampleNote: 'is the recap stage on the welcome photo under the app bar on the first start of a new day: opened, it covers the page, and it reads the board and the recap state, so it has no inline sample.',
   states: [],

@@ -36,8 +36,8 @@ const SHOTS = [
   { key: 'plan', title: 'Plan the day', text: 'choose from your tasks what belongs on today’s board', url: `/tasks?seed=demo&backlog=1${q}`, goto: `/all?lang=en`, ready: '[data-not-planned-id]' },
   { key: 'board', title: 'During the day', text: 'today’s tasks, with one at a time in Now', url: `/tasks?seed=demo${q}`, ready: '[data-task-id]' },
   {
-    key: 'evening', title: 'Evening', text: 'close the day: what got done, time spent, what stays for tomorrow',
-    url: `/tasks?seed=demo${q}`, prepare: async page => page.getByTestId('day-close-cta').click(), ready: '[data-testid="day-close-tomorrow-section"]',
+    key: 'evening', title: 'Evening', text: 'close the day: how it went, how the tasks compare with their timebox, which topics',
+    url: `/tasks?seed=demo${q}`, prepare: async page => page.getByTestId('day-close-cta').click(), ready: '[data-testid="day-close-timebox"]',
   },
 ]
 const STATS = { key: 'statistics', url: `/tasks?seed=demo${q}`, goto: '/statistics?lang=en', ready: 'main', viewport: { width: 1280, height: 1000 } }

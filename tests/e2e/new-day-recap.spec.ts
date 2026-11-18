@@ -1,7 +1,7 @@
 import { test, expect, type BrowserContext, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { settleAnimations } from './helpers/settle'
-import { appNav, goToPlace, openSettings } from './helpers/appNav'
+import { appNav, goToPlace, openMore, openSettings } from './helpers/appNav'
 import { expectContrast } from './helpers/contrast'
 import {
   MIXED_SEED_TASKS, atDaysAgo, dayKeyDaysAgo, newDayBackTasks, newDayTasks, seedAfterMidnight, seedDayRecapStore, seedMixedBoard, seedNewDayBoard,
@@ -98,6 +98,17 @@ test.describe('New-day recap (#385)', () => {
     await expect(board(page).locator('[data-task-id="nd-waiting-1"]').first()).toBeAttached()
     await expect(board(page).locator('#column-open [data-task-id="nd-open-1"]').first()).toBeAttached()
     await expect(planButton(page)).toBeFocused()
+  })
+
+  test('the day close cannot open over the recap: the Mehr row is disabled and the recap stays the only stage (#480)', async ({ page, context }) => {
+    await seedNewDayBoard(context)
+    await page.goto('/tasks')
+    await expect(recap(page)).toBeVisible()
+    const panel = await openMore(page)
+    await expect(panel.getByTestId('more-day-close')).toBeDisabled()
+    await expect(page.getByRole('region', { name: 'Tag abschließen' })).toHaveCount(0)
+    await expect(recap(page)).toBeVisible()
+    await expect(page.locator('html')).toHaveAttribute('data-recap-stage', '')
   })
 
   test('the board is never visible before the recap, on a fresh load and back from another page (#427)', async ({ page, context }) => {

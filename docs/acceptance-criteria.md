@@ -22,18 +22,19 @@ Persistent functional and design invariants. All features, refactors, and improv
 
 ## Day Counter (Carried-over Cue)
 
-- A not-done card shows nothing on its first board day (no dots, numeral, sheet line or tooltip) on the card and the task sheet; the closing sheet's open list adds "An n Tagen eingeplant" to a row only from day 4 on. The count is the days a task was planned: a day under "Meine Aufgaben" does not count, and the count is kept there (#356).
+- A not-done card shows nothing on its first board day (no dots, numeral, sheet line or tooltip) on the card and the task sheet; the count is the days a task was planned: a day under "Meine Aufgaben" does not count, and the count is kept there (#356).
 - From day 2 the cue reads as a day number: day 2 shows 2 dots, the numeral `2` and "An 2 Tagen eingeplant" (tooltip and accessible name). Day 7 and later show 6 dots, a `+` and the exact numeral.
 - A board day is a local calendar date on which the board was opened; days the board stays closed do not count.
 - The triage nudge still appears after 4 carried days and its title reads "Tag 5"; Keep re-arms it unchanged.
 - Done cards, cards without a counter entry and pending syncs show nothing.
 
-## Day Closing (#98, #237)
+## Day Closing (#98, #237, #480)
 
-- "Tag abschließen" opens one sheet (modal from 768px, drawer below): the date, the headline "n von n geplanten Aufgaben erledigt" (planned = done today + still open), the total time and a time-box bar. With nothing left open the headline reads "Alle Aufgaben erledigt" with a green trophy. There is no motivation sentence.
-- The bar has one segment per done task with a timebox and tracked time (one aggregated segment above 10), the overrun as a dark tail, and the caption "k von n Timeboxen eingehalten"; without a boxed task there is no bar. A task counts as in its timebox when spent and planned time are less than 5 minutes apart, and as kept unless it is over.
-- Done tasks are rows: title, "Erledigt" plus "In der Timebox" / "n Min unter der Timebox" / "n Min über der Timebox", the time at the end; no buttons.
-- "Für morgen" is one sentence (how many tasks in Offen and Jetzt go back to "Meine Aufgaben" with the new day, #356) and a disclosure with a checkbox per open task, all selected; a Jetzt row says it goes back to "Meine Aufgaben", a Wartet row that it stays in Wartet. Escape, the scrim and swipe change nothing. "Fertig" puts a selected Jetzt task back to Offen with its timer stopped and deletes each deselected task through the shared delete (trash, 5 s undo on the board; Notion and Todoist are named on the row). The selection starts fresh on every opening.
+- "Tag abschließen" opens a full-size stage on the new-day recap's photo (not a dialog: no scrim, the app bar stays above it, the board is inert), with one centred sheet (max 32 rem, desktop and phone alike): the date as the stage's subline, the progress headline "n von n geplanten Aufgaben erledigt" (planned = done today + still open), or "Alle Aufgaben erledigt" with a trophy when nothing is left open, or the one line "Heute noch nichts erledigt." when nothing was done and nothing is planned. There is no total time, no list, no checkbox and no choice.
+- "Timebox" chart: the done tasks with a timebox and tracked time in three cells, "deutlich unter", "etwa in" and "deutlich über der Timebox", each with its count and one dot per task, and the caption "Basis: n erledigte Aufgaben mit Timebox und erfasster Zeit." "Etwa in" = the difference is at most the larger of 5 minutes and 20 % of the box. Without such a task the chart is not shown.
+- "Themen" chart: the done tasks by topic (by number of tasks, not time) as one stacked bar in the ink ramp and a legend (topic mark, name, count); the first four topics by count, the rest folded into "Sonstiges", "Ohne Thema" last. Without a named topic the chart is not shown.
+- One line above the buttons says what closing does: "Deine unerledigten Aufgaben kannst du morgen erneut einplanen. Die erledigten Aufgaben werden archiviert." (the second sentence only when nothing is unfinished). "Abbrechen, nichts ändert sich" (a regular secondary button) and Escape change nothing; leaving the page does the same. Focus starts on "Abbrechen, nichts ändert sich".
+- "Tag abschließen" (the primary) archives today's done tasks and the earlier unacknowledged ones and takes every unfinished task off today's board for "Alle": a Jetzt task stops its timer and goes through Offen, a Wartet task goes through Offen, nothing is deleted and no time or note is lost. A source that stores planning (Notion with a mapped status) gets its "not planned" status written at once. The board (Heute) is empty afterwards; the next morning the Jetzt and Offen tasks stand in "Alle" under "Gestern geplant, noch offen" and the Wartet tasks under "Zuletzt in Wartet", with no notice and no second fresh start; the recap's "noch offen" deck lists them.
 
 ## Drag-and-Drop Visual Behaviour
 

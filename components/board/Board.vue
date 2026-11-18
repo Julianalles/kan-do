@@ -246,7 +246,7 @@ const DRAGGING_ROOT_CLASS = "kando-dnd-active";
 const tasksStore = useTasksStore();
 const boardStore = useBoardStore();
 const { archiveTasks } = useArchiveDoneTasks();
-const { open: openDayClose } = useDayClose();
+const { open: openDayClose, isOpen: dayCloseOpen } = useDayClose();
 const { t } = useI18n();
 const { dragState } = useBoardDragState();
 const { stackAnnouncement } = useStackExpansion();
@@ -485,9 +485,9 @@ const onBoardFocusIn = (event: FocusEvent) => {
 // ── Focus overlay (#394) ───────────────────────────────────────────────────────
 const settingsStore = useSettingsStore();
 const { layerOpen } = useOpenLayer();
-/** The new-day recap (#385) is a Teleport overlay without Reka's body lock, so `layerOpen` does not see it */
+/** The new-day recap (#385) and the day-close stage (#480) are Teleport overlays without Reka's body lock, so `layerOpen` does not see them */
 const { isOpen: recapOpen } = useNewDayRecap();
-/** Setting on, a card in Jetzt, Heute showing and the strip at rest (#354), nothing dragged, no sheet, layer, new-day recap or in-card new-task form open, and (phone) the Jetzt page is the visible one */
+/** Setting on, a card in Jetzt, Heute showing and the strip at rest (#354), nothing dragged, no sheet, layer, new-day recap, day-close stage or in-card new-task form open, and (phone) the Jetzt page is the visible one */
 const focusEnabledNow = computed(
   () =>
     settingsStore.focusEnabled &&
@@ -496,6 +496,7 @@ const focusEnabledNow = computed(
     !spotlightTaskId.value &&
     !layerOpen.value &&
     !recapOpen.value &&
+    !dayCloseOpen.value &&
     !inCardAdding.value &&
     !isAll.value &&
     !placeMoving.value &&

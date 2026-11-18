@@ -19,7 +19,9 @@
  *   stops its timer and goes to Offen through the shared move path, the Wartet tasks go to Offen through the batch
  *   status path (their writes run one after another), then everything is taken off the board in one store action
  *   through `useTaskSync.unplanTasks`, which writes the "not planned" status to a source that stores planning (Notion
- *   with such a status mapped, #357); Local and Todoist get no planning write. Demo tasks stay. Nothing is deleted;
+ *   with such a status mapped, #357); Local and Todoist get no planning write. Demo tasks stay. That take-off is
+ *   `useTakeOffBoard().takeOffBoard()`, shared with the day close (#480), which does the same in the evening and marks
+ *   the next day as started (`markDayClosed`): the morning after a close is not due, so it shows no notice and starts nothing. Nothing is deleted;
  *   title, notes, topic, priority, time box, time spent and source are untouched. The board day counted for today is
  *   taken back for the cards it takes off (`tasksStore.takeBackCarryOver`), so today counts only for what is planned
  *   again. It removes no time.
@@ -43,16 +45,14 @@ import { useTasksStore, type AfterMidnightCount } from '~/store/tasks'
 import { useBoardStore } from '~/store/board'
 import { useDayRecapStore } from '~/store/dayRecap'
 import { useDayClose } from '~/composables/useDayClose'
-import { useTaskOperations } from '~/composables/useTaskOperations'
-import { useTaskSync } from '~/composables/useTaskSync'
-import { checkpointTaskTimer, resumeTaskTimer, stopTaskTimer } from '~/composables/useTaskTimerDriver'
+import { useTakeOffBoard } from '~/composables/useTakeOffBoard'
+import { checkpointTaskTimer } from '~/composables/useTaskTimerDriver'
 import { cutWorkSessions } from '~/composables/useWorkSessionTracking'
 import { dataState } from '~/lib/dataStorage'
 import { armGlide } from '~/lib/boardPlace'
 import { isDemoTaskId } from '~/lib/demoIds'
 import { isNotPlanned } from '~/lib/taskPlanning'
 import { dayKey } from '~/utils/recapDay'
-import { TaskStatus } from '~/types/taskStatus'
 
 /** The question is asked for a stretch of at least a minute: a shorter one is not worth asking about. */
 export const TIME_OFFER_MIN_SECONDS = 60
@@ -97,13 +97,11 @@ export function useNewDay() {
   const { today } = useToday()
   // Resolved here, in the caller's setup: the check also runs from a window event (the return to the app), where
   // the Nuxt helpers these need (the toast) are out of reach
-  const { moveTaskToStatus } = useTaskOperations()
-  const { unplanTasks, updateTaskStatuses } = useTaskSync()
+  const { takeOffBoard, unfinished: unfinishedOnBoard } = useTakeOffBoard()
   const dayClose = useDayClose()
 
   /** What a fresh start would take off the board: Jetzt, Offen and Wartet without the demo tasks, in that order. */
-  const unfinished = computed(() =>
-    [...tasksStore.tasksProgress, ...tasksStore.tasksOpen, ...tasksStore.tasksWaiting].filter(task => !isDemoTaskId(task.id)))
+  const unfinished = computed(() => unfinishedOnBoard())
 
   /**
    * The time a Jetzt timer counted after the local midnight that starts `todayKey` while the user was away becomes
@@ -181,28 +179,9 @@ export function useNewDay() {
     // A check always comes first in the app; a caller without one still loses no question
     askAboutNight(todayKey)
 
-    const group: string[] = []
-    for (const task of tasksStore.tasksProgress.filter(task => !isDemoTaskId(task.id))) {
-      const { id } = task
-      // The stop writes the collected seconds first, so the store holds everything the timer counted
-      stopTaskTimer(id)
-      // Local change at once (status, board order); the write to the task's connection follows on its own
-      void moveTaskToStatus(id, TaskStatus.Open).catch(() => {})
-      if (tasksStore.task(id)?.status === TaskStatus.Open) group.push(id)
-      // A refused move leaves the task in Jetzt: it keeps counting, as after a refused day close
-      else resumeTaskTimer(id)
-    }
-    for (const task of tasksStore.tasksOpen) {
-      if (!isDemoTaskId(task.id) && !group.includes(task.id)) group.push(task.id)
-    }
-    // Wartet is reset too (#387): Offen locally at once, the writes to a connection one after another
-    const waiting = tasksStore.tasksWaiting.filter(task => !isDemoTaskId(task.id)).map(task => task.id)
-    if (waiting.length > 0) void updateTaskStatuses(waiting, TaskStatus.Open).catch(() => {})
-
-    // The user's own move: a source that stores planning gets its "not planned" status written (#357)
-    const sent = unplanTasks([...group, ...waiting])
-    boardStore.noteFromWaiting(waiting.filter(id => sent.includes(id)))
-    recapStore.markNewDay(todayKey, group.filter(id => sent.includes(id)))
+    // The shared take-off (also the day close's): Jetzt through Offen, Wartet through Offen, then off the board
+    const { group, sent } = takeOffBoard()
+    recapStore.markNewDay(todayKey, group)
     // The cards were on the board this morning and counted the day: only what is planned again counts it
     tasksStore.takeBackCarryOver(sent, todayKey)
     // The first move to Heute after this start is the day's one slow move (#433)

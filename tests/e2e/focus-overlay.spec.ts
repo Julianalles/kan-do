@@ -360,16 +360,16 @@ test.describe('desktop, mouse', () => {
     await expectOn(page)
   })
 
-  test('the day-close dialog and the command palette each turn it off, with no layer left behind', async ({ page }) => {
+  test('the day-close stage and the command palette each turn it off, with no layer left behind', async ({ page }) => {
     await openBoard(page)
     await expectOn(page)
 
     await openDayClose(page)
-    await expect(page.getByRole('dialog', { name: 'Tag abschließen' })).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Tag abschließen' })).toBeVisible()
     await expectAbsent(page)
     await expect(board(page)).not.toHaveAttribute('data-focus', /.*/)
     await page.keyboard.press('Escape')
-    await expect(page.getByRole('dialog', { name: 'Tag abschließen' })).toBeHidden()
+    await expect(page.getByRole('region', { name: 'Tag abschließen' })).toBeHidden()
     await expectOn(page)
 
     await page.keyboard.press('ControlOrMeta+k')
