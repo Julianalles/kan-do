@@ -1376,3 +1376,97 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     })
   })
 })
+
+/**
+ * #490: "Tag neu planen" lands on Alle: the curtain lifts onto the planning view, the board never shows Heute or travels
+ * there beneath it. A frame sampler runs from the click until the curtain is gone and records the board's place, its move
+ * flag, the pace on <html> and where the Offen column stands.
+ */
+type Frame = { place: string | null, moving: boolean, pace: string | null, path: string, openLeft: number, stage: boolean, closing: boolean }
+
+test.describe('Recap to Alle (#490)', () => {
+  const film = async (page: Page, button: 'plan' | 'skip'): Promise<Frame[]> => {
+    await page.evaluate(() => {
+      const frames: Frame[] = []
+      const w = window as unknown as { __film: Frame[], __filmOn: boolean }
+      w.__film = frames
+      w.__filmOn = true
+      // only the frames after the click count: the board rests on Heute before it
+      let clicked = false
+      document.addEventListener('click', () => { clicked = true }, { capture: true, once: true })
+      const sample = () => {
+        if (clicked) frames.push(read())
+        if (w.__filmOn) requestAnimationFrame(sample)
+      }
+      const read = (): Frame => {
+        const el = document.querySelector('.board')
+        return {
+          place: el?.getAttribute('data-place') ?? null,
+          moving: el?.hasAttribute('data-place-moving') ?? false,
+          pace: document.documentElement.getAttribute('data-place-pace'),
+          path: location.pathname,
+          openLeft: Math.round(document.querySelector('#column-open')?.getBoundingClientRect().left ?? -1),
+          stage: !!document.querySelector('[data-testid="new-day-recap"]'),
+          closing: document.querySelector('[data-testid="new-day-recap"]')?.hasAttribute('data-closing') ?? false,
+        }
+      }
+      requestAnimationFrame(sample)
+    })
+    await (button === 'plan' ? planButton(page) : continueButton(page)).click()
+    await expect(recap(page)).toHaveCount(0, { timeout: 5000 })
+    await settleAnimations(page)
+    return page.evaluate(() => {
+      const w = window as unknown as { __film: Frame[], __filmOn: boolean }
+      w.__filmOn = false
+      return w.__film
+    })
+  }
+
+  for (const [name, use] of [['desktop', {}], ['390px', { viewport: { width: 390, height: 844 }, hasTouch: true }]] as const) {
+    test.describe(`#490 ${name}`, () => {
+      test.use(use)
+
+      test('"Tag neu planen": the curtain lifts onto Alle, the board never shows Heute or travels beneath it', async ({ page, context }) => {
+        await seedNewDayBoard(context, { tasks: newDayBackTasks() })
+        await page.goto('/tasks')
+        await expect(recap(page)).toBeVisible()
+        await expect(board(page).locator('.board')).toHaveAttribute('data-place', 'today')
+
+        const frames = await film(page, 'plan')
+        // The curtain starts only once the board stands on Alle: from its first frame on there is no Heute and no move
+        const lifting = frames.filter(frame => frame.closing)
+        expect(lifting.length).toBeGreaterThan(30) // the curtain runs 1.4 s
+        expect(lifting.every(frame => frame.place === 'all' && frame.path === '/all')).toBe(true)
+        expect(frames.some(frame => frame.moving)).toBe(false)
+        expect(new Set(frames.filter(frame => frame.place === 'all').map(frame => frame.openLeft)).size).toBe(1)
+        // the lift pace is still on <html> for the bar's chip; it clears afterwards
+        expect(lifting.some(frame => frame.pace === 'lift')).toBe(true)
+        await expect(page).toHaveURL(/\/all$/)
+        await expect.poll(() => page.evaluate(() => document.documentElement.getAttribute('data-place-pace'))).toBeNull()
+        await expect(appNav(page).locator('.app-nav-place')).toHaveText(['Alle', 'Heute', 'Statistik'])
+      })
+
+      test('"Überspringen" lands on Heute, as before', async ({ page, context }) => {
+        await seedNewDayBoard(context, { tasks: newDayBackTasks() })
+        await page.goto('/tasks')
+        await expect(recap(page)).toBeVisible()
+
+        const frames = await film(page, 'skip')
+        expect(frames.every(frame => frame.place === 'today' && frame.path === '/tasks')).toBe(true)
+        expect(frames.some(frame => frame.moving)).toBe(false)
+        await expect(page).toHaveURL(/\/tasks$/)
+      })
+    })
+  }
+
+  test('reduced motion: "Tag neu planen" lands on Alle at once, no pace set', async ({ page, context }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await seedNewDayBoard(context, { tasks: newDayBackTasks() })
+    await page.goto('/tasks')
+    await expect(recap(page)).toBeVisible()
+    const frames = await film(page, 'plan')
+    // no curtain, no pace, no move: the stage is gone at once and the board stands on Alle
+    expect(frames.some(frame => frame.closing || frame.moving || frame.pace !== null)).toBe(false)
+    expect(frames.at(-1)).toMatchObject({ place: 'all', stage: false })
+  })
+})

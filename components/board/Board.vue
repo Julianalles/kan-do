@@ -12,7 +12,7 @@
 - Provides visual feedback during task interactions
 - Two places, one strip (#354, epic #334): "Alle" (`/all`: BoardNotPlanned beside Offen) and "Heute" (`/tasks`: Offen, Jetzt + Wartet, Erledigt). Both are paths of one page, so this
   component stays mounted and Offen is the same column in both; `data-place` on `.board` says which shows. A change of place moves the whole strip sideways in one move (420 ms on the app bar's curve,
-  `--place-move` / `--place-ease` in board.css, nothing under reduced motion; the day's first move to Heute after the fresh start glides 1.2 s and the recap's "Tag neu planen" lifts it 1.4 s, `html[data-place-pace]`, #433): desktop a transform animation over the layout change (FLIP, a retarget continues from where the strip is), phone the
+  `--place-move` / `--place-ease` in board.css, nothing under reduced motion; the day's first move to Heute after the fresh start glides 1.2 s, `html[data-place-pace]`, #433; the recap's "Tag neu planen" lifts the curtain 1.4 s onto "Alle" and the strip does not travel at all beneath it, #490: `--place-move` is 0 under that pace, which stays on <html> for the app bar's chip): desktop a transform animation over the layout change (FLIP, a retarget continues from where the strip is), phone the
   strip's own transform on that timing. `data-place-moving` is set meanwhile; the side out of view is `inert`, and once the move is over it is out of layout (desktop) or hidden (phone), so
   neither pointer, keyboard, reader nor a drag reaches it. The Jetzt focus overlay never shows on "Alle" nor during the move
 - One-off (owner, #351, 2026-11-16): "Alle" and "Heute" show Offen with the same look and vertical position, so the way between them reads as one sideways move of the board; no general rule for other places
@@ -58,6 +58,7 @@
       :class="{ 'dragging': isDragging, 'swiping': isSwiping }"
       :data-place="place"
       :data-place-moving="placeMoving ? '' : undefined"
+      :data-place-snap="placeSnap ? '' : undefined"
       :data-drop-ghost="dragState.ghostCount > 0 ? '' : undefined"
       :data-over-not-planned="dragState.overNotPlanned ? '' : undefined"
       :style="mobileBoardStyle"
@@ -373,20 +374,22 @@ const scrollToTab = (index: number) => {
 const boardEl = ref<HTMLElement | null>(null);
 /** The strip travels between the places: both sides are in view and painted until it has arrived */
 const placeMoving = ref(false);
+/** The recap's lift (#490) puts the strip on its place at once: the phone's own 320 ms page transition is off for that one change */
+const placeSnap = ref(false);
 let placeMove: Animation | null = null;
 let placeFades: Animation[] = [];
 let placeMoveTimer: ReturnType<typeof setTimeout> | undefined;
 /** Bumped per move: the end of a move that was overtaken by a retarget must not settle the strip */
 let placeMoveToken = 0;
 
-function endPlaceMove(token: number) {
+function endPlaceMove(token: number, keepPace = false) {
   if (token !== placeMoveToken) return;
   clearTimeout(placeMoveTimer);
   placeFades.forEach((fade) => fade.cancel());
   placeFades = [];
   placeMove = null;
   placeMoving.value = false;
-  setPlacePace(null);
+  if (!keepPace) setPlacePace(null);
 }
 
 /** The sides that are in view on one place only: [those of "Alle"], [those of "Heute"] */
@@ -414,10 +417,15 @@ watch(place, async (to) => {
   if (isMobile.value) {
     // From Offen on "Alle" to Heute nothing travels: Offen is the page both places share, only the dots and the bar change.
     const travels = target !== stripPage.value && ms > 0;
+    if (pace === 'lift') {
+      placeSnap.value = true;
+      requestAnimationFrame(() => requestAnimationFrame(() => { placeSnap.value = false; }));
+    }
     placeMoving.value = travels;
     stripPage.value = target;
     if (travels) placeMoveTimer = setTimeout(() => endPlaceMove(token), ms + 40);
-    else setPlacePace(null);
+    // The recap's lift (#490) snaps the strip: its pace stays for the app bar (its own net clears it)
+    else if (pace !== 'lift') setPlacePace(null);
     return;
   }
 
@@ -425,7 +433,7 @@ watch(place, async (to) => {
   // Desktop: the place sets the strip's offset by a margin (board.css), which jumps; the strip then travels there.
   // Heute at rest is the plain three-column grid; it becomes the strip for the length of the move.
   if (!el || ms === 0 || typeof el.animate !== 'function') {
-    endPlaceMove(token);
+    endPlaceMove(token, pace === 'lift');
     return;
   }
   // Offen is the column both places show: where it stands says where the strip stands, also while Heute rests in its

@@ -109,9 +109,11 @@
     }
   }
 
-  /* The two moves worth watching (#433), set by Board.vue through `html[data-place-pace]` (lib/boardPlace.ts) and
-     never under reduced motion: the first move to Heute after the day's fresh start glides, the move to "Alle" under
-     the recap's lifting curtain is slower still. The app bar (app-nav.css) takes the same time, so the chip travels with the board. */
+  /* The two paces worth watching (#433), set by Board.vue through `html[data-place-pace]` (lib/boardPlace.ts) and
+     never under reduced motion: the first move to Heute after the day's fresh start glides, the recap's "Tag neu planen"
+     lifts. The app bar (app-nav.css) takes 1.2 s / 1.4 s, so its chip travels with the curtain. Under `lift` the board
+     itself does not move (#490): the curtain lifts onto "Alle", which is already in place beneath it, so there is no Heute
+     and no second slide. */
   @media (prefers-reduced-motion: no-preference) {
     html[data-place-pace='glide'] .board-container {
       --place-move: 1200ms;
@@ -119,8 +121,7 @@
     }
 
     html[data-place-pace='lift'] .board-container {
-      --place-move: 1400ms;
-      --place-ease: cubic-bezier(0.45, 0, 0.15, 1);
+      --place-move: 0ms;
     }
   }
 
@@ -185,6 +186,11 @@
        a swipe inside the place keeps its 320ms. Never while a finger or a drag owns the transform. */
     :where(.board)[data-place-moving]:not(.swiping, .dragging) {
       transition: transform var(--place-move) var(--place-ease);
+    }
+
+    /* The recap's lift (#490) lands on "Alle" without a move: Board.vue sets data-place-snap for the one change */
+    :where(.board)[data-place-snap]:not(.swiping, .dragging) {
+      transition: none;
     }
 
     /* Reduced motion: column switch is instant, nothing stays promoted */

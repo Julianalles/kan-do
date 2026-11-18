@@ -372,6 +372,10 @@ describe('NewDayRecap', () => {
       q('[data-testid="recap-plan"]').click()
       expect(navigateTo).toHaveBeenCalledTimes(1)
       expect(navigateTo).toHaveBeenCalledWith({ path: '/all', force: true })
+      // #490: the recap is left only once the board stands on "Alle", so the curtain lifts onto it
+      expect(useNewDayRecap().isOpen.value).toBe(true)
+      await nextTick()
+      await nextTick()
       expect(useNewDayRecap().isOpen.value).toBe(false)
       expect(useDayRecapStore().lastShownDay).toBe('2026-10-22')
       expect(freshStart).toHaveBeenCalledTimes(1)
@@ -407,8 +411,12 @@ describe('NewDayRecap', () => {
       q('[data-testid="recap-plan"]').click()
       q('[data-testid="recap-plan"]').click()
       q('[data-testid="recap-continue"]').click()
+      pressEscape()
+      await nextTick()
+      await nextTick()
       expect(navigateTo).toHaveBeenCalledTimes(1)
       expect(freshStart).toHaveBeenCalledTimes(1)
+      expect(useTasksStore().archivedTaskIds).toEqual(['a'])
     })
   })
 
