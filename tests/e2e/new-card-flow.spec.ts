@@ -22,6 +22,9 @@ const box = async (locator: Locator) => (await locator.boundingBox())!
 const combo = (page: Page) => page.getByTestId('new-card-combo')
 const entries = (page: Page) => page.getByRole('option')
 
+/** The slide between two steps has ended (#498): until then the step that slides out is still in the DOM next to the new panel's `data-step`, and its combobox (same test id, same value) takes a fill or a key that then dies with it. Same wait as the #685 specs */
+const slideEnded = (page: Page) => expect(page.locator('.ncf-fwd-enter-active, .ncf-fwd-leave-active, .ncf-back-enter-active, .ncf-back-leave-active')).toHaveCount(0)
+
 /** Takes a value on the Thema or Aktivität step the type-ahead way: the text, then Enter (an exact or first match, else a new value) */
 async function takeValue(page: Page, text: string) {
   await expect(combo(page)).toBeFocused()
@@ -407,6 +410,7 @@ test.describe('guided new card, keyboard and steps (desktop)', () => {
     await expect(combo(page)).toBeFocused()
     await page.keyboard.press('Escape')
     await expect(step(page)).toHaveAttribute('data-step', 'topic')
+    await slideEnded(page)
     await expect(combo(page)).toHaveValue('Design')
     await page.keyboard.press('Enter') // continue with the value
     await expect(step(page)).toHaveAttribute('data-step', 'activity')
@@ -455,15 +459,18 @@ test.describe('guided new card, keyboard and steps (desktop)', () => {
     await takeValue(page, 'Marketing')
     await expect(step(page)).toHaveAttribute('data-step', 'activity')
     await page.keyboard.press('Escape')
+    await slideEnded(page)
     await expect(combo(page)).toHaveValue('Marketing')
     await takeValue(page, 'Marketing') // typed again, Enter on the checked row
     await expect(step(page)).toHaveAttribute('data-step', 'activity')
     await page.keyboard.press('Escape')
+    await slideEnded(page)
     await expect(combo(page)).toHaveValue('Marketing')
     await expect(card(page).locator('.task-topic')).toBeVisible()
     await entries(page).filter({ hasText: 'Marketing' }).first().click() // the mouse on the checked row
     await expect(step(page)).toHaveAttribute('data-step', 'activity')
     await page.keyboard.press('Escape')
+    await slideEnded(page)
     await expect(combo(page)).toHaveValue('Marketing')
   })
 
@@ -493,6 +500,7 @@ test.describe('guided new card, keyboard and steps (desktop)', () => {
     await expect(step(page)).toHaveAttribute('data-step', 'activity')
     await page.keyboard.press('Escape')
     await expect(step(page)).toHaveAttribute('data-step', 'topic')
+    await slideEnded(page)
     await expect(combo(page)).toHaveValue(walkedTo)
     await combo(page).fill('')
     await expect(card(page).locator('.task-topic')).toHaveCount(0)
