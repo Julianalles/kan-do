@@ -200,6 +200,7 @@ Scenarios:
 - **Static host under a sub-path** (GitHub Pages, Netlify): `BASE_URL=/repo-name/ npm run build`, publish the generated output (Netlify: `dist`). Example: GitHub Pages `username/kan-do` is served at `https://username.github.io/kan-do/` with `BASE_URL=/kan-do/`.
 - **Node server** (Vercel, Railway, any Node host): `BASE_URL=/ NITRO_PRESET=node-server npm run build`, run `node .output/server/index.mjs`. Optional `PORT` (default 3000) and `HOST`.
 - **Vercel** for this repository: `vercel.json` deploys only `main` and `proto/*` branches. On Vercel the preset defaults to `vercel` (server routes run: the Notion and Todoist proxies and the feedback relay `POST /api/feedback`); `NITRO_PRESET` still wins.
+- **Cloudflare Workers** (the public instance, [ADR 021](docs/adr/021-public-web-instance-on-cloudflare-workers.md)): `npm run build:cloudflare` builds with the `cloudflare_module` preset, `npm run deploy` also runs `wrangler deploy` (`wrangler.jsonc`, Worker `kando`). The Worker is token-gated: the secret `GATE_SECRET` and `vars.GATE` (`"off"` opens it) live in Cloudflare, never in the repository; for a local `npx wrangler dev` put a dummy `GATE_SECRET` into the git-ignored `.dev.vars`. A push to `main` deploys it through Workers Builds.
 - **Docker**: a multi-stage or single-stage Node image that runs `RUN BASE_URL=/ NITRO_PRESET=node-server npm run build` and `CMD ["node", ".output/server/index.mjs"]`, `EXPOSE 3000`.
 - **Multiple environments**: keep separate `.env.production` / `.env.staging` files with different `BASE_URL`.
 
