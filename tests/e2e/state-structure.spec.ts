@@ -263,7 +263,7 @@ test.describe('welcome setup on the page (#43)', () => {
     await page.getByTestId('welcome-choice-local').click()
     await page.getByTestId('local-source-notion').click()
     await page.getByTestId('local-confirm').click()
-    await expect(page.getByRole('heading', { name: 'Notion-Token' })).toBeFocused()
+    await expect(page.getByRole('heading', { name: 'Vorbereitung' })).toBeFocused()
     await expect(page.getByTestId('notion-setup-flow')).toMatchAriaSnapshot({ name: 'welcome-notion-first-step-1280.aria.yml' })
   })
 

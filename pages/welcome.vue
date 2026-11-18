@@ -3,22 +3,24 @@
 @description Willkommensseite (#294): ein Start mit einer gefüllten Schaltfläche („Loslegen“) und dem Ausprobieren mit Beispielaufgaben als leiser zweiter Weg (#236); Schritt 2 sagt „lokal ist immer dabei“ und bietet Notion (und Todoist, später) als Checkliste an
 @usage Einstiegspunkt für neue Nutzer unter /welcome
 @responsibility
-- Startansicht: Überschrift, eine Zeile („Standardmäßig lokal, externe Dienste jetzt oder später“), „Loslegen“ (die einzige gefüllte Schaltfläche, The One Lamp Rule) und „Mit Beispielaufgaben starten“ (ghost); bewusst niedrig, damit am Telefon mehr Foto und das Grün der Schaltfläche sichtbar sind
+- Startansicht: Wortmarke „kan-do“ mit Subline (`Subline`) als Seitenkopf über dem Bogen, direkt auf dem Foto, linksbündig mit dem Inhalt des Bogens (gleiche Innenabstände; im Notion-Setup folgt der Kopf dem breiteren Bogen, beide teilen einen Spaltenrahmen); der Bogen hat die kleinere Überschrift (22 px), die Einleitung, einen zweiten Absatz „Du bist erst einmal nur neugierig? …“, „Jetzt starten“ (die einzige gefüllte Schaltfläche, The One Lamp Rule) und „Beispiel anzeigen“ (soft) ab 640 px nebeneinander, darunter gestapelt (#437)
 - „Loslegen“ öffnet Schritt 2 (LocalSetupFlow, kein Dialog, #43): Notion als Checkbox, Todoist deaktiviert „(kommt später)“; ohne Haken endet er mit Lokal als einziger Verbindung und Standard, mit Haken startet er das Notion-Setup auf dieser Seite (Schienen-Führung, Schritte des WizardController), das mit Notion als verbundener Verbindung und Standard endet; Zurück aus dem Notion-Setup führt zu Schritt 2, der Haken bleibt
-- „Mit Beispielaufgaben starten“ öffnet einen eigenen Schritt 2: er sagt, dass ein Zurücksetzen unter Einstellungen › Daten & Speicher Beispiele und Statistik entfernt; „Board ansehen“ endet wie das lokale Setup
+- „Beispiel anzeigen“ öffnet einen eigenen Schritt 2: er sagt, dass ein Zurücksetzen unter Einstellungen › Daten & Speicher Beispiele und Statistik entfernt; „Board ansehen“ endet wie das lokale Setup
 - Der Weg zum Board blendet die Seite (Foto und Bogen) über dem schon fertigen Board aus (`.welcome-root`, transitions.css): das Board liegt in seinem Endlayout darunter, nichts springt danach; reduzierte Bewegung: sofort
 - Startansicht und Setup tauschen als ein Block (eine Transition, Höhe per WAAPI, Breite per CSS); der Tausch gleitet seitwärts (vor: alt nach links hinaus, neu von rechts herein; zurück gespiegelt, 260 ms, #236); reduzierte Bewegung: sofort
 - Fokus: nach dem Tausch auf die Überschrift des Setups, beim Zurück auf die Schaltfläche, von der man kam
 - Ein ruhiges Foto (Schreibtisch mit Tasse, Notizbuch und Pflanze im Fensterlicht, kd#226; gebündelt in public/welcome,
-  Quelle in CREDITS.md) füllt die Seite; es ist nur Stimmung: Text steht nie direkt darauf. Mittig ein heller Bogen
-  (Oberfläche und Schatten wie ein Dialog) trägt Wortmarke, Zeile, Frage, Antworten, Hinweis und Version. Am Telefon
-  füllt der Bogen die Breite, darüber bleibt ein Foto-Streifen: das Foto ist dort eigens beschnitten (rechts unten,
-  vergrößert), damit Tasse, Tischkante und Notizbuch im Streifen liegen statt nur die Wand.
+  Quelle in CREDITS.md) füllt die Seite. Wortmarke und Subline stehen direkt darauf, auf der hellen Wand (Kontrast AA,
+  Regelvorschlag #472): am Telefon ist das Foto dafür links oben verankert, so dass der Streifen über dem Bogen nur helle
+  Wand zeigt (Tasse, Tisch und Pflanze liegen hinter dem Bogen). Mittig ein heller Bogen (Oberfläche und Schatten wie ein
+  Dialog) trägt Überschrift, Antworten, Hinweis und Version. Am Telefon füllt der Bogen die Breite.
+- Ab 640 px hängt die Spalte an einer festen Linie über der Seitenmitte statt mittig zu stehen: ein höherer Schritt wächst nach unten, die Wortmarke bleibt beim Tausch an ihrem Platz
+- Beim Abschluss fliegt die Wortmarke auf Desktop in die Wortmarke der App-Leiste (`utils/brandFlight.ts`); am Telefon und bei reduzierter Bewegung blendet nur die Seite aus
 - Das Foto blendet beim Laden ein (ohne Layoutsprung); lädt es nicht, bleibt die Seite auf Papierfarbe, der Bogen unverändert
 -->
 <template>
   <div class="welcome-root px-safe bg-page">
-  <main class="relative flex min-h-dvh flex-col justify-end overflow-hidden bg-page sm:items-center sm:justify-center sm:p-6">
+  <main class="relative flex min-h-dvh flex-col justify-end overflow-hidden bg-page sm:items-center sm:justify-start sm:p-6">
     <!-- Atmosphere only (alt=""): fades in once loaded, a failed load leaves the paper colour -->
     <img
       ref="photo"
@@ -38,14 +40,17 @@
     <div class="top-safe-3 absolute inset-x-4 z-10 mx-auto max-w-3xl in-data-[shell=desktop]:pt-(--app-bar-offset-top)">
       <DataStorageNotice />
     </div>
+    <!-- Brand block and sheet share one column: it owns the width (wider in the Notion flow), so the brand follows the
+         sheet's left edge. The brand sits on the photo's bright wall, not on a plate (#437). -->
     <div
-      class="welcome-sheet relative mt-40 w-full rounded-t-lg bg-default px-6 pt-6 shadow-(--shadow-task) transition-[max-width] duration-(--duration-slow) ease-out motion-reduce:transition-none sm:mt-0 sm:rounded-lg sm:px-8 sm:pt-8"
+      class="welcome-column relative mt-24 w-full transition-[max-width] duration-(--duration-slow) ease-out motion-reduce:transition-none"
       :class="flow === 'notion' ? 'sm:max-w-3xl' : 'sm:max-w-lg'"
     >
-      <header class="mb-8">
-        <SectionHeader tag="p" size="hero">{{ t('nav.brand') }}</SectionHeader>
-        <p class="mt-2 text-body text-default">{{ t('onboarding.page.tagline') }}</p>
+      <header class="mb-4 px-6 sm:mb-5 sm:px-8">
+        <SectionHeader ref="brand" tag="p" size="hero" data-testid="welcome-brand">{{ t('nav.brand') }}</SectionHeader>
+        <Subline class="mt-2">{{ t('onboarding.page.tagline') }}</Subline>
       </header>
+      <div class="welcome-sheet relative w-full rounded-t-lg bg-default px-6 pt-6 shadow-(--shadow-task) sm:rounded-lg sm:px-8 sm:pt-8">
       <!-- One Transition for the whole content: start screen and setup swap as a single block and the block's height
            follows (setup-body), so nothing animates element by element (#43) -->
       <div ref="body" class="setup-body">
@@ -69,16 +74,17 @@
               @complete="handleNotionSetupComplete"
             />
             <template v-else>
-        <SectionHeader tag="h1" size="display" class="text-balance">
+        <SectionHeader tag="h1" class="text-balance">
           {{ t('onboarding.page.title') }}
         </SectionHeader>
         <p class="mt-3 text-body text-default">{{ t('onboarding.page.intro') }}</p>
+        <p class="mt-3 text-body text-default">{{ t('onboarding.page.curious') }}</p>
         <!-- One filled action: the sheet's only solid green (The One Lamp Rule); the trial is a quiet second way in (#294) -->
-        <div class="mt-6 flex flex-col gap-3">
-          <UButton color="primary" block data-testid="welcome-choice-local" @click="openFlow('local')">
+        <div class="mt-6 flex flex-col gap-3 sm:flex-row">
+          <UButton color="primary" block class="sm:flex-1" data-testid="welcome-choice-local" @click="openFlow('local')">
             {{ t('onboarding.page.start') }}
           </UButton>
-          <UButton color="neutral" variant="ghost" block data-testid="welcome-choice-samples" @click="openFlow('samples')">
+          <UButton color="primary" variant="soft" block class="sm:flex-1" data-testid="welcome-choice-samples" @click="openFlow('samples')">
             {{ t('onboarding.page.samples') }}
           </UButton>
         </div>
@@ -90,6 +96,7 @@
           </div>
         </Transition>
       </div>
+      </div>
     </div>
   </main>
   </div>
@@ -97,6 +104,8 @@
 
 <script setup lang="ts">
 import SectionHeader from '~/components/ui/SectionHeader.vue'
+import Subline from '~/components/ui/Subline.vue'
+import { flyBrandToBar } from '~/utils/brandFlight'
 import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import LocalSetupFlow from '~/components/setup/LocalSetupFlow.vue';
@@ -118,6 +127,9 @@ const { fetchTasks } = useIntegrationManager();
 const { handleError } = useErrorHandler();
 const photo = ref<HTMLImageElement | null>(null);
 const photoLoaded = ref(false);
+const brand = ref<InstanceType<typeof SectionHeader> | null>(null);
+/** The brand flies to the app bar's brand as the page leaves (desktop, #437) */
+const flyBrand = () => flyBrandToBar(brand.value?.$el as HTMLElement | undefined);
 // A cached or early-loaded photo can finish before hydration: its load event is gone, so check once on mount
 onMounted(() => {
   if (photo.value?.complete && photo.value.naturalWidth > 0) photoLoaded.value = true;
@@ -185,6 +197,7 @@ const handleLocalSetupComplete = async () => {
   try {
     boardStore.setSingleSource('local');
     tasksStore.adoptAsLocal();
+    flyBrand();
     await navigateTo('/tasks');
   } catch (error) {
     handleError(error as Error, 'setup');
@@ -208,6 +221,7 @@ const handleNotionSetupComplete = async () => {
       }
     }
 
+    flyBrand();
     await navigateTo('/tasks');
   } catch (error) {
     handleError(error as Error, 'notion_setup');
@@ -220,29 +234,32 @@ const handleNotionSetupComplete = async () => {
 </script>
 
 <style>
-/* Phone (below `sm`, where the sheet fills the width, kd#226): a full-page cover crop would show only the wall in the
-   strip above the sheet. The photo is sized by the viewport height instead, anchored right and pulled up, so the mug,
-   the table edge and the notebook lie in the strip; the sheet covers what is below. Viewport units keep the crop in
-   proportion on short and tall phones. */
+/* Phone (below `sm`, where the sheet fills the width, kd#226, #437): the brand and subline sit directly on the photo, so the
+   strip above the sheet must show bright wall only, never table, plant or book. The photo keeps its natural proportions,
+   sized by the viewport height and anchored top left (the window-light wall). The table edge lies at 70 % of the photo's
+   height and must fall behind the sheet, which is at least about 21rem high, so the photo is at least (100dvh - 21rem) / 0.7
+   tall; mug, plant and book lie behind the sheet too. Viewport units keep the crop in proportion on short and tall phones. */
 .welcome-photo {
-  inset: 0 0 auto auto;
+  inset: 0 auto auto 0;
   width: auto;
   max-width: none;
-  /* Tall enough that its lower edge (55 % of the height, after the pull) stays below the strip: the sheet is at least
-     about 22rem high, so the strip is at most 100dvh - 22rem */
-  height: max(80dvh, calc((100dvh - 22rem) / 0.55));
+  height: max(560px, calc((100dvh - 21rem) / 0.7));
   aspect-ratio: 1672 / 941;
-  translate: 0 -45%; /* the strip starts just above the mug; so mug, table edge and notebook fall into it */
 }
 
 /* From `sm` the photo covers the page again (the `inset-0 size-full object-cover` of the element) */
 @media (--sm) {
+  /* The brand stays where it is while the steps swap (UX decision #437): the column hangs from a fixed line above the
+     page's middle instead of being centred, so a taller step grows downward and the brand never moves. The start screen
+     (about 26rem high) lands at the optical centre; the tallest Notion step (the database step) still fits a 800px-high window. */
+  .welcome-column {
+    margin-block-start: max(0px, calc(50dvh - 18rem));
+  }
   .welcome-photo {
     inset: 0;
     width: 100%;
     height: 100%;
     aspect-ratio: auto;
-    translate: none;
   }
 }
 

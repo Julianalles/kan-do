@@ -125,7 +125,7 @@ test('requirements sections 1-10 hold on one mixed board', async ({ context, pag
     const first = await fresh.newPage()
     await first.goto('/welcome')
     await expect(first.getByRole('button', { name: 'Jetzt starten' })).toBeVisible()
-    await expect(first.getByRole('button', { name: 'Mit Beispielaufgaben entdecken' })).toBeVisible()
+    await expect(first.getByRole('button', { name: 'Beispiel anzeigen' })).toBeVisible()
   } finally {
     await fresh.close()
   }

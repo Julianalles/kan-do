@@ -1094,7 +1094,13 @@ for (const { size, viewport } of CORE_VIEWPORTS) {
       await page.getByTestId('welcome-choice-local').click()
       await page.getByTestId('local-source-notion').click()
       await page.getByTestId('local-confirm').click()
-      await expect(page.getByRole('heading', { name: 'Notion-Token' })).toBeFocused()
+      await expect(page.getByRole('heading', { name: 'Vorbereitung' })).toBeFocused()
+      await page.mouse.move(0, 0)
+      await settle(page)
+      await expect(page).toHaveScreenshot(`notion-wizard-intro-${size}.png`, { animations: 'disabled' })
+      await page.getByTestId('wizard-proceed').click()
+      await expect(page.getByRole('heading', { name: 'Notion-Token' })).toBeAttached()
+      await expect(page.getByPlaceholder('Integrationstoken eingeben')).toBeVisible()
       await page.mouse.move(0, 0)
       await settle(page)
       await expect(page).toHaveScreenshot(`notion-wizard-token-${size}.png`, { animations: 'disabled' })
@@ -1107,6 +1113,7 @@ for (const { size, viewport } of CORE_VIEWPORTS) {
       await page.getByTestId('local-confirm').click()
       const flow = page.getByTestId('notion-setup-flow')
       const proceed = page.getByTestId('wizard-proceed')
+      await proceed.click() // the intro
       await flow.getByPlaceholder('Integrationstoken eingeben').fill('notion_test_stub')
       // Token and database validate against the stub; the properties step enables "Weiter" once the schema is auto-mapped
       for (let press = 0; press < 2; press++) {

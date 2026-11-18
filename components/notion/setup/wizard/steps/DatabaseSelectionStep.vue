@@ -9,6 +9,7 @@
 - Displays available Notion databases for selection
 - Manages the selected database state
 - Communicates selection changes to parent component
+- Under the selection it says that Kan-Do expects an existing task database and shows the minimum schema as two chip lines (Nötig, Optional) plus the hint that Notion's field names may differ (#441); shown in the setup page and in the dialog alike, it does not depend on the load state
 -->
 <template>
   <div class="space-y-4">
@@ -42,6 +43,22 @@
         <p class="mt-1 text-xs text-toned">{{ t('notion.database.emptyHint') }}</p>
       </div>
     </UFormField>
+
+    <div class="flex flex-col gap-3" data-testid="notion-schema-note">
+      <p class="text-sm text-muted">{{ t('notion.database.note.description') }}</p>
+      <div class="flex flex-col gap-1.5">
+        <span class="text-xs text-muted">{{ t('notion.database.note.required') }}</span>
+        <SetupChipList :label="t('notion.database.note.required')" :items="requiredFields" />
+      </div>
+      <div class="flex flex-col gap-1.5">
+        <span class="text-xs text-muted">{{ t('notion.database.note.optional') }}</span>
+        <SetupChipList :label="t('notion.database.note.optional')" :items="optionalFields" />
+      </div>
+      <p class="flex items-start gap-2 text-xs text-muted">
+        <UIcon name="i-ph-info" class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+        <span>{{ t('notion.database.note.hint') }}</span>
+      </p>
+    </div>
 
     <UFormField
       v-if="showDataSourceSelection && selectedDatabaseDataSources.length > 0"
@@ -86,6 +103,7 @@ import { ref, watch, computed, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { NotionDatabaseSummary } from "~/types/notion";
 import { useFeatureFlags } from "~/utils/featureFlags";
+import SetupChipList from '~/components/setup/SetupChipList.vue';
 
 defineOptions({ name: 'NotionDatabaseSelectionStep' });
 
@@ -115,6 +133,17 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+/** The minimum schema (#441): what a task database needs, and what Kan-Do can use besides */
+const requiredFields = computed(() => [
+  { label: t('notion.database.note.title'), icon: 'i-ph-text-aa' },
+  { label: t('notion.database.note.status'), icon: 'i-ph-circle-half' },
+]);
+const optionalFields = computed(() => [
+  { label: t('notion.database.note.dueDate'), icon: 'i-ph-calendar-blank' },
+  { label: t('notion.database.note.priority'), icon: 'i-ph-flag' },
+  { label: t('notion.database.note.timeBox'), icon: 'i-ph-hourglass' },
+  { label: t('notion.database.note.timeSpent'), icon: 'i-ph-timer' },
+]);
 const featureFlags = useFeatureFlags();
 
 const showDataSourceSelection = computed(() => featureFlags.notionDataSourceSelection);

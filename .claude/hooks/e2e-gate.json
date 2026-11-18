@@ -908,6 +908,7 @@
         "components/setup/**",
         "pages/welcome.vue",
         "pages/index.vue",
+        "utils/brandFlight.ts",
         "lib/demo-board.ts",
         "lib/demoIds.ts"
       ],
