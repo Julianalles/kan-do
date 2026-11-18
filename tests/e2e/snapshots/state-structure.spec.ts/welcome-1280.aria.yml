@@ -3,6 +3,7 @@
   - paragraph: Das Kanban Board mit dem du deine Aufgaben des Tages fokussiert erledigst.
   - heading "Bereit für deine Aufgaben" [level=1]
   - paragraph: Du kannst sie lokal auf diesem Gerät speichern oder externe Apps wie Notion oder Todoist verbinden.
+  - paragraph: Du bist erst einmal nur neugierig? Dann schau dich zunächst in der App mit Beispielaufgaben um.
   - button "Jetzt starten"
-  - button "Mit Beispielaufgaben entdecken"
+  - button "Beispiel anzeigen"
   - paragraph: "/Version: \\d+\\.\\d+\\.0/"

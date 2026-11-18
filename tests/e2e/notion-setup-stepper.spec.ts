@@ -372,16 +372,51 @@ test.describe('Notion Setup Stepper', () => {
       const flow = page.getByTestId('notion-setup-flow')
       await expect(page.getByRole('dialog')).toHaveCount(0)
       const steps = flow.getByTestId('notion-setup-steps')
-      for (const label of ['Token', 'Datenbank', 'Eigenschaften', 'Weitere Eigenschaften', 'Status']) {
+      for (const label of ['Vorbereitung', 'Token', 'Datenbank', 'Eigenschaften', 'Weitere Eigenschaften', 'Status']) {
         await expect(steps.getByText(label, { exact: true })).toBeVisible()
       }
 
       // The rail is non-interactive: no focusable/dead buttons, active step exposed
       await expect(steps.getByRole('button')).toHaveCount(0)
       await expect(steps.locator('[aria-current="step"]')).toHaveCount(1)
-      await expect(steps.locator('[aria-current="step"]')).toContainText('Token')
+      await expect(steps.locator('[aria-current="step"]')).toContainText('Vorbereitung')
 
       // We deliberately do not proceed here as token validation would require API
+    })
+
+    test('the intro "Vorbereitung" comes first: Los geht\'s leads to the token, Back returns with the typed token kept, Back again leaves (#441)', async ({ page, baseURL }) => {
+      await page.goto(baseURL! + '/welcome')
+      await page.getByRole('button', { name: 'Jetzt starten' }).click()
+      await page.getByRole('checkbox', { name: 'Notion' }).click()
+      await page.getByRole('button', { name: 'Mit Notion einrichten' }).click()
+
+      const flow = page.getByTestId('notion-setup-flow')
+      // The intro: diagram, sentence, label and three chips; nothing to fill in, no visible heading
+      await expect(flow.getByText('Deine Aufgaben bleiben in Notion.')).toBeVisible()
+      await expect(flow.getByText('Das brauchst du')).toBeVisible()
+      await expect(flow.getByRole('list', { name: 'Das brauchst du' }).getByRole('listitem')).toHaveText(['Notion-Konto', 'Aufgaben-Datenbank', 'Token'])
+      await expect(flow.getByPlaceholder('Integrationstoken eingeben')).toBeHidden()
+      await expect(flow.getByRole('heading', { name: 'Vorbereitung' })).toHaveClass(/sr-only/)
+
+      const proceed = page.getByTestId('wizard-proceed')
+      await expect(proceed).toHaveText('Los geht’s')
+      await proceed.click()
+      const token = flow.getByPlaceholder('Integrationstoken eingeben')
+      await expect(token).toBeVisible()
+      await expect(flow.getByRole('heading', { name: 'Notion-Token' })).toBeFocused()
+      await token.fill('secret_typed_token')
+
+      await page.getByTestId('setup-back').click() // from the token step back to the intro
+      await expect(flow.getByText('Deine Aufgaben bleiben in Notion.')).toBeVisible()
+      await expect(token).toBeHidden()
+      await proceed.click()
+      await expect(token).toHaveValue('secret_typed_token')
+
+      await page.getByTestId('setup-back').click()
+      await expect(page.getByTestId('setup-back')).toHaveText('Zurück zur Auswahl')
+      await page.getByTestId('setup-back').click() // from the intro leaves the flow
+      await expect(flow).toHaveCount(0)
+      await expect(page.getByTestId('local-setup-flow')).toBeVisible()
     })
   })
 })

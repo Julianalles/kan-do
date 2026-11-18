@@ -622,6 +622,7 @@
       "stepsLabel": "Setup progress",
       "stepDone": "(completed)",
       "steps": {
+        "intro": "Preparation",
         "token": "Token",
         "database": "Database",
         "mapping": "Properties",
@@ -652,7 +653,19 @@
       "noDataSourcesSelectable": "This database currently has no data sources. Add a data source in Notion or choose a different database.",
       "noDataSources": "This database currently has no data sources. Add at least one data source in Notion.",
       "allDataSourcesUsed": "All data sources of this database are included automatically.",
-      "unnamedDataSource": "Unnamed data source"
+      "unnamedDataSource": "Unnamed data source",
+      "note": {
+        "description": "Kan-Do expects an existing task database. None yet? Create it in Notion first, then come back.",
+        "required": "Required",
+        "optional": "Optional",
+        "title": "Title",
+        "status": "Status",
+        "dueDate": "Due date",
+        "priority": "Priority",
+        "timeBox": "Timebox",
+        "timeSpent": "Time spent",
+        "hint": "The field names may differ in Notion."
+      }
     },
     "customProps": {
       "intro": "Select additional fields from your Notion database for Kan-Do to import (read-only).",
@@ -665,6 +678,7 @@
       "warningLabel": "Warning:",
       "brokenNotice": "The Notion setup is no longer valid. Set it up again.",
       "stepTitle": {
+        "intro": "Preparation",
         "token": "Notion token",
         "database": "Select database",
         "mapping": "Map properties",
@@ -1283,7 +1297,8 @@
       "tagline": "The Kanban board that helps you get your day's tasks done with focus.",
       "version": "Version:",
       "title": "Ready for your tasks",
-      "samples": "Explore with sample tasks",
+      "samples": "Show example",
+      "curious": "Just curious? Then start by looking around the app with sample tasks.",
       "intro": "You can save them locally on this device or connect external apps like Notion or Todoist.",
       "start": "Get started"
     },
@@ -1310,9 +1325,20 @@
         "label": "Connect to Notion",
         "connect": "Connect",
         "connected": "Notion is connected",
-        "loading": "Loading your board …"
+        "loading": "Loading your board …",
+        "start": "Start setup",
+        "intro": {
+          "diagramNotion": "Notion",
+          "diagramKanDo": "Kan-Do",
+          "sentence": "Your tasks stay in Notion. Kan-Do shows them as a board and saves changes back there.",
+          "needs": "What you need",
+          "account": "Notion account",
+          "database": "Task database",
+          "token": "Token"
+        }
       },
       "help": {
+        "intro": "A short orientation before you enter anything.",
         "token": "You need a Notion token. It is stored on this device only.",
         "database": "Pick the database that holds your tasks. It must be shared with your integration.",
         "mapping": "Tell the app which property is the title, the status and the due date. Matching ones are preselected.",

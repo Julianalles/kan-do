@@ -10,7 +10,8 @@
 - Hosts WizardController (steps, validation and saving unchanged) in setup mode and drives it: Weiter, Verbinden, Zurück
 - Back (`BackButton`, with the arrow) goes one step, from the first step it emits `back` (the choice, "Zurück zur Auswahl")
 - Step changes animate one pane (fade and 14px slide, direction by forward or back), instant under reduced motion
-- After each step change focus moves to the step heading so keyboard and screen-reader users keep their place
+- The first step is the intro "Vorbereitung" (NotionSetupIntro, #441): it says what Notion and Kan-Do do and what to have at hand, writes nothing and shows on every run; its button reads "Los geht's" and Back from the token step returns to it. The wizard stays mounted (hidden) behind it, so a typed token survives the trip back
+- Step headings are visually hidden (they repeat the stepper label and the field label, rule candidate #473); after each step change focus moves to the hidden heading so keyboard and screen-reader users keep their place
 - Completion shows a short "Notion ist verbunden" status beat, then emits `complete`
 - Pattern: first-run setup, diverged from the modal wizard (a process the user stays in); step progress via SetupRail
 -->
@@ -45,11 +46,15 @@
             <h2
               ref="headingRef"
               tabindex="-1"
-              class="mb-2 text-lg font-semibold text-highlighted outline-none"
+              class="sr-only outline-none"
             >
               {{ t(STEP_TITLE[stepKey] ?? STEP_TITLE.token!) }}
             </h2>
-            <div class="max-h-[60dvh] overflow-y-auto md:max-h-(--modal-height-wizard)">
+            <div v-if="inIntro" class="max-h-[60dvh] overflow-y-auto md:max-h-(--modal-height-wizard)">
+              <NotionSetupIntro />
+            </div>
+            <!-- Mounted from the start and only hidden behind the intro: a token typed before Back to the intro stays -->
+            <div v-show="!inIntro" class="max-h-[60dvh] overflow-y-auto md:max-h-(--modal-height-wizard)">
               <WizardController
                 ref="wizard"
                 :token="notionConfigStore.config?.token"
@@ -65,12 +70,12 @@
           <div class="mt-6 flex items-center justify-end">
             <UButton
               color="primary"
-              :loading="!!wizard?.isValidating"
-              :disabled="!wizard?.canProceed"
+              :loading="!inIntro && !!wizard?.isValidating"
+              :disabled="!inIntro && !wizard?.canProceed"
               data-testid="wizard-proceed"
               @click="proceed"
             >
-              {{ stepKey === 'status-mapping' ? t('onboarding.flow.notion.connect') : t('notion.modal.next') }}
+              {{ inIntro ? t('onboarding.flow.notion.start') : stepKey === 'status-mapping' ? t('onboarding.flow.notion.connect') : t('notion.modal.next') }}
             </UButton>
           </div>
         </div>
@@ -85,6 +90,7 @@ import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BackButton from '~/components/ui/BackButton.vue';
 import SetupRail from '~/components/setup/SetupRail.vue';
+import NotionSetupIntro from '~/components/setup/NotionSetupIntro.vue';
 import WizardController from '~/components/notion/setup/wizard/WizardController.vue';
 import { useNotionConfigStore } from '~/store/notionConfig';
 import { useIntegrationHealthStore } from '~/store/integrationHealth';
@@ -109,6 +115,7 @@ let doneTimer: ReturnType<typeof setTimeout> | undefined;
 onBeforeUnmount(() => clearTimeout(doneTimer));
 
 const STEP_LABEL: Record<string, string> = {
+  intro: 'notion.modal.steps.intro',
   token: 'notion.modal.steps.token',
   database: 'notion.modal.steps.database',
   mapping: 'notion.modal.steps.mapping',
@@ -119,6 +126,7 @@ const STEP_LABEL: Record<string, string> = {
 
 /** Heading per step, known before the wizard has mounted (no height change when it appears) */
 const STEP_TITLE: Record<string, string> = {
+  intro: 'notion.wizard.stepTitle.intro',
   token: 'notion.wizard.stepTitle.token',
   database: 'notion.wizard.stepTitle.database',
   mapping: 'notion.wizard.stepTitle.mapping',
@@ -130,10 +138,12 @@ const STEP_TITLE: Record<string, string> = {
 /** The steps of this run: the priority step exists only when a priority field is mapped */
 const stepKeys = computed<string[]>(() => {
   const hasPriority = !!wizard.value?.propertyMapping?.priority;
-  return ['token', 'database', 'mapping', 'custom-properties', ...(hasPriority ? ['priority-mapping'] : []), 'status-mapping'];
+  return ['intro', 'token', 'database', 'mapping', 'custom-properties', ...(hasPriority ? ['priority-mapping'] : []), 'status-mapping'];
 });
 const railSteps = computed(() => stepKeys.value.map((key) => ({ key, label: t(STEP_LABEL[key] ?? key) })));
-const stepKey = computed(() => wizard.value?.step ?? 'token');
+/** The intro comes before the wizard: it is not a wizard step, so the flow tracks it itself (#441) */
+const inIntro = ref(true);
+const stepKey = computed(() => (inIntro.value ? 'intro' : wizard.value?.step ?? 'token'));
 const stepIndex = computed(() => Math.max(0, stepKeys.value.indexOf(stepKey.value)));
 const isFirst = computed(() => stepIndex.value === 0);
 
@@ -155,10 +165,19 @@ watch(stepIndex, async (next, prev) => {
 
 function goBack() {
   if (isFirst.value) return emit('back');
-  wizard.value?.back();
+  // The token is the wizard's first step: Back from it returns to the intro
+  if (wizard.value?.step === 'token' || !wizard.value) {
+    inIntro.value = true;
+    return;
+  }
+  wizard.value.back();
 }
 
 function proceed() {
+  if (inIntro.value) {
+    inIntro.value = false;
+    return;
+  }
   const w = wizard.value;
   if (!w) return;
   if (w.step === 'priority-mapping') w.priorityMappingStep?.save?.();

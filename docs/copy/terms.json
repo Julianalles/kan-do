@@ -1019,5 +1019,21 @@
     "avoidEn": [],
     "status": "proposed",
     "note": "The user's own wording from the issue (#383). Not \"Fokus\": the board's dusk overlay (settings.focus, \"Jetzt-Karte im Fokus\") is a different feature. The window's buttons are \"Pausieren\" / \"Fortsetzen\" (EN Pause / Resume), \"Als erledigt markieren\" and \"Kan-Do öffnen\" (the pill's aria-labels; the pill shows icons only)."
+  },
+  {
+    "id": "notion-setup-preparation",
+    "concept": "The first step of the Notion setup on the welcome page: what to have at hand before entering the token (#441)",
+    "de": "Vorbereitung",
+    "en": "Preparation",
+    "avoidDe": [
+      "Voraussetzungen",
+      "Bevor es losgeht"
+    ],
+    "avoidEn": [
+      "Prerequisites",
+      "Before you start"
+    ],
+    "status": "proposed",
+    "note": "Stepper label and hidden step heading; the intro pane itself has no visible heading."
   }
 ]

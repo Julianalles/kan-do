@@ -1,6 +1,6 @@
 /**
  * @module notionWizard
- * @description Drives the Notion setup wizard (token, database, properties, further properties, status) on the
+ * @description Drives the Notion setup wizard (intro on the welcome page, token, database, properties, further properties, status) on the
  * Notion stub, for the specs that end a flow with a real connection (welcome "In Notion", "Verbinden", #324).
  */
 
@@ -20,6 +20,8 @@ export async function completeNotionWizard(page: Page, token: string = notionStu
   const proceed = page.getByTestId('wizard-proceed')
   const currentStep = dialog.locator('[aria-current="step"]').first()
 
+  // The welcome page's setup starts with the intro "Vorbereitung" (#441); the settings dialog has none
+  if ((await proceed.innerText().catch(() => '')).trim() === 'Los geht’s') await proceed.click()
   await dialog.getByPlaceholder('Integrationstoken eingeben').fill(token)
   for (let press = 0; press < 16; press++) {
     await expect(proceed).toBeEnabled()
