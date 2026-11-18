@@ -27,7 +27,7 @@
     </TaskSheetHost>
     <!-- Closed at start: each loads on its first open (#288) and stays mounted after -->
     <DayCloseDialog v-if="dayCloseOpened" />
-    <NewDayRecap v-if="recapOpened" :instant="coverBoard" />
+    <NewDayRecap v-if="recapOpened" />
     <FeedbackDialog v-if="feedbackOpened" />
     <ElementPickerBar v-if="pickerOpened" />
 
