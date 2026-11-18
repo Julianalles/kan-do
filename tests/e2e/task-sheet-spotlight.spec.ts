@@ -100,9 +100,9 @@ test.describe('desktop, scrolled to the top', () => {
 
 async function expectOneTone(page: Page) {
   {
-    // The empty margin left of the first column: inside the row (y 8..40) and below it
+    // The empty margin right of the last column (the morph sheet sits over the first column, #468): inside the row (y 8..40) and below it
     const sample = async (y: number) => {
-      const png = await page.screenshot({ clip: { x: 8, y, width: 24, height: 24 }, animations: 'disabled' })
+      const png = await page.screenshot({ clip: { x: 1248, y, width: 24, height: 24 }, animations: 'disabled' })
       return page.evaluate(async (base64) => {
         const image = new Image()
         image.src = `data:image/png;base64,${base64}`

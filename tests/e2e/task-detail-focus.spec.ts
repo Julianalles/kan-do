@@ -1,10 +1,11 @@
 /**
- * E2E: task sheet (USlideover desktop / UDrawer mobile) focus and dismissal behaviour.
+ * E2E: task sheet (morph sheet on desktop #468 / UDrawer mobile) focus and dismissal behaviour.
  * Covers initial focus, focus trap, focus return, Escape vs inline edit,
  * close animation before navigation and reduced motion (issue #31).
  */
 import { test, expect, type Page } from '@playwright/test'
 import { seedLocalBoard } from './helpers/seed'
+import { settleAnimations } from './helpers/settle'
 
 const CARD = '[data-task-id="seed-open-1"]'
 
@@ -28,17 +29,20 @@ async function openFromCard(page: Page) {
 const insideDialog = (page: Page) =>
   page.evaluate(() => !!document.activeElement?.closest('[role="dialog"]'))
 
-test.describe('desktop slideover', () => {
+test.describe('desktop sheet', () => {
   test.use({ viewport: { width: 1440, height: 900 } })
 
-  test('is a right-hand sheet with an accessible name', async ({ page }) => {
+  test('is a card-sized sheet inside the window with an accessible name', async ({ page }) => {
     const dialog = await openFromCard(page)
-    await page.waitForTimeout(400)
+    await settleAnimations(page)
     const box = await dialog.boundingBox()
     expect(box).toBeTruthy()
-    expect(box!.x + box!.width).toBeGreaterThan(1440 - 2)
-    expect(box!.width).toBeLessThanOrEqual(576 + 2)
-    expect(box!.height).toBeGreaterThan(890)
+    expect(box!.width).toBeCloseTo(720, 0)
+    expect(box!.height).toBeLessThan(600)
+    expect(box!.x).toBeGreaterThanOrEqual(16 - 1)
+    expect(box!.y).toBeGreaterThanOrEqual(16 - 1)
+    expect(box!.x + box!.width).toBeLessThanOrEqual(1440 - 16 + 1)
+    expect(box!.y + box!.height).toBeLessThanOrEqual(900 - 16 + 1)
     await expect(page.getByRole('dialog', { name: 'Konzept ausarbeiten' })).toBeVisible()
   })
 
