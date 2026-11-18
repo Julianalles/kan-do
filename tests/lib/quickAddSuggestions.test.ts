@@ -22,10 +22,14 @@ describe('quickAddSuggestions (#649)', () => {
   })
 
   it('Thema and Aktivität are a combobox (#434): all values, no pills, no separate rest', () => {
-    const step = activityStep([], ['A', 'B', 'C', 'D', 'E'], null)
-    expect(step.all).toEqual(['A', 'B', 'C', 'D', 'E'])
-    expect(step.suggestions).toEqual([])
-    expect(step.rest).toEqual([])
+    const activities = activityStep([], ['A', 'B', 'C', 'D', 'E'], null)
+    expect(activities.all).toEqual(['A', 'B', 'C', 'D', 'E'])
+    expect(activities.suggestions).toEqual([])
+    expect(activities.rest).toEqual([])
+    const topics = topicStep([], ['A', 'B', 'C', 'D', 'E'])
+    expect(topics.all).toEqual(['A', 'B', 'C', 'D', 'E'])
+    expect(topics.suggestions).toEqual([])
+    expect(topics.rest).toEqual([])
   })
 
   it('activities: the chosen topic first, then the board', () => {
@@ -76,7 +80,7 @@ describe('quickAddSuggestions (#649)', () => {
       expect(existingValueFor('', ['Kunde A'], local)).toBeNull()
     })
 
-    it('filters the Mehr list by the text, any case; blank shows everything', () => {
+    it('filters a list by the text, any case; blank shows everything', () => {
       expect(filterRest(['Büro', 'Kunde A', 'Kunde B'], ' kunde ')).toEqual(['Kunde A', 'Kunde B'])
       expect(filterRest(['Büro'], 'xyz')).toEqual([])
       expect(filterRest(['Büro', 'Kunde A'], '')).toEqual(['Büro', 'Kunde A'])

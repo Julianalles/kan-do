@@ -110,8 +110,8 @@ export function newValueFor(query: string, all: readonly string[], rules: NewVal
   return text && !all.some((value) => same(value, text)) ? text : null
 }
 
-/** The values of the Mehr list that contain the typed text (any case); everything when it is blank */
-export function filterRest(rest: readonly string[], query: string): string[] {
+/** The values of a list that contain the typed text (any case); everything when it is blank */
+export function filterRest(values: readonly string[], query: string): string[] {
   const text = query.replace(/\s+/g, ' ').trim().toLocaleLowerCase()
-  return text ? rest.filter((value) => value.toLocaleLowerCase().includes(text)) : [...rest]
+  return text ? values.filter((value) => value.toLocaleLowerCase().includes(text)) : [...values]
 }
