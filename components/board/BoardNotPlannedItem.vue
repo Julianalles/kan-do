@@ -129,11 +129,11 @@ function openFromKey(event: KeyboardEvent) {
   outline-offset: var(--focus-ring-offset);
 }
 
-/* The pick button on the paper right of the card, towards Offen. Quiet at rest, full under the pointer and on focus. */
+/* The pick button centred on the card's right edge, towards Offen (#467). Quiet at rest, full under the pointer and on focus. */
 .not-planned__pick {
   position: absolute;
   top: 50%;
-  left: calc(50% + min(var(--task-card-width), 100% - 1.5rem) / 2 + 0.375rem);
+  left: calc(50% + min(var(--task-card-width), 100% - 1.5rem) / 2 - 1rem); /* #467: the button's centre on the card's right edge (2 rem button) */
   translate: 0 -50%;
 }
 

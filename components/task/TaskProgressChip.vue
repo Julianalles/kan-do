@@ -3,12 +3,12 @@
 @kind primitive
 @category display
 @description The timebox label of a task card as its progress item (#388); in Jetzt a timer bar that shrinks with the remaining time (#450)
-@usage First item of the TaskCard footer (#584; not on the add sheet's Jetzt draft)
+@usage Item of the TaskCard footer after the source icon, first when there is none (#584, #471; not on the add sheet's Jetzt draft)
 @avoid Only the timebox label of a task card; not for the add sheet's Jetzt draft.
 @responsibility
 - Outside Jetzt: a light grey chip "45 min" (track and fill half a step lighter since #584) whose grey fill shows the spent share of the timebox (no colour, also not on overrun or done cards)
 - In Jetzt: once the card has settled it springs wider (x axis only) into a bar across the whole footer, anchored at its own
-  left edge (the footer start, #584) and growing to the right over the source icon, carry-over dots and priority badge: "12 min ...... 45 min", fill primary, warning above 80 percent
+  left edge (the footer start, or right after the source icon, #584, #471) and growing to the right over the carry-over dots and priority badge: "12 min ...... 45 min", fill primary, warning above 80 percent
 - In Jetzt the fill is a timer (#450, as the Now window's line, `getTimerBarShare`): it starts full and shrinks toward the left
   with the remaining time; the colour still follows the spent share; over the timebox it is full and warning again, set at
   once (the step into the overrun never plays a refill). The labels stay spent and timebox, the progressbar value stays the
@@ -37,8 +37,8 @@
   without a timebox the name is the spent time and there is no value
 - The timer bar keeps a minimum fill (2.5 rem: the icon with its padding), so the last stretch never shows a sliver and the icon stays on the fill; the spent label can still straddle the fill's edge (both sides keep 4.5:1)
 - Accepted: the task sheet's ring still shows the spent share while the Jetzt bar shows the share left (a record next to a timer); the overrun differs from a fresh start by colour only (a "+12 min" label would be new copy, out of scope of #450)
-- Accepted: in Jetzt the bar covers the source icon, carry-over dots and priority badge (TaskCard makes the group after the
-  chip inert); the spring overshoot may poke a few px past the footer padding, inside the card
+- Accepted: in Jetzt the bar covers the carry-over dots and priority badge (TaskCard makes the group after the
+  chip inert); the source icon (#471) stands before the chip and stays visible, so the bar's width is the footer's less that unit (`--footer-w`, set by TaskCard); the spring overshoot may poke a few px past the footer padding, inside the card
 -->
 <template>
   <Transition name="chip-pop" :appear="popsOnMount">
@@ -246,7 +246,7 @@ watch(() => props.isNow, (now) => {
   --chip-fill: color-mix(in oklab, var(--ui-color-neutral-200), var(--ui-color-neutral-300)); /* #584 D2: half a step lighter than neutral-300 too; neutral-200 would sit at 1.07:1 on this track, so the spent share would vanish */
   --chip-accent: var(--ui-text-muted);
   position: absolute;
-  left: 0; /* #584: the chip is the footer's first item; the bar grows to the right */
+  left: 0; /* #584, #471: the bar starts at the chip's own position (the footer start, or after the source icon) and grows to the right */
   top: 50%;
   transform: translateY(-50%);
   display: inline-flex;
@@ -280,7 +280,7 @@ watch(() => props.isNow, (now) => {
 .chip--primary { --chip-fill: var(--ui-color-primary-200); --chip-accent: var(--ui-color-primary-600); }
 .chip--warning { --chip-fill: var(--ui-color-warning-200); --chip-accent: var(--ui-color-warning-600); }
 
-/* Jetzt: a bar across the whole footer, over the items after the chip */
+/* Jetzt: a bar from the chip to the footer's end (--footer-w is the footer less the source unit before it), over the items after the chip */
 .chip--now {
   width: var(--footer-w, 100%);
   height: var(--chip-h-now);

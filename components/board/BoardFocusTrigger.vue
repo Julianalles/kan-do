@@ -14,7 +14,7 @@
   <UButton
     v-if="hasFocusJob"
     ref="button"
-    icon="i-ph-funnel-simple"
+    icon="i-ph-funnel"
     color="neutral"
     variant="ghost"
     class="board-focus-trigger"
