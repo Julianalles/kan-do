@@ -1230,7 +1230,7 @@
       "defaultFallback": "New tasks will be saved locally afterwards.",
       "timerStops": "The running timer on “{title}” will stop.",
       "unsyncedTitle": "Changes not synced yet",
-      "unsyncedReachable": "{n} change isn't saved in {source} yet. Sync first, or it's lost. | {n} changes aren't saved in {source} yet. Sync first, or they are lost.",
+      "unsyncedReachable": "{n} change isn't saved in {source} yet. Sync first, or it's lost. | {n} changes aren't saved in {source} yet. Sync first, or they're lost.",
       "unsyncedUnreachable": "{source} can't be reached right now. {n} change will be lost when you disconnect. | {source} can't be reached right now. {n} changes will be lost when you disconnect.",
       "syncFailedTitle": "Not everything was synced",
       "syncFailed": "{source} stays connected. Try again later or disconnect anyway.",
