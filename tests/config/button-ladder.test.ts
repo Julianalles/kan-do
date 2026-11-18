@@ -93,7 +93,7 @@ const TWO_LINE_BUTTONS = ['components/nav/MorePanel.vue']
  */
 const SMALLER_BY_DESIGN: Record<string, string> = {
   'components/board/BoardColumnHeader.vue': 'round add button on the 32 px title line, out of the flow',
-  'assets/css/board.css': '`.plan-arrow`: round arrow beside a card, 32 px like the header add button',
+  'assets/css/board.css': '`.plan-arrow`: round soft-green arrow centred on the edge of a card (#467), 32 px like the header add button',
   'components/task/TaskStackHeader.vue': 'round close button in the stack header, same look as the header add button',
   'components/task/TaskCard.vue': 'the card-corner menu button (#296): a 28 px circle with a 44 px hit area, tied to the card corner',
   'components/board/NewCardFlow.vue': '`.ncf__nav` on a 128 px card: the head ends 12 px above the answer row',

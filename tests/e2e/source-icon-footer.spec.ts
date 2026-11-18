@@ -96,6 +96,28 @@ test.describe('source icon: shown on a mixed board only', () => {
   })
 })
 
+  test('in Jetzt the icon stays visible at the far left and the bar runs from the chip to the footer end (#471)', async ({ context, page }) => {
+    await seedMixedBoard(context, MIXED_SEED_TASKS.map((t) => (t.id === 'page-2' ? { ...t, timeBoxSeconds: 1800, timeSpentSeconds: 600 } : t)))
+    await blockNotion(page)
+    await page.goto('/tasks')
+    const jetzt = card(page, 'page-2')
+    const chip = jetzt.getByTestId('task-progress-chip')
+    await expect(chip).toHaveClass(/chip--now/)
+    await expect(sourceIcon(jetzt)).toBeVisible()
+    await expect(jetzt.getByTestId('task-footer-lead')).toHaveJSProperty('inert', true)
+    // The bar springs wide: poll until it has settled on the footer's end
+    await expect.poll(async () => {
+      const footer = await box(jetzt.locator('[data-slot="footer"] .task-footer'))
+      const icon = await box(sourceIcon(jetzt))
+      const bar = await box(chip)
+      return {
+        iconAtStart: Math.abs(icon.x - footer.x) <= 1,
+        barAfterIcon: bar.x >= icon.x + icon.width - 1,
+        barEndsAtFooter: Math.abs(bar.x + bar.width - (footer.x + footer.width)) <= 2,
+      }
+    }, { timeout: 5000 }).toEqual({ iconAtStart: true, barAfterIcon: true, barEndsAtFooter: true })
+  })
+
 for (const { name, viewport } of [{ name: '1280px', viewport: DESKTOP }, { name: '390px', viewport: MOBILE }]) {
   test.describe(`worst-case footer at ${name}`, () => {
     test.use({ viewport })
@@ -113,7 +135,7 @@ for (const { name, viewport } of [{ name: '1280px', viewport: DESKTOP }, { name:
       // Layout can still settle (fonts, the offline cloud): retry the geometry until it holds
       let cardBox = await box(worst)
       await expect(async () => {
-        // Order (#584): the timebox chip, then the source icon, the cloud 4px to its right, then the dots; no activity badge
+        // Order (#471): the source icon at the far left, the cloud 4px to its right, then the timebox chip, then the dots; no activity badge
         const chip = await box(worst.getByTestId('task-progress-chip'))
         const icon = await box(sourceIcon(worst))
         const cloud = await box(worst.getByTestId('task-save-pending'))
@@ -121,9 +143,11 @@ for (const { name, viewport } of [{ name: '1280px', viewport: DESKTOP }, { name:
         // The chip never shrinks (the dots clip first): its label is not cut off
         const chipClip = await worst.getByTestId('task-progress-chip').evaluate((el) => el.scrollWidth - el.clientWidth)
         expect(chipClip).toBeLessThanOrEqual(1)
-        expect(icon.x).toBeGreaterThanOrEqual(chip.x + chip.width - 1)
+        const footerStart = (await box(worst.locator('[data-slot="footer"] .task-footer'))).x
+        expect(Math.abs(icon.x - footerStart)).toBeLessThanOrEqual(1)
         expect(cloud.x - (icon.x + icon.width)).toBeCloseTo(4, 0)
-        expect(dots.x).toBeGreaterThanOrEqual(cloud.x + cloud.width - 1)
+        expect(chip.x).toBeGreaterThanOrEqual(cloud.x + cloud.width - 1)
+        expect(dots.x).toBeGreaterThanOrEqual(chip.x + chip.width - 1)
         await expect(worst.locator('[data-slot="footer"]').getByText('Konzeption und Abstimmung')).toHaveCount(0)
 
         // One row: every footer item is vertically inside the footer row, none below another

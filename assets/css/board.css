@@ -398,9 +398,11 @@
 
 /**
  * The two arrows of the place "Alle" (#354): "Für heute einplanen" beside a "Meine Aufgaben" card (BoardNotPlanned) and
- * "Nicht heute" beside an Offen card (SortableTaskWrapper). The look of the Offen header's add button
- * (BoardColumnHeader): round, soft grey on the canvas, one step deeper on hover. Unlayered, so the size beats the
- * button theme's utilities; each host places its own.
+ * "Nicht heute" beside an Offen card (SortableTaskWrapper). Sit centred on the card's edge (#467), in the soft primary
+ * look drawn here (the call sites stay icon-only ghost, the ladder's rule): the primary wash (forest 100, opaque, so the
+ * card edge does not show through the half on the card) with the green arrow (forest 600, 4.5:1 on the wash), one step
+ * deeper on hover. Not the solid button: The One Lamp Rule allows one per view (decision D2 of #467). Unlayered, so the
+ * look and the size beat the button theme's utilities; each host places its own.
  */
 .plan-arrow {
   z-index: var(--z-column-footer);
@@ -411,18 +413,34 @@
   padding: 0;
   justify-content: center;
   border-radius: 9999px;
-  background-color: var(--fill-on-canvas);
-  color: var(--ui-text);
+  background-color: var(--ui-color-primary-100);
+  color: var(--ui-color-primary-600);
   cursor: pointer;
 }
 
-.plan-arrow:hover {
-  background-color: var(--fill-on-canvas-hover);
+.plan-arrow:hover,
+.plan-arrow:active {
+  background-color: var(--ui-color-primary-200);
 }
 
 @media (prefers-reduced-motion: no-preference) {
   .plan-arrow {
     transition: background-color var(--duration-fast) var(--ease-standard), color var(--duration-fast) var(--ease-standard), opacity var(--duration-fast) var(--ease-standard);
+  }
+}
+
+/* The half of the arrow on the card (1 rem) reaches past the card's own 0.75 rem text inset: title and topic keep 0.5 rem
+   more on the arrow's side, so the arrow never covers a letter (#467). A phone and a touch-only device have their own
+   corner room (`.task-text--menu` in TaskCard) and no arrow on a card's edge. */
+@media (--desktop) and (hover: hover) {
+  .task-wrapper--not-today .task-topic,
+  .task-wrapper--not-today .task-title-text {
+    padding-left: 0.5rem;
+  }
+
+  .not-planned__card .task-topic,
+  .not-planned__card .task-title-text {
+    padding-right: 0.5rem;
   }
 }
 
@@ -433,7 +451,6 @@
     height: 1.75rem;
     min-width: 0;
     min-height: 0;
-    color: var(--ui-text-muted);
   }
 
   .plan-arrow::after {

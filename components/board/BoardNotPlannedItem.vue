@@ -7,7 +7,7 @@
 @avoid Not a board card: no status, no card menu, no delete key, never a drop target for another card (SortableTaskWrapper is the card of a column). Not for a static list of cards (trash, recap).
 @responsibility
 - Card: TaskCard as the board shows it, always with the source icon; a click, a tap or Enter on the focused card opens its sheet (`open`)
-- Pick: a round button ("Für heute einplanen", named with the task's title; `pick`). Desktop: on the paper right of the card, towards Offen, hidden at rest and shown on hover and keyboard focus (#373; touch-only devices keep it visible). Phone: in the card's top right corner. A press on it never starts a drag
+- Pick: a round button ("Für heute einplanen", named with the task's title; `pick`). Soft primary look (#467, not the solid button: One Lamp Rule). Desktop: centred on the card's right edge, towards Offen, hidden at rest and shown on hover and keyboard focus (#373; touch-only devices keep it visible). Phone: in the card's top right corner. A press on it never starts a drag
 - Drag (#355): the `li` is a dnd-kit sortable of the group `NOT_PLANNED_GROUP` that accepts only itself, so the cards of this side never make room for one another; the card box is the handle (pointer, touch hold, Space). dnd-kit moves the `li` into Offen's list while it previews a slot there; `useBoardDndKit` puts it back before it stores anything
 - Named for assistive tech like a board card: role=group, the task's title, the board's role description
 -->
@@ -129,11 +129,11 @@ function openFromKey(event: KeyboardEvent) {
   outline-offset: var(--focus-ring-offset);
 }
 
-/* The pick button on the paper right of the card, towards Offen. Quiet at rest, full under the pointer and on focus. */
+/* The pick button centred on the card's right edge, towards Offen (#467). Quiet at rest, full under the pointer and on focus. */
 .not-planned__pick {
   position: absolute;
   top: 50%;
-  left: calc(50% + min(var(--task-card-width), 100% - 1.5rem) / 2 + 0.375rem);
+  left: calc(50% + min(var(--task-card-width), 100% - 1.5rem) / 2 - 1rem); /* #467: the button's centre on the card's right edge (2 rem button) */
   translate: 0 -50%;
 }
 

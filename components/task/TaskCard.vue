@@ -6,13 +6,13 @@
 @usage Used within BoardColumn to render task items with their properties and interactive elements
 @avoid The board card; static read-only copies (trash, day close, recap) use their own rows, drafts use TaskDraftCard.
 @responsibility
-- Displays task information: the topic first, the title below it (#584), then the footer (timebox chip, source icon,
-  carried-over dots, priority). The activity is not on the card (#584): the sheet, the grouping and the statistics keep it.
-- Shows the timebox as the progress chip (#388) at the footer start (#584): a light grey chip with the spent share outside
-  Jetzt, a footer-wide bar in Jetzt that grows to the right from the chip's own position; the card has no progress ring
+- Displays task information: the topic first, the title below it (#584), then the footer (source icon, timebox chip,
+  carried-over dots, priority; #471). The activity is not on the card (#584): the sheet, the grouping and the statistics keep it.
+- Shows the timebox as the progress chip (#388) after the source icon, which is absent on a one-source board (#584, #471): a light grey chip with the spent share outside
+  Jetzt, a bar in Jetzt that grows to the right from the chip's own position to the footer's end, over the dots and the priority badge, never over the source icon; the card has no progress ring
   (the task sheet keeps its own)
 - Shows the carried-over dots (#99) for not-done cards, with the numeral only past the dot cap (#584)
-- Shows the source icon at the footer start on a board with tasks from 2+ sources (#323) and, with `sourceIcon`, on every "Meine Aufgaben" card (#354), the cloud "save pending" icon next to it while the task's source cannot sync (#319)
+- Shows the source icon at the far left of the footer (#471) on a board with tasks from 2+ sources (#323) and, with `sourceIcon`, on every "Meine Aufgaben" card (#354), the cloud "save pending" icon next to it while the task's source cannot sync (#319)
 - Manages task timer functionality (for Progress status)
 - Handles visual states for different task statuses
 - Done (#124): regular sheet, struck toned title, green corner check, and the
@@ -114,9 +114,25 @@
       <div
         ref="footerEl"
         class="task-footer flex w-full items-center gap-2"
-        :style="{ '--footer-w': `${footerWidth}px` }"
+        :style="{ '--footer-w': `${barWidth}px` }"
       >
-        <!-- Timebox as the progress item (#388), first in the footer (#584); the Jetzt draft shows its running time
+        <!-- Source icon (#323) and the cloud (#319): one unit with a 4px gap, the footer's first item (#471). The icon shows
+             only on a board with tasks from 2+ sources (never on the add sheet's draft). The sync button names the source
+             that is the problem; the card shows nothing else about source health. It is not covered by the Jetzt bar,
+             which starts at the chip after it. -->
+        <span v-if="showSourceIcon || savePending" ref="sourceEl" class="flex shrink-0 items-center gap-1" data-testid="task-footer-source">
+          <TaskSourceIcon v-if="showSourceIcon" :source="task.source" />
+          <UIcon
+            v-if="savePending"
+            name="i-ph-cloud-arrow-up"
+            class="task-save-pending size-4 shrink-0 text-muted"
+            role="img"
+            :aria-label="savePendingLabel"
+            :title="savePendingLabel"
+            data-testid="task-save-pending"
+          />
+        </span>
+        <!-- Timebox as the progress item (#388), after the source unit (#584, #471); the Jetzt draft shows its running time
              in the group below instead. It sits outside the inert group: it is the progressbar and stays in the
              accessibility tree; in Jetzt its bar grows to the right over the rest of the footer. -->
         <TaskProgressChip
@@ -127,23 +143,9 @@
           :is-now="isCurrent"
         />
         <!-- Under the Jetzt bar (#388) the group is covered: inert keeps it out of the tab order and the click path, so
-             no focus ring hides under the bar and a tap on the bar reaches the card -->
+             no focus ring hides under the bar and a tap on the bar reaches the card. The source unit before the chip is
+             not covered. -->
         <div class="flex min-w-0 items-center gap-2" :inert="barCoversFooter || undefined" data-testid="task-footer-lead">
-          <!-- Source icon (#323) and the cloud (#319): one unit with a 4px gap. The icon shows
-               only on a board with tasks from 2+ sources (never on the add sheet's draft). The sync button names
-               the source that is the problem; the card shows nothing else about source health. -->
-          <span v-if="showSourceIcon || savePending" class="flex shrink-0 items-center gap-1">
-            <TaskSourceIcon v-if="showSourceIcon" :source="task.source" />
-            <UIcon
-              v-if="savePending"
-              name="i-ph-cloud-arrow-up"
-              class="task-save-pending size-4 shrink-0 text-muted"
-              role="img"
-              :aria-label="savePendingLabel"
-              :title="savePendingLabel"
-              data-testid="task-save-pending"
-            />
-          </span>
           <!-- Jetzt draft (#125): the running time sits at the start of the footer, the part of the
                card the open sheet never covers -->
           <span
@@ -168,7 +170,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onBeforeUnmount, inject } from "vue";
+import { ref, computed, watch, nextTick, onBeforeUnmount, inject } from "vue";
 import { TASK_CARD_MENU_KEY } from "~/lib/taskCardMenu";
 import { TaskStatus } from "~/types/taskStatus";
 import type { Task } from "~/types/task";
@@ -343,9 +345,13 @@ const elapsedLabel = computed(() => {
   return `${value} ${unit}`;
 });
 
-/** The chip in Jetzt spans the footer: its measured width is the bar's target (#388) */
+/** The chip in Jetzt spans the footer from its own position: the footer's measured width less the source unit is the bar's target (#388, #471) */
 const footerEl = ref<HTMLElement | null>(null);
 const footerWidth = ref(0);
+/** The source unit (#471) sits before the chip and is not covered: the bar starts after it (and the footer's gap) */
+const sourceEl = ref<HTMLElement | null>(null);
+const sourceWidth = ref(0);
+const barWidth = computed(() => Math.max(0, footerWidth.value - sourceWidth.value));
 let footerObserver: ResizeObserver | null = null;
 
 const cardUi = {
@@ -354,16 +360,26 @@ const cardUi = {
   footer: "",
 };
 
+function measureFooter() {
+  const el = footerEl.value;
+  if (!el) return;
+  footerWidth.value = el.clientWidth;
+  const unit = sourceEl.value;
+  sourceWidth.value = unit ? unit.offsetWidth + (parseFloat(getComputedStyle(el).columnGap) || 0) : 0;
+}
+
 onMounted(() => {
   if (import.meta.client && footerEl.value) {
-    const el = footerEl.value;
-    footerWidth.value = el.clientWidth;
+    measureFooter();
     if (typeof ResizeObserver !== "undefined") {
-      footerObserver = new ResizeObserver(() => { footerWidth.value = el.clientWidth; });
-      footerObserver.observe(el);
+      footerObserver = new ResizeObserver(measureFooter);
+      footerObserver.observe(footerEl.value);
     }
   }
 });
+
+// The unit appears and disappears (the cloud, a second source joining the board) without the footer resizing
+watch([showSourceIcon, savePending], () => nextTick(measureFooter));
 
 onBeforeUnmount(() => footerObserver?.disconnect());
 
