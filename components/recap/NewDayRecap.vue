@@ -122,6 +122,7 @@ import { useNewDayRecap } from '~/composables/useNewDayRecap'
 import { useNewDay } from '~/composables/useNewDay'
 import { useBoardPlace } from '~/composables/useBoardPlace'
 import { armLift, boardPlaceLocation } from '~/lib/boardPlace'
+import { cssTimeMs } from '~/lib/cssTime'
 import { useLocaleFormat } from '~/composables/useLocaleFormat'
 import { useIsDesktop } from '~/composables/useIsDesktop'
 import { dayMonthName } from '~/utils/recapDay'
@@ -263,7 +264,7 @@ function leaveOnce(options: { archive?: boolean } = {}) {
   }
   closing.value = true
   // Wait for the photo's own transition; the timer (its duration read from the CSS) is the net if it never ends.
-  const wait = Number.parseFloat(getComputedStyle(stage).getPropertyValue('--recap-curtain-duration')) || 0
+  const wait = cssTimeMs(getComputedStyle(stage).getPropertyValue('--recap-curtain-duration'))
   curtainTimer = setTimeout(endCurtain, wait + 100)
   stage.querySelector('.recap-stage__photo')?.addEventListener('transitionend', onPhotoEnd)
 }

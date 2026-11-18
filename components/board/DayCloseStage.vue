@@ -97,6 +97,7 @@ import DayCloseTopics from '~/components/board/DayCloseTopics.vue'
 import { useDayClose, useDayCloseData } from '~/composables/useDayClose'
 import { dayCloseBlocked, useDayCloseAction } from '~/composables/useDayCloseAction'
 import { useLocaleFormat } from '~/composables/useLocaleFormat'
+import { cssTimeMs } from '~/lib/cssTime'
 import { timeBoxGroups, topicRows } from '~/utils/dayClose'
 
 defineOptions({ name: 'DayCloseStage' })
@@ -176,7 +177,7 @@ function leave(finish: boolean) {
   }
   closing.value = true
   // Wait for the photo's own transition; the timer (its duration read from the CSS) is the net if it never ends.
-  const wait = Number.parseFloat(getComputedStyle(stage).getPropertyValue('--recap-curtain-duration')) || 0
+  const wait = cssTimeMs(getComputedStyle(stage).getPropertyValue('--recap-curtain-duration'))
   curtainTimer = setTimeout(endCurtain, wait + 100)
   stage.querySelector('.recap-stage__photo')?.addEventListener('transitionend', onPhotoEnd)
 }
