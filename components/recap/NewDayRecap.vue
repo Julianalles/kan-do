@@ -11,7 +11,7 @@ One centred column (max 44rem) with both decks side by side from 768px, one deck
 - Not modal (#245), teleported to `#recap-stage-host` (app.vue) so the inert board does not take it along and the bar stays above it: a `role="region"` named by the headline, no scrim, no focus trap. The app bar stays usable and sits above the stage (`--z-bar`); the board is `inert` behind it (`pages/tasks.vue`). Going to settings and coming back finds the same recap, because the state lives in `useNewDayRecap`
 - Focus starts on "Tag neu planen"; both buttons and Escape inside the stage call `leave()`: "Tag neu planen" goes to "Alle" first and then starts the day fresh (`useNewDay().freshStart()`, #387: the only thing here that moves a card) and archives yesterday's done tasks (`leave({ archive: true })`), "Überspringen und Board anzeigen" goes to Heute when "Alle" shows and moves and archives nothing (the done tasks stay in Erledigt under the "Gestern erledigt" note, whose "Gesehen" hides them), Escape only dismisses, never navigates, moves and archives nothing; `finishLeave()` after the curtain hands focus to the board
 - The app bar follows the open state (#428): while the recap is open its pill is Rückblick + Statistik (useAppNav), and leaving it turns Rückblick into Alle + Heute.
-- Open as the page mounts (an app start, or back from another page, #427): `pages/tasks.vue` runs the day check in setup and hides the board (`data-recap-cover`) until the recap is left, and the stage takes `instant` (no fade-in), so the board is never seen before it
+- Open as the page mounts (an app start, or back from another page, #427): `pages/tasks.vue` runs the day check in setup and hides the board (`data-recap-cover`) until the recap is left, so the board is never seen before it; the stage fades in over 1.4 s ("Dawn", #463, `--recap-enter-duration`) also then, over the paper colour
 - Curtain (assets/css/recap-stage.css): `leave()` runs at once (archive, marker, the board is live), the stage stays mounted while the content fades (200 ms) and only the photo slides up (700 ms, ease in-out; "Tag neu planen" lifts it 1.4 s while the board glides to Planung beneath it, `data-pace="lift"`, #433) with a feathered edge; reduced motion: instant. A second click or Escape during the curtain does nothing
 - The photo is the welcome page's (`public/welcome`), decoration only (`alt=""`); until it loads, or if it fails, the layer is the paper colour
 - Phone switcher ("n noch offen" / "n erledigt", a `UTabs` pill: `role="tab"`, `aria-selected`): one RecapDeck mounted at a time, starts on "noch offen" (on "erledigt" when nothing is open, then without a switcher)
@@ -27,7 +27,6 @@ One centred column (max 44rem) with both decks side by side from 768px, one deck
       role="region"
       :aria-labelledby="titleId"
       :data-closing="closing || undefined"
-      :data-instant="instant || undefined"
       :inert="closing || undefined"
       data-testid="new-day-recap"
       data-window-drag-layer
@@ -129,9 +128,6 @@ import { dayMonthName } from '~/utils/recapDay'
 import { weekdayName } from '~/utils/doneDayLabel'
 
 defineOptions({ name: 'NewDayRecap' })
-
-/** The recap was open as the page mounted (#427): the board behind is hidden, so the stage appears at once, without its fade-in. */
-defineProps<{ instant?: boolean }>()
 
 const { t } = useI18n()
 const { locale } = useLocaleFormat()

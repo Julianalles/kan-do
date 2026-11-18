@@ -25,17 +25,33 @@
   transform: translateY(0);
 }
 
-/* Welcome -> board (#294): the welcome page leaves as a fixed layer, so the board enters beneath it at its final layout
-   and nothing shifts once it shows; the photo and sheet fade out over it, slower than a page swap, without the lift. */
+/* Welcome -> board (#294, #463): a curtain. The welcome page leaves as a fixed layer, so the board enters beneath it at its
+   final layout and nothing shifts once it shows; the whole layer (photo, brand, sheet) rises off the top edge while it fades,
+   both over --welcome-curtain-duration. A feathered lower edge (mask, --welcome-curtain-feather of the viewport) keeps the
+   moving bottom from ever being a hard line. Reduced motion: the layer leaves at once. */
+.welcome-root {
+  --welcome-curtain-duration: 1300ms;
+  --welcome-curtain-fade-ease: cubic-bezier(0.4, 0, 1, 1); /* the fade holds back, so the layer is mostly there while it rises */
+  --welcome-curtain-feather: 22dvh;
+}
 .welcome-root.page-leave-active {
   position: fixed;
-  inset: 0;
-  z-index: calc(var(--z-bar) + 1); /* above the app bar, which mounts outside the page: the fade reveals it */
+  inset: 0 0 calc(var(--welcome-curtain-feather) * -1) 0; /* reaches the feather below the window: the soft edge is off screen at rest and sweeps in as the layer rises (as the recap's photo) */
+  z-index: calc(var(--z-bar) + 1); /* above the app bar, which mounts outside the page: the curtain reveals it */
+  transition: transform var(--welcome-curtain-duration) var(--ease-emphasized), opacity var(--welcome-curtain-duration) var(--welcome-curtain-fade-ease);
+  -webkit-mask-image: linear-gradient(to bottom, var(--ui-bg) calc(100% - var(--welcome-curtain-feather)), transparent);
+  mask-image: linear-gradient(to bottom, var(--ui-bg) calc(100% - var(--welcome-curtain-feather)), transparent);
+  will-change: transform, opacity;
+}
+.welcome-root.page-leave-to { opacity: 0; transform: translateY(-100%); }
+/* The flying brand (utils/brandFlight.ts) crosses the sheet's heading while the layer rises: that text steps aside on the flight's clock */
+.welcome-root[data-brand-flying] .welcome-sheet :is(h1, h2, h3) {
+  opacity: 0;
   transition: opacity var(--duration-slow) ease;
 }
-.welcome-root.page-leave-to { opacity: 0; transform: none; }
 @media (prefers-reduced-motion: reduce) {
-  .welcome-root.page-leave-active { transition: none; }
+  .welcome-root.page-leave-active { transition: none; mask-image: none; -webkit-mask-image: none; }
+  .welcome-root.page-leave-to { transform: none; }
 }
 
 /* Reduced motion (kd#27): Nuxt UI floating layers (command palette modal, ⋯ popover, menus, tooltips) scale and fade in

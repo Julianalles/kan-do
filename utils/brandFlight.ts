@@ -78,9 +78,12 @@ export function flyBrandToBar(from: HTMLElement | null | undefined): void {
   })
   document.body.appendChild(clone)
   from.style.visibility = 'hidden'
+  const root = from.closest<HTMLElement>('.welcome-root')
+  root?.setAttribute('data-brand-flying', '')
 
   waitForTarget().then((target) => {
     const finish = () => {
+      root?.removeAttribute('data-brand-flying')
       clone.remove()
       if (target) target.style.visibility = ''
     }

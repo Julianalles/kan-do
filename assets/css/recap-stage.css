@@ -12,7 +12,7 @@
   .recap-stage {
     --recap-feather: 4rem;
     --recap-curtain-duration: 700ms; /* the photo lifting off; the component waits for it (NewDayRecap.vue) */
-    --recap-enter-duration: 500ms;
+    --recap-enter-duration: 1400ms; /* Dawn (#463): the stage fades in, one clock with the lift below; also on an app start */
     position: fixed;
     inset: 0;
     z-index: var(--z-titlebar);
@@ -60,14 +60,9 @@
     padding: 1rem;
   }
 
-  /* Open as the page mounts (#427): the board is hidden behind it, so there is nothing to fade over */
-  .recap-stage[data-instant] {
-    animation: none;
-  }
-
+  /* The fade-in is left running when the curtain starts (a click mid-fade): resetting it would flash the stage to full opacity */
   .recap-stage[data-closing] {
     pointer-events: none;
-    animation: none;
   }
 
   .recap-stage[data-closing] .recap-stage__photo {
