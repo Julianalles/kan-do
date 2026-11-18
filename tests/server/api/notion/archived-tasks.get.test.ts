@@ -35,8 +35,8 @@ describe('/api/notion/archived-tasks.get.ts', () => {
     
     const response = await supertest(toNodeListener(app))
       .get('/')
+      .set('Authorization', 'Bearer test-token')
       .query({
-        token: 'test-token',
         databaseId: 'test-db',
         dataSourceId: 'test-ds',
         propertyMapping: JSON.stringify({
@@ -66,8 +66,8 @@ describe('/api/notion/archived-tasks.get.ts', () => {
     
     const response = await supertest(toNodeListener(app))
       .get('/')
+      .set('Authorization', 'Bearer test-token')
       .query({
-        token: 'test-token',
         databaseId: 'test-db',
         dataSourceId: 'test-ds',
         propertyMapping: JSON.stringify({
@@ -135,8 +135,8 @@ describe('/api/notion/archived-tasks.get.ts', () => {
     
     const response = await supertest(toNodeListener(app))
       .get('/')
+      .set('Authorization', 'Bearer test-token')
       .query({
-        token: 'test-token',
         databaseId: 'test-db',
         dataSourceId: 'test-ds',
         propertyMapping: JSON.stringify({
@@ -181,8 +181,8 @@ describe('/api/notion/archived-tasks.get.ts', () => {
     
     const response = await supertest(toNodeListener(app))
       .get('/')
+      .set('Authorization', 'Bearer test-token')
       .query({
-        token: 'test-token',
         // missing databaseId, dataSourceId, propertyMapping, statusMapping
       });
 

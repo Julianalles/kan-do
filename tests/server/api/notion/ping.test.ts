@@ -17,7 +17,7 @@ describe('server/api/notion/ping.get.ts', () => {
     app.use('/api/notion/ping', handler)
     const request = supertest(toNodeListener(app))
 
-    const res = await request.get('/api/notion/ping?token=test-token')
+    const res = await request.get('/api/notion/ping').set('Authorization', 'Bearer test-token')
     expect(res.status).toBe(404)
   })
 
@@ -53,7 +53,7 @@ describe('server/api/notion/ping.get.ts', () => {
     app.use('/api/notion/ping', handler)
     const request = supertest(toNodeListener(app))
 
-    const res = await request.get('/api/notion/ping?token=test-token')
+    const res = await request.get('/api/notion/ping').set('Authorization', 'Bearer test-token')
     expect(res.status).toBe(200)
     expect(res.body).toEqual(stubbedPing)
   })
@@ -81,7 +81,7 @@ describe('server/api/notion/ping.get.ts', () => {
     app.use('/api/notion/ping', handler)
     const request = supertest(toNodeListener(app))
 
-    const res = await request.get('/api/notion/ping?token=test-token')
+    const res = await request.get('/api/notion/ping').set('Authorization', 'Bearer test-token')
     expect(res.status).toBe(200)
     expect(res.body.ok).toBe(true)
     expect(res.body.me).toEqual(mockMe)
@@ -109,7 +109,7 @@ describe('server/api/notion/ping.get.ts', () => {
     app.use('/api/notion/ping', handler)
     const request = supertest(toNodeListener(app))
 
-    const res = await request.get('/api/notion/ping?token=test-token')
+    const res = await request.get('/api/notion/ping').set('Authorization', 'Bearer test-token')
     expect(res.status).toBe(502)
     expect(res.body?.data?.error).toBe('NOTION_API_ERROR')
   })

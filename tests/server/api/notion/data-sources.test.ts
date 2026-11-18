@@ -50,7 +50,7 @@ describe('server/api/notion/data-sources.get.ts', () => {
     mockClient(notionRequest)
     const request = await buildRequest()
 
-    const res = await request.get('/api/notion/data-sources?token=test-token&id=ds-1')
+    const res = await request.get('/api/notion/data-sources?id=ds-1').set('Authorization', 'Bearer test-token')
     expect(res.status).toBe(200)
     expect(res.body).toEqual(dataSource)
     expect(notionRequest).toHaveBeenCalledTimes(1)
@@ -77,7 +77,7 @@ describe('server/api/notion/data-sources.get.ts', () => {
     mockClient(notionRequest)
     const request = await buildRequest()
 
-    const res = await request.get('/api/notion/data-sources?token=test-token&id=missing')
+    const res = await request.get('/api/notion/data-sources?id=missing').set('Authorization', 'Bearer test-token')
     expect(res.status).toBe(status)
     expect(res.body.data?.error).toBe(code)
   })
@@ -89,7 +89,7 @@ describe('server/api/notion/data-sources.get.ts', () => {
     mockClient(notionRequest)
     const request = await buildRequest()
 
-    const res = await request.get('/api/notion/data-sources?token=test-token')
+    const res = await request.get('/api/notion/data-sources').set('Authorization', 'Bearer test-token')
     expect(res.status).toBe(200)
     expect(res.body).toEqual([
       { id: 'ds-1', name: 'Heute', location: { type: 'database_id', database_id: 'db-1' } },

@@ -2,18 +2,6 @@ import { createError, getQuery, getHeader } from 'h3'
 import type { H3Event } from 'h3'
 
 /**
- * Validates that required query parameters are present in the request
- * 
- * @param {H3Event} event - The H3 event object
- * @param {string[]} requiredParams - Array of required parameter names
- * @returns {Record<string, any>} The query parameters object
- * @throws {H3Error} 400 error if required parameters are missing
- * 
- * @example
- * const query = validateRequest(event, ['token', 'databaseId'])
- * const token = query.token as string
- */
-/**
  * Extracts the Notion token from the Authorization header.
  * Use this in POST/PATCH handlers that receive the token via header.
  */
@@ -25,14 +13,27 @@ export function getTokenFromEvent(event: H3Event): string | null {
   return null
 }
 
+/**
+ * Validates that required parameters are present in the request.
+ *
+ * The Notion token is read only from `Authorization: Bearer <token>` and surfaces as `query.token`, so `'token'` can be
+ * listed in `requiredParams`. A `?token=` in the URL is ignored: URLs end up in logs and analytics (#503).
+ *
+ * @param {H3Event} event - The H3 event object
+ * @param {string[]} requiredParams - Array of required parameter names
+ * @returns {Record<string, any>} The query parameters, with `token` taken from the header
+ * @throws {H3Error} 400 error if required parameters are missing
+ *
+ * @example
+ * const query = validateRequest(event, ['token', 'databaseId'])
+ * const token = query.token as string
+ */
 export function validateRequest(event: H3Event, requiredParams: string[] = []): Record<string, unknown> {
   const query = { ...getQuery(event) }
 
-  // Accept token from Authorization: Bearer <token> header as alternative to query param
-  if (!query['token']) {
-    const token = getTokenFromEvent(event)
-    if (token) query['token'] = token
-  }
+  delete query['token']
+  const token = getTokenFromEvent(event)
+  if (token) query['token'] = token
 
   const missing = requiredParams.filter(param => !query[param])
   if (missing.length > 0) {

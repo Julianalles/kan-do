@@ -112,7 +112,7 @@ const createRequestSpy = (options: {
     const app = createApp(); app.use('/api/notion/databases', handler)
     const request = supertest(toNodeListener(app))
 
-    const res = await request.get('/api/notion/databases?token=tkn')
+    const res = await request.get('/api/notion/databases').set('Authorization', 'Bearer tkn')
     expect(res.status).toBe(200)
     expect(res.body).toEqual([
       {
@@ -145,7 +145,7 @@ describe('server/api/notion/databases.get.ts', () => {
     const app = createApp(); app.use('/api/notion/databases', handler)
     const request = supertest(toNodeListener(app))
 
-    const res = await request.get('/api/notion/databases?token=tkn')
+    const res = await request.get('/api/notion/databases').set('Authorization', 'Bearer tkn')
     expect(res.status).toBe(200)
     expect(res.body).toEqual([])
     expect(requestSpy).toHaveBeenCalledTimes(3)
@@ -195,7 +195,7 @@ describe('server/api/notion/databases.get.ts', () => {
     const app = createApp(); app.use('/api/notion/databases', handler)
     const request = supertest(toNodeListener(app))
 
-    const res = await request.get('/api/notion/databases?token=tkn')
+    const res = await request.get('/api/notion/databases').set('Authorization', 'Bearer tkn')
     expect(res.status).toBe(200)
     expect(res.body[0]).toEqual({
       id: 'db1',
@@ -229,7 +229,7 @@ describe('server/api/notion/databases.get.ts', () => {
     const app = createApp(); app.use('/api/notion/databases', handler)
     const request = supertest(toNodeListener(app))
 
-    const res = await request.get('/api/notion/databases?token=tkn')
+    const res = await request.get('/api/notion/databases').set('Authorization', 'Bearer tkn')
     expect(res.status).toBe(200)
     expect(res.body).toEqual([
       {
@@ -268,7 +268,7 @@ describe('server/api/notion/databases.get.ts', () => {
     const handler = (await import('~/server/api/notion/databases.get')).default
     const app = createApp(); app.use('/api/notion/databases', handler)
     const request = supertest(toNodeListener(app))
-    const res = await request.get('/api/notion/databases?token=tkn&parentId=p1')
+    const res = await request.get('/api/notion/databases?parentId=p1').set('Authorization', 'Bearer tkn')
     expect(res.status).toBe(200)
     expect(res.body).toEqual([
       {
@@ -316,7 +316,7 @@ describe('server/api/notion/databases.get.ts', () => {
     const app = createApp(); app.use('/api/notion/databases', handler)
     const request = supertest(toNodeListener(app))
 
-    const res = await request.get('/api/notion/databases?token=tkn')
+    const res = await request.get('/api/notion/databases').set('Authorization', 'Bearer tkn')
     expect(res.status).toBe(200)
     expect(res.body).toEqual([
       {
@@ -342,7 +342,7 @@ describe('server/api/notion/databases.get.ts', () => {
     const app = createApp(); app.use('/api/notion/databases', handler)
     const request = supertest(toNodeListener(app))
 
-    const res = await request.get('/api/notion/databases?token=tkn')
+    const res = await request.get('/api/notion/databases').set('Authorization', 'Bearer tkn')
     expect(res.status).toBe(502)
     expect(res.body?.data?.error).toBe('NOTION_API_ERROR')
   })

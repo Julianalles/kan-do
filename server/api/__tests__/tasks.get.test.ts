@@ -25,7 +25,7 @@ describe('server/api/notion/tasks.get.ts', () => {
     const propertyMapping = encodeURIComponent(JSON.stringify({ title: 'Name', status: 'Status' }))
     const statusMapping = encodeURIComponent(JSON.stringify({ today: 'Today', doing: 'Doing', done: 'Done', waiting: 'Waiting' }))
 
-    const res = await req.get(`/api/notion/tasks?token=tkn&databaseId=db1&dataSourceId=ds1&propertyMapping=${propertyMapping}&statusMapping=${statusMapping}`)
+    const res = await req.get(`/api/notion/tasks?databaseId=db1&dataSourceId=ds1&propertyMapping=${propertyMapping}&statusMapping=${statusMapping}`).set('Authorization', 'Bearer tkn')
     expect(res.status).toBe(200)
     expect(res.body).toEqual(mockResults)
     expect(requestSpy).toHaveBeenCalledTimes(1)
@@ -40,7 +40,8 @@ describe('server/api/notion/tasks.get.ts', () => {
     const app = createApp(); app.use('/api/notion/tasks', handler)
     const request = supertest(toNodeListener(app))
     const res = await request.get('/api/notion/tasks')
-      .query({ token: 'tkn', databaseId: 'db1', dataSourceId: 'ds1', propertyMapping: 'not-json', statusMapping: '{}' })
+      .set('Authorization', 'Bearer tkn')
+      .query({ databaseId: 'db1', dataSourceId: 'ds1', propertyMapping: 'not-json', statusMapping: '{}' })
     expect(res.status).toBe(400)
     expect(res.body?.data?.error).toBe('INVALID_JSON')
   })
@@ -57,7 +58,7 @@ describe('server/api/notion/tasks.get.ts', () => {
     const propertyMapping = encodeURIComponent(JSON.stringify({ title: 'Name', status: 'Status' }))
     const statusMapping = encodeURIComponent(JSON.stringify({ today: 'Today', doing: 'Doing', done: 'Done', waiting: 'Waiting' }))
 
-    const res = await req.get(`/api/notion/tasks?token=tkn&databaseId=db1&dataSourceId=ds1&propertyMapping=${propertyMapping}&statusMapping=${statusMapping}`)
+    const res = await req.get(`/api/notion/tasks?databaseId=db1&dataSourceId=ds1&propertyMapping=${propertyMapping}&statusMapping=${statusMapping}`).set('Authorization', 'Bearer tkn')
     expect(res.status).toBe(502)
     expect(res.body?.data?.error).toBe('NOTION_API_ERROR')
   })
@@ -80,14 +81,14 @@ describe('server/api/notion/tasks.get.ts', () => {
 
     // Without waiting
     let sm = encodeURIComponent(JSON.stringify({ today: 'Today', doing: 'Doing', done: 'Done' }))
-    await req.get(`/api/notion/tasks?token=tkn&databaseId=db1&dataSourceId=ds1&propertyMapping=${pm}&statusMapping=${sm}`)
+    await req.get(`/api/notion/tasks?databaseId=db1&dataSourceId=ds1&propertyMapping=${pm}&statusMapping=${sm}`).set('Authorization', 'Bearer tkn')
     const firstCall = spyCalls.pop()
     expect(firstCall).toBeDefined()
     expect(firstCall.body.filter.or).toHaveLength(3)
 
     // With waiting
     sm = encodeURIComponent(JSON.stringify({ today: 'Today', doing: 'Doing', done: 'Done', waiting: 'Waiting' }))
-    await req.get(`/api/notion/tasks?token=tkn&databaseId=db1&dataSourceId=ds1&propertyMapping=${pm}&statusMapping=${sm}`)
+    await req.get(`/api/notion/tasks?databaseId=db1&dataSourceId=ds1&propertyMapping=${pm}&statusMapping=${sm}`).set('Authorization', 'Bearer tkn')
     const secondCall = spyCalls.pop()
     expect(secondCall).toBeDefined()
     expect(secondCall.body.filter.or).toHaveLength(4)
