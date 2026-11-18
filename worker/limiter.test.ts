@@ -1,6 +1,6 @@
 // @vitest-environment node
-import { describe, expect, it } from 'vitest'
-import { LIMIT, LIMIT_PERIOD_SECONDS, NotionLimiter, WindowCounter, clientKey } from './limiter'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { CHECKPOINT, LIMIT, LIMIT_PERIOD_SECONDS, NotionLimiter, WindowCounter, clientKey, type LimiterStorage } from './limiter'
 
 describe('WindowCounter', () => {
   it('allows `limit` hits per window and refuses the rest, however fast they come', () => {
@@ -37,6 +37,76 @@ describe('NotionLimiter (the Durable Object)', () => {
   })
 })
 
+describe('NotionLimiter across an eviction (storage checkpoints)', () => {
+  afterEach(() => vi.useRealTimers())
+
+  const hit = async (limiter: NotionLimiter) =>
+    ((await (await limiter.fetch(new Request('https://limiter.invalid/hit', { method: 'POST' }))).json()) as { success: boolean }).success
+  const memory = (): LimiterStorage & { data: Map<string, unknown>, put: ReturnType<typeof vi.fn> } => {
+    const data = new Map<string, unknown>()
+    return { data, get: async (k: string) => data.get(k), put: vi.fn(async (k: string, v: unknown) => { data.set(k, v) }) }
+  }
+
+  it('a client cannot reset its window by pausing until the object is evicted', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(1_000_000)
+    const storage = memory()
+    const first = new NotionLimiter({ storage })
+    for (let i = 0; i < LIMIT; i++) expect(await hit(first)).toBe(true)
+    expect(await hit(first)).toBe(false)
+
+    vi.setSystemTime(1_000_000 + 15_000) // idle 15 s: the object is gone, a new instance starts from storage
+    const second = new NotionLimiter({ storage })
+    expect(await hit(second)).toBe(false)
+
+    vi.setSystemTime(1_000_000 + 60_000) // the window is over
+    expect(await hit(new NotionLimiter({ storage }))).toBe(true)
+  })
+
+  it('a restored count is never below the true one and at most CHECKPOINT - 1 above it', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(2_000_000)
+    for (const n of [1, 5, 10, 11, 37, 119]) {
+      const storage = memory()
+      const before = new NotionLimiter({ storage })
+      for (let i = 0; i < n; i++) await hit(before)
+      const after = new NotionLimiter({ storage })
+      let allowed = 0
+      while (await hit(after)) allowed++
+      const remaining = LIMIT - n
+      expect(allowed, `after ${n} hits`).toBeLessThanOrEqual(remaining)
+      expect(allowed, `after ${n} hits`).toBeGreaterThanOrEqual(remaining - (CHECKPOINT - 1))
+    }
+  })
+
+  it('writes a few times per window, not on every hit', async () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(3_000_000)
+    const storage = memory()
+    const limiter = new NotionLimiter({ storage })
+    for (let i = 0; i < 600; i++) await hit(limiter)
+    expect(storage.put.mock.calls.length).toBeLessThanOrEqual(LIMIT / CHECKPOINT + 1)
+    expect(storage.put.mock.calls.length).toBeGreaterThan(0)
+  })
+
+  it('a failing storage never blocks an answer: it logs and counts in memory', async () => {
+    const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    const storage: LimiterStorage = { get: async () => { throw new Error('read') }, put: async () => { throw new Error('write') } }
+    const limiter = new NotionLimiter({ storage })
+    const answers: boolean[] = []
+    for (let i = 0; i < LIMIT + 5; i++) answers.push(await hit(limiter))
+    expect(answers.filter(Boolean)).toHaveLength(LIMIT)
+    expect(spy).toHaveBeenCalled()
+    spy.mockRestore()
+  })
+
+  it('a stored value of the wrong shape is ignored', async () => {
+    const storage = memory()
+    storage.data.set('window', 'garbage')
+    expect(await hit(new NotionLimiter({ storage }))).toBe(true)
+  })
+})
+
 describe('clientKey', () => {
   it('an IPv4 address is its own key', () => {
     expect(clientKey('203.0.113.7')).toBe('203.0.113.7')
@@ -47,6 +117,7 @@ describe('clientKey', () => {
     for (const ip of ['2001:db8:1:2::1', '2001:DB8:1:2:0:0:0:1', '2001:0db8:0001:0002:ffff:ffff:ffff:ffff', '2001:db8:1:2:a:b:c:d%eth0']) {
       expect(clientKey(ip), ip).toBe(key)
     }
+    expect(clientKey('::ffff:203.0.113.7')).toBe('203.0.113.7') // the same client as its plain IPv4
     expect(clientKey('::1')).toBe('0:0:0:0')
     expect(clientKey('2001:db8::5')).toBe('2001:db8:0:0')
   })

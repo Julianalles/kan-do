@@ -6,15 +6,27 @@
  * in 28 s against a 120 per 60 s limit (cloudflare/developer-platform#123 reports the same).
  *
  * The object is addressed by `idFromName(clientKey)` and answers `POST` with `{ success }`. A Durable Object serves
- * its requests one after the other, so the count is exact. It keeps no storage: an object idle for a while is
- * evicted and its client starts a fresh window, which only ever loosens the limit slightly. Written as the plain
- * `fetch` class (no `cloudflare:workers` import) so `limiter.test.ts` runs it in Node.
+ * its requests one after the other, so the count is exact while the object lives. An idle object is evicted after
+ * about ten seconds and loses its memory, which would let a client reset its window by pausing: so the window is also
+ * checkpointed to the object's storage, in steps of `CHECKPOINT` hits (the first hit of a window, then every tenth),
+ * each checkpoint rounded up, so a restored count is never below the true one and at most 9 above it. That keeps a
+ * client's writes at a few per window, far below the Free quota of 100,000 rows a day. A failing storage never
+ * blocks an answer: the count then lives in memory only. Written as the plain `fetch` class (no `cloudflare:workers`
+ * import) so `limiter.test.ts` runs it in Node.
  */
 
 /** Requests allowed per window and client. Normal use is an order of magnitude below (ADR 021). */
 export const LIMIT = 120
 /** The window in seconds; also the `Retry-After` of a 429. */
 export const LIMIT_PERIOD_SECONDS = 60
+
+/** Hits between two writes of the window to storage; a restored count is up to `CHECKPOINT - 1` above the true one. */
+export const CHECKPOINT = 10
+
+export interface WindowState {
+  windowStart: number
+  count: number
+}
 
 /** A fixed-window counter: at most `limit` hits per `periodMs`; a hit over the limit is not counted. */
 export class WindowCounter {
@@ -32,15 +44,69 @@ export class WindowCounter {
     this.count++
     return true
   }
+
+  state(): WindowState {
+    return { windowStart: this.windowStart, count: this.count }
+  }
+
+  restore(saved: WindowState): void {
+    this.windowStart = saved.windowStart
+    this.count = Math.min(saved.count, this.limit)
+  }
 }
+
+/** The slice of the Durable Object's storage this class uses. */
+export interface LimiterStorage {
+  get: (key: string) => Promise<unknown>
+  put: (key: string, value: unknown) => Promise<void>
+}
+
+const isState = (v: unknown): v is WindowState =>
+  typeof v === 'object' && v !== null && Number.isFinite((v as WindowState).windowStart) && Number.isFinite((v as WindowState).count)
 
 export class NotionLimiter {
   private readonly counter = new WindowCounter(LIMIT, LIMIT_PERIOD_SECONDS * 1000)
+  private readonly storage?: LimiterStorage
+  private loaded = false
+  /** What storage holds: a window start and the count it would restore. */
+  private saved: WindowState = { windowStart: -1, count: 0 }
 
-  // No constructor: the object's state and env are unused, the count lives in memory only.
+  constructor(state?: { storage: LimiterStorage }) {
+    this.storage = state?.storage
+  }
 
   async fetch(_request: Request): Promise<Response> {
-    return Response.json({ success: this.counter.hit(Date.now()) })
+    if (!this.loaded) await this.load() // a Durable Object takes no other event while it waits for storage
+    const success = this.counter.hit(Date.now())
+    await this.checkpoint()
+    return Response.json({ success })
+  }
+
+  private async load(): Promise<void> {
+    this.loaded = true
+    try {
+      const saved = await this.storage?.get('window')
+      if (isState(saved)) {
+        this.counter.restore(saved)
+        this.saved = saved
+      }
+    } catch (error) {
+      console.error('limiter: could not read the window, counting from zero', error)
+    }
+  }
+
+  /** Writes the window when it is a new one or the count passed the stored one; rounded up to the next step. */
+  private async checkpoint(): Promise<void> {
+    if (!this.storage) return
+    const { windowStart, count } = this.counter.state()
+    if (windowStart === this.saved.windowStart && count <= this.saved.count) return
+    const next = { windowStart, count: Math.min(LIMIT, count + CHECKPOINT - 1) }
+    this.saved = next // also after a failed write: retrying every hit would only repeat the failure
+    try {
+      await this.storage.put('window', next)
+    } catch (error) {
+      console.error('limiter: could not write the window, counting in memory only', error)
+    }
   }
 }
 
@@ -51,6 +117,8 @@ export class NotionLimiter {
 export function clientKey(ip: string | null): string {
   if (!ip) return 'unknown'
   if (!ip.includes(':')) return ip
+  const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i.exec(ip) // IPv4 in IPv6 clothes: the same client as the plain address
+  if (mapped) return mapped[1]!
   const [head] = ip.split('%') // a zone id never reaches Cloudflare, but never let it split a key
   const groups = expandIpv6(head ?? ip)
   return groups ? groups.slice(0, 4).join(':') : ip
