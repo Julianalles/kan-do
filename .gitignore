@@ -69,3 +69,7 @@ impeccable-report.json
 *.swo
 *~
 .vercel
+
+# Cloudflare Worker (#502): local secrets and wrangler state
+.dev.vars
+.wrangler

@@ -1099,6 +1099,18 @@
         "native-menu",
         "data-safety"
       ]
+    },
+    {
+      "area": "Cloudflare Worker `kando` (#279): the secret-launch gate in front of the server routes and the build that feeds it; the web instance only (unit-tested in worker/), the app build itself is unchanged",
+      "risk": true,
+      "paths": [
+        "worker/**",
+        "wrangler.jsonc"
+      ],
+      "specs": [
+        "feedback",
+        "notion-stub-sync"
+      ]
     }
   ]
 }

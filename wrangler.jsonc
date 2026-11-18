@@ -1,0 +1,28 @@
+// Worker `kando` (#279, #502, ADR 021): the public web instance on Cloudflare Workers Free, behind the secret-launch gate.
+// Deploy: Workers Builds runs `npm run build:cloudflare` (fails when the bundle lacks the gate), then `npx wrangler deploy`, on every push
+// to main; by hand `npm run deploy` does both. Nitro's own wrangler config stays off (`cloudflare.deployConfig` in nuxt.config.ts).
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "kando",
+  "main": "worker/index.ts",
+  // Not newer than the workerd of the pinned wrangler (4.156.2 ships 2026-11-02 builds).
+  "compatibility_date": "2026-11-02",
+  // `Buffer` in the feedback relay, `process.env` filled from vars and secrets.
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "preview_urls": false,
+  // Nitro's built handler: the output of `npm run build:cloudflare`.
+  "alias": { "#nitro-server": "./.output/server/index.mjs" },
+  "assets": {
+    "directory": "./.output/public",
+    "binding": "ASSETS",
+    // Every request, static files included, passes the gate: nothing leaks to visitors without the token.
+    // Each one counts as an invocation (Free: 100,000/day).
+    "run_worker_first": true,
+  },
+  // GATE: on in every fresh deploy; this line is the single source (the dashboard value is reset by each deploy). "off" opens the app for
+  // the public launch (jwue-homepage#34): change it here, through a PR. The token is the secret GATE_SECRET
+  // (the homepage's value, one shared token). Other secrets: FEEDBACK_GITHUB_TOKEN. Never NOTION_KEY.
+  "vars": { "GATE": "on" },
+  "observability": { "enabled": true },
+}
