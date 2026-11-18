@@ -891,26 +891,29 @@ test.describe('Task Detail View', () => {
       await expect(page.getByTestId('task-notes-rendered')).toContainText('mit Cmd gespeichert');
     });
 
-    // #386: notes directly after the main fields, the metadata is the footer
-    test('desktop: notes follow the properties in the scroll region, the metadata is pinned to the bottom', async ({ page, baseURL }) => {
+    // #468: title across the top, the rows left, the notes right, Metadaten and Löschen on the last line
+    test('desktop: the title spans the top, rows left, notes right, the metadata and Löschen share the last line', async ({ page, baseURL }) => {
       await openSheet(page, baseURL, 'test-task-1');
+      await settleAnimations(page);
 
-      const scroll = page.getByTestId('task-detail-scroll');
-      await expect(scroll.getByTestId('task-property-list')).toBeVisible();
-      await expect(scroll.getByTestId('task-notes')).toBeVisible();
-      await expect(scroll.getByTestId('task-metadata')).toHaveCount(0);
-
+      const dialog = page.getByRole('dialog');
+      await expect(dialog.getByTestId('task-detail-scroll')).toHaveCount(0);
+      const header = (await page.getByTestId('task-detail-header').boundingBox())!;
       const props = (await page.getByTestId('task-property-list').boundingBox())!;
       const notes = (await page.getByTestId('task-notes').boundingBox())!;
-      expect(notes.y).toBeGreaterThan(props.y + props.height);
-
-      // The footer (metadata, then the action row with Delete, #244) hugs the bottom edge of the sheet even though the content above is short, below the notes
-      const dialogBox = (await page.getByRole('dialog').boundingBox())!;
       const meta = (await page.getByTestId('task-metadata').boundingBox())!;
       const actions = (await page.getByTestId('task-sheet-actions').boundingBox())!;
-      expect(Math.abs(dialogBox.y + dialogBox.height - (actions.y + actions.height))).toBeLessThan(40);
-      expect(actions.y).toBeGreaterThanOrEqual(meta.y + meta.height);
-      expect(meta.y).toBeGreaterThan(notes.y + notes.height);
+      const dialogBox = (await dialog.boundingBox())!;
+
+      // The title is above both columns; the rows sit left of the notes, both start at the same height
+      expect(props.y).toBeGreaterThanOrEqual(header.y + header.height - 1);
+      expect(notes.x).toBeGreaterThan(props.x + props.width - 1);
+      expect(Math.abs(notes.y - props.y)).toBeLessThan(24);
+      // The last line: Metadaten left, Löschen right, below the columns; no pinned footer band hugging another edge
+      expect(meta.x).toBeLessThan(actions.x);
+      expect(meta.y).toBeGreaterThanOrEqual(props.y + props.height - 1);
+      expect(Math.abs((meta.y + 12) - (actions.y + actions.height / 2))).toBeLessThan(24);
+      expect(dialogBox.y + dialogBox.height - (actions.y + actions.height)).toBeLessThan(40);
     });
 
     test('mobile: the notes follow the properties, the metadata comes last in the flow', async ({ page, baseURL }) => {
@@ -928,17 +931,17 @@ test.describe('Task Detail View', () => {
     });
 
     // #199: the sheet freezes its variant while open, the content layout must follow it
-    test('shrinking below 768px while the slideover is open keeps the metadata pinned and its state', async ({ page, baseURL }) => {
+    test('shrinking below 768px while the sheet is open keeps the two columns and the metadata state', async ({ page, baseURL }) => {
       await openSheet(page, baseURL, 'test-task-1');
+      await settleAnimations(page);
 
       await page.setViewportSize({ width: 600, height: 800 });
-      const scroll = page.getByTestId('task-detail-scroll');
-      await expect(scroll.getByTestId('task-metadata')).toHaveCount(0);
-      await expect(scroll.getByTestId('task-notes')).toBeVisible();
-      const dialogBox = (await page.getByRole('dialog').boundingBox())!;
-      const metaBox = (await page.getByTestId('task-metadata').boundingBox())!;
-      expect(metaBox.y + metaBox.height).toBeLessThanOrEqual(dialogBox.y + dialogBox.height + 1);
-      expect(metaBox.y).toBeGreaterThanOrEqual(dialogBox.y);
+      await expect(page.getByRole('dialog').getByTestId('task-detail-scroll')).toHaveCount(0);
+      await expect.poll(async () => (await page.getByRole('dialog').boundingBox())!.width).toBeCloseTo(568, 0);
+      const props = (await page.getByTestId('task-property-list').boundingBox())!;
+      const notes = (await page.getByTestId('task-notes').boundingBox())!;
+      expect(notes.x).toBeGreaterThan(props.x + props.width - 1);
+      await expect(page.getByTestId('task-metadata')).toBeVisible();
     });
 
     test('a link in the notes is reachable with Tab and Enter follows it without editing (#199)', async ({ page, context, baseURL }) => {
@@ -1045,22 +1048,23 @@ test.describe('task sheet close button (kd#201)', () => {
       await expect(card).toBeFocused()
     })
 
-    test('a scrolled sheet never runs content under the close button', async ({ page }) => {
+    test('the title runs clear of the close button and a short window scrolls the columns inside the sheet', async ({ page }) => {
+      await page.setViewportSize({ width: 1280, height: 340 })
       await page.goto('/tasks/seed-open-1')
       const dialog = page.getByRole('dialog')
       await expect(dialog).toBeVisible()
       await settleAnimations(page)
-      const scroll = dialog.getByTestId('task-detail-scroll')
-      await scroll.evaluate((el) => {
-        const filler = document.createElement('div')
-        filler.style.height = '1500px'
-        el.appendChild(filler)
-        el.scrollTop = 300
-      })
       const closeBox = (await dialog.getByRole('button', { name: /^(Schließen|Close)$/ }).boundingBox())!
-      const scrollBox = (await scroll.boundingBox())!
-      // The scroll region starts below the control, so nothing scrolled can pass under it
-      expect(scrollBox.y).toBeGreaterThanOrEqual(closeBox.y + closeBox.height)
+      const title = (await dialog.getByTestId('task-detail-header').locator('[data-inline-editable]').boundingBox())!
+      expect(title.x + title.width).toBeLessThanOrEqual(closeBox.x)
+      // The sheet is the window minus 16 px to every edge at most; the rows scroll inside it and nothing is clipped
+      const box = (await dialog.boundingBox())!
+      expect(box.height).toBeLessThanOrEqual(340 - 32 + 1)
+      const rows = dialog.getByTestId('task-detail-rows')
+      expect(await rows.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true)
+      await rows.evaluate((el) => { el.scrollTop = el.scrollHeight })
+      const lastRow = (await dialog.getByTestId('task-property-list').locator('> *').last().boundingBox())!
+      expect(lastRow.y + lastRow.height).toBeLessThanOrEqual(box.y + box.height)
     })
 
     test('the add sheet has the same close button, and Escape still closes it', async ({ page }) => {

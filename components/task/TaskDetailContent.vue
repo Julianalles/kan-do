@@ -8,9 +8,9 @@
 @responsibility
 - Display task properties as labelled rows (shared with the add form, #161), notes, and custom fields
 - Every property is a row in a stable position; unset Thema/Aktivität show the empty "Auswählen" state (#161)
-- Order: property rows (time spent last, with the time left beside it, kd#4), notes, custom properties, metadata (#386). Desktop slideover: the metadata is pinned to the bottom, the rest scrolls
+- Order: property rows (time spent last, with the time left beside it, kd#4), notes, custom properties, metadata (#386). Desktop sheet (#468, `TaskMorphShell`): title across the top, the rows (and the custom properties after them) in the left column, the notes in the right column, each column scrolling inside the sheet when the window is too short; Metadaten and the action row share the last line, no band, no hairline
 - Provide formatted display of all task metadata
-- Bottom action row (#244, TaskSheetActions): open in source, move to source, Delete; no title-row menu, no copy id (the id is in Metadaten). Desktop: pinned with the metadata under one hairline; mobile: last in the flow
+- Bottom action row (#244, TaskSheetActions): open in source, move to source, Delete; no title-row menu, no copy id (the id is in Metadaten). Desktop: the right end of the last line, Metadaten on its left; mobile: last in the flow
 - Render error state when task not found
 - Handle inline updates and synchronization
 - Topic and activity pickers (TopicPropertyPicker): the topic mark before each option, no control inside an option; an edit mode in the
@@ -22,40 +22,40 @@
   picking "Nicht geplant" takes a task off today's board from any column (`useTaskStatusActions.chooseStatus`)
 - Guard against drift (#161, kd#4): at most six always-visible standard rows (Status, Priorität, Thema, Aktivität, Timebox,
   Aufgewendete Zeit),
-  no per-row icons, no dividers; more always-visible rows must revisit the layout. The one hairline is the pin line
-  above the desktop metadata footer, a boundary of the scroll region, not a row divider
+  no per-row icons, no dividers; more always-visible rows must revisit the layout. There is no hairline in the sheet
 - Done day (kd#131, agent-decided): a done task gets one more row, "Erledigt am", last in the list so no other row moves
   when a task is completed. It is the correction of a task marked done late, not part of completing: a DatePickerField
   without Löschen, limited to the days from the task's creation to today; picking a day goes through
   `useTaskSync.setCompletedDay` (statistics and the board's today / before-today split follow at once). The row is
   conditional, so the six-row guard above still counts the always-visible rows. A task whose connection holds no
   completion date says "Gilt nur in Kan-Do." beside the value
-- Close clearance (kd#201): on desktop the slideover's close button sits at the top end corner (`top-4 end-4`, 32 px), so the scroll region starts below it (`md:mt-14`) and scrolled rows never run under the control; change both together
+- Close clearance (kd#201): on desktop the shell's close button sits at the top end corner (`top-4 end-4`, 32 px), so the title and a triage block end 56 px (`pe-14`/`me-14`) from the sheet's edge and never run under the control; change both together
 - Property rows (moved from DESIGN.md, kd#176): a quiet label column and the value as its own control, a soft select with a chevron when it opens a list (`TaskPropertySelect`), an editable label on a faint dotted rule when it is free input (`InlineEditable`, `PropertyValueTrigger`). Every row keeps its place whether set or not ("Auswählen…", "+ hinzufügen"); six standard rows, the last one "Aufgewendete Zeit"; no per-row icons, dividers or chips, and no separate time block or progress ring on the sheet
 -->
 
 <template>
-  <div v-if="isError" class="px-6 py-8 md:pe-16" data-testid="task-not-found">
+  <div v-if="isError" class="px-6 py-8" :class="{ 'pe-16': twoColumn }" data-testid="task-not-found">
     <SectionHeader tag="h2">{{ t('task.notFoundTitle') }}</SectionHeader>
     <p class="mt-1 text-body text-muted">{{ t('task.notFoundMessage') }}</p>
   </div>
 
-  <div v-else-if="task" class="task-detail-content flex flex-col md:min-h-0 md:flex-1">
+  <div v-else-if="task" class="task-detail-content flex flex-col" :class="{ 'min-h-0 flex-1': twoColumn }">
 
-    <!-- Everything but the pinned metadata: one scroll region on desktop, plain flow on mobile -->
-    <div class="flex flex-col md:mt-14 md:min-h-0 md:flex-1 md:overflow-y-auto md:overscroll-contain" data-testid="task-detail-scroll">
+    <!-- Two columns in the desktop sheet (title across the top, rows | notes, one last line); plain flow, scrolled by the drawer, on mobile -->
+    <div :class="twoColumn ? 'flex min-h-0 flex-1 flex-col' : 'flex flex-col'" :data-testid="twoColumn ? 'task-detail-sheet' : 'task-detail-scroll'">
 
-    <!-- Carried-over triage (#99): only for Offen/Jetzt cards past the threshold -->
+    <!-- Carried-over triage (#99): only for Offen/Jetzt cards past the threshold; full width above the title, clear of the close button -->
     <TaskCarryOverTriage
       v-if="!isPreview"
       :task-id="task.id"
-      class="mx-6 mt-4 mb-2"
+      class="mt-4 mb-2"
+      :class="twoColumn ? 'ms-6 me-14' : 'mx-6'"
       @kept="focusTitle"
       @delete="emit('delete')"
     />
 
-    <!-- Title: the sheet's one display line -->
-    <div class="px-6 pt-2 pb-4" data-testid="task-detail-header">
+    <!-- Title: the sheet's one display line; on desktop it runs clear of the close button (kd#201: `top-4 end-4`, 32 px) -->
+    <div class="shrink-0 pb-4" :class="twoColumn ? 'ps-6 pe-14 pt-5' : 'px-6 pt-2'" data-testid="task-detail-header">
       <div class="flex items-start gap-3">
         <div class="min-w-0 flex-1">
           <InlineEditable
@@ -88,8 +88,10 @@
       </div>
     </div>
 
-    <!-- Groups are separated by space only: properties, time, notes, custom properties, metadata -->
-    <div class="flex flex-col gap-6 px-6 pb-6">
+    <!-- Groups are separated by space only: properties, time, notes, custom properties, metadata. Desktop: rows left, notes right, each scrolling inside its column -->
+    <div :class="twoColumn ? 'grid min-h-0 flex-1 grid-cols-2 grid-rows-[minmax(0,1fr)] gap-x-8 px-6 pb-3' : 'flex flex-col gap-6 px-6 pb-6'">
+
+      <div :class="twoColumn ? '-mx-2 min-h-0 overflow-y-auto overscroll-contain px-2 pb-1' : 'contents'" data-testid="task-detail-rows">
 
       <!-- 1. Property rows (#161): Status, Priorität, Timebox always; Thema/Aktivität once set -->
       <div class="flex flex-col gap-1.5" data-testid="task-property-list">
@@ -253,11 +255,8 @@
         </TaskPropertyRow>
       </div>
 
-      <!-- 2. Notes: directly after the main fields on every sheet variant (#386) -->
-      <TaskDetailNotes :notes="task.notes" @save="updateNotes" />
-
-      <!-- 3. Custom (Notion) properties: one quiet heading, rows in the same grammar -->
-      <section v-if="hasCustom" aria-labelledby="custom-heading" class="task-detail-section">
+      <!-- 3. Custom (Notion) properties: one quiet heading, rows in the same grammar; in the sheet they follow the six rows in the left column -->
+      <section v-if="hasCustom && twoColumn" aria-labelledby="custom-heading" class="task-detail-section mt-6">
         <SectionHeader id="custom-heading" :text="t('task.field.properties')" tag="h3" size="label" class="mb-0" />
         <TaskDetailCustomFields
           :key="task.id"
@@ -266,30 +265,39 @@
         />
       </section>
 
-      <!-- 4. Metadata (collapsed by default): last in the flow on mobile, pinned as the footer on desktop -->
+      </div>
+
+      <!-- 2. Notes: directly after the main fields on every sheet variant (#386); in the sheet their own column, scrolling inside it and never setting the sheet's height -->
+      <div :class="twoColumn ? 'relative min-h-0' : ''" data-testid="task-notes-column">
+        <div :class="twoColumn ? 'absolute inset-y-0 -inset-s-2 -inset-e-2 overflow-y-auto overscroll-contain px-2' : ''">
+          <TaskDetailNotes :notes="task.notes" @save="updateNotes" />
+        </div>
+      </div>
+
+      <!-- 3. Custom (Notion) properties on the drawer: after the notes -->
+      <section v-if="hasCustom && !twoColumn" aria-labelledby="custom-heading" class="task-detail-section">
+        <SectionHeader id="custom-heading" :text="t('task.field.properties')" tag="h3" size="label" class="mb-0" />
+        <TaskDetailCustomFields
+          :key="task.id"
+          :custom-list="customList"
+          @update="updateCustomField"
+        />
+      </section>
+
+    </div>
+
+    <!-- 4. Metadata (collapsed by default) and the action row: the last line of the sheet (Metadaten left, Löschen right, no band), last in the flow on the drawer (#386, #244) -->
+    <div :class="twoColumn ? 'flex shrink-0 items-start justify-between gap-4 px-6 pb-6' : 'flex flex-col gap-6 px-6 pb-6'" data-testid="task-detail-footer">
       <TaskDetailMetadata
-        v-if="!pinMetadata"
         v-model:open="isMetadataOpen"
+        :class="{ 'min-w-0': twoColumn }"
         :source="taskSource"
         :created-at="formatDate(task.createdAt)"
         :task-id="task.id"
       />
-      <TaskSheetActions v-if="!pinMetadata" v-bind="actionProps" @open="openSource" @move="moveToSource" @delete="emit('delete')" />
-
+      <TaskSheetActions v-bind="actionProps" :class="{ 'shrink-0': twoColumn }" @open="openSource" @move="moveToSource" @delete="emit('delete')" />
     </div>
 
-    </div>
-
-    <!-- Desktop slideover: metadata and action row are pinned to the bottom edge under one hairline, the rows and notes above scroll (#386, #244) -->
-    <div v-if="pinMetadata" class="shrink-0 border-t border-default">
-      <TaskDetailMetadata
-        v-model:open="isMetadataOpen"
-        pinned
-        :source="taskSource"
-        :created-at="formatDate(task.createdAt)"
-        :task-id="task.id"
-      />
-      <TaskSheetActions v-bind="actionProps" class="px-6 pt-3 pb-6" @open="openSource" @move="moveToSource" @delete="emit('delete')" />
     </div>
 
   </div>
@@ -402,10 +410,9 @@ const { statusChoice, chooseStatus } = useTaskStatusActions(task);
 const onStatusPicked = (value: unknown) => void chooseStatus(value === NOT_PLANNED_CHOICE ? NOT_PLANNED_CHOICE : Number(value) as TaskStatus);
 const { targets: moveTargets, move: moveToSource } = useTaskMoveTargets(() => (props.isPreview ? null : task.value));
 
-// Desktop slideover (>=768px): the metadata is pinned to the bottom edge (#386). Below that the sheet is a
-// drawer and the metadata stays last in the flow. Follows the sheet's frozen variant, not the live query,
-// so a resize while open cannot disagree with the layout the sheet actually shows (#199).
-const pinMetadata = useOverlayIsDesktop();
+// Desktop sheet (>=768px, #468): two columns. Below that the sheet is a drawer and everything flows in one column.
+// Follows the sheet's frozen variant, not the live query, so a resize while open cannot disagree with the layout the sheet actually shows (#199).
+const twoColumn = useOverlayIsDesktop();
 
 // Five choices in the order of the places (#359): "Nicht geplant" (the state of a task under "Meine Aufgaben") first, as on "Alle", then the four columns
 const statusItems = computed<{ label: string; value: StatusChoice; icon: string }[]>(() => [

@@ -7,6 +7,7 @@
 @avoid Not a dialog host; other overlays use ResponsiveOverlay or AppDialog directly. The sheet itself is TaskSheet.
 @responsibility
 - Open while a nested route is active and the sheet is not dismissed; every close goes through `useTaskSheet` (the sheet animates out first, then the route returns to the host page)
+- Origin: the detail route's task id, so the desktop sheet grows from that task's card (TaskMorphShell, #468)
 - Title: the add route's title (visible), else the task's title (screen-reader only on the detail route, where the body holds the editable title)
 - Render the footer actions a route registered through `useModalFooter` (the add form's secondary, tertiary and primary buttons and its `lead` line)
 - Re-arm the sheet when the route changes (`resetTaskSheet`)
@@ -18,6 +19,7 @@
     :title="modalTitle"
     :hide-title="route.name !== 'tasks-add'"
     :flush-body="route.name !== 'tasks-add'"
+    :origin-id="task?.id ?? null"
     @update:open="handleSheetOpenChange"
     @after-leave="handleSheetAfterLeave"
   >

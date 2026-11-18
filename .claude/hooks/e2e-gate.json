@@ -778,12 +778,14 @@
         "lib/duplicateDraft.ts",
         "utils/taskStatusMappings.ts",
         "composables/usePlatformShortcut.ts",
-        "utils/renderMarkdown.ts"
+        "utils/renderMarkdown.ts",
+        "utils/sheetPlacement.ts"
       ],
       "specs": [
         "card-menu-button",
         "task-detail-focus",
         "task-sheet-spotlight",
+        "task-sheet-morph",
         "statistics-page",
         "task-form-structure",
         "task-draft-card",

@@ -101,4 +101,65 @@ describe('TaskSheet', () => {
     await flushPromises()
     expect(wrapper.find('[data-testid="slideover"]').attributes('data-footer')).toContain('sheet-footer')
   })
+
+  describe('detail route on desktop (#468)', () => {
+    const listeners: Array<(event: { matches: boolean }) => void> = []
+    let desktop = true
+    const Morph = defineComponent({
+      props: { open: Boolean, originId: { type: String, default: null } },
+      render() { return h('div', { 'data-testid': 'morph', 'data-origin': this.originId ?? '' }) },
+    })
+
+    const mountDetail = async (open: boolean) => {
+      const wrapper = mount(TaskSheet, {
+        props: { open, title: 'Task', hideTitle: true, flushBody: true, originId: 'task-1' },
+        global: { stubs: { TaskMorphShell: Morph, UDrawer, USlideover: true } },
+      })
+      await flushPromises()
+      return wrapper
+    }
+
+    beforeEach(() => {
+      listeners.length = 0
+      desktop = true
+      vi.stubGlobal('matchMedia', (query: string) => ({
+        get matches() { return desktop },
+        media: query,
+        addEventListener: (_: string, listener: (event: { matches: boolean }) => void) => listeners.push(listener),
+        removeEventListener: vi.fn(),
+      }))
+    })
+
+    const resize = (matches: boolean) => {
+      desktop = matches
+      listeners.forEach((listener) => listener({ matches }))
+    }
+
+    it('renders the morph shell with the task as its origin, not a slideover or a drawer', async () => {
+      const wrapper = await mountDetail(true)
+      expect(wrapper.find('[data-testid="morph"]').attributes('data-origin')).toBe('task-1')
+      expect(wrapper.findComponent(UDrawer).exists()).toBe(false)
+    })
+
+    it('keeps the add route on the slideover', async () => {
+      const wrapper = mount(TaskSheet, {
+        props: { open: true, title: 'Task', hideTitle: false },
+        global: { stubs: { TaskMorphShell: Morph, UDrawer, USlideover: true } },
+      })
+      await flushPromises()
+      expect(wrapper.find('[data-testid="morph"]').exists()).toBe(false)
+    })
+
+    it('keeps its shell when the window crosses 768 px while open, and follows the window on the next open', async () => {
+      const wrapper = await mountDetail(true)
+      resize(false)
+      await flushPromises()
+      expect(wrapper.find('[data-testid="morph"]').exists()).toBe(true)
+      await wrapper.setProps({ open: false })
+      await flushPromises()
+      await wrapper.setProps({ open: true })
+      await flushPromises()
+      expect(wrapper.findComponent(UDrawer).exists()).toBe(true)
+    })
+  })
 })
