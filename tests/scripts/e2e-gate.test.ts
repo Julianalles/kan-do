@@ -247,6 +247,16 @@ describe('selectE2e', () => {
       expect(select({ files: ['docs/copy/voice.md'] }).tier).toBe('skip')
     })
 
+    it('treats the Impeccable design sidecar as docs, next to DESIGN.md (#494)', () => {
+      expect(select({ files: ['DESIGN.md', '.impeccable/design.json'] })).toMatchObject({ tier: 'skip', reason: 'docs-only' })
+      expect(select({ files: ['.impeccable/design.json'] }).unmapped ?? []).toEqual([])
+    })
+
+    it('does not skip the sidecar together with code, nor other .impeccable files (#494)', () => {
+      expect(select({ files: ['.impeccable/design.json', 'lib/icons.ts'] }).tier).not.toBe('skip')
+      expect(select({ files: ['.impeccable/config.json'] }).tier).not.toBe('skip')
+    })
+
     it('keeps the rest of .claude/ docs-only', () => {
       expect(select({ files: ['.claude/hooks/verify.sh', '.claude/rules/e2e.md', '.claude/issue-workflow.md'] }).tier).toBe('skip')
     })

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-11-12T00:00:00+00:00",
+  "generatedAt": "2026-11-18T17:00:44+00:00",
   "title": "Design System: Kan-Do",
   "extensions": {
     "colorMeta": {
@@ -196,9 +196,9 @@
       "name": "Task Card",
       "kind": "card",
       "refersTo": "task-card",
-      "description": "A white sheet on the paper desk; its fill turns one step darker on hover and while pressed, it never moves.",
-      "html": "<div class=\"ds-task\"><p class=\"ds-task-topic\">Backend</p><p class=\"ds-task-title\">Review schreiben</p><span class=\"ds-badge\">30 min</span></div>",
-      "css": ".ds-task{width:288px;height:132px;box-sizing:border-box;padding:12px;background:#fff;border-radius:16px;box-shadow:0 0 0 1px rgb(70 48 20 / .07),0 2px 3px rgb(70 48 20 / .1),0 10px 22px -6px rgb(70 48 20 / .2);font-family:Figtree,system-ui,sans-serif;display:flex;flex-direction:column;cursor:pointer;transition:box-shadow .15s,translate .15s}.ds-task:hover,.ds-task:active{background:oklch(0.966 0.009 86)}.ds-task-topic{margin:0;font-size:14px;line-height:1.3;color:oklch(0.42 0.024 80)}.ds-task-title{margin:2px 0 0;font-size:15px;line-height:1.3;color:oklch(0.19 0.012 70)}.ds-badge{margin-top:auto;align-self:flex-start;background:oklch(0.895 0.016 84);color:oklch(0.19 0.012 70);font:500 12px/1.3 Figtree,system-ui,sans-serif;padding:2px 8px;border-radius:8px}"
+      "description": "A white sheet on the paper desk; its fill turns one step darker on hover and while pressed, it never moves. The footer reads source icon first, then the timebox chip, the carried-over dots and priority.",
+      "html": "<div class=\"ds-task\"><p class=\"ds-task-topic\">Backend</p><p class=\"ds-task-title\">Review schreiben</p><div class=\"ds-task-footer\"><svg class=\"ds-task-source\" width=\"12\" height=\"12\" viewBox=\"0 0 256 256\" fill=\"currentColor\" aria-hidden=\"true\"><path d=\"M216,40H40A16,16,0,0,0,24,56V200a16,16,0,0,0,16,16H216a16,16,0,0,0,16-16V56A16,16,0,0,0,216,40Zm0,160H40V56H216V200Z\"/></svg><span class=\"ds-badge\">30 min</span></div></div>",
+      "css": ".ds-task{width:288px;height:132px;box-sizing:border-box;padding:12px;background:#fff;border-radius:16px;box-shadow:0 0 0 1px rgb(70 48 20 / .07),0 2px 3px rgb(70 48 20 / .1),0 10px 22px -6px rgb(70 48 20 / .2);font-family:Figtree,system-ui,sans-serif;display:flex;flex-direction:column;cursor:pointer;transition:box-shadow .15s,translate .15s}.ds-task:hover,.ds-task:active{background:oklch(0.966 0.009 86)}.ds-task-topic{margin:0;font-size:14px;line-height:1.3;color:oklch(0.42 0.024 80)}.ds-task-title{margin:2px 0 0;font-size:15px;line-height:1.3;color:oklch(0.19 0.012 70)}.ds-task-footer{margin-top:auto;display:flex;align-items:center;gap:8px}.ds-task-source{color:oklch(0.42 0.024 80)}.ds-badge{background:oklch(0.895 0.016 84);color:oklch(0.19 0.012 70);font:500 12px/1.3 Figtree,system-ui,sans-serif;padding:2px 8px;border-radius:8px}"
     },
     {
       "name": "Column Header",
@@ -225,15 +225,15 @@
   ],
   "narrative": {
     "northStar": "Paper Desk",
-    "overview": "A warm paper desk with white sheets on it. Everything you read, enter or edit lies on a sheet; the desk itself stays empty and calm. Kan-Do is a working tool that is glanced at many times a day, so the columns, the cards and the one running task stand clearly apart, and nothing asks for attention it has not earned.",
+    "overview": "A warm paper desk with white sheets on it. Everything you read, enter or edit lies on a sheet; the desk itself stays empty and calm. Kan-Do is a working tool that is glanced at many times a day, so the columns, the cards and the one running task have to stand clearly apart, and nothing asks for attention it has not earned.",
     "keyCharacteristics": [
-      "A warm neutral canvas, never a saturated one; colour comes in small doses.",
+      "A warm neutral canvas, never a saturated one. Colour comes in small doses.",
       "White sheets lifted by one warm shadow, one level only: never a sheet on a sheet.",
-      "One muted forest green for action and for done; orange for attention, red for what is destructive or failed.",
-      "A serif (Fraunces) for headings, the sans (Figtree) for everything read and operated.",
+      "One muted green for action and for done; orange for attention, red for what is destructive or failed.",
+      "A serif for headings, the sans for everything read and operated.",
       "Questions are asked in place; reversible actions act at once and offer undo.",
       "Motion is small and physical and explains a state change.",
-      "Light only."
+      "Light only (`colorMode: false`); a dark mode would be a new feature."
     ],
     "rules": [
       {
@@ -243,32 +243,32 @@
       },
       {
         "name": "The Status Is Not Decoration Rule",
-        "body": "Green means action or done, orange attention, red destructive or failed. None of them appears for emphasis, branding or variety; integration brand colours do not appear at all.",
+        "body": "Green means action or done, orange attention, red destructive or failed. None of them appears for emphasis, branding or variety (the completion burst is the one recorded exception, see \"Earned celebration\"); integration brand colours do not appear at all.",
         "section": "colors"
       },
       {
         "name": "The Topic Mark Rule",
-        "body": "A topic carries its hue and symbol on its mark only: a small dot or glyph before the name. Never a coloured chip, card, column or surface, never a hue on a name, and no topic hue in a chart.",
+        "body": "A topic carries its hue and symbol on its mark only: a small dot or glyph before the name. Never a coloured chip, card, column or surface, never a hue on a name, and no topic hue in a chart (charts use the ink ramp).",
         "section": "colors"
       },
       {
         "name": "The Marker Rule",
-        "body": "A stroke of yellow text marker through the lower half of a word is an allowed decoration in slight, intentional use. It is static, carries no meaning of its own and appears once per view at most. Today's only use: the Jetzt headline.",
+        "body": "A stroke of yellow text marker centred on the bottom edge of a word (through the foot of its letters) is an allowed decoration in slight, intentional use (owner, 2026-11-11). It is static, carries no meaning of its own and appears once per view at most. Today's only use: the Jetzt headline. A new use is a recorded decision.",
         "section": "colors"
       },
       {
         "name": "The Frozen Primary Rule",
-        "body": "The primary palette (forest green, hue 152) changes only by a recorded decision, never as a side effect of a feature.",
+        "body": "The primary palette (forest green, hue 152, chosen by the owner on 2026-11-11) changes only by a decision recorded here, never as a side effect of a feature.",
         "section": "colors"
       },
       {
         "name": "The Receding Text Rule",
-        "body": "Waiting cards, done titles and placeholders step down through a token colour, never through opacity on text, and keep body contrast.",
+        "body": "Waiting cards, done titles and placeholders step down through a token colour, never through `opacity` on text, and keep body contrast. The recorded exceptions live with their component and in the a11y test.",
         "section": "colors"
       },
       {
         "name": "The Bright Ground Rule",
-        "body": "Text that is read may lie directly on a photo only where the picture behind it is bright and even enough for WCAG AA. The photo is positioned per breakpoint to guarantee that, and the contrast is checked on the rendered page, not assumed from the file.",
+        "body": "Text that is read (a brand, a headline, a summary) may lie directly on a photo only where the picture behind it is bright and even enough for WCAG AA (4.5:1, 3:1 for large text). The photo is positioned per breakpoint to guarantee that (the welcome photo is anchored to its bright wall on a phone, so the strip above the sheet shows no table, plant or book), and the contrast is checked on the rendered page at 1280 and 390 px, not assumed from the file. This is the one exception to \"everything you read lies on a sheet\" (Direction); a photo that cannot guarantee a bright ground behind the text gets a sheet (rule candidate #472, owner, 2026-11-18).",
         "section": "colors"
       },
       {
@@ -277,8 +277,13 @@
         "section": "typography"
       },
       {
+        "name": "The One Height Rule",
+        "body": "Every button has the height of the main one: 36 px, 48 px on a phone, so buttons side by side line up and are as easy to hit as the main one (owner, 2026-11-17, #424). The main button differs by colour only, and a solid green or error button is at least 96 px wide. A button is smaller only where the space is narrow, and each such button is listed with its reason in `tests/config/button-ladder.test.ts`: the alert and toast action (24 px, #377), a link inside running text, and the round icon-only buttons of the board's chrome (32 px on desktop, 44 px on a phone: the Offen header's add button, the plan arrows, centred on a card's edge in the soft primary look drawn by their own rule (#467, D2), the stack header's close button) and the card-corner menu button (a 28 px circle with a 44 px hit area), whose geometry is tied to the 32 px title line and the card corner.",
+        "section": "spacing"
+      },
+      {
         "name": "The Sheets Cast Shadows Rule",
-        "body": "A shadow belongs to a sheet: a surface lifted off the canvas that holds content. A control never casts one; a selected tab or place is a fill. The one named exception is the app bar's nav pill.",
+        "body": "A shadow belongs to a sheet: a surface lifted off the canvas that holds content. A control never casts one; a selected tab or place is a fill. The one named exception is the app bar's nav pill (flat white, no glass).",
         "section": "elevation"
       }
     ],
