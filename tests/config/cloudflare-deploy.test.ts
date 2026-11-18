@@ -26,6 +26,14 @@ describe('Cloudflare deploy path', () => {
     expect(scripts.deploy).toBe('npm run build:cloudflare && wrangler deploy -c wrangler.jsonc')
   })
 
+  it('the Notion limiter is a SQLite-backed Durable Object the entry exports, never the Workers Rate Limiting binding (#508)', () => {
+    const config = read('wrangler.jsonc').replace(/^\s*\/\/.*$/gm, '')
+    expect(config).toMatch(/"durable_objects":\s*\{\s*"bindings":\s*\[\s*\{\s*"name":\s*"NOTION_LIMITER",\s*"class_name":\s*"NotionLimiter"\s*\}\s*\]\s*\}/)
+    expect(config).toMatch(/"migrations":\s*\[\s*\{\s*"tag":\s*"v1",\s*"new_sqlite_classes":\s*\["NotionLimiter"\]\s*\}\s*\]/)
+    expect(config).not.toContain('"ratelimits"') // it answered success:true for 1200 requests on the live instance
+    expect(read('worker/index.ts')).toMatch(/export \{ NotionLimiter \} from '\.\/limiter'/)
+  })
+
   it('the marker is the gate cookie of worker/gate.ts', () => {
     expect(read('worker/gate.ts')).toContain(`COOKIE_NAME = '${GATE_MARKER}'`)
   })

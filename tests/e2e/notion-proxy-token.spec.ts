@@ -4,7 +4,7 @@ import { seedNotionBoard } from './helpers/seed'
 /**
  * The Notion proxy takes the token only in `Authorization: Bearer` (#503): no request URL carries it (URLs end up
  * in Cloudflare logs and analytics), and one normal board session stays far below the Worker's rate limit of 120
- * requests per minute (`ratelimits` in wrangler.jsonc). The origin check and the limiter themselves are unit-tested
+ * requests per minute (`worker/limiter.ts`). The origin check and the limiter themselves are unit-tested
  * in `worker/` (this suite serves the Nitro build, not the Worker).
  */
 
