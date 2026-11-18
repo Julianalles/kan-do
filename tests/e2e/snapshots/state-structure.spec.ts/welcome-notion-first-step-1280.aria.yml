@@ -1,18 +1,18 @@
 - region "Mit Notion verbinden":
   - button "Zurück zur Auswahl"
   - list "Fortschritt der Einrichtung":
+    - listitem: Vorbereitung
     - listitem: Token
     - listitem: Datenbank
     - listitem: Eigenschaften
     - listitem: Weitere Eigenschaften
     - listitem: Status
-  - paragraph: Du brauchst ein Notion-Token. Es wird nur auf diesem Gerät gespeichert.
-  - heading "Notion-Token" [level=2]
-  - text: Notion-Integrationstoken
-  - textbox "Notion-Integrationstoken":
-    - /placeholder: Integrationstoken eingeben
-  - text: Öffne
-  - link "Notion › Einstellungen › Integrationen › Eigene Integrationen erstellen":
-    - /url: https://www.notion.so/my-integrations
-  - text: ", um eine neue Integration zu erstellen und das Token zu erhalten."
-  - button "Weiter" [disabled]
+  - paragraph: Eine kurze Orientierung, bevor du etwas eingibst.
+  - heading "Vorbereitung" [level=2]
+  - paragraph: Deine Aufgaben bleiben in Notion. Kan-Do zeigt sie als Board und speichert Änderungen dorthin zurück.
+  - paragraph: Das brauchst du
+  - list "Das brauchst du":
+    - listitem: Notion-Konto
+    - listitem: Aufgaben-Datenbank
+    - listitem: Token
+  - button "Los geht’s"

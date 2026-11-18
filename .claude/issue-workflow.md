@@ -17,7 +17,7 @@
 - product: `PRODUCT.md`, `docs/application-purpose.md`, `docs/acceptance-criteria.md`
 - design system: `DESIGN.md` (direction, tokens, named rules, recurring patterns; frozen `custom-forest` palette), `app.config.ts`, `assets/css/`; per-component detail (values, timings, accepted trade-offs) lives in the component's doc block and CSS comments
 - design backlog / audits: an issue naming an ID like `C9` or `A13` → that entry in `docs/design/backlog.md` and the matching finding in `docs/design/audit-2026-10.md`. Done work strikes the backlog entry as `~~...~~ - done <date>`.
-- UI copy: German first, English too; every string an i18n key (CLAUDE.md "Language Policy"). Sketches and ASCII layouts use the real column names `Offen`, `Jetzt`, `Wartet`, `Erledigt` and real copy, never lorem ipsum.
+- UI copy: German first, English too; every string an i18n key (CLAUDE.md "Language Policy"); draft and final copy: section "Copy".
 
 ## Jobs
 
@@ -28,7 +28,7 @@
 Impeccable plugin (`/impeccable <verb>`). Mode for app surfaces: Operate.
 - brief: `/impeccable shape <goal>`; interview when interactive, asserted from the issue, PRODUCT.md and DESIGN.md when a worker.
 - current-state review: `/impeccable critique <target>` and `/impeccable audit <target>`.
-- variant lenses: `distill` (simpler), `onboard` (first run, empty states), `clarify` (copy), `adapt` (390px behaviour). Use them as thinking lenses while drafting; do not run them on code in Design.
+- variant lenses: `distill` (simpler), `onboard` (first run, empty states), `adapt` (390px behaviour); copy is not a lens, it has its own step (section "Copy"). Use them as thinking lenses while drafting; do not run them on code in Design.
 - element look: `/impeccable generate <n> <action> <element>` or `/impeccable live` on a running dev server. Element-level look only (a header, a card), never structure or flow. It is not a wireframe tool: it writes styled variants into source.
 - build: before creating a UI element, search the kit first: `npm run ui:find -- <job words>` (manifest), then `/ui` (Pattern check, `.claude/rules/ui-patterns.md`). Then `/impeccable <outcome and target, plus what to keep>` with the spec's brief and ACs; refinement verbs only where the spec calls for them: `layout`, `typeset`, `clarify`, `adapt`, `harden`, `animate`, `colorize`. Run `/impeccable hooks status` first; if off, tell the user (`/impeccable hooks on`).
 - gate (UI PRs; reduced 2026-11-13, user decision after the eval of 38 UI PRs): one design review of the built result, `/impeccable critique <target>` with its design-review assessment as one isolated sub-agent on the after screenshots at 1280 and 390, run as soon as the change renders and before the first full E2E pass. No run on `origin/main`, no scores, no scored `audit`: the detector, axe and the rendered scan in the hooks and the merge gate cover what can be measured. Fix every P0 and P1 the PR introduced; procedure: `docs/design/impeccable-gate.md`, read it before the gate. **Hard gate:** no `gh pr create` for a UI PR without the review's findings in the PR body, or the concrete error.
@@ -36,6 +36,13 @@ Impeccable plugin (`/impeccable <verb>`). Mode for app surfaces: Operate.
   Detector notes (`.vue` regex-only, the rejected html engine, baseline and ignores, WCAG 2.2 touch targets, upgrading): `docs/design/impeccable-gate.md`.
 - design records: a pattern repeated 3+ times with the same intent → `/impeccable extract <area>`; a changed DESIGN.md rule, token or pattern → `/impeccable document` (asks before overwriting); per-issue detail goes to the component's doc block, not DESIGN.md.
 - hooks: Impeccable's own detector hook stays on, also on proto branches; per edit it reports only its immediate tier, contrast and tiny text come from the Stop hook's rendered scan and the pre-merge `design-detect` spec.
+
+## Copy
+
+- draft rules (prototypes, sketches, ASCII layouts): real draft wording in German, never lorem ipsum; "du"; sentence case; the real column names `Offen`, `Jetzt`, `Wartet`, `Erledigt`; no middle dot. Nothing more: wording is not polished in Design rounds, feedback on it waits for the copy pass.
+- copy inventory: every text element of a variant with its purpose, or `convention` when it is there only because the component has the slot or it is the usual thing.
+- copy pass: the `copy-writer` skill, section "Copy pass" (rules `docs/copy/voice.md`, registry `docs/copy/terms.json`); it returns the `### UI copy` table.
+- Build: implement `### UI copy` verbatim as i18n keys; an issue without it gets the copy pass before the PR (its table goes into the PR body). `/impeccable clarify` does not rewrite copy that came from the table.
 
 ## Default acceptance criteria (UI)
 

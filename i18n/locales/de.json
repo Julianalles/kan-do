@@ -623,6 +623,7 @@
       "stepsLabel": "Fortschritt der Einrichtung",
       "stepDone": "(abgeschlossen)",
       "steps": {
+        "intro": "Vorbereitung",
         "token": "Token",
         "database": "Datenbank",
         "mapping": "Eigenschaften",
@@ -653,7 +654,19 @@
       "noDataSourcesSelectable": "Diese Datenbank hat aktuell keine Datenquellen. Füge in Notion eine Datenquelle hinzu oder wähle eine andere Datenbank aus.",
       "noDataSources": "Diese Datenbank hat aktuell keine Datenquellen. Füge mindestens eine Datenquelle in Notion hinzu.",
       "allDataSourcesUsed": "Alle Datenquellen dieser Datenbank werden automatisch berücksichtigt.",
-      "unnamedDataSource": "Unbenannte Datenquelle"
+      "unnamedDataSource": "Unbenannte Datenquelle",
+      "note": {
+        "description": "Kan-Do geht von einer bestehenden Aufgaben-Datenbank aus. Noch keine? Lege sie zuerst in Notion an und komm dann zurück.",
+        "required": "Nötig",
+        "optional": "Optional",
+        "title": "Titel",
+        "status": "Status",
+        "dueDate": "Fälligkeit",
+        "priority": "Priorität",
+        "timeBox": "Timebox",
+        "timeSpent": "Aufgewendete Zeit",
+        "hint": "Die Namen der Felder dürfen in Notion anders sein."
+      }
     },
     "customProps": {
       "intro": "Wähle zusätzliche Felder aus deiner Notion-Datenbank aus, die Kan-Do (nur lesend) importieren soll.",
@@ -666,6 +679,7 @@
       "warningLabel": "Warnung:",
       "brokenNotice": "Die Notion-Einrichtung ist nicht mehr gültig. Richte sie neu ein.",
       "stepTitle": {
+        "intro": "Vorbereitung",
         "token": "Notion-Token",
         "database": "Datenbank auswählen",
         "mapping": "Eigenschaften zuordnen",
@@ -735,7 +749,7 @@
       },
       "status": {
         "label": "Status",
-        "help": "Feld für den Aufgaben-Status (z. B. Today, Doing, Waiting, Done).",
+        "help": "Feld für den Aufgaben-Status, etwa Today, Doing, Waiting oder Done.",
         "placeholder": "Status-Feld auswählen"
       },
       "dueDate": {
@@ -784,20 +798,20 @@
       "noField": "Kein Feld",
       "unplanned": {
         "label": "Ungeplant",
-        "help": "Kennzeichnung für ungeplante Aufgaben (reaktive Arbeit). Direktes Feld: Checkbox. Wert-basiert: Bestimmter Wert (z.B. Tag).",
+        "help": "Kennzeichnung für ungeplante Aufgaben (reaktive Arbeit). Direktes Feld: Checkbox. Wert-basiert: Bestimmter Wert, etwa ein Tag.",
         "modeNone": "Keine Zuordnung",
         "modeBoolean": "Direktes Feld (Checkbox)",
         "modeValue": "Wert-basiert (Tag/Select)",
         "selectField": "Feld auswählen",
         "checkboxPlaceholder": "Checkbox-Feld auswählen",
         "valuePlaceholder": "Wert auswählen oder eingeben",
-        "valueInputPlaceholder": "Wert eingeben (z.B. 'ungeplant')"
+        "valueInputPlaceholder": "Wert eingeben, etwa „ungeplant“"
       },
       "unit": {
         "seconds": "Sekunden",
         "minutes": "Minuten",
         "hours": "Stunden",
-        "formatted": "Formatiert (z.B. „15 min“, „2h“)"
+        "formatted": "Formatiert, etwa „15 min“ oder „2h“"
       },
       "unitPlaceholder": "Einheit wählen"
     },
@@ -1284,7 +1298,8 @@
       "tagline": "Das Kanban Board mit dem du deine Aufgaben des Tages fokussiert erledigst.",
       "version": "Version:",
       "title": "Bereit für deine Aufgaben",
-      "samples": "Mit Beispielaufgaben entdecken",
+      "samples": "Beispiel anzeigen",
+      "curious": "Du bist erst einmal nur neugierig? Dann schau dich zunächst in der App mit Beispielaufgaben um.",
       "intro": "Du kannst sie lokal auf diesem Gerät speichern oder externe Apps wie Notion oder Todoist verbinden.",
       "start": "Jetzt starten"
     },
@@ -1311,9 +1326,20 @@
         "label": "Mit Notion verbinden",
         "connect": "Verbinden",
         "connected": "Notion ist verbunden",
-        "loading": "Dein Board wird geladen …"
+        "loading": "Dein Board wird geladen …",
+        "start": "Los geht’s",
+        "intro": {
+          "diagramNotion": "Notion",
+          "diagramKanDo": "Kan-Do",
+          "sentence": "Deine Aufgaben bleiben in Notion. Kan-Do zeigt sie als Board und speichert Änderungen dorthin zurück.",
+          "needs": "Das brauchst du",
+          "account": "Notion-Konto",
+          "database": "Aufgaben-Datenbank",
+          "token": "Token"
+        }
       },
       "help": {
+        "intro": "Eine kurze Orientierung, bevor du etwas eingibst.",
         "token": "Du brauchst ein Notion-Token. Es wird nur auf diesem Gerät gespeichert.",
         "database": "Wähle die Datenbank mit deinen Aufgaben. Die Datenbank muss mit deiner Integration geteilt sein.",
         "mapping": "Sag der App, welche Eigenschaft der Titel, der Status und die Fälligkeit ist. Passende sind vorausgewählt.",
@@ -1459,7 +1485,7 @@
       "retry": "Erneut versuchen",
       "preparing": "Wird vorbereitet…",
       "downloading": "Wird geladen…",
-      "progress": "Wird geladen… {percent}%",
+      "progress": "Wird geladen… {percent} %",
       "installing": "Wird installiert…",
       "error": {
         "dataFolderUnavailable": "Datenordner nicht erreichbar. Es wurde nichts geändert.",

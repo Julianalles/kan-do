@@ -2,6 +2,8 @@ import { test, expect, type Page } from '@playwright/test'
 import { completeNotionWizard } from './helpers/notionWizard'
 import { expectContrast } from './helpers/contrast'
 import { moreButton, openSettings } from './helpers/appNav'
+import { buildBoardStore, buildTasksStore, SEED_TASKS } from './helpers/seed'
+import { installTauriStub } from './helpers/tauriStub'
 
 // E2E: the welcome page asks one question with two equal answers (#324); both end on the board. The trial with sample
 // tasks is a third row set apart with its own step 2 (#236).
@@ -42,24 +44,36 @@ async function openNotion(page: Page) {
 const storedSources = (page: Page) =>
   page.evaluate(() => (JSON.parse(localStorage.getItem('board-store') ?? '{}') as { boardConfig?: { sources?: unknown } }).boardConfig?.sources ?? null)
 
-test('welcome start: one filled green "Jetzt starten", the sample start as a quiet second way, no choice rows (#294)', async ({ page, baseURL }) => {
+test('welcome start: one filled green "Jetzt starten", "Beispiel anzeigen" soft beside it, brand and subline above the sheet (#294, #437)', async ({ page, baseURL }) => {
   await page.goto(baseURL! + '/welcome')
 
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Bereit für deine Aufgaben')
   const start = page.getByRole('button', { name: 'Jetzt starten' })
-  const samples = page.getByRole('button', { name: 'Mit Beispielaufgaben entdecken' })
+  const samples = page.getByRole('button', { name: 'Beispiel anzeigen' })
   await expect(start).toBeVisible()
   await expect(samples).toBeVisible()
   await expect(page.getByText(/Du kannst sie lokal auf diesem Gerät speichern/)).toBeVisible()
+  await expect(page.getByText('Du bist erst einmal nur neugierig? Dann schau dich zunächst in der App mit Beispielaufgaben um.')).toBeVisible()
   await expect(page.getByRole('button', { name: 'In Notion' })).toHaveCount(0)
   await expect(page.locator('main.bg-page')).toBeVisible()
 
   // The one solid green is the start; the trial is not filled
   await expect(page.locator('main button.bg-primary')).toHaveCount(1)
   await expect(start).toHaveClass(/bg-primary/)
-  await expect(samples).not.toHaveClass(/bg-primary/)
+  await expect(samples).not.toHaveClass(/(^|\s)bg-primary(\s|$)/) // soft: a tint, not the solid fill
+  // From 640px the two ways in sit side by side (#437)
   const [a, b] = await Promise.all([start, samples].map((el) => el.boundingBox()))
-  expect(b!.y).toBeGreaterThan(a!.y + a!.height)
+  expect(b!.x).toBeGreaterThan(a!.x + a!.width - 1)
+  expect(Math.abs(b!.y - a!.y)).toBeLessThan(2)
+
+  // Brand and subline sit outside and above the sheet, and share its content's left edge
+  const sheet = page.locator('.welcome-sheet')
+  const brand = page.getByTestId('welcome-brand')
+  await expect(brand).toHaveText('kan-do')
+  const [sheetBox, brandBox, titleBox] = await Promise.all([sheet.boundingBox(), brand.boundingBox(), page.getByRole('heading', { level: 1 }).boundingBox()])
+  expect(brandBox!.y + brandBox!.height).toBeLessThanOrEqual(sheetBox!.y)
+  expect(Math.abs(brandBox!.x - titleBox!.x)).toBeLessThan(1)
+  await expect(sheet.getByText('kan-do', { exact: true })).toHaveCount(0)
   await expectContrast(page, page.getByText(/Du kannst sie lokal auf diesem Gerät speichern/), 4.5)
 })
 
@@ -75,10 +89,13 @@ test('welcome has no horizontal overflow at 390px, the headline stays within two
     return new Set(Array.from(range.getClientRects()).map((r) => Math.round(r.top))).size
   })
   expect(lines).toBeLessThanOrEqual(2)
-  for (const name of ['Jetzt starten', 'Mit Beispielaufgaben entdecken']) {
+  for (const name of ['Jetzt starten', 'Beispiel anzeigen']) {
     await expect(page.getByRole('button', { name })).toBeInViewport()
     expect((await page.getByRole('button', { name }).boundingBox())!.height).toBeGreaterThanOrEqual(44)
   }
+  // Below 640px the two ways in stack
+  const [first, second] = await Promise.all(['Jetzt starten', 'Beispiel anzeigen'].map((name) => page.getByRole('button', { name }).boundingBox()))
+  expect(second!.y).toBeGreaterThan(first!.y + first!.height)
   // More of the photo shows: the sheet takes at most 60% of the phone's height (the old one filled about 80%)
   expect((await page.locator('.welcome-sheet').boundingBox())!.height).toBeLessThan(844 * 0.6)
 })
@@ -106,7 +123,7 @@ test('Notion ticked in step 2 shows the setup on the page (no dialog); Back retu
 
   const flow = page.getByTestId('notion-setup-flow')
   await expect(flow).toBeVisible()
-  await expect(flow.getByRole('heading', { name: 'Notion-Token' })).toBeFocused()
+  await expect(flow.getByRole('heading', { name: 'Vorbereitung' })).toBeFocused() // the hidden heading of the first step (#441)
   await expect(page.getByTestId('wizard-proceed')).toBeVisible()
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(page).toHaveURL(/\/welcome$/)
@@ -340,3 +357,108 @@ test('welcome sheet pads its bottom by the safe-area inset on a phone, 40px on d
   await page.setViewportSize({ width: 1280, height: 800 })
   await expect.poll(() => sheet.evaluate((el) => getComputedStyle(el).paddingBottom)).toBe('40px')
 })
+
+test('welcome: brand and subline sit on the photo with AA contrast at 1280 and 390px (#437, rule candidate #472)', async ({ page, baseURL }) => {
+  for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(viewport)
+    await page.goto(baseURL! + '/welcome')
+    await expect(page.getByTestId('welcome-photo')).toHaveCSS('opacity', '1')
+    await expectContrast(page, page.getByTestId('welcome-brand'), 3)
+    await expectContrast(page, page.getByText('Das Kanban Board mit dem du deine Aufgaben des Tages fokussiert erledigst.'), 4.5)
+  }
+})
+
+test('in the Notion setup the brand keeps the sheet\'s left edge while the sheet widens (#437)', async ({ page, baseURL }) => {
+  await page.goto(baseURL! + '/welcome')
+  const brand = page.getByTestId('welcome-brand')
+  const sheet = page.locator('.welcome-sheet')
+  const edge = async () => Math.round((await brand.boundingBox())!.x - (await sheet.boundingBox())!.x)
+  await expect.poll(edge).toBe(32) // the sheet's padding at 1280
+  await openNotion(page)
+  await expect.poll(async () => Math.round((await sheet.boundingBox())!.width)).toBe(768)
+  await expect.poll(edge).toBe(32)
+})
+
+/** Notes whether the brand flight's clone ever appears (it is removed again at the end of the flight). */
+async function watchFlight(page: Page) {
+  await page.evaluate(() => {
+    ;(window as unknown as { __flightSeen: boolean }).__flightSeen = false
+    new MutationObserver(() => {
+      if (document.querySelector('[data-testid="brand-flight"]')) (window as unknown as { __flightSeen: boolean }).__flightSeen = true
+    }).observe(document.body, { childList: true })
+  })
+}
+const flightSeen = (page: Page) => page.evaluate(() => (window as unknown as { __flightSeen: boolean }).__flightSeen)
+
+test('finish on desktop: the brand flies to the app bar brand and leaves no clone behind (#437)', async ({ page, baseURL }) => {
+  await page.goto(baseURL! + '/welcome')
+  await page.getByTestId('welcome-choice-samples').click()
+  await page.getByTestId('samples-confirm').click()
+  await expect(page.getByTestId('brand-flight')).toBeAttached()
+  await expect(page).toHaveURL(/\/tasks$/)
+  await expect(page.getByTestId('brand-flight')).toHaveCount(0)
+  await expect(page.getByTestId('app-nav-brand').locator('.app-nav-brand-text')).toBeVisible()
+  await expect(page.getByTestId('app-nav-brand').locator('.app-nav-brand-text')).toHaveCSS('visibility', 'visible')
+})
+
+test('the flight ends exactly on the app bar brand (#437)', async ({ page, baseURL }) => {
+  await page.goto(baseURL! + '/welcome')
+  await page.getByTestId('welcome-choice-samples').click()
+  await page.getByTestId('samples-confirm').click()
+  // Jump the flight to its end and compare the clone's text box with the bar brand's (the clone is removed right after)
+  const boxes = await page.evaluate(async () => {
+    const textBox = (el: Element) => { const r = document.createRange(); r.selectNodeContents(el); const b = r.getBoundingClientRect(); return { x: b.left, y: b.top, w: b.width, h: b.height } }
+    for (let i = 0; i < 200; i++) {
+      const clone = document.querySelector('[data-testid="brand-flight"]')
+      const target = document.querySelector('[data-testid="app-nav-brand"] .app-nav-brand-text')
+      const anim = clone?.getAnimations().find((a) => a instanceof CSSAnimation === false)
+      if (clone && target && anim) {
+        anim.finish()
+        return { clone: textBox(clone), target: textBox(target) }
+      }
+      await new Promise((resolve) => requestAnimationFrame(resolve))
+    }
+    return null
+  })
+  expect(boxes).not.toBeNull()
+  expect(Math.abs(boxes!.clone.x - boxes!.target.x)).toBeLessThan(2)
+  expect(Math.abs(boxes!.clone.y + boxes!.clone.h / 2 - (boxes!.target.y + boxes!.target.h / 2))).toBeLessThan(2)
+  expect(Math.abs(boxes!.clone.w - boxes!.target.w)).toBeLessThan(2)
+})
+
+test('finish on a phone or with reduced motion: no flight, the page just fades (#437)', async ({ page, baseURL }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto(baseURL! + '/welcome')
+  await watchFlight(page)
+  await page.getByTestId('welcome-choice-samples').click()
+  await page.getByTestId('samples-confirm').click()
+  await expect(page).toHaveURL(/\/tasks$/)
+  expect(await flightSeen(page)).toBe(false)
+
+  await page.evaluate(() => localStorage.clear())
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  await page.goto(baseURL! + '/welcome')
+  await watchFlight(page)
+  await page.getByTestId('welcome-choice-samples').click()
+  await page.getByTestId('samples-confirm').click()
+  await expect(page).toHaveURL(/\/tasks$/)
+  expect(await flightSeen(page)).toBe(false)
+})
+
+// The column hangs from a line above the page's middle (#437); on a short window it must still clear the desktop bar row
+// and the data-storage notice of an unreachable folder.
+for (const height of [600, 700, 800]) {
+  test(`welcome: the brand clears the unreachable-folder notice and the desktop bar row at ${height}px height (#437)`, async ({ page, baseURL }) => {
+    // The same launch as data-safety.spec.ts: stores hydrate empty and /tasks lands on the welcome page
+    await installTauriStub(page.context(), { data: { status: 'folder-unavailable', folder: '/Users/test/data', envelope: { schemaVersion: 1, stores: { 'board-store': buildBoardStore('local'), 'tasks-store': buildTasksStore(SEED_TASKS) } } } })
+    await page.setViewportSize({ width: 1280, height })
+    await page.goto(baseURL! + '/welcome')
+    const notice = page.locator('.welcome-root').getByTestId('data-storage-notice')
+    await expect(notice).toBeVisible()
+    await expect(page.locator('html')).toHaveAttribute('data-shell', 'desktop')
+    const noticeBox = (await notice.boundingBox())!
+    const brandBox = (await page.getByTestId('welcome-brand').boundingBox())!
+    expect(brandBox.y).toBeGreaterThanOrEqual(noticeBox.y + noticeBox.height)
+  })
+}
