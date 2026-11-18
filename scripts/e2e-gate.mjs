@@ -3,7 +3,7 @@
  * Tier selection of the pre-merge E2E gate (#355, `.claude/hooks/e2e-before-merge.sh`).
  *
  * `selectE2e` is pure: given the PR's files and body it returns which specs the hook runs.
- * Rules in order: every file docs-only -> `skip`; a forced `full` (env `E2E_GATE=full`, an unresolved or
+ * Rules in order: every file docs-only (docs, `.claude/**`, the Impeccable sidecar `.impeccable/design.json`, #494) -> `skip`; a forced `full` (env `E2E_GATE=full`, an unresolved or
  * truncated file list) -> `full`; every file style-only (#375: `.css`, a `.vue` whose changed lines all lie in
  * `<style>` blocks or comments, docs, `tests/e2e/snapshots/**`) -> `style` = no E2E, or only the changed specs
  * when the PR also touches `tests/e2e/*.spec.ts`; otherwise `targeted` = the smoke set + the `map` specs of every
@@ -41,8 +41,11 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const SPEC_SUFFIX = '.spec.ts'
 const SPEC_DIR = 'tests/e2e/'
 const HELPER_DIR = 'tests/e2e/helpers/'
-/** Docs-only paths, like CI's `paths-ignore`: `docs/**`, `**\/*.md`, `.claude/**`. */
-const DOCS_ONLY = /^(docs\/|\.claude\/)|\.md$/
+/**
+ * Docs-only paths, like CI's `paths-ignore`: `docs/**`, `**\/*.md`, `.claude/**`; plus the Impeccable design-system
+ * sidecar (#494), which mirrors DESIGN.md and which neither the app nor an E2E spec reads.
+ */
+const DOCS_ONLY = /^(docs\/|\.claude\/|\.impeccable\/design\.json$)|\.md$/
 /** The gate's own rules, hook and script (#446): they decide what every later PR runs, so they are never docs-only. */
 const GATE_FILES = /^(\.claude\/hooks\/e2e-[^/]+|scripts\/e2e-gate\.mjs)$/
 /** Files below `docs/` the app reads at runtime (#486): the term registry feeds the live copy editor and its E2E spec, so they are never docs-only. */
