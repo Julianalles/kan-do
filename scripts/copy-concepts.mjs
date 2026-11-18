@@ -86,9 +86,9 @@ export const DETECTORS = [
   },
   {
     id: 'error-phrasing',
-    why: 'Error structure: "X ist fehlgeschlagen" vs "konnte nicht" / "kann nicht" (en: failed, could not, cannot)',
+    why: `Error structure: "X ist fehlgeschlagen" vs "konnte nicht" / "kann nicht" (en: failed, couldn't, can't)`,
     de: /fehlgeschlagen|konnte nicht|kann nicht/i,
-    en: /\bfailed\b|\bcould not\b|\bcannot\b/i,
+    en: /\bfailed\b|\bcould not\b|\bcannot\b|\bcouldn['’]t\b|\bcan['’]t\b/i,
   },
   {
     id: 'button-ok-yes-no',

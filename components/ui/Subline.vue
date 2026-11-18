@@ -8,7 +8,7 @@
 @responsibility
 - Render the slot (or `text`) as muted 18 px text with a calm line height, balanced across lines, nothing else: no icon, no link, no action
 - Pass attributes and the call site's class through to the element
-- Contrast: it sits on the paper canvas and on the welcome photo's bright wall (WCAG AA is checked there by the rendered scan, rule candidate #472)
+- Contrast: it sits on the paper canvas and on the welcome photo's bright wall (DESIGN.md "The Bright Ground Rule": AA is checked there on the rendered page)
 -->
 <template>
   <component :is="tag" class="text-lg text-balance text-muted">

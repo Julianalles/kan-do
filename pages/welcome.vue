@@ -11,7 +11,7 @@
 - Fokus: nach dem Tausch auf die Überschrift des Setups, beim Zurück auf die Schaltfläche, von der man kam
 - Ein ruhiges Foto (Schreibtisch mit Tasse, Notizbuch und Pflanze im Fensterlicht, kd#226; gebündelt in public/welcome,
   Quelle in CREDITS.md) füllt die Seite. Wortmarke und Subline stehen direkt darauf, auf der hellen Wand (Kontrast AA,
-  Regelvorschlag #472): am Telefon ist das Foto dafür links oben verankert, so dass der Streifen über dem Bogen nur helle
+  DESIGN.md „The Bright Ground Rule“): am Telefon ist das Foto dafür links oben verankert, so dass der Streifen über dem Bogen nur helle
   Wand zeigt (Tasse, Tisch und Pflanze liegen hinter dem Bogen). Mittig ein heller Bogen (Oberfläche und Schatten wie ein
   Dialog) trägt Überschrift, Antworten, Hinweis und Version. Am Telefon füllt der Bogen die Breite.
 - Ab 640 px hängt die Spalte an einer festen Linie über der Seitenmitte statt mittig zu stehen: ein höherer Schritt wächst nach unten, die Wortmarke bleibt beim Tausch an ihrem Platz

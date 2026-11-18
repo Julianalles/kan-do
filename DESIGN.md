@@ -103,6 +103,8 @@ Token values live in `assets/css/main.css` and `app.config.ts`; these tables nam
 
 **The Receding Text Rule.** Waiting cards, done titles and placeholders step down through a token colour, never through `opacity` on text, and keep body contrast. The recorded exceptions live with their component and in the a11y test.
 
+**The Bright Ground Rule.** Text that is read (a brand, a headline, a summary) may lie directly on a photo only where the picture behind it is bright and even enough for WCAG AA (4.5:1, 3:1 for large text). The photo is positioned per breakpoint to guarantee that (the welcome photo is anchored to its bright wall on a phone, so the strip above the sheet shows no table, plant or book), and the contrast is checked on the rendered page at 1280 and 390 px, not assumed from the file. This is the one exception to "everything you read lies on a sheet" (Direction); a photo that cannot guarantee a bright ground behind the text gets a sheet (rule candidate #472, owner, 2026-11-18).
+
 ### Type
 
 Fraunces 500 (tracking -0.02em) is the display face, Figtree the face for everything read and operated; both are bundled. Each role carries its line height in its size token, so no component writes a `leading-*` class.
@@ -215,6 +217,7 @@ Nuxt UI components first, themed in `app.config.ts`; a shared primitive in `comp
 - **Quiet notices over interruptions.** System states and news are a notice, a toast or a popover, never a dialog that opens by itself.
 - **Earned celebration.** Everyday actions confirm quietly; completing a task earns a short celebration around the card: once per completion, about a second, design-system colours, no sound, never blocking. Recorded exception (owner, 2026-11-06): rewarding achievements supports motivation. Recorded exception (owner, #295, 2026-11-14): a task finished below its timebox shows one praise line on the confirmation layer ("Sehr gut! Schneller als geplant."), and the burst is bolder and carries green, warning orange, sky and marker yellow (never raspberry, never a topic hue); this is the only praise text.
 - **A view filter never hides Jetzt.** Any view-only reduction of the board (property filter, focus mode, search) leaves the card in Jetzt visible and unchanged, so the board always shows that Jetzt is occupied. A filtered view may then show one card outside the filter; that is the intended trade (owner, #235, 2026-11-16).
+- **One heading level in a menu.** A group inside a menu or popover carries one heading level: its group heading is the only heading. A second sub-heading never splits a group; a hairline or the row language separates what is left. It applies to menus and popovers only: a sheet keeps its lower-level heading ("Sheets on a desk"). Example: the Mehr panel (#431; rule candidate #464, owner, 2026-11-18).
 - **Keyboard.** Everything is keyboard-reachable, including board moves; `⌘K` opens the command palette. Announcements name the task and the column, never ids.
 - **Accessibility.** WCAG 2.2 AA (text 4.5:1, non-text 3:1), with the recorded exceptions named in the a11y test.
 

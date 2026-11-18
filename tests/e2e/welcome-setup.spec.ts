@@ -358,7 +358,7 @@ test('welcome sheet pads its bottom by the safe-area inset on a phone, 40px on d
   await expect.poll(() => sheet.evaluate((el) => getComputedStyle(el).paddingBottom)).toBe('40px')
 })
 
-test('welcome: brand and subline sit on the photo with AA contrast at 1280 and 390px (#437, rule candidate #472)', async ({ page, baseURL }) => {
+test('welcome: brand and subline sit on the photo with AA contrast at 1280 and 390px (#437, Bright Ground Rule)', async ({ page, baseURL }) => {
   for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
     await page.setViewportSize(viewport)
     await page.goto(baseURL! + '/welcome')

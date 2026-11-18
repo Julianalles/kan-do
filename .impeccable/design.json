@@ -267,6 +267,11 @@
         "section": "colors"
       },
       {
+        "name": "The Bright Ground Rule",
+        "body": "Text that is read may lie directly on a photo only where the picture behind it is bright and even enough for WCAG AA. The photo is positioned per breakpoint to guarantee that, and the contrast is checked on the rendered page, not assumed from the file.",
+        "section": "colors"
+      },
+      {
         "name": "The One Role Rule",
         "body": "The display face is for headings only. Numerals, labels, tab names, prompts and sentences stay in the sans, at 400 to 500 (600 for a key figure).",
         "section": "typography"
