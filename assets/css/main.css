@@ -211,6 +211,7 @@
 
     /* --- Task Card: Visual Styling --- */
     --task-card-radius: calc(var(--ui-radius) * 2);
+    --task-sheet-radius: calc(var(--ui-radius) * 4); /* desktop task sheet (#468): twice the card's, the corner it grows into from the card's (TaskMorphShell) */
 
     /* --- Done (#124): cards keep the regular sheet; the green of action (`success` is the primary ramp) is the drop
        wash and the confirmation --- */

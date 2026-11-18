@@ -3,15 +3,15 @@
 @kind component
 @category display
 @description Metadata section of the task detail (source, created, id), collapsed by default
-@usage Used by TaskDetailContent; last in the flow on mobile, pinned to the bottom of the desktop slideover (#386)
+@usage Used by TaskDetailContent; the left of the last line of the desktop sheet (#468), last in the flow on mobile (#386)
 @avoid Only the collapsed metadata section of the task detail.
 @responsibility
 - Quiet collapsible with the source, the creation date and the stable task id
-- `pinned` adds its padding; the host wraps it with the action row in one footer block that carries the hairline (#244)
-- The open state is a v-model owned by the parent, so a resize that swaps pinned and in-flow keeps it
+- The host places it: with the action row on the sheet's last line (no hairline, no band), in the flow on mobile (#244)
+- The open state is a v-model owned by the parent; an expanded one grows the sheet downwards
 -->
 <template>
-  <section class="task-detail-section" :class="{ 'shrink-0 px-6 pt-4': pinned }" data-testid="task-metadata">
+  <section class="task-detail-section" data-testid="task-metadata">
     <UCollapsible v-model:open="open" class="w-full">
       <UButton
         variant="ghost"
@@ -56,11 +56,8 @@ withDefaults(defineProps<{
   createdAt: string;
   /** Stable app-level task id */
   taskId: string;
-  /** Bottom-pinned in the desktop slideover: own top padding; the host adds the hairline and bottom padding */
-  pinned?: boolean;
 }>(), {
   source: null,
-  pinned: false,
 });
 
 const open = defineModel<boolean>('open', { default: false });

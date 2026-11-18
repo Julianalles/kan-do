@@ -2,13 +2,14 @@
 @component TaskSheet
 @kind block
 @category overlay
-@description Responsive sheet that hosts the nested task routes (/tasks/:id, /tasks/add, /statistics/:id)
+@description Sheet that hosts the nested task routes (/tasks/:id, /tasks/add, /statistics/:id): a card-sized morph sheet for the detail route on desktop, else a slideover or a drawer
 @usage Mounted by TaskSheetHost (pages/tasks.vue and pages/statistics.vue). `open` is driven by the route; closing animates first, then `after-leave` fires so the host can return to its page (/tasks or /statistics).
 @avoid Only hosts the nested task routes; other overlays use ResponsiveOverlay directly.
 @responsibility
-- Hosted by ResponsiveOverlay: a slideover (side right) at >=768px and a bottom drawer below; the shell owns the breakpoint, the frozen variant and the open/close echo guard
-- Dim: its overlay is the shared scrim over the whole window on every host page (#419), the board needs no backdrop of its own
-- Close: the slideover shows the shell's close button in its top end corner (kd#201: a mouse user finds the way out; the detail header clears it with end padding, `TaskDetailContent`); the drawer has none, a swipe and the dimmed page close it. Escape and an outside press close both as before
+- Detail route at >=768px (#468): TaskMorphShell, a sheet that grows out of the card that opened it and folds back into it; the choice is frozen while the sheet is open (#199)
+- Add route at >=768px: a ResponsiveOverlay slideover (side right); below 768px both routes are a bottom drawer; ResponsiveOverlay owns its breakpoint, frozen variant and the open/close echo guard
+- Dim: the overlay is the shared scrim over the whole window on every host page (#419), the board needs no backdrop of its own
+- Close: the slideover and the morph sheet show a close button in the top end corner (kd#201: a mouse user finds the way out; the detail header clears it with end padding, `TaskDetailContent`); the drawer has none, a swipe and the dimmed page close it. Escape and an outside press close all three
 - Focus on open (the drawer: ResponsiveOverlay moves it in, #566), focus trap and focus return come from reka's FocusScope
 - Detail route: ignores an outside pointer-down in the first moments after it opened: the second click of a double-click on a card lands on the overlay and must not dismiss the sheet (kd#25)
 - Keeps Escape inside an active inline editor (and the topic editor, #430) from closing the sheet
@@ -17,7 +18,21 @@
 -->
 
 <template>
+  <TaskMorphShell
+    v-if="useMorph"
+    :open="open"
+    :title="title"
+    :origin-id="originId"
+    :content-props="contentProps"
+    @update:open="emit('update:open', $event)"
+    @after-leave="emit('after-leave')"
+  >
+    <template #body>
+      <slot />
+    </template>
+  </TaskMorphShell>
   <ResponsiveOverlay
+    v-else
     :open="open"
     :title="title"
     desktop="slideover"
@@ -40,11 +55,13 @@
 </template>
 
 <script setup lang="ts">
-import { computed, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { SHEET_WIDTH } from '~/utils/modalSizes';
 import { useTaskSheet } from '~/composables/useTaskSheet';
 import { findSavedCardElement } from '~/utils/focusRecovery';
+import { useIsDesktop } from '~/composables/useIsDesktop';
 import ResponsiveOverlay from '~/components/ui/ResponsiveOverlay.vue';
+import TaskMorphShell from '~/components/task/TaskMorphShell.vue';
 
 defineOptions({ name: 'TaskSheet' });
 
@@ -60,10 +77,26 @@ interface Props {
   hideTitle?: boolean;
   /** Body padding is owned by the hosted content (detail route). */
   flushBody?: boolean;
+  /** Detail route: the task whose card the desktop sheet grows from and folds back into. A statistics row has no card there, so the sheet centres. */
+  originId?: string | null;
 }
 
-const props = withDefaults(defineProps<Props>(), { hideTitle: false, flushBody: false });
+const props = withDefaults(defineProps<Props>(), { hideTitle: false, flushBody: false, originId: null });
 const { takeReturnFocusTaskId } = useTaskSheet();
+
+/**
+ * The detail route on desktop is the morph sheet (#468); the add route and the phone drawer stay on ResponsiveOverlay.
+ * The choice is frozen while the sheet is open, so a resize across 768 px cannot swap the shell under the user (#199).
+ */
+const viewportDesktop = useIsDesktop();
+const isDesktop = ref(viewportDesktop.value);
+watch(viewportDesktop, (value) => {
+  if (!props.open) isDesktop.value = value;
+});
+watch(() => props.open, (isOpen) => {
+  if (isOpen) isDesktop.value = viewportDesktop.value;
+}, { flush: 'sync' });
+const useMorph = computed(() => props.hideTitle && isDesktop.value);
 
 const emit = defineEmits<{
   'update:open': [value: boolean];
@@ -77,24 +110,13 @@ defineSlots<{
 
 // The sheet header is the display face at medium weight (DESIGN.md): it labels the add-task sheet. The task's own title is set in TaskDetailContent.
 const titleClass = computed(() => (props.hideTitle ? 'sr-only' : 'font-display text-lg font-medium tracking-display text-highlighted'));
-/**
- * Detail route: the header holds only the visually hidden title, so it takes no space. It is not `sr-only` on the
- * slideover: the shell's close button lives inside the header and `sr-only` would clip it (kd#201). The close button is
- * absolutely positioned in the corner, so a zero-height header still shows it.
- */
-const headerClass = computed(() => (props.hideTitle ? 'h-0 min-h-0 border-0 p-0' : undefined));
 const bodyClass = computed(() => (props.flushBody ? 'p-0 sm:p-0 min-h-0 overflow-y-auto overscroll-contain' : 'min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6'));
-/**
- * Desktop detail: the hosted content owns its scrolling (rows scroll, the metadata is pinned to the
- * bottom edge, #386), so the body is a clipped flex column instead of the scroll container.
- */
-const slideoverBodyClass = computed(() => (props.flushBody ? 'p-0 sm:p-0 min-h-0 flex flex-col overflow-hidden' : bodyClass.value));
 
+/** The slideover is the add route's desktop sheet; the detail route's is TaskMorphShell. */
 const desktopUi = computed(() => ({
   overlay: SHEET_OVERLAY_CLASS,
-  content: `task-sheet ${SHEET_WIDTH}${props.hideTitle ? ' divide-y-0' : ''}`,
-  header: headerClass.value,
-  body: slideoverBodyClass.value,
+  content: `task-sheet ${SHEET_WIDTH}`,
+  body: bodyClass.value,
   footer: 'sheet-footer',
 }));
 const mobileUi = computed(() => ({
