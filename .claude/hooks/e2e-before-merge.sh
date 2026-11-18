@@ -168,7 +168,7 @@ nspecs=$(printf '%s' "$decision" | jq -r '[.args[] | select(endswith(".spec.ts")
 [ "$tier" = full ] && nspecs=$(printf '%s' "$decision" | jq -r '.specs | length')
 
 if [ "$tier" = skip ]; then
-  echo "e2e-before-merge: tier=skip ($reason), every file of the PR is docs-only (docs/**, **/*.md, .claude/**)." >&2
+  echo "e2e-before-merge: tier=skip ($reason), every file of the PR is docs-only (docs/**, **/*.md, .claude/**, .impeccable/design.json)." >&2
   log_check e2e-gate "$sha" skip 0 0 pass -
   exit 0
 fi
