@@ -86,7 +86,7 @@
     },
     "capacity": {
       "label": "Capacity",
-      "help": "This is probably how much you’ll get done today. Plan important tasks above it.",
+      "help": "This is probably how much you'll get done today. Plan important tasks above it.",
       "infoLabel": "How is this estimated?",
       "info": "Kan-Do learns and adapts: the more often you use the board, the more accurate this estimate gets.",
       "infoSet": "This estimate is based on the working hours you set in Settings. Work tracked today is subtracted.",
@@ -102,7 +102,7 @@
       "sourceDegraded": "{source}: sync failed",
       "offlineHint": "Changes stay saved and are sent as soon as {source} is reachable again.",
       "brokenHint": "Access was rejected, or the token is missing. Changes stay saved locally.",
-      "degradedHint": "The last sync could not be completed. Changes stay saved locally.",
+      "degradedHint": "The last sync couldn't be completed. Changes stay saved locally.",
       "repair": "Repair {source} connection"
     },
     "grouping": {
@@ -127,7 +127,7 @@
       "oldestOnTop": "oldest on top"
     },
     "wip": {
-      "refusedTitle": "This task cannot be moved",
+      "refusedTitle": "This task can't be moved",
       "refusedReason": "Now holds at most one task. Move the current one to Waiting or Done first."
     },
     "swap": {
@@ -168,14 +168,14 @@
     "yesterdayUnderAll": "One task from yesterday is under {all}. | {n} tasks from yesterday are under {all}.",
     "newDayNote": {
       "title": "The board still shows yesterday's plan.",
-      "description": "“Replan the day” puts everything that is not done back under “My tasks”.",
+      "description": "“Replan the day” puts everything that isn't done back under “My tasks”.",
       "start": "Replan the day",
       "close": "Close",
       "started": "One task is now under “My tasks”. | {n} tasks are now under “My tasks”."
     },
     "newDayTimeNote": {
       "title": "Timer ran on for {duration} after midnight",
-      "description": "Kan-Do was not in focus. The time is still on the task.",
+      "description": "Kan-Do wasn't in focus. The time is still on the task.",
       "takeOff": "Subtract time",
       "keep": "Keep time",
       "tookOff": "{duration} subtracted from the task.",
@@ -259,7 +259,7 @@
     "completed": "Done",
     "completedMany": "{n} task done | {n} tasks done",
     "notFoundTitle": "Task not found",
-    "notFoundMessage": "The requested task does not exist or has been deleted.",
+    "notFoundMessage": "The requested task doesn't exist or has been deleted.",
     "timebox": "Timebox",
     "timeboxNudge": {
       "question": "Add a timebox?",
@@ -356,7 +356,7 @@
       "nudgeTitle": "Still here: planned on {n} days.",
       "keep": "Keep",
       "smaller": "Make smaller",
-      "smallerHint": "What is the first small step?",
+      "smallerHint": "What's the first small step?",
       "question": "This task has been planned for {n} day. Does it really matter? | This task has been planned for {n} days. Does it really matter?",
       "keepYes": "Yes, keep it",
       "deleteNo": "No, delete it",
@@ -462,7 +462,7 @@
       "lineShorter": "For “{label}” you usually plan too generously.",
       "none": "No recurring pattern in your estimates.",
       "tooFew": "Too few done tasks with a timebox for patterns yet.",
-      "noTimebox": "Without a timebox there is nothing to compare. Set one next time.",
+      "noTimebox": "Without a timebox there's nothing to compare. Set one next time.",
       "heading": "Recurring patterns",
       "kind": {
         "activity": "Activity",
@@ -579,39 +579,39 @@
     "configuration": "The settings are invalid. Check them.",
     "integrationSetupMissing": "No integration set up yet. Set one up in the settings.",
     "integrationNotSupported": "Integration not supported.",
-    "notionNotConfigured": "Notion is not set up. Set up Notion in the settings.",
+    "notionNotConfigured": "Notion isn't set up. Set up Notion in the settings.",
     "notionTokenInvalid": "Notion token is invalid. Check your token.",
     "notionDatabaseNotFound": "Notion database not found. Choose a valid database.",
-    "notionSyncFailed": "The sync with Notion could not be completed.",
+    "notionSyncFailed": "The sync with Notion couldn't be completed.",
     "todoistTokenMissing": "Todoist token is missing. Sign in to Todoist.",
-    "todoistSyncFailed": "The sync with Todoist could not be completed.",
+    "todoistSyncFailed": "The sync with Todoist couldn't be completed.",
     "taskNotFound": "Task not found.",
-    "taskUpdateFailed": "Task could not be updated.",
+    "taskUpdateFailed": "Task couldn't be updated.",
     "networkError": "Network error. Check your internet connection.",
     "networkOffline": "Offline mode. The app keeps trying to sync.",
     "apiError": "API error. Try again later.",
     "default": "An unexpected error occurred. Try again.",
-    "notionNotConfiguredShort": "Notion is not set up",
+    "notionNotConfiguredShort": "Notion isn't set up",
     "invalidTokenFormat": "Invalid token format",
     "invalidToken": "Invalid token",
     "notionApiError": "Notion API error: {message}",
-    "loadDatabasesFailed": "The databases could not be loaded.",
+    "loadDatabasesFailed": "The databases couldn't be loaded.",
     "selectDatabase": "Select a database",
     "selectDataSource": "Select a data source",
     "validation": {
       "titleRequired": "Task title is required",
-      "timeboxNegative": "Timebox cannot be negative",
-      "timeSpentNegative": "Time spent cannot be negative"
+      "timeboxNegative": "Timebox can't be negative",
+      "timeSpentNegative": "Time spent can't be negative"
     },
-    "taskCreateFailed": "The task could not be created. Try again.",
-    "taskDeleteFailed": "The task could not be deleted and is back on the board.",
-    "clipboardFailed": "The summary could not be copied.",
-    "copyTitleFailed": "The title could not be copied.",
-    "secretsFailed": "The macOS Keychain did not accept the change.",
-    "secretsResetFailed": "The macOS Keychain is not reachable, so the setup was not reset. Unlock the Keychain and try again.",
-    "externalLinkFailed": "The link could not be opened.",
-    "feedbackFailed": "The feedback could not be sent. Your draft is kept.",
-    "taskRestoreFailed": "The task could not be restored and stays in the trash."
+    "taskCreateFailed": "The task couldn't be created. Try again.",
+    "taskDeleteFailed": "The task couldn't be deleted and is back on the board.",
+    "clipboardFailed": "The summary couldn't be copied.",
+    "copyTitleFailed": "The title couldn't be copied.",
+    "secretsFailed": "The macOS Keychain didn't accept the change.",
+    "secretsResetFailed": "The macOS Keychain isn't reachable, so the setup wasn't reset. Unlock the Keychain and try again.",
+    "externalLinkFailed": "The link couldn't be opened.",
+    "feedbackFailed": "The feedback couldn't be sent. Your draft is kept.",
+    "taskRestoreFailed": "The task couldn't be restored and stays in the trash."
   },
   "notion": {
     "modal": {
@@ -672,7 +672,7 @@
       "intro": "Select additional fields from your Notion database for Kan-Do to import (read-only).",
       "keyLabel": "Key: {key}",
       "labelPlaceholder": "Label (optional)",
-      "empty": "No additional fields found. You have already mapped the most important properties."
+      "empty": "No additional fields found. You've already mapped the most important properties."
     },
     "wizard": {
       "noneOption": "None",
@@ -816,7 +816,7 @@
       "unitPlaceholder": "Select unit"
     },
     "dataSource": {
-      "databaseNotFound": "The selected database was not found. Select it again.",
+      "databaseNotFound": "The selected database wasn't found. Select it again.",
       "noDataSources": "This database has no data sources. Add one in Notion.",
       "noneFound": "No data source was found. Choose a different database."
     },
@@ -890,7 +890,7 @@
     },
     "workingHours": {
       "label": "Working hours per day",
-      "help": "The capacity hint for tasks planned for today is based on this. “Automatic” uses the working hours you’ve tracked so far.",
+      "help": "The capacity hint for tasks planned for today is based on this. “Automatic” uses the working hours you've tracked so far.",
       "auto": "Automatic"
     },
     "github": {
@@ -922,26 +922,26 @@
       "problem": {
         "rejected": "GitHub rejected this token.",
         "offlineSave": "No connection, nothing saved.",
-        "offlineTest": "No connection. The token was not checked.",
+        "offlineTest": "No connection. The token wasn't checked.",
         "forbiddenSave": "This token lacks the “{permission}” permission for this repository, nothing saved.",
         "forbiddenTest": "This token lacks the “{permission}” permission for this repository.",
-        "notFoundSave": "This token cannot see the repository (wrong repository or no access), nothing saved.",
-        "notFoundTest": "This token cannot see the repository (wrong repository or no access).",
-        "unverifiedSave": "GitHub could not check this token, nothing saved.",
-        "unverifiedTest": "GitHub could not check this token right now.",
-        "failed": "The token could not be saved to the Keychain."
+        "notFoundSave": "This token can't see the repository (wrong repository or no access), nothing saved.",
+        "notFoundTest": "This token can't see the repository (wrong repository or no access).",
+        "unverifiedSave": "GitHub couldn't check this token, nothing saved.",
+        "unverifiedTest": "GitHub couldn't check this token right now.",
+        "failed": "The token couldn't be saved to the Keychain."
       },
       "removedToast": "Token “{name}” deleted",
       "scopeHelp": "Write access for issues can only be checked by writing; if GitHub rejects a request later, it shows here. Whether screenshots may be uploaded (Contents: write) is checked by “Check screenshot upload”, which leaves nothing in the repository.",
-      "keychainUnavailable": "The macOS Keychain is not available right now. Unlock it and reopen this page.",
+      "keychainUnavailable": "The macOS Keychain isn't available right now. Unlock it and reopen this page.",
       "probe": {
         "action": "Check screenshot upload",
         "checking": "Checking…",
         "allowed": "Upload allowed",
         "denied": "The token lacks Contents: write. Screenshots then go to the clipboard.",
         "changeToken": "Change token on GitHub",
-        "offline": "No connection. The upload was not checked.",
-        "failed": "The upload could not be checked right now."
+        "offline": "No connection. The upload wasn't checked.",
+        "failed": "The upload couldn't be checked right now."
       }
     },
     "data": {
@@ -958,24 +958,24 @@
       "startFresh": "Start fresh here",
       "lastSaved": "Last saved {time}, schema {version}",
       "notSavedYet": "Not saved yet, schema {version}",
-      "problemHeading": "Saving is not possible right now",
+      "problemHeading": "Saving isn't possible right now",
       "state": {
         "newerSchema": "This folder holds data from a newer version. Update the app; until then nothing is written.",
-        "corrupt": "The data file in this folder cannot be read. It stays as it is; nothing is written meanwhile.",
+        "corrupt": "The data file in this folder can't be read. It stays as it is; nothing is written meanwhile.",
         "missing": "The data file is missing from this folder. Nothing is written until you start fresh here or choose another folder.",
         "writeFailed": "Saving to this folder failed. Your changes stay in the app. The app keeps trying.",
-        "folderUnavailable": "The data folder cannot be reached. The board shown is not your saved version. Changes stay in memory until the folder is back.",
+        "folderUnavailable": "The data folder can't be reached. The board shown isn't your saved version. Changes stay in memory until the folder is back.",
         "conflict": "The data was changed elsewhere. Nothing is saved until you pick a version."
       },
       "notice": {
         "newerSchema": "Data from a newer version. Nothing is saved.",
-        "corrupt": "The data file cannot be read. Nothing is saved.",
+        "corrupt": "The data file can't be read. Nothing is saved.",
         "missing": "The data file is missing. Nothing is saved.",
         "writeFailed": "Saving failed. The app keeps trying.",
         "details": "Details",
         "hide": "Hide",
         "conflict": "The data was changed elsewhere. Nothing is saved.",
-        "folderUnavailable": "Data folder unavailable. The board shown is not your saved version.",
+        "folderUnavailable": "Data folder unavailable. The board shown isn't your saved version.",
         "conflictCopies": "There are conflict copies of the data. Nothing is lost.",
         "resolve": "Resolve",
         "retry": "Try again",
@@ -991,7 +991,7 @@
         "title": "Change data folder",
         "target": "Target",
         "inspecting": "Checking folder…",
-        "notWritable": "This folder is not writable. Choose another one.",
+        "notWritable": "This folder isn't writable. Choose another one.",
         "sameFolder": "This is already your data folder.",
         "copyMine": "Copy my data here",
         "copyMineBody": "This folder is empty. Your current file stays where it is.",
@@ -1003,15 +1003,15 @@
         "optionReplace": "Copy my data here and replace the existing data",
         "optionReplaceBody": "The existing data is overwritten. A copy stays in the “backups” subfolder.",
         "newerSchema": "This data comes from a newer version. You can look at it, but nothing can change until the app is updated.",
-        "corrupt": "The file in this folder cannot be read. Choose another folder.",
+        "corrupt": "The file in this folder can't be read. Choose another folder.",
         "confirmReplace": "The data in this folder will be overwritten. A copy stays in its “backups” folder.",
         "next": "Continue",
         "back": "Back",
         "apply": "Switch folder",
         "replace": "Replace",
         "working": "Switching…",
-        "failed": "The folder could not be changed.",
-        "failedBlocked": "Your data cannot be copied in this state.",
+        "failed": "The folder couldn't be changed.",
+        "failedBlocked": "Your data can't be copied in this state.",
         "failedHasData": "This folder now holds data. Choose the folder again."
       },
       "backups": {
@@ -1023,7 +1023,7 @@
         "working": "Backing up…",
         "empty": "No backups yet. The first one appears before your next change.",
         "loading": "Reading backups…",
-        "loadFailed": "The backups could not be read.",
+        "loadFailed": "The backups couldn't be read.",
         "reload": "Reload",
         "showAll": "Show all {n}",
         "showLess": "Show fewer",
@@ -1032,7 +1032,7 @@
         "restore": "Restore",
         "update": "Update the app",
         "failed": "Backup not possible. Details: {error}",
-        "manualFailed": "The backup could not be created. Details: {error}",
+        "manualFailed": "The backup couldn't be created. Details: {error}",
         "listLabel": "Backups, newest first",
         "thisDevice": "this device",
         "otherDevice": "another device",
@@ -1050,9 +1050,9 @@
         "restoreAt": "Restore the state from {time}"
       },
       "restoreBlocked": {
-        "conflict": "Restoring and importing are possible once you have picked a version for the conflict.",
+        "conflict": "Restoring and importing are possible once you've picked a version for the conflict.",
         "newer-schema": "The data comes from a newer app version. Update the app before you restore anything.",
-        "unavailable": "The data folder cannot be reached. Restoring is possible once it is back."
+        "unavailable": "The data folder can't be reached. Restoring is possible once it's back."
       },
       "restore": {
         "title": "Restore the state from {time}",
@@ -1060,11 +1060,11 @@
         "current": "Current",
         "note": "The current state is backed up first. Afterwards you find it in the list as “Before restore”.",
         "confirm": "Restore",
-        "failed": "Restoring is not possible. Details: {error}",
-        "failedBlocked": "Restoring is not possible in this state.",
-        "failedBackup": "The current state could not be backed up. Nothing was changed.",
+        "failed": "Restoring isn't possible. Details: {error}",
+        "failedBlocked": "Restoring isn't possible in this state.",
+        "failedBackup": "The current state couldn't be backed up. Nothing was changed.",
         "failedNewer": "This backup comes from a newer app version.",
-        "failedUnreadable": "This file cannot be read."
+        "failedUnreadable": "This file can't be read."
       },
       "copies": {
         "heading": "Conflict copies",
@@ -1072,7 +1072,7 @@
         "restore": "Restore",
         "file": "File away",
         "filed": "Filed in backups",
-        "failed": "Filing away could not be completed. Details: {error}"
+        "failed": "Filing away couldn't be completed. Details: {error}"
       },
       "conflict": {
         "title": "Data was changed elsewhere",
@@ -1089,9 +1089,9 @@
         "loadTheirs": "Load other version",
         "reload": "Reload",
         "needsUpdate": "The other version comes from a newer app version. Update the app before you keep this version.",
-        "theirsUnreadable": "The other file cannot be read, maybe it is still syncing. “Keep this version” backs it up first.",
+        "theirsUnreadable": "The other file can't be read, maybe it's still syncing. “Keep this version” backs it up first.",
         "changed": "The other file has changed in the meantime. It now shows its current state; nothing was changed.",
-        "failed": "That did not work. Nothing was changed. Details: {error}",
+        "failed": "That didn't work. Nothing was changed. Details: {error}",
         "origin": {
           "thisDevice": "this device",
           "otherDevice": "another device"
@@ -1103,44 +1103,44 @@
         "export": "Export…",
         "import": "Import…",
         "exported": "Exported.",
-        "exportFailed": "The export could not be completed. Details: {error}",
+        "exportFailed": "The export couldn't be completed. Details: {error}",
         "importTitle": "Import data",
         "importFile": "File",
         "importConfirm": "Import",
-        "importFailed": "The import could not be completed. Details: {error}",
-        "invalid": "This is not a valid JSON file.",
-        "notKando": "This is not a Kan-Do export file.",
+        "importFailed": "The import couldn't be completed. Details: {error}",
+        "invalid": "This isn't a valid JSON file.",
+        "notKando": "This isn't a Kan-Do export file.",
         "newerSchema": "This file comes from a newer app version. Update the app.",
-        "unreadable": "The file could not be read.",
+        "unreadable": "The file couldn't be read.",
         "webConfirm": "Replace data",
         "webExport": "Export",
         "webBody": "Download or restore a copy of your board. This browser's tokens are kept and never exported.",
         "webNote": "Replaces your current data in this browser. You can download a safety copy first. Afterwards this tab reloads with the imported data.",
         "safetyDownload": "Download current data first",
-        "failedQuota": "The import could not be completed: this browser has no room left. Nothing was changed.",
-        "failedSafety": "The safety copy could not be downloaded. Nothing was changed. Untick the box to import without it.",
-        "failedWrite": "The import could not be completed: the data could not be written. Nothing was changed."
+        "failedQuota": "The import couldn't be completed: this browser has no room left. Nothing was changed.",
+        "failedSafety": "The safety copy couldn't be downloaded. Nothing was changed. Untick the box to import without it.",
+        "failedWrite": "The import couldn't be completed: the data couldn't be written. Nothing was changed."
       },
       "reset": {
         "heading": "Reset app",
         "body": "Deletes all tasks, settings, statistics and connections. Afterwards the app starts over as on the first launch.",
         "action": "Reset app…",
         "erased": "This deletes {n} task, the trash, the statistics, the settings, all connections and the stored tokens (Notion, Todoist, GitHub). | This deletes {n} tasks, the trash, the statistics, the settings, all connections and the stored tokens (Notion, Todoist, GitHub).",
-        "upstream": "Your tasks in Notion are not touched.",
-        "unsynced": "Changes that have not been synced yet are lost.",
+        "upstream": "Your tasks in Notion aren't touched.",
+        "unsynced": "Changes that haven't been synced yet are lost.",
         "kept": "The language and the location of the data are kept.",
         "noteDesktop": "The app creates a backup first. You find it under Settings → Data & storage → Backups.",
-        "noteWeb": "This cannot be undone. Export your data first if you want to keep it.",
+        "noteWeb": "This can't be undone. Export your data first if you want to keep it.",
         "confirm": "Reset app",
         "working": "Resetting…",
         "retry": "Try again",
-        "errorBackup": "The backup could not be created. Nothing was deleted.",
-        "errorWrite": "The data could not be reset. Nothing was changed. Try again.",
-        "errorTokens": "The tokens for {entries} could not be deleted from the Keychain. The data is already deleted. Try again.",
+        "errorBackup": "The backup couldn't be created. Nothing was deleted.",
+        "errorWrite": "The data couldn't be reset. Nothing was changed. Try again.",
+        "errorTokens": "The tokens for {entries} couldn't be deleted from the Keychain. The data is already deleted. Try again.",
         "blocked": {
-          "conflict": "Resetting is only possible once you have chosen a version for the conflict.",
+          "conflict": "Resetting is only possible once you've chosen a version for the conflict.",
           "newer-schema": "The data comes from a newer app version. Update the app before you reset it.",
-          "unavailable": "The data folder is not reachable. Resetting is only possible once it is back."
+          "unavailable": "The data folder isn't reachable. Resetting is only possible once it's back."
         }
       }
     },
@@ -1162,16 +1162,16 @@
         "rejected": "GitHub rejected the token for updates. Paste a new one.",
         "offline": "No connection. Try again later.",
         "noReleaseOrAccess": "No published release yet.",
-        "rateLimited": "GitHub is not accepting more requests right now. Try again later.",
-        "notConfigured": "Updates are not set up in this build: the public key is missing.",
-        "error": "The update check could not be completed.",
+        "rateLimited": "GitHub isn't accepting more requests right now. Try again later.",
+        "notConfigured": "Updates aren't set up in this build: the public key is missing.",
+        "error": "The update check couldn't be completed.",
         "errorReason": {
           "manifestMissing": "The latest release has no update file.",
-          "manifestInvalid": "The update file of the latest release could not be read.",
+          "manifestInvalid": "The update file of the latest release couldn't be read.",
           "noPlatform": "The latest release has no update for this Mac.",
-          "keychain": "The macOS Keychain is not reachable right now.",
+          "keychain": "The macOS Keychain isn't reachable right now.",
           "api": "GitHub answered unexpectedly. Try again later.",
-          "unknown": "The update check could not be completed."
+          "unknown": "The update check couldn't be completed."
         }
       },
       "accessHeading": "Token",
@@ -1219,7 +1219,7 @@
     },
     "floatingNow": {
       "label": "Floating timer",
-      "help": "Shows your task in “Now” together with a timer in its own small window that is always visible."
+      "help": "Shows your task in “Now” together with a timer in its own small window that's always visible."
     }
   },
   "sources": {
@@ -1230,11 +1230,11 @@
       "defaultFallback": "New tasks will be saved locally afterwards.",
       "timerStops": "The running timer on “{title}” will stop.",
       "unsyncedTitle": "Changes not synced yet",
-      "unsyncedReachable": "{n} change is not saved in {source} yet. Sync first, or it is lost. | {n} changes are not saved in {source} yet. Sync first, or they are lost.",
-      "unsyncedUnreachable": "{source} cannot be reached right now. {n} change will be lost when you disconnect. | {source} cannot be reached right now. {n} changes will be lost when you disconnect.",
+      "unsyncedReachable": "{n} change isn't saved in {source} yet. Sync first, or it's lost. | {n} changes aren't saved in {source} yet. Sync first, or they are lost.",
+      "unsyncedUnreachable": "{source} can't be reached right now. {n} change will be lost when you disconnect. | {source} can't be reached right now. {n} changes will be lost when you disconnect.",
       "syncFailedTitle": "Not everything was synced",
       "syncFailed": "{source} stays connected. Try again later or disconnect anyway.",
-      "credentialsFailedTitle": "Token could not be deleted",
+      "credentialsFailedTitle": "Token couldn't be deleted",
       "credentialsFailed": "The Keychain refused the deletion. {source} stays connected.",
       "confirm": "Disconnect",
       "anyway": "Disconnect anyway",
@@ -1340,12 +1340,12 @@
       },
       "help": {
         "intro": "A short orientation before you enter anything.",
-        "token": "You need a Notion token. It is stored on this device only.",
+        "token": "You need a Notion token. It's stored on this device only.",
         "database": "Pick the database that holds your tasks. It must be shared with your integration.",
         "mapping": "Tell the app which property is the title, the status and the due date. Matching ones are preselected.",
         "custom-properties": "Optional: bring along more properties such as topic or activity.",
         "priority-mapping": "Match the values of your priority property to the three levels.",
-        "status-mapping": "Last: which Notion status belongs to which column. Then you are set."
+        "status-mapping": "Last: which Notion status belongs to which column. Then you're set."
       }
     }
   },
@@ -1459,7 +1459,7 @@
       "title": "Version {version} is available",
       "titleFallback": "Update",
       "description": "Install the update and restart Kan-Do.",
-      "current": "You are on {version}.",
+      "current": "You're on {version}.",
       "sinceVersion": "New since your version ({version}):",
       "backupNote": "Before installing, Kan-Do backs up your data. Then the app restarts.",
       "later": "Later",
@@ -1471,10 +1471,10 @@
       "installing": "Installing…",
       "error": {
         "dataFolderUnavailable": "Data folder not reachable. Nothing was changed.",
-        "dataUnreadable": "The data file is not readable. Fix that first; nothing was changed.",
+        "dataUnreadable": "The data file isn't readable. Fix that first; nothing was changed.",
         "dataConflict": "Resolve the data conflict first. Nothing was changed.",
-        "saveFailed": "Your data could not be backed up. Nothing was changed.",
-        "installFailed": "The installation could not be completed. Nothing was changed.",
+        "saveFailed": "Your data couldn't be backed up. Nothing was changed.",
+        "installFailed": "The installation couldn't be completed. Nothing was changed.",
         "busy": "An update action is already running."
       },
       "openData": "Open data folder"
@@ -1496,7 +1496,7 @@
     "review": {
       "title": "Review and send",
       "intro": "This goes exactly like this as a public issue to {repo}. Nothing leaves the app before that.",
-      "contextHeading": "What is sent along",
+      "contextHeading": "What's sent along",
       "itemElement": "Element: {name}",
       "itemEnvironment": "Route, window, language",
       "itemVersion": "Version, system",
@@ -1520,7 +1520,7 @@
       "uploading": "Uploading image…",
       "creating": "Creating issue…",
       "sendWithoutImage": "Send without image",
-      "introRelay": "This goes to the Kan-Do team exactly as shown and is not published. Nothing leaves the app before that.",
+      "introRelay": "This goes to the Kan-Do team exactly as shown and isn't published. Nothing leaves the app before that.",
       "previewHeadingRelay": "Feedback text",
       "sendRelay": "Send feedback",
       "sendingRelay": "Sending feedback…"
@@ -1538,13 +1538,13 @@
       "offline": "No connection. Your draft is kept.",
       "blocked": "GitHub declined the request (limit or permissions). Try again later. Your draft is kept.",
       "server": "GitHub is having trouble right now. Try again in a moment. Your draft is kept.",
-      "unexpected": "The issue could not be created. Your draft is kept.",
-      "uploadDenied": "The image could not be uploaded. It goes to the clipboard and the issue is created without it. Your draft is kept.",
-      "clipboardFailed": "The image could not be copied to the clipboard. You can take it again in the browser.",
+      "unexpected": "The issue couldn't be created. Your draft is kept.",
+      "uploadDenied": "The image couldn't be uploaded. It goes to the clipboard and the issue is created without it. Your draft is kept.",
+      "clipboardFailed": "The image couldn't be copied to the clipboard. You can take it again in the browser.",
       "relayBlocked": "Too much feedback is arriving right now. Try again later. Your draft is kept.",
-      "relayServer": "The feedback could not be sent right now. Try again in a moment. Your draft is kept.",
-      "relayUnexpected": "The feedback could not be sent. Your draft is kept.",
-      "relayDown": "Sending directly is not possible right now. Open the feedback on GitHub instead. Your draft is kept.",
+      "relayServer": "The feedback couldn't be sent right now. Try again in a moment. Your draft is kept.",
+      "relayUnexpected": "The feedback couldn't be sent. Your draft is kept.",
+      "relayDown": "Sending directly isn't possible right now. Open the feedback on GitHub instead. Your draft is kept.",
       "relayImageTooLarge": "The screenshot is too large to send. Clear its checkbox above and send again. Your draft is kept."
     },
     "sentToast": "Thanks, your feedback is now issue #{number}.",
@@ -1564,8 +1564,8 @@
       "tooLarge": "The screenshot is too large. The rest of the report still works.",
       "preview": "Screenshot preview, {n} mark | Screenshot preview, {n} marks",
       "previewFinal": "Screenshot, ready to send",
-      "branchReadme": "Screenshots from the in-app feedback of Kan-Do. This branch is not cleaned up.",
-      "clipboardFailedToast": "The image could not be copied to the clipboard."
+      "branchReadme": "Screenshots from the in-app feedback of Kan-Do. This branch isn't cleaned up.",
+      "clipboardFailedToast": "The image couldn't be copied to the clipboard."
     },
     "annotate": {
       "title": "Mark the screenshot",
@@ -1585,7 +1585,7 @@
     "publicAccount": "Sending it needs a GitHub account.",
     "openedToast": "GitHub is open in your browser. Send the issue there.",
     "openedToastImage": "GitHub is open in your browser. Paste the screenshot with ⌘V, then send the issue.",
-    "private": "Your feedback goes straight to the Kan-Do team. It is not published.",
+    "private": "Your feedback goes straight to the Kan-Do team. It isn't published.",
     "sentRelayToast": "Thanks, your feedback has arrived."
   },
   "trash": {

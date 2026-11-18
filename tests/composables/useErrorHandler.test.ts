@@ -122,7 +122,7 @@ describe('useErrorHandler', () => {
     handleError(new LocalizedError('errors.selectDatabase'), 'notion_setup')
     const arg = toastAddMock.mock.calls[0]![0]
     // Old behaviour: "Bitte wähle eine Datenbank aus" fell through to the sync-failed message
-    expect(arg.description).toBe(locale === 'de' ? 'Die Synchronisation mit Notion konnte nicht abgeschlossen werden.' : 'The sync with Notion could not be completed.')
+    expect(arg.description).toBe(locale === 'de' ? 'Die Synchronisation mit Notion konnte nicht abgeschlossen werden.' : "The sync with Notion couldn't be completed.")
   })
 
   it.each(['de', 'en'] as const)('maps notionNotConfiguredShort to the not-configured message in %s, whatever the context (#487)', (locale) => {
@@ -130,7 +130,7 @@ describe('useErrorHandler', () => {
     const { handleError } = useErrorHandler()
     handleError(new LocalizedError('errors.notionNotConfiguredShort'), 'task_operation')
     const arg = toastAddMock.mock.calls[0]![0]
-    expect(arg.description).toBe(locale === 'de' ? 'Notion ist nicht eingerichtet. Richte Notion in den Einstellungen ein.' : 'Notion is not set up. Set up Notion in the settings.')
+    expect(arg.description).toBe(locale === 'de' ? 'Notion ist nicht eingerichtet. Richte Notion in den Einstellungen ein.' : "Notion isn't set up. Set up Notion in the settings.")
   })
 
   it('does not trigger a Vue inject() warning when called outside component setup', () => {
