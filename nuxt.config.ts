@@ -222,6 +222,8 @@ export default defineNuxtConfig({
         // Builds (`WORKERS_CI=1`) Nitro would turn this on by itself, write `.output/server/wrangler.json` and redirect
         // `wrangler deploy` to it through `.wrangler/deploy/config.json`: Nitro's bare handler, no gate, would go live.
         cloudflare: { deployConfig: false },
+        // Cloudflare (#504): the shell is rendered at request time, so a build step needs a copy to hash its inline scripts.
+        ...(process.env.NITRO_PRESET === 'cloudflare_module' ? { prerender: { routes: ['/200.html'], crawlLinks: false } } : {}),
         ...(e2eBuildDir ? { output: { dir: `${e2eBuildDir}/output` } } : {}),
       },
 
