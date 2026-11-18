@@ -253,8 +253,14 @@ const handleNotionSetupComplete = async () => {
      page's middle instead of being centred, so a taller step grows downward and the brand never moves. The start screen
      (about 26rem high) lands at the optical centre; the tallest Notion step (the database step) still fits a 800px-high window. */
   .welcome-column {
-    margin-block-start: max(0px, calc(50dvh - 18rem));
+    margin-block-start: max(var(--welcome-column-floor, 0px), calc(50dvh - 18rem));
   }
+  /* Floor under the hang line on short windows: the column starts 24px (main padding) below the page top, and the
+     brand must clear the desktop bar row (3.5rem: drag strip and traffic lights) and, when shown, the data-storage
+     notice (absolute from 12px, or from the bar row on desktop, about 56px high). */
+  [data-shell='desktop'] .welcome-column { --welcome-column-floor: 2.5rem; }
+  .welcome-root:has([data-testid='data-storage-notice']) .welcome-column { --welcome-column-floor: 3.5rem; }
+  [data-shell='desktop'] .welcome-root:has([data-testid='data-storage-notice']) .welcome-column { --welcome-column-floor: 7.5rem; }
   .welcome-photo {
     inset: 0;
     width: 100%;

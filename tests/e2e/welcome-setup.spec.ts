@@ -2,6 +2,8 @@ import { test, expect, type Page } from '@playwright/test'
 import { completeNotionWizard } from './helpers/notionWizard'
 import { expectContrast } from './helpers/contrast'
 import { moreButton, openSettings } from './helpers/appNav'
+import { buildBoardStore, buildTasksStore, SEED_TASKS } from './helpers/seed'
+import { installTauriStub } from './helpers/tauriStub'
 
 // E2E: the welcome page asks one question with two equal answers (#324); both end on the board. The trial with sample
 // tasks is a third row set apart with its own step 2 (#236).
@@ -443,3 +445,20 @@ test('finish on a phone or with reduced motion: no flight, the page just fades (
   await expect(page).toHaveURL(/\/tasks$/)
   expect(await flightSeen(page)).toBe(false)
 })
+
+// The column hangs from a line above the page's middle (#437); on a short window it must still clear the desktop bar row
+// and the data-storage notice of an unreachable folder.
+for (const height of [600, 700, 800]) {
+  test(`welcome: the brand clears the unreachable-folder notice and the desktop bar row at ${height}px height (#437)`, async ({ page, baseURL }) => {
+    // The same launch as data-safety.spec.ts: stores hydrate empty and /tasks lands on the welcome page
+    await installTauriStub(page.context(), { data: { status: 'folder-unavailable', folder: '/Users/test/data', envelope: { schemaVersion: 1, stores: { 'board-store': buildBoardStore('local'), 'tasks-store': buildTasksStore(SEED_TASKS) } } } })
+    await page.setViewportSize({ width: 1280, height })
+    await page.goto(baseURL! + '/welcome')
+    const notice = page.locator('.welcome-root').getByTestId('data-storage-notice')
+    await expect(notice).toBeVisible()
+    await expect(page.locator('html')).toHaveAttribute('data-shell', 'desktop')
+    const noticeBox = (await notice.boundingBox())!
+    const brandBox = (await page.getByTestId('welcome-brand').boundingBox())!
+    expect(brandBox.y).toBeGreaterThanOrEqual(noticeBox.y + noticeBox.height)
+  })
+}
