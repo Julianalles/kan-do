@@ -205,7 +205,8 @@
         "lib/copy-editor/**",
         "lib/paletteExtensions.ts",
         "server/copy-editor/**",
-        "plugins/copy-editor-recorder.client.ts"
+        "plugins/copy-editor-recorder.client.ts",
+        "docs/copy/terms.json"
       ],
       "specs": [
         "copy-editor",

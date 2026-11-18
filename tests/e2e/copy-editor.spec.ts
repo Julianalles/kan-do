@@ -119,13 +119,13 @@ test.describe('Live copy editor', () => {
     await expect(page.getByTestId('copy-editor-other-text')).toHaveValue('Still open')
   })
 
-  test('a decided term cannot be saved, a placeholder mismatch neither', async ({ page }) => {
+  test('a proposed term only warns (no term is decided since #483), a placeholder mismatch blocks', async ({ page }) => {
     await enterMode(page)
     await pickOffen(page)
-    await page.getByTestId('copy-editor-text').fill('Quelle')
-    await expect(page.getByTestId('copy-editor-blocking')).toContainText('decided term')
-    await page.getByTestId('copy-editor-save').click()
-    await expect(page.getByText('Saved.')).toHaveCount(0)
+    // an avoid form of a proposed term; a decided one would block (Vitest: tests/lib/copy-editor/terms.test.ts)
+    await page.getByTestId('copy-editor-text').fill('Voraussetzungen')
+    await expect(page.getByTestId('copy-editor-warning')).toContainText('proposed term')
+    await expect(page.getByTestId('copy-editor-blocking')).toHaveCount(0)
 
     await page.getByTestId('copy-editor-write-other').click()
     await page.getByTestId('copy-editor-text').fill('Offen {x}')
