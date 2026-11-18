@@ -8,7 +8,6 @@ export default {
   variants: [
     { id: 'local', props: { createdAt: '9. Nov. 2026', taskId: 'cat-1' } },
     { id: 'notion', props: { source: 'Notion', createdAt: '9. Nov. 2026', taskId: 'cat-1' } },
-    { id: 'pinned', props: { source: 'Notion', createdAt: '9. Nov. 2026', taskId: 'cat-1', pinned: true } },
   ],
   states: [],
 } satisfies CatalogEntry
