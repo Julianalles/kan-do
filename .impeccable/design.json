@@ -268,7 +268,7 @@
       },
       {
         "name": "The Bright Ground Rule",
-        "body": "Text that is read, never a field or a control, may lie directly on a photo only where the picture behind it is bright and even enough for WCAG AA. The photo is positioned per breakpoint to guarantee that, and the contrast is checked on the rendered page, not assumed from the file.",
+        "body": "Text that is read may lie directly on a photo only where the picture behind it is bright and even enough for WCAG AA. The photo is positioned per breakpoint to guarantee that, and the contrast is checked on the rendered page, not assumed from the file.",
         "section": "colors"
       },
       {

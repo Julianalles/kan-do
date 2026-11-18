@@ -103,7 +103,7 @@ Token values live in `assets/css/main.css` and `app.config.ts`; these tables nam
 
 **The Receding Text Rule.** Waiting cards, done titles and placeholders step down through a token colour, never through `opacity` on text, and keep body contrast. The recorded exceptions live with their component and in the a11y test.
 
-**The Bright Ground Rule.** Text that is read (a brand, a headline, a summary), never a field or a control, may lie directly on a photo only where the picture behind it is bright and even enough for WCAG AA (4.5:1, 3:1 for large text). The photo is positioned per breakpoint to guarantee that (the welcome photo is anchored to its bright wall on a phone, so the strip above the sheet shows no table, plant or book), and the contrast is checked on the rendered page at 1280 and 390 px, not assumed from the file. This is the one exception to "everything you read lies on a sheet" (Direction); a photo that cannot guarantee a bright ground behind the text gets a sheet (rule candidate #472, owner, 2026-11-18).
+**The Bright Ground Rule.** Text that is read (a brand, a headline, a summary) may lie directly on a photo only where the picture behind it is bright and even enough for WCAG AA (4.5:1, 3:1 for large text). The photo is positioned per breakpoint to guarantee that (the welcome photo is anchored to its bright wall on a phone, so the strip above the sheet shows no table, plant or book), and the contrast is checked on the rendered page at 1280 and 390 px, not assumed from the file. This is the one exception to "everything you read lies on a sheet" (Direction); a photo that cannot guarantee a bright ground behind the text gets a sheet (rule candidate #472, owner, 2026-11-18).
 
 ### Type
 
