@@ -12,8 +12,8 @@
   "packageManager": "npm@11.19.0",
   "scripts": {
     "build": "nuxt build",
-    "build:cloudflare": "NITRO_PRESET=cloudflare_module NUXT_PUBLIC_FEEDBACK_RELAY_URL=/api/feedback nuxt build",
-    "deploy": "npm run build:cloudflare && wrangler deploy",
+    "build:cloudflare": "rm -rf .wrangler/deploy && NITRO_PRESET=cloudflare_module NUXT_PUBLIC_FEEDBACK_RELAY_URL=/api/feedback nuxt build && node scripts/check-cloudflare-bundle.mjs",
+    "deploy": "npm run build:cloudflare && wrangler deploy -c wrangler.jsonc",
     "dev": "nuxt dev",
     "dev:e2e": "E2E_NOTION_STUB=1 nuxt dev",
     "dev:seed": "nuxt dev",

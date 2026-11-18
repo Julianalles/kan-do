@@ -218,6 +218,10 @@ export default defineNuxtConfig({
         // On Vercel the server routes run (Notion and Todoist proxies, the feedback relay, #268); every other
         // build stays static unless NITRO_PRESET says otherwise.
         preset: process.env.NITRO_PRESET || (process.env.VERCEL ? 'vercel' : 'static'),
+        // Cloudflare (#502, ADR 021): the Worker is `worker/index.ts` (the gate) as wrangler.jsonc says. Under Workers
+        // Builds (`WORKERS_CI=1`) Nitro would turn this on by itself, write `.output/server/wrangler.json` and redirect
+        // `wrangler deploy` to it through `.wrangler/deploy/config.json`: Nitro's bare handler, no gate, would go live.
+        cloudflare: { deployConfig: false },
         ...(e2eBuildDir ? { output: { dir: `${e2eBuildDir}/output` } } : {}),
       },
 
