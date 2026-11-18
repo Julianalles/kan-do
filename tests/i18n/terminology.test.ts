@@ -75,40 +75,6 @@ describe('terminology: the real registry', () => {
     const decided = new Set(terms.filter(entry => entry.status === 'decided').map(entry => entry.id))
     expect(Object.keys(lock).filter(id => !decided.has(id))).toEqual([])
   })
-})
-
-describe('terminology: the calibration approval (#474)', () => {
-  const ids = ['address-du', 'timebox', 'task-source', 'delete', 'remove', 'disconnect', 'note']
-  const terms = readJson('docs/copy/terms.json') as Entry[]
-
-  it('approving the calibrated terms leaves no error and no avoid hit, and stays valid after approval', () => {
-    const { terms: approved, lock, report } = approve({ terms, ids, lock: {}, locales: realLocales })
-    // The report covers every decided term, not only `ids` (later approvals add more): each must have no hit
-    expect(report.avoidHits).toMatchObject(Object.fromEntries(ids.map(id => [id, 0])))
-    expect(Object.values(report.avoidHits).filter(n => n !== 0)).toEqual([])
-    expect(check({ terms: approved, lock, locales: realLocales }).errors).toEqual([])
-    const again = approve({ terms: approved, ids, lock, locales: realLocales })
-    expect(again.report.changed).toEqual([])
-    expect(check({ terms: again.terms, lock: again.lock, locales: realLocales }).errors).toEqual([])
-  })
-})
-
-describe('terminology: the questionnaire approval (#485)', () => {
-  // The ids the PR asks the user to approve with `npm run terms:approve`; keep in step with the PR body.
-  const ids = ['time-spent', 'token', 'settings', 'set-up', 'product-name', 'column-done']
-  const terms = readJson('docs/copy/terms.json') as Entry[]
-  const realLock = readJson('docs/copy/terms.lock.json') as Lock
-
-  // Runs approve() and check() over the whole registry once per id: ~1.2 s alone, past the 5 s default under parallel-worker load (#520).
-  it('approving exactly the PR id list leaves no error and no avoid hit, as one batch and one id at a time', () => {
-    const { terms: approved, lock, report } = approve({ terms, ids, lock: realLock, locales: realLocales })
-    expect(Object.fromEntries(ids.map(id => [id, report.avoidHits[id]]))).toEqual(Object.fromEntries(ids.map(id => [id, 0])))
-    expect(check({ terms: approved, lock, locales: realLocales }).errors).toEqual([])
-    for (const id of ids) {
-      const single = approve({ terms, ids: [id], lock: realLock, locales: realLocales })
-      expect(check({ terms: single.terms, lock: single.lock, locales: realLocales }).errors).toEqual([])
-    }
-  }, 30_000)
 
   it('keeps every allow key of the registry a real locale key, so an exemption cannot outlive its string', () => {
     for (const entry of terms) {

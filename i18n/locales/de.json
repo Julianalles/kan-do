@@ -734,7 +734,7 @@
       },
       "status": {
         "label": "Status",
-        "help": "Feld für den Aufgaben-Status (z. B. Today, Doing, Waiting, Done).",
+        "help": "Feld für den Aufgaben-Status, etwa Today, Doing, Waiting oder Done.",
         "placeholder": "Status-Feld auswählen"
       },
       "dueDate": {
@@ -783,20 +783,20 @@
       "noField": "Kein Feld",
       "unplanned": {
         "label": "Ungeplant",
-        "help": "Kennzeichnung für ungeplante Aufgaben (reaktive Arbeit). Direktes Feld: Checkbox. Wert-basiert: Bestimmter Wert (z.B. Tag).",
+        "help": "Kennzeichnung für ungeplante Aufgaben (reaktive Arbeit). Direktes Feld: Checkbox. Wert-basiert: Bestimmter Wert, etwa ein Tag.",
         "modeNone": "Keine Zuordnung",
         "modeBoolean": "Direktes Feld (Checkbox)",
         "modeValue": "Wert-basiert (Tag/Select)",
         "selectField": "Feld auswählen",
         "checkboxPlaceholder": "Checkbox-Feld auswählen",
         "valuePlaceholder": "Wert auswählen oder eingeben",
-        "valueInputPlaceholder": "Wert eingeben (z.B. 'ungeplant')"
+        "valueInputPlaceholder": "Wert eingeben, etwa „ungeplant“"
       },
       "unit": {
         "seconds": "Sekunden",
         "minutes": "Minuten",
         "hours": "Stunden",
-        "formatted": "Formatiert (z.B. „15 min“, „2h“)"
+        "formatted": "Formatiert, etwa „15 min“ oder „2h“"
       },
       "unitPlaceholder": "Einheit wählen"
     },
@@ -1458,7 +1458,7 @@
       "retry": "Erneut versuchen",
       "preparing": "Wird vorbereitet…",
       "downloading": "Wird geladen…",
-      "progress": "Wird geladen… {percent}%",
+      "progress": "Wird geladen… {percent} %",
       "installing": "Wird installiert…",
       "error": {
         "dataFolderUnavailable": "Datenordner nicht erreichbar. Es wurde nichts geändert.",
