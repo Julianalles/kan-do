@@ -372,6 +372,10 @@ describe('NewDayRecap', () => {
       q('[data-testid="recap-plan"]').click()
       expect(navigateTo).toHaveBeenCalledTimes(1)
       expect(navigateTo).toHaveBeenCalledWith({ path: '/all', force: true })
+      // #490: the recap is left only once the board stands on "Alle", so the curtain lifts onto it
+      expect(useNewDayRecap().isOpen.value).toBe(true)
+      await nextTick()
+      await nextTick()
       expect(useNewDayRecap().isOpen.value).toBe(false)
       expect(useDayRecapStore().lastShownDay).toBe('2026-10-22')
       expect(freshStart).toHaveBeenCalledTimes(1)
@@ -402,13 +406,28 @@ describe('NewDayRecap', () => {
       expect(freshStart).not.toHaveBeenCalled()
     })
 
+    it('a refused navigation still leaves the recap and starts the day fresh (#490)', async () => {
+      navigateTo.mockRejectedValueOnce(new Error('aborted'))
+      await open([doneAt(1, 'a')])
+      q('[data-testid="recap-plan"]').click()
+      await nextTick()
+      await nextTick()
+      expect(useNewDayRecap().isOpen.value).toBe(false)
+      expect(freshStart).toHaveBeenCalledTimes(1)
+      expect(useTasksStore().archivedTaskIds).toEqual(['a'])
+    })
+
     it('a second click during the curtain neither navigates, leaves nor starts fresh again', async () => {
       await open([doneAt(1, 'a')])
       q('[data-testid="recap-plan"]').click()
       q('[data-testid="recap-plan"]').click()
       q('[data-testid="recap-continue"]').click()
+      pressEscape()
+      await nextTick()
+      await nextTick()
       expect(navigateTo).toHaveBeenCalledTimes(1)
       expect(freshStart).toHaveBeenCalledTimes(1)
+      expect(useTasksStore().archivedTaskIds).toEqual(['a'])
     })
   })
 

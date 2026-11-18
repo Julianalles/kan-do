@@ -72,7 +72,7 @@ export function readPlaceMove(el: Element | null): { ms: number, easing: string 
 
 /**
  * The pace of the next move between the places (#433): `glide` is the first move to Heute after the day's fresh start
- * (1.2 s), `lift` the move to "Alle" under the recap's lifting curtain (1.4 s). Both only name a pace: the times are
+ * (1.2 s), `lift` the move to "Alle" under the recap's lifting curtain (1.4 s for the curtain and the app bar's chip; the board itself snaps, #490: `--place-move` is 0 under `lift`, `data-place-snap` on the phone strip). Both only name a pace: the times are
  * board.css and app-nav.css's (`html[data-place-pace]` overrides `--place-move` / `--nav-move`, so strip, column
  * titles, app bar chip and phone strip keep one clock). Runtime state only: a reload never replays a glide, and
  * reduced motion never sets one.

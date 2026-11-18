@@ -528,6 +528,7 @@
         "composables/useTakeOffBoard.ts",
         "lib/appPresence.ts",
         "lib/recapOpenState.ts",
+        "lib/cssTime.ts",
         "components/board/NewDayNote.vue",
         "components/board/NewDayTimeNote.vue",
         "composables/useSwipeDeck.ts",

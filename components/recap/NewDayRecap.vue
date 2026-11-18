@@ -12,7 +12,7 @@ One centred column (max 44rem) with both decks side by side from 768px, one deck
 - Focus starts on "Tag neu planen"; both buttons and Escape inside the stage call `leave()`: "Tag neu planen" goes to "Alle" first and then starts the day fresh (`useNewDay().freshStart()`, #387: the only thing here that moves a card) and archives yesterday's done tasks (`leave({ archive: true })`), "Überspringen und Board anzeigen" goes to Heute when "Alle" shows and moves and archives nothing (the done tasks stay in Erledigt under the "Gestern erledigt" note, whose "Gesehen" hides them), Escape only dismisses, never navigates, moves and archives nothing; `finishLeave()` after the curtain hands focus to the board
 - The app bar follows the open state (#428): while the recap is open its pill is Rückblick + Statistik (useAppNav), and leaving it turns Rückblick into Alle + Heute.
 - Open as the page mounts (an app start, or back from another page, #427): `pages/tasks.vue` runs the day check in setup and hides the board (`data-recap-cover`) until the recap is left, so the board is never seen before it; the stage fades in over 1.4 s ("Dawn", #463, `--recap-enter-duration`) also then, over the paper colour
-- Curtain (assets/css/recap-stage.css): `leave()` runs at once (archive, marker, the board is live), the stage stays mounted while the content fades (200 ms) and only the photo slides up (700 ms, ease in-out; "Tag neu planen" lifts it 1.4 s while the board glides to Planung beneath it, `data-pace="lift"`, #433) with a feathered edge; reduced motion: instant. A second click or Escape during the curtain does nothing
+- Curtain (assets/css/recap-stage.css): `leave()` runs at once (archive, marker, the board is live), the stage stays mounted while the content fades (200 ms) and only the photo slides up (700 ms, ease in-out; "Tag neu planen" lifts it 1.4 s onto "Alle", which the board reached at once beneath the covering stage before the curtain started, with no Heute frame and no second slide, `data-pace="lift"`, #433, #490) with a feathered edge; reduced motion: instant. A second click or Escape during the curtain does nothing
 - The photo is the welcome page's (`public/welcome`), decoration only (`alt=""`); until it loads, or if it fails, the layer is the paper colour
 - Phone switcher ("n noch offen" / "n erledigt", a `UTabs` pill: `role="tab"`, `aria-selected`): one RecapDeck mounted at a time, starts on "noch offen" (on "erledigt" when nothing is open, then without a switcher)
 - The decks never change size (RecapDeck), so nothing moves while they are looked at
@@ -30,7 +30,7 @@ One centred column (max 44rem) with both decks side by side from 768px, one deck
       :inert="closing || undefined"
       data-testid="new-day-recap"
       data-window-drag-layer
-      @keydown.esc="leaveOnce()"
+      @keydown.esc="planning || leaveOnce()"
     >
       <!-- Atmosphere only; the layer is the paper colour until the photo has loaded (or if it never does) -->
       <div class="recap-stage__photo bg-page" aria-hidden="true">
@@ -122,6 +122,7 @@ import { useNewDayRecap } from '~/composables/useNewDayRecap'
 import { useNewDay } from '~/composables/useNewDay'
 import { useBoardPlace } from '~/composables/useBoardPlace'
 import { armLift, boardPlaceLocation } from '~/lib/boardPlace'
+import { cssTimeMs } from '~/lib/cssTime'
 import { useLocaleFormat } from '~/composables/useLocaleFormat'
 import { useIsDesktop } from '~/composables/useIsDesktop'
 import { dayMonthName } from '~/utils/recapDay'
@@ -182,6 +183,8 @@ const isDesktop = useIsDesktop()
 const photoLoaded = ref(false)
 /** The curtain is running: `leave()` already closed the recap, the stage stays until the photo is off. */
 const closing = ref(false)
+/** "Tag neu planen" waits for the board to stand on "Alle" before the curtain starts (#490) */
+const planning = ref(false)
 const shown = computed(() => (isOpen.value || closing.value) && !!snapshot.value)
 // The app bar's veil steps back while the stage exists, the curtain included (recap-stage.css). An attribute on <html>
 // instead of `html:has(.recap-stage)`, which restyles the whole page on every change below it (#275).
@@ -212,19 +215,30 @@ function finishCurtain() {
 }
 
 /**
- * "Tag neu planen" (#356, #387, #428): the board goes to "Alle" first (the same page, so it is there before the photo moves),
- * the recap is left with yesterday's done tasks archived, and the day starts fresh: yesterday's unfinished cards leave the
- * board for "Meine Aufgaben". The recap's own decks are a snapshot and do not change under the curtain.
+ * "Tag neu planen" (#356, #387, #428, #490): the board goes to "Alle" first, at once and without a move (the stage covers it, the
+ * board's `lift` pace snaps), so the curtain lifts straight onto the planning view: no Heute frame, no second slide. Only then the
+ * recap is left with yesterday's done tasks archived and the day starts fresh: yesterday's unfinished cards leave the board for
+ * "Meine Aufgaben". The recap's own decks are a snapshot and do not change under the curtain.
  */
-function leaveToPlan() {
-  if (closing.value || !isOpen.value) return
-  // The curtain lifts over 1.4 s and the board glides to Planung beneath it on the same time (#433); not under reduced motion
-  // (already on "Alle": no move beneath it, so the curtain keeps its 700 ms)
+async function leaveToPlan() {
+  if (closing.value || planning.value || !isOpen.value) return
+  // The curtain lifts over 1.4 s, the app bar's chip travels on the same time (#433); the board itself does not move (#490). Not under
+  // reduced motion (already on "Alle": no move at all, so the curtain keeps its 700 ms)
   if (!isAll.value && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
     armLift()
     document.querySelector<HTMLElement>('[data-testid="new-day-recap"]')?.setAttribute('data-pace', 'lift')
   }
-  void navigateTo(boardPlaceLocation('all'))
+  // The curtain waits for the route: a second click or Escape meanwhile does nothing
+  planning.value = true
+  try {
+    await navigateTo(boardPlaceLocation('all'))
+  }
+  catch {
+    // A refused navigation must not keep the recap open: the day is planned either way, the board shows where it is
+  }
+  finally {
+    planning.value = false
+  }
   leaveOnce({ archive: true })
   // Left (not: nothing to leave): the user's click is the fresh start
   if (!isOpen.value) freshStart()
@@ -232,7 +246,7 @@ function leaveToPlan() {
 
 /** "Überspringen und Board anzeigen" (#356, #387, #428): the board as it is, nothing moves or is archived; from "Alle" that is a move to Heute. */
 function leaveToToday() {
-  if (closing.value || !isOpen.value) return
+  if (closing.value || planning.value || !isOpen.value) return
   if (isAll.value) void navigateTo(boardPlaceLocation('today'))
   leaveOnce()
 }
@@ -250,7 +264,7 @@ function leaveOnce(options: { archive?: boolean } = {}) {
   }
   closing.value = true
   // Wait for the photo's own transition; the timer (its duration read from the CSS) is the net if it never ends.
-  const wait = Number.parseFloat(getComputedStyle(stage).getPropertyValue('--recap-curtain-duration')) || 0
+  const wait = cssTimeMs(getComputedStyle(stage).getPropertyValue('--recap-curtain-duration'))
   curtainTimer = setTimeout(endCurtain, wait + 100)
   stage.querySelector('.recap-stage__photo')?.addEventListener('transitionend', onPhotoEnd)
 }
