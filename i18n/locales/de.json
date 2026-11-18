@@ -161,8 +161,7 @@
       "dragBack": "„{title}“ bleibt in Meine Aufgaben.",
       "capacityFull": "Damit ist dein Tag vermutlich voll.",
       "capacityBelow": "Dein Tag ist vermutlich voll. Eine Aufgabe liegt unter der Linie. | Dein Tag ist vermutlich voll. {n} Aufgaben liegen unter der Linie.",
-      "groupYesterday": "Gestern geplant, noch offen",
-      "groupWaiting": "Zuletzt in Wartet",
+      "groupBoardYesterday": "Gestern auf dem Board",
       "groupOthers": "Weitere Aufgaben"
     },
     "yesterdayUnderAll": "Eine Aufgabe von gestern liegt unter {all}. | {n} Aufgaben von gestern liegen unter {all}.",

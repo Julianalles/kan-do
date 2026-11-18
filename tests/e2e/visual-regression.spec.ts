@@ -978,6 +978,30 @@ for (const { size, viewport } of CORE_VIEWPORTS) {
   })
 }
 
+// "Alle" after the fresh start (#469): yesterday's tasks (Jetzt, Offen, Wartet) in one panel, a task held before plain below it
+const PANEL_SEED: SeedTask[] = [
+  coreTask({ id: 'pn-now-1', title: 'Präsentation vorbereiten', status: 1, priority: 3, timeSpentSeconds: 1800, timeBoxSeconds: 3600 }),
+  coreTask({ id: 'pn-open-1', title: 'Konzept ausarbeiten', status: 0, priority: 2, activity: 'Planung', topic: 'Design', topicColorCode: '#6366f1', timeBoxSeconds: 2700 }),
+  coreTask({ id: 'pn-open-2', title: 'Steuerberater anrufen', status: 0, priority: 3 }),
+  coreTask({ id: 'pn-waiting-1', title: 'Rückmeldung vom Vermieter', status: 2, priority: 2 }),
+  coreTask({ id: 'pn-held-1', title: 'Regal für den Keller aussuchen', status: 0, notPlanned: true }),
+]
+
+for (const { size, viewport } of CORE_VIEWPORTS) {
+  test(`alle: yesterday's panel and "Weitere Aufgaben" (${size})`, async ({ context, page }) => {
+    await page.setViewportSize(viewport)
+    await pinClockToFixedNow(context)
+    await seedLocalBoard(context, PANEL_SEED, {}, undefined, { once: true })
+    await seedDayRecapStore(context, { lastShownDay: dayKeyAgo(2), once: true })
+    await page.goto('/all')
+    await page.getByTestId('new-day-note-start').click()
+    await expect(page.getByTestId('not-planned-panel')).toBeVisible()
+    await page.mouse.move(0, 0)
+    await settle(page)
+    await expect(page).toHaveScreenshot(`alle-panel-${size}.png`, { animations: 'disabled' })
+  })
+}
+
 // --- Statistics (#469, #600): verdict and one open tile ---------------------
 
 /** Completion records, 20 baseline tasks over four weeks (half over the timebox) and four recent ones, dated in the browser (pinned clock). */

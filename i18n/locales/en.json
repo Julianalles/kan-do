@@ -161,8 +161,7 @@
       "dragBack": "“{title}” stays in My tasks.",
       "capacityFull": "With this your day is probably full.",
       "capacityBelow": "Your day is probably full. One task is below the line. | Your day is probably full. {n} tasks are below the line.",
-      "groupYesterday": "Planned yesterday, still open",
-      "groupWaiting": "Last in Waiting",
+      "groupBoardYesterday": "On the board yesterday",
       "groupOthers": "More tasks"
     },
     "yesterdayUnderAll": "One task from yesterday is under {all}. | {n} tasks from yesterday are under {all}.",

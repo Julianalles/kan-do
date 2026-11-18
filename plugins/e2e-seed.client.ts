@@ -18,7 +18,7 @@
  *                   no `lastNewDay`: the data of a version before the fresh start (the update from v0.16.0)
  *   ?seed=newday-back — the new day in full (#356, #387): like `newday`, plus a card in Jetzt (with time spent), a
  *                   second Offen card and a task that was not planned before. After "Tag neu planen" "Alle" shows the
- *                   group "Gestern geplant, noch offen", the category "Zuletzt in Wartet" and "Weitere Aufgaben", and
+ *                   group "Gestern auf dem Board", the Wartet task in the same panel and "Weitere Aufgaben", and
  *                   Heute an empty Offen with its sentence
  *   ?seed=newday-notice — `newday-back` without the done tasks: no recap is due, so the board shows as it was left
  *                   and the notice that offers the fresh start is on it

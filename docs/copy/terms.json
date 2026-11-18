@@ -639,34 +639,24 @@
     "note": "nav.recap. The short form of the recap's headline (entry recap: \"Kurzer Rückblick\" / \"Quick look back\"); the user's mockup of 2026-11-17 (#428) shows \"Rückblick\". English \"Look back\" because the recap entry avoids \"recap\"."
   },
   {
-    "id": "planned-yesterday",
-    "concept": "The group on top of \"Meine Aufgaben\" for one day: what was in Jetzt and Offen when the user started the day fresh (#356, #387)",
-    "de": "Gestern geplant, noch offen",
-    "en": "Planned yesterday, still open",
+    "id": "not-planned-yesterday",
+    "concept": "The panel on top of \"Meine Aufgaben\" for one day: the tasks that were on the board yesterday (Jetzt, Offen and Wartet) and are still not planned (#356, #387, #469)",
+    "de": "Gestern auf dem Board",
+    "en": "On the board yesterday",
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Approved by the user on 2026-11-16 (#367); the user's `npm run terms:approve` makes it decided. Proposed in the design of #334. \"Gestern\" also when the last board day was longer ago: the group names the last plan, not a date."
-  },
-  {
-    "id": "was-waiting",
-    "concept": "The category of \"Meine Aufgaben\" for the tasks a fresh start took out of Wartet (#387): the earlier waiting stays known until the task is planned again",
-    "de": "Zuletzt in Wartet",
-    "en": "Last in Waiting",
-    "avoidDe": [],
-    "avoidEn": [],
-    "status": "proposed",
-    "note": "Proposed in Specify of #387 (decision D1 d). Not \"Gestern in Wartet\": the category lasts beyond the day of the fresh start. \"Wartet\" / \"Waiting\" is the column name (column-waiting)."
+    "note": "Proposed in the design of #469 (user answer D1: one panel, Wartet included). Replaces \"Gestern geplant, noch offen\" (planned-yesterday, approved 2026-11-16 in #367, never made decided) and \"Zuletzt in Wartet\" (was-waiting): \"noch offen\" is dropped because everything in \"Meine Aufgaben\" is open. \"Gestern\" also when the last board day was longer ago: the panel names the last board, not a date."
   },
   {
     "id": "more-tasks",
-    "concept": "The last group of \"Meine Aufgaben\" while a category shows above it (\"Gestern geplant, noch offen\", \"Zuletzt in Wartet\"): every other task that is not planned (#356, #387)",
+    "concept": "The last group of \"Meine Aufgaben\" while the panel \"Gestern auf dem Board\" shows above it: every other task that is not planned (#356, #387)",
     "de": "Weitere Aufgaben",
     "en": "More tasks",
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Approved by the user on 2026-11-16 (#367); the user's `npm run terms:approve` makes it decided. Proposed in the design of #334. Shown only together with a category above it."
+    "note": "Approved by the user on 2026-11-16 (#367); the user's `npm run terms:approve` makes it decided. Proposed in the design of #334. Shown only together with the panel above it."
   },
   {
     "id": "take-off-time",

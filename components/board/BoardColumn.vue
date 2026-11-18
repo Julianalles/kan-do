@@ -14,7 +14,7 @@
 - Provides header with status information
 - Enables task addition for the Open column (#248): the header's round add button asks the add slot, the draft host at the start of the list, to open; the draft card enters at the top (#125). Cancel returns focus to the header button
 - Handles visual states for different statuses and empty states
-- Offen on Heute, empty while tasks of today's group "Gestern geplant, noch offen" wait under "Alle" (#356): one muted sentence with a link to "Alle"; every other empty column stays blank
+- Offen on Heute, empty while tasks of today's group "Gestern auf dem Board" wait under "Alle" (#356): one muted sentence with a link to "Alle"; every other empty column stays blank
 - Erledigt drop target (#124): a light green wash under the list and a one-line hint while a card
   from another column hovers it
 -->
@@ -32,6 +32,7 @@
       ref="headerRef"
       :title="computedHeadline"
       :title-fade-key="taskStatus === TaskStatus.Open ? place : undefined"
+      :marker="headerMarker"
       :status="taskStatus"
       :task-count="tasks.length"
       :is-empty="isEmpty && !hasGaps"
@@ -477,6 +478,13 @@ const showAddSlot = computed(() => isOpenColumn.value && !props.staticMode);
  * The header's round add button: the flag gates it, not a draft opened another way. Not on the place "Alle" (#380):
  * a task made there is not planned and lands under "Meine Aufgaben", so that side's header has the button.
  */
+/** The marker stroke (#469, one per view): Jetzt on "Heute", and Offen, headed "Heute", on "Alle" (hidden on "Heute", where it fades with the move) */
+const headerMarker = computed<'shown' | 'hidden' | undefined>(() => {
+  if (props.taskStatus === TaskStatus.Progress) return 'shown'
+  if (props.taskStatus === TaskStatus.Open) return place.value === 'all' ? 'shown' : 'hidden'
+  return undefined
+})
+
 const showAddButton = computed(() => showAddSlot.value && featureFlags.openColumnAddButton && place.value !== 'all');
 
 const headerRef = ref<{ addButtonEl: () => HTMLElement | null } | null>(null);
@@ -534,7 +542,7 @@ const computeIsEmpty = (): boolean => props.tasks.length < 1;
 
 const isEmpty = computed(computeIsEmpty);
 
-/** Tasks of today's group "Gestern geplant, noch offen" that still wait under "Alle" (#356); Board.vue hands it to Offen. */
+/** Tasks of today's group "Gestern auf dem Board" that still wait under "Alle" (#356); Board.vue hands it to Offen. */
 const yesterdayCount = computed(() => props.yesterdayWaiting);
 /**
  * The sentence in an empty Offen on Heute: only while the column holds no card (and no deleted-card gap, no draft, no

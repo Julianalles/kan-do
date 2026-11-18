@@ -607,7 +607,7 @@ export function newDayTasks(daysAgo = 1, options: { allDone?: boolean } = {}): S
 /**
  * A full board for the fresh start (#356, #387): `newDayTasks` plus a Jetzt card with time spent, a second Offen card and
  * a task that was not planned before. After "Tag neu planen" "Meine Aufgaben" holds nd-now-1, nd-open-2, nd-open-1 as the
- * group "Gestern geplant, noch offen" (board order, Jetzt first), nd-waiting-1 under "Zuletzt in Wartet" and nd-held-1
+ * group "Gestern auf dem Board" (board order, Jetzt first), nd-waiting-1 after them (one panel "Gestern auf dem Board") and nd-held-1
  * under "Weitere Aufgaben". Without the done tasks no recap is due and the board shows the notice instead.
  */
 export function newDayBackTasks(daysAgo = 1): SeedTask[] {

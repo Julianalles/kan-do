@@ -203,7 +203,7 @@
     {
       "name": "Column Header",
       "kind": "custom",
-      "description": "Display role naming a column; the Jetzt headline carries the one marker stroke.",
+      "description": "Display role naming a column; the focus column's headline carries the one marker stroke (Jetzt on Heute, Heute on Alle).",
       "html": "<h2 class=\"ds-col\"><span class=\"ds-mark\">Jetzt</span></h2>",
       "css": ".ds-col{font:500 36px/1.15 Fraunces,ui-serif,Georgia,serif;letter-spacing:-0.02em;color:oklch(0.19 0.012 70);text-align:center;margin:0}.ds-mark{background:linear-gradient(transparent 55%,oklch(0.91 0.145 97) 55%,oklch(0.91 0.145 97) 90%,transparent 90%)}"
     },
@@ -253,7 +253,7 @@
       },
       {
         "name": "The Marker Rule",
-        "body": "A stroke of yellow text marker centred on the bottom edge of a word (through the foot of its letters) is an allowed decoration in slight, intentional use (owner, 2026-11-11). It is static, carries no meaning of its own and appears once per view at most. Today's only use: the Jetzt headline. A new use is a recorded decision.",
+        "body": "A stroke of yellow text marker centred on the bottom edge of a word (through the foot of its letters) is an allowed decoration in slight, intentional use (owner, 2026-11-11). It is static, carries no meaning of its own and appears once per view at most: one marker per view, on the headline of its focus column. Uses: the \"Jetzt\" headline on \"Heute\" and the \"Heute\" headline (Offen) on \"Alle\", which fades when the user moves to \"Heute\" (user, #469). A new use is a recorded decision.",
         "section": "colors"
       },
       {

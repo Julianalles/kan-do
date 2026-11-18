@@ -28,9 +28,9 @@
  * - The fresh start also arms the day's one slow move (#433, `armGlide`): the first move to Heute after it glides.
  * - `isNewDayDue()`: a local day has passed since the last fresh start (or, before the first one, since the recap's
  *   marker), i.e. today has not been started fresh.
- * - `groupIds`: the Jetzt and Offen tasks of today's fresh start that are still not planned, i.e. the group
- *   "Gestern geplant, noch offen"; it ends with its day without a write. `waitingIds`: the not-planned tasks a fresh
- *   start took out of Wartet (`boardStore.notPlannedFromWaiting`), their own category until each is planned again.
+ * - `groupIds`: the Jetzt and Offen tasks of today's fresh start that are still not planned, i.e. the first half of
+ *   the panel "Gestern auf dem Board"; it ends with its day without a write. `waitingIds`: the not-planned tasks a fresh
+ *   start took out of Wartet (`boardStore.notPlannedFromWaiting`), kept in the panel after them until each is planned again.
  * - `noticeShown` / `closeNotice()`: the notice that offers the fresh start, on a day that has begun in this window,
  *   has not been started fresh, whose notice was not closed, while something unfinished is on the board.
  * - `timeOffer` / `takeOffTime()` / `keepTime()`: the question "the timer ran on for {duration} after midnight: take
@@ -198,7 +198,7 @@ export function useNewDay() {
   /** The ids of the tasks that are held as not planned now. */
   const heldIds = computed(() => new Set(tasksStore.tasks.filter(task => isNotPlanned(task)).map(task => task.id)))
 
-  /** The group "Gestern geplant, noch offen": today's Jetzt and Offen tasks that are still not planned, in their order. */
+  /** The group "Gestern auf dem Board": today's Jetzt and Offen tasks that are still not planned, in their order. */
   const groupIds = computed<string[]>(() => {
     const ids = todaysBack.value?.ids ?? []
     return ids.length === 0 ? ids : ids.filter(id => heldIds.value.has(id))
