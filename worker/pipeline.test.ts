@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest'
 import { COOKIE_NAME, sha256Hex } from './gate'
 import { buildCsp } from './csp'
 import { handleRequest, type WorkerEnv } from './pipeline'
+import { limiterNamespace } from './testing'
 
 const SECRET = 'test-token'
 const SITE = 'https://kando.example.workers.dev'
@@ -12,7 +13,8 @@ const CSP = buildCsp(HASHES)
 /** Records the order in which gate, origin check, limiter and app see a request. */
 function setup(env: Partial<WorkerEnv> = {}, limitSuccess = true) {
   const calls: string[] = []
-  const NOTION_LIMITER = { limit: vi.fn(async () => { calls.push('limit'); return { success: limitSuccess } }) }
+  const { namespace: NOTION_LIMITER, hit } = limiterNamespace(limitSuccess)
+  hit.mockImplementation(async () => { calls.push('limit'); return Response.json({ success: limitSuccess }) })
   const app = vi.fn(async () => { calls.push('app'); return new Response('{}') })
   const full: WorkerEnv = { GATE: 'on', GATE_SECRET: SECRET, NOTION_LIMITER, ...env }
   const run = async (path: string, headers: Record<string, string> = {}, gated = true) => {

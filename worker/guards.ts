@@ -6,20 +6,20 @@
  * 1. Origin check: a request whose `Origin` is not the Worker's own, or whose `Sec-Fetch-Site` says another site, is
  *    refused with 403 `FORBIDDEN_ORIGIN`, so no other website can use a visitor's browser as a Notion proxy. A request
  *    without `Origin` (curl, server to server) passes: this is no authentication, the visitor's own token still is.
- * 2. Rate limit: the Workers Rate Limiting binding `NOTION_LIMITER` (`ratelimits` in `wrangler.jsonc`), keyed by
- *    `CF-Connecting-IP`; over the limit answers 429 `RATE_LIMITED` (the client retries 429 with backoff). Without the
- *    binding (local `wrangler dev`) or when it fails, the request passes: the guard never blocks the app by itself.
+ * 2. Rate limit: the Durable Object `NOTION_LIMITER` (`limiter.ts`, `durable_objects` in `wrangler.jsonc`), one object
+ *    per client (`CF-Connecting-IP`), exact across isolates and locations; over the limit answers 429 `RATE_LIMITED`
+ *    (the client retries 429 with backoff). Without the binding (a test) or when the object fails (its Free quota
+ *    included), the request passes: the guard never blocks the app by itself. The Workers Rate Limiting binding it
+ *    replaced (#503) did not limit on the live instance (#508).
  */
+import { LIMIT_PERIOD_SECONDS, clientKey } from './limiter'
 
 /** Same shape as the server routes' errors (`createError`), so the client reads `data.error` and `data.message` alike. */
 export const FORBIDDEN_ORIGIN = 'FORBIDDEN_ORIGIN'
 export const RATE_LIMITED = 'RATE_LIMITED'
-/** The binding's `period` in `wrangler.jsonc` (10 or 60 seconds only); the `Retry-After` of a 429. */
-export const LIMIT_PERIOD_SECONDS = 60
-
 export interface GuardEnv {
-  /** The `ratelimits` binding. When it is missing (a config without it, a test) the limiter is skipped. */
-  NOTION_LIMITER?: RateLimit
+  /** The `NotionLimiter` Durable Object namespace. When it is missing (a config without it, a test) the limiter is skipped. */
+  NOTION_LIMITER?: DurableObjectNamespace
 }
 
 export type AppHandler = (request: Request) => Promise<Response>
@@ -74,8 +74,9 @@ export async function overLimit(request: Request, env: GuardEnv): Promise<boolea
   const limiter = env.NOTION_LIMITER
   if (!limiter) return false
   try {
-    const { success } = await limiter.limit({ key: request.headers.get('CF-Connecting-IP') ?? 'unknown' })
-    return !success
+    const stub = limiter.get(limiter.idFromName(clientKey(request.headers.get('CF-Connecting-IP'))))
+    const { success } = await (await stub.fetch('https://limiter.invalid/hit', { method: 'POST' })).json<{ success: boolean }>()
+    return success === false // anything but a clear "no" lets the request through
   } catch (error) {
     console.error('guards: the rate limiter failed, letting the request through', error)
     return false

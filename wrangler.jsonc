@@ -24,9 +24,12 @@
   // the public launch (jwue-homepage#34): change it here, through a PR. The token is the secret GATE_SECRET
   // (the homepage's value, one shared token). Other secrets: FEEDBACK_GITHUB_TOKEN. Never NOTION_KEY.
   "vars": { "GATE": "on" },
-  // Rate limit of the Notion proxy (#503, worker/guards.ts): 120 requests per 60 s per client IP and Cloudflare location,
-  // counted for `/api/notion/*` only. `namespace_id` is any integer unique in the account; `period` may be 10 or 60 only.
-  // `wrangler dev` runs it locally too. A missing or failing binding lets requests through (the guard never blocks by itself).
-  "ratelimits": [{ "name": "NOTION_LIMITER", "namespace_id": "1503", "simple": { "limit": 120, "period": 60 } }],
+  // Rate limit of the Notion proxy (#508, worker/guards.ts, worker/limiter.ts): 120 requests per 60 s per client IP (an IPv6 by its /64),
+  // counted for `/api/notion/*` only, by one Durable Object per client so the count is exact across isolates and locations. The Workers
+  // Rate Limiting binding of #503 (`ratelimits`) never limited on the live instance (approximate, per-location counts; Free on
+  // workers.dev answered `success: true` for 1200 requests in 28 s), so it is gone. Free needs a SQLite-backed class (`new_sqlite_classes`),
+  // though the object keeps no storage. A missing or failing binding lets requests through (the guard never blocks by itself).
+  "durable_objects": { "bindings": [{ "name": "NOTION_LIMITER", "class_name": "NotionLimiter" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["NotionLimiter"] }],
   "observability": { "enabled": true },
 }

@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it, vi } from 'vitest'
 import { FORBIDDEN_ORIGIN, RATE_LIMITED, foreignOrigin, guard, isNotionPath, type GuardEnv } from './guards'
+import { limiterNamespace } from './testing'
 
 const SITE = 'https://kando.example.workers.dev'
 
@@ -9,14 +10,6 @@ function setup(env: GuardEnv = {}) {
   const run = (path: string, headers: Record<string, string> = {}, method = 'GET') =>
     guard(new Request(SITE + path, { method, headers }), env, app)
   return { app, run }
-}
-
-const limiter = (success: boolean | Error) => {
-  const limit = vi.fn(async (_options: RateLimitOptions) => {
-    if (success instanceof Error) throw success
-    return { success }
-  })
-  return { limit } satisfies RateLimit
 }
 
 describe('isNotionPath', () => {
@@ -108,16 +101,22 @@ describe('origin check', () => {
 })
 
 describe('rate limit', () => {
-  it('allowed: the app answers, keyed by CF-Connecting-IP', async () => {
-    const NOTION_LIMITER = limiter(true)
-    const { app, run } = setup({ NOTION_LIMITER })
+  /** A guard env whose limiter answers `success`; `keys` are the clients it was asked about. */
+  const withLimiter = (success: boolean | Error) => {
+    const { namespace, hit, keys } = limiterNamespace(success)
+    return { ...setup({ NOTION_LIMITER: namespace }), hit, keys }
+  }
+
+  it('allowed: the app answers, counted under CF-Connecting-IP', async () => {
+    const { app, run, hit, keys } = withLimiter(true)
     expect((await run('/api/notion/pages', { 'CF-Connecting-IP': '203.0.113.7' })).status).toBe(200)
-    expect(NOTION_LIMITER.limit).toHaveBeenCalledWith({ key: '203.0.113.7' })
+    expect(keys).toEqual(['203.0.113.7'])
+    expect(hit).toHaveBeenCalledOnce()
     expect(app).toHaveBeenCalledOnce()
   })
 
   it('limited: 429 RATE_LIMITED with Retry-After, the app is never called', async () => {
-    const { app, run } = setup({ NOTION_LIMITER: limiter(false) })
+    const { app, run } = withLimiter(false)
     const res = await run('/api/notion/pages', { 'CF-Connecting-IP': '203.0.113.7' })
     expect(res.status).toBe(429)
     expect(res.headers.get('Retry-After')).toBe('60')
@@ -132,34 +131,48 @@ describe('rate limit', () => {
     expect(app).toHaveBeenCalledOnce()
   })
 
-  it('binding fails: fails open and logs', async () => {
+  it('the object fails (its Free quota included): fails open and logs', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const { app, run } = setup({ NOTION_LIMITER: limiter(new Error('boom')) })
+    const { app, run } = withLimiter(new Error('boom'))
     expect((await run('/api/notion/pages')).status).toBe(200)
     expect(app).toHaveBeenCalledOnce()
     expect(spy).toHaveBeenCalled()
     spy.mockRestore()
   })
 
+  it('an answer that is not a clear "no" lets the request through', async () => {
+    const namespace = {
+      idFromName: () => ({}),
+      get: () => ({ fetch: async () => new Response('{}') }),
+    } as unknown as DurableObjectNamespace
+    const { app, run } = setup({ NOTION_LIMITER: namespace })
+    expect((await run('/api/notion/pages')).status).toBe(200)
+    expect(app).toHaveBeenCalledOnce()
+  })
+
   it('without CF-Connecting-IP all clients share one key rather than skipping the limit', async () => {
-    const NOTION_LIMITER = limiter(true)
-    const { run } = setup({ NOTION_LIMITER })
+    const { run, keys } = withLimiter(true)
     await run('/api/notion/pages')
-    expect(NOTION_LIMITER.limit).toHaveBeenCalledWith({ key: 'unknown' })
+    expect(keys).toEqual(['unknown'])
+  })
+
+  it('clients of one IPv6 /64 share a key', async () => {
+    const { run, keys } = withLimiter(true)
+    await run('/api/notion/pages', { 'CF-Connecting-IP': '2001:db8:1:2:aaaa::1' })
+    await run('/api/notion/pages', { 'CF-Connecting-IP': '2001:DB8:1:2:bbbb:cccc:dddd:eeee' })
+    expect(keys).toEqual(['2001:db8:1:2', '2001:db8:1:2'])
   })
 
   it('only /api/notion/* is counted', async () => {
-    const NOTION_LIMITER = limiter(false)
-    const { app, run } = setup({ NOTION_LIMITER })
+    const { app, run, hit } = withLimiter(false)
     for (const p of ['/', '/tasks', '/_nuxt/entry.js', '/api/feedback']) expect((await run(p)).status, p).toBe(200)
-    expect(NOTION_LIMITER.limit).not.toHaveBeenCalled()
+    expect(hit).not.toHaveBeenCalled()
     expect(app).toHaveBeenCalledTimes(4)
   })
 
   it('a refused origin is not counted against the limit', async () => {
-    const NOTION_LIMITER = limiter(true)
-    const { run } = setup({ NOTION_LIMITER })
+    const { run, hit } = withLimiter(true)
     await run('/api/notion/pages', { Origin: 'https://evil.example' })
-    expect(NOTION_LIMITER.limit).not.toHaveBeenCalled()
+    expect(hit).not.toHaveBeenCalled()
   })
 })
