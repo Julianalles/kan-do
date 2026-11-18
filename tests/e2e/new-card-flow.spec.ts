@@ -449,6 +449,38 @@ test.describe('guided new card, keyboard and steps (desktop)', () => {
     expect(saved.activity).toBeNull()
   })
 
+  test('#434 review: picking the value the step already has keeps it and moves on (Reka toggles a re-pick off)', async ({ page }) => {
+    await openCard(page)
+    await confirmTitle(page, 'Wieder gewählt')
+    await takeValue(page, 'Marketing')
+    await expect(step(page)).toHaveAttribute('data-step', 'activity')
+    await page.keyboard.press('Escape')
+    await expect(combo(page)).toHaveValue('Marketing')
+    await takeValue(page, 'Marketing') // typed again, Enter on the checked row
+    await expect(step(page)).toHaveAttribute('data-step', 'activity')
+    await page.keyboard.press('Escape')
+    await expect(combo(page)).toHaveValue('Marketing')
+    await expect(card(page).locator('.task-topic')).toBeVisible()
+    await entries(page).filter({ hasText: 'Marketing' }).first().click() // the mouse on the checked row
+    await expect(step(page)).toHaveAttribute('data-step', 'activity')
+    await page.keyboard.press('Escape')
+    await expect(combo(page)).toHaveValue('Marketing')
+  })
+
+  test('#434 review: Enter still takes the match when the typed text leaves the list empty, and the empty list speaks the app copy', async ({ page }) => {
+    await openCard(page)
+    await confirmTitle(page, 'Leere Liste')
+    await expect(combo(page)).toBeFocused()
+    await combo(page).fill('marketing ') // a trailing space: the list filters on it and shows nothing
+        const none = page.locator('[data-slot="empty"]')
+    await expect(none).toContainText('Keine Treffer für')
+    await expect(none.locator('[data-private]')).toContainText('marketing')
+    await page.keyboard.press('Enter')
+    await expect(step(page)).toHaveAttribute('data-step', 'activity')
+    await page.keyboard.press('Escape')
+    await expect(combo(page)).toHaveValue('Marketing')
+  })
+
   test('#434: an entry walked to with the arrows is taken by Enter; coming back shows it, deleting the text clears it', async ({ page }) => {
     await openCard(page)
     await confirmTitle(page, 'Mit Pfeilen')

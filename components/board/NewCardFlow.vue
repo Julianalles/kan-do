@@ -175,6 +175,10 @@
               <template #item-label="{ item }">
                 <MiddleEllipsis :text="String(item)" data-private />
               </template>
+              <template #empty="{ searchTerm: typed }">
+                <span v-if="typed" class="truncate" data-private>{{ t('board.quickAdd.noMatchValue', { value: typed }) }}</span>
+                <template v-else>{{ t('board.quickAdd.noMatch') }}</template>
+              </template>
               <template #create-item-label>
                 <span class="truncate" data-private>{{ t('board.quickAdd.newValue', { value: creatable }) }}</span>
               </template>
@@ -564,7 +568,10 @@ function clearValue() {
 
 /** A pick, or a clear (the clear button) */
 function onComboModel(value: string | null | undefined) {
-  if (value === null || value === undefined || value === '') clearValue();
+  // Only the clear button resets the model (to null, `reset-model-value-on-clear`). `undefined` is the list's own toggle of the checked row: picking the value again keeps it
+  if (value === undefined) {
+    if (currentValue.value !== null) pick(currentValue.value);
+  } else if (value === null || value === '') clearValue();
   else pick(value);
 }
 
@@ -593,7 +600,9 @@ function onComboKey(event: KeyboardEvent) {
   // The Enter that commits an IME composition is not an Enter; Cmd/Ctrl+Enter saves (root handler)
   if (event.isComposing || event.keyCode === 229 || event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
   const text = searchTerm.value.trim();
-  const highlighted = comboHighlight.value;
+  // The highlight is the list's last report: it goes stale when the filter empties the list or the pointer leaves it (the list emits nothing then), so it counts only while its row is still listed
+  const listed = filterRest(current.value.all, searchTerm.value);
+  const highlighted = comboHighlight.value !== null && listed.includes(comboHighlight.value) ? comboHighlight.value : null;
   if (!text) {
     if (walked && highlighted !== null && highlighted !== currentValue.value) return;
     // Ours: the list must not also see this Enter
@@ -602,10 +611,14 @@ function onComboKey(event: KeyboardEvent) {
     if (!event.repeat) void skip();
     return;
   }
-  if (highlighted !== null) return;
   event.preventDefault();
   event.stopPropagation();
   if (event.repeat) return;
+  // Ours, not the list's: with a stale highlight the list finds no row to take
+  if (highlighted !== null) {
+    pick(highlighted);
+    return;
+  }
   const match = existingValueFor(text, current.value.all, fields.value.newValues) ?? filterRest(current.value.all, text)[0] ?? creatable.value;
   if (match) pick(match);
 }

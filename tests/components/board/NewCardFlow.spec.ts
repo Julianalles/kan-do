@@ -459,6 +459,28 @@ describe('NewCardFlow (#649)', () => {
     expect(w.get('.task-face').attributes('data-topic')).toBeUndefined()
   })
 
+  it('#434 review: the list toggling the checked row off (undefined) keeps the value and moves on; only null clears', async () => {
+    mountFlow()
+    await confirmTitle()
+    await pickCombo('Design')
+    await afterPick()
+    await pressOnPanel('Escape')
+    w.findComponent({ name: 'UInputMenu' }).vm.$emit('update:modelValue', undefined)
+    await afterPick()
+    expect(w.get('.task-face').attributes('data-topic')).toBe('Design')
+    expect(stepKey()).toBe('activity')
+  })
+
+  it('#434 review: a stale highlight (its row no longer listed) does not make Enter dead: the exact match is taken', async () => {
+    mountFlow()
+    await confirmTitle()
+    await highlight('Backend') // the pointer left the list, or the filter emptied it: the list reports nothing more
+    await combo().setValue('design ')
+    await combo().trigger('keydown', { key: 'Enter' })
+    await afterPick()
+    expect(w.get('.task-face').attributes('data-topic')).toBe('Design')
+  })
+
   it('#434: Esc and Backspace/Delete in the field: Esc goes back, Backspace and Delete only edit text', async () => {
     mountFlow()
     await confirmTitle('Bleibt')

@@ -52,6 +52,8 @@
       "placeholderTopic": "Thema wählen",
       "placeholderActivity": "Aktivität wählen",
       "clearValue": "Auswahl entfernen",
+      "noMatch": "Keine Treffer",
+      "noMatchValue": "Keine Treffer für „{value}“",
       "newValue": "Neu: „{value}“",
       "added": "Aufgabe hinzugefügt",
       "details": "Details",
