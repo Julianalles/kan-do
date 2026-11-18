@@ -1416,42 +1416,24 @@
   },
   "dayClose": {
     "title": "Tag abschließen",
-    "description": "Rückblick auf heute und was noch auf dem Board liegt.",
     "nothingDone": "Heute noch nichts erledigt.",
     "headline": "{done} von {planned} geplanten Aufgabe erledigt | {done} von {planned} geplanten Aufgaben erledigt",
     "allDone": "Alle Aufgaben erledigt",
-    "totalLabel": "Gesamtzeit",
-    "boxCaption": "{kept} von {total} Timebox eingehalten | {kept} von {total} Timeboxen eingehalten",
-    "doneListLabel": "{n} heute erledigte Aufgabe | {n} heute erledigte Aufgaben",
-    "rowDone": "Erledigt",
-    "box": {
-      "within": "In der Timebox",
-      "under": "{n} Min unter der Timebox",
-      "over": "{n} Min über der Timebox"
+    "timebox": {
+      "heading": "Timebox",
+      "under": "deutlich unter der Timebox",
+      "within": "etwa in der Timebox",
+      "over": "deutlich über der Timebox",
+      "caption": "Basis: {n} erledigte Aufgabe mit Timebox und erfasster Zeit. | Basis: {n} erledigte Aufgaben mit Timebox und erfasster Zeit."
     },
-    "tomorrowHeading": "Für morgen",
-    "tomorrow": "Keine Aufgabe bleibt auf dem Board. | Eine Aufgabe bleibt auf dem Board, bis du den nächsten Tag planst. Du kannst sie abwählen. | {n} Aufgaben bleiben auf dem Board, bis du den nächsten Tag planst. Du kannst sie einzeln abwählen.",
-    "showOpen": "Offene Aufgaben",
-    "openListLabel": "Offene Aufgaben, die auf dem Board bleiben",
-    "trash": {
-      "local": "Kommt in den Papierkorb",
-      "notion": "Kommt in den Papierkorb, auch in Notion",
-      "todoist": "Kommt in den Papierkorb, auch in Todoist"
+    "topics": {
+      "heading": "Themen",
+      "count": "{n} Aufgabe | {n} Aufgaben"
     },
-    "nothingInFlight": "Nichts mehr offen.",
-    "copy": "Zusammenfassung kopieren",
-    "copied": "Zusammenfassung kopiert",
-    "copiedButton": "Kopiert",
-    "done": "Fertig",
-    "markdown": {
-      "heading": "Tagesabschluss, {date}",
-      "done": "Erledigt",
-      "total": "Gesamt: {time}",
-      "nothingDone": "Heute noch nichts erledigt.",
-      "inFlight": "Noch nicht erledigt",
-      "nothingInFlight": "Nichts mehr offen."
-    },
-    "backToOpen": "Geht zurück nach Offen"
+    "consequence": "Deine unerledigten Aufgaben kannst du morgen erneut einplanen. Die erledigten Aufgaben werden archiviert.",
+    "consequenceDoneOnly": "Die erledigten Aufgaben werden archiviert.",
+    "cancel": "Abbrechen, nichts ändert sich",
+    "finish": "Tag abschließen"
   },
   "secrets": {
     "unavailableTitle": "Schlüsselbund nicht erreichbar",

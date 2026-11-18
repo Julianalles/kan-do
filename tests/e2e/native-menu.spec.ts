@@ -47,9 +47,9 @@ test.describe('Native menu (desktop)', () => {
 
     await emitTauriEvent(page, MENU_EVENT, 'app.day-close')
     await expect(page).toHaveURL(/\/tasks$/)
-    await expect(page.getByRole('dialog', { name: 'Tag abschließen' })).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Tag abschließen' })).toBeVisible()
     await page.keyboard.press('Escape')
-    await expect(page.getByRole('dialog', { name: 'Tag abschließen' })).toBeHidden()
+    await expect(page.getByRole('region', { name: 'Tag abschließen' })).toBeHidden()
 
     await emitTauriEvent(page, MENU_EVENT, 'app.feedback')
     await expect(page.getByTestId('feedback-dialog')).toBeVisible()
@@ -59,7 +59,7 @@ test.describe('Native menu (desktop)', () => {
     await page.goto('/tasks')
     await expect.poll(() => installs(page).then(l => l.length)).toBe(1)
     await emitTauriEvent(page, MENU_EVENT, 'app.day-close')
-    const dayClose = page.getByRole('dialog', { name: 'Tag abschließen' })
+    const dayClose = page.getByRole('region', { name: 'Tag abschließen' })
     await expect(dayClose).toBeVisible()
 
     await emitTauriEvent(page, MENU_EVENT, 'app.whats-new')
@@ -67,7 +67,7 @@ test.describe('Native menu (desktop)', () => {
     await emitTauriEvent(page, MENU_EVENT, 'app.unknown')
     // Cmd+N: the add sheet is a child route of the board, so it would stack on the dialog without the guard
     await emitTauriEvent(page, MENU_EVENT, 'app.new-task')
-    await expect(page.getByRole('dialog')).toHaveCount(1)
+    await expect(page.getByRole('dialog')).toHaveCount(0) // the stage is a region: nothing opened on top of it
     await expect(dayClose).toBeVisible()
     await expect(page).toHaveURL(/\/tasks$/)
   })

@@ -111,10 +111,9 @@ test('requirements sections 1-10 hold on one mixed board', async ({ context, pag
   await page.getByRole('button', { name: 'Rückgängig', includeHidden: true }).last().click()
   await expect(card(page, 'Walk: lokal angelegt')).toBeVisible()
   await openDayClose(page)
-  const dayClose = page.getByRole('dialog', { name: 'Tag abschließen' })
-  await dayClose.getByTestId('day-close-open-details').locator('summary').click() // the open tasks sit in the "Für morgen" list
-  await expect(dayClose.getByText('Walk: lokal angelegt')).toBeVisible()
-  await expect(dayClose.getByText('Fokusaufgabe vorbereiten')).toBeVisible()
+  const dayClose = page.getByRole('region', { name: 'Tag abschließen' })
+  await expect(dayClose).toBeVisible()
+  await expect(dayClose.getByTestId('day-close-headline')).toBeVisible() // one count over every source, no source icon
   await expect(dayClose.getByTestId('task-source-icon')).toHaveCount(0)
   await page.keyboard.press('Escape')
   await expect(dayClose).toBeHidden()

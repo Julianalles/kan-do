@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { createApp, nextTick } from 'vue'
 import { createPinia, setActivePinia } from 'pinia'
 import { createPersistedState } from 'pinia-plugin-persistedstate'
-import { useDayRecapStore } from '~/store/dayRecap'
+import { sanitizeSentBack, useDayRecapStore } from '~/store/dayRecap'
 
 function freshPinia() {
   const pinia = createPinia()
@@ -53,6 +53,51 @@ describe('day recap store', () => {
       expect(store.sentBack).toEqual({ day: '2026-10-22', ids: ['a', 'b'] })
       expect(store.markNewDay('2026-10-23', [])).toBe(true)
       expect(store.sentBack).toEqual({ day: '2026-10-23', ids: [] })
+    })
+
+    it('markDayClosed (#480) starts tomorrow: the marker and the group move to the next day, a second close the same evening adds its ids in front', () => {
+      const store = useDayRecapStore()
+      store.markNewDay('2026-10-22', [])
+      expect(store.markDayClosed('2026-10-23', ['a', 'b'])).toBe(true)
+      expect(store.validLastNewDay).toBe('2026-10-23')
+      expect(store.sentBack).toEqual({ day: '2026-10-23', ids: ['a', 'b'] })
+      // the same evening again, after planning one task from "Alle" and closing once more
+      expect(store.markDayClosed('2026-10-23', ['c', 'a'])).toBe(true)
+      expect(store.sentBack).toEqual({ day: '2026-10-23', ids: ['c', 'a', 'b'] })
+      // a later day replaces the group, as any start does
+      expect(store.markDayClosed('2026-10-24', ['d'])).toBe(true)
+      expect(store.sentBack).toEqual({ day: '2026-10-24', ids: ['d'] })
+    })
+
+    it('markDayClosed keeps the Wartet ids the close took off apart from the group; a second close adds to them, none writes no field, a stored `waiting` is sanitized', () => {
+      const store = useDayRecapStore()
+      expect(store.markDayClosed('2026-10-23', ['a'], ['w1'])).toBe(true)
+      expect(store.sentBack).toEqual({ day: '2026-10-23', ids: ['a'], waiting: ['w1'] })
+      store.markDayClosed('2026-10-23', ['b'], ['w2', 'w1'])
+      expect(store.sentBack).toEqual({ day: '2026-10-23', ids: ['b', 'a'], waiting: ['w2', 'w1'] })
+      store.markDayClosed('2026-10-24', ['c'])
+      expect(store.sentBack).toEqual({ day: '2026-10-24', ids: ['c'] })
+      expect(store.sentBack).not.toHaveProperty('waiting')
+      expect(sanitizeSentBack({ day: '2026-10-24', ids: [], waiting: ['x', 3, null] })).toEqual({ day: '2026-10-24', ids: [], waiting: ['x'] })
+      expect(sanitizeSentBack({ day: '2026-10-24', ids: [], waiting: 'x' })).toEqual({ day: '2026-10-24', ids: [] })
+    })
+
+    it('markDayClosed writes nothing for a day before the stored marker (clock set back) or a malformed day', () => {
+      const store = useDayRecapStore()
+      store.markDayClosed('2026-10-23', ['a'])
+      expect(store.markDayClosed('2026-10-22', ['b'])).toBe(false)
+      expect(store.markDayClosed('soon', ['b'])).toBe(false)
+      expect(store.validLastNewDay).toBe('2026-10-23')
+      expect(store.sentBack).toEqual({ day: '2026-10-23', ids: ['a'] })
+    })
+
+    it('a stored marker one day ahead (after a close) loads as it is', async () => {
+      localStorage.setItem('day-recap-store', JSON.stringify({ lastNewDay: '2026-10-23', sentBack: { day: '2026-10-23', ids: ['a'] } }))
+      freshPinia()
+      const store = useDayRecapStore()
+      await nextTick()
+      expect(store.validLastNewDay).toBe('2026-10-23')
+      expect(store.validSentBack).toEqual({ day: '2026-10-23', ids: ['a'] })
     })
 
     it('the closed notice is remembered per day; a malformed day is ignored', async () => {

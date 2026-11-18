@@ -37,7 +37,8 @@ export function useNativeMenu(): void {
     openDayClose: dayClose.open,
     openFeedback: feedback.open,
     openWhatsNew: () => whatsNew.openReopen(),
-    dialogOpen: () => !!document.querySelector('[role="dialog"]'),
+    // The day-close stage (#480) is a region, not a dialog: it counts as one here, so nothing opens on top of it
+    dialogOpen: () => dayClose.isOpen.value || !!document.querySelector('[role="dialog"]'),
   })
 
   async function install(): Promise<void> {

@@ -1,5 +1,5 @@
 /**
- * New-day recap stage (#245, #428): the welcome photo, fixed over the whole window, with the headline, the summary and the
+ * New-day recap stage (#245, #428), also the stage of the day close (#480, `DayCloseStage`): the welcome photo, fixed over the whole window, with the headline, the summary and the
  * two decks lying directly on it and one paper sheet for the controls only; the content sits below the app bar row (the
  * padding takes its height), the photo runs behind it (#262: no paper band above the photo, and the
  * bar's paper veil steps back while the stage is mounted, bottom of this file).
@@ -51,6 +51,11 @@
     margin: auto;
     width: 100%;
     max-width: 44rem;
+  }
+
+  /* The day close (#480) is one calm sheet, not two decks: a narrower column, desktop and phone alike */
+  .recap-stage__content--narrow {
+    max-width: 32rem;
   }
 
   /* The only sheet: the controls (#428). A white sheet with the one warm shadow, as the Paper Desk rule says */

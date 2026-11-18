@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
 import { useDayClose } from '~/composables/useDayClose'
+import { useDayCloseAction } from '~/composables/useDayCloseAction'
 import { useNewDayRecap, resetNewDayRecap } from '~/composables/useNewDayRecap'
 import { useTasksStore } from '~/store/tasks'
 import { useBoardStore } from '~/store/board'
@@ -13,8 +14,20 @@ import { TaskStatus } from '~/types/taskStatus'
 import type { Task } from '~/types/task'
 
 const syncArchiveStatusForTasks = vi.hoisted(() => vi.fn().mockResolvedValue(undefined))
-vi.mock('~/composables/useTaskSync', () => ({ useTaskSync: () => ({ syncArchiveStatusForTasks }) }))
-vi.mock('~/composables/useTaskOperations', () => ({ useTaskOperations: () => ({ stopTimer: vi.fn(), moveTaskToStatus: vi.fn() }) }))
+// The day close takes its unfinished tasks off the board through the shared take-off (#480): local effects only
+vi.mock('~/composables/useTaskSync', () => ({
+  useTaskSync: () => ({
+    syncArchiveStatusForTasks,
+    unplanTasks: (ids: string[]) => useTasksStore().unplanTasks(ids),
+    updateTaskStatuses: async (ids: string[], status: TaskStatus) => { for (const id of ids) useTasksStore().updateTask(id, { status }) },
+  }),
+}))
+vi.mock('~/composables/useTaskOperations', () => ({
+  useTaskOperations: () => ({
+    stopTimer: vi.fn(),
+    moveTaskToStatus: async (id: string, status: TaskStatus) => { useTasksStore().updateTask(id, { status }); return true },
+  }),
+}))
 vi.mock('~/store/taskStatistics', () => ({
   useTaskStatisticsStore: () => ({ syncExistingDoneTasks: vi.fn(), updateTaskRecord: vi.fn() }),
 }))
@@ -101,6 +114,20 @@ describe('useNewDayRecap', () => {
       recap.check('tasks-add')
       recap.check('tasks-id')
       expect(recap.isOpen.value).toBe(false)
+    })
+
+    it('the day close does not open over the open recap (the two never stand together)', () => {
+      setup()
+      const recap = useNewDayRecap()
+      recap.check('tasks')
+      expect(recap.isOpen.value).toBe(true)
+      const dayClose = useDayClose()
+      dayClose.open()
+      expect(dayClose.isOpen.value).toBe(false)
+      recap.leave()
+      dayClose.open()
+      expect(dayClose.isOpen.value).toBe(true)
+      dayClose.close()
     })
 
     it('does not open over an open day-close dialog (never modal on modal)', () => {
@@ -238,12 +265,14 @@ describe('useNewDayRecap', () => {
       vi.setSystemTime(new Date(2026, 9, 21, 18, 0))
       syncToday()
       vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('reduce'), media: query }))
-      await useDayClose().finish()
+      const dayClose = useDayClose()
+      dayClose.open()
+      useDayCloseAction().finishDay()
       vi.setSystemTime(NOW)
       syncToday()
     }
 
-    it('still opens next morning with the tasks the day close archived, and the undone deck', async () => {
+    it('still opens next morning with the tasks the day close archived, and the undone deck (Jetzt and Offen, then the Wartet ones the close took out)', async () => {
       const { tasks, recap: store } = setup({ lastShownDay: '2026-10-20' })
       await closeTheDayYesterdayEvening()
       expect(tasks.tasksDonePrevious).toEqual([])
@@ -256,6 +285,28 @@ describe('useNewDayRecap', () => {
       recap.leave()
       expect(store.lastShownDay).toBe(TODAY)
       expect(syncArchiveStatusForTasks).toHaveBeenCalledTimes(1)
+    })
+
+    it('lists only the Wartet tasks this close took off, not the ones an earlier start left in notPlannedFromWaiting (weeks ago)', async () => {
+      const { tasks, board } = setup({ lastShownDay: '2026-10-20' })
+      // a Wartet task of an earlier fresh start: still held, still in the persisted category, not yesterday's
+      tasks.addTask({ ...task('stale', TaskStatus.Open), notPlanned: true })
+      board.noteFromWaiting(['stale'])
+      await closeTheDayYesterdayEvening()
+      expect(board.notPlannedFromWaiting).toEqual(['stale', 'w1'])
+      const recap = useNewDayRecap()
+      recap.check('tasks')
+      expect(recap.snapshot.value!.undone.map(t => t.id)).toEqual(['o1', 'w1'])
+    })
+
+    it('a stored group without `waiting` (a fresh start, data from before it) adds nothing from notPlannedFromWaiting', () => {
+      const { tasks, board, recap: store } = setup()
+      tasks.addTask({ ...task('stale', TaskStatus.Open), notPlanned: true })
+      board.noteFromWaiting(['stale'])
+      store.sentBack = { day: TODAY, ids: [] }
+      const recap = useNewDayRecap()
+      recap.check('tasks')
+      expect(recap.snapshot.value!.undone.map(t => t.id)).toEqual(['o1', 'w1'])
     })
 
     it('does not show them a second time the day after the recap was left', async () => {

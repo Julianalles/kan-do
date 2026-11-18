@@ -9,7 +9,7 @@
  * `settle()` waits for fonts + rendered icon SVGs so baselines never capture half-loaded icons.
  *
  * Core flows (#63, the diff basis for the UI kit refactor of epic #58), each at 1280 and 390, light: the guided new card
- * (title, a question, the value list, saving), the day-close dialog and drawer, the new-day recap, /statistics (verdict and
+ * (title, a question, the value list, saving), the day-close stage, the new-day recap, /statistics (verdict and
  * one open tile), /trash (filled, empty), the Mehr panel, /settings and /settings/topics, the Notion setup wizard
  * (first and mapping step) and LocalSetupFlow on /welcome, the task sheet's add form, and the toast and UAlert notice
  * styles. Day-sensitive flows pin the page clock to `FIXED_NOW` and seed relative to it. These are macOS pixels; the
@@ -910,14 +910,14 @@ for (const { size, viewport } of CORE_VIEWPORTS) {
   })
 }
 
-// --- Day close (#98): dialog at 1280, drawer at 390 -------------------------
+// --- Day close (#98, #480): the stage at 1280 and 390 --------------------------
 
 /** Done today at `h` hours before PINNED_ISO, so the day-close summary has a stable order and times. */
 const doneHoursAgo = (h: number) => new Date(PINNED.getTime() - h * 3_600_000).toISOString()
 
 const DAY_CLOSE_SEED: SeedTask[] = [
-  coreTask({ id: 'dc-done-1', title: 'Angebot an Kunden schicken', status: 3, priority: 2, activity: 'Planung', timeSpentSeconds: 4500, timeBoxSeconds: 3600, completedAt: doneHoursAgo(1) }),
-  coreTask({ id: 'dc-done-2', title: 'Steuerunterlagen sortieren', status: 3, timeSpentSeconds: 2700, timeBoxSeconds: 3600, completedAt: doneHoursAgo(2) }),
+  coreTask({ id: 'dc-done-1', title: 'Angebot an Kunden schicken', status: 3, priority: 2, activity: 'Planung', topic: 'Angebote', timeSpentSeconds: 4500, timeBoxSeconds: 3600, completedAt: doneHoursAgo(1) }),
+  coreTask({ id: 'dc-done-2', title: 'Steuerunterlagen sortieren', status: 3, topic: 'Steuern', timeSpentSeconds: 2700, timeBoxSeconds: 3600, completedAt: doneHoursAgo(2) }),
   coreTask({ id: 'dc-done-3', title: 'Kurze Rückfrage beantwortet (ohne erfasste Zeit)', status: 3, completedAt: doneHoursAgo(3) }),
   coreTask({ id: 'dc-done-4', title: 'Sehr langer Aufgabentitel, der in der Zusammenfassung sauber umbrechen muss, ohne die Zeile zu sprengen oder die Zeit zu verdrängen', status: 3, timeSpentSeconds: 1200, timeBoxSeconds: 1200, completedAt: doneHoursAgo(4) }),
   coreTask({ id: 'dc-done-old', title: 'Gestern erledigt', status: 3, timeSpentSeconds: 900, completedAt: localAt(1, 15) }),
@@ -929,7 +929,7 @@ const DAY_CLOSE_SEED: SeedTask[] = [
 ]
 
 for (const { size, viewport } of CORE_VIEWPORTS) {
-  test(`day close: ${size === '1280' ? 'dialog' : 'drawer'} (${size})`, async ({ context, page }) => {
+  test(`day close: stage (${size})`, async ({ context, page }) => {
     await page.setViewportSize(viewport)
     await pinClockToFixedNow(context)
     await seedLocalBoard(context, DAY_CLOSE_SEED, {
@@ -940,9 +940,10 @@ for (const { size, viewport } of CORE_VIEWPORTS) {
     await page.goto('/tasks')
     await expect(page.locator('#column-done-list .task-wrapper').first()).toBeVisible()
     await openDayClose(page)
-    const dialog = page.getByRole('dialog', { name: 'Tag abschließen' })
-    await expect(dialog).toBeVisible()
-    await expect(dialog.getByTestId('day-close-bar')).toBeVisible()
+    const stage = page.getByTestId('day-close-stage')
+    await expect(stage).toBeVisible()
+    await expect(stage.getByTestId('day-close-timebox')).toBeVisible()
+    await expect(stage.getByTestId('day-close-topics')).toBeVisible()
     await page.mouse.move(0, 0)
     await settle(page)
     await expect(page).toHaveScreenshot(`day-close-${size}.png`, { animations: 'disabled' })

@@ -1,0 +1,20 @@
+- region "Tag abschließen":
+  - heading "Tag abschließen" [level=2]
+  - paragraph: /Montag, \d+\. Juni/
+  - heading "3 von 6 geplanten Aufgaben erledigt" [level=3]
+  - region "Timebox":
+    - heading "Timebox" [level=4]
+    - list:
+      - listitem: 1 deutlich unter der Timebox
+      - listitem: 0 etwa in der Timebox
+      - listitem: 1 deutlich über der Timebox
+    - paragraph: "Basis: 2 erledigte Aufgaben mit Timebox und erfasster Zeit."
+  - region "Themen":
+    - heading "Themen" [level=4]
+    - list:
+      - listitem: Angebote 1 Aufgabe
+      - listitem: Steuern 1 Aufgabe
+      - listitem: Ohne Thema 1 Aufgabe
+  - paragraph: Deine unerledigten Aufgaben kannst du morgen erneut einplanen. Die erledigten Aufgaben werden archiviert.
+  - button "Abbrechen, nichts ändert sich"
+  - button "Tag abschließen"
