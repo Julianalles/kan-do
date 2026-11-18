@@ -860,16 +860,26 @@ for (const { size, viewport } of CORE_VIEWPORTS) {
     test('one question step', async ({ page }) => {
       await openCard(page)
       await toQuestion(page)
+      await expect(page.getByRole('listbox')).toBeVisible() // the combobox opens its list with the field: it is part of the shot
       await shot(page, `new-card-question-${size}.png`)
     })
 
-    test('Mehr list', async ({ page }) => {
+    test('Thema list (the combobox, its list over the card below)', async ({ page }) => {
       await openCard(page)
       await toQuestion(page)
-      await page.getByTestId('new-card-more').click()
-      await expect(page.getByTestId('new-card-more-list')).toBeVisible()
-      await expect(page.getByTestId('new-card-search')).toBeFocused()
-      await shot(page, `new-card-more-${size}.png`)
+      await expect(page.getByTestId('new-card-combo')).toBeFocused()
+      await expect(page.getByRole('listbox')).toBeVisible()
+      await page.mouse.move(0, 0)
+      await settle(page)
+      // the list is portalled out of the column: the shot is the column's box joined with the list's
+      const column = (await page.locator('#column-open').boundingBox())!
+      const list = (await page.getByRole('listbox').boundingBox())!
+      const x = Math.min(column.x, list.x)
+      const y = Math.min(column.y, list.y)
+      await expect(page).toHaveScreenshot(`new-card-list-${size}.png`, {
+        animations: 'disabled',
+        clip: { x, y, width: Math.max(column.x + column.width, list.x + list.width) - x, height: Math.max(column.y + column.height, list.y + list.height) - y },
+      })
     })
 
     test('saving', async ({ context, page }) => {

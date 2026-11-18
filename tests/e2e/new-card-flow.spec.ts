@@ -18,7 +18,18 @@ const step = (page: Page) => page.getByTestId('new-card-step')
 const addButton = (page: Page) => offen(page).getByRole('button', { name: 'Aufgabe hinzufügen' })
 const box = async (locator: Locator) => (await locator.boundingBox())!
 
-/** More than three topics and activities, so the Mehr list has something behind the three pills (kd#16) */
+/** The combobox of Thema and Aktivität (#434) and its entries (the list is portalled, so they are found on the page) */
+const combo = (page: Page) => page.getByTestId('new-card-combo')
+const entries = (page: Page) => page.getByRole('option')
+
+/** Takes a value on the Thema or Aktivität step the type-ahead way: the text, then Enter (an exact or first match, else a new value) */
+async function takeValue(page: Page, text: string) {
+  await expect(combo(page)).toBeFocused()
+  await combo(page).fill(text)
+  await page.keyboard.press('Enter')
+}
+
+/** More than three topics and activities, so the combobox lists several entries (kd#16, #434) */
 const RICH_TASKS: SeedTask[] = [
   ...SEED_TASKS,
   ...['Marketing:Recherche', 'Büro:Abstimmung', 'Vertrieb:Telefonat', 'Finanzen:Auswertung'].map((pair, index): SeedTask => {
@@ -125,26 +136,26 @@ for (const { name, viewport, touch } of [
       expect(await scan()).toEqual([])
     })
 
-    test('mouse path: pills, all options and the note; saves in Offen with the toast and the focus on the card', async ({ page }) => {
+    test('mouse path: the lists, the pills and the note; saves in Offen with the toast and the focus on the card', async ({ page }) => {
       await openCard(page)
       await confirmTitle(page, 'Mit der Maus angelegt')
 
       await expect(step(page)).toHaveAttribute('data-step', 'topic')
       await expect(step(page)).toHaveAccessibleName('Thema?')
-      await page.getByTestId('new-card-options').getByRole('button').first().click()
+      // the combobox: its list opens with the field, a click takes an entry
+      await expect(combo(page)).toBeFocused()
+      await expect(combo(page)).toHaveAttribute('placeholder', 'Thema wählen')
+      await expect(entries(page).first()).toBeVisible()
+      await entries(page).first().click()
       await expect(step(page)).toHaveAttribute('data-step', 'activity')
       // `data-step` sits on the panel, outside the out-in transition: it flips while the Thema step still slides out for
-      // ~140 ms, and a click on its "Mehr" opens a popover that unmounts with the step (kd#221, failed under load).
-      // The Aktivität question is there and the leaving step is gone once exactly one step node is left.
+      // ~140 ms (kd#221, failed under load). The Aktivität question is there and the leaving step is gone once exactly one
+      // step node is left.
       await expect(step(page).getByText('Aktivität?', { exact: true })).toBeVisible()
       await expect(step(page).locator('.ncf__step')).toHaveCount(1)
-      // "Alle Optionen": the list (popover on desktop, drawer at 390 px) has every value; a pick continues
-      await page.getByTestId('new-card-more').click()
-      // Wait for the list itself: `.last()` on the groups named "Aktivität?" resolves at once, and before the list is
-      // there it is the group inside the card, whose last button is not a value (kd#221)
-      const all = page.getByTestId('new-card-more-list')
-      await expect(all).toBeVisible()
-      await all.getByRole('button').last().click()
+      await expect(combo(page)).toBeFocused()
+      await expect(entries(page).last()).toBeVisible()
+      await entries(page).last().click()
       await expect(step(page)).toHaveAttribute('data-step', 'timebox')
       await page.getByTestId('new-card-options').getByRole('button', { name: /30 min/ }).click()
       await expect(step(page)).toHaveAttribute('data-step', 'notes')
@@ -174,10 +185,8 @@ for (const { name, viewport, touch } of [
 
       await openCard(page)
       await confirmTitle(page, 'Mit Farbpunkt')
-      // Design is a pill; typing part of its name into Mehr and Enter picks that very value, never creates "des" (kd#16)
-      await page.getByTestId('new-card-more').click()
-      await page.getByTestId('new-card-search').fill('des')
-      await page.keyboard.press('Enter')
+      // typing part of the name and Enter picks that very value, never creates "des" (kd#16)
+      await takeValue(page, 'des')
       await expect(step(page)).toHaveAttribute('data-step', 'activity')
       await expect(card(page).getByTestId('topic-mark')).toHaveAttribute('data-hue', siblingHue!)
 
@@ -223,7 +232,7 @@ for (const { name, viewport, touch } of [
     test('#668: going back to the title after a topic leaves the title field clear of the topic row', async ({ page }) => {
       await openCard(page)
       await confirmTitle(page, 'Mit Thema zurück')
-      await page.keyboard.press('1') // Thema: its pill
+      await takeValue(page, 'Design') // Thema
       await expect(step(page)).toHaveAttribute('data-step', 'activity')
       await page.keyboard.press('Escape') // Aktivität → Thema
       await expect(step(page)).toHaveAttribute('data-step', 'topic')
@@ -242,8 +251,9 @@ for (const { name, viewport, touch } of [
       // the card clamps a long title (3 lines under a topic with a footer) and stays that tall: the field must not run past it
       await openCard(page)
       await confirmTitle(page, 'Quartalsabschluss vorbereiten Belege sortieren Rückfragen klären Steuerberatung Unterlagen prüfen')
-      await page.keyboard.press('1') // Thema
+      await takeValue(page, 'Design') // Thema
       await expect(step(page)).toHaveAttribute('data-step', 'activity')
+      await expect(combo(page)).toBeFocused()
       await page.keyboard.press('Enter') // skip Aktivität
       await expect(step(page)).toHaveAttribute('data-step', 'timebox')
       await page.keyboard.press('2') // 30 min: the chip stands in the footer
@@ -302,7 +312,7 @@ for (const { name, viewport, touch } of [
 
       await openCard(page)
       await confirmTitle(page, 'Von Thema aus gespeichert')
-      await page.keyboard.press('1')
+      await takeValue(page, 'Design')
       await page.keyboard.press('ControlOrMeta+Enter')
       await expect(card(page)).toHaveCount(0)
       await expect.poll(async () => (await storedTask(page, 'Von Thema aus gespeichert'))?.topic).toBeTruthy()
@@ -380,27 +390,29 @@ test.describe('guided new card, keyboard and steps (desktop)', () => {
     await expect(offen(page).locator('.task-wrapper').first()).toBeVisible()
   })
 
-  test('keys only: 1, 2, 3, Enter and Esc walk the steps; the face fills in behind the wash', async ({ page }) => {
+  test('keys only: type-ahead, Enter and Esc walk the steps; the face fills in behind the solid card', async ({ page }) => {
     await addButton(page).focus()
     await page.keyboard.press('Enter')
     await expect(title(page)).toBeFocused()
     await title(page).fill('Nur mit der Tastatur')
     await page.keyboard.press('Enter')
 
-    // Thema: key 1 picks the first suggestion, the topic row shows on the face behind the wash
-    await expect(step(page)).toBeFocused()
-    await page.keyboard.press('1')
+    // Thema: the field has the focus and its list is open; a typed name and Enter take it, the topic row shows on the face
+    await expect(combo(page)).toBeFocused()
+    await expect(entries(page).first()).toBeVisible()
+    await takeValue(page, 'Design')
     await expect(step(page)).toHaveAttribute('data-step', 'activity')
     await expect(card(page).locator('.task-topic')).toBeVisible()
-    // Aktivität: key 4 opens Mehr (3 picks the third pill)
-    await expect(step(page)).toBeFocused()
-    await page.keyboard.press('4')
-    await expect(page.getByRole('group', { name: 'Aktivität?' }).last().getByRole('button').first()).toBeVisible()
-    await page.keyboard.press('Escape') // closes the list only
-    await expect(page.getByRole('group', { name: 'Aktivität?' })).toHaveCount(1) // only the step itself: the list is closed
+    // Aktivität: Esc goes back at once, also with the list open; the value shows in the field, Enter keeps it
+    await expect(combo(page)).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(step(page)).toHaveAttribute('data-step', 'topic')
+    await expect(combo(page)).toHaveValue('Design')
+    await page.keyboard.press('Enter') // continue with the value
     await expect(step(page)).toHaveAttribute('data-step', 'activity')
+    await expect(combo(page)).toBeFocused()
     await page.keyboard.press('Enter') // skip
-    // Timebox: key 2 = 30 min -> the chip on the face behind the wash
+    // Timebox: key 2 = 30 min -> the chip on the face behind the card
     await expect(step(page)).toHaveAttribute('data-step', 'timebox')
     await page.keyboard.press('2')
     await expect(step(page)).toHaveAttribute('data-step', 'notes')
@@ -413,100 +425,177 @@ test.describe('guided new card, keyboard and steps (desktop)', () => {
     await expect.poll(async () => (await storedTask(page, 'Nur mit der Tastatur'))?.timeBoxSeconds).toBe(1800)
     const saved = (await storedTask(page, 'Nur mit der Tastatur'))!
     expect(saved.notes).toBeNull()
-    expect(saved.topic).toBeTruthy()
+    expect(saved.topic).toBe('Design')
     expect(saved.activity).toBeNull()
   })
 
-  test('#685: key 4 right after a pick keeps the list open through the slide; closing it hands the focus back to the step', async ({ page }) => {
+  test('#434: Enter on an empty field continues without a value even though the list highlights its first entry; Backspace and Delete only edit text', async ({ page }) => {
     await openCard(page)
-    await confirmTitle(page, 'Liste bleibt offen')
-    await page.keyboard.press('1')
-    await expect(step(page)).toHaveAttribute('data-step', 'activity')
-    await page.keyboard.press('4') // inside the slide: the step's content is not yet (or just) there
-    const list = page.getByRole('group', { name: 'Aktivität?' }).last()
-    await expect(list.getByRole('button').first()).toBeVisible()
-    // the slide's end must not pull the focus out of the list, which would dismiss it
-    await expect(page.locator('.ncf-fwd-enter-active, .ncf-fwd-leave-active')).toHaveCount(0)
-    await expect(page.getByRole('group', { name: 'Aktivität?' })).toHaveCount(2)
-    await page.keyboard.press('Escape') // closes the list only
-    await expect(page.getByRole('group', { name: 'Aktivität?' })).toHaveCount(1)
-    // not on the "all options" button, where Enter would reopen the list
-    await expect(step(page)).toBeFocused()
+    await confirmTitle(page, 'Ohne Thema')
+    await expect(combo(page)).toBeFocused()
+    await expect(entries(page).first()).toBeVisible()
+    await page.keyboard.press('Backspace')
+    await page.keyboard.press('Delete')
+    await expect(step(page)).toHaveAttribute('data-step', 'topic')
+    await page.keyboard.press('Enter')
     await expect(step(page)).toHaveAttribute('data-step', 'activity')
     await page.keyboard.press('Enter')
     await expect(step(page)).toHaveAttribute('data-step', 'timebox')
+    await page.keyboard.press('Enter')
+    await page.keyboard.press('Enter')
+    await expect.poll(async () => (await storedTask(page, 'Ohne Thema'))?.status).toBe(0)
+    const saved = (await storedTask(page, 'Ohne Thema'))!
+    expect(saved.topic).toBeNull()
+    expect(saved.activity).toBeNull()
+  })
+
+  test('#434 review: picking the value the step already has keeps it and moves on (Reka toggles a re-pick off)', async ({ page }) => {
+    await openCard(page)
+    await confirmTitle(page, 'Wieder gewählt')
+    await takeValue(page, 'Marketing')
+    await expect(step(page)).toHaveAttribute('data-step', 'activity')
+    await page.keyboard.press('Escape')
+    await expect(combo(page)).toHaveValue('Marketing')
+    await takeValue(page, 'Marketing') // typed again, Enter on the checked row
+    await expect(step(page)).toHaveAttribute('data-step', 'activity')
+    await page.keyboard.press('Escape')
+    await expect(combo(page)).toHaveValue('Marketing')
+    await expect(card(page).locator('.task-topic')).toBeVisible()
+    await entries(page).filter({ hasText: 'Marketing' }).first().click() // the mouse on the checked row
+    await expect(step(page)).toHaveAttribute('data-step', 'activity')
+    await page.keyboard.press('Escape')
+    await expect(combo(page)).toHaveValue('Marketing')
+  })
+
+  test('#434 review: Enter still takes the match when the typed text leaves the list empty, and the empty list speaks the app copy', async ({ page }) => {
+    await openCard(page)
+    await confirmTitle(page, 'Leere Liste')
+    await expect(combo(page)).toBeFocused()
+    await combo(page).fill('marketing ') // a trailing space: the list filters on it and shows nothing
+        const none = page.locator('[data-slot="empty"]')
+    await expect(none).toContainText('Keine Treffer für')
+    await expect(none.locator('[data-private]')).toContainText('marketing')
+    await page.keyboard.press('Enter')
+    await expect(step(page)).toHaveAttribute('data-step', 'activity')
+    await page.keyboard.press('Escape')
+    await expect(combo(page)).toHaveValue('Marketing')
+  })
+
+  test('#434: an entry walked to with the arrows is taken by Enter; coming back shows it, deleting the text clears it', async ({ page }) => {
+    await openCard(page)
+    await confirmTitle(page, 'Mit Pfeilen')
+    // the list highlights its first entry on its own: two arrows walk to the third
+    await expect(entries(page).nth(2)).toBeVisible()
+    const walkedTo = (await entries(page).nth(2).innerText()).trim()
+    await page.keyboard.press('ArrowDown')
+    await page.keyboard.press('ArrowDown')
+    await page.keyboard.press('Enter')
+    await expect(step(page)).toHaveAttribute('data-step', 'activity')
+    await page.keyboard.press('Escape')
+    await expect(step(page)).toHaveAttribute('data-step', 'topic')
+    await expect(combo(page)).toHaveValue(walkedTo)
+    await combo(page).fill('')
+    await expect(card(page).locator('.task-topic')).toHaveCount(0)
+    await page.keyboard.press('Enter') // continue without a value
+    await expect(step(page)).toHaveAttribute('data-step', 'activity')
+    await page.keyboard.press('Enter')
+    await page.keyboard.press('Enter')
+    await page.keyboard.press('Enter')
+    await expect.poll(async () => (await storedTask(page, 'Mit Pfeilen'))?.status).toBe(0)
+    expect((await storedTask(page, 'Mit Pfeilen'))!.topic).toBeNull()
+  })
+
+  test('#685: key 4 right after a pick keeps the Timebox list open through the slide; closing it hands the focus back to the step', async ({ page }) => {
+    await openCard(page)
+    await confirmTitle(page, 'Liste bleibt offen')
+    await page.keyboard.press('Enter') // skip Thema
+    await expect(step(page)).toHaveAttribute('data-step', 'activity')
+    await page.keyboard.press('Enter') // skip Aktivität
+    await expect(step(page)).toHaveAttribute('data-step', 'timebox')
+    await page.keyboard.press('4') // inside the slide: the step's content is not yet (or just) there
+    const list = page.getByTestId('new-card-more-list')
+    await expect(list.getByRole('button').first()).toBeVisible()
+    // the slide's end must not pull the focus out of the list, which would dismiss it
+    await expect(page.locator('.ncf-fwd-enter-active, .ncf-fwd-leave-active')).toHaveCount(0)
+    await expect(list).toHaveCount(1)
+    await page.keyboard.press('Escape') // closes the list only
+    await expect(list).toHaveCount(0)
+    // not on the dots button, where Enter would reopen the list
+    await expect(step(page)).toBeFocused()
+    await expect(step(page)).toHaveAttribute('data-step', 'timebox')
+    await page.keyboard.press('Enter')
+    await expect(step(page)).toHaveAttribute('data-step', 'notes')
   })
 
   test('#685: a list opened with its button gives the focus back to that button; a pick from a key-opened list moves on', async ({ page }) => {
     await openCard(page)
     await confirmTitle(page, 'Liste per Maus')
-    await page.keyboard.press('1')
+    await page.keyboard.press('Enter')
     await expect(step(page)).toHaveAttribute('data-step', 'activity')
+    await page.keyboard.press('Enter')
+    await expect(step(page)).toHaveAttribute('data-step', 'timebox')
     await expect(page.locator('.ncf-fwd-enter-active, .ncf-fwd-leave-active')).toHaveCount(0)
     await page.keyboard.press('4') // opened by key, closed by a pick: leaves no flag behind
-    await page.getByRole('group', { name: 'Aktivität?' }).last().getByRole('button').first().click()
+    await page.getByTestId('new-card-more-list').getByRole('button').first().click()
+    await expect(step(page)).toHaveAttribute('data-step', 'notes')
+    await page.keyboard.press('Escape') // back to Timebox
     await expect(step(page)).toHaveAttribute('data-step', 'timebox')
-    await page.keyboard.press('Escape') // back to Aktivität
-    await expect(step(page)).toHaveAttribute('data-step', 'activity')
     await expect(page.locator('.ncf-back-enter-active, .ncf-back-leave-active')).toHaveCount(0)
     await page.getByTestId('new-card-more').click()
-    await expect(page.getByRole('group', { name: 'Aktivität?' })).toHaveCount(2)
+    await expect(page.getByTestId('new-card-more-list')).toHaveCount(1)
     await page.keyboard.press('Escape')
-    await expect(page.getByRole('group', { name: 'Aktivität?' })).toHaveCount(1)
+    await expect(page.getByTestId('new-card-more-list')).toHaveCount(0)
     await expect(page.getByTestId('new-card-more')).toBeFocused()
   })
 
-  test('kd#15: arrow keys, Home/End, Enter and Esc work inside the Mehr list; the search field takes the focus first (kd#16)', async ({ page }) => {
+  test('kd#15: arrow keys, Home/End, Enter and Esc work inside the Timebox list', async ({ page }) => {
     await openCard(page)
     await confirmTitle(page, 'Pfeiltasten')
-    await page.keyboard.press('1') // Thema -> Aktivität
-    await expect(step(page)).toHaveAttribute('data-step', 'activity')
+    await page.keyboard.press('Enter')
+    await page.keyboard.press('Enter')
+    await expect(step(page)).toHaveAttribute('data-step', 'timebox')
     await page.keyboard.press('4')
-    const search = page.getByTestId('new-card-search')
     const options = page.getByTestId('new-card-more-list').getByRole('button')
-    await expect(options.nth(1)).toBeVisible() // at least two values behind the pills
-    await expect(search).toBeFocused()
-    await page.keyboard.press('ArrowDown')
+    await expect(options.nth(1)).toBeVisible()
+    await expect(options.first()).toBeFocused() // the list takes the focus on its first option
+    await page.keyboard.press('End')
+    await expect(options.last()).toBeFocused()
+    await page.keyboard.press('Home')
     await expect(options.first()).toBeFocused()
     await page.keyboard.press('ArrowDown')
     await expect(options.nth(1)).toBeFocused()
     await page.keyboard.press('ArrowUp')
     await expect(options.first()).toBeFocused()
-    await page.keyboard.press('ArrowUp') // back to the field
-    await expect(search).toBeFocused()
     await page.keyboard.press('ArrowUp') // wraps to the last option
     await expect(options.last()).toBeFocused()
-    await page.keyboard.press('ArrowDown') // wraps to the field
-    await expect(search).toBeFocused()
-    await page.keyboard.press('ArrowDown')
-    await page.keyboard.press('End')
-    await expect(options.last()).toBeFocused()
-    await page.keyboard.press('Home')
+    await page.keyboard.press('ArrowDown') // wraps to the first
     await expect(options.first()).toBeFocused()
     // Esc closes the list and does not also go back a step
     await page.keyboard.press('Escape')
     await expect(page.getByTestId('new-card-more-list')).toHaveCount(0)
-    await expect(step(page)).toHaveAttribute('data-step', 'activity')
+    await expect(step(page)).toHaveAttribute('data-step', 'timebox')
     // Enter on a focused option picks it and moves on
     await page.keyboard.press('4')
+    await expect(options.first()).toBeFocused()
     await page.keyboard.press('ArrowDown')
     await page.keyboard.press('Enter')
-    await expect(step(page)).toHaveAttribute('data-step', 'timebox')
+    await expect(step(page)).toHaveAttribute('data-step', 'notes')
   })
 
-  test('kd#15: a list opened with the mouse takes the arrows too, and the drawer at 390 px does', async ({ page }) => {
+  test('kd#15: the Timebox list opened with the mouse takes the arrows too, and the drawer at 390 px does', async ({ page }) => {
     await openCard(page)
     await confirmTitle(page, 'Pfeile per Maus')
-    await page.keyboard.press('1')
-    await expect(step(page)).toHaveAttribute('data-step', 'activity')
+    await page.keyboard.press('Enter')
+    await page.keyboard.press('Enter')
+    await expect(step(page)).toHaveAttribute('data-step', 'timebox')
     const options = page.getByTestId('new-card-more-list').getByRole('button')
     for (const size of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
       await page.setViewportSize(size)
       await page.getByTestId('new-card-more').click()
       await expect(options.nth(1)).toBeVisible()
-      await expect(page.getByTestId('new-card-search')).toBeFocused()
+      await expect(options.first()).toBeFocused() // the list takes the focus on its first option
       await page.keyboard.press('ArrowDown')
-      await expect(options.first()).toBeFocused()
+      await expect(options.nth(1)).toBeFocused()
       await page.keyboard.press('End')
       await expect(options.last()).toBeFocused()
       await page.keyboard.press('Escape')
@@ -514,22 +603,19 @@ test.describe('guided new card, keyboard and steps (desktop)', () => {
     }
   })
 
-  test('kd#16: the search filters the Mehr list, "Neu" creates a value, Home and End stay caret keys in the field', async ({ page }) => {
+  test('#434: typing filters the list, a new value is offered as "Neu" and taken by Enter, Home stays a caret key in the field', async ({ page }) => {
     await openCard(page)
     await confirmTitle(page, 'Neues Thema per Taste')
-    await page.keyboard.press('4')
-    const search = page.getByTestId('new-card-search')
-    await expect(search).toBeFocused()
-    const options = page.getByTestId('new-card-more-list').getByRole('button')
-    const before = await options.count()
-    await search.fill('Fi')
-    await expect(options.filter({ hasText: 'Finanzen' })).toHaveCount(1)
-    await expect(options).toHaveCount(2) // "Neu: „Fi“" and Finanzen
+    await expect(combo(page)).toBeFocused()
+    const before = await entries(page).count()
+    await combo(page).fill('Fi')
+    await expect(entries(page).filter({ hasText: 'Finanzen' })).toHaveCount(1)
+    await expect(entries(page)).toHaveCount(2) // Finanzen and "Neu: „Fi“"
     await page.keyboard.press('Home') // caret key: the focus stays in the field
-    await expect(search).toBeFocused()
-    await search.fill('Gartenpflege')
-    await expect(page.getByTestId('new-card-new')).toHaveText('Neu: „Gartenpflege“')
-    await expect(options).toHaveCount(1)
+    await expect(combo(page)).toBeFocused()
+    await combo(page).fill('Gartenpflege')
+    await expect(entries(page)).toHaveCount(1)
+    await expect(entries(page).first()).toHaveText('Neu: „Gartenpflege“')
     expect(before).toBeGreaterThan(1)
     await page.keyboard.press('Enter')
     await expect(step(page)).toHaveAttribute('data-step', 'activity')
@@ -541,55 +627,75 @@ test.describe('guided new card, keyboard and steps (desktop)', () => {
     await expect.poll(async () => (await storedTask(page, 'Neues Thema per Taste'))?.topic).toBe('Gartenpflege')
   })
 
-  test('kd#16: the Mehr cell and the value pills keep the text contrast over the wash', async ({ page }) => {
+  test('#434: the field, its list and the Timebox pills keep the text contrast on the solid card', async ({ page }) => {
     await openCard(page)
     await confirmTitle(page, 'Kontrast')
     await settleAnimations(page)
     await page.mouse.move(2, 2)
-    await expectContrast(page, page.getByTestId('new-card-more').locator('.truncate'), 4.5)
+    await expectContrast(page, combo(page), 4.5)
+    await page.keyboard.press('Enter')
+    await page.keyboard.press('Enter')
+    await expect(step(page)).toHaveAttribute('data-step', 'timebox')
+    await settleAnimations(page)
+    await page.mouse.move(2, 2)
     await expectContrast(page, page.getByTestId('new-card-options').locator('button.ncf__pill:not(.ncf__pill--more) .middle-ellipsis').first(), 4.5)
   })
 
-  test('kd#16: no match shows a status line, an exact name picks the existing value and offers no "Neu"', async ({ page }) => {
+  test('#434: an exact name in any case picks the existing value and offers no "Neu"; a partial match never creates one', async ({ page }) => {
     await openCard(page)
-    await confirmTitle(page, 'Suche ohne Treffer')
-    await page.getByTestId('new-card-more').click()
-    const search = page.getByTestId('new-card-search')
-    await search.fill('BÜRO')
-    await expect(page.getByTestId('new-card-new')).toHaveCount(0)
-    await search.fill('Büro')
-    await expect(page.getByTestId('new-card-new')).toHaveCount(0)
+    await confirmTitle(page, 'Suche ohne Neu')
+    await expect(combo(page)).toBeFocused()
+    await combo(page).fill('BÜRO')
+    await expect(page.getByRole('option', { name: /Neu:/ })).toHaveCount(0)
+    await combo(page).fill('Büro')
+    await expect(page.getByRole('option', { name: /Neu:/ })).toHaveCount(0)
     await page.keyboard.press('Enter')
     await expect(step(page)).toHaveAttribute('data-step', 'activity')
     await page.keyboard.press('Enter')
     await page.keyboard.press('Enter')
     await page.keyboard.press('Enter')
-    await expect.poll(async () => (await storedTask(page, 'Suche ohne Treffer'))?.topic).toBe('Büro')
+    await expect.poll(async () => (await storedTask(page, 'Suche ohne Neu'))?.topic).toBe('Büro')
   })
 
   test('the key cues sit inside the buttons; every control has a name; the panel is named by its question', async ({ page }) => {
     await openCard(page)
     await confirmTitle(page, 'Cues')
+    // Thema: the combobox is named by its question, no pills and no number keys
+    await expect(combo(page)).toHaveAccessibleName('Thema?')
+    await expect(page.getByTestId('new-card-options').locator('button.ncf__pill')).toHaveCount(0)
+    const back = page.getByRole('button', { name: 'Zurück' })
+    const forward = page.getByRole('button', { name: 'Überspringen' })
+    await expect(back).toHaveAttribute('aria-keyshortcuts', 'Escape')
+    await expect(forward).toHaveAttribute('aria-keyshortcuts', 'Enter')
+    // the forward button is icon only: its name is the aria-label, the Enter chip is no text
+    await expect(forward).toHaveText('')
+    await expect(forward.locator('kbd')).toHaveAttribute('data-key', '↵')
+    await expect(back.locator('kbd')).toHaveAttribute('data-key', 'Esc')
+    await page.keyboard.press('Enter')
+    await page.keyboard.press('Enter')
     const pills = page.getByTestId('new-card-options').getByRole('button')
     await expect(pills.nth(0)).toHaveAttribute('aria-keyshortcuts', '1')
     await expect(pills.nth(1)).toHaveAttribute('aria-keyshortcuts', '2')
     await expect(pills.nth(2)).toHaveAttribute('aria-keyshortcuts', '3')
     await expect(pills.nth(0).locator('kbd')).toHaveAttribute('data-key', '1')
-    await expect(page.getByRole('button', { name: 'Zurück' })).toHaveAttribute('aria-keyshortcuts', 'Escape')
-    await expect(page.getByRole('button', { name: 'Überspringen' })).toBeVisible()
     await expect(page.getByTestId('new-card-more')).toHaveAttribute('aria-keyshortcuts', '4')
-    await expect(page.getByTestId('new-card-more')).toHaveText('Mehr')
   })
 
-  test('the face behind the step shows only what the card shows: the title is not readable through the wash', async ({ page }) => {
+  test('#434: the card behind the steps is plain and solid: nothing of the face reads through it, the head buttons are soft', async ({ page }) => {
     await openCard(page)
     await confirmTitle(page, 'Hinter dem Schleier')
     const faceTitle = card(page).locator('.task-title-text')
     await expect(faceTitle).toHaveText('Hinter dem Schleier')
-    await expect(faceTitle).toHaveCSS('opacity', '0.45')
+    await expect(faceTitle).toHaveCSS('opacity', '0')
+    await expect(card(page).locator('.ncf__veil')).toHaveCSS('background-image', 'none')
     await expect(card(page).locator('.ncf__face')).toHaveAttribute('aria-hidden', 'true')
     // the face is not part of the tab order
     await expect(card(page).locator('.ncf__face')).toHaveJSProperty('inert', true)
+    // soft buttons: a filled surface, not the ghost's transparent one
+    for (const name of ['Zurück', 'Überspringen']) {
+      const bg = await page.getByRole('button', { name }).evaluate((el) => getComputedStyle(el).backgroundColor)
+      expect(bg).not.toBe('rgba(0, 0, 0, 0)')
+    }
   })
 
   test('reduced motion: the slide and the wash are instant', async ({ page }) => {
@@ -634,8 +740,8 @@ test.describe('guided new card on a mixed board', () => {
   })
 })
 
-test.describe('guided new card: a new value from the Mehr list (kd#16)', () => {
-  test('at 390 px the drawer takes the typed value by tap and the card saves it', async ({ browser }) => {
+test.describe('guided new card: a new value typed into the combobox (kd#16, #434)', () => {
+  test('at 390 px the list takes the typed value by tap and the card saves it', async ({ browser }) => {
     const context = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
     const page = await context.newPage()
     await seedLocalBoard(context, RICH_TASKS)
@@ -644,11 +750,9 @@ test.describe('guided new card: a new value from the Mehr list (kd#16)', () => {
     await expect(offen(page).locator('.task-wrapper').first()).toBeVisible()
     await openCard(page)
     await confirmTitle(page, 'Neues Thema am Telefon')
-    await page.getByTestId('new-card-more').tap()
-    const search = page.getByTestId('new-card-search')
-    await expect(search).toBeFocused()
-    await search.fill('Gartenpflege')
-    await page.getByTestId('new-card-new').tap()
+    await expect(combo(page)).toBeFocused()
+    await combo(page).fill('Gartenpflege')
+    await entries(page).filter({ hasText: 'Neu: „Gartenpflege“' }).tap()
     await expect(step(page)).toHaveAttribute('data-step', 'activity')
     await page.keyboard.press('Enter')
     await page.keyboard.press('Enter')
@@ -665,9 +769,9 @@ test.describe('guided new card: a new value from the Mehr list (kd#16)', () => {
     await expect(offen(page).locator('.task-wrapper').first()).toBeVisible()
     await openCard(page)
     await confirmTitle(page, 'Neues Thema in Notion')
-    await page.getByTestId('new-card-more').click()
-    await page.getByTestId('new-card-search').fill('Garten, Pflege')
-    await expect(page.getByTestId('new-card-new')).toHaveText('Neu: „Garten Pflege“')
+    await expect(combo(page)).toBeFocused()
+    await combo(page).fill('Garten, Pflege')
+    await expect(entries(page).first()).toHaveText('Neu: „Garten Pflege“')
     const created = page.waitForRequest((request) => request.url().includes('/api/notion/create-task') && request.method() === 'POST')
     await page.keyboard.press('Enter')
     await expect(step(page)).toHaveAttribute('data-step', 'activity')

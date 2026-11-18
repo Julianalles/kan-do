@@ -344,11 +344,11 @@ test.describe('add-task sheet validation (#662)', () => {
 })
 
 test.describe('guided new card (#649)', () => {
-  test('title step, a choice step with all options, and the Notiz step (1280)', async ({ context, page }) => {
+  test('title step, the Thema combobox (list, a new value, a chosen value), and the Notiz step (1280)', async ({ context, page }) => {
     await seedLocalBoard(context, [
       ...SEED_TASKS,
       { ...SEED_TASKS[0]!, id: 'ncf-extra', title: 'Weitere', topic: 'Büro', activity: 'Abstimmung', status: 2 },
-      // a fourth topic, so the Mehr list holds a value behind the three pills (kd#16)
+      // a fourth topic, so the combobox list holds several entries (kd#16, #434)
       { ...SEED_TASKS[0]!, id: 'ncf-extra-2', title: 'Noch eine', topic: 'Vertrieb', activity: 'Telefonat', status: 2 },
     ])
     await gotoBoard(page)
@@ -364,15 +364,22 @@ test.describe('guided new card (#649)', () => {
     await settleAnimations(page)
     await expect(card).toMatchAriaSnapshot({ name: 'new-card-topic-1280.aria.yml' })
 
-    await page.getByTestId('new-card-more').click()
-    const list = page.getByRole('group', { name: 'Thema?' }).last()
-    await expect(list.getByRole('button', { name: 'Vertrieb' })).toBeVisible()
+    // the list opens with the field and is portalled out of the card
+    const list = page.getByRole('listbox')
+    await expect(list.getByRole('option', { name: 'Vertrieb' })).toBeVisible()
     await expect(list).toMatchAriaSnapshot({ name: 'new-card-all-options-1280.aria.yml' })
     // typing a name no value has: the "Neu" row (kd#16)
-    await page.getByTestId('new-card-search').fill('Gartenpflege')
-    await expect(page.getByTestId('new-card-new')).toBeVisible()
+    await page.getByTestId('new-card-combo').fill('Gartenpflege')
+    await expect(list.getByRole('option', { name: /Neu:/ })).toBeVisible()
     await expect(list).toMatchAriaSnapshot({ name: 'new-card-search-new-1280.aria.yml' })
+    // a chosen value: back on the step it shows in the field, with the clear button (#434)
+    await page.keyboard.press('Enter')
+    await expect(page.getByTestId('new-card-step')).toHaveAttribute('data-step', 'activity')
     await page.keyboard.press('Escape')
+    await expect(page.getByTestId('new-card-step')).toHaveAttribute('data-step', 'topic')
+    await expect(page.getByTestId('new-card-combo')).toHaveValue('Gartenpflege')
+    await settleAnimations(page)
+    await expect(card).toMatchAriaSnapshot({ name: 'new-card-topic-value-1280.aria.yml' })
 
     await page.getByTestId('new-card-step').focus()
     for (let i = 0; i < 3; i++) await page.keyboard.press('Enter')
