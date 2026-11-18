@@ -1,5 +1,7 @@
 # Nuxt dev/build outputs
 .output
+# Web CSP script hashes, written by `npm run build:cloudflare` (#504)
+worker/csp-hashes.generated.json
 .e2e-build
 .nuxt
 .nitro

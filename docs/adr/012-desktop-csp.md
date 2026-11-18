@@ -10,6 +10,10 @@ Accepted (#228 phase 1, part of epic #221). Phases 2 (Developer ID signing and n
 
 Only requests that originate in the webview are subject to the CSP. That is why the list below is short: everything that goes through Rust is absent on purpose.
 
+## Web build
+
+The web deployment on Cloudflare Workers has its own policy, set by the Worker as a response header (#504, [ADR 021](021-public-web-instance-on-cloudflare-workers.md) "Content Security Policy"): the same directive set as the table below minus Tauri IPC and the Vercel relay host (`connect-src 'self' https://api.todoist.com`), `script-src` with the build's inline-script hashes. The decisions here (no `unsafe-eval`, `style-src 'unsafe-inline'`, no `data:` or `blob:`, the Todoist SDK's `eval` probe as the one known report) carry over; the desktop policy and its tests are unchanged.
+
 ## Decision
 
 `src-tauri/tauri.conf.json` `app.security.csp` is a directive map. Tauri adds `sha256-` hashes for the inline scripts of the bundled HTML (the import map and the `window.__NUXT__` config) to `script-src` at build time, so `script-src` stays `'self'`. `app.security.dangerousDisableAssetCspModification` is `["style-src"]` (the list form, never `true`): Tauri leaves `style-src` alone and still hashes `script-src`.
