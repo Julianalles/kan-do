@@ -21,7 +21,8 @@ export async function completeNotionWizard(page: Page, token: string = notionStu
   const currentStep = dialog.locator('[aria-current="step"]').first()
 
   // The welcome page's setup starts with the intro "Vorbereitung" (#441); the settings dialog has none
-  if ((await proceed.innerText().catch(() => '')).trim() === 'Weiter') await proceed.click()
+  // (detected by the current step, not by the button label: "Weiter" is also the settings dialog's token-step button)
+  if ((await currentStep.innerText().catch(() => '')).trim() === 'Vorbereitung') await proceed.click()
   await dialog.getByPlaceholder('Integrationstoken eingeben').fill(token)
   for (let press = 0; press < 16; press++) {
     await expect(proceed).toBeEnabled()

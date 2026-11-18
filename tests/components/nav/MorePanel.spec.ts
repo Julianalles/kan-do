@@ -47,7 +47,7 @@ describe('MorePanel: the Mehr panel (#470)', () => {
     resync.mockClear()
   })
 
-  it('on the board: Auf dieser Seite (stack, Tag abschließen), then Seiten, then the sync footer', () => {
+  it('on the board: Auf dieser Seite (stack, Tag abschließen), then Navigation, then the sync footer', () => {
     const w = render()
     const text = w.text()
     const order = ['Auf dieser Seite', 'Karten stapeln', 'Tag abschließen', 'Navigation', 'Papierkorb', 'Einstellungen', 'Jetzt synchronisieren']
