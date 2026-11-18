@@ -86,11 +86,11 @@
     },
     "capacity": {
       "label": "Capacity",
-      "help": "This is probably as much as you will manage today. Keep the most important tasks above this line; anything below can wait.",
+      "help": "This is probably how much you’ll get done today. Plan important tasks above it.",
       "infoLabel": "How is this estimated?",
-      "info": "Kan-Do learns and adapts: the more you use the board, the more helpful this estimate gets.",
+      "info": "Kan-Do learns and adapts: the more often you use the board, the more accurate this estimate gets.",
       "infoSet": "This estimate is based on the working hours you set in Settings. Work tracked today is subtracted.",
-      "infoEstimates": "A task without a timebox counts as long as similar tasks you marked done took. With too few of those, it counts 30 minutes. This steers and improves feedback like this line. Nothing needs to be set up for it."
+      "infoEstimates": "A task without a timebox counts as long as similar done tasks took. With too few similar tasks, it counts as 30 minutes."
     },
     "sync": {
       "stackCards": "Stack cards",
@@ -111,7 +111,7 @@
       "topic": "Topic"
     },
     "sort": {
-      "manual": "Manual",
+      "manual": "Sorted manually",
       "priority": "Priority",
       "created": "Created",
       "default": "Sorting",
@@ -192,7 +192,7 @@
     "commands": "Quick actions",
     "moreWithCommands": "More, {commands}",
     "groupPage": "On this page",
-    "groupPlaces": "Pages",
+    "groupPlaces": "Navigation",
     "dayClose": "Close the day",
     "trash": "Trash",
     "trashCount": "Trash ({n})",
@@ -877,8 +877,8 @@
       "sources": "Task storage",
       "manage": "System",
       "lead": {
-        "board": "Decide how your board behaves.",
-        "sources": "Decide which connections tasks are shown from and where new ones are saved by default.",
+        "board": "Choose how your board behaves.",
+        "sources": "Choose which apps tasks are loaded from and where new ones are saved by default.",
         "manage": "Maintain topics, data, updates and access here.",
         "manageWeb": "Maintain topics and data here."
       }
@@ -890,7 +890,7 @@
     },
     "workingHours": {
       "label": "Working hours per day",
-      "help": "The capacity hint for tasks planned for today follows this. “Automatic” uses the working hours you have tracked so far.",
+      "help": "The capacity hint for tasks planned for today is based on this. “Automatic” uses the working hours you’ve tracked so far.",
       "auto": "Automatic"
     },
     "github": {
@@ -1299,8 +1299,8 @@
       "version": "Version:",
       "title": "Ready for your tasks",
       "samples": "Show example",
-      "curious": "Just curious? Then start by looking around the app with sample tasks.",
-      "intro": "You can save them locally on this device or connect external apps like Notion or Todoist.",
+      "curious": "Just curious? Then look around the app with sample tasks.",
+      "intro": "You can save tasks locally on this device and, if you like, connect apps such as Notion or Todoist.",
       "start": "Get started"
     },
     "flow": {
@@ -1308,7 +1308,7 @@
       "local": {
         "label": "Start locally",
         "title": "Connect an app?",
-        "intro": "Now or later, you can connect the apps where you organize your tasks. Or use only the storage on this device.",
+        "intro": "Now or later, you can connect the apps where you organize your tasks. You can also use Kan-Do with only the local storage on your device.",
         "confirm": "Go to the board",
         "legend": "You can connect one or more",
         "notion": "Notion",
@@ -1318,8 +1318,8 @@
       "samples": {
         "label": "Start with sample tasks",
         "title": "Sample tasks",
-        "intro": "The board is filled: tasks in every column and with topics, so you can try everything.",
-        "resetNote": "When you want to start with real tasks, reset the app under Settings › Data & storage. Then the sample tasks and the statistics that build up while you try things out are gone.",
+        "intro": "The board is filled with sample data, so you can see and try out much of what Kan-Do does right away.",
+        "resetNote": "You can reset the app in the settings at any time to start with your own tasks and your own statistics.",
         "confirm": "View board"
       },
       "notion": {
@@ -1327,7 +1327,7 @@
         "connect": "Connect",
         "connected": "Notion is connected",
         "loading": "Loading your board …",
-        "start": "Start setup",
+        "start": "Continue",
         "intro": {
           "diagramNotion": "Notion",
           "diagramKanDo": "Kan-Do",
@@ -1625,7 +1625,7 @@
     "removeForever": "Delete forever",
     "removeForeverNamed": "Delete forever: {title}",
     "removeForeverConfirm": "Delete “{title}” for good?",
-    "empty": "No deleted tasks yet.",
+    "empty": "No deleted tasks in the last 30 days.",
     "emptyHint": "Deleted tasks can be restored here.",
     "emptyTrash": "Empty trash",
     "emptyConfirm": "Delete {n} task for good? | Delete {n} tasks for good?",

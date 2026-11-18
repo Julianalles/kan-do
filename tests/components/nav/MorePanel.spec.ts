@@ -50,7 +50,7 @@ describe('MorePanel: the Mehr panel (#470)', () => {
   it('on the board: Auf dieser Seite (stack, Tag abschließen), then Seiten, then the sync footer', () => {
     const w = render()
     const text = w.text()
-    const order = ['Auf dieser Seite', 'Karten stapeln', 'Tag abschließen', 'Seiten', 'Papierkorb', 'Einstellungen', 'Jetzt synchronisieren']
+    const order = ['Auf dieser Seite', 'Karten stapeln', 'Tag abschließen', 'Navigation', 'Papierkorb', 'Einstellungen', 'Jetzt synchronisieren']
     const positions = order.map(label => text.indexOf(label))
     expect(positions.every(p => p >= 0)).toBe(true)
     expect([...positions].sort((a, b) => a - b)).toEqual(positions)
@@ -58,7 +58,7 @@ describe('MorePanel: the Mehr panel (#470)', () => {
 
   it('has one heading level: one h2 per group, none for the command group, none inside a group, and arrows only on the places', () => {
     const w = render()
-    expect(w.findAll('h2').map(h => h.text())).toEqual(['Auf dieser Seite', 'Seiten'])
+    expect(w.findAll('h2').map(h => h.text())).toEqual(['Auf dieser Seite', 'Navigation'])
     const sections = w.findAll('section')
     expect(sections).toHaveLength(2)
     for (const section of sections) expect(section.findAll('h2, h3')).toHaveLength(1)
@@ -76,7 +76,7 @@ describe('MorePanel: the Mehr panel (#470)', () => {
     expect(w.find('[data-testid="more-stack"]').exists()).toBe(false)
     expect(w.find('[data-testid="more-day-close"]').exists()).toBe(false)
     expect(w.text()).not.toContain('Auf dieser Seite')
-    expect(w.text()).toContain('Seiten')
+    expect(w.text()).toContain('Navigation')
     expect(w.find('[data-testid="more-sync"]').exists()).toBe(true)
   })
 

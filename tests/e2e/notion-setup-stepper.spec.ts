@@ -399,7 +399,7 @@ test.describe('Notion Setup Stepper', () => {
       await expect(flow.getByRole('heading', { name: 'Vorbereitung' })).toHaveClass(/sr-only/)
 
       const proceed = page.getByTestId('wizard-proceed')
-      await expect(proceed).toHaveText('Los geht’s')
+      await expect(proceed).toHaveText('Weiter')
       await proceed.click()
       const token = flow.getByPlaceholder('Integrationstoken eingeben')
       await expect(token).toBeVisible()

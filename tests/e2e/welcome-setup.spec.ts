@@ -53,7 +53,7 @@ test('welcome start: one filled green "Jetzt starten", "Beispiel anzeigen" soft 
   await expect(start).toBeVisible()
   await expect(samples).toBeVisible()
   await expect(page.getByText(/Du kannst sie lokal auf diesem Gerät speichern/)).toBeVisible()
-  await expect(page.getByText('Du bist erst einmal nur neugierig? Dann schau dich zunächst in der App mit Beispielaufgaben um.')).toBeVisible()
+  await expect(page.getByText('Nur neugierig? Dann schau dir die App mit Beispielaufgaben an.')).toBeVisible()
   await expect(page.getByRole('button', { name: 'In Notion' })).toHaveCount(0)
   await expect(page.locator('main.bg-page')).toBeVisible()
 

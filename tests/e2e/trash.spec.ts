@@ -246,7 +246,7 @@ test.describe('delete is confirmed in the card slot (#422)', () => {
     await expect(trashPage(page)).toContainText(/Gelöscht vor|Gerade eben gelöscht/)
 
     await restoreOnPage(page, WAITING_TITLE)
-    await expect(page.getByTestId('trash-empty-state').getByTestId('empty-state-sentence')).toHaveText('Noch keine gelöschten Aufgaben.')
+    await expect(page.getByTestId('trash-empty-state').getByTestId('empty-state-sentence')).toHaveText('Keine gelöschten Aufgaben in den letzten 30 Tagen.')
     // EmptyState must resolve to its component (decorative icon, sentence, 14 px subline), not an unknown element (#74, kd#106)
     await expect(page.getByTestId('trash-empty-state').locator('svg[aria-hidden="true"]')).toBeVisible()
     await expect(page.getByTestId('trash-empty-state').getByTestId('empty-state-subline')).toHaveText('Gelöschte Aufgaben lassen sich hier wiederherstellen.')
@@ -437,7 +437,7 @@ test.describe('the trash page (#422)', () => {
     await expect(page.getByTestId('trash-entry')).toHaveCount(2)
     await page.getByTestId('trash-empty').click()
     await page.getByTestId('trash-empty-confirm').click()
-    await expect(page.getByTestId('trash-empty-state').getByTestId('empty-state-sentence')).toHaveText('Noch keine gelöschten Aufgaben.')
+    await expect(page.getByTestId('trash-empty-state').getByTestId('empty-state-sentence')).toHaveText('Keine gelöschten Aufgaben in den letzten 30 Tagen.')
     expect(await storedTrash(page)).toHaveLength(0)
 
     // the restored task is on the board, the purged ones are gone for good
@@ -452,7 +452,7 @@ test.describe('the trash page (#422)', () => {
     await page.goto('/tasks')
     await page.evaluate(() => localStorage.setItem('trash-store', JSON.stringify({ entries: [] })))
     await page.goto('/trash')
-    await expect(page.getByTestId('trash-empty-state').getByTestId('empty-state-sentence')).toHaveText('Noch keine gelöschten Aufgaben.')
+    await expect(page.getByTestId('trash-empty-state').getByTestId('empty-state-sentence')).toHaveText('Keine gelöschten Aufgaben in den letzten 30 Tagen.')
   })
 
   test('entries older than 30 days are purged on load', async ({ page }) => {
