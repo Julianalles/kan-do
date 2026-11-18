@@ -76,17 +76,19 @@ export const useDayRecapStore = defineStore('dayRecap', () => {
   const validNoticeClosedDay = computed(() => (isValidDayKey(noticeClosedDay.value) ? noticeClosedDay.value : null))
 
   /**
-   * The day `day` is started: by the user's fresh start, which took `ids` (Jetzt first, then Offen) off the board, or
-   * without one (none: the baseline, or a day whose board had nothing unfinished). Monotonic like `markShown`: a day
+   * The day `day` is started: by the user's fresh start, which took `ids` (Jetzt first, then Offen) off the board and
+   * `waiting` out of Wartet (kept apart, like the day close's), or without one (none: the baseline, or a day whose board
+   * had nothing unfinished). Both lists are that one day's: the panel "Gestern auf dem Board" reads them for `day` only
+   * (#469). No `waiting` field is written when none was taken. Monotonic like `markShown`: a day
    * that is not after the stored one is ignored, so a second click the same day and a clock set back never repeat it.
    * @returns whether the marker moved
    */
-  function markNewDay(day: string, ids: string[]): boolean {
+  function markNewDay(day: string, ids: string[], waiting: string[] = []): boolean {
     if (!isValidDayKey(day)) return false
     const current = validLastNewDay.value
     if (current !== null && day <= current) return false
     lastNewDay.value = day
-    sentBack.value = { day, ids: [...ids] }
+    sentBack.value = { day, ids: [...ids], ...(waiting.length > 0 ? { waiting: [...new Set(waiting)] } : {}) }
     return true
   }
 

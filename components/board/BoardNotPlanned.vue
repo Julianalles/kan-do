@@ -191,8 +191,9 @@ const notionLimited = computed(() => useNotionConfigStore().notPlannedLimited ==
 const shown = computed(() => applyFocus(held.value))
 /**
  * The groups of "Meine Aufgaben" (#356, #387, #469): the panel of what was on yesterday's board and is still not planned
- * (the Jetzt and Offen tasks today's fresh start took off the board in the order they had, Jetzt first, then the tasks it
- * took out of Wartet, until each is planned again; `waitingIds` never repeats a task of `groupIds`), and every other task
+ * (the Jetzt and Offen tasks today's fresh start took off the board in the order they had, Jetzt first, then the tasks that
+ * same start took out of Wartet; the panel ends with its day, so a Wartet task of an earlier start is under "Weitere
+ * Aufgaben"; `waitingIds` never repeats a task of `groupIds`), and every other task
  * under "Weitere Aufgaben". Without a panel there is one plain list, as on any other day.
  */
 const { groupIds, waitingIds } = useNewDay()
@@ -315,25 +316,11 @@ async function pick(id: string, event: MouseEvent) {
     min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
-    /* The content box keeps the 1rem side margins; the scroll box (it clips on both axes) reaches 1rem further out on the
-       left and 2rem into the Heute column on the right, so the card shadow and the pick arrow of the right-hand card
-       are not cut off in a narrow window (#430) */
-    margin-inline: 0 -2rem;
-    padding-inline: 1rem 3rem;
-    /* The strip reaching into Heute stays click-through; the grid (and the arrow in it) takes the pointer again */
-    pointer-events: none;
+    /* Side margins; the scroll box clips on both axes, so the card shadow and the focus ring need them (#430) */
+    padding-inline: 1rem;
     /* Room for the card shadow and the focus ring at the scroll box's upper edge */
     padding-top: 0.25rem;
     margin-top: -0.25rem;
-  }
-
-  .not-planned__body > * {
-    pointer-events: auto;
-  }
-
-  /* The pick arrow reaches over Heute's side padding: this side paints above the next column */
-  .not-planned {
-    z-index: 1;
   }
 
   /* A card put back flies in from Offen: the scroll box must not clip it on the way (usePlanMoves sets the class) */

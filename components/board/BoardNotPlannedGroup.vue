@@ -95,7 +95,8 @@ defineProps<{
 /* The panel: a surface behind the group that reaches past the cards, drawn by a layer of its own so the group keeps the
    width of the pair and its heading and cards keep the card edge */
 .nps-group--panel {
-  padding-bottom: var(--nps-pad);
+  /* Below the last card at every width: --nps-pad is the side reach and is 0 on a phone, the room under the cards is not */
+  padding-bottom: 0.75rem;
 }
 
 .nps-group--panel::before {

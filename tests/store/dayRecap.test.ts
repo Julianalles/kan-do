@@ -69,6 +69,15 @@ describe('day recap store', () => {
       expect(store.sentBack).toEqual({ day: '2026-10-24', ids: ['d'] })
     })
 
+    it('markNewDay keeps the Wartet ids the fresh start took out apart from the group (#469), none writes no field; a start of a later day replaces them', () => {
+      const store = useDayRecapStore()
+      expect(store.markNewDay('2026-10-22', ['a'], ['w1', 'w1', 'w2'])).toBe(true)
+      expect(store.sentBack).toEqual({ day: '2026-10-22', ids: ['a'], waiting: ['w1', 'w2'] })
+      expect(store.markNewDay('2026-10-23', ['b'])).toBe(true)
+      expect(store.sentBack).toEqual({ day: '2026-10-23', ids: ['b'] })
+      expect(store.sentBack).not.toHaveProperty('waiting')
+    })
+
     it('markDayClosed keeps the Wartet ids the close took off apart from the group; a second close adds to them, none writes no field, a stored `waiting` is sanitized', () => {
       const store = useDayRecapStore()
       expect(store.markDayClosed('2026-10-23', ['a'], ['w1'])).toBe(true)
