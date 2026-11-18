@@ -43,7 +43,7 @@ describe('server/api/notion/data-sources.get.ts', () => {
     const app = createApp(); app.use('/api/notion/data-sources', handler)
     const request = supertest(toNodeListener(app))
 
-    const res = await request.get('/api/notion/data-sources?token=tkn&includeDetails=true&debug=true')
+    const res = await request.get('/api/notion/data-sources?includeDetails=true&debug=true').set('Authorization', 'Bearer tkn')
     expect(res.status).toBe(200)
     expect(res.body).toEqual([
       {
@@ -81,7 +81,7 @@ describe('server/api/notion/data-sources.get.ts', () => {
     const app = createApp(); app.use('/api/notion/data-sources', handler)
     const request = supertest(toNodeListener(app))
 
-    const res = await request.get('/api/notion/data-sources?token=tkn&includeDetails=true&debug=true')
+    const res = await request.get('/api/notion/data-sources?includeDetails=true&debug=true').set('Authorization', 'Bearer tkn')
     expect(res.status).toBe(200)
     expect(res.body).toEqual([
       {

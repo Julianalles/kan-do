@@ -24,5 +24,9 @@
   // the public launch (jwue-homepage#34): change it here, through a PR. The token is the secret GATE_SECRET
   // (the homepage's value, one shared token). Other secrets: FEEDBACK_GITHUB_TOKEN. Never NOTION_KEY.
   "vars": { "GATE": "on" },
+  // Rate limit of the Notion proxy (#503, worker/guards.ts): 120 requests per 60 s per client IP and Cloudflare location,
+  // counted for `/api/notion/*` only. `namespace_id` is any integer unique in the account; `period` may be 10 or 60 only.
+  // `wrangler dev` runs it locally too. A missing or failing binding lets requests through (the guard never blocks by itself).
+  "ratelimits": [{ "name": "NOTION_LIMITER", "namespace_id": "1503", "simple": { "limit": 120, "period": 60 } }],
   "observability": { "enabled": true },
 }

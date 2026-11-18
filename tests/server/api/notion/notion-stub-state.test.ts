@@ -72,9 +72,9 @@ describe('Notion stub page state', () => {
   it('reflects a tasks PATCH write in a subsequent retrieve', async () => {
     const request = await buildApp()
     await request
-      .patch(`/api/notion/tasks?token=${STUB}&taskId=page-2`)
+      .patch('/api/notion/tasks?taskId=page-2').set('Authorization', `Bearer ${STUB}`)
       .send({ properties: { Status: { select: { name: 'Done' } } } })
-    const read = await request.get(`/api/notion/pages?token=${STUB}&pageId=page-2`)
+    const read = await request.get('/api/notion/pages?pageId=page-2').set('Authorization', `Bearer ${STUB}`)
     expect(statusOf(read.body)).toBe('Done')
   })
 
@@ -152,7 +152,7 @@ describe('Notion stub page state', () => {
     const request = await buildApp()
     const token = `${STUB}:fail=${fail}:session-x`
     const read = await request.get('/api/notion/pages?pageId=page-1').set('Authorization', `Bearer ${token}`)
-    const write = await request.patch(`/api/notion/tasks?token=${token}&taskId=page-1`).send({ properties: {} })
+    const write = await request.patch('/api/notion/tasks?taskId=page-1').set('Authorization', `Bearer ${token}`).send({ properties: {} })
     for (const res of [read, write]) {
       expect(res.status).toBe(status)
       expect(res.body.data.error).toBe(code)

@@ -16,7 +16,7 @@ interface NotionApiError extends Error {
 
 export default defineEventHandler(async (event) => {
   // Token arrives via `Authorization: Bearer` header (NotionClientAPI proxy mode);
-  // validateRequest also accepts the legacy `?token=` query param and throws 400 when missing.
+  // validateRequest throws 400 when it is missing.
   const query = validateRequest(event, ["token"]);
   const token = query.token as string;
   const id = query.id as string;

@@ -20,7 +20,7 @@ describe('server/api/notion/tasks.patch.ts', () => {
     const request = supertest(toNodeListener(app))
 
     const res = await request
-      .patch('/api/notion/tasks?token=tkn&taskId=pg1')
+      .patch('/api/notion/tasks?taskId=pg1').set('Authorization', 'Bearer tkn')
       .send({ properties: { Status: { select: { name: 'Doing' } } } })
 
     expect(res.status).toBe(200)
@@ -36,7 +36,7 @@ describe('server/api/notion/tasks.patch.ts', () => {
     const app = createApp(); app.use('/api/notion/tasks', handler)
     const request = supertest(toNodeListener(app))
 
-    const res = await request.patch('/api/notion/tasks?token=tkn&taskId=pg1').send({})
+    const res = await request.patch('/api/notion/tasks?taskId=pg1').set('Authorization', 'Bearer tkn').send({})
     expect(res.status).toBe(500) // handleNotionError wraps generic to 500 UNKNOWN_ERROR
     expect(res.body?.data?.error).toBe('UNKNOWN_ERROR')
   })
@@ -52,7 +52,7 @@ describe('server/api/notion/tasks.patch.ts', () => {
     const request = supertest(toNodeListener(app))
 
     const res = await request
-      .patch('/api/notion/tasks?token=tkn&taskId=pg1')
+      .patch('/api/notion/tasks?taskId=pg1').set('Authorization', 'Bearer tkn')
       .send({ properties: { Status: { select: { name: 'Doing' } } } })
 
     expect(res.status).toBe(502)

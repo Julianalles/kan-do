@@ -46,7 +46,7 @@ describe('server/api/notion/database.get.ts', () => {
     app.use('/api/notion/database', handler)
     const request = supertest(toNodeListener(app))
 
-    const res = await request.get('/api/notion/database?token=test-token&id=db-123')
+    const res = await request.get('/api/notion/database?id=db-123').set('Authorization', 'Bearer test-token')
     expect(res.status).toBe(200)
     expect(res.body.id).toBe('db-123')
     expect(databasesRetrieve).toHaveBeenCalledWith({ database_id: 'db-123' })
@@ -101,7 +101,7 @@ describe('server/api/notion/database.get.ts', () => {
     app.use('/api/notion/database', handler)
     const request = supertest(toNodeListener(app))
 
-    const res = await request.get('/api/notion/database?token=test-token')
+    const res = await request.get('/api/notion/database').set('Authorization', 'Bearer test-token')
     expect(res.status).toBe(200)
     expect(res.body).toHaveLength(2)
     expect(res.body[0]).toEqual({ id: 'db-1', title: [{ plain_text: 'First' }] })
@@ -125,7 +125,7 @@ describe('server/api/notion/database.get.ts', () => {
     app.use('/api/notion/database', handler)
     const request = supertest(toNodeListener(app))
 
-    const res = await request.get('/api/notion/database?token=test-token')
+    const res = await request.get('/api/notion/database').set('Authorization', 'Bearer test-token')
     expect(res.status).toBe(200)
     expect(res.body).toEqual([
       { id: 'stub-db-1', title: 'Stub DB 1' },
@@ -148,7 +148,7 @@ describe('server/api/notion/database.get.ts', () => {
     app.use('/api/notion/database', handler)
     const request = supertest(toNodeListener(app))
 
-    const res = await request.get('/api/notion/database?token=test-token&id=stub-db-1')
+    const res = await request.get('/api/notion/database?id=stub-db-1').set('Authorization', 'Bearer test-token')
     expect(res.status).toBe(200)
     expect(res.body.id).toBe('stub-db-1')
   })
@@ -164,7 +164,7 @@ describe('server/api/notion/database.get.ts', () => {
     app.use('/api/notion/database', handler)
     const request = supertest(toNodeListener(app))
 
-    const res = await request.get('/api/notion/database?token=test-token&id=nonexistent')
+    const res = await request.get('/api/notion/database?id=nonexistent').set('Authorization', 'Bearer test-token')
     expect(res.status).toBe(404)
   })
 
@@ -189,7 +189,7 @@ describe('server/api/notion/database.get.ts', () => {
     app.use('/api/notion/database', handler)
     const request = supertest(toNodeListener(app))
 
-    const res = await request.get('/api/notion/database?token=test-token&id=db-bad')
+    const res = await request.get('/api/notion/database?id=db-bad').set('Authorization', 'Bearer test-token')
     expect(res.status).toBe(404)
   })
 })

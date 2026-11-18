@@ -25,7 +25,7 @@ describe('server/api/notion/pages.ts', () => {
     const app = createApp(); app.use('/api/notion/pages', handler)
     const request = supertest(toNodeListener(app))
 
-    const res = await request.get('/api/notion/pages?token=tkn')
+    const res = await request.get('/api/notion/pages').set('Authorization', 'Bearer tkn')
     expect(res.status).toBe(200)
     expect(res.body).toHaveLength(8)
     expect(res.body[0]).toEqual({ id: 'p1', title: 'Page 1' })
@@ -46,7 +46,7 @@ describe('server/api/notion/pages.ts', () => {
     const app = createApp(); app.use('/api/notion/pages', handler)
     const request = supertest(toNodeListener(app))
 
-    const res = await request.get('/api/notion/pages?token=tkn')
+    const res = await request.get('/api/notion/pages').set('Authorization', 'Bearer tkn')
     expect(res.status).toBe(200)
     expect(res.body).toEqual([
       { id: 'p1', title: 'Alpha' },
@@ -68,7 +68,7 @@ describe('server/api/notion/pages.ts', () => {
     const app = createApp(); app.use('/api/notion/pages', handler)
     const request = supertest(toNodeListener(app))
 
-    const res = await request.get('/api/notion/pages?token=tkn')
+    const res = await request.get('/api/notion/pages').set('Authorization', 'Bearer tkn')
     expect(res.status).toBe(200)
     expect(res.body).toEqual([])
   })
@@ -93,7 +93,7 @@ describe('server/api/notion/pages.ts', () => {
     const app = createApp(); app.use('/api/notion/pages', handler)
     const request = supertest(toNodeListener(app))
 
-    const res = await request.get('/api/notion/pages?token=tkn')
+    const res = await request.get('/api/notion/pages').set('Authorization', 'Bearer tkn')
     expect(res.status).toBe(502)
     expect(res.body?.data?.error).toBe('NOTION_API_ERROR')
   })
