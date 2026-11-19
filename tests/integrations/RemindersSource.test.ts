@@ -342,13 +342,32 @@ describe('the date is the plan (#553)', () => {
     expect((await source.fetchActive())[0]!.sourceNotPlanned).toBeUndefined()
   })
 
-  it('planWrite: a write only when the date is not today and the reminder does not repeat', () => {
+  it('a put-back held as "today" stays out of the board before the day has begun and after it (the day starting never undoes a put-back)', async () => {
+    // The user put it back while Reminders said today (planningHeld: nothing held, notPlanned set)
+    const held = heldTask('a', {
+      notPlanned: true,
+      reminders: { due: { date: '2026-11-19', time: null }, recurrence: null, listId: 'L-home' },
+    })
+    bridge.fetch.mockResolvedValue({ reminders: [dated('a', '2026-11-19')], missingListIds: [] })
+    const { source, state } = setup({ held: [held] })
+    state.begun = false
+    // Same answer as last time (no planning state held): the merge leaves the put-back alone, and the next fetch after the day began says the same
+    expect((await source.fetchActive())[0]!.sourceNotPlanned).toBeUndefined()
+    state.begun = true
+    expect((await source.fetchActive())[0]!.sourceNotPlanned).toBeUndefined()
+    // A task that is not held as put back still waits for the day, and one held as not-today stays that
+    const { source: other, state: otherState } = setup({ held: [{ ...held, sourceNotPlanned: 'not-today' }] })
+    otherState.begun = false
+    expect((await other.fetchActive())[0]!.sourceNotPlanned).toBe('not-today')
+  })
+
+  it('planWrite: the day to write, only when the date is not today and the reminder does not repeat', () => {
     const { source } = setup()
     const base = heldTask('a', { reminders: { due: { date: '2026-11-25', time: null }, recurrence: null, listId: 'L-home' } })
-    expect(source.planWrite(base)).toBe(true)
-    expect(source.planWrite({ ...base, reminders: { ...base.reminders!, due: null } })).toBe(true)
-    expect(source.planWrite({ ...base, reminders: { ...base.reminders!, due: { date: '2026-11-19', time: null } } })).toBe(false)
-    expect(source.planWrite({ ...base, reminders: { ...base.reminders!, recurrence: 'FREQ=DAILY' } })).toBe(false)
+    expect(source.planWrite(base)).toBe('2026-11-19')
+    expect(source.planWrite({ ...base, reminders: { ...base.reminders!, due: null } })).toBe('2026-11-19')
+    expect(source.planWrite({ ...base, reminders: { ...base.reminders!, due: { date: '2026-11-19', time: null } } })).toBeNull()
+    expect(source.planWrite({ ...base, reminders: { ...base.reminders!, recurrence: 'FREQ=DAILY' } })).toBeNull()
   })
 
   it('planningHeld: not-today unless dated today, whether or not the day has begun (a put-back is never undone by the day starting)', () => {
@@ -362,7 +381,7 @@ describe('the date is the plan (#553)', () => {
 
   describe('update writes the date', () => {
     const planned = (over: Partial<Task> = {}, due: { date: string; time: string | null } | null = { date: '2026-11-25', time: '09:00' }): Task => heldTask('a', {
-      pendingSync: { since: 1, attempts: 0, lastError: null, dateWrite: true },
+      pendingSync: { since: 1, attempts: 0, lastError: null, dateWrite: '2026-11-19' },
       reminders: { due, recurrence: null, listId: 'L-home' }, ...over,
     })
 
@@ -402,6 +421,15 @@ describe('the date is the plan (#553)', () => {
       expect(bridge.setDue).not.toHaveBeenCalled()
     })
 
+    it('a write that failed on an earlier day is dropped, never replayed with today\'s date (the plan was made for that day)', async () => {
+      const { source } = setup()
+      const yesterday = { since: 1, attempts: 2, lastError: 'reminders: save-failed', dateWrite: '2026-11-18' as const }
+      expect(await source.update(planned({ pendingSync: yesterday }))).toBeNull()
+      // A marker written before the day was kept (`true`) never writes either
+      expect(await source.update(planned({ pendingSync: { ...yesterday, dateWrite: true as never } }))).toBeNull()
+      expect(bridge.setDue).not.toHaveBeenCalled()
+    })
+
     it('a list switched to Off passes no list: the bridge refuses, the task stays as it is', async () => {
       bridge.setDue.mockRejectedValue(new RemindersError('not-read'))
       const { source } = setup({ roles: { 'L-home': 'off' } })
@@ -416,6 +444,15 @@ describe('the date is the plan (#553)', () => {
       expect(bridge.setDue).toHaveBeenCalledTimes(1)
       expect(result?.reminders?.due).toEqual({ date: '2026-11-19', time: '10:00' })
       expect(result?.reminders?.wrote).toBeUndefined()
+    })
+
+    it('a reminder the user dated today in Reminders after the fetch records no wrote: nothing is written, so nothing is undone later', async () => {
+      // The bridge answers `changed` (not a silent success) when the stored date is already the target and not the expected one
+      bridge.setDue.mockRejectedValue(new RemindersError('changed'))
+      bridge.fetch.mockResolvedValue({ reminders: [dated('a', '2026-11-19', { due: { date: '2026-11-19', time: '07:00' } })], missingListIds: [] })
+      const result = await setup().source.update(planned())
+      expect(result?.reminders?.wrote).toBeUndefined()
+      expect(result?.reminders?.due).toEqual({ date: '2026-11-19', time: '07:00' })
     })
 
     it('changed to another date: one more write against the fresh date, never a blind overwrite', async () => {
@@ -469,7 +506,16 @@ describe('the date is the plan (#553)', () => {
 
     it('Reminders moved on: the compare-and-set refuses and the error rejects', async () => {
       bridge.setDue.mockRejectedValue(new RemindersError('changed'))
+      bridge.fetch.mockResolvedValue({ reminders: [dated('a', '2026-12-24')], missingListIds: [] })
       await expect(setup().source.restoreDueDate(wrote('2026-11-25'))).rejects.toMatchObject({ kind: 'changed' })
+    })
+
+    it('Reminders already holds the old date (the user set it back there): that is restored, nothing to report', async () => {
+      bridge.setDue.mockRejectedValue(new RemindersError('changed'))
+      bridge.fetch.mockResolvedValue({ reminders: [dated('a', '2026-11-25', { due: { date: '2026-11-25', time: '09:00' } })], missingListIds: [] })
+      const result = await setup().source.restoreDueDate(wrote('2026-11-25'))
+      expect(result?.reminders?.due).toEqual({ date: '2026-11-25', time: '09:00' })
+      expect(result && wroteOf(result)).toBeNull()
     })
   })
 

@@ -16,6 +16,7 @@ export type ErrorMessageKey =
   | 'errors.remindersAccessDenied'
   | 'errors.remindersSyncFailed'
   | 'errors.remindersWriteFailed'
+  | 'errors.remindersWriteChanged'
   | 'errors.taskNotFound'
   | 'errors.taskUpdateFailed'
   | 'errors.taskDeleteFailed'
@@ -130,9 +131,10 @@ export const getErrorMessageKey = (error: string | LocalizedError, errContext?: 
     return 'errors.remindersAccessDenied'
   }
 
-  // A date kan-do wrote or restores (#553) that Reminders refused or that moved on meanwhile
+  // A date kan-do restores (#553): Reminders holds another date now (`changed`: the user's own, left alone) or the write failed
+  // for another reason (the reminder is gone, its list is off, the save failed); each says what to do next
   if (errContext === 'reminders_write') {
-    return 'errors.remindersWriteFailed'
+    return errorLower.includes('changed') ? 'errors.remindersWriteChanged' : 'errors.remindersWriteFailed'
   }
 
   if (errContext === 'task_sync') {

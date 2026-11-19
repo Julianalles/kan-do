@@ -1124,9 +1124,10 @@ export const useTaskSync = () => {
    * write.
    *
    * A source that plans by date (#553, `planningByDate`, Apple Reminders) writes on a plan only, and only when
-   * `planWrite` says so (the date is not today, the reminder does not recur): the task is marked `dateWrite` and pushed,
-   * one after another. A put-back writes nothing and takes back a write that did not go out yet. `whenPlanWritten`
-   * resolves when the writes of a plan are done.
+   * `planWrite` answers a day (today: the date is not today, the reminder does not recur): the task is marked `dateWrite`
+   * with that day and pushed, one after another. A put-back writes nothing and takes back a write that did not go out yet
+   * (one already started cannot be stopped: `usePlanToasts.afterPutBack` waits for it). `whenPlanWritten` resolves when the
+   * writes of a plan are done.
    */
   const writePlanning = (taskIds: readonly string[], back: boolean): void => {
     const toPush: string[] = [];
@@ -1140,8 +1141,9 @@ export const useTaskSync = () => {
         // next fetch sees "the same answer as last time" and leaves the user's choice alone (a put-back while the source says
         // today, a series planned on another day)
         noteHeldByDate(taskId);
-        if (!back && adapter.planWrite?.(task) === true) {
-          tasksStore.markDateWrite(taskId);
+        const day = back ? null : (adapter.planWrite?.(task) ?? null);
+        if (day !== null) {
+          tasksStore.markDateWrite(taskId, day);
           toPush.push(taskId);
         }
         continue;
@@ -1192,17 +1194,20 @@ export const useTaskSync = () => {
     await pushesInFlight.get(taskId)?.catch(() => undefined);
     const task = tasksStore.task(taskId);
     if (!task) return true;
-    const revision = tasksStore.markPendingSync(taskId);
+    // A task with unpushed changes (a failed done tick) already has a marker that shields it from a fetch and keeps it
+    // queued: it stays exactly as it is. Only a marker this restore makes is this restore's to clear.
+    const ownMarker = task.pendingSync === undefined;
+    const revision = ownMarker ? tasksStore.markPendingSync(taskId) : undefined;
     try {
       const restored = await adapter.restoreDueDate(task);
       if (restored) applySyncedTask(taskId, restored);
       return true;
     } catch (error) {
       handleError(error instanceof Error ? error.message : String(error), 'reminders_write');
-      console.error('[TaskSync] Restoring the old date failed:', error);
+      if (import.meta.dev) console.error('[TaskSync] Restoring the old date failed:', error);
       return false;
     } finally {
-      tasksStore.clearPendingSync(taskId, revision);
+      if (ownMarker) tasksStore.clearPendingSync(taskId, revision);
     }
   };
 

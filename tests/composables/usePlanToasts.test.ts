@@ -23,10 +23,10 @@ const TODAY = '2026-11-19'
 const bridge = { date: null as string | null, time: null as string | null }
 const adapter = {
   id: 'reminders', syncsTime: false, planningByDate: true, isConfigured: () => true, fetchActive: async () => [] as Task[],
-  planWrite: (task: Task) => !task.reminders?.recurrence && task.reminders?.due?.date !== TODAY,
+  planWrite: (task: Task) => (!task.reminders?.recurrence && task.reminders?.due?.date !== TODAY ? TODAY : null),
   planningHeld: (task: Task) => (task.reminders?.due?.date === TODAY ? null : 'not-today'),
   update: vi.fn(async (task: Task): Promise<Task | null> => {
-    if (task.pendingSync?.dateWrite !== true || task.notPlanned === true || task.reminders?.due?.date === TODAY) return null
+    if (task.pendingSync?.dateWrite !== TODAY || task.notPlanned === true || task.reminders?.due?.date === TODAY) return null
     const from = bridge.date
     bridge.date = TODAY
     return { ...task, reminders: { ...task.reminders!, due: { date: TODAY, time: bridge.time }, wrote: { from, to: TODAY, at: 1 } } }
@@ -170,17 +170,45 @@ describe('usePlanToasts (#553)', () => {
       const { sync, toasts } = await planned('2026-11-25')
       const writes = vi.mocked(adapter.update).mock.calls.length
       expect(sync.unplanTask('a')).toBe(true)
-      toasts.afterPutBack('a')
+      await toasts.afterPutBack('a')
       expect(lastToast().title).toBe('Reminder a ist nicht mehr für heute geplant. In Erinnerungen steht sie weiter auf heute.')
       expect(lastToast().actions?.[0]?.label).toBe('Altes Datum zurück: 25.11.2026')
       expect(bridge.date).toBe(TODAY)
       expect(vi.mocked(adapter.update).mock.calls.length).toBe(writes)
     })
 
+    it('a put-back while the plan\'s date write is in flight waits for it: Reminders ends up today, so the toast offers the old date', async () => {
+      bridge.date = '2026-11-25'
+      bridge.time = '09:00'
+      const store = useTasksStore()
+      store.setTasks([reminder('a', '2026-11-25', '09:00')])
+      const sync = useTaskSync()
+      const toasts = usePlanToasts()
+      let release!: () => void
+      const gate = new Promise<void>((resolve) => { release = resolve })
+      const real = vi.mocked(adapter.update).getMockImplementation()!
+      // The adapter decided before its first await (the task was still planned), the bridge answers later
+      vi.mocked(adapter.update).mockImplementationOnce(async (task: Task) => {
+        const written = await real(task)
+        await gate
+        return written
+      })
+      sync.planTask('a')
+      void toasts.afterPlan('a')
+      expect(sync.unplanTask('a')).toBe(true)
+      const done = toasts.afterPutBack('a')
+      release()
+      await done
+      expect(bridge.date).toBe(TODAY)
+      expect(lastToast().title).toBe('Reminder a ist nicht mehr für heute geplant. In Erinnerungen steht sie weiter auf heute.')
+      expect(lastToast().actions?.[0]?.label).toBe('Altes Datum zurück: 25.11.2026')
+      expect(toastAddMock.mock.calls.filter(call => (call[0] as ToastArgs).id === 'plan-a')).toEqual([])
+    })
+
     it('tapping the offer writes the old date and leaves the task in "Meine Aufgaben"', async () => {
       const { store, sync, toasts } = await planned('2026-11-25')
       sync.unplanTask('a')
-      toasts.afterPutBack('a')
+      await toasts.afterPutBack('a')
       lastToast().actions![0]!.onClick()
       await vi.waitFor(() => expect(bridge.date).toBe('2026-11-25'))
       expect(isNotPlanned(store.task('a')!)).toBe(true)
@@ -190,7 +218,7 @@ describe('usePlanToasts (#553)', () => {
     it('not tapped: the date stays today and the task stays put back', async () => {
       const { store, sync, toasts } = await planned('2026-11-25')
       sync.unplanTask('a')
-      toasts.afterPutBack('a')
+      await toasts.afterPutBack('a')
       await vi.advanceTimersByTimeAsync(PLAN_TOAST_MS + 1000)
       expect(bridge.date).toBe(TODAY)
       expect(isNotPlanned(store.task('a')!)).toBe(true)
@@ -199,7 +227,7 @@ describe('usePlanToasts (#553)', () => {
     it('a reminder that had no date has nothing to restore: the toast has no action', async () => {
       const { sync, toasts } = await planned(null)
       sync.unplanTask('a')
-      toasts.afterPutBack('a')
+      await toasts.afterPutBack('a')
       expect(lastToast().title).toContain('nicht mehr für heute geplant')
       expect(lastToast().actions).toBeUndefined()
     })
@@ -208,7 +236,7 @@ describe('usePlanToasts (#553)', () => {
       const { store, sync, toasts } = await planned('2026-11-25')
       sync.unplanTask('a')
       store.updateTask('a', { reminders: { ...store.task('a')!.reminders!, due: { date: '2026-12-24', time: null } } })
-      toasts.afterPutBack('a')
+      await toasts.afterPutBack('a')
       expect(toastAddMock).not.toHaveBeenCalled()
     })
 
@@ -217,7 +245,7 @@ describe('usePlanToasts (#553)', () => {
       store.setTasks([reminder('b', TODAY, '09:00', { notPlanned: undefined, sourceNotPlanned: undefined })])
       const toasts = usePlanToasts()
       useTaskSync().unplanTask('b')
-      toasts.afterPutBack('b')
+      await toasts.afterPutBack('b')
       expect(lastToast().title).toContain('In Erinnerungen steht sie weiter auf heute.')
       expect(lastToast().actions).toBeUndefined()
     })

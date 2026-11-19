@@ -70,9 +70,12 @@ describe('mergeTasks of a source that plans by date (#553)', () => {
     expect(store.unplanTask('a')).toBe(true)
     for (let sync = 0; sync < 3; sync++) store.mergeTasks('reminders', [delivered('a', TODAY)], BY_DATE)
     expect(isNotPlanned(store.task('a')!)).toBe(true)
-    // …also when the day has not begun in a window that fetches again
-    store.mergeTasks('reminders', [delivered('a', TODAY, { begun: false })], BY_DATE)
+    // …also across the day beginning: before it the adapter still delivers a held put-back as "today" (`RemindersSource.withPlanning`,
+    // its own test), so the day starting is no change of the source's answer
+    store.mergeTasks('reminders', [delivered('a', TODAY)], BY_DATE)
+    store.mergeTasks('reminders', [delivered('a', TODAY)], BY_DATE)
     expect(isNotPlanned(store.task('a')!)).toBe(true)
+    expect(store.task('a')!.sourceNotPlanned).toBeUndefined()
   })
 
   it('a planned card whose date moved away in Reminders stays on the board; Task.reminders updates', () => {
@@ -118,12 +121,12 @@ describe('mergeTasks of a source that plans by date (#553)', () => {
     const store = useTasksStore()
     store.mergeTasks('reminders', [delivered('a', '2026-11-25')], BY_DATE)
     store.planTask('a')
-    store.markDateWrite('a')
+    store.markDateWrite('a', TODAY)
     store.mergeTasks('reminders', [delivered('a', '2026-11-25')], BY_DATE)
     store.mergeTasks('reminders', [delivered('a', '2026-11-30')], BY_DATE)
     expect(isNotPlanned(store.task('a')!)).toBe(false)
     expect(store.task('a')!.reminders?.due?.date).toBe('2026-11-25')
-    expect(store.task('a')!.pendingSync?.dateWrite).toBe(true)
+    expect(store.task('a')!.pendingSync?.dateWrite).toBe(TODAY)
   })
 
   it('yesterday\'s board while the day has not begun: the cards stay, no write follows from a fetch', () => {

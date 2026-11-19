@@ -515,13 +515,13 @@ export const useTasksStore = defineStore("tasks", () => {
 
   /**
    * The user planned a task of a source that plans by date and its date has to become today (#553): marks it pending like
-   * any edit and sets `pendingSync.dateWrite`, the only thing that makes the adapter write a date. Returns the revision
-   * of `markPendingSync`.
+   * any edit and sets `pendingSync.dateWrite` to the local day the plan is made for (`day`, `YYYY-MM-DD`), the only thing
+   * that makes the adapter write a date, and only on that day. Returns the revision of `markPendingSync`.
    */
-  function markDateWrite(taskId: string): number {
+  function markDateWrite(taskId: string, day: string): number {
     const revision = markPendingSync(taskId);
     const target = tasks.value.find((el) => el.id === taskId);
-    if (target?.pendingSync) target.pendingSync.dateWrite = true;
+    if (target?.pendingSync) target.pendingSync.dateWrite = day;
     return revision;
   }
 

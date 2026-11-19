@@ -8,8 +8,8 @@
  * @responsibility
  * - `afterPlan(id)`: waits until the plan's write answered, then toasts what Reminders holds now (the old date, "ohne
  *   Uhrzeit"), or that a recurring reminder's date stays. Nothing when no date was written and none is held back.
- * - `afterPutBack(id)`: nothing is written; the toast says Reminders still holds today and offers the old date once, only
- *   when kan-do wrote the date and Reminders still says today.
+ * - `afterPutBack(id)`: waits for a plan write still in flight, writes nothing itself; the toast says Reminders still holds
+ *   today and offers the old date once, only when kan-do wrote the date and Reminders still says today.
  * - The undo window is `useUndoWindow` (the toast pauses on hover and focus, Esc closes it); an action exists only inside it.
  *   A failed restore goes through `useErrorHandler` (context `reminders_write`) and the task keeps its state.
  * - A source without a date plan (`task.reminders` absent) gets no toast.
@@ -123,8 +123,13 @@ export function usePlanToasts() {
     }
   }
 
-  /** The put-back toast; nothing was written. Call it after `unplanTask` returned true. */
-  function afterPutBack(id: string): void {
+  /**
+   * The put-back toast; the put-back writes nothing itself. Call it after `unplanTask` returned true. It waits for the
+   * plan's date write when one is still in flight (plan, then put back at once): that write cannot be stopped once the
+   * bridge call started, so Reminders ends up today and the toast must say so and offer the old date.
+   */
+  async function afterPutBack(id: string): Promise<void> {
+    await whenPlanWritten(id)
     const task = tasksStore.task(id)
     const reminders = task?.reminders
     if (!task || !reminders || !isNotPlanned(task)) return

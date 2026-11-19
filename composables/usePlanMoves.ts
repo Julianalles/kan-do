@@ -106,7 +106,7 @@ export function usePlanMoves() {
     void fly(from, () => target()?.querySelector<HTMLElement>('.task') ?? null)
     // A source that plans by date says what happened to its date (#553); the toast waits for the write, the move does not
     if (kind === 'plan') void afterPlan(id)
-    else afterPutBack(id)
+    else void afterPutBack(id)
     return true
   }
 

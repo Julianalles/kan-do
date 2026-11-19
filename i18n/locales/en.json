@@ -638,7 +638,8 @@
     "taskRestoreFailed": "The task couldn't be restored and stays in the trash.",
     "remindersAccessDenied": "Kan-Do isn't allowed to read Reminders. Allow access in the macOS system settings.",
     "remindersSyncFailed": "The sync with Reminders couldn't be completed.",
-    "remindersWriteFailed": "The old date couldn't be restored. Reminders holds a different date now."
+    "remindersWriteFailed": "The old date couldn't be restored. Change the date in Reminders.",
+    "remindersWriteChanged": "The old date couldn't be restored. Reminders holds a different date now. Change it there if needed."
   },
   "notion": {
     "modal": {

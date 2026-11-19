@@ -141,8 +141,16 @@ export class RemindersSource implements TaskSourceAdapter {
    * only when that presence changes, and never takes a planned card off the board.
    */
   private withPlanning(task: Task): Task {
-    const planned = task.reminders?.due?.date === this.deps.today() && this.deps.dayHasBegun()
-    return planned ? task : { ...task, sourceNotPlanned: NOT_TODAY }
+    const today = task.reminders?.due?.date === this.deps.today()
+    // A task the user put back while Reminders said today (held with no planning state, `planningHeld`) keeps that answer
+    // before the day has begun: the day starting must not read as a change of the source and take the put-back back
+    const putBack = today && this.heldAsPutBack(task)
+    return today && (putBack || this.deps.dayHasBegun()) ? task : { ...task, sourceNotPlanned: NOT_TODAY }
+  }
+
+  private heldAsPutBack(task: Task): boolean {
+    const held = this.deps.heldTasks().find(candidate => candidate.externalId === task.externalId)
+    return held?.notPlanned === true && held.sourceNotPlanned === undefined
   }
 
   /** What Reminders holds the task as by its date: `not-today` unless dated today (the user's plan and put-back note it). */
@@ -150,10 +158,13 @@ export class RemindersSource implements TaskSourceAdapter {
     return task.reminders?.due?.date === this.deps.today() ? null : NOT_TODAY
   }
 
-  /** Planning needs a write when the date is not today; a recurring reminder is never written (it could move the series). */
-  planWrite(task: Task): boolean {
+  /**
+   * Planning needs a write when the date is not today; a recurring reminder is never written (it could move the series).
+   * Answers the day the write is for (today), which the marker keeps (`pendingSync.dateWrite`).
+   */
+  planWrite(task: Task): string | null {
     const reminders = task.reminders
-    return reminders !== undefined && !reminders.recurrence && reminders.due?.date !== this.deps.today()
+    return reminders !== undefined && !reminders.recurrence && reminders.due?.date !== this.deps.today() ? this.deps.today() : null
   }
 
   /**
@@ -253,14 +264,17 @@ export class RemindersSource implements TaskSourceAdapter {
   /**
    * Plan for today writes today's date (#553). Everything comes from `task` before the first `await` (the live store
    * object). Never blind: `expectedDate` is the date kan-do holds; when Reminders answers `changed` the reminder is read
-   * once more, no write if it says today now, else one more write against the date it holds. A reminder already dated
-   * today, a recurring one, a task that is not planned any more and a refused list write nothing (a no-op success).
+   * once more, no write if it says today now (the bridge answers `changed` for a date already set to the target, so a date the
+   * user set there is never recorded as a write of ours), else one more write against the date it holds. A reminder already
+   * dated today, a recurring one, a task that is not planned any more and a refused list write nothing (a no-op success).
    */
   private async writePlannedDate(task: Task): Promise<Task | null> {
     const reminders = task.reminders
-    if (task.pendingSync?.dateWrite !== true || !reminders || reminders.recurrence) return null
-    if (task.status !== TaskStatus.Open || isNotPlanned(task)) return null
     const today = this.deps.today()
+    // The marker names the day of the plan: a write that failed and is retried on a later day is dropped, never replayed
+    // with that day's date (a date the user did not plan for, maybe before the day has begun)
+    if (task.pendingSync?.dateWrite !== today || !reminders || reminders.recurrence) return null
+    if (task.status !== TaskStatus.Open || isNotPlanned(task)) return null
     if (reminders.due?.date === today) return null
     const { id } = splitExternalId(externalIdOf(task))
     const allowedListIds = this.allowedLists(reminders.listId)
@@ -300,9 +314,17 @@ export class RemindersSource implements TaskSourceAdapter {
     if (!wrote || !reminders) return null
     const { id } = splitExternalId(externalIdOf(task))
     const allowedListIds = this.allowedLists(reminders.listId)
-    const due = await viaBridge(() => remindersSetDue({ id, expectedDate: wrote.to, date: wrote.from, allowedListIds }))
     const { wrote: _gone, ...rest } = reminders
-    return { ...task, reminders: { ...rest, due } }
+    try {
+      const due = await viaBridge(() => remindersSetDue({ id, expectedDate: wrote.to, date: wrote.from, allowedListIds }))
+      return { ...task, reminders: { ...rest, due } }
+    } catch (error) {
+      // Already the old date (the user set it back in Reminders, or this call's answer was lost): restored, nothing to report
+      if (!(error instanceof RemindersError) || error.kind !== 'changed') throw error
+      const fresh = await this.readDue(id, reminders.listId)
+      if (fresh === undefined || (fresh?.date ?? null) !== wrote.from) throw error
+      return { ...task, reminders: { ...rest, due: fresh } }
+    }
   }
 
   create(): Promise<Task> {

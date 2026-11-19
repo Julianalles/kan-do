@@ -486,7 +486,7 @@ export function useBoardDndKit() {
         for (const taskId of [...taskIds].reverse()) {
           const moved = unplanTask(taskId)
           // One toast for one card: a stack carried over never raises one per member
-          if (moved && taskIds.length === 1) afterPutBack(taskId)
+          if (moved && taskIds.length === 1) void afterPutBack(taskId)
           taken = moved || taken
         }
         // The card lands on top: a scrolled list shows its start, so the drop glide ends on a card in view

@@ -29,7 +29,7 @@ const adapter = {
   planningByDate: true,
   isConfigured: () => true,
   fetchActive: async () => [] as Task[],
-  planWrite: (task: Task) => !task.reminders?.recurrence && task.reminders?.due?.date !== TODAY,
+  planWrite: (task: Task) => (!task.reminders?.recurrence && task.reminders?.due?.date !== TODAY ? TODAY : null),
   planningHeld: (task: Task) => (task.reminders?.due?.date === TODAY ? null : 'not-today'),
   update,
   restoreDueDate,
@@ -57,7 +57,7 @@ const reminder = (id: string, due: string | null, over: Partial<Task> = {}): Tas
 
 /** The adapter's update as it behaves: writes today when the task asks for it and holds another date. */
 const stubUpdate = () => update.mockImplementation(async (task: Task) => {
-  if (task.pendingSync?.dateWrite !== true || task.notPlanned === true || task.reminders?.due?.date === TODAY) return null
+  if (task.pendingSync?.dateWrite !== TODAY || task.notPlanned === true || task.reminders?.due?.date === TODAY) return null
   const from = reminders.date
   reminders.date = TODAY
   return { ...task, reminders: { ...task.reminders!, due: { date: TODAY, time: '09:00' }, wrote: { from, to: TODAY, at: 1 } } }
@@ -82,7 +82,7 @@ describe('plan and put-back of a source that plans by date (#553)', () => {
     const sync = useTaskSync()
     expect(sync.planTask('a')).toBe(true)
     // Marked at once: a fetch that lands before the write keeps the local plan
-    expect(store.task('a')!.pendingSync?.dateWrite).toBe(true)
+    expect(store.task('a')!.pendingSync?.dateWrite).toBe(TODAY)
     await sync.whenPlanWritten('a')
     expect(update).toHaveBeenCalledTimes(1)
     expect(store.task('a')!.pendingSync).toBeUndefined()
@@ -161,7 +161,7 @@ describe('plan and put-back of a source that plans by date (#553)', () => {
     sync.planTask('a')
     await sync.whenPlanWritten('a')
     expect(isNotPlanned(store.task('a')!)).toBe(false)
-    expect(store.task('a')!.pendingSync).toMatchObject({ dateWrite: true, attempts: 1 })
+    expect(store.task('a')!.pendingSync).toMatchObject({ dateWrite: TODAY, attempts: 1 })
     stubUpdate()
     await sync.syncPendingChanges('reminders')
     expect(store.task('a')!.pendingSync).toBeUndefined()
@@ -199,6 +199,28 @@ describe('restorePlannedDate (#553)', () => {
     expect(store.task('a')!.reminders?.due?.date).toBe('2026-11-25')
     expect(wroteOf(store.task('a')!)).toBeNull()
     expect(store.task('a')!.pendingSync).toBeUndefined()
+  })
+
+  it('an earlier unpushed change keeps its marker through a restore, on success and on failure', async () => {
+    const store = useTasksStore()
+    const stuck = { since: 5, attempts: 2, lastError: 'reminders: save-failed' }
+    store.setTasks([{ ...withWrote(), pendingSync: { ...stuck } }])
+    restoreDueDate.mockImplementationOnce(async (task: Task) => ({ ...task, reminders: { due: { date: '2026-11-25', time: '09:00' }, recurrence: null, listId: 'L1' } }))
+    expect(await useTaskSync().restorePlannedDate('a')).toBe(true)
+    expect(store.task('a')!.pendingSync).toMatchObject(stuck)
+    store.updateTask('a', { reminders: { ...store.task('a')!.reminders!, wrote: { from: '2026-11-25', to: TODAY, at: 1 } } })
+    restoreDueDate.mockRejectedValueOnce(new Error('reminders: save-failed'))
+    expect(await useTaskSync().restorePlannedDate('a')).toBe(false)
+    expect(store.task('a')!.pendingSync).toMatchObject(stuck)
+  })
+
+  it('the plan\'s marker names the day it was made for', async () => {
+    const store = useTasksStore()
+    store.setTasks([reminder('b', '2026-11-25')])
+    update.mockReset()
+    update.mockResolvedValue(null)
+    useTaskSync().planTask('b')
+    expect(store.task('b')!.pendingSync?.dateWrite).toBe(TODAY)
   })
 
   it('an undo of an already restored task is a no-op success', async () => {

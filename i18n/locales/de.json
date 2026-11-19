@@ -638,7 +638,8 @@
     "taskRestoreFailed": "Die Aufgabe konnte nicht wiederhergestellt werden und bleibt im Papierkorb.",
     "remindersAccessDenied": "Kan-Do darf Erinnerungen nicht lesen. Erlaube den Zugriff in den Systemeinstellungen von macOS.",
     "remindersSyncFailed": "Die Synchronisation mit Erinnerungen konnte nicht abgeschlossen werden.",
-    "remindersWriteFailed": "Das alte Datum ließ sich nicht zurückschreiben. In Erinnerungen steht inzwischen ein anderes Datum."
+    "remindersWriteFailed": "Das alte Datum konnte nicht zurückgesetzt werden. Ändere das Datum in Erinnerungen.",
+    "remindersWriteChanged": "Das alte Datum konnte nicht zurückgesetzt werden. In Erinnerungen steht inzwischen ein anderes Datum. Ändere es dort, falls nötig."
   },
   "notion": {
     "modal": {

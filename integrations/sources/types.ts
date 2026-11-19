@@ -149,11 +149,12 @@ export interface TaskSourceAdapter {
   planningHeld?(task: Task): string | null
 
   /**
-   * Whether planning this task for today needs a write upstream (#553): the source plans by date and the date is not today
-   * (a recurring reminder never needs one: it could move the series). `useTaskSync` marks such a task `pendingSync.dateWrite`
-   * and pushes it; `update` then writes the date and resolves to the task with what it wrote.
+   * The day (local `YYYY-MM-DD`, today) planning this task writes as its date, or `null` when planning needs no write
+   * upstream (#553): the source plans by date and the date is not today (a recurring reminder never needs one: it could
+   * move the series). `useTaskSync` marks such a task `pendingSync.dateWrite` with that day and pushes it; `update` then
+   * writes the date, only while the day is still today, and resolves to the task with what it wrote.
    */
-  planWrite?(task: Task): boolean
+  planWrite?(task: Task): string | null
 
   /**
    * Gives back the date the user's plan overwrote (#553, `Task.reminders.wrote`): compare-and-set against the date that

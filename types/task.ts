@@ -69,9 +69,11 @@ export interface PendingSync {
   /**
    * The push has to write today's date to the reminder (#553): set when the user plans a task of a source that plans by
    * date and its date is not today. State-based pushes of other changes (a time box, a priority) never write a date;
-   * only this flag does, and a put-back before the write clears it. Gone with the marker once the push succeeded.
+   * only this flag does, and a put-back before the write clears it. Gone with the marker once the push succeeded. The value
+   * is the local day (`YYYY-MM-DD`) the plan was made for: a write that failed and is retried on a later day writes
+   * nothing (the plan was that day's, the user never planned this one). Any other value, an older `true` included, never writes.
    */
-  dateWrite?: true;
+  dateWrite?: string;
 }
 
 export interface CreateUncertain {

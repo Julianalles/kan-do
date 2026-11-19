@@ -8,8 +8,8 @@
 //! - `reminders_lists`, `reminders_fetch` read; they need full access (`access-denied` otherwise).
 //! - `reminders_set_due` and `reminders_set_completed` are the only writes. Both are compare-and-set, both check the
 //!   reminder's list against the `allowedListIds` the caller passes (the lists kan-do reads), both re-read what the
-//!   store holds after the save and answer with it, and a write that finds its target state already in place is a
-//!   no-op success.
+//!   store holds after the save and answer with it. A write whose expected state does not match is `changed` and writes
+//!   nothing, also when the stored state already is the target (set elsewhere meanwhile: the caller reads and decides).
 //! - `reminders_open_settings` opens System Settings at the Reminders privacy pane.
 //!
 //! Dates are components, never instants: a due date is `{ date: "YYYY-MM-DD", time: "HH:mm" | null }` read from the
@@ -296,12 +296,15 @@ pub mod logic {
         let target = parse_optional(date)?;
         let snapshot = writable(store, id, allowed_list_ids)?;
         let current = date_of(&snapshot.due);
-        if current == target {
-            // Already in place (a double submit, or the user set the same day): nothing to write.
-            return Ok(snapshot.due);
-        }
+        // The expected date comes first: a stored date that is the target but not the expected one was set by someone
+        // else after kan-do's read (or by a call whose answer was lost), so the caller learns it as `changed` and reads
+        // the reminder instead of recording a write it did not make.
         if current != expected {
             return Err(RemindersError::Changed);
+        }
+        if current == target {
+            // Asked for the date it holds: nothing to write.
+            return Ok(snapshot.due);
         }
         store.write_due(id, target)?;
         let after = store.read(id)?.ok_or(RemindersError::SaveFailed)?;
@@ -1181,13 +1184,21 @@ mod tests {
     }
 
     #[test]
-    fn set_due_twice_is_a_no_op_success() {
+    fn set_due_asking_for_the_date_it_holds_is_a_no_op_success() {
         let fake = Fake::new(vec![item("a", "L1", Some(Parts::date(2026, 11, 20)))]);
-        let first = logic::set_due(&fake, "a", Some("2026-11-20"), Some("2026-11-21"), &ids(&["L1"])).unwrap();
-        // The same call again (a double submit): the target is in place, nothing is written, no `changed`.
-        let second = logic::set_due(&fake, "a", Some("2026-11-20"), Some("2026-11-21"), &ids(&["L1"])).unwrap();
-        assert_eq!(first, second);
-        assert_eq!(fake.saves.borrow().len(), 1);
+        let due = logic::set_due(&fake, "a", Some("2026-11-20"), Some("2026-11-20"), &ids(&["L1"])).unwrap();
+        assert_eq!(due, Some(Due { date: "2026-11-20".into(), time: None }));
+        assert!(fake.saves.borrow().is_empty());
+    }
+
+    #[test]
+    fn set_due_on_a_date_that_already_is_the_target_but_not_the_expected_one_is_changed() {
+        // The user set the target day in Reminders after kan-do's last read: nothing was written by this call, so the
+        // caller must not record a write (and must not offer to undo one). The same call again (a double submit) reads
+        // as the same answer; the caller reads the reminder and sees the target in place.
+        let fake = Fake::new(vec![item("a", "L1", Some(Parts::date(2026, 11, 21)))]);
+        assert_eq!(logic::set_due(&fake, "a", Some("2026-11-20"), Some("2026-11-21"), &ids(&["L1"])), Err(RemindersError::Changed));
+        assert!(fake.saves.borrow().is_empty());
     }
 
     #[test]

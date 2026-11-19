@@ -70,3 +70,12 @@ describe('getErrorMessageKey routes a LocalizedError by its key (#487)', () => {
     expect(getErrorMessageKey('Notion data source is not configured', 'task_create')).toBe('errors.notionNotConfigured')
   })
 })
+
+describe('getErrorMessageKey reminders_write (#553)', () => {
+  it('a date that moved on says so; every other failure only says what to do next', () => {
+    expect(getErrorMessageKey('reminders: changed', 'reminders_write')).toBe('errors.remindersWriteChanged')
+    for (const kind of ['not-found', 'not-read', 'save-failed', 'access-denied', 'failed']) {
+      expect(getErrorMessageKey(`reminders: ${kind}`, 'reminders_write')).toBe('errors.remindersWriteFailed')
+    }
+  })
+})
