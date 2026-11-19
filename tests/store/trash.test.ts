@@ -129,6 +129,18 @@ describe('trash store (#422, D3)', () => {
     expect(trash.entry('missing')).toBeUndefined()
   })
 
+  it('takes the landed page (#545): the entry keeps everything but the doubt and now owns the page', () => {
+    const trash = useTrashStore()
+    trash.add(entry('a', Date.now() - 1000))
+    expect(trash.takeLandedPage('a', 'P')).toBeUndefined() // no doubt, nothing to hand over
+    trash.markCreateUncertain('a', 5000, 'First')
+    const taken = trash.takeLandedPage('a', 'P')
+    expect(taken?.task.externalId).toBe('P')
+    expect(trash.entry('a')).toEqual(taken)
+    expect(trash.entry('a')?.createUncertain).toBeUndefined()
+    expect(trash.takeLandedPage('missing', 'P')).toBeUndefined()
+  })
+
   it('a re-delete after a restore starts without the doubt', () => {
     const trash = useTrashStore()
     trash.add(entry('a', Date.now() - 1000))

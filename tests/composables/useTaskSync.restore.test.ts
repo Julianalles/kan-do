@@ -367,13 +367,61 @@ describe('useTaskSync: restoring from the trash (#422)', () => {
       expect(trash.entry('n1')).toBeUndefined()
     })
 
-    it('a fetch that brings the page in between adds it as a card; the entry stays (accepted trade-off of #535)', async () => {
+    it('a fetch that brings the page in between hands it to the entry: no card, then the restore finds it and creates nothing (#545)', async () => {
       notionGone()
       adapters.notion.restore.mockRejectedValueOnce(timeout())
       await expect(useTaskSync().restoreTask(trash.entry('n1')!)).rejects.toThrow()
       tasksStore.mergeTasks('notion', [makeTask({ id: 'P', source: 'notion', title: 'Rückruf' })], { fetchStartedAt: T, pushing: () => false })
-      expect(tasksStore.task('P')).not.toBeNull()
-      expect(trash.entry('n1')?.createUncertain).toBeDefined()
+
+      expect(tasksStore.task('P')).toBeNull()
+      expect(trash.entry('n1')?.createUncertain).toBeUndefined()
+      expect(trash.entry('n1')?.task.externalId).toBe('P')
+      expect(tasksStore.pendingDeletes.n1?.state).toBe('queued')
+
+      // Before the queued delete ran: the restore cancels it and takes the page; the source is not called
+      await useTaskSync().restoreTask(trash.entry('n1')!)
+      expect(adapters.notion.restore).toHaveBeenCalledTimes(1)
+      expect(tasksStore.task('n1')).toMatchObject({ id: 'n1', externalId: 'P' })
+      expect(tasksStore.pendingDeletes.n1).toBeUndefined()
+      expect(tasksStore.deletedTaskIds).not.toContain('P')
+      expect(trash.entry('n1')).toBeUndefined()
+    })
+
+    it('after the queued delete archived the page, the restore un-archives it: the adapter gets the page id and no doubt (#545)', async () => {
+      notionGone()
+      adapters.notion.restore.mockRejectedValueOnce(timeout())
+      await expect(useTaskSync().restoreTask(trash.entry('n1')!)).rejects.toThrow()
+      tasksStore.mergeTasks('notion', [makeTask({ id: 'P', source: 'notion', title: 'Rückruf' })], { fetchStartedAt: T, pushing: () => false })
+      await useTaskSync().commitTaskDelete('n1')
+      expect(calls).toContain('remove:notion:P')
+      expect(tasksStore.pendingDeletes.n1).toBeUndefined()
+
+      await useTaskSync().restoreTask(trash.entry('n1')!)
+
+      const [draft, ctx] = adapters.notion.restore.mock.calls[1]!
+      expect(draft.externalId).toBe('P')
+      expect(ctx?.createUncertain).toBeUndefined()
+      expect(tasksStore.task('n1')).toMatchObject({ externalId: 'P' })
+      expect(tasksStore.deletedTaskIds).not.toContain('P')
+    })
+
+    it('a fetch that lands while the restore is under way leaves the page to that restore (#545)', async () => {
+      notionGone()
+      adapters.notion.restore.mockRejectedValueOnce(timeout())
+      await expect(useTaskSync().restoreTask(trash.entry('n1')!)).rejects.toThrow()
+      const sync = useTaskSync()
+      let release!: () => void
+      adapters.notion.restore.mockImplementationOnce(async (task: Task) => {
+        await new Promise<void>((resolve) => { release = resolve })
+        return { ...task, externalId: 'P' }
+      })
+      const running = sync.restoreTask(trash.entry('n1')!)
+      tasksStore.mergeTasks('notion', [makeTask({ id: 'P', source: 'notion', title: 'Rückruf' })], { fetchStartedAt: T, pushing: sync.isPushing })
+      expect(tasksStore.pendingDeletes.n1).toBeUndefined()
+      release()
+      await running
+      expect(tasksStore.pendingDeletes.n1).toBeUndefined()
+      expect(tasksStore.task('n1')).toMatchObject({ externalId: 'P' })
     })
   })
 })

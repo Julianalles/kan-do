@@ -31,6 +31,8 @@ export type MoveCommitResult = 'committed' | 'queued' | 'reverted' | 'skipped';
 
 /** Pending deletes whose upstream call is in flight (one per task, across composable instances). */
 const deletesInFlight = new Set<string>();
+/** Trash entries whose restore is under way: a fetch must not hand them a landed page meanwhile (#545). */
+const restoresInFlight = new Set<string>();
 
 /** Pending moves whose upstream calls are in flight (one per task, across composable instances). */
 const movesInFlight = new Set<string>();
@@ -443,7 +445,7 @@ export const useTaskSync = () => {
    * Whether a write of the task is under way or waits for an earlier one. A fetch that is merged meanwhile may
    * have read the source before that write and must not take the task for gone (`mergeTasks`' `pushing`, #357).
    */
-  const isPushing = (taskId: string): boolean => pushesInFlight.has(taskId) || statusWritesInFlight.has(taskId);
+  const isPushing = (taskId: string): boolean => pushesInFlight.has(taskId) || statusWritesInFlight.has(taskId) || restoresInFlight.has(taskId);
 
   /** `timeEdited` for a write that carries a total the user set (kd#4), even at 0; empty otherwise. */
   const timeEditFlag = (taskId: string): { timeEdited?: true } =>
@@ -899,6 +901,9 @@ export const useTaskSync = () => {
       const { pendingSync: _sync, pendingMove: _move, ...clean } = base;
       // An earlier restore's create may have made the page (#535): the adapter looks for it before it creates
       const attemptedAt = Date.now();
+      // While the create runs a fetch must not hand the page to this entry: the create finds or makes it itself (#545)
+      const ownsGuard = !restoresInFlight.has(taskId);
+      restoresInFlight.add(taskId);
       try {
         restored = await adapterFor(base.source).restore(clean, {
           claimedExternalIds: tasksStore.claimedPages(base.source),
@@ -908,6 +913,8 @@ export const useTaskSync = () => {
         // The entry stays in the trash; a create that may have landed is remembered on it (the same rule as a push)
         if (createOutcomeUnknown(error)) trashStore.markCreateUncertain(taskId, attemptedAt, base.title || 'Untitled');
         throw error;
+      } finally {
+        if (ownsGuard) restoresInFlight.delete(taskId);
       }
     }
 
