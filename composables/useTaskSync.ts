@@ -1,5 +1,5 @@
 import { TaskStatus } from "~/types/taskStatus";
-import type { Task } from "@/types/task";
+import type { CreateUncertain, Task } from "@/types/task";
 import { useTaskSources } from '~/composables/useTaskSources';
 import { SourceNotConfiguredError } from '~/integrations/sources/types';
 import { useTasksStore } from "~/store/tasks";
@@ -86,6 +86,9 @@ const isAlreadyGone = (error: unknown): boolean => {
   const status = (error as { statusCode?: number; httpStatusCode?: number } | null);
   return status?.statusCode === 404 || status?.httpStatusCode === 404;
 };
+
+/** A create-doubt step (#538: the lookup or the removal) failed without a request that could change anything: the delete or move waits. */
+const isDoubtNotSettled = (error: unknown): boolean => (error as { createNotSent?: unknown } | null)?.createNotSent === true;
 
 /**
  * Composable for handling task synchronization with external integrations
@@ -669,8 +672,7 @@ export const useTaskSync = () => {
   const commitQueuedDeletes = async (only?: SourceId): Promise<void> => {
     for (const pending of Object.values(tasksStore.pendingDeletes)) {
       if (pending.state !== 'queued' || deletesInFlight.has(pending.taskId)) continue;
-      const origin = originToRemove(pending.task);
-      const sources = [pending.task.source, origin?.source].filter((source): source is SourceId => source !== undefined && source !== 'local');
+      const sources = sourcesOfDelete(pending.task);
       if (sources.length === 0 || (only && !sources.includes(only))) continue;
       if (sources.some((source) => isRateLimited(source))) continue;
       await commitTaskDelete(pending.taskId);
@@ -747,6 +749,53 @@ export const useTaskSync = () => {
         }
       }
     }
+    // A create that may have landed (#538): the page it made goes with the task, or the next fetch brings it back
+    for (const { source, doubt } of unsettledDoubts(pending.task)) {
+      try {
+        await settleCreateDoubt(source, doubt, pending.taskId);
+      } catch (error) {
+        noteRateLimit(source, error);
+        throw error;
+      }
+    }
+  };
+
+  /** The creates of a deleted or moved task that may have landed and have no page id yet: its own and its move origin's (#538). */
+  const unsettledDoubts = (task: Task): Array<{ source: SourceId; doubt: CreateUncertain }> => {
+    const found: Array<{ source: SourceId; doubt: CreateUncertain }> = [];
+    const own = task.pendingSync?.createUncertain;
+    if (own && task.source !== 'local' && task.externalId === null) found.push({ source: task.source, doubt: own });
+    const move = task.pendingMove;
+    if (move?.fromCreateUncertain && move.fromExternalId === null && move.fromSource !== 'local') {
+      found.push({ source: move.fromSource, doubt: move.fromCreateUncertain });
+    }
+    return found;
+  };
+
+  /**
+   * Looks for the page of a create in doubt and removes it (#538, `TaskSourceAdapter.removeLanded`). Skipped for a
+   * source without that (Todoist), one that is disconnected, and when another task holds a doubt of the same title: its
+   * page could be that one's, and a page not identified as this task's is never archived. Throws while the create may
+   * still land or when the lookup or removal failed; the caller keeps the delete or move queued.
+   */
+  const settleCreateDoubt = async (source: SourceId, doubt: CreateUncertain, ownerId: string): Promise<void> => {
+    if (source === 'local' || isDisconnected(source)) return;
+    const adapter = adapterFor(source);
+    if (!adapter.removeLanded) return;
+    if (tasksStore.hasCompetingDoubt(source, doubt.title, ownerId)) return;
+    // A restore whose create is in doubt may own the page as well (#535)
+    if (useTrashStore().entries.some((item) => item.taskId !== ownerId && item.task.source === source && item.createUncertain?.title === doubt.title)) return;
+    await adapter.removeLanded(doubt, { claimedExternalIds: tasksStore.claimedPages(source) });
+  };
+
+  /** The sources a pending delete still has work at: its own page, its move origin, a create that may have landed (#543, #538). */
+  const sourcesOfDelete = (task: Task): SourceId[] => {
+    const sources = new Set<SourceId>();
+    if (task.source !== 'local' && task.externalId !== null) sources.add(task.source);
+    const origin = originToRemove(task);
+    if (origin) sources.add(origin.source);
+    for (const { source } of unsettledDoubts(task)) sources.add(source);
+    return [...sources];
   };
 
   /** The origin copy of a task with an outstanding move, as a task its adapter can remove; null when there is none. */
@@ -765,24 +814,30 @@ export const useTaskSync = () => {
     const pending = mapHelpers.get(tasksStore.pendingDeletes, taskId);
     if (!pending || deletesInFlight.has(taskId)) return 'skipped';
 
-    const origin = originToRemove(pending.task);
-    const hasUpstream = pending.task.source !== 'local' || origin !== null;
+    const hasUpstream = pending.task.source !== 'local' || originToRemove(pending.task) !== null;
     if (hasUpstream && typeof navigator !== 'undefined' && navigator.onLine === false) {
       tasksStore.markPendingDeleteQueued(taskId);
       return 'queued';
     }
     // A 429 limits the whole source (#543): the delete waits behind the pause like an offline one, without a request
-    if ((pending.task.source !== 'local' && isRateLimited(pending.task.source)) || (origin !== null && isRateLimited(origin.source))) {
+    if (sourcesOfDelete(pending.task).some((source) => isRateLimited(source))) {
       tasksStore.markPendingDeleteQueued(taskId);
       return 'queued';
     }
 
     deletesInFlight.add(taskId);
     try {
-      await deleteTaskUpstream(pending);
+      let current = pending;
+      for (let pass = 0; pass < 2; pass++) {
+        await deleteTaskUpstream(current);
+        // A fetch that ran meanwhile may have handed the page of a create in doubt to this delete (#538): that page goes too
+        const live = mapHelpers.get(tasksStore.pendingDeletes, taskId);
+        if (!live || (live.task.externalId === current.task.externalId && live.task.pendingMove?.fromExternalId === current.task.pendingMove?.fromExternalId)) break;
+        current = live;
+      }
     } catch (error) {
       if (!isAlreadyGone(error)) {
-        if (isDeleteNetworkFailure(error) || rateLimitOf(error) !== null) {
+        if (isDeleteNetworkFailure(error) || rateLimitOf(error) !== null || isDoubtNotSettled(error)) {
           tasksStore.markPendingDeleteQueued(taskId);
           return 'queued';
         }
@@ -826,15 +881,33 @@ export const useTaskSync = () => {
 
     let restored: Task;
     if (queued) {
-      // The source still holds the task: cancelling the queued delete is the whole upstream part
-      restored = base;
+      // The source still holds the task: cancelling the queued delete is the whole upstream part. A fetch may have
+      // handed the page of a create in doubt to the delete meanwhile (#538): the task takes that page back with it.
+      const { pendingSync: _held, pendingMove: _move, ...bare } = base;
+      restored = {
+        ...bare,
+        externalId: queued.task.externalId,
+        ...(queued.task.pendingSync ? { pendingSync: queued.task.pendingSync } : {}),
+        ...(queued.task.pendingMove ? { pendingMove: queued.task.pendingMove } : {}),
+      };
     } else if (base.source === 'local') {
       restored = await adapterFor('local').restore(base);
     } else {
       if (isDisconnected(base.source)) throw new Error(`${base.source} is not connected`);
       if (typeof navigator !== 'undefined' && navigator.onLine === false) throw new Error('Network error: you are offline');
       const { pendingSync: _sync, pendingMove: _move, ...clean } = base;
-      restored = await adapterFor(base.source).restore(clean);
+      // An earlier restore's create may have made the page (#535): the adapter looks for it before it creates
+      const attemptedAt = Date.now();
+      try {
+        restored = await adapterFor(base.source).restore(clean, {
+          claimedExternalIds: tasksStore.claimedPages(base.source),
+          ...(trashStore.entry(taskId)?.createUncertain ? { createUncertain: trashStore.entry(taskId)!.createUncertain } : {}),
+        });
+      } catch (error) {
+        // The entry stays in the trash; a create that may have landed is remembered on it (the same rule as a push)
+        if (createOutcomeUnknown(error)) trashStore.markCreateUncertain(taskId, attemptedAt, base.title || 'Untitled');
+        throw error;
+      }
     }
 
     // One synchronous step from here: nothing may interleave between the guard release and the board
@@ -977,6 +1050,25 @@ export const useTaskSync = () => {
           return 'queued';
         }
       }
+    }
+    // The origin page of a create that may have landed has no id to remove (#538): look it up and archive it
+    const doubt = task.pendingMove.fromCreateUncertain;
+    if (!origin && doubt && task.pendingMove.fromExternalId === null && task.pendingMove.fromSource !== 'local' && !isDisconnected(task.pendingMove.fromSource)) {
+      const fromSource = task.pendingMove.fromSource;
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) return 'queued';
+      if (isRateLimited(fromSource)) return 'queued';
+      try {
+        await settleCreateDoubt(fromSource, doubt, taskId);
+      } catch (error) {
+        if (!isCreateWaiting(error)) {
+          noteRateLimit(fromSource, error);
+          console.error(`[TaskSync] Could not settle the origin create of task ${taskId} yet:`, error);
+        }
+        return 'queued';
+      }
+      // A fetch that ran meanwhile handed the origin page to the move: it is archived like any origin page
+      const handedOver = tasksStore.task(taskId)?.pendingMove;
+      if (handedOver && handedOver.fromExternalId !== null) return removeMoveOrigin(taskId);
     }
     tasksStore.clearPendingMove(taskId);
     return 'committed';

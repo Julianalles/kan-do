@@ -100,6 +100,13 @@ function isCount(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0
 }
 
+/** A stored create doubt (#528) when it is well formed, else `undefined`; the input itself when it is already exact. */
+export function normalizeCreateUncertain(raw: unknown): CreateUncertain | undefined {
+  return isRecord(raw) && isCount(raw.since) && typeof raw.title === 'string' && (raw.at === undefined || isCount(raw.at))
+    ? raw as unknown as CreateUncertain
+    : undefined
+}
+
 /**
  * A stored `pendingSync` made valid; the input itself when it already is, `undefined` when there is
  * nothing to keep (not a record). Missing parts take their neutral value so a half-written marker still
@@ -112,10 +119,7 @@ export function normalizePendingSync(raw: unknown): PendingSync | undefined {
   const lastError = typeof raw.lastError === 'string' ? raw.lastError : null
   const upstreamDone = typeof raw.upstreamDone === 'boolean' ? raw.upstreamDone : undefined
   // #528: a malformed value reads as none, which only costs the lookup before the next create
-  const held = raw.createUncertain
-  const doubt = isRecord(held) && isCount(held.since) && typeof held.title === 'string' && (held.at === undefined || isCount(held.at))
-    ? held as unknown as CreateUncertain
-    : undefined
+  const doubt = normalizeCreateUncertain(raw.createUncertain)
   const exact = raw.since === since && raw.attempts === attempts && raw.lastError === lastError
     && raw.upstreamDone === upstreamDone && raw.createUncertain === doubt && (doubt === undefined || Object.keys(doubt).length === (doubt.at === undefined ? 2 : 3))
     && Object.keys(raw).length === 3 + (upstreamDone === undefined ? 0 : 1) + (doubt === undefined ? 0 : 1)
@@ -129,8 +133,18 @@ export function normalizePendingSync(raw: unknown): PendingSync | undefined {
 function normalizePendingMove(raw: unknown): PendingMove | undefined {
   if (!isRecord(raw) || !isSourceId(raw.fromSource) || !isSourceId(raw.toSource)) return undefined
   const fromExternalId = typeof raw.fromExternalId === 'string' ? raw.fromExternalId : null
-  const exact = raw.fromExternalId === fromExternalId && Object.keys(raw).length === 3
-  return exact ? (raw as unknown as PendingMove) : { fromSource: raw.fromSource, fromExternalId, toSource: raw.toSource }
+  const fromSourceNotPlanned = typeof raw.fromSourceNotPlanned === 'string' ? raw.fromSourceNotPlanned : undefined
+  // #538: the doubt of an origin create is kept only while the origin page has no id; a malformed value reads as none
+  const held = fromExternalId === null ? normalizeCreateUncertain(raw.fromCreateUncertain) : undefined
+  const doubt = held === undefined ? undefined : { since: held.since, ...(held.at === undefined ? {} : { at: held.at }), title: held.title }
+  const exact = raw.fromExternalId === fromExternalId && raw.fromSourceNotPlanned === fromSourceNotPlanned
+    && (doubt === undefined ? raw.fromCreateUncertain === undefined : (held === raw.fromCreateUncertain && Object.keys(held).length === Object.keys(doubt).length))
+    && Object.keys(raw).length === 3 + (fromSourceNotPlanned === undefined ? 0 : 1) + (doubt === undefined ? 0 : 1)
+  return exact ? (raw as unknown as PendingMove) : {
+    fromSource: raw.fromSource, fromExternalId, toSource: raw.toSource,
+    ...(fromSourceNotPlanned === undefined ? {} : { fromSourceNotPlanned }),
+    ...(doubt === undefined ? {} : { fromCreateUncertain: doubt }),
+  }
 }
 
 /**

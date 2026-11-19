@@ -6,7 +6,7 @@
  * fetches every connected source through its adapter. Adapters are thin wrappers: the integration classes
  * keep their behaviour. Adapters receive tasks, never ids: an integration is addressed by `externalIdOf(task)`.
  */
-import type { Task } from '~/types/task'
+import type { CreateUncertain, Task } from '~/types/task'
 import type { TaskStatus } from '~/types/taskStatus'
 import type { IntegrationHealth } from '~/types/integration'
 import type { SourceId } from '~/types/taskSource'
@@ -44,6 +44,12 @@ export interface FetchedTasks {
 export interface CreateContext {
   /** `externalId`s of the tasks the store already holds for this source: pages a lookup must not adopt. */
   claimedExternalIds: ReadonlySet<string>
+}
+
+/** What `restore` may need to know (#535): the creates it can make look for a page of an earlier doubtful one first. */
+export interface RestoreContext extends CreateContext {
+  /** An earlier restore's create of this task ended with an unknown outcome: the page may exist. */
+  createUncertain?: CreateUncertain
 }
 
 export interface TaskSourceAdapter {
@@ -111,6 +117,15 @@ export interface TaskSourceAdapter {
   create(draft: Partial<Task>, ctx?: CreateContext): Promise<Task>
 
   /**
+   * Settles a create with an unknown outcome of a task that is deleted or moved away (#538): looks for the page it may
+   * have made (the lookup of `create`, never a page in `ctx.claimedExternalIds`) and removes it. Resolves once nothing
+   * is left of the doubt (page removed, or nothing found and nothing can land any more). Rejects with
+   * `CreateWaitingError` while a late create may still land and with `CreateLookupError` when the lookup or the
+   * removal failed: the caller keeps the delete or the move queued. Only a source that can tell has it (Notion).
+   */
+  removeLanded?(doubt: CreateUncertain, ctx: CreateContext): Promise<void>
+
+  /**
    * Writes the task's current state upstream. `change.previousStatus` is the status the source held before
    * (Todoist completes, or reopens when it was `Done`; `useTaskSync` takes it from the task's `pendingSync.upstreamDone`
    * when there is one, so a replay after a restart reopens too, #344). Resolves to the task as the source now holds it (Notion), or
@@ -127,9 +142,11 @@ export interface TaskSourceAdapter {
    * (the app-level identity never changes), `externalId` as the source knows it now. The caller passes the
    * snapshot with the status it is restored with. Local: nothing upstream. Notion: un-archives the same page
    * and writes the snapshot, creating a new page when the old one is gone. Todoist: creates a new task
-   * (a new `externalId`; comments and other data kan-do never stored are not restored). Rejects on failure.
+   * (a new `externalId`; comments and other data kan-do never stored are not restored). Rejects on failure. A create
+   * that ends with an unknown outcome (#535) is the one failure `createOutcomeUnknown` says so for: `ctx.createUncertain`
+   * of a later restore makes a source that can tell look for the page first (Notion, through `create`).
    */
-  restore(task: Task): Promise<Task>
+  restore(task: Task, ctx?: RestoreContext): Promise<Task>
 
   /**
    * Whether archiving a task is a status write on the source's side (Notion with an archive status mapped, or

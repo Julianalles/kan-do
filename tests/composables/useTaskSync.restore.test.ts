@@ -9,7 +9,8 @@ import { setActivePinia, createPinia } from 'pinia'
 import { TaskStatus } from '~/types/taskStatus'
 import type { Task } from '~/types/task'
 import type { SourceId } from '~/types/taskSource'
-import type { TaskSourceAdapter } from '~/integrations/sources/types'
+import type { RestoreContext, TaskSourceAdapter } from '~/integrations/sources/types'
+import { CreateLookupError, CreateWaitingError } from '~/lib/integrationHealth'
 
 const handleErrorMock = vi.fn()
 vi.mock('~/composables/useErrorHandler', () => ({
@@ -30,7 +31,7 @@ function fakeAdapter(id: SourceId) {
     create: vi.fn(async (draft: Partial<Task>) => draft as Task),
     update: vi.fn(async (task: Task): Promise<Task | null> => { calls.push(`update:${id}:${task.externalId}:${task.status}`); return null }),
     remove: vi.fn(async (task: Task) => { calls.push(`remove:${id}:${task.externalId}`) }),
-    restore: vi.fn(async (task: Task): Promise<Task> => {
+    restore: vi.fn(async (task: Task, _ctx?: RestoreContext): Promise<Task> => {
       calls.push(`restore:${id}:${task.externalId}:${task.status}`)
       // Todoist re-creates under a new id, Notion un-archives the same page
       return id === 'todoist' ? { ...task, externalId: 'td-new' } : task
@@ -292,5 +293,87 @@ describe('useTaskSync: restoring from the trash (#422)', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  describe('a restore whose create is in doubt (#535)', () => {
+    const timeout = () => Object.assign(new Error('Network error'), { statusCode: 0 })
+    const T = 1_700_000_000_000
+    const notionGone = () => {
+      const page = makeTask({ id: 'n1', source: 'notion', title: 'Rückruf' })
+      tasksStore.setTasks([page])
+      trashed(page)
+      return page
+    }
+
+    beforeEach(() => { vi.spyOn(Date, 'now').mockReturnValue(T) })
+
+    it('a create that ends in doubt marks the entry; nothing changes on the board and the entry stays', async () => {
+      notionGone()
+      adapters.notion.restore.mockRejectedValueOnce(timeout())
+
+      await expect(useTaskSync().restoreTask(trash.entry('n1')!)).rejects.toThrow('Network error')
+
+      expect(trash.entry('n1')?.createUncertain).toEqual({ since: T, at: T, title: 'Rückruf' })
+      expect(tasksStore.task('n1')).toBeNull()
+    })
+
+    it('the next restore passes the doubt and the claimed pages to the adapter; success removes the entry with its doubt', async () => {
+      notionGone()
+      adapters.notion.restore.mockRejectedValueOnce(timeout())
+      await expect(useTaskSync().restoreTask(trash.entry('n1')!)).rejects.toThrow()
+      tasksStore.setTasks([makeTask({ id: 'other', source: 'notion' })])
+
+      await useTaskSync().restoreTask(trash.entry('n1')!)
+
+      const ctx = adapters.notion.restore.mock.calls[1]![1]!
+      expect(ctx.createUncertain).toEqual({ since: T, at: T, title: 'Rückruf' })
+      expect([...ctx.claimedExternalIds]).toContain('other')
+      expect(tasksStore.task('n1')).not.toBeNull()
+      expect(trash.entry('n1')).toBeUndefined()
+    })
+
+    it('a second doubtful attempt keeps the earliest start and moves the last one', async () => {
+      notionGone()
+      adapters.notion.restore.mockRejectedValue(timeout())
+      await expect(useTaskSync().restoreTask(trash.entry('n1')!)).rejects.toThrow()
+      vi.spyOn(Date, 'now').mockReturnValue(T + 5 * 60_000)
+      await expect(useTaskSync().restoreTask(trash.entry('n1')!)).rejects.toThrow()
+      expect(trash.entry('n1')?.createUncertain).toEqual({ since: T, at: T + 5 * 60_000, title: 'Rückruf' })
+    })
+
+    it('a failure that is no create in doubt (rejected, lookup failed, still waiting) writes nothing', async () => {
+      notionGone()
+      adapters.notion.restore.mockRejectedValueOnce(Object.assign(new Error('Bad request'), { statusCode: 400 }))
+      await expect(useTaskSync().restoreTask(trash.entry('n1')!)).rejects.toThrow()
+      adapters.notion.restore.mockRejectedValueOnce(new CreateLookupError(timeout()))
+      await expect(useTaskSync().restoreTask(trash.entry('n1')!)).rejects.toBeInstanceOf(CreateLookupError)
+      adapters.notion.restore.mockRejectedValueOnce(new CreateWaitingError())
+      await expect(useTaskSync().restoreTask(trash.entry('n1')!)).rejects.toBeInstanceOf(CreateWaitingError)
+      expect(trash.entry('n1')?.createUncertain).toBeUndefined()
+    })
+
+    it('a lookup failure leaves a stored doubt as it was', async () => {
+      notionGone()
+      adapters.notion.restore.mockRejectedValueOnce(timeout())
+      await expect(useTaskSync().restoreTask(trash.entry('n1')!)).rejects.toThrow()
+      adapters.notion.restore.mockRejectedValueOnce(new CreateLookupError(timeout()))
+      await expect(useTaskSync().restoreTask(trash.entry('n1')!)).rejects.toThrow()
+      expect(trash.entry('n1')?.createUncertain).toEqual({ since: T, at: T, title: 'Rückruf' })
+    })
+
+    it('a restore that works does not touch an entry: no doubt is written', async () => {
+      notionGone()
+      await useTaskSync().restoreTask(trash.entry('n1')!)
+      expect(trash.entry('n1')).toBeUndefined()
+    })
+
+    it('a fetch that brings the page in between adds it as a card; the entry stays (accepted trade-off of #535)', async () => {
+      notionGone()
+      adapters.notion.restore.mockRejectedValueOnce(timeout())
+      await expect(useTaskSync().restoreTask(trash.entry('n1')!)).rejects.toThrow()
+      tasksStore.mergeTasks('notion', [makeTask({ id: 'P', source: 'notion', title: 'Rückruf' })], { fetchStartedAt: T, pushing: () => false })
+      expect(tasksStore.task('P')).not.toBeNull()
+      expect(trash.entry('n1')?.createUncertain).toBeDefined()
+    })
   })
 })

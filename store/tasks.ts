@@ -1,6 +1,6 @@
 import { defineStore, acceptHMRUpdate  } from "pinia";
 import { ref, computed, type Ref } from "vue";
-import type { PendingSync, Task } from "@/types/task";
+import type { CreateUncertain, PendingSync, Task } from "@/types/task";
 import { TaskStatus } from "~/types/taskStatus";
 import { useBoardStore } from "./board";
 import { useToday } from "~/composables/useToday";
@@ -581,27 +581,89 @@ export const useTasksStore = defineStore("tasks", () => {
    * doubt, held by nothing else, the oldest first) to the oldest waiting task: it takes the page's id, drops the
    * doubt and keeps its marker, so the next push writes its current state onto the page. A task whose push is under
    * way is left alone (its create is in flight).
+   * The same goes for a task the user deleted or moved away while its create was in doubt (#538): a pending delete
+   * takes the page as its `externalId` (the commit then archives it, and the page stays out of the board through
+   * `deletedTaskIds`), a move takes it as `fromExternalId` (the origin removal archives it).
    */
   function adoptLandedPages(source: SourceId, fetched: readonly Task[], pushing?: (taskId: string) => boolean): void {
     if (source === 'local') return;
-    const waiting = tasks.value
-      .filter((el) => el.source === source && el.externalId === null && el.pendingSync?.createUncertain !== undefined && pushing?.(el.id) !== true)
-      .sort((x, y) => x.pendingSync!.createUncertain!.since - y.pendingSync!.createUncertain!.since);
-    if (waiting.length === 0) return;
+    interface Waiter { doubt: CreateUncertain; take: (id: string) => void }
+    const waiters: Waiter[] = [];
+    for (const el of tasks.value) {
+      const doubt = el.pendingSync?.createUncertain;
+      if (el.source === source && el.externalId === null && doubt !== undefined && pushing?.(el.id) !== true) {
+        waiters.push({
+          doubt,
+          take: (id) => {
+            const { createUncertain: _doubt, ...rest } = el.pendingSync!;
+            el.externalId = id;
+            el.pendingSync = rest;
+          },
+        });
+      }
+      const move = el.pendingMove;
+      if (move?.fromSource === source && move.fromExternalId === null && move.fromCreateUncertain !== undefined) {
+        waiters.push({
+          doubt: move.fromCreateUncertain,
+          take: (id) => {
+            const { fromCreateUncertain: _doubt, ...rest } = move;
+            el.pendingMove = { ...rest, fromExternalId: id };
+          },
+        });
+      }
+    }
+    for (const pending of Object.values(pendingDeletes.value)) {
+      const doubt = pending.task.pendingSync?.createUncertain;
+      if (pending.task.source === source && pending.task.externalId === null && doubt !== undefined) {
+        waiters.push({
+          doubt,
+          take: (id) => {
+            const current = mapHelpers.get(pendingDeletes.value, pending.taskId) ?? pending;
+            const { createUncertain: _doubt, ...rest } = current.task.pendingSync!;
+            mapHelpers.set(pendingDeletes.value, pending.taskId, { ...current, task: { ...current.task, externalId: id, pendingSync: rest } });
+            // A fetch must not add the page as a card while the delete is on its way
+            if (!deletedTaskIds.value.includes(id)) deletedTaskIds.value.push(id);
+          },
+        });
+      }
+      const move = pending.task.pendingMove;
+      if (move?.fromSource === source && move.fromExternalId === null && move.fromCreateUncertain !== undefined) {
+        waiters.push({
+          doubt: move.fromCreateUncertain,
+          take: (id) => {
+            const { fromCreateUncertain: _doubt, ...rest } = move;
+            const current = mapHelpers.get(pendingDeletes.value, pending.taskId) ?? pending;
+            mapHelpers.set(pendingDeletes.value, pending.taskId, { ...current, task: { ...current.task, pendingMove: { ...rest, fromExternalId: id } } });
+            if (!deletedTaskIds.value.includes(id)) deletedTaskIds.value.push(id);
+          },
+        });
+      }
+    }
+    if (waiters.length === 0) return;
+    waiters.sort((x, y) => x.doubt.since - y.doubt.since);
     const claimed = claimedPages(source);
     const free = fetched
       .map((page) => ({ page, id: page.externalId ?? page.id, createdAtMs: page.createdAt ? new Date(page.createdAt).getTime() : null }))
       .filter((entry) => !claimed.has(entry.id))
       .sort((x, y) => (x.createdAtMs ?? 0) - (y.createdAtMs ?? 0));
-    for (const waiter of waiting) {
-      const doubt = waiter.pendingSync!.createUncertain!;
-      const hit = free.findIndex((entry) => isLandedCandidate({ title: entry.page.title, createdAtMs: entry.createdAtMs }, doubt));
+    for (const waiter of waiters) {
+      const hit = free.findIndex((entry) => isLandedCandidate({ title: entry.page.title, createdAtMs: entry.createdAtMs }, waiter.doubt));
       if (hit < 0) continue;
-      const id = free.splice(hit, 1)[0]!.id;
-      const { createUncertain: _doubt, ...rest } = waiter.pendingSync!;
-      waiter.externalId = id;
-      waiter.pendingSync = rest;
+      waiter.take(free.splice(hit, 1)[0]!.id);
     }
+  }
+
+  /**
+   * Whether another task of `source` holds a create in doubt under `title` (#538): a card, a pending delete, a move
+   * origin. The page a lookup finds for such a title could be theirs, so a delete or move of one of them must not
+   * archive it.
+   */
+  function hasCompetingDoubt(source: SourceId, title: string, exceptTaskId: string): boolean {
+    const holds = (task: Task): boolean =>
+      (task.source === source && task.externalId === null && task.pendingSync?.createUncertain?.title === title)
+      || (task.pendingMove?.fromSource === source && task.pendingMove.fromCreateUncertain?.title === title);
+    return tasks.value.some((el) => el.id !== exceptTaskId && holds(el))
+      || Object.values(pendingDeletes.value).some((pending) => pending.taskId !== exceptTaskId && holds(pending.task));
   }
 
   /** A push of the task failed: counts the attempt and keeps the reason on the marker. */
@@ -636,10 +698,13 @@ export const useTasksStore = defineStore("tasks", () => {
     const moving = tasks.value.find((el) => el.id === taskId);
     if (!moving || moving.source === target || moving.pendingMove) return null;
     const previous = { pendingSync: moving.pendingSync };
+    // A create of the origin that may have landed (#538): the origin removal looks the page up
+    const originDoubt = moving.source !== 'local' && moving.externalId === null ? moving.pendingSync?.createUncertain : undefined;
     moving.pendingMove = {
       fromSource: moving.source,
       fromExternalId: moving.externalId,
       toSource: target,
+      ...(originDoubt !== undefined ? { fromCreateUncertain: originDoubt } : {}),
       ...(moving.sourceNotPlanned !== undefined ? { fromSourceNotPlanned: moving.sourceNotPlanned } : {}),
     };
     moving.source = target;
@@ -678,6 +743,10 @@ export const useTasksStore = defineStore("tasks", () => {
     const changedInWindow = heldChanged.delete(taskId);
     if (previous?.pendingSync) moved.pendingSync = previous.pendingSync;
     if (!previous || changedInWindow) markPendingSync(taskId);
+    // The origin page of a create in doubt may still land (#538): the marker takes the doubt back, so the next push looks first
+    if (move.fromCreateUncertain !== undefined && moved.externalId === null && moved.pendingSync && !moved.pendingSync.createUncertain) {
+      moved.pendingSync = { ...moved.pendingSync, createUncertain: move.fromCreateUncertain };
+    }
   }
 
   /**
@@ -1086,7 +1155,9 @@ export const useTasksStore = defineStore("tasks", () => {
       .filter((el) => el.source === source && (isSyncPending(el.id) || (!!el.timerId && el.status === TaskStatus.Progress)))
       .map((el) => el.id);
     const pendingDeleteIds = Object.values(pendingDeletes.value)
-      .filter((pending) => pending.task.source === source && pending.task.externalId !== null)
+      // A task never created at the source still has a delete to settle when its create may have landed (#538)
+      .filter((pending) => (pending.task.source === source && (pending.task.externalId !== null || pending.task.pendingSync?.createUncertain !== undefined))
+        || (pending.task.pendingMove?.fromSource === source && pending.task.pendingMove.fromCreateUncertain !== undefined))
       .map((pending) => pending.taskId);
     return { taskIds, pendingDeleteIds };
   }
@@ -1806,6 +1877,7 @@ export const useTasksStore = defineStore("tasks", () => {
     completeCreate,
     markCreateUncertain,
     claimedPages,
+    hasCompetingDoubt,
     reassignSource,
     restoreMoveOrigin,
     completeMoveCreate,
