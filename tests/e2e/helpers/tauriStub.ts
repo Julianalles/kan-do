@@ -38,6 +38,13 @@
  * (the arguments stay in `calls`), `overlay_ready` answers `window.__overlaySnapshot`; `emitTauriEvent` plays `overlay://state`
  * (to the pill) and `overlay://action` (to the main window).
  *
+ * The `reminders_*` commands mirror `src-tauri/src/reminders.rs` (#550, ADR 022): a configurable list set and reminders
+ * (`reminders`), the access status and the answer to the prompt (`status`, `answer`; only `reminders_request_access`
+ * prompts, `prompts` counts it), compare-and-set for `reminders_set_due` (`changed` for a moved date, `not-read` for a
+ * list outside `allowedListIds`), a recurring reminder that moves to `nextDue` (or ends, `seriesEnds`) when ticked, and
+ * every call recorded in `calls`. Errors reject with the bare kebab string like Tauri does for the Rust enum. A test
+ * plays the user's change in Reminders with `setReminderDue`, flips the permission with `setRemindersStatus`.
+ *
  * The page-side state lives on `window.__tauriStub`; tests read `calls` and flip `githubMode` /
  * `keychainError` through `page.evaluate`. It is mirrored into sessionStorage so a reload keeps it.
  */
@@ -171,7 +178,59 @@ export interface UpdateStubOptions {
   installHangs?: boolean
 }
 
+export type RemindersAccess = 'notDetermined' | 'granted' | 'denied' | 'restricted' | 'writeOnly'
+
+export interface RemindersListStub {
+  id: string
+  title: string
+  color?: string | null
+  /** Default true. */
+  allowsWrites?: boolean
+}
+
+export interface RemindersDueStub {
+  /** `YYYY-MM-DD` */
+  date: string
+  /** `HH:mm`, default none. */
+  time?: string | null
+}
+
+export interface ReminderStub {
+  id: string
+  listId: string
+  title: string
+  notes?: string
+  completed?: boolean
+  /** Epoch ms. */
+  completedAt?: number | null
+  due?: RemindersDueStub | null
+  recurrence?: { rule: string } | null
+  /** Recurring: ticking it moves the reminder here and leaves it open (Reminders' behaviour, unverified until the Mac check). */
+  nextDue?: RemindersDueStub | null
+  /** Recurring: ticking it ends the series (completed, no further date). */
+  seriesEnds?: boolean
+}
+
+export interface RemindersStubOptions {
+  /** Default `notDetermined` (a fresh install). */
+  status?: RemindersAccess
+  /** What the prompt answers (`reminders_request_access`); default `granted`. */
+  answer?: RemindersAccess
+  lists?: RemindersListStub[]
+  reminders?: ReminderStub[]
+}
+
+export interface RemindersStubState {
+  status: RemindersAccess
+  answer: RemindersAccess
+  lists: RemindersListStub[]
+  reminders: ReminderStub[]
+  /** How often the (fake) macOS prompt was shown. */
+  prompts: number
+}
+
 export interface TauriStubOptions {
+  reminders?: RemindersStubOptions
   data?: DataStubOptions
   update?: UpdateStubOptions
   /** Keychain content at start, by account name. */
@@ -204,6 +263,7 @@ export interface TauriStubState {
   clipboardFails: boolean
   calls: Array<{ cmd: string; args: Record<string, unknown> }>
   openedUrls: string[]
+  reminders: RemindersStubState
   data: DataStubState
 }
 
@@ -235,6 +295,13 @@ export async function installTauriStub(context: BrowserContext, options: TauriSt
           clipboardFails: false,
           calls: [],
           openedUrls: [],
+          reminders: {
+            status: opts.reminders?.status ?? 'notDetermined',
+            answer: opts.reminders?.answer ?? 'granted',
+            lists: opts.reminders?.lists ?? [],
+            reminders: opts.reminders?.reminders ?? [],
+            prompts: 0,
+          },
           data: {
             configured: opts.data?.envelope !== undefined,
             status: opts.data?.status ?? 'ok',
@@ -403,6 +470,93 @@ export async function installTauriStub(context: BrowserContext, options: TauriSt
         }
         const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, 'image/png'))
         return blob!.arrayBuffer()
+      }
+      // Apple Reminders (#550): mirrors `src-tauri/src/reminders.rs`; errors are the bare kebab string Rust's enum serializes to.
+      if (cmd.startsWith('reminders_')) {
+        const rem = state.reminders
+        const reject = (kind: string) => Promise.reject(kind)
+        const sameDue = (a: string | null, b: string | null) => a === b
+        const dateOf = (r: ReminderStub) => r.due?.date ?? null
+        const isDate = (value: unknown) => value === null || value === undefined || (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value))
+        const dueOf = (r: ReminderStub) => (r.due ? { date: r.due.date, time: r.due.time ?? null } : null)
+        const record = (r: ReminderStub) => ({
+          id: r.id,
+          listId: r.listId,
+          title: r.title,
+          notes: r.notes ?? '',
+          completed: !!r.completed,
+          completedAt: r.completedAt ?? null,
+          due: dueOf(r),
+          recurrence: r.recurrence ?? null,
+        })
+        if (cmd === 'reminders_access_status') return rem.status
+        if (cmd === 'reminders_request_access') {
+          if (rem.status === 'notDetermined') {
+            rem.prompts += 1
+            rem.status = rem.answer
+            persist()
+          }
+          return rem.status
+        }
+        if (cmd === 'reminders_open_settings') {
+          state.openedUrls.push('x-apple.systempreferences:com.apple.preference.security?Privacy_Reminders')
+          persist()
+          return null
+        }
+        if (rem.status !== 'granted') return reject('access-denied')
+        if (cmd === 'reminders_lists') {
+          return rem.lists.map(list => ({
+            id: list.id,
+            title: list.title,
+            color: list.color ?? null,
+            openCount: rem.reminders.filter(r => r.listId === list.id && !r.completed).length,
+            allowsWrites: list.allowsWrites ?? true,
+          }))
+        }
+        if (cmd === 'reminders_fetch') {
+          const wanted = [...new Set((args.listIds as string[] | undefined) ?? [])]
+          const since = Number(args.completedSince ?? 0)
+          const known = wanted.filter(id => rem.lists.some(list => list.id === id))
+          return {
+            reminders: rem.reminders
+              .filter(r => known.includes(r.listId) && (!r.completed || (r.completedAt ?? 0) >= since))
+              .map(record),
+            missingListIds: wanted.filter(id => !known.includes(id)),
+          }
+        }
+        const target = rem.reminders.find(r => r.id === args.id)
+        const allowed = (args.allowedListIds as string[] | undefined) ?? []
+        if (cmd === 'reminders_set_due') {
+          if (!isDate(args.expectedDate) || !isDate(args.date)) return reject('invalid-request')
+          if (!target) return reject('not-found')
+          if (!allowed.includes(target.listId)) return reject('not-read')
+          const next = (args.date as string | null | undefined) ?? null
+          if (sameDue(dateOf(target), next)) return dueOf(target)
+          if (!sameDue(dateOf(target), (args.expectedDate as string | null | undefined) ?? null)) return reject('changed')
+          // Year, month and day only: a time stays.
+          target.due = next === null ? null : { date: next, time: target.due?.time ?? null }
+          persist()
+          return dueOf(target)
+        }
+        if (cmd === 'reminders_set_completed') {
+          if (!isDate(args.occurrenceDate)) return reject('invalid-request')
+          if (!target) return reject('not-found')
+          if (!allowed.includes(target.listId)) return reject('not-read')
+          const completed = !!args.completed
+          if (!!target.completed === completed) return { completed, due: dueOf(target) }
+          const occurrence = (args.occurrenceDate as string | null | undefined) ?? null
+          if (target.recurrence && !sameDue(dateOf(target), occurrence)) return reject('changed')
+          if (completed && target.recurrence && target.nextDue) {
+            target.due = target.nextDue
+            target.nextDue = null
+          } else {
+            target.completed = completed
+            target.completedAt = completed ? Date.now() : null
+          }
+          persist()
+          return { completed: !!target.completed, due: dueOf(target) }
+        }
+        return reject('failed')
       }
       if (cmd === 'log_reveal') return null
       // Native menu bar (#614): the labels the app sent stay in `calls`.
@@ -826,6 +980,30 @@ export async function githubCalls(page: Page, filter: GithubCallFilter = {}): Pr
     (accessCheck || !isAccessCheck(call))
     && (method === undefined || call.method.toUpperCase() === method.toUpperCase())
     && (path === undefined || (typeof path === 'string' ? call.path.endsWith(path) : path.test(call.path))))
+}
+
+/** Flips the Reminders permission, as the user does in System Settings (#550). */
+export async function setRemindersStatus(page: Page, status: RemindersAccess): Promise<void> {
+  await page.evaluate((value) => {
+    const stub = (window as unknown as { __tauriStub: { reminders: RemindersStubState } }).__tauriStub
+    // Assigned through the proxy so the change reaches sessionStorage.
+    stub.reminders = { ...stub.reminders, status: value as RemindersAccess }
+  }, status)
+}
+
+/** Plays the user changing a reminder's due date in Reminders itself (`null` clears it); the time stays (#550). */
+export async function setReminderDue(page: Page, id: string, date: string | null): Promise<void> {
+  await page.evaluate(({ id: reminderId, date: value }) => {
+    const stub = (window as unknown as { __tauriStub: { reminders: RemindersStubState } }).__tauriStub
+    if (!stub.reminders.reminders.some(r => r.id === reminderId)) throw new Error(`no stub reminder ${reminderId}`)
+    // Assigned through the proxy so the change reaches sessionStorage.
+    stub.reminders = {
+      ...stub.reminders,
+      reminders: stub.reminders.reminders.map(r => r.id === reminderId
+        ? { ...r, due: value === null ? null : { date: value, time: r.due?.time ?? null } }
+        : r),
+    }
+  }, { id, date })
 }
 
 /** Marks an entry as rejected, as after a 401 earlier in the session. */

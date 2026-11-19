@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<!--
+  Merged into the bundle's Info.plist by the Tauri bundler and embedded into the debug binary by tauri-build, so
+  `tauri dev` has it too (#550, ADR 022).
+  Apple Reminders (epic #481): macOS shows the usage string in the Reminders permission prompt, in the system
+  language. These plain strings are the English text and the fallback; the German text comes through
+  resources/de.lproj/InfoPlist.strings (bundle.macOS.files in tauri.conf.json), which macOS reads when
+  CFBundleLocalizations lists `de`. The text promises exactly what slice 4 writes: the due date, nothing else.
+  NSRemindersFullAccessUsageString is read on macOS 14 and later, NSRemindersUsageDescription on older systems.
+-->
+<dict>
+  <key>NSRemindersFullAccessUsageString</key>
+  <string>Kan-Do reads your Reminders, shows today's on the board and sets the date when you plan something for today.</string>
+  <key>NSRemindersUsageDescription</key>
+  <string>Kan-Do reads your Reminders, shows today's on the board and sets the date when you plan something for today.</string>
+  <key>CFBundleLocalizations</key>
+  <array>
+    <string>en</string>
+    <string>de</string>
+  </array>
+</dict>
+</plist>

@@ -12,7 +12,7 @@ import { compareSemver } from '../../scripts/release/version.mjs'
 const root = resolve(__dirname, '../..')
 const read = (relative: string) => readFileSync(resolve(root, relative), 'utf8')
 const conf = JSON.parse(read('src-tauri/tauri.conf.json')) as {
-  bundle: { macOS: { signingIdentity?: string, hardenedRuntime?: boolean, entitlements?: string } }
+  bundle: { macOS: { signingIdentity?: string, hardenedRuntime?: boolean, entitlements?: string, files?: Record<string, string> } }
 }
 const workflow = read('.github/workflows/release.yml')
 
@@ -43,10 +43,30 @@ describe('tauri.conf.json bundle.macOS', () => {
     expect(existsSync(resolve(root, 'src-tauri', entitlements!))).toBe(true)
   })
 
-  it('assumes no JIT or other entitlement without evidence (ADR 013)', () => {
+  it('assumes no JIT or other entitlement without evidence (ADR 013); the one key is the EventKit resource entitlement (ADR 022)', () => {
     const plist = read('src-tauri/entitlements.plist').replace(/<!--[\s\S]*?-->/g, '')
-    expect(plist).toContain('<dict/>')
-    expect(plist).not.toContain('com.apple.security')
+    const keys = [...plist.matchAll(/<key>([^<]+)<\/key>/g)].map(match => match[1])
+    expect(keys).toEqual(['com.apple.security.personal-information.calendars'])
+    expect(plist).toMatch(/<key>com\.apple\.security\.personal-information\.calendars<\/key>\s*<true\/>/)
+    expect(plist).not.toContain('cs.allow')
+  })
+})
+
+describe('Reminders usage strings (#550, ADR 022)', () => {
+  const infoPlist = read('src-tauri/Info.plist').replace(/<!--[\s\S]*?-->/g, '')
+  const german = read('src-tauri/resources/de.lproj/InfoPlist.strings')
+  const KEYS = ['NSRemindersFullAccessUsageString', 'NSRemindersUsageDescription']
+
+  it('holds the English text under the macOS 14 key and the legacy key, and lists both languages', () => {
+    for (const key of KEYS) expect(infoPlist).toMatch(new RegExp(`<key>${key}</key>\\s*<string>Kan-Do reads your Reminders[^<]+</string>`))
+    expect(infoPlist).toMatch(/<key>CFBundleLocalizations<\/key>\s*<array>\s*<string>en<\/string>\s*<string>de<\/string>/)
+  })
+
+  it('ships the German text as de.lproj/InfoPlist.strings through bundle.macOS.files', () => {
+    for (const key of KEYS) expect(german).toMatch(new RegExp(`"${key}" = "Kan-Do liest deine Erinnerungen[^"]+";`))
+    const source = conf.bundle.macOS.files?.['Resources/de.lproj/InfoPlist.strings']
+    expect(source).toBeTruthy()
+    expect(existsSync(resolve(root, 'src-tauri', source!))).toBe(true)
   })
 })
 

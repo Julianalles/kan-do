@@ -32,6 +32,9 @@
         },
         {
           "url": "https://github.com/jaylouiz/kan-do/issues/new*"
+        },
+        {
+          "url": "x-apple.systempreferences:com.apple.preference.security?Privacy_Reminders"
         }
       ]
     }

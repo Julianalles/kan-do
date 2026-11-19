@@ -342,6 +342,7 @@
         "lib/windowDrag.ts",
         "lib/nativeContextMenu.ts",
         "lib/nativeShortcuts.ts",
+        "lib/reminders.ts",
         "composables/useNativeMenu.ts",
         "plugins/desktop-shell.client.ts"
       ],
