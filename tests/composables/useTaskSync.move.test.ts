@@ -425,6 +425,31 @@ describe('useTaskSync: committing a move (#322)', () => {
       expect(calls.sort()).toEqual(['remove:notion:page-1', 'remove:todoist:todoist-page-1'])
     })
 
+    it('own page and origin: an origin held by a create in flight archives neither page (a re-send would archive twice, #578)', async () => {
+      tasksStore.setTasks([makeTask({ id: 'n1', source: 'notion', externalId: 'page-1' })])
+      adapters.notion.remove.mockRejectedValueOnce(networkError())
+      const { commitTaskMove, deleteTaskUpstream, createTask } = useTaskSync()
+      move('n1', 'todoist')
+      closeWindow('n1')
+      await commitTaskMove('n1')
+      const snapshot = { ...tasksStore.task('n1')! }
+      tasksStore.removeTask('n1')
+      let release: () => void = () => {}
+      adapters.notion.create.mockImplementationOnce(async (draft) => {
+        await new Promise<void>((resolve) => { release = resolve })
+        return { ...(draft as Task), id: 'made', source: 'notion', externalId: 'made' }
+      })
+      const adding = createTask({ title: 'Neu' }, 'notion')
+      await vi.waitFor(() => expect(adapters.notion.create).toHaveBeenCalled())
+      calls.length = 0
+
+      await expect(deleteTaskUpstream({ taskId: 'n1', task: snapshot, carryOver: null, state: 'waiting', requestedAt: 0 })).rejects.toThrow()
+
+      expect(calls).toEqual([])
+      release()
+      await adding
+    })
+
     it('a delete inside the window, then a fetch of the origin, does not bring the task back', () => {
       tasksStore.setTasks([makeTask({ id: 'n1', source: 'notion', externalId: 'page-1' })])
       move('n1', 'local')

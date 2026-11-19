@@ -8,6 +8,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { TaskStatus } from '~/types/taskStatus'
+import { mapHelpers } from '~/utils/mapHelpers'
 import type { Task } from '~/types/task'
 
 const handleErrorMock = vi.fn()
@@ -112,7 +113,7 @@ describe('removing the stray card a fetch made of an in-flight create\'s page (#
     await expect(sync.commitTaskDelete('P')).resolves.toBe('committed')
 
     expect(notion.archiveTask).not.toHaveBeenCalled()
-    expect(tasksStore.pendingDeletes.P).toBeUndefined()
+    expect(mapHelpers.get(tasksStore.pendingDeletes, 'P')).toBeUndefined()
     expect(tasksStore.task('local_w')).toMatchObject({ externalId: 'P' })
     // The page left the deleted ids with the skipped removal: a later fetch still reaches the waiting task
     expect(tasksStore.deletedTaskIds).not.toContain('P')
@@ -127,7 +128,7 @@ describe('removing the stray card a fetch made of an in-flight create\'s page (#
     await expect(sync.commitTaskDelete('P')).resolves.toBe('queued')
     expect(notion.archiveTask).not.toHaveBeenCalled()
     expect(handleErrorMock).not.toHaveBeenCalled()
-    expect(tasksStore.pendingDeletes.P?.state).toBe('queued')
+    expect(mapHelpers.get(tasksStore.pendingDeletes, 'P')?.state).toBe('queued')
 
     release()
     await running
@@ -202,6 +203,55 @@ describe('removing the stray card a fetch made of an in-flight create\'s page (#
     expect(tasksStore.deletedTaskIds).not.toContain('P')
   })
 
+  /** A focus fetch while the held removal waits for the next flush: P is still in the deleted ids / moved-away pages */
+  const fetchP = () => tasksStore.mergeTasks('notion', [notionPage('P', { ...draft, title: 'Rückruf (Notion)' })], { fetchStartedAt: Date.now(), pushing: sync.isPushing })
+
+  it('fetches that land between the write and the held delete\'s commit keep the waiter on the board', async () => {
+    const { running } = await strayWhileCreateInFlight()
+    deleteStray()
+    await expect(sync.commitTaskDelete('P')).resolves.toBe('queued')
+
+    release()
+    await running
+    fetchP()
+    fetchP()
+    expect(tasksStore.tasks.map((t) => [t.id, t.externalId])).toEqual([['local_w', 'P']])
+
+    await expect(sync.commitTaskDelete('P')).resolves.toBe('committed')
+
+    expect(notion.archiveTask).not.toHaveBeenCalled()
+    expect(tasksStore.tasks.map((t) => [t.id, t.externalId])).toEqual([['local_w', 'P']])
+  })
+
+  it('fetches that land between the write and the held move origin\'s removal keep the waiter on the board', async () => {
+    const { running } = await strayWhileCreateInFlight()
+    tasksStore.reassignSource('P', 'local')
+    await expect(sync.commitTaskMove('P')).resolves.toBe('queued')
+
+    release()
+    await running
+    fetchP()
+    fetchP()
+    expect(tasksStore.tasks.map((t) => [t.id, t.source, t.externalId]).sort()).toEqual([['P', 'local', null], ['local_w', 'notion', 'P']])
+
+    await expect(sync.commitTaskMove('P')).resolves.toBe('committed')
+
+    expect(notion.archiveTask).not.toHaveBeenCalled()
+    expect(tasksStore.task('local_w')).toMatchObject({ source: 'notion', externalId: 'P' })
+  })
+
+  it('a page no live card holds stays skipped as deleted by a fetch (the user\'s delete is not undone)', async () => {
+    tasksStore.addTask(notionPage('Q', { title: 'Anderes' }))
+    const card = tasksStore.task('Q')!
+    tasksStore.removeTask('Q')
+    tasksStore.addPendingDelete({ taskId: 'Q', task: card, carryOver: null, state: 'waiting', requestedAt: Date.now() })
+    sync = useTaskSync()
+
+    tasksStore.mergeTasks('notion', [notionPage('Q', { title: 'Anderes' })], { fetchStartedAt: Date.now(), pushing: sync.isPushing })
+
+    expect(tasksStore.tasks).toEqual([])
+  })
+
   it('an ordinary delete (no write in flight, no other card holds the page) archives the page as before', async () => {
     tasksStore.addTask(notionPage('Q', { title: 'Anderes' }))
     const card = tasksStore.task('Q')!
@@ -210,6 +260,19 @@ describe('removing the stray card a fetch made of an in-flight create\'s page (#
 
     await expect(useTaskSync().commitTaskDelete('Q')).resolves.toBe('committed')
 
+    expect(notion.archiveTask).toHaveBeenCalledWith('Q')
+  })
+
+  it('a throw in the settle step of a create frees the removals too (the counter is released in a finally)', async () => {
+    sync = useTaskSync()
+    vi.spyOn(tasksStore, 'addTask').mockImplementationOnce(() => { throw new Error('settle failed') })
+    await expect(sync.createTask(draft, 'notion')).rejects.toThrow('settle failed')
+    tasksStore.addTask(notionPage('Q', { title: 'Anderes' }))
+    const card = tasksStore.task('Q')!
+    tasksStore.removeTask('Q')
+    tasksStore.addPendingDelete({ taskId: 'Q', task: card, carryOver: null, state: 'waiting', requestedAt: Date.now() })
+
+    await expect(sync.commitTaskDelete('Q')).resolves.toBe('committed')
     expect(notion.archiveTask).toHaveBeenCalledWith('Q')
   })
 

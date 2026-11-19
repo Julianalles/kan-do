@@ -1417,12 +1417,16 @@ export const useTasksStore = defineStore("tasks", () => {
     const mergedTasks: Task[] = [];
     fetchedTasks.forEach(fetchedFrom => {
       const fetchedTask: Task = { ...fetchedFrom, source, externalId: source === 'local' ? null : (fetchedFrom.externalId ?? fetchedFrom.id) };
-      if (fetchedTask.externalId !== null && movedAwayPages.has(fetchedTask.externalId)) return;
       const existingTask = existingBySourceKey.get(keyOf(fetchedTask));
+      // A page a live card of this source holds is that card's own (#578): the waiting task of a write that stored the
+      // page a fetch had made a stray card of (#555). The page is still in the removed stray card's deleted id or
+      // move origin until a held removal commits, and skipping it meanwhile would drop the card from the board
+      const heldByLiveCard = source !== 'local' && existingTask !== undefined && existingTask.externalId === fetchedTask.externalId;
+      if (!heldByLiveCard && fetchedTask.externalId !== null && movedAwayPages.has(fetchedTask.externalId)) return;
       const resolvedId = existingTask?.id ?? fetchedTask.id;
 
       // Skip tasks that were deleted locally
-      if ([resolvedId, fetchedTask.id, fetchedTask.externalId].some(candidate => candidate !== null && deletedTaskIds.value.includes(candidate))) {
+      if (!heldByLiveCard && [resolvedId, fetchedTask.id, fetchedTask.externalId].some(candidate => candidate !== null && deletedTaskIds.value.includes(candidate))) {
         console.log(`Skipping deleted task ${resolvedId} during merge`);
         return;
       }
