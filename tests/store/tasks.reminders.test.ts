@@ -95,3 +95,51 @@ describe('mergeTasks of a Reminders task (#551)', () => {
     expect(store.tasks.map(t => t.id).sort()).toEqual(['b', 'l'])
   })
 })
+
+describe('dropSourceTasks: a Reminders list switched to Aus (#552)', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  const inList = (listId: string) => (task: Task) => task.reminders?.listId === listId
+
+  it('takes only that list\'s tasks off the board and leaves other lists, other sources and the source itself alone', () => {
+    const store = useTasksStore()
+    store.mergeTasks('reminders', [
+      reminder('a'),
+      reminder('b', { reminders: { due: null, recurrence: null, listId: 'L2' } }),
+      reminder('c', { status: TaskStatus.Done, completedAt: new Date() }),
+    ], REMINDERS)
+    store.mergeTasks('local', [{ ...reminder('l'), source: 'local', externalId: null, reminders: undefined }])
+
+    expect(store.dropSourceTasks('reminders', inList('L1')).sort()).toEqual(['a', 'c'])
+
+    expect(store.tasks.map(t => t.id).sort()).toEqual(['b', 'l'])
+  })
+
+  it('is not a delete: the tasks are not remembered as deleted, so the list switched on again brings them back', () => {
+    const store = useTasksStore()
+    store.mergeTasks('reminders', [reminder('a')], REMINDERS)
+    store.dropSourceTasks('reminders', inList('L1'))
+    expect(store.deletedTaskIds).toEqual([])
+
+    store.mergeTasks('reminders', [reminder('a')], REMINDERS)
+    expect(store.tasks.map(t => t.id)).toEqual(['a'])
+  })
+
+  it('forgets what hangs on the task: its archive entry, and nothing is queued for it', () => {
+    const store = useTasksStore()
+    store.mergeTasks('reminders', [reminder('a'), reminder('b')], REMINDERS)
+    store.archiveTasks(['a'])
+
+    store.dropSourceTasks('reminders', inList('L1'))
+
+    expect(store.archivedTaskIds).toEqual([])
+    expect(store.tasks).toEqual([])
+  })
+
+  it('answers an empty list when nothing matches', () => {
+    const store = useTasksStore()
+    store.mergeTasks('reminders', [reminder('a')], REMINDERS)
+    expect(store.dropSourceTasks('reminders', inList('L9'))).toEqual([])
+    expect(store.tasks).toHaveLength(1)
+  })
+})

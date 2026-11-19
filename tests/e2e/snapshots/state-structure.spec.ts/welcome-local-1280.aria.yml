@@ -4,6 +4,8 @@
   - paragraph: Jetzt oder später kannst du Apps verbinden, in denen du deine Aufgaben organisierst. Du kannst kan-do auch nur mit lokalem Speicher auf deinem Gerät nutzen.
   - group "Du kannst eine oder mehrere verbinden":
     - text: ""
+    - checkbox "Erinnerungen (nur in der Mac-App)" [disabled]
+    - text: Erinnerungen (nur in der Mac-App)
     - checkbox "Notion"
     - text: Notion
     - checkbox "Todoist (Bald verfübar)" [disabled]

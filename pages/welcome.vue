@@ -1,10 +1,10 @@
 <!--
 @component WelcomePage
-@description Willkommensseite (#294): ein Start mit einer gefüllten Schaltfläche („Loslegen“) und dem Ausprobieren mit Beispielaufgaben als leiser zweiter Weg (#236); Schritt 2 sagt „lokal ist immer dabei“ und bietet Notion (und Todoist, später) als Checkliste an
+@description Willkommensseite (#294): ein Start mit einer gefüllten Schaltfläche („Loslegen“) und dem Ausprobieren mit Beispielaufgaben als leiser zweiter Weg (#236); Schritt 2 sagt „lokal ist immer dabei“ und bietet Erinnerungen (nur Mac-App, #552), Notion (und Todoist, später) als Checkliste an
 @usage Einstiegspunkt für neue Nutzer unter /welcome
 @responsibility
 - Startansicht: Wortmarke „kan-do“ mit Subline (`Subline`) als Seitenkopf über dem Bogen, direkt auf dem Foto, linksbündig mit dem Inhalt des Bogens (gleiche Innenabstände; im Notion-Setup folgt der Kopf dem breiteren Bogen, beide teilen einen Spaltenrahmen); der Bogen hat die kleinere Überschrift (22 px), die Einleitung, einen zweiten Absatz „Du bist erst einmal nur neugierig? …“, „Jetzt starten“ (die einzige gefüllte Schaltfläche, The One Lamp Rule) und „Beispiel anzeigen“ (soft) ab 640 px nebeneinander, darunter gestapelt (#437)
-- „Loslegen“ öffnet Schritt 2 (LocalSetupFlow, kein Dialog, #43): Notion als Checkbox, Todoist deaktiviert „(kommt später)“; ohne Haken endet er mit Lokal als einziger Verbindung und Standard, mit Haken startet er das Notion-Setup auf dieser Seite (Schienen-Führung, Schritte des WizardController), das mit Notion als verbundener Verbindung und Standard endet; Zurück aus dem Notion-Setup führt zu Schritt 2, der Haken bleibt
+- „Loslegen“ öffnet Schritt 2 (LocalSetupFlow, kein Dialog, #43): Erinnerungen (in der Web-Version deaktiviert „(nur in der Mac-App)“) und Notion als Checkboxen, Todoist deaktiviert „(kommt später)“; ohne Haken endet er mit Lokal als einziger Verbindung und Standard, mit Haken startet er das Erinnerungen-Setup (RemindersSetupFlow, drei Schritte Zugriff, Listen, Heute, #552) und/oder das Notion-Setup auf dieser Seite (Schienen-Führung, Schritte des WizardController). Erinnerungen allein endet mit Lokal als Standard und Erinnerungen verbunden (nie Standard); sind beide gesetzt, läuft Erinnerungen zuerst (Verbinden-Knopf „Weiter zu Notion“, Erinnerungen ist dann schon verbunden), dann Notion, und das Board öffnet gemischt mit Notion als Standard. Zurück aus einem Setup führt zu Schritt 2, die Haken bleiben
 - „Beispiel anzeigen“ öffnet einen eigenen Schritt 2: er sagt, dass ein Zurücksetzen unter Einstellungen › Daten & Speicher Beispiele und Statistik entfernt; „Board ansehen“ endet wie das lokale Setup
 - Der Weg zum Board ist ein Vorhang (#463): die ganze Seite (Foto, Wortmarke, Bogen) gleitet 1,3 s nach oben und blendet dabei aus, mit weichem unterem Rand (Maske), über dem schon fertigen Board (`.welcome-root`, transitions.css): das Board liegt in seinem Endlayout darunter, nichts springt danach; die fliegende Wortmarke lässt die Überschrift des Bogens kurz ausblenden (`data-brand-flying`); reduzierte Bewegung: sofort
 - Startansicht und Setup tauschen als ein Block (eine Transition, Höhe per WAAPI, Breite per CSS); der Tausch gleitet seitwärts (vor: alt nach links hinaus, neu von rechts herein; zurück gespiegelt, 260 ms, #236); reduzierte Bewegung: sofort
@@ -44,7 +44,7 @@
          sheet's left edge. The brand sits on the photo's bright wall, not on a plate (#437). -->
     <div
       class="welcome-column relative mt-24 w-full transition-[max-width] duration-(--duration-slow) ease-out motion-reduce:transition-none"
-      :class="flow === 'notion' ? 'sm:max-w-3xl' : 'sm:max-w-lg'"
+      :class="flow === 'notion' || flow === 'reminders' ? 'sm:max-w-3xl' : 'sm:max-w-lg'"
     >
       <header class="mb-4 px-6 sm:mb-5 sm:px-8">
         <SectionHeader ref="brand" tag="p" size="hero" data-testid="welcome-brand">{{ t('nav.brand') }}</SectionHeader>
@@ -59,7 +59,9 @@
             <LocalSetupFlow
               v-if="flow === 'local'"
               v-model:notion="wantNotion"
+              v-model:reminders="wantReminders"
               @back="leaveFlow"
+              @connect-reminders="openFlow('reminders')"
               @connect-notion="openFlow('notion')"
               @complete="handleLocalSetupComplete"
             />
@@ -67,6 +69,12 @@
               v-else-if="flow === 'samples'"
               @back="leaveFlow"
               @complete="handleLocalSetupComplete"
+            />
+            <RemindersSetupFlow
+              v-else-if="flow === 'reminders'"
+              :also-notion="wantNotion"
+              @back="leaveFlow"
+              @complete="handleRemindersSetupComplete"
             />
             <NotionSetupFlow
               v-else-if="flow === 'notion'"
@@ -111,19 +119,18 @@ import { useI18n } from 'vue-i18n';
 import LocalSetupFlow from '~/components/setup/LocalSetupFlow.vue';
 import SamplesSetupFlow from '~/components/setup/SamplesSetupFlow.vue';
 import NotionSetupFlow from '~/components/setup/NotionSetupFlow.vue';
+import RemindersSetupFlow from '~/components/setup/RemindersSetupFlow.vue';
 import DataStorageNotice from '~/components/settings/DataStorageNotice.vue';
-import { useBoardStore } from '~/store/board';
-import { useTasksStore } from '~/store/tasks';
 import { useIntegrationManager } from '~/composables/useIntegrationManager';
+import { useFirstRunSources } from '~/composables/useFirstRunSources';
 import { useErrorHandler } from '~/composables/useErrorHandler';
 
 // No app bar here (#470): first run, developer pages and the empty redirect page
 definePageMeta({ appNav: false })
 
 const { t } = useI18n();
-const boardStore = useBoardStore();
-const tasksStore = useTasksStore();
 const { fetchTasks } = useIntegrationManager();
+const { beginLocalDefault, beginNotionAsDefault } = useFirstRunSources();
 const { handleError } = useErrorHandler();
 const photo = ref<HTMLImageElement | null>(null);
 const photoLoaded = ref(false);
@@ -135,11 +142,13 @@ onMounted(() => {
   if (photo.value?.complete && photo.value.naturalWidth > 0) photoLoaded.value = true;
 });
 /** Which setup is shown in place of the start screen (#43) */
-type FlowKey = 'local' | 'notion' | 'samples';
+type FlowKey = 'local' | 'notion' | 'reminders' | 'samples';
 const flow = ref<FlowKey | null>(null);
 const lastFlow = ref<FlowKey>('local');
 /** Step 2's Notion checkbox; it survives the trip into the Notion setup and back (#294) */
 const wantNotion = ref(false);
+/** Step 2's Erinnerungen checkbox (#552), kept the same way */
+const wantReminders = ref(false);
 /** Which way the step swap slides: forward into a flow, back out of it (#236) */
 const direction = ref<'fwd' | 'back'>('fwd');
 const body = ref<HTMLElement | null>(null);
@@ -181,8 +190,8 @@ function openFlow(key: FlowKey) {
 }
 function leaveFlow() {
   direction.value = 'back';
-  // Back from the Notion setup lands on step 2 (its checkbox still set), every other step on the start view
-  if (flow.value === 'notion') {
+  // Back from the Notion or Reminders setup lands on step 2 (its checkbox still set), every other step on the start view
+  if (flow.value === 'notion' || flow.value === 'reminders') {
     lastFlow.value = 'local';
     flow.value = 'local';
     return;
@@ -195,8 +204,25 @@ function leaveFlow() {
  */
 const handleLocalSetupComplete = async () => {
   try {
-    boardStore.setSingleSource('local');
-    tasksStore.adoptAsLocal();
+    // Reminders may already be connected (set up, then Back and unticked): it stays, beside Local
+    beginLocalDefault();
+    flyBrand();
+    await navigateTo('/tasks');
+  } catch (error) {
+    handleError(error as Error, 'setup');
+  }
+};
+
+/**
+ * Wird nach dem Erinnerungen-Setup aufgerufen (#552): die Verbindung steht schon (der Flow hat Rollen geschrieben und
+ * die erste Abfrage gemacht). Mit Notion als nächstem Schritt geht es dorthin, sonst zum Board.
+ */
+const handleRemindersSetupComplete = async () => {
+  if (wantNotion.value) {
+    openFlow('notion');
+    return;
+  }
+  try {
     flyBrand();
     await navigateTo('/tasks');
   } catch (error) {
@@ -209,7 +235,8 @@ const handleLocalSetupComplete = async () => {
  */
 const handleNotionSetupComplete = async () => {
   try {
-    tasksStore.beginSourceSwitch('notion');
+    // With Reminders set up first (#552) Notion joins it and the board opens mixed
+    beginNotionAsDefault();
     
     // Try to fetch initial tasks, but don't block navigation if it fails
     try {

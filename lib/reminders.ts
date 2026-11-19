@@ -112,6 +112,24 @@ export interface SetCompletedArgs {
 /** True where the bridge can exist at all (the desktop shell); the OS check is Rust's (`unsupported`). */
 export const remindersAvailable = (): boolean => isTauri()
 
+let supportedProbe: Promise<boolean> | null = null
+
+/**
+ * Whether Reminders can be set up here: the desktop shell, and the bridge does not answer `unsupported` (a Mac with a
+ * macOS that has no Reminders access API). Asks `reminders_access_status`, which never prompts; the answer is cached
+ * for the session. The checkbox of the welcome flow and the row of the sources tab are enabled only on `true` (#552).
+ */
+export function remindersSupported(): Promise<boolean> {
+  if (!isTauri()) return Promise.resolve(false)
+  supportedProbe ??= remindersAccessStatus().then(() => true, (error) => toRemindersError(error).kind !== 'unsupported')
+  return supportedProbe
+}
+
+/** Forgets the cached probe (tests). */
+export function resetRemindersSupportedProbe(): void {
+  supportedProbe = null
+}
+
 async function call<T>(command: string, args?: Record<string, unknown>): Promise<T> {
   if (!isTauri()) throw new RemindersError('unsupported')
   const { invoke } = await import('@tauri-apps/api/core')

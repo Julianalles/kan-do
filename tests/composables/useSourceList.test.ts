@@ -21,7 +21,7 @@ describe('useSourceList (#324)', () => {
         canSetDefault: false, canRepair: false, repairNeedsCredentials: false, canConfigure: false,
       }),
     ])
-    expect(more.value.map((row) => [row.id, row.state])).toEqual([['notion', 'connectable'], ['todoist', 'soon']])
+    expect(more.value.map((row) => [row.id, row.state])).toEqual([['notion', 'connectable'], ['todoist', 'soon'], ['reminders', 'macOnly']])
   })
 
   it('Notion connected and healthy: relative last-sync line, default moves with setDefaultSource, Notion leaves "Eine App verbinden"', () => {
@@ -36,10 +36,15 @@ describe('useSourceList (#324)', () => {
       id: 'notion', isDefault: true, statusText: 'Synchronisiert vor 5 Min.', statusTone: 'muted',
       canSetDefault: false, canRepair: false, canConfigure: true,
     })
-    expect(more.value.map((row) => row.id)).toEqual(['todoist'])
+    expect(more.value.map((row) => row.id)).toEqual(['todoist', 'reminders'])
 
     board.setDefaultSource('local')
     expect(connected.value.map((row) => [row.id, row.isDefault, row.canSetDefault])).toEqual([['local', true, false], ['notion', false, true]])
+  })
+
+  it('Reminders is listed as "nur in der Mac-App" where the bridge is not there (the web build, #552)', () => {
+    useBoardStore().setSingleSource('local')
+    expect(useSourceList().more.value.find((row) => row.id === 'reminders')).toMatchObject({ name: 'Erinnerungen', state: 'macOnly' })
   })
 
   it('a connected Reminders source offers no "Als Standard festlegen"', () => {
@@ -104,7 +109,7 @@ describe('useSourceList (#324)', () => {
 
     board.disconnectIntegration('notion')
     expect(connected.value.map((row) => [row.id, row.isDefault])).toEqual([['local', true]])
-    expect(more.value.map((row) => row.id)).toEqual(['notion', 'todoist'])
+    expect(more.value.map((row) => row.id)).toEqual(['notion', 'todoist', 'reminders'])
   })
 })
 

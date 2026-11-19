@@ -1,0 +1,6 @@
+- region "Zugriff":
+  - heading "Zugriff" [level=2]
+  - text: Kan-Do hat keinen Zugriff. Erlaube ihn in den Systemeinstellungen unter Datenschutz & Sicherheit › Erinnerungen. Danach prüft Kan-Do es noch einmal.
+  - button "Verbindung reparieren"
+  - button "Systemeinstellungen öffnen"
+  - button "Trennen"
