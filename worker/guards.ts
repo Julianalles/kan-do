@@ -13,6 +13,7 @@
  *    replaced (#503) did not limit on the live instance (#508).
  */
 import { LIMIT_PERIOD_SECONDS, clientKey, limiterName } from './limiter'
+import { logWorkerError } from './log'
 
 /** Same shape as the server routes' errors (`createError`), so the client reads `data.error` and `data.message` alike. */
 export const FORBIDDEN_ORIGIN = 'FORBIDDEN_ORIGIN'
@@ -80,7 +81,7 @@ export async function overLimit(request: Request, env: GuardEnv): Promise<boolea
     const { success } = await (await stub.fetch('https://limiter.invalid/hit', { method: 'POST' })).json<{ success: boolean }>()
     return success === false // anything but a clear "no" lets the request through
   } catch (error) {
-    console.error('guards: the rate limiter failed, letting the request through', error)
+    logWorkerError('guards: the rate limiter failed, letting the request through', error)
     return false
   }
 }

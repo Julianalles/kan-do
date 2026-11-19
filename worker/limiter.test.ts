@@ -99,12 +99,13 @@ describe('NotionLimiter across an eviction (storage checkpoints)', () => {
 
   it('a failing storage never blocks an answer: it logs and counts in memory', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const storage: LimiterStorage = { ...memory(), get: async () => { throw new Error('read') }, put: async () => { throw new Error('write') } }
+    const storage: LimiterStorage = { ...memory(), get: async () => { throw new Error('read 203.0.113.9') }, put: async () => { throw new Error('write 203.0.113.9') } }
     const limiter = new NotionLimiter({ storage })
     const answers: boolean[] = []
     for (let i = 0; i < LIMIT + 5; i++) answers.push(await hit(limiter))
     expect(answers.filter(Boolean)).toHaveLength(LIMIT)
     expect(spy).toHaveBeenCalled()
+    expect(JSON.stringify(spy.mock.calls)).not.toContain('203.0.113.9') // #540: the error's message is not logged
     spy.mockRestore()
   })
 
@@ -116,13 +117,14 @@ describe('NotionLimiter across an eviction (storage checkpoints)', () => {
     const writer = new NotionLimiter({ storage })
     for (let i = 0; i < 100; i++) await hit(writer) // stored: 100 (rounded up to 109)
     let failures = 1
-    const flaky: LimiterStorage = { ...storage, get: async (k: string) => { if (failures-- > 0) throw new Error('read'); return storage.get(k) } }
+    const flaky: LimiterStorage = { ...storage, get: async (k: string) => { if (failures-- > 0) throw new Error('read 203.0.113.9'); return storage.get(k) } }
     const limiter = new NotionLimiter({ storage: flaky })
     expect(await hit(limiter)).toBe(true) // the failed read: counted from zero, this once
     let allowed = 0
     while (await hit(limiter)) allowed++
     expect(allowed).toBeLessThanOrEqual(LIMIT - 100) // the second request read the stored count (from zero it would be 119)
     expect(storage.data.get('window')).toMatchObject({ count: expect.any(Number) }) // and the failed read overwrote nothing
+    expect(spy.mock.calls).toEqual([['limiter: could not read the window, counting from zero [Error]']]) // #540
     spy.mockRestore()
   })
 
@@ -131,12 +133,13 @@ describe('NotionLimiter across an eviction (storage checkpoints)', () => {
     vi.setSystemTime(5_000_000)
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const storage = memory()
-    storage.put.mockRejectedValueOnce(new Error('write'))
+    storage.put.mockRejectedValueOnce(new Error('write 203.0.113.9'))
     const limiter = new NotionLimiter({ storage })
     await hit(limiter)
     expect(storage.data.has('window')).toBe(false)
     await hit(limiter)
     expect(storage.data.has('window')).toBe(true)
+    expect(spy.mock.calls).toEqual([['limiter: could not write the window, counting in memory only [Error]']]) // #540
     spy.mockRestore()
   })
 
@@ -231,10 +234,12 @@ describe('NotionLimiter cleans up after its window (no client data outlives it, 
     vi.setSystemTime(10_000_000)
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
     const { data, storage } = memory()
-    const limiter = new NotionLimiter({ storage: { ...storage, setAlarm: async () => { throw new Error('alarm') } } })
+    const limiter = new NotionLimiter({ storage: { ...storage, setAlarm: async () => { throw new Error('alarm 203.0.113.9') } } })
     for (let i = 0; i < LIMIT + 1; i++) await hit(limiter)
     expect(data.size).toBe(0)
     expect(await hit(limiter)).toBe(false)
+    expect(spy.mock.calls[0]).toEqual(['limiter: could not set the cleanup alarm, counting in memory only [Error]']) // #540
+    expect(JSON.stringify(spy.mock.calls)).not.toContain('203.0.113.9')
     spy.mockRestore()
   })
 })

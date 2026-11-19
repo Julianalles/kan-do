@@ -168,9 +168,9 @@ describe('server/api/notion/database.get.ts', () => {
     expect(res.status).toBe(404)
   })
 
-  it('returns 500 when Notion API throws an error', async () => {
+  it('keeps the status of a Notion API error (404)', async () => {
     const databasesRetrieve = vi.fn().mockRejectedValue(
-      Object.assign(new Error('not found'), { status: 404 }),
+      Object.assign(new Error('not found'), { name: 'APIResponseError', status: 404 }),
     )
     vi.doMock('@notionhq/client', () => ({
       Client: vi.fn().mockImplementation(function () {
@@ -191,5 +191,47 @@ describe('server/api/notion/database.get.ts', () => {
 
     const res = await request.get('/api/notion/database?id=db-bad').set('Authorization', 'Bearer test-token')
     expect(res.status).toBe(404)
+  })
+
+  describe('a Notion failure goes through handleNotionError (#539)', () => {
+    function notionFailure(status: number, code: string, headers: Record<string, string> = {}) {
+      return Object.assign(new Error('raw notion message about Jane'), { name: 'APIResponseError', status, code, headers })
+    }
+
+    async function getWith(error: Error) {
+      vi.doMock('@notionhq/client', () => ({
+        Client: vi.fn().mockImplementation(function () {
+          return { databases: { retrieve: vi.fn().mockRejectedValue(error) } }
+        }),
+      }))
+      vi.doMock('~/server/utils/notionStub', () => ({
+        isNotionStubEnabled: vi.fn().mockReturnValue(false),
+        getStubbedDatabases: vi.fn(),
+      }))
+      vi.spyOn(console, 'error').mockImplementation(() => {})
+      const handler = (await import('~/server/api/notion/database.get')).default
+      const app = createApp()
+      app.use('/api/notion/database', handler)
+      return supertest(toNodeListener(app)).get('/api/notion/database?id=db-1').set('Authorization', 'Bearer test-token')
+    }
+
+    it('forwards Retry-After on a 429', async () => {
+      const res = await getWith(notionFailure(429, 'rate_limited', { 'retry-after': '7' }))
+      expect(res.status).toBe(429)
+      expect(res.headers['retry-after']).toBe('7')
+      expect(res.body.data.error).toBe('RATE_LIMITED')
+    })
+
+    it('puts no Notion message at the top level of the response', async () => {
+      const res = await getWith(notionFailure(404, 'object_not_found'))
+      expect(res.status).toBe(404)
+      expect(res.body.data.error).toBe('NOTION_API_ERROR')
+      expect(String(res.body.message ?? '')).not.toContain('raw notion message')
+    })
+
+    it('maps a Notion 500 like the other routes (502)', async () => {
+      const res = await getWith(notionFailure(500, 'internal_server_error'))
+      expect(res.status).toBe(502)
+    })
   })
 })
