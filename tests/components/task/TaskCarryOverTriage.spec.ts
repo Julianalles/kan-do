@@ -71,9 +71,9 @@ describe('TaskCarryOverTriage (#99)', () => {
     expect(block.findAll('button')).toHaveLength(3)
   })
 
-  it('compact: all three actions are ghost buttons of the default size (#551)', () => {
+  it('compact: the two quiet actions are ghost, delete is soft red of the default size (#551)', () => {
     const buttons = render({ taskId: 'a', compact: true }).findAll('button')
-    expect(buttons.map(b => b.attributes('variant'))).toEqual(['ghost', 'ghost', 'ghost'])
+    expect(buttons.map(b => b.attributes('variant'))).toEqual(['ghost', 'ghost', 'soft'])
     expect(buttons.map(b => b.attributes('size'))).toEqual([undefined, undefined, undefined])
   })
 

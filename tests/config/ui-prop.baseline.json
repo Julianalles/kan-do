@@ -32,7 +32,7 @@
     "reason": "moves into the app.config.ts theme or a token with its category slice (epic #58 D1)"
   },
   "components/settings/GithubTokenRow.vue": {
-    "count": 2,
+    "count": 1,
     "reason": "moves into the app.config.ts theme or a token with its category slice (epic #58 D1)"
   },
   "components/statistics/TasksTable.vue": {
@@ -48,10 +48,6 @@
     "reason": "moves into the app.config.ts theme or a token with its category slice (epic #58 D1)"
   },
   "components/task/TaskCardContextMenu.vue": {
-    "count": 1,
-    "reason": "moves into the app.config.ts theme or a token with its category slice (epic #58 D1)"
-  },
-  "components/task/TaskCarryOverTriage.vue": {
     "count": 1,
     "reason": "moves into the app.config.ts theme or a token with its category slice (epic #58 D1)"
   },

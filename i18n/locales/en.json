@@ -852,7 +852,6 @@
     },
     "settings": {
       "pageTitle": "Notion settings",
-      "pageDescription": "Settings for your Notion integration",
       "notConfigured": {
         "message": "No Notion integration set up yet.",
         "action": "Set up integration"
@@ -865,7 +864,7 @@
         "status": "Status"
       },
       "connection": {
-        "description": "Token and database selection",
+        "description": "Token and target",
         "tokenLabel": "Integration token",
         "manageToken": "Manage token in Notion →",
         "databaseLabel": "Database",
@@ -908,6 +907,10 @@
         "sources": "Choose which apps tasks are loaded from and where new ones are saved by default.",
         "manage": "Maintain topics, data, updates and access here.",
         "manageWeb": "Maintain topics and data here."
+      },
+      "heading": {
+        "board": "Focus and working hours",
+        "manage": "Management"
       }
     },
     "focus": {
@@ -1045,8 +1048,7 @@
         "heading": "Backups",
         "open": "Open backups",
         "last": "Last backup: {time}",
-        "none": "No backup yet",
-        "now": "Back up now",
+            "now": "Back up now",
         "working": "Backing up…",
         "empty": "No backups yet. The first one appears before your next change.",
         "loading": "Reading backups…",
@@ -1210,7 +1212,7 @@
     },
     "subpages": {
       "data": {
-        "label": "Import/export and app reset",
+        "label": "Data & storage",
         "descriptionWeb": "Export and import",
         "descriptionDesktop": "Export or import your tasks, or reset the app."
       },
@@ -1251,6 +1253,7 @@
     "reminders": {
       "pageTitle": "Reminders settings",
       "pageDescription": "Change what you chose during setup any time.",
+    "pageDescriptionNew": "Connect Apple Reminders to Kan-Do.",
       "lists": "Lists",
       "today": "Today",
       "access": "Access",
@@ -1291,7 +1294,6 @@
       "title": "Connections",
       "description": "Where your tasks live and where new tasks go.",
       "connectedHeading": "Your connections",
-      "lead": "Choose where new tasks are saved by default.",
       "help": "When adding a task, you can choose another connection, and you can move tasks at any time.",
       "moreHeading": "Connect an app",
       "soon": "coming soon",

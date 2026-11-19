@@ -86,7 +86,7 @@ test.describe('Backups', () => {
     await openDataPage(page)
     await expect(page.getByRole('heading', { name: 'Sicherungen', level: 2 })).toBeVisible()
     await expect(page.getByTestId('data-backups-empty')).toContainText('Noch keine Sicherungen')
-    await expect(page.getByTestId('data-backups-last')).toHaveText('Noch keine Sicherung')
+    await expect(page.getByTestId('data-backups-last')).toHaveCount(0)
     await expect(rows(page)).toHaveCount(0)
     await expect(page.getByTestId('data-copies')).toHaveCount(0)
     await expectNoSeriousA11yViolations(page)

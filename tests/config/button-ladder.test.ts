@@ -181,6 +181,32 @@ describe('button ladder: call sites (#552, kd#177)', () => {
   })
 })
 
+/** Buttons with the delete icon that are not a delete action; each entry says what the button does instead. */
+const DELETE_ICON_EXEMPT: Record<string, string> = {
+  'components/nav/MorePanel.vue': 'the link to the trash page (navigation, not a delete)',
+  'components/feedback/FeedbackAnnotator.vue': 'clears the drawn annotations of a screenshot (a toolbar tool, nothing stored is lost)',
+}
+
+describe('button ladder: destructive buttons (#596, DESIGN.md "Trigger an action")', () => {
+  it('draws a button with the delete icon soft in the error tone (or lists why it is no delete)', () => {
+    const hits = buttonTags().filter((t) => /ICONS\.delete/.test(t.attrs) && DELETE_ICON_EXEMPT[t.file] === undefined
+      && !(attr(t.attrs, 'color') === 'error' && attr(t.attrs, 'variant') === 'soft'))
+    expect(hits.map(where)).toEqual([])
+  })
+
+  it('leaves no call site recolouring the icon of a delete button by hand (`leadingIcon: text-error`)', () => {
+    const hits = buttonTags().filter((t) => /leadingIcon:\s*'text-error'/.test(t.attrs))
+    expect(hits.map(where)).toEqual([])
+  })
+
+  it('keeps the exemptions honest: the file exists and says why', () => {
+    for (const [file, why] of Object.entries(DELETE_ICON_EXEMPT)) {
+      expect(why.length, file).toBeGreaterThan(10)
+      expect(() => readFileSync(join(root, file), 'utf8'), file).not.toThrow()
+    }
+  })
+})
+
 describe('button ladder: theme (#552)', () => {
   beforeEach(() => { vi.resetModules() })
   afterEach(() => { vi.unstubAllGlobals() })

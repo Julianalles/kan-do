@@ -27,8 +27,8 @@ event, the page owns the single confirmation modal.
     </p>
 
     <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-      <p class="text-sm text-muted" data-testid="data-backups-last">{{ lastLine }}</p>
-      <UButton
+      <p v-if="lastLine" class="text-sm text-muted" data-testid="data-backups-last">{{ lastLine }}</p>
+      <UButton class="ms-auto"
         variant="soft"
         color="neutral"
         :loading="working"
@@ -147,9 +147,7 @@ const visible = computed(() => (showAll.value ? backups.value : backups.value.sl
 
 const lastLine = computed(() => {
   const newest = backups.value[0];
-  return newest
-    ? t('settings.data.backups.last', { time: formatDateTime(newest.ts, 'mediumDateShortTime') })
-    : t('settings.data.backups.none');
+  return newest ? t('settings.data.backups.last', { time: formatDateTime(newest.ts, 'mediumDateShortTime') }) : null;
 });
 
 const failureLine = computed(() => {

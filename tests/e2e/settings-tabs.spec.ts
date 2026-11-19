@@ -50,7 +50,7 @@ test.describe('Einstellungen tabs (#691)', () => {
 
     await openSettings(page, 'manage')
     const links = page.getByTestId('settings-subpage-link-label')
-    await expect(links).toHaveText(['Themen und Aktivitäten', 'Import/Export und App-Reset'])
+    await expect(links).toHaveText(['Themen und Aktivitäten', 'Daten & Speicher'])
     await expect(page.getByTestId('settings-tab-lead')).toContainText('Themen und Daten pflegst du hier')
 
     await page.goto('/settings?tab=nonsense')
@@ -62,7 +62,7 @@ test.describe('Einstellungen tabs (#691)', () => {
   test('back from a sub-page returns to the tab it was opened from', async ({ page }) => {
     await page.goto('/tasks')
     await openSettings(page, 'manage')
-    await page.getByRole('link', { name: /Import\/Export und App-Reset/ }).click()
+    await page.getByRole('link', { name: /Daten & Speicher/ }).click()
     await expect(page).toHaveURL(/\/settings\/data$/)
     await page.goBack()
     await expect(page).toHaveURL(/\/settings\?tab=manage$/)
@@ -72,7 +72,7 @@ test.describe('Einstellungen tabs (#691)', () => {
   test('leaving a sub-page through the app bar restores its tab', async ({ page }) => {
     await page.goto('/tasks')
     await openSettings(page, 'manage')
-    await page.getByRole('link', { name: /Import\/Export und App-Reset/ }).click()
+    await page.getByRole('link', { name: /Daten & Speicher/ }).click()
     await expect(page).toHaveURL(/\/settings\/data$/)
     await page.getByTestId('app-nav-place-more').click()
     await expect(page).toHaveURL(/\/settings\?tab=manage$/)
@@ -114,7 +114,7 @@ test.describe('Einstellungen tabs, desktop app (#691)', () => {
     await installTauriStub(context)
     await page.goto('/settings?tab=manage')
     await expect(page.getByTestId('settings-tab-lead')).toContainText('Updates und Zugriffe')
-    await expect(page.getByTestId('settings-subpage-link-label')).toHaveText(['Themen und Aktivitäten', 'Import/Export und App-Reset', 'Updates', 'GitHub-Zugriff'])
+    await expect(page.getByTestId('settings-subpage-link-label')).toHaveText(['Themen und Aktivitäten', 'Daten & Speicher', 'Updates', 'GitHub-Zugriff'])
     await page.getByRole('link', { name: /^Updates/ }).click()
     await expect(page).toHaveURL(/\/settings\/updates$/)
     await page.goBack()

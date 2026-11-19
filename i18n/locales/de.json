@@ -852,7 +852,6 @@
     },
     "settings": {
       "pageTitle": "Notion-Einstellungen",
-      "pageDescription": "Einstellungen für deine Notion-Integration",
       "notConfigured": {
         "message": "Noch keine Notion-Integration eingerichtet.",
         "action": "Integration einrichten"
@@ -865,7 +864,7 @@
         "status": "Status"
       },
       "connection": {
-        "description": "Token und Datenbank-Auswahl",
+        "description": "Token und Ziel",
         "tokenLabel": "Integrationstoken",
         "manageToken": "Token in Notion verwalten →",
         "databaseLabel": "Datenbank",
@@ -908,6 +907,10 @@
         "sources": "Wähle, aus welchen Apps Aufgaben geladen werden und wo neue standardmäßig gespeichert werden.",
         "manage": "Themen, Daten, Updates und Zugriffe pflegst du hier.",
         "manageWeb": "Themen und Daten pflegst du hier."
+      },
+      "heading": {
+        "board": "Fokus und Arbeitszeit",
+        "manage": "Verwaltung"
       }
     },
     "focus": {
@@ -1045,8 +1048,7 @@
         "heading": "Sicherungen",
         "open": "Sicherungen öffnen",
         "last": "Letzte Sicherung: {time}",
-        "none": "Noch keine Sicherung",
-        "now": "Jetzt sichern",
+            "now": "Jetzt sichern",
         "working": "Wird gesichert…",
         "empty": "Noch keine Sicherungen. Die erste entsteht vor der nächsten Änderung.",
         "loading": "Sicherungen werden gelesen…",
@@ -1210,7 +1212,7 @@
     },
     "subpages": {
       "data": {
-        "label": "Import/Export und App-Reset",
+        "label": "Daten & Speicher",
         "descriptionWeb": "Export und Import",
         "descriptionDesktop": "Exportiere oder importiere deine Aufgaben oder setze die App zurück."
       },
@@ -1251,6 +1253,7 @@
     "reminders": {
       "pageTitle": "Erinnerungen-Einstellungen",
       "pageDescription": "Hier änderst du jederzeit, was du beim Einrichten gewählt hast.",
+    "pageDescriptionNew": "Verbinde Apple Erinnerungen mit Kan-Do.",
       "lists": "Listen",
       "today": "Heute",
       "access": "Zugriff",
@@ -1291,7 +1294,6 @@
       "title": "Verbindungen",
       "description": "Wo deine Aufgaben liegen und wohin neue Aufgaben gehen.",
       "connectedHeading": "Deine Verbindungen",
-      "lead": "Wähle, wo neue Aufgaben standardmäßig gespeichert werden.",
       "help": "Beim Hinzufügen kannst du eine andere Verbindung wählen und du kannst Aufgaben jederzeit verschieben.",
       "moreHeading": "Eine App verbinden",
       "soon": "bald verfügbar",
