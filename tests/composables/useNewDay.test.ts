@@ -180,8 +180,8 @@ describe('useNewDay: the day check and the fresh start (#387)', () => {
       expect(tasks.tasksWaiting).toEqual([])
       expect(tasks.task('d')!.status).toBe(TaskStatus.Done)
       expect(recap.lastNewDay).toBe(TODAY)
-      // the group is what came from Jetzt and Offen; what came from Wartet is its own category
-      expect(recap.sentBack).toEqual({ day: TODAY, ids: ['j', 'o1', 'o2'] })
+      // the group is what came from Jetzt and Offen; what came from Wartet is kept apart, both for this day only
+      expect(recap.sentBack).toEqual({ day: TODAY, ids: ['j', 'o1', 'o2'], waiting: ['w'] })
       expect(newDay.groupIds.value).toEqual(['j', 'o1', 'o2'])
       expect(board.notPlannedFromWaiting).toEqual(['w'])
       expect(newDay.waitingIds.value).toEqual(['w'])
@@ -243,7 +243,7 @@ describe('useNewDay: the day check and the fresh start (#387)', () => {
       resetNewDay()
       newDay.check()
       expect(newDay.freshStart()).toEqual([])
-      expect(recap.sentBack).toEqual({ day: TODAY, ids: ['j', 'o1', 'o2'] })
+      expect(recap.sentBack).toEqual({ day: TODAY, ids: ['j', 'o1', 'o2'], waiting: ['w'] })
       expect(tasks.tasksOpen.map(t => t.id)).toEqual(['o1'])
     })
 
@@ -269,11 +269,12 @@ describe('useNewDay: the day check and the fresh start (#387)', () => {
       }
       tasks.updateTask('o2', { status: TaskStatus.Waiting, notPlanned: undefined })
       expect(newDay.freshStart()).toEqual(['o1', 'o2'])
-      expect(recap.sentBack).toEqual({ day: '2026-10-24', ids: ['o1'] })
+      expect(recap.sentBack).toEqual({ day: '2026-10-24', ids: ['o1'], waiting: ['o2'] })
       // the earlier leftovers are plain "not planned" tasks now, below today's group and what came from Wartet
       expect(notPlannedIds()).toEqual(['o1', 'o2', 'j', 'w'])
       expect(newDay.groupIds.value).toEqual(['o1'])
-      expect(newDay.waitingIds.value).toEqual(['w', 'o2'])
+      // only what today's start took out of Wartet: the older 'w' is a plain "Weitere Aufgaben" task now (#469)
+      expect(newDay.waitingIds.value).toEqual(['o2'])
     })
 
     it('a clock set back never repeats the fresh start', () => {
@@ -364,24 +365,58 @@ describe('useNewDay: the day check and the fresh start (#387)', () => {
     })
   })
 
-  describe('the category of the tasks that came from Wartet', () => {
-    it('lasts beyond its day until each task is planned again; a pick lands in Offen and leaves the category', () => {
+  describe('the Wartet tasks of the panel "Gestern auf dem Board" (#469: the panel ends with its day)', () => {
+    it('lists the Wartet tasks of today\'s fresh start; the next day, without another fresh start, they are plain "Weitere Aufgaben" tasks', () => {
       const { tasks, newDay } = setup({ tasks: [task('o1', TaskStatus.Open), task('w1', TaskStatus.Waiting), task('w2', TaskStatus.Waiting)] })
       startFresh(newDay)
       expect(newDay.waitingIds.value).toEqual(['w1', 'w2'])
-      // the next days, without another fresh start: the group of the day is gone, the category stays
       vi.setSystemTime(at(24, 9))
       syncToday()
       expect(newDay.groupIds.value).toEqual([])
-      expect(newDay.waitingIds.value).toEqual(['w1', 'w2'])
+      expect(newDay.waitingIds.value).toEqual([])
+      // nothing was deleted or moved: the tasks are still held, below the panel
+      expect(notPlannedIds()).toEqual(['o1', 'w1', 'w2'])
+      expect(isNotPlanned(tasks.task('w1')!)).toBe(true)
+    })
+
+    it('a Wartet task of a fresh start two days ago, never planned, is not in the panel; the latest start\'s Wartet task is', () => {
+      const { tasks, newDay } = setup({ tasks: [task('o1', TaskStatus.Open), task('old', TaskStatus.Waiting), task('w2', TaskStatus.Waiting)] })
+      startFresh(newDay)
+      expect(newDay.waitingIds.value).toEqual(['old', 'w2'])
+      // two days later: the user plans one card, parks another in Wartet, and starts fresh again
+      vi.setSystemTime(at(24, 8))
+      resetNewDay()
+      tasks.planTask('o1')
+      tasks.planTask('w2')
+      tasks.updateTask('w2', { status: TaskStatus.Waiting })
+      startFresh(newDay)
+      expect(newDay.groupIds.value).toEqual(['o1'])
+      expect(newDay.waitingIds.value).toEqual(['w2'])
+      expect(newDay.waitingIds.value).not.toContain('old')
+      // the old task is still there, held, in "Weitere Aufgaben"
+      expect(isNotPlanned(tasks.task('old')!)).toBe(true)
+      expect(notPlannedIds()).toContain('old')
+    })
+
+    it('data stored before #469 (a fresh start without `waiting` in sentBack, the list `notPlannedFromWaiting` full of older ids) shows no Wartet task in the panel and loses none', () => {
+      const { tasks, board, recap, newDay } = setup({ tasks: [task('o1', TaskStatus.Open, { notPlanned: true }), task('stale', TaskStatus.Open, { notPlanned: true })] })
+      board.noteFromWaiting(['stale'])
+      recap.lastNewDay = TODAY
+      recap.sentBack = { day: TODAY, ids: ['o1'] }
+      expect(newDay.groupIds.value).toEqual(['o1'])
+      expect(newDay.waitingIds.value).toEqual([])
+      expect(board.notPlannedFromWaiting).toEqual(['stale'])
+      expect(tasks.task('stale')).toBeDefined()
+    })
+
+    it('a pick leaves the panel; put back by hand the same day it returns to it, as a group task does', () => {
+      const { tasks, newDay } = setup({ tasks: [task('o1', TaskStatus.Open), task('w1', TaskStatus.Waiting), task('w2', TaskStatus.Waiting)] })
+      startFresh(newDay)
       tasks.planTask('w1')
-      expect(tasks.task('w1')).toMatchObject({ status: TaskStatus.Open })
-      expect(isNotPlanned(tasks.task('w1')!)).toBe(false)
       expect(tasks.tasksOpen.map(t => t.id)).toEqual(['w1'])
       expect(newDay.waitingIds.value).toEqual(['w2'])
-      // put back by hand later, it comes from Offen: it does not return to the category
       tasks.unplanTask('w1')
-      expect(newDay.waitingIds.value).toEqual(['w2'])
+      expect(newDay.waitingIds.value).toEqual(['w1', 'w2'])
     })
 
     it('a task whose status changed without a reconcile (the sheet\'s status picker) is not listed, and a deleted one is gone', () => {

@@ -4,7 +4,7 @@ import { createServer } from 'node:net'
 import { resolve } from 'node:path'
 import { promisify } from 'node:util'
 import { chromium, expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test'
-import { seedLocalBoard, SEED_TASKS } from './helpers/seed'
+import { newDayBackTasks, seedLocalBoard, seedNewDayBoard, SEED_TASKS } from './helpers/seed'
 import { settleAnimations } from './helpers/settle'
 import { showColumnPage } from './helpers/dnd'
 import { openDayClose } from './helpers/appNav'
@@ -78,6 +78,16 @@ const SURFACES: Surface[] = [
       await page.goto('/all')
       await expect(page.locator('.board')).toHaveAttribute('data-place', 'all')
       await expect(page.getByTestId('not-planned').locator('.task')).toBeVisible()
+    },
+  },
+  {
+    // "Alle" after the fresh start (#469): yesterday's tasks in the panel, "Weitere Aufgaben" plain below it
+    name: 'alle with yesterday\'s panel',
+    open: async (page, context) => {
+      await seedNewDayBoard(context, { tasks: newDayBackTasks().filter(task => task.status !== 3) })
+      await page.goto('/all')
+      await page.getByTestId('new-day-note-start').click()
+      await expect(page.getByTestId('not-planned-panel')).toBeVisible()
     },
   },
   {

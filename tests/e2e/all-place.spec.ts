@@ -980,3 +980,82 @@ test.describe('The app bar with "Alle" on a small phone (#354)', () => {
     })
   }
 })
+
+/**
+ * #469: the layout of "Meine Aufgaben" (one card gap between the two columns, the pick arrow in the card's corner)
+ * and the marker under "Heute" on "Alle". The panel for yesterday's tasks is in new-day-recap.spec.ts.
+ */
+test.describe('"Meine Aufgaben" layout and the marker (#469)', () => {
+  const MANY: SeedTask[] = [
+    held('np-1', 'Angebot kalkulieren'),
+    held('np-2', 'Belege sortieren'),
+    held('np-3', 'Fenster ausmessen'),
+    held('np-4', 'Werkstatt anrufen'),
+  ]
+  const card = (page: Page, id: string) => item(page, id).locator('.not-planned__card')
+  /** The ink of the stroke under a headline: `::before` of its h2 */
+  const markerOpacity = (page: Page, column: 'open' | 'progress') =>
+    page.locator(`#column-${column} h2`).evaluate(el => Number(getComputedStyle(el, '::before').opacity))
+
+  test.describe('desktop', () => {
+    test.use({ viewport: { width: 1280, height: 800 } })
+
+    test('the two columns sit one card gap (12 px) apart, and the pick arrow stays in its card\'s top right corner, never over the neighbour', async ({ context, page }) => {
+      await seedLocalBoard(context, MANY)
+      await gotoAll(page)
+      const [first, second, third] = [await card(page, 'np-1').boundingBox(), await card(page, 'np-2').boundingBox(), await card(page, 'np-3').boundingBox()]
+      expect(Math.round(second!.x - (first!.x + first!.width))).toBe(12)
+      expect(Math.round(third!.y - (first!.y + first!.height))).toBe(12)
+      // the left card's arrow (the one #467's edge placement would have pushed onto its neighbour)
+      await item(page, 'np-1').hover()
+      const arrow = item(page, 'np-1').getByTestId('not-planned-pick')
+      await expect(arrow).toHaveCSS('opacity', '1')
+      const box = (await arrow.boundingBox())!
+      expect(box.x + box.width).toBeLessThanOrEqual(first!.x + first!.width)
+      expect(box.x + box.width).toBeGreaterThan(first!.x + first!.width - 24)
+      expect(box.y).toBeGreaterThanOrEqual(first!.y)
+      expect(box.y + box.height).toBeLessThan(first!.y + 48)
+      // and the keyboard reveals it too
+      await page.mouse.move(0, 0)
+      await item(page, 'np-2').getByTestId('not-planned-pick').focus()
+      await expect(item(page, 'np-2').getByTestId('not-planned-pick')).toHaveCSS('opacity', '1')
+    })
+
+    test('the marker is under "Heute" on "Alle" and goes when the user moves to "Heute", where "Jetzt" keeps it: one marker per view', async ({ context, page }) => {
+      await seedLocalBoard(context, MANY)
+      await gotoAll(page)
+      await expect(page.locator('#column-open h2')).toHaveText('Heute')
+      await expect.poll(() => markerOpacity(page, 'open')).toBe(1)
+      await toHeute(page).click()
+      await expect(board(page)).toHaveAttribute('data-place', 'today')
+      await atRest(page)
+      await expect(page.locator('#column-open h2')).toHaveText('Offen')
+      await expect.poll(() => markerOpacity(page, 'open')).toBe(0)
+      await expect.poll(() => markerOpacity(page, 'progress')).toBe(1)
+      // and back: it returns
+      await placeLink(page, 'all').click()
+      await expect(board(page)).toHaveAttribute('data-place', 'all')
+      await atRest(page)
+      await expect.poll(() => markerOpacity(page, 'open')).toBe(1)
+    })
+  })
+
+  test.describe('390', () => {
+    test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } })
+
+    test('one column; the pick arrow is always there, in the card\'s top right corner, and nothing scrolls sideways', async ({ context, page }) => {
+      await seedLocalBoard(context, MANY)
+      await gotoAll(page)
+      const cardBox = (await card(page, 'np-1').boundingBox())!
+      const arrow = item(page, 'np-1').getByTestId('not-planned-pick')
+      await expect(arrow).toHaveCSS('opacity', '1')
+      const box = (await arrow.boundingBox())!
+      expect(box.x + box.width).toBeLessThanOrEqual(cardBox.x + cardBox.width + 8)
+      expect(box.x).toBeGreaterThan(cardBox.x + cardBox.width / 2)
+      expect(box.y).toBeLessThan(cardBox.y + 24)
+      const next = (await card(page, 'np-2').boundingBox())!
+      expect(Math.round(next.x)).toBe(Math.round(cardBox.x))
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    })
+  })
+})

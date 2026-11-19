@@ -97,7 +97,7 @@ Token values live in `assets/css/main.css` and `app.config.ts`; these tables nam
 
 **The Topic Mark Rule.** A topic carries its hue and symbol on its mark only: a small dot or glyph before the name. Never a coloured chip, card, column or surface, never a hue on a name, and no topic hue in a chart (charts use the ink ramp).
 
-**The Marker Rule.** A stroke of yellow text marker centred on the bottom edge of a word (through the foot of its letters) is an allowed decoration in slight, intentional use (owner, 2026-11-11). It is static, carries no meaning of its own and appears once per view at most. Today's only use: the Jetzt headline. A new use is a recorded decision.
+**The Marker Rule.** A stroke of yellow text marker centred on the bottom edge of a word (through the foot of its letters) is an allowed decoration in slight, intentional use (owner, 2026-11-11). It is static, carries no meaning of its own and appears once per view at most: one marker per view, on the headline of its focus column. Uses: the "Jetzt" headline on "Heute" and the "Heute" headline (Offen) on "Alle", which fades when the user moves to "Heute" (user, #469). A new use is a recorded decision.
 
 **The Frozen Primary Rule.** The primary palette (forest green, hue 152, chosen by the owner on 2026-11-11) changes only by a decision recorded here, never as a side effect of a feature.
 

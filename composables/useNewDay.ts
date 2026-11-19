@@ -28,9 +28,10 @@
  * - The fresh start also arms the day's one slow move (#433, `armGlide`): the first move to Heute after it glides.
  * - `isNewDayDue()`: a local day has passed since the last fresh start (or, before the first one, since the recap's
  *   marker), i.e. today has not been started fresh.
- * - `groupIds`: the Jetzt and Offen tasks of today's fresh start that are still not planned, i.e. the group
- *   "Gestern geplant, noch offen"; it ends with its day without a write. `waitingIds`: the not-planned tasks a fresh
- *   start took out of Wartet (`boardStore.notPlannedFromWaiting`), their own category until each is planned again.
+ * - `groupIds`: the Jetzt and Offen tasks of today's fresh start that are still not planned, i.e. the first half of
+ *   the panel "Gestern auf dem Board"; it ends with its day without a write. `waitingIds`: the not-planned tasks that
+ *   same start took out of Wartet (`sentBack.waiting`), the panel's second half, ending with its day too (#469); an
+ *   earlier start's Wartet task is a plain "Weitere Aufgaben" task.
  * - `noticeShown` / `closeNotice()`: the notice that offers the fresh start, on a day that has begun in this window,
  *   has not been started fresh, whose notice was not closed, while something unfinished is on the board.
  * - `timeOffer` / `takeOffTime()` / `keepTime()`: the question "the timer ran on for {duration} after midnight: take
@@ -180,8 +181,9 @@ export function useNewDay() {
     askAboutNight(todayKey)
 
     // The shared take-off (also the day close's): Jetzt through Offen, Wartet through Offen, then off the board
-    const { group, sent } = takeOffBoard()
-    recapStore.markNewDay(todayKey, group)
+    const { group, sent, fromWaiting } = takeOffBoard()
+    // The Wartet ones are this day's too (#469): the panel names them from `sentBack`, so it ends with the day
+    recapStore.markNewDay(todayKey, group, fromWaiting)
     // The cards were on the board this morning and counted the day: only what is planned again counts it
     tasksStore.takeBackCarryOver(sent, todayKey)
     // The first move to Heute after this start is the day's one slow move (#433)
@@ -198,15 +200,19 @@ export function useNewDay() {
   /** The ids of the tasks that are held as not planned now. */
   const heldIds = computed(() => new Set(tasksStore.tasks.filter(task => isNotPlanned(task)).map(task => task.id)))
 
-  /** The group "Gestern geplant, noch offen": today's Jetzt and Offen tasks that are still not planned, in their order. */
+  /** The group "Gestern auf dem Board": today's Jetzt and Offen tasks that are still not planned, in their order. */
   const groupIds = computed<string[]>(() => {
     const ids = todaysBack.value?.ids ?? []
     return ids.length === 0 ? ids : ids.filter(id => heldIds.value.has(id))
   })
 
-  /** The category of the tasks a fresh start took out of Wartet and that are still not planned, in their order. */
+  /**
+   * The second half of the panel (#469): the tasks today's fresh start (or the evening's day close) took out of Wartet that
+   * are still not planned, in their order. A Wartet task of an earlier start is a plain "Weitere Aufgaben" task: the panel
+   * ends with its day, like `groupIds`. Stored data without `waiting` (before #469) lists none.
+   */
   const waitingIds = computed<string[]>(() => {
-    const ids = boardStore.notPlannedFromWaiting
+    const ids = todaysBack.value?.waiting ?? []
     if (ids.length === 0) return ids
     const inGroup = new Set(groupIds.value)
     return ids.filter(id => heldIds.value.has(id) && !inGroup.has(id))

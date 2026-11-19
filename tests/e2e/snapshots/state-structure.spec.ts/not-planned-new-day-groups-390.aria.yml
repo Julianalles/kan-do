@@ -1,0 +1,34 @@
+- region "Meine Aufgaben":
+  - heading "Meine Aufgaben" [level=2]
+  - button "Aufgabe hinzufügen"
+  - group "Gestern auf dem Board 4":
+    - heading "Gestern auf dem Board 4" [level=3]
+    - list:
+      - listitem:
+        - group "Präsentation vorbereiten":
+          - paragraph: Präsentation vorbereiten
+          - 'progressbar /Timebox: \d+ min von 1 h/': /\d+ min 1 h/
+          - text: Hoch
+        - 'button "Präsentation vorbereiten: für heute einplanen"'
+      - listitem:
+        - group "Steuerberater anrufen":
+          - paragraph: Steuerberater anrufen
+          - text: Hoch
+        - 'button "Steuerberater anrufen: für heute einplanen"'
+      - listitem:
+        - group "Konzept ausarbeiten":
+          - paragraph: Konzept ausarbeiten
+          - text: Hoch
+        - 'button "Konzept ausarbeiten: für heute einplanen"'
+      - listitem:
+        - group "Rückmeldung vom Vermieter":
+          - paragraph: Rückmeldung vom Vermieter
+          - text: Hoch
+        - 'button "Rückmeldung vom Vermieter: für heute einplanen"'
+  - heading "Weitere Aufgaben 1" [level=3]
+  - list "Weitere Aufgaben 1":
+    - listitem:
+      - group "Regal für den Keller aussuchen":
+        - paragraph: Regal für den Keller aussuchen
+        - text: Hoch
+      - 'button "Regal für den Keller aussuchen: für heute einplanen"'

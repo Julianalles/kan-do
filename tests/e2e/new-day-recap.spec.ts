@@ -809,7 +809,8 @@ test.describe('New-day recap (#385)', () => {
  */
 test.describe('A new day starts fresh on the user\'s click (#387)', () => {
   const side = (page: Page) => page.getByTestId('not-planned')
-  const groupIds = (page: Page, group: 'yesterday' | 'waiting' | 'others') =>
+  /** The cards of the panel "Gestern auf dem Board" (Jetzt and Offen of yesterday first, then Wartet) or of "Weitere Aufgaben" (#469) */
+  const groupIds = (page: Page, group: 'panel' | 'others') =>
     page.getByTestId(`not-planned-list-${group}`).locator('[data-not-planned-id]').evaluateAll(els => els.map(el => el.getAttribute('data-not-planned-id')))
   const columnIds = (page: Page, column: 'open' | 'progress' | 'waiting') =>
     page.locator(`#column-${column}-list > .task-wrapper`).evaluateAll(els => els.map(el => el.getAttribute('data-task-id')))
@@ -837,7 +838,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     expect(await storedTask(page, 'nd-waiting-1')).toMatchObject({ status: 2 })
   }
 
-  test('"Tag neu planen" is the fresh start: nothing moved before the click; then Jetzt and Offen are the group on top, Wartet its own category, and the board is empty', async ({ page, context }) => {
+  test('"Tag neu planen" is the fresh start: nothing moved before the click; then Jetzt, Offen and Wartet are one panel on top, and the board is empty', async ({ page, context }) => {
     await seedNewDayBoard(context, { tasks: newDayBackTasks() })
     await page.goto('/tasks')
     // the recap looks at yesterday's board: Jetzt, both Offen cards and the Wartet card are "noch offen"
@@ -855,22 +856,31 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     // #428: coming from the recap the pill is the normal one, Rückblick has turned into Alle + Heute and Alle is current
     await expect(appNav(page).locator('.app-nav-place')).toHaveText(['Alle', 'Heute', 'Statistik'])
     await expect(page.getByTestId('app-nav-continue')).toHaveCount(0)
-    await expect(page.getByRole('heading', { level: 3, name: 'Gestern geplant, noch offen' })).toBeVisible()
-    await expect(page.getByRole('heading', { level: 3, name: 'Zuletzt in Wartet' })).toBeVisible()
-    await expect(page.getByRole('heading', { level: 3, name: 'Weitere Aufgaben' })).toBeVisible()
-    // board order, Jetzt first; what was waiting keeps that context; what was held before follows
-    await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1'])
-    await expect.poll(() => groupIds(page, 'waiting')).toEqual(['nd-waiting-1'])
+    await expect(page.getByRole('heading', { level: 3, name: 'Gestern auf dem Board 4' })).toBeVisible()
+    await expect(page.getByRole('group', { name: 'Gestern auf dem Board 4' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 3, name: 'Weitere Aufgaben 1' })).toBeVisible()
+    // one panel: board order, Jetzt first, then what was waiting (#469); what was held before follows plain
+    await expect.poll(() => groupIds(page, 'panel')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1', 'nd-waiting-1'])
     await expect.poll(() => groupIds(page, 'others')).toEqual(['nd-held-1'])
     expect(await openIds(page)).toEqual([])
-    // desktop (#404): each category heading starts on the left edge of its first card, also when the category has one card,
-    // and over the whole desktop range (the tracks shrink below ~1056 px)
+    // desktop (#469): the two card columns are one card gap apart (12 px, the gap cards have below them), the headings start on the
+    // left edge of the first card, the panel reaches 12 px beyond the cards; over the whole desktop range
     for (const width of [1024, 1100, 1280, 1440]) {
       await page.setViewportSize({ width, height: 900 })
-      for (const [name, firstId] of [['Gestern geplant, noch offen', 'nd-now-1'], ['Zuletzt in Wartet', 'nd-waiting-1'], ['Weitere Aufgaben', 'nd-held-1']] as const) {
-        const card = side(page).locator(`[data-not-planned-id="${firstId}"] .not-planned__card`)
-        await expect.poll(async () => Math.abs((await page.getByRole('heading', { level: 3, name }).boundingBox())!.x - (await card.boundingBox())!.x), { message: `${name} sits over its first card at ${width}px` }).toBeLessThanOrEqual(1)
+      const box = async (id: string) => (await side(page).locator(`[data-not-planned-id="${id}"] .not-planned__card`).boundingBox())!
+      const panel = page.getByTestId('not-planned-panel')
+      await expect.poll(async () => {
+        const [left, right, below] = [await box('nd-now-1'), await box('nd-open-2'), await box('nd-open-1')]
+        return [Math.round(right.x - (left.x + left.width)), Math.round(below.y - (left.y + left.height))]
+      }, { message: `the columns are one card gap apart at ${width}px` }).toEqual([12, 12])
+      for (const [name, firstId] of [['Gestern auf dem Board 4', 'nd-now-1'], ['Weitere Aufgaben 1', 'nd-held-1']] as const) {
+        await expect.poll(async () => Math.abs((await page.getByRole('heading', { level: 3, name }).boundingBox())!.x - (await box(firstId)).x), { message: `${name} sits over its first card at ${width}px` }).toBeLessThanOrEqual(1)
       }
+      // the surface is a layer of the group (::before): it reaches 12 px past the pair on both sides
+      await expect.poll(() => panel.evaluate((el) => {
+        const surface = getComputedStyle(el, '::before')
+        return [surface.left, surface.right, surface.backgroundColor === 'rgba(0, 0, 0, 0)']
+      }), { message: `the panel reaches beyond the cards at ${width}px` }).toEqual(['-12px', '-12px', false])
     }
     // the day is started: no notice
     await expect(note(page)).toHaveCount(0)
@@ -897,7 +907,21 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await expect(note(page)).toHaveCount(0)
     await page.evaluate(() => window.dispatchEvent(new Event('focus')))
     await expect.poll(() => openIds(page)).toEqual(['nd-open-2'])
-    await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-now-1', 'nd-open-1'])
+    await expect.poll(() => groupIds(page, 'panel')).toEqual(['nd-now-1', 'nd-open-1', 'nd-waiting-1'])
+  })
+
+  test('planning the cards of the panel counts it down and takes it away with the "Weitere Aufgaben" heading: the rest is one plain list (#469)', async ({ page, context }) => {
+    await seedNewDayBoard(context, { tasks: newDayBackTasks() })
+    await page.goto('/tasks')
+    await planButton(page).click()
+    await settled(page)
+    await expect(page.getByRole('heading', { level: 3, name: 'Gestern auf dem Board 4' })).toBeVisible()
+    await side(page).locator('[data-not-planned-id="nd-open-2"]').getByTestId('not-planned-pick').click()
+    await expect(page.getByRole('heading', { level: 3, name: 'Gestern auf dem Board 3' })).toBeVisible()
+    for (const id of ['nd-now-1', 'nd-open-1', 'nd-waiting-1']) await side(page).locator(`[data-not-planned-id="${id}"]`).getByTestId('not-planned-pick').click()
+    await expect(page.getByTestId('not-planned-panel')).toBeHidden()
+    await expect(page.getByRole('heading', { level: 3 })).toHaveCount(0)
+    await expect.poll(() => groupIds(page, 'others')).toEqual(['nd-held-1'])
   })
 
   test('a task from Wartet that is picked again lands in Heute like every pick and leaves its category', async ({ page, context }) => {
@@ -907,14 +931,13 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await settled(page)
     await side(page).locator('[data-not-planned-id="nd-waiting-1"]').getByTestId('not-planned-pick').click()
     await expect.poll(() => openIds(page)).toEqual(['nd-waiting-1'])
-    await expect.poll(() => groupIds(page, 'waiting')).toEqual([])
-    await expect(page.getByTestId('not-planned-group-waiting')).toHaveCount(0)
+    await expect.poll(() => groupIds(page, 'panel')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1'])
     expect(await storedTask(page, 'nd-waiting-1')).toMatchObject({ status: 0 })
     expect(await storedTask(page, 'nd-waiting-1')).not.toHaveProperty('notPlanned')
     // "Nicht heute" later puts it back as a task that came from Offen: not into the category
     await page.reload()
     await expect(board(page)).toBeVisible()
-    await expect.poll(() => groupIds(page, 'waiting')).toEqual([])
+    await expect.poll(() => groupIds(page, 'panel')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1'])
   })
 
   test('"Direkt zum Board" keeps yesterday\'s board, the Jetzt task included; the notice offers the fresh start and its button does it and leads to "Alle"', async ({ page, context }) => {
@@ -950,8 +973,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await expect.poll(async () => (await archived(page)).length).toBeGreaterThan(0)
     await expect(page.getByTestId('app-nav-continue')).toHaveCount(0)
     await expect(page.getByTestId('app-nav-place-all')).toHaveAttribute('aria-current', 'page')
-    await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1'])
-    await expect.poll(() => groupIds(page, 'waiting')).toEqual(['nd-waiting-1'])
+    await expect.poll(() => groupIds(page, 'panel')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1', 'nd-waiting-1'])
     await expect.poll(() => groupIds(page, 'others')).toEqual(['nd-held-1'])
     await expect(page.getByTestId('plan-announcement')).toHaveText('4 Aufgaben liegen jetzt unter „Meine Aufgaben“.')
     // the notice left with its answer: focus is on the page, never on <body>
@@ -973,8 +995,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
       await planButton(page).click()
       await expect(page).toHaveURL(/\/all$/)
       await settled(page)
-      await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1'])
-      await expect.poll(() => groupIds(page, 'waiting')).toEqual(['nd-waiting-1'])
+      await expect.poll(() => groupIds(page, 'panel')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1', 'nd-waiting-1'])
       await expect.poll(() => groupIds(page, 'others')).toEqual(['nd-held-1'])
       expect(await openIds(page)).toEqual([])
       await expect(note(page)).toHaveCount(0)
@@ -986,7 +1007,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
       await expect(board(page)).toBeVisible()
       await expect(recap(page)).toHaveCount(0)
       await expect(note(page)).toHaveCount(0)
-      await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1'])
+      await expect.poll(() => groupIds(page, 'panel')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1', 'nd-waiting-1'])
     })
 
     test('"Direkt zum Board" keeps the board and the notice offers the fresh start, also after a reload; its button does it', async ({ page, context }) => {
@@ -1006,8 +1027,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
       await startButton(page).click()
       await expect(page).toHaveURL(/\/all$/)
       await expect(note(page)).toHaveCount(0)
-      await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1'])
-      await expect.poll(() => groupIds(page, 'waiting')).toEqual(['nd-waiting-1'])
+      await expect.poll(() => groupIds(page, 'panel')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1', 'nd-waiting-1'])
       expect((await storedRecap(page)).lastNewDay).toBe(dayKeyDaysAgo(0))
     })
 
@@ -1019,7 +1039,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
       await expect(note(page)).toBeVisible()
       await expectBoardUntouched(page)
       await startButton(page).click()
-      await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1'])
+      await expect.poll(() => groupIds(page, 'panel')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1', 'nd-waiting-1'])
     })
   })
 
@@ -1037,13 +1057,13 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     // the visit alone moves nothing: Heute holds its cards, the side only what was held before
     await expect.poll(() => openIds(page)).toEqual(['nd-open-2', 'nd-open-1'])
     await expect.poll(() => groupIds(page, 'others')).toEqual(['nd-held-1'])
-    await expect(page.getByTestId('not-planned-group-yesterday')).toHaveCount(0)
+    await expect(page.getByTestId('not-planned-panel')).toBeHidden()
     expect(await storedTask(page, 'nd-now-1')).toMatchObject({ status: 1 })
 
     await startButton(page).click()
     await expect(note(page)).toHaveCount(0)
     await expect(page).toHaveURL(/\/all$/)
-    await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1'])
+    await expect.poll(() => groupIds(page, 'panel')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1', 'nd-waiting-1'])
     await expect.poll(() => openIds(page)).toEqual([])
   })
 
@@ -1096,14 +1116,14 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
       await page.getByTestId('focus-trigger').click()
       await page.getByTestId('focus-chip').filter({ hasText: topic }).click()
     }
-    await expect.poll(() => groupIds(page, 'yesterday')).toHaveLength(3)
+    await expect.poll(() => groupIds(page, 'panel')).toHaveLength(4)
     // the focus leaves one task of the group: the sentence says one, and "Alle" shows exactly that one
     await focusOn('Büro')
     await goToPlace(page, 'Heute')
     await expect(sentence(page)).toHaveText('Eine Aufgabe von gestern liegt unter Alle.')
     await sentence(page).getByRole('link', { name: 'Alle' }).click()
     await expect(page).toHaveURL(/\/all$/)
-    await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-open-1'])
+    await expect.poll(() => groupIds(page, 'panel')).toEqual(['nd-open-1'])
     // the focus leaves none of the group (a task that was held before matches): no sentence, no link to nothing
     await page.getByTestId('focus-trigger').click() // the funnel ends the focus that is on
     await focusOn('Garten')
@@ -1185,26 +1205,24 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await expectBoardUntouched(page)
   })
 
-  test('the category headings follow the topic focus: a category without a match is not shown', async ({ page, context }) => {
+  test('the panel follows the topic focus: a panel without a match is not shown, and "Weitere Aufgaben" has no heading without it', async ({ page, context }) => {
     const tasks = boardOnly().map(task => ({ ...task, topic: task.id === 'nd-held-1' ? 'Keller' : task.id === 'nd-waiting-1' ? 'Garten' : 'Büro' }))
     await seedNewDayBoard(context, { tasks })
     await page.goto('/all')
     await startButton(page).click()
-    await expect.poll(() => groupIds(page, 'yesterday')).toHaveLength(3)
+    await expect.poll(() => groupIds(page, 'panel')).toHaveLength(4)
     await page.getByTestId('focus-trigger').click()
     await page.getByTestId('focus-chip').filter({ hasText: 'Keller' }).click()
-    await expect(page.getByTestId('not-planned-group-yesterday')).toHaveCount(0)
-    await expect(page.getByTestId('not-planned-group-waiting')).toHaveCount(0)
-    await expect(page.getByTestId('not-planned-group-others')).toHaveCount(0)
+    await expect(page.getByTestId('not-planned-panel')).toBeHidden()
+    await expect(page.getByRole('heading', { level: 3 })).toHaveCount(0)
     await expect.poll(() => groupIds(page, 'others')).toEqual(['nd-held-1'])
-    // only what was waiting matches: its heading takes the row under the headline, "Weitere Aufgaben" has nothing to head
+    // only what was waiting matches: it is the panel's one card, "Weitere Aufgaben" has nothing to head
     await page.getByTestId('focus-trigger').click()
     await page.getByTestId('focus-trigger').click()
     await page.getByTestId('focus-chip').filter({ hasText: 'Garten' }).click()
-    await expect(page.getByTestId('not-planned-group-waiting')).toBeVisible()
-    await expect(page.getByTestId('not-planned-group-yesterday')).toHaveCount(0)
-    await expect(page.getByTestId('not-planned-group-others')).toHaveCount(0)
-    await expect.poll(() => groupIds(page, 'waiting')).toEqual(['nd-waiting-1'])
+    await expect(page.getByTestId('not-planned-panel')).toBeVisible()
+    await expect(page.getByRole('heading', { level: 3, name: 'Weitere Aufgaben' })).toHaveCount(0)
+    await expect.poll(() => groupIds(page, 'panel')).toEqual(['nd-waiting-1'])
   })
 
   test('Escape on the recap dismisses without a move and without a fresh start: on "Alle" the place stays "Alle", the board stays as it is', async ({ page, context }) => {
@@ -1215,17 +1233,16 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await settled(page)
     await expect(page).toHaveURL(/\/all$/)
     await expect.poll(() => openIds(page)).toEqual(['nd-open-2', 'nd-open-1'])
-    await expect.poll(() => groupIds(page, 'yesterday')).toEqual([])
+    await expect.poll(() => groupIds(page, 'panel')).toEqual([])
     expect(await storedTask(page, 'nd-now-1')).toMatchObject({ status: 1 })
     await expect(note(page)).toBeVisible()
   })
 
-  test('the pick moves keyboard focus on across the category headings', async ({ page, context }) => {
+  test('the pick moves keyboard focus on across the panel and "Weitere Aufgaben"', async ({ page, context }) => {
     await seedNewDayBoard(context, { tasks: boardOnly().filter(task => task.id !== 'nd-open-2' && task.id !== 'nd-now-1') })
     await page.goto('/all')
     await startButton(page).click()
-    await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-open-1'])
-    await expect.poll(() => groupIds(page, 'waiting')).toEqual(['nd-waiting-1'])
+    await expect.poll(() => groupIds(page, 'panel')).toEqual(['nd-open-1', 'nd-waiting-1'])
     const pick = (id: string) => side(page).locator(`[data-not-planned-id="${id}"]`).getByTestId('not-planned-pick')
     await pick('nd-open-1').focus()
     await page.keyboard.press('Enter')
@@ -1372,7 +1389,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
       await startButton(page).tap()
       await expect(page).toHaveURL(/\/all$/)
       await expect(note(page)).toHaveCount(0)
-      await expect.poll(() => groupIds(page, 'yesterday')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1'])
+      await expect.poll(() => groupIds(page, 'panel')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1', 'nd-waiting-1'])
     })
   })
 })

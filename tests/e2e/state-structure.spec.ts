@@ -73,11 +73,19 @@ test.describe('a new day (#356, #387)', () => {
     await settleAnimations(page)
   }
 
-  test('"Meine Aufgaben" after the fresh start: "Gestern geplant, noch offen", "Zuletzt in Wartet" and "Weitere Aufgaben", each a heading with its list (1280)', async ({ context, page }) => {
+  test('"Meine Aufgaben" after the fresh start: the panel "Gestern auf dem Board" (a labelled group) and "Weitere Aufgaben", each a heading with its list (1280)', async ({ context, page }) => {
     await seedNewDayBoard(context, { tasks: board() })
     await page.goto('/all')
     await startFresh(page)
     await expect(page.getByTestId('not-planned')).toMatchAriaSnapshot({ name: 'not-planned-new-day-groups-1280.aria.yml' })
+  })
+
+  test('"Meine Aufgaben" after the fresh start: the panel is one named group on a phone (390)', async ({ context, page }) => {
+    await page.setViewportSize(MOBILE)
+    await seedNewDayBoard(context, { tasks: board() })
+    await gotoBoard(page)
+    await startFresh(page)
+    await expect(page.getByTestId('not-planned')).toMatchAriaSnapshot({ name: 'not-planned-new-day-groups-390.aria.yml' })
   })
 
   test('an empty Offen on Heute says how many tasks of yesterday wait under "Alle", with a link (390)', async ({ context, page }) => {
