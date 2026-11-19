@@ -14,7 +14,7 @@
   <div role="img" :aria-label="label">
     <div class="flex items-end gap-2" :class="labelled ? 'h-32' : 'h-16'" aria-hidden="true">
       <div v-for="(week, index) in weeks" :key="week.start.getTime()" class="flex h-full min-w-0 flex-1 flex-col items-center gap-1">
-        <span v-if="labelled" class="shrink-0 text-xs text-muted tabular-nums">{{ week.inTimeboxShare === null ? '–' : `${Math.round(week.inTimeboxShare)} %` }}</span>
+        <span v-if="labelled" class="shrink-0 text-xs text-muted tabular-nums">{{ week.inTimeboxShare === null ? '–' : formatPercent(week.inTimeboxShare) }}</span>
         <!-- The track is the bar's own box: its % height is the share of this track, so the label above never squeezes a tall bar. -->
         <div class="flex min-h-0 w-full flex-1 items-end">
           <span
@@ -35,14 +35,16 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { inkColor } from '~/lib/inkRamp'
+import { useLocaleFormat } from '~/composables/useLocaleFormat'
 import type { WeekPoint } from '~/lib/statisticsReview'
 
 defineOptions({ name: 'StatsTrendBars' })
 
 const props = defineProps<{ weeks: WeekPoint[]; labelled?: boolean }>()
 const { t } = useI18n()
+const { formatPercent } = useLocaleFormat()
 
 const label = computed(() => t('statistics.trend.chartLabel', {
-  values: props.weeks.map(w => (w.inTimeboxShare === null ? t('statistics.trend.noValue') : `${Math.round(w.inTimeboxShare)} %`)).join(', '),
+  values: props.weeks.map(w => (w.inTimeboxShare === null ? t('statistics.trend.noValue') : formatPercent(w.inTimeboxShare))).join(', '),
 }))
 </script>

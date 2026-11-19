@@ -17,7 +17,7 @@
       <span class="text-default">{{ index === 0 ? t('statistics.trend.table.current') : range(week) }}</span>
       <span class="flex flex-wrap gap-x-3 text-muted tabular-nums">
         <span>{{ t('statistics.patterns.sample', { n: week.tasks }, week.tasks) }}</span>
-        <span>{{ t('statistics.trend.table.inTimebox') }} {{ week.inTimeboxShare === null ? '–' : `${Math.round(week.inTimeboxShare)} %` }}</span>
+        <span>{{ t('statistics.trend.table.inTimebox') }} {{ week.inTimeboxShare === null ? '–' : formatPercent(week.inTimeboxShare) }}</span>
         <span>{{ formatDuration(week.seconds, 'spaced') }}</span>
         <span class="whitespace-nowrap" data-testid="stats-week-day-end">{{ week.dayEndOpen === null ? t('statistics.trend.table.dayEndNone') : t('statistics.trend.table.dayEnd', { n: count(week.dayEndOpen) }) }}</span>
       </span>
@@ -35,7 +35,7 @@ defineOptions({ name: 'StatsWeekTable' })
 
 const props = defineProps<{ weeks: WeekPoint[] }>()
 const { t } = useI18n()
-const { locale, formatDuration } = useLocaleFormat()
+const { locale, formatDuration, formatPercent } = useLocaleFormat()
 
 /** Newest first. */
 const rows = computed(() => [...props.weeks].reverse())
