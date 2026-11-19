@@ -7,7 +7,7 @@
 @avoid Only the Reminders setup; changing the answers later is /settings/reminders, the Notion setup is NotionSetupFlow.
 @responsibility
 - Drives `useRemindersSetup`: the answers stay in the flow's state until the last button; Back (`BackButton`, from the first step it emits `back`, "Zurück zur Auswahl") connects and writes nothing
-- Step 1 (RemindersAccessStep) announces the macOS permission and asks only after "Zugriff erlauben"; step 2 lists every Reminders list with Thema (preselected), Aktivität or Aus (RemindersListChoices) and blocks "Weiter" while every list is Aus; step 3 (RemindersTodayRules) explains the date, its last button is "Verbinden", or "Weiter zu Notion" when Notion is ticked too
+- Step 1 (RemindersAccessStep) announces the macOS permission and asks only after "Zugriff erlauben"; when access is granted but the lists cannot be read it says so and the primary button reads "Erneut versuchen"; step 2 lists every Reminders list with Thema (preselected), Aktivität or Aus (RemindersListChoices) and blocks "Weiter" while every list is Aus; step 3 (RemindersTodayRules) explains the date, its last button is "Verbinden", or "Weiter zu Notion" when Notion is ticked too
 - "Verbinden" writes the roles and connects through `useSourceConnections`; a failure leaves nothing connected (a revoked permission returns to step 1 with the denied panel, anything else shows `connectFailed`)
 - Completion: Reminders alone shows the short "Erinnerungen ist verbunden" beat and emits `complete`; with Notion next it emits `complete` at once (no beat: the Notion setup follows)
 - Step changes animate one pane (fade and 14px slide, direction by forward or back), instant under reduced motion; after each change focus moves to the step's heading. Many lists scroll inside the step
@@ -52,6 +52,7 @@
                 v-if="setup.step.value === 0"
                 :access="setup.access.value"
                 :list-count="setup.listCount.value"
+                :lists-failed="setup.listsFailed.value"
                 @open-settings="setup.openSystemSettings"
               />
 
@@ -153,16 +154,16 @@ const roles = computed<Record<string, ReminderListRole>>(() =>
 
 const primaryLabel = computed(() => {
   if (setup.step.value === 0) {
-    if (setup.access.value === 'granted') return t('notion.modal.next')
+    if (setup.access.value === 'granted') return t(setup.listsFailed.value ? 'onboarding.flow.reminders.access.retry' : 'notion.modal.next')
     return t(setup.access.value === 'denied' ? 'onboarding.flow.reminders.access.recheck' : 'onboarding.flow.reminders.access.allow')
   }
   if (setup.step.value === 1) return t('notion.modal.next')
   return t(props.alsoNotion ? 'onboarding.flow.reminders.toNotion' : 'onboarding.flow.reminders.connect')
 })
-const primaryLoading = computed(() => (setup.step.value === 0 && setup.access.value === 'asking') || (setup.step.value === 2 && setup.connecting.value))
+const primaryLoading = computed(() => (setup.step.value === 0 && (setup.access.value === 'asking' || setup.loadingLists.value)) || (setup.step.value === 2 && setup.connecting.value))
 const primaryEnabled = computed(() => {
   // Step 1 always has an action: ask, continue or check again (continuing waits for the lists)
-  if (setup.step.value === 0) return setup.access.value !== 'granted' || setup.canProceed.value
+  if (setup.step.value === 0) return setup.access.value !== 'granted' || setup.listsFailed.value || setup.canProceed.value
   return setup.canProceed.value
 })
 
@@ -191,6 +192,7 @@ async function proceed() {
   if (step.value === 0) {
     if (access.value === 'idle') return setup.requestAccess()
     if (access.value === 'denied') return setup.recheck()
+    if (setup.listsFailed.value) return setup.loadLists()
     return setup.next()
   }
   if (step.value === 1) return setup.next()

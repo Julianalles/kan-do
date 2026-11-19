@@ -249,6 +249,60 @@ describe('useRemindersSetup (#552)', () => {
     expect(board.boardConfig.sources).toEqual({ connected: ['reminders'], default: 'local' })
   })
 
+  it('lists that cannot be read after access is granted: the step says so and "Erneut versuchen" reads them again (#552 review)', async () => {
+    mac('granted')
+    bridge.lists.mockRejectedValueOnce(new RemindersError('failed'))
+    const setup = useRemindersSetup({ firstRun: true })
+    await setup.refreshAccess()
+
+    expect(setup.access.value).toBe('granted')
+    expect(setup.listsFailed.value).toBe(true)
+    expect(setup.lists.value).toBeNull()
+    expect(setup.canProceed.value).toBe(false)
+
+    await setup.loadLists()
+    expect(setup.listsFailed.value).toBe(false)
+    expect(setup.listCount.value).toBe(2)
+    expect(setup.canProceed.value).toBe(true)
+  })
+
+  describe('run again while Reminders is already connected (#552 review)', () => {
+    const connected = async () => {
+      mac('granted')
+      const board = useBoardStore()
+      board.setSources({ connected: ['reminders'], default: 'local' })
+      const config = useRemindersConfigStore()
+      config.setLists({ 'L-home': { role: 'off', title: 'Zuhause' }, 'L-work': { role: 'activity', title: 'Arbeit' } })
+      const setup = useRemindersSetup({ firstRun: false })
+      await setup.refreshAccess()
+      return { setup, config, tasks: useTasksStore() }
+    }
+
+    it('a list reads the answer the board already has, not Thema', async () => {
+      const { setup } = await connected()
+      expect(setup.roleOf('L-home')).toBe('off')
+      expect(setup.roleOf('L-work')).toBe('activity')
+      expect(setup.roleOf('L-new')).toBe('topic')
+    })
+
+    it('untouched answers survive the run; a list now Aus loses its tasks (archived ones too) and the source is fetched once', async () => {
+      const { setup, config, tasks } = await connected()
+      bridge.fetch.mockResolvedValue({ reminders: [reminder({ id: 'r1', listId: 'L-work' })], missingListIds: [] })
+      tasks.mergeTasks('reminders', [
+        { id: 'r-old', title: 'Alt', source: 'reminders', externalId: 'r-old', reminders: { listId: 'L-work' } } as never,
+      ])
+      setup.setRole('L-work', 'off')
+      setup.setRole('L-home', 'topic')
+
+      expect(await setup.connect()).toBe('connected')
+
+      expect(config.lists).toEqual({ 'L-home': { role: 'topic', title: 'Zuhause' }, 'L-work': { role: 'off', title: 'Arbeit' } })
+      expect(tasks.tasks.some((task) => task.reminders?.listId === 'L-work')).toBe(false)
+      expect(bridge.fetch).toHaveBeenCalledTimes(1)
+      expect(bridge.fetch.mock.calls[0]![0]).toEqual(['L-home'])
+    })
+  })
+
   it('a second "Verbinden" while the first runs does nothing', async () => {
     mac('granted')
     const setup = useRemindersSetup({ firstRun: true })

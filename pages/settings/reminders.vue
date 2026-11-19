@@ -5,7 +5,7 @@
 @responsibility
 - Mac app only: on the web the route redirects to the sources tab (`/settings?tab=sources`); the sub-page layout leads back to that tab
 - Connected: one `PageSheet` with three sections (hairlines, `SectionHeader` h2): Listen (`RemindersListChoices`, the live lists of Reminders with the role from `remindersConfig`), Heute (`RemindersTodayRules`) and Zugriff (the permission as macOS holds it now, "Systemeinstellungen öffnen", "Trennen")
-- A list to Aus asks first when tasks would leave Kan-Do (in place, under its row): how many and how many of them are on today's board, counted live from the store; Confirm takes them off the board (`tasksStore.dropSourceTasks`: nothing is written to Reminders, nothing is remembered as deleted), Cancel puts the choice back. Any other change applies at once and fetches the source
+- A list to Aus asks first when tasks would leave Kan-Do (a list holding only archived tasks switches without a question and drops them silently) (in place, under its row): how many and how many of them are on today's board, counted live from the store; Confirm takes them off the board (`tasksStore.dropSourceTasks`: nothing is written to Reminders, nothing is remembered as deleted), Cancel puts the choice back. Any other change applies at once and fetches the source
 - Access revoked in macOS: the Zugriff section shows how to allow it and "Verbindung reparieren" (rechecks the permission, then fetches); nothing opens by itself (#319)
 - "Trennen" opens the existing `DisconnectSourceDialog`; afterwards the page returns to the sources tab. Access that macOS granted stays: the dialog says nothing about revoking it
 - Not connected: `RemindersSetupFlow` with `first-run` off; its Back returns to the sources tab, completion keeps the page and shows the settings
@@ -22,6 +22,7 @@
         <SectionHeader id="reminders-lists-heading" tag="h2">{{ t('settings.reminders.lists') }}</SectionHeader>
         <p v-if="loadingLists" class="text-body text-muted" role="status">{{ t('settings.reminders.listsLoading') }}</p>
         <p v-else-if="listsFailed" class="text-body text-muted" role="status" data-testid="reminders-lists-failed">{{ t('settings.reminders.listsFailed') }}</p>
+        <p v-else-if="access !== 'granted'" class="text-body text-muted" data-testid="reminders-lists-no-access">{{ t('settings.reminders.listsNoAccess') }}</p>
         <template v-else-if="lists.length > 0">
           <RemindersListChoices
             :lists="lists"
@@ -151,6 +152,8 @@ const confirming = computed(() => (pendingOff.value ? { listId: pendingOff.value
 
 const titleOf = (listId: string) => lists.value.find((list) => list.id === listId)?.title ?? config.lists[listId]?.title ?? ''
 
+const dropListTasks = (listId: string) => tasksStore.dropSourceTasks('reminders', (task) => task.reminders?.listId === listId)
+
 function onPick(listId: string, role: ReminderListRole) {
   if (role === config.roleOf(listId) && pendingOff.value !== listId) return
   if (role === 'off') {
@@ -160,6 +163,8 @@ function onPick(listId: string, role: ReminderListRole) {
       return
     }
     config.setList(listId, { role, title: titleOf(listId) })
+    // Archived tasks of the list are not asked about but still leave the store, or the next fetch counts them in its sync-drop check
+    dropListTasks(listId)
     return
   }
   pendingOff.value = null
@@ -174,7 +179,7 @@ function onConfirmOff() {
   pendingOff.value = null
   config.setList(listId, { role: 'off', title: titleOf(listId) })
   // The tasks leave Kan-Do only: Reminders is not written, and nothing is remembered as deleted (switching the list on brings them back)
-  tasksStore.dropSourceTasks('reminders', (task) => task.reminders?.listId === listId)
+  dropListTasks(listId)
 }
 
 // ---- Zugriff ----
@@ -218,7 +223,12 @@ async function repair() {
   repairing.value = true
   try {
     if (await readAccess()) {
-      lists.value = await remindersLists().catch(() => lists.value)
+      try {
+        lists.value = await remindersLists()
+        listsFailed.value = false
+      } catch {
+        // The earlier lists (or the failed note) stay; the source is still fetched below
+      }
       await fetchSource('reminders')
     }
   } finally {

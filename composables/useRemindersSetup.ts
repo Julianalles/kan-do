@@ -26,6 +26,7 @@ import { DEFAULT_LIST_ROLE, isReadRole, type ReminderListRole } from '~/lib/remi
 import { useBoardStore } from '~/store/board'
 import { useRemindersConfigStore } from '~/store/remindersConfig'
 import { useTasksStore } from '~/store/tasks'
+import { useIntegrationManager } from '~/composables/useIntegrationManager'
 import { useSourceConnections } from '~/composables/useSourceConnections'
 
 /** What the access step shows: nothing asked yet, macOS asking, access given, or no access (denied, restricted, write-only). */
@@ -43,6 +44,7 @@ export function useRemindersSetup(options: { firstRun: boolean }) {
   const tasksStore = useTasksStore()
   const config = useRemindersConfigStore()
   const { connectSource, disconnectSource } = useSourceConnections()
+  const { fetchSource } = useIntegrationManager()
 
   const step = ref<SetupStep>(0)
   const access = ref<SetupAccess>('idle')
@@ -50,12 +52,12 @@ export function useRemindersSetup(options: { firstRun: boolean }) {
   const lists = ref<ReminderList[] | null>(null)
   const loadingLists = ref(false)
   const listsFailed = ref(false)
-  /** The answers of this run: only a list the user touched is here, the rest reads Thema. */
+  /** The answers of this run: only a list the user touched is here, the rest reads what the board already has (Thema for a new list). */
   const draft = ref<Record<string, ReminderListRole>>({})
   const connecting = ref(false)
   const connectFailed = ref(false)
 
-  const roleOf = (listId: string): ReminderListRole => draft.value[listId] ?? DEFAULT_LIST_ROLE
+  const roleOf = (listId: string): ReminderListRole => draft.value[listId] ?? config.lists[listId]?.role ?? DEFAULT_LIST_ROLE
   const setRole = (listId: string, role: ReminderListRole) => {
     draft.value = { ...draft.value, [listId]: role }
   }
@@ -175,8 +177,17 @@ export function useRemindersSetup(options: { firstRun: boolean }) {
       }
 
       const alreadyConnected = boardStore.isIntegrationConnected('reminders')
+      if (alreadyConnected) {
+        // A run on a connected source (the welcome flow again after Back from Notion): connectSource does nothing, so
+        // the answers are applied here: a list now Aus leaves the board (archived tasks too), the rest is fetched
+        for (const list of all) {
+          if (roleOf(list.id) === 'off') tasksStore.dropSourceTasks('reminders', (task) => task.reminders?.listId === list.id)
+        }
+        await fetchSource('reminders')
+        return 'connected'
+      }
       const result = await connectSource('reminders')
-      const ok = alreadyConnected || (result.ok && result.fetched)
+      const ok = result.ok && result.fetched
       if (!ok) {
         await undo(result.ok)
         // The permission may have gone between the check and the fetch

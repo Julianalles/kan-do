@@ -1,7 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { goToPlace, openSettings } from './helpers/appNav'
 import { REMINDERS_SEED_LISTS, remindersSeedReminders, seedRemindersBoard } from './helpers/seed'
-import { installTauriStub, persistedStores, setRemindersStatus, stubState, type RemindersAccess, type TauriStubState } from './helpers/tauriStub'
+import { installTauriStub, persistedStores, setRemindersListsFailing, setRemindersStatus, stubState, type RemindersAccess, type TauriStubState } from './helpers/tauriStub'
 
 /**
  * Apple Reminders setup and settings (#552, epic #481 slice 3). The Tauri stub plays macOS: the permission, the prompt
@@ -104,6 +104,23 @@ test.describe('welcome step 2 and the setup (#552)', () => {
     await expect(proceed(page)).toHaveText('Weiter')
     // Nothing connected yet: access is macOS's, not a connection
     expect(await storedSources(page)).toBeNull()
+  })
+
+  test('access granted but the lists cannot be read: the step says so (never "0 Listen"), "Erneut versuchen" reads them again and "Weiter" follows', async ({ context, page }) => {
+    await firstRun(context, { status: 'granted' })
+    await page.goto('/welcome')
+    await setRemindersListsFailing(page, true) // the stub keeps it across the next navigation
+    await openReminders(page)
+
+    await expect(page.getByTestId('reminders-lists-failed')).toContainText('Die Listen konnten nicht gelesen werden.')
+    await expect(page.getByTestId('reminders-granted')).toHaveCount(0)
+    await expect(proceed(page)).toHaveText('Erneut versuchen')
+    await expect(proceed(page)).toBeEnabled()
+
+    await setRemindersListsFailing(page, false)
+    await proceed(page).click()
+    await expect(page.getByTestId('reminders-granted')).toHaveText('Zugriff erteilt. Kan-Do sieht 3 Listen.')
+    await expect(proceed(page)).toHaveText('Weiter')
   })
 
   test('denied: how to allow it, "Systemeinstellungen öffnen" and "Erneut prüfen"; allowing it in macOS then continues', async ({ context, page }) => {
@@ -366,6 +383,9 @@ test.describe('Erinnerungen-Einstellungen (#552)', () => {
     await expect(page.getByTestId('reminders-access-denied')).toContainText('Kan-Do hat keinen Zugriff.')
     await expect(page.getByTestId('reminders-repair')).toBeVisible()
     await expect(page.getByRole('dialog')).toHaveCount(0)
+    // The Listen section does not claim there is no list (it cannot read them), and says what to do instead
+    await expect(page.getByTestId('reminders-lists-no-access')).toContainText('Ohne Zugriff sieht Kan-Do deine Listen nicht.')
+    await expect(page.getByTestId('reminders-lists-none')).toHaveCount(0)
 
     await setRemindersStatus(page, 'granted')
     await page.getByTestId('reminders-repair').click()
