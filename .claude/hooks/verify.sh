@@ -68,10 +68,17 @@ verify_root() {
   [ "$(node scripts/testing-mode.mjs "$PWD" 2>/dev/null)" = fast ] && mode=fast tier=fast
 
   # Fingerprint of what the checks read (commit, uncommitted changes, untracked files, mode), logged as the last
-  # column of the row. Observation only (owner decision 2026-11-13): it shows how many runs repeat a pass on an
-  # unchanged tree, before anyone decides whether such a run may be skipped. Nothing is skipped here.
-  local fp
+  # column of the row. Skip stamp (owner decision 2026-11-19, after the 2026-11-13..20 trial: 39% of verify time
+  # repeated a pass): when this branch's last verify row is a pass with the same fingerprint, nothing changed since
+  # that pass, so the checks are skipped and a `skip` row is logged.
+  local fp last
   fp=$({ git rev-parse HEAD; git diff HEAD; git ls-files --others --exclude-standard -z | xargs -0 shasum 2>/dev/null; echo "$mode"; } 2>/dev/null | shasum | cut -c1-12)
+  last=$(awk -F'\t' -v b="${branch:--}" '$2 == "verify" && $3 == b { r = $7 "\t" $9 } END { print r }' \
+    "$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)/agent-ledgers/checks.tsv" 2>/dev/null)
+  if [ "$last" = "pass"$'\t'"$fp" ]; then
+    log_check verify "${branch:--}" "$tier" - 0 skip - "$fp"
+    return 0
+  fi
 
   run() {
     local label=$1
