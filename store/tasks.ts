@@ -585,6 +585,9 @@ export const useTasksStore = defineStore("tasks", () => {
    * The same goes for a task the user deleted or moved away while its create was in doubt (#538): a pending delete
    * takes the page as its `externalId` (the commit then archives it, and the page stays out of the board through
    * `deletedTaskIds`), a move takes it as `fromExternalId` (the origin removal archives it).
+   * And for a trash entry whose restore create was in doubt (#545, `TrashEntry.createUncertain`): the entry takes the page
+   * as its `externalId` and a queued delete archives it, so no card appears and the next restore un-archives it instead of
+   * creating a second page. An entry whose restore is under way (`pushing`) is left alone.
    */
   function adoptLandedPages(source: SourceId, fetched: readonly Task[], pushing?: (taskId: string) => boolean): void {
     if (source === 'local') return;
@@ -642,6 +645,30 @@ export const useTasksStore = defineStore("tasks", () => {
           },
         });
       }
+    }
+    // A trash entry whose restore create is in doubt (#545): it takes the page and a queued delete archives it, so the
+    // page stays out of the board and the next restore finds it instead of creating a second one. A restore under way
+    // is left alone (its own create is in flight), as is an entry that has a delete queued already
+    const trash = useTrashStore();
+    for (const entry of trash.entries) {
+      const doubt = entry.createUncertain;
+      if (doubt === undefined || entry.task.source !== source || pushing?.(entry.taskId) === true || mapHelpers.has(pendingDeletes.value, entry.taskId)) continue;
+      waiters.push({
+        doubt,
+        archivedFor: entry.taskId,
+        take: (id) => {
+          const taken = trash.takeLandedPage(entry.taskId, id);
+          if (!taken) return;
+          // The snapshot's old marker and move belong to the deleted task's earlier life: a restore that cancels this
+          // delete copies them back, and the commit would run the old move's origin removal again (the same strip as
+          // a restore that does not cancel, `restoreTask`)
+          const { pendingSync: _sync, pendingMove: _move, ...bare } = taken.task;
+          mapHelpers.set(pendingDeletes.value, taken.taskId, {
+            taskId: taken.taskId, task: bare, carryOver: taken.carryOver, state: 'queued', requestedAt: Date.now(), fromStatus: taken.fromStatus,
+          });
+          if (!deletedTaskIds.value.includes(id)) deletedTaskIds.value.push(id);
+        },
+      });
     }
     if (waiters.length === 0) return;
     waiters.sort((x, y) => x.doubt.since - y.doubt.since);

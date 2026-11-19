@@ -44,6 +44,20 @@ export const useTrashStore = defineStore('trash', () => {
     entries.value = entries.value.map(item => item.taskId === taskId ? { ...item, createUncertain: next } : item)
   }
 
+  /**
+   * A fetch returned the page a restore's doubtful create made (#545, `tasksStore.adoptLandedPages`): the entry takes it as
+   * its page (`task.externalId`) and drops the doubt, so the next restore un-archives that page instead of creating one.
+   * @returns the entry as it is now, undefined when it is gone or holds no doubt
+   */
+  function takeLandedPage(taskId: string, pageId: string): TrashEntry | undefined {
+    const held = entry(taskId)
+    if (!held?.createUncertain) return undefined
+    const { createUncertain: _doubt, ...rest } = held
+    const taken: TrashEntry = { ...rest, task: { ...held.task, externalId: pageId } }
+    entries.value = entries.value.map(item => item.taskId === taskId ? taken : item)
+    return taken
+  }
+
   function remove(taskId: string): void {
     if (entry(taskId)) entries.value = entries.value.filter(item => item.taskId !== taskId)
   }
@@ -73,7 +87,7 @@ export const useTrashStore = defineStore('trash', () => {
     return changed
   }
 
-  return { entries, count, recent, entry, add, markCreateUncertain, remove, clear, purge, renameValue }
+  return { entries, count, recent, entry, add, markCreateUncertain, takeLandedPage, remove, clear, purge, renameValue }
 }, {
   persist: {
     key: 'trash-store',

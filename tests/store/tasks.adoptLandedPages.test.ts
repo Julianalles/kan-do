@@ -135,4 +135,88 @@ describe('mergeTasks hands a landed page to the task that waits for it (#528)', 
       expect(store.deletedTaskIds).toContain('P')
     })
   })
+
+  describe('a trash entry whose restore create is in doubt takes the landed page (#545)', () => {
+    const entryOf = (overrides: Record<string, unknown> = {}) => ({
+      taskId: 't', task: task({ id: 't', externalId: 'old' }), fromStatus: TaskStatus.Waiting, deletedAt: Date.now(), carryOver: null,
+      createUncertain: { since: SINCE, at: SINCE, title: 'Rückruf' }, ...overrides,
+    })
+    const withEntry = async (overrides: Record<string, unknown> = {}) => {
+      const { useTrashStore } = await import('~/store/trash')
+      const trash = useTrashStore()
+      trash.add(entryOf(overrides) as never)
+      return trash
+    }
+    const landed = () => page('P', 'Rückruf', '2026-11-19T10:00:05.000Z')
+
+    it('hands the page to the entry: no card, the doubt gone, the page hidden and archived by a queued delete', async () => {
+      const trash = await withEntry()
+      store.mergeTasks('notion', [landed()])
+      expect(store.tasks).toHaveLength(0)
+      expect(trash.entry('t')?.createUncertain).toBeUndefined()
+      expect(trash.entry('t')?.task.externalId).toBe('P')
+      expect(store.deletedTaskIds).toContain('P')
+      expect(store.pendingDeletes.t).toMatchObject({ taskId: 't', state: 'queued', fromStatus: TaskStatus.Waiting, task: { externalId: 'P' } })
+      // A later fetch keeps the page off the board too
+      store.mergeTasks('notion', [landed()])
+      expect(store.tasks).toHaveLength(0)
+    })
+
+    it('the queued delete carries no old pendingSync or pendingMove of the deleted task (a restore would copy them back)', async () => {
+      const trash = await withEntry({
+        task: task({
+          id: 't', externalId: 'old',
+          pendingSync: { since: SINCE, attempts: 1, lastError: 'x' },
+          pendingMove: { fromSource: 'todoist', fromExternalId: 'orig', toSource: 'notion' },
+        }),
+      })
+      store.mergeTasks('notion', [landed()])
+      const queued = store.pendingDeletes.t
+      expect(queued?.task.externalId).toBe('P')
+      expect(queued?.task.pendingSync).toBeUndefined()
+      expect(queued?.task.pendingMove).toBeUndefined()
+      // The entry keeps its snapshot; only the delete is cleaned
+      expect(trash.entry('t')?.task.externalId).toBe('P')
+    })
+
+    it('leaves the page as a card when its title, age or holder does not fit', async () => {
+      const trash = await withEntry()
+      store.mergeTasks('notion', [page('A', 'Anderes', '2026-11-19T10:00:05.000Z'), page('B', 'Rückruf', '2026-11-19T08:00:00.000Z')])
+      expect(store.tasks.map(el => el.id).sort()).toEqual(['A', 'B'])
+      expect(trash.entry('t')?.createUncertain).toBeDefined()
+      expect(store.pendingDeletes.t).toBeUndefined()
+    })
+
+    it('skips an entry whose restore is in flight', async () => {
+      const trash = await withEntry()
+      store.mergeTasks('notion', [landed()], { pushing: (id) => id === 't' })
+      expect(store.task('P')).not.toBeNull()
+      expect(trash.entry('t')?.createUncertain).toBeDefined()
+      expect(store.pendingDeletes.t).toBeUndefined()
+    })
+
+    it('leaves the page alone when a rival doubt of the same title exists (it may be the rival\'s)', async () => {
+      const trash = await withEntry()
+      store.setTasks([waiting()])
+      store.mergeTasks('notion', [landed()])
+      expect(store.task('a')?.externalId).toBe('P') // the waiting card takes it, the entry does not
+      expect(trash.entry('t')?.createUncertain).toBeDefined()
+      expect(store.pendingDeletes.t).toBeUndefined()
+    })
+
+    it('only an entry of the fetched source takes a page, and a page only once (the oldest doubt first)', async () => {
+      const trash = await withEntry({ task: task({ id: 't', source: 'todoist', externalId: 'old' }) })
+      store.mergeTasks('notion', [landed()])
+      expect(store.task('P')).not.toBeNull()
+      expect(trash.entry('t')?.createUncertain).toBeDefined()
+    })
+
+    it('a pending delete of the same task already exists: the entry waits', async () => {
+      const trash = await withEntry()
+      store.addPendingDelete({ taskId: 't', task: task({ id: 't', externalId: 'old' }), carryOver: null, state: 'queued', requestedAt: 1 })
+      store.mergeTasks('notion', [landed()])
+      expect(trash.entry('t')?.createUncertain).toBeDefined()
+      expect(store.pendingDeletes.t?.task.externalId).toBe('old')
+    })
+  })
 })
