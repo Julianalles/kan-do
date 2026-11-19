@@ -55,6 +55,16 @@ describe('overlay contract: the pill is system glass and shows whichever window 
     expect(radius).toBe(height / 2)
   })
 
+  it('clips glass, web view and shadow with one circular mask on the content view, so the capsule ends are not cut (#565)', () => {
+    expect(rust).toMatch(/make_non_activating\(&window\);\s*round_corners\(&window\);/)
+    const mask = /fn round_corners<R: Runtime>\(window: &WebviewWindow<R>\) \{[\s\S]*?\n\}\n/.exec(rust)?.[0] ?? ''
+    for (const message of ['contentView', 'setCornerRadius: CORNER_RADIUS', 'setCornerCurve:', '"circular"', 'setMasksToBounds: true', 'invalidateShadow']) {
+      expect(mask, message).toContain(message)
+    }
+    // the pill's own capsule is the same arc: 9999px clamps to half the 60 px box, the glass radius
+    expect(read('components/overlay/NowWindow.vue')).toContain('--now-radius: 9999px;')
+  })
+
   it('makes the window non-activating on macOS, so a press does not raise kan-do or take the keyboard focus', () => {
     expect(rust).toContain('NSWindowStyleMask::NonactivatingPanel')
     expect(rust).toContain('_setPreventsActivation:')

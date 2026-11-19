@@ -31,12 +31,12 @@ const calls = async (page: Page, cmd: string) => (await stubState(page)).calls.f
 const pill = (page: Page) => page.getByTestId('now-pill')
 
 test.describe('the pill window (/overlay)', () => {
-  test('shows title, remaining time and the timer line; the title is private; it counts down by the wall clock', async ({ context, page }) => {
+  test('shows title, remaining time and the tint; the title is private; it counts down by the wall clock', async ({ context, page }) => {
     await openPill(context, page, snap({ running: true }))
     await expect(pill(page)).toBeVisible()
     await expect(page.getByTestId('now-title')).toHaveText('Release notes schreiben')
     await expect(page.getByTestId('now-title')).toHaveAttribute('data-private', '')
-    await expect(page.getByTestId('now-line')).toBeVisible()
+    await expect(page.getByTestId('now-fill')).toBeVisible()
     const first = await page.getByTestId('now-time').innerText()
     expect(first).toMatch(/^\d+:\d{2}$/)
     await expect.poll(() => page.getByTestId('now-time').innerText(), { timeout: 5000 }).not.toBe(first)
@@ -55,10 +55,10 @@ test.describe('the pill window (/overlay)', () => {
     await expect(page.getByTestId('now-pause')).toHaveAccessibleName('Fortsetzen')
   })
 
-  test('the timer line shrinks with the time left, turns amber above 80 % spent and is full and amber again over the timebox', async ({ context, page }) => {
+  test('the tint drains with the time left, turns amber above 80 % spent and is full and amber again over the timebox', async ({ context, page }) => {
     // 860 of 1500 s spent: 43 % left, primary
     await openPill(context, page, snap({ spentSeconds: 860 }))
-    const fill = page.locator('[data-testid="now-line"] > span')
+    const fill = page.locator('[data-testid="now-fill"]')
     const share = async () => Number((await fill.evaluate(el => (el as HTMLElement).style.width)).replace('%', '')) / 100
     expect(await share()).toBeCloseTo(640 / 1500, 3)
     await expect(pill(page)).not.toHaveClass(/is-warning/)
@@ -75,9 +75,9 @@ test.describe('the pill window (/overlay)', () => {
     expect(await share()).toBe(1)
   })
 
-  test('the line glides on a tick and jumps when the task changes or the timebox runs out (#436)', async ({ context, page }) => {
+  test('the tint glides on a tick and jumps when the task changes or the timebox runs out (#436)', async ({ context, page }) => {
     await openPill(context, page, snap({ spentSeconds: 860 }))
-    const fill = page.locator('[data-testid="now-line"] > span')
+    const fill = page.locator('[data-testid="now-fill"]')
     await emitTauriEvent(page, NOW_EVENT, snap({ spentSeconds: 861, at: Date.now() }))
     await expect(fill).toHaveClass(/is-gliding/)
     await emitTauriEvent(page, NOW_EVENT, snap({ taskId: 'other', title: 'Other task', spentSeconds: 100, at: Date.now() }))
@@ -89,10 +89,10 @@ test.describe('the pill window (/overlay)', () => {
     await expect(fill).not.toHaveClass(/is-gliding/)
   })
 
-  test('without a timebox there is no line and the time counts up', async ({ context, page }) => {
+  test('without a timebox there is no tint and the time counts up', async ({ context, page }) => {
     await openPill(context, page, snap({ timeBoxSeconds: null, spentSeconds: 125, running: true }))
     await expect(page.getByTestId('now-title')).toBeVisible()
-    await expect(page.getByTestId('now-line')).toHaveCount(0)
+    await expect(page.getByTestId('now-fill')).toHaveCount(0)
     await expect(pill(page)).not.toHaveClass(/is-warning/)
     const first = await page.getByTestId('now-time').innerText()
     expect(first).toMatch(/^2:\d{2}$/)
@@ -122,6 +122,12 @@ test.describe('the pill window (/overlay)', () => {
       expect(box.x).toBeGreaterThanOrEqual(edge.x)
       expect(box.x + box.width).toBeLessThanOrEqual(edge.x + edge.width)
       expect(box.width).toBeGreaterThanOrEqual(24)
+    }
+    // title, time and both buttons share the pill's middle line (#565)
+    const middle = edge.y + edge.height / 2
+    for (const id of ['now-title', 'now-time', 'now-pause', 'now-done']) {
+      const box = (await page.getByTestId(id).boundingBox())!
+      expect(Math.abs(box.y + box.height / 2 - middle), id).toBeLessThanOrEqual(1)
     }
     await expect(page.getByTestId('now-pause')).toHaveAccessibleName('Pausieren')
     await page.getByTestId('now-pause').click()
