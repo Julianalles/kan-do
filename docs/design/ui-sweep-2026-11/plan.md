@@ -162,8 +162,8 @@ Screen the ticked items together, batch them by surface (items on the same surfa
 | # | Session | Status | Date | Output | Notes |
 |---|---|---|---|---|---|
 | 1 | Baseline and user-task map | done | 2026-11-19 | `baseline.md`, `map.md`, `routes.md`, `findings-baseline.md` | audited commit: `e6786ddc`; 8 findings (baseline-1 to baseline-8) |
-| 2 | The user's feedback | running | 2026-11-19 | `findings-feedback.md` | subagent of the session that did session 1 |
-| 3 | Source scan | running | 2026-11-19 | `findings-source.md` | subagent of the session that did session 1 |
+| 2 | The user's feedback | done | 2026-11-19 | `findings-feedback.md` | 16 findings: 8 rule candidates, 4 proposals, 2 obvious fixes, 2 guards; 234 issues read |
+| 3 | Source scan | done | 2026-11-19 | `findings-source.md` | 23 findings: 11 obvious fixes, 10 proposals, 2 guards; ratchet counts in its step 5 |
 | 4 | Rendered walk | running | 2026-11-19 | `findings-rendered.md` | subagent of the session that did session 1 |
 | 5 | Motion | running | 2026-11-19 | `findings-motion.md` | subagent of the session that did session 1 |
 | 6 | Blind test and overview | open | | `overview.md` | blind test: |
@@ -175,6 +175,10 @@ Status values: open, running, done, blocked (say on what).
 
 Newest first. At most five lines per session: what the next session must know that the output files do not say.
 
+- 2026-11-19, sessions 2 and 3 done. The harness refuses a findings file written by a subagent ("return findings as text"), so each returned its file's text and the parent session wrote it word for word. A later parallel run should expect the same.
+- For the merge in session 6: source-12 answers baseline-1 (7 of the 29 `ui` entries change the look), source-13 extends baseline-4, source-4 includes baseline-3, source-7 and feedback-8 are the same defect (a destructive button in a row), source-21 and feedback-7 belong to #562. feedback-3 and feedback-4 are places where `DESIGN.md` disagrees with decisions the app already follows: rule candidates with a document correction, not app defects.
+- Open issues to fold as "already tracked": #573, #575, #577, #579, #580, #581, #554, #562, #374. The rule candidates "#473" and "#474" that older issues name do not exist in the tracker.
+- Waiting for a rendered check by session 4 or 5: source-15 (table row hover), source-18 (checkbox colour), source-23 (task title 24 px against 22 px), feedback-5 (focus pill at 390 px), feedback-11, feedback-12, feedback-2.
 - 2026-11-19, session 1 done. Audit `e6786ddc`: later commits of this sweep are docs only, so `git diff e6786ddc --stat -- components pages layouts assets app.config.ts` must stay empty; if it is not, note the difference in your findings file.
 - Issue numbers: the tracker restarted when the repo moved. Older documents write `kd#n` for today's tracker and plain `#n` for the old one, and code comments mix both, so check a number with `gh issue view <n>` before you call something tracked. Open on 2026-11-19: #588, #587, #581, #580, #579, #577, #575, #573, #562, #554, #478, #374.
 - `map.md` part B numbers the user tasks 1 to 34; part C lists the convergence candidates and the two gaps that session 4 step 3 compares. `routes.md` was derived from the source, not walked: correct a row whose clicks do not lead there and fill its "Not reachable" table.
