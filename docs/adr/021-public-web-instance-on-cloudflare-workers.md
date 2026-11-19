@@ -33,6 +33,6 @@ Worker bundle 901 KiB, 210 KiB gzipped (limit 3 MB compressed); 217 static files
 
 ## Consequences
 
-- Two hosts serve the same app until #280: the desktop app still posts feedback to Vercel.
+- Two hosts serve the same app: Vercel and the Worker. The desktop app posts its feedback to the Worker since #281 (installed versions of before still post to Vercel).
 - Pitfalls of the build image: its npm must match the lockfile's npm (`packageManager` in `package.json` says `npm@11.19.0`, the version kan-do installs with), and `compatibility_date` must not be newer than the workerd of the pinned `wrangler` (`wrangler.jsonc` says which).
 - Local checks: `.dev.vars` (git-ignored) holds a dummy `GATE_SECRET`, `npx wrangler dev --port <free port>` serves the built Worker.

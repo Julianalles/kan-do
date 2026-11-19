@@ -22,7 +22,7 @@ const copyEditor = isDev || process.env.KANDO_COPY_EDITOR === '1' || isDevInstan
 // `.nuxt` (a dev server or typecheck may be using it) or `.output` (`npm run generate` for Tauri). Unset for every other command.
 const e2eBuildDir = process.env.KANDO_E2E_BUILD_DIR
 /** Production relay route; its host is also in the desktop CSP `connect-src` (ADR 012). */
-const FEEDBACK_RELAY_PRODUCTION_URL = 'https://kan-do-zeta.vercel.app/api/feedback'
+const FEEDBACK_RELAY_PRODUCTION_URL = 'https://kando.julius-wuestefeld.workers.dev/api/feedback'
 
 // The /ui manifest (#117): derived from the doc blocks and catalog/, never committed. Only the builds that ship /ui compute it
 // (`nuxi prepare`, typecheck and every production build get `[]`). A broken doc block must not stop `nuxt dev`: the unit tests report it.
