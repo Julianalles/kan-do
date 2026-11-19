@@ -12,7 +12,7 @@ import { useBoardStore } from '~/store/board'
 import { useIntegrationHealthStore } from '~/store/integrationHealth'
 import { useNotionConfigStore } from '~/store/notionConfig'
 import { useTaskMove } from '~/composables/useTaskMove'
-import { isIntegrationSourceId, sourceCanCreate } from '~/lib/taskSources'
+import { isIntegrationSourceId, sourceCan, sourceCanCreate } from '~/lib/taskSources'
 import { lostFieldsForMove } from '~/utils/moveFields'
 import { SOURCE_META } from '~/utils/sourceMeta'
 import type { NotionPropertyMapping } from '~/types/notion'
@@ -49,6 +49,8 @@ export interface BuildMoveTargetsInput {
 export function buildMoveTargets({ t, task, connected, notionMapping, needsAttention }: BuildMoveTargetsInput): MoveTarget[] {
   const candidates: SourceId[] = ['local', ...connected]
   const pending = task.pendingMove !== undefined
+  // A task of a source that cannot be moved out of (Reminders, #551) has no entry at all
+  if (!sourceCan(task.source, 'moveOut')) return []
   return candidates
     .filter(source => source !== task.source && sourceCanCreate(source))
     .map((source): MoveTarget => {

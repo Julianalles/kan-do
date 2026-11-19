@@ -5,8 +5,8 @@ import { translate } from "~/lib/i18n"
 import { CreateLookupError } from "~/lib/integrationHealth"
 import { useIntegrationHealthStore } from "~/store/integrationHealth"
 import { useBoardStore } from "~/store/board"
-import { isIntegrationSourceId } from "~/lib/taskSources"
-import type { IntegrationSourceId } from "~/types/taskSource"
+import { isIntegrationSourceId, SETUP_ERROR_CONTEXTS } from "~/lib/taskSources"
+import { INTEGRATION_SOURCE_IDS, type IntegrationSourceId } from "~/types/taskSource"
 
 // Error deduplication state
 let lastErrorTimestamp = 0
@@ -24,8 +24,8 @@ export interface HandleErrorOptions {
  */
 const resolveSource = (errorContext: ErrorContext | undefined, explicit: IntegrationSourceId | undefined): IntegrationSourceId | null => {
   if (explicit) return explicit
-  if (errorContext === 'notion_setup') return 'notion'
-  if (errorContext === 'todoist_setup') return 'todoist'
+  const owner = INTEGRATION_SOURCE_IDS.find((id) => SETUP_ERROR_CONTEXTS[id] === errorContext)
+  if (owner) return owner
   const fallback = useBoardStore().defaultSource
   return fallback !== null && isIntegrationSourceId(fallback) ? fallback : null
 }
@@ -112,7 +112,7 @@ export const useErrorHandler = () => {
     
     // An authentication or configuration failure marks the source as broken. The setup dialog never opens by
     // itself (#319): the sync button's popover offers "Verbindung reparieren" for the source.
-    if (statusCode === 401 || code === 'UNAUTHORIZED' || errorContext === 'notion_setup') {
+    if (statusCode === 401 || code === 'UNAUTHORIZED' || errorContext === 'notion_setup' || errorContext === 'reminders_access') {
       if (source !== null) health.markBroken(source, message)
     }
 

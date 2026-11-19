@@ -36,6 +36,7 @@ export const PERSISTED_KEYS = [
   'integration-health-store',
   'taskStatistics',
   'notionConfig',
+  'remindersConfig',
   'propertyOptions',
   'settings-store',
   'day-recap-store',

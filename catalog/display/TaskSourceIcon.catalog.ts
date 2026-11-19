@@ -9,6 +9,7 @@ export default {
     { id: 'local', props: { source: 'local' } },
     { id: 'notion', props: { source: 'notion' } },
     { id: 'todoist', props: { source: 'todoist' } },
+    { id: 'reminders', props: { source: 'reminders' } },
   ],
   states: [],
 } satisfies CatalogEntry

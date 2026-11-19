@@ -24,6 +24,8 @@ function extraFieldsFor(source: SourceId, mapping: NotionPropertyMapping | null 
       return { timeSpent: !!mapping?.timeSpent, unplanned: !!mapping?.unplanned, completedDate: !!mapping?.completedDate }
     case 'todoist':
       return { timeSpent: false, unplanned: false, completedDate: false }
+    case 'reminders':
+      return { timeSpent: false, unplanned: false, completedDate: false }
     case 'local':
       return { timeSpent: true, unplanned: true, completedDate: true }
   }

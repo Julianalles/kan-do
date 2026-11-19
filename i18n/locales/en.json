@@ -372,7 +372,8 @@
     "name": {
       "local": "Local",
       "notion": "Notion",
-      "todoist": "Todoist"
+      "todoist": "Todoist",
+      "reminders": "Reminders"
     }
   },
   "statistics": {
@@ -610,7 +611,9 @@
     "secretsResetFailed": "The macOS Keychain isn't reachable, so the setup wasn't reset. Unlock the Keychain and try again.",
     "externalLinkFailed": "The link couldn't be opened.",
     "feedbackFailed": "The feedback couldn't be sent. Your draft is kept.",
-    "taskRestoreFailed": "The task couldn't be restored and stays in the trash."
+    "taskRestoreFailed": "The task couldn't be restored and stays in the trash.",
+    "remindersAccessDenied": "Kan-Do isn't allowed to read Reminders. Allow access in the macOS system settings.",
+    "remindersSyncFailed": "The sync with Reminders couldn't be completed."
   },
   "notion": {
     "modal": {

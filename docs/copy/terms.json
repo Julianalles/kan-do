@@ -713,5 +713,21 @@
     ],
     "status": "proposed",
     "note": "Stepper label and hidden step heading; the intro pane itself has no visible heading."
+  },
+  {
+    "id": "reminders-app",
+    "concept": "The Apple Reminders task source (#551, epic #481): the app on the Mac and the source name",
+    "de": "Erinnerungen",
+    "en": "Reminders",
+    "avoidDe": [
+      "Erinnerungen-App",
+      "Apple Erinnerungen"
+    ],
+    "avoidEn": [
+      "Apple Reminders",
+      "Reminders app"
+    ],
+    "status": "proposed",
+    "note": "Proposed by #551 (the source name key `source.name.reminders`). The macOS app is called \"Erinnerungen\" in German and \"Reminders\" in English; \"reminder\" as a single entry stays a task on the board (term `task`). Needs the user's `npm run terms:approve`."
   }
 ]

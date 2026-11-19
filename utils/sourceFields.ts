@@ -46,6 +46,9 @@ export function fieldsForSource(source: SourceId | null, notionMapping?: NotionP
     case 'todoist':
       // What TodoistIntegration maps today: priority, and the project as topic (a new project is not a free value). No connect UI exists yet.
       return { priority: true, timebox: false, activity: false, topic: true, customProperties: [], newValues: null }
+    case 'reminders':
+      // Title and notes come from Reminders and a reminder is never created here (`sourceCan`); the list is the Thema or Aktivität
+      return { priority: true, timebox: true, activity: false, topic: false, customProperties: [], newValues: null }
     case 'local':
     case null:
       return { ...LOCAL_FIELDS, customProperties: [] }

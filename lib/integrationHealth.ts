@@ -22,7 +22,7 @@ export function emptySourceHealth(): SourceHealth {
 }
 
 export function emptySourceHealthMap(): SourceHealthMap {
-  return { notion: emptySourceHealth(), todoist: emptySourceHealth() }
+  return { notion: emptySourceHealth(), todoist: emptySourceHealth(), reminders: emptySourceHealth() }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -80,6 +80,21 @@ export function normalizeIntegrationHealthState<T>(raw: T, legacyLastSync: numbe
   return { ...rest, sources } as T
 }
 
+/**
+ * Whether a state `normalizeIntegrationHealthState` changed must be written back (#273). A state that only lacks the entry
+ * of an integration added since it was stored (Apple Reminders, #551) is complete in memory and needs no write: the entry
+ * is persisted with the next mutation, and a launch that changed nothing never marks the desktop data as edited.
+ */
+export function healthNeedsWriteBack(raw: unknown, normalised: unknown): boolean {
+  if (raw === normalised) return false
+  if (!isRecord(raw) || !isRecord(raw.sources) || !isRecord(normalised) || !isRecord(normalised.sources)) return true
+  if (LEGACY_HEALTH_KEYS.some((key) => key in raw)) return true
+  if (Object.keys(raw.sources).some((key) => !(INTEGRATION_SOURCE_IDS as readonly string[]).includes(key))) return true
+  const stored = raw.sources
+  const next = normalised.sources as Record<string, unknown>
+  return INTEGRATION_SOURCE_IDS.some((id) => id in stored && stored[id] !== next[id])
+}
+
 type ErrorFields = { name?: string; statusCode?: number; httpStatusCode?: number; code?: string; data?: { error?: string }; cause?: unknown }
 
 /**
@@ -109,6 +124,8 @@ export function classifySyncFailure(error: unknown): 'offline' | 'broken' | 'deg
   const cause = unwrapCause(error)
   const status = cause as ErrorFields | null
   if (status?.name === 'SourceNotConfiguredError') return 'broken'
+  // The native Reminders bridge (#551): no permission is the one failure that is the source's (macOS holds it)
+  if (status?.name === 'RemindersError') return (status as { kind?: string }).kind === 'access-denied' ? 'broken' : 'degraded'
   const httpStatus = status?.statusCode ?? status?.httpStatusCode
   if (httpStatus === 401 || httpStatus === 403 || httpStatus === 404 || status?.code === 'UNAUTHORIZED' || status?.data?.error === 'UNAUTHORIZED') {
     return 'broken'

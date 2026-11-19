@@ -23,6 +23,7 @@ import { useSecrets } from '~/composables/useSecrets'
 import { useTaskSources } from '~/composables/useTaskSources'
 import { useTaskSync } from '~/composables/useTaskSync'
 import { resumeTaskTimer, stopTaskTimer } from '~/composables/useTaskTimerDriver'
+import { SOURCE_KEYCHAIN_ENTRIES } from '~/lib/secrets'
 import { mapHelpers } from '~/utils/mapHelpers'
 import type { IntegrationSourceId } from '~/types/taskSource'
 
@@ -141,10 +142,13 @@ export const useSourceConnections = () => {
    */
   const clearCredentials = async (source: IntegrationSourceId): Promise<boolean> => {
     if (source === 'notion') return useNotionConfigStore().clearConfig()
+    // A source without a Keychain entry holds no secret: nothing to reset
+    const entry = SOURCE_KEYCHAIN_ENTRIES[source]
+    if (!entry) return true
     const secrets = useSecrets()
     if (secrets.available) {
       try {
-        await secrets.remove('todoist-token')
+        await secrets.remove(entry)
       } catch (error) {
         useErrorHandler().handleError(error as Error, 'secrets_reset')
         return false

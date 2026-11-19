@@ -127,6 +127,7 @@ export const useIntegrationManager = () => {
       heldTime: adapter.timeHolding?.(),
       timeWritable,
       holdsOnlyOpenDone: adapter.holdsOnlyOpenDone === true,
+      keepsKanDoFields: adapter.keepsKanDoFields === true,
       startsNotPlanned: adapter.startsNotPlanned === true,
       partialNotPlanned,
       readInParts,

@@ -4,7 +4,7 @@ import type { ContextMenuItem } from "@nuxt/ui";
 import type { Task } from "~/types/task";
 import { TaskStatus } from "~/types/taskStatus";
 import { useTasksStore } from "~/store/tasks";
-import { deleteLabelKey, sourceCanCreate, sourceTaskUrl } from "~/lib/taskSources";
+import { deleteLabelKey, sourceCan, sourceCanCreate, sourceTaskUrl } from "~/lib/taskSources";
 import { getPriorityLabel } from "~/utils/taskStatusMappings";
 import { normalizePriority } from "~/lib/priority";
 import { useTaskOperations } from "~/composables/useTaskOperations";
@@ -289,7 +289,7 @@ export const useTaskContextMenu = (
     ];
 
     // Group 7: Delete (danger zone)
-    const deleteGroup: ContextMenuItem[] = [
+    const deleteGroup: ContextMenuItem[] = !sourceCan(currentTask.source, 'remove') ? [] : [
       {
         label: t(deleteLabelKey(currentTask.source)),
         color: "error" as const,
@@ -306,7 +306,7 @@ export const useTaskContextMenu = (
       timeboxGroup,
       ...(sourceGroup.length ? [sourceGroup] : []),
       copyGroup,
-      deleteGroup,
+      ...(deleteGroup.length ? [deleteGroup] : []),
     ];
   });
 

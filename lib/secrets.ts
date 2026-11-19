@@ -29,6 +29,14 @@ export const SECRET_STATE_LOCATIONS: readonly SecretStateLocation[] = [
   { entry: 'todoist-token', storageKey: 'board-store', statePath: 'boardConfig.todoistApiToken' },
 ]
 
+/**
+ * The Keychain entry of an integration whose credentials `useSourceConnections` resets on a disconnect, next to Notion's
+ * own `clearConfig`. A source without one holds no secret (Apple Reminders: macOS holds the permission, #551).
+ */
+export const SOURCE_KEYCHAIN_ENTRIES: Readonly<Partial<Record<'notion' | 'todoist' | 'reminders', ReadableSecretEntry>>> = {
+  todoist: 'todoist-token',
+}
+
 /** `<storageKey>.<statePath>` of every secret kept in persisted state on web. */
 export const SECRET_STATE_PATHS: readonly string[] = SECRET_STATE_LOCATIONS.map(
   ({ storageKey, statePath }) => `${storageKey}.${statePath}`,

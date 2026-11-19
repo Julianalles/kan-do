@@ -30,7 +30,7 @@
   conditional, so the six-row guard above still counts the always-visible rows. A task whose connection holds no
   completion date says "Gilt nur in Kan-Do." beside the value
 - Close clearance (kd#201): on desktop the shell's close button sits at the top end corner (`top-4 end-4`, 32 px), so the title and a triage block end 56 px (`pe-14`/`me-14`) from the sheet's edge and never run under the control; change both together
-- Property rows (moved from DESIGN.md, kd#176): a quiet label column and the value as its own control, a soft select with a chevron when it opens a list (`TaskPropertySelect`), an editable label on a faint dotted rule when it is free input (`InlineEditable`, `PropertyValueTrigger`). Every row keeps its place whether set or not ("Auswählen…", "+ hinzufügen"); six standard rows, the last one "Aufgewendete Zeit"; no per-row icons, dividers or chips, and no separate time block or progress ring on the sheet
+- Property rows (moved from DESIGN.md, kd#176): a quiet label column and the value as its own control, a soft select with a chevron when it opens a list (`TaskPropertySelect`), an editable label on a faint dotted rule when it is free input (`InlineEditable`, `PropertyValueTrigger`). Every row keeps its place whether set or not ("Auswählen…", "+ hinzufügen"); six standard rows, the last one "Aufgewendete Zeit" (a source that owns the text, Reminders #551, shows Thema and Aktivität as plain values and leaves an empty one out); no per-row icons, dividers or chips, and no separate time block or progress ring on the sheet
 -->
 
 <template>
@@ -64,6 +64,7 @@
             :model-value="task.title"
             :label="t('task.field.title')"
             required
+            :readonly="!canEditText"
             :required-message="t('task.form.titleRequired')"
             class="text-2xl/tight"
             container-class="-ms-2"
@@ -118,7 +119,11 @@
           />
         </TaskPropertyRow>
 
-        <TaskPropertyRow :label="t('task.field.topic')" private>
+        <!-- A source that owns the text (Reminders, #551) also owns the Thema and the Aktivität: the list. Shown as plain values, never as pickers -->
+        <TaskPropertyRow v-if="!canEditText && task.topic" :label="t('task.field.topic')" private>
+          <InlineEditable readonly affordance="rule" :model-value="task.topic" :label="t('task.field.topic')" data-private data-testid="task-topic-readonly" />
+        </TaskPropertyRow>
+        <TaskPropertyRow v-else-if="canEditText" :label="t('task.field.topic')" private>
           <TopicPropertyPicker
             kind="topic"
             :editable="!isPreview"
@@ -140,7 +145,10 @@
           <TopicEditorHost :key="`topic:${editing.name}`" nested :topic="editing.name" kind="topic" @close="closeEditor" />
         </div>
 
-        <TaskPropertyRow :label="t('task.field.activity')" private>
+        <TaskPropertyRow v-if="!canEditText && task.activity" :label="t('task.field.activity')" private>
+          <InlineEditable readonly affordance="rule" :model-value="task.activity" :label="t('task.field.activity')" data-private data-testid="task-activity-readonly" />
+        </TaskPropertyRow>
+        <TaskPropertyRow v-else-if="canEditText" :label="t('task.field.activity')" private>
           <TopicPropertyPicker
             kind="activity"
             :editable="!isPreview"
@@ -270,7 +278,7 @@
       <!-- 2. Notes: directly after the main fields on every sheet variant (#386); in the sheet their own column, scrolling inside it and never setting the sheet's height -->
       <div :class="twoColumn ? 'relative min-h-0' : ''" data-testid="task-notes-column">
         <div :class="twoColumn ? 'absolute inset-y-0 -inset-s-2 -inset-e-2 overflow-y-auto overscroll-contain px-2' : ''">
-          <TaskDetailNotes :notes="task.notes" @save="updateNotes" />
+          <TaskDetailNotes :notes="task.notes" :readonly="!canEditText" @save="updateNotes" />
         </div>
       </div>
 
@@ -339,7 +347,7 @@ import TopicEditorHost from '~/components/topic/TopicEditorHost.vue';
 import TaskCarryOverTriage from '~/components/task/TaskCarryOverTriage.vue';
 import TaskCarryOverDots from '~/components/task/TaskCarryOverDots.vue';
 import { useTaskCarryOver } from '~/composables/useCarryOver';
-import { deleteLabelKey, sourceTaskUrl } from '~/lib/taskSources';
+import { deleteLabelKey, sourceCan, sourceTaskUrl } from '~/lib/taskSources';
 import { normalizePriority } from '~/lib/priority';
 import { liveTimeSpent } from '~/lib/liveTime';
 import type { Task, TaskCustomValue } from '~/types/task';
@@ -523,6 +531,9 @@ function handleTitleSave(newTitle: string) {
     keepCarryOver();
   }
 }
+
+/** Title, notes, Thema and Aktivität belong to the task's source for Reminders (#551; the list is the Thema or the Aktivität): shown, never edited here */
+const canEditText = computed(() => sourceCan(task.value?.source ?? 'local', 'editText'));
 
 // Updates
 function updateTitle(newTitle: string) {
@@ -710,7 +721,7 @@ const sourceUrl = computed(() => (task.value ? sourceTaskUrl(task.value) : null)
 const actionProps = computed(() => ({
   openLabel: sourceUrl.value && taskSource.value ? t('task.detail.openIn', { source: taskSource.value }) : null,
   moveTargets: moveTargets.value,
-  deleteLabel: t(deleteLabelKey(task.value?.source ?? 'local')),
+  deleteLabel: sourceCan(task.value?.source ?? 'local', 'remove') ? t(deleteLabelKey(task.value?.source ?? 'local')) : null,
 }));
 
 function openSource() {

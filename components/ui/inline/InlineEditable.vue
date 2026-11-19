@@ -7,6 +7,7 @@
 @avoid Only read-or-edit in place; a form field that is always editable uses a plain input.
 @responsibility
 - Handle read/edit mode toggling
+- `readonly` (#551, a Reminders title and notes): the display only, no trigger role, no hover fill, no dotted rule (it says "free input"), no edit; the field stays readable text, links in a `#display` slot stay clickable
 - `required`: an empty value is never saved; Enter shows `requiredMessage` and stays in the editor, Esc and blur restore (kd#27)
 - Emit update events on save
 - Provide slots for custom display and input components
@@ -20,14 +21,26 @@
     data-inline-editable
     class="group relative rounded-md transition-colors duration-(--duration-base)"
     :class="[
-      isEditing ? 'bg-transparent' : isRule ? 'cursor-pointer' : 'cursor-pointer focus-within:bg-accented/50 hover:bg-accented/50',
+      readonly ? '' : isEditing ? 'bg-transparent' : isRule ? 'cursor-pointer' : 'cursor-pointer focus-within:bg-accented/50 hover:bg-accented/50',
       containerClass
     ]"
   >
     <!-- Read Mode, interactive display (#208): display content and trigger are siblings, so links in the
          content are not descendants of role=button. The empty trigger comes first in Tab order and is stretched
          over the box; the content ignores pointer events except links (CSS), so a click elsewhere reaches the trigger. -->
-    <template v-if="!isEditing && interactiveDisplay">
+    <!-- Read only (#551): the value as text, nothing to click -->
+    <div
+      v-if="readonly"
+      class="flex items-center rounded-md border border-transparent px-2 py-1.5"
+      :class="[isRule ? '-ms-2 h-(--field-h) py-0 text-sm' : '', displayClass, { 'text-muted italic': !modelValue && resolvedPlaceholder }]"
+      data-testid="inline-readonly"
+    >
+      <slot name="display">
+        {{ modelValue }}
+      </slot>
+    </div>
+
+    <template v-else-if="!isEditing && interactiveDisplay">
       <div
         ref="triggerRef"
         role="button"
@@ -160,7 +173,10 @@ const props = withDefaults(defineProps<{
   required?: boolean;
   /** The text shown (and announced) when a required value is confirmed empty. */
   requiredMessage?: string;
+  /** The value cannot be edited (a title or notes a source owns, #551): the display only, never an editor */
+  readonly?: boolean;
 }>(), {
+  readonly: false,
   required: false,
   requiredMessage: undefined,
   interactiveDisplay: false,
@@ -247,7 +263,7 @@ watch(() => props.modelValue, (newVal) => {
 });
 
 function startEdit() {
-  if (isEditing.value) return;
+  if (isEditing.value || props.readonly) return;
   clearPendingFocus();
   localValue.value = props.modelValue;
   isEditing.value = true;

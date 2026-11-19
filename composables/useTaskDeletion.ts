@@ -28,6 +28,7 @@ import { mapHelpers } from '~/utils/mapHelpers'
 import { TaskStatus } from '~/types/taskStatus'
 import type { Task } from '~/types/task'
 import { inStatus, isNotPlanned } from '~/lib/taskPlanning'
+import { sourceCan } from '~/lib/taskSources'
 
 export const DELETE_UNDO_WINDOW_MS = 5000
 
@@ -311,6 +312,8 @@ export function useTaskDeletion() {
   function deleteTaskWithUndo(taskId: string, onDeleted?: (taskId: string) => void): boolean {
     const task = tasksStore.task(taskId)
     if (!task) return false
+    // A source that is read-only in kan-do (Reminders, #551) is never deleted from here: the menus do not offer it
+    if (!sourceCan(task.source, 'remove')) return false
 
     // A running timer would keep ticking against a removed task.
     stopTaskTimer(taskId)

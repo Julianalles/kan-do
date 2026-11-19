@@ -14,7 +14,7 @@ Standalone so the closing step (#98) can list it under "still open". Renders not
 @responsibility
 - Keep: silences the nudge for CARRY_OVER_NUDGE_DAYS further days (store), the dots keep counting
 - Make smaller (compact only, the day-close route to the sheet's smaller-step title edit) / Delete: emitted, the host owns the title field and the sheet lifecycle
-- Sheet Delete ("Nein, löschen") and the compact Delete both run the host's one confirmed delete; the compact label names the upstream consequence (Notion, Todoist)
+- Sheet Delete ("Nein, löschen") and the compact Delete are not offered for a task whose source cannot be deleted from (`sourceCan(…, 'remove')`); both run the host's one confirmed delete; the compact label names the upstream consequence (Notion, Todoist)
 - The kept confirmation lives in the component (`kept`), so it outlasts `isNudgeDue` turning false while the sheet is open
 -->
 <template>
@@ -51,6 +51,7 @@ Standalone so the closing step (#98) can list it under "still open". Renders not
             {{ t('task.carryOver.keepYes') }}
           </UButton>
           <UButton
+            v-if="canDelete"
             color="error"
             variant="soft"
             :icon="ICONS.delete"
@@ -84,6 +85,7 @@ Standalone so the closing step (#98) can list it under "still open". Renders not
         {{ t('task.carryOver.smaller') }}
       </UButton>
       <UButton
+        v-if="canDelete"
         color="neutral"
         variant="ghost"
         :icon="ICONS.delete"
@@ -102,7 +104,7 @@ import { ICONS } from '~/lib/icons'
 import { computed, ref, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useTasksStore } from '~/store/tasks'
-import { deleteLabelKey } from '~/lib/taskSources'
+import { deleteLabelKey, sourceCan } from '~/lib/taskSources'
 import { useTaskCarryOver } from '~/composables/useCarryOver'
 
 defineOptions({ name: 'TaskCarryOverTriage' })
@@ -135,6 +137,9 @@ const headingId = useId()
 const { displayDay, isNudgeDue, keep } = useTaskCarryOver(() => tasksStore.task(props.taskId))
 
 const title = computed(() => t('task.carryOver.nudgeTitle', { n: displayDay.value }))
+
+/** A task of a source that cannot be deleted from kan-do (Reminders, #551) offers Keep only */
+const canDelete = computed(() => sourceCan(tasksStore.task(props.taskId)?.source ?? 'local', 'remove'))
 
 const deleteLabel = computed(() => t(deleteLabelKey(tasksStore.task(props.taskId)?.source ?? 'local')))
 

@@ -27,6 +27,13 @@ export interface TaskCustomEntry {
   isMissing?: boolean;
 }
 
+/** `Task.reminders`: the Reminders side of a task the date logic needs (#551). */
+export interface TaskReminders {
+  due: { date: string; time: string | null } | null;
+  recurrence: string | null;
+  listId: string;
+}
+
 /**
  * Marks a task whose local state the source does not hold yet (#319). State-based: the adapter pushes the
  * task as it is now, so one marker covers any number of changes. Set before the write, cleared when it
@@ -137,6 +144,13 @@ interface Task {
    * from this one, so kan-do's own moves survive a sync. Additive: older data has none.
    */
   sourceNotPlanned?: string;
+  /**
+   * What Apple Reminders holds of a `reminders` task (#551, ADR 015 addendum "Reminders source"): the due date as
+   * components (`date` is the date Reminders holds now), the recurrence rule (`FREQ=WEEKLY;INTERVAL=2`, informational)
+   * and the list the reminder lives in (its role decides topic or activity, and whether a write is allowed). Set by the
+   * adapter on every fetch; absent on every other source. Additive: older data has none.
+   */
+  reminders?: TaskReminders;
   /** Unpushed local changes (absent = the source holds the task as it is). A Local task never has one. */
   pendingSync?: PendingSync;
   /** A move to another source that did not finish; always together with `pendingSync` */

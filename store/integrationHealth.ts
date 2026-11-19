@@ -2,7 +2,7 @@ import { defineStore, acceptHMRUpdate } from 'pinia'
 import { ref } from 'vue'
 import type { IntegrationHealth, SourceHealth, SourceHealthMap } from '../types/integration'
 import type { IntegrationSourceId, SourceId } from '../types/taskSource'
-import { classifySyncFailure, emptySourceHealthMap, normalizeIntegrationHealthState, sourceProblems } from '../lib/integrationHealth'
+import { classifySyncFailure, emptySourceHealthMap, healthNeedsWriteBack, normalizeIntegrationHealthState, sourceProblems } from '../lib/integrationHealth'
 import type { SourceProblem } from '../lib/integrationHealth'
 import { appStorage } from '../lib/dataStorage'
 
@@ -121,7 +121,7 @@ export const useIntegrationHealthStore = defineStore('integrationHealth', () => 
       deserialize: (stored: string) => {
         const parsed: unknown = JSON.parse(stored)
         const normalised = normalizeIntegrationHealthState(parsed, storedLastSyncTimestamp())
-        hydratedLegacyShape = normalised !== parsed
+        hydratedLegacyShape = healthNeedsWriteBack(parsed, normalised)
         return normalised
       },
     },

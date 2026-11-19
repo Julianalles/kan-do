@@ -2,11 +2,11 @@
 
 Developer glossary. UI wording (preferred terms, forms to avoid, German and English) lives in `docs/copy/terms.json`.
 
-**Task source** (UI: "Verbindung"): where a task lives. One of Local, Notion and, later, Todoist. Every task belongs to exactly one task source.
+**Task source** (UI: "Verbindung"): where a task lives. One of Local, Notion, Todoist and Apple Reminders (read-only in kan-do, desktop only). Every task belongs to exactly one task source.
 
 **Task id and external id**: `Task.id` is the app's own identity of a task and never changes (statistics, order, timers and routes use it); `Task.externalId` is the id the task's integration knows it by (the Notion page id), `null` for a Local task. Integrations only ever receive the external id. See ADR 015.
 
-**Integration**: a task source outside the app (Notion, Todoist). Local is a task source but not an integration.
+**Integration**: a task source outside the app (Notion, Todoist, Apple Reminders). Local is a task source but not an integration.
 
 **Default source** (UI: "Standard"): the task source that newly created tasks go to unless the user picks another one in the add form.
 

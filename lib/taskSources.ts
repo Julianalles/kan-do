@@ -8,11 +8,15 @@
  * (same reference) when nothing needs to change, which lets hydration skip the write-back (#273).
  */
 import type { IBoardConfig } from '~/types/state'
+import { translate } from '~/lib/i18n'
+import type { ErrorContext } from '~/lib/errorMessages'
+import { SOURCE_META } from '~/utils/sourceMeta'
 import type { CreateUncertain, PendingMove, PendingSync, Task } from '~/types/task'
 import {
   INTEGRATION_SOURCE_IDS,
   SOURCE_IDS,
   type IntegrationSourceId,
+  type SourceCapabilities,
   type SourceId,
   type TaskSourcesConfig,
 } from '~/types/taskSource'
@@ -246,9 +250,26 @@ export function sourceHomeUrl(source: SourceId, ids: { notionDatabaseId?: string
   return null
 }
 
-/** Whether the add form can create tasks in a source. Todoist cannot yet (no connect UI, no create): new tasks stay Local there. */
+/**
+ * What a source does not allow (#551). A source that is not listed allows everything (Local, Notion). Todoist cannot create
+ * yet (no connect UI, no create): new tasks stay Local there. Apple Reminders is read-only in kan-do: a done tick is the one
+ * write (title and notes stay Reminders', no create, no delete, no move out). These are the same flags the adapters expose as
+ * `TaskSourceAdapter.capabilities`; the consumers (move targets, add target, menus, sheet) ask `sourceCan`, never the
+ * source's name.
+ */
+export const SOURCE_CAPABILITIES: Partial<Record<SourceId, SourceCapabilities>> = {
+  todoist: { create: false, remove: true, moveOut: true, editText: true },
+  reminders: { create: false, remove: false, moveOut: false, editText: false },
+}
+
+/** Whether `source` allows `capability` (absent from the table: yes). */
+export function sourceCan(source: SourceId, capability: keyof SourceCapabilities): boolean {
+  return SOURCE_CAPABILITIES[source]?.[capability] ?? true
+}
+
+/** Whether the add form can create tasks in a source (and a task can be moved into it). */
 export function sourceCanCreate(source: SourceId): boolean {
-  return source !== 'todoist'
+  return sourceCan(source, 'create')
 }
 
 /** i18n key of the delete label for a task of this source: Notion and Todoist say they delete upstream too, Local does not (#325). */
@@ -260,9 +281,19 @@ export function deleteLabelKey(source: SourceId): string {
   }
 }
 
-/** Display name of an integration. Brand names are not translated. */
+/** Display name of an integration: the source name key (`SOURCE_META`; the brand names Notion and Todoist read the same in both languages). */
 export function integrationLabel(source: IntegrationSourceId): string {
-  return source === 'notion' ? 'Notion' : 'Todoist'
+  return translate(SOURCE_META[source].nameKey)
+}
+
+/**
+ * The error context a source's setup or access failure is reported under (`SourceNotConfiguredError`, a revoked
+ * permission): the context picks the localized message and marks the source `broken` (#319, #551).
+ */
+export const SETUP_ERROR_CONTEXTS: Record<IntegrationSourceId, ErrorContext> = {
+  notion: 'notion_setup',
+  todoist: 'todoist_setup',
+  reminders: 'reminders_access',
 }
 
 /**

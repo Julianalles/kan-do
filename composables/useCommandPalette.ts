@@ -12,7 +12,7 @@
 import { ICONS } from '~/lib/icons'
 import { computed, nextTick, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { deleteLabelKey } from '~/lib/taskSources'
+import { deleteLabelKey, sourceCan } from '~/lib/taskSources'
 import type { CommandPaletteGroup, CommandPaletteItem } from '@nuxt/ui'
 import { navigateTo } from 'nuxt/app'
 import type { Task } from '~/types/task'
@@ -144,7 +144,7 @@ export function buildCommandGroups({ t, task, canMove, moveTargets = [], current
     if (task.timeBoxSeconds) {
       taskItems.push({ id: 'timebox-remove', label: t('task.contextMenu.removeTimebox'), icon: ICONS.close, onSelect: () => actions.setTimebox(id, null) })
     }
-    taskItems.push({ id: 'delete', label: t(deleteLabelKey(task.source)), icon: ICONS.delete, onSelect: () => actions.deleteTask(id) })
+    if (sourceCan(task.source, 'remove')) taskItems.push({ id: 'delete', label: t(deleteLabelKey(task.source)), icon: ICONS.delete, onSelect: () => actions.deleteTask(id) })
 
     groups.push({ id: 'card-move', label: t('commandPalette.groupMove', { title: task.title }), items: moveItems })
     // Source moves sit right under the column moves (#322); the palette has no submenus, so one flat row per source

@@ -9,9 +9,12 @@ import {
   normalizeTasks,
   sourcesFromLegacyService,
   singleSource,
+  sourceCan,
+  sourceCanCreate,
   sourceHomeUrl,
   sourceSyncsTime,
   sourceTaskUrl,
+  SETUP_ERROR_CONTEXTS,
 } from '~/lib/taskSources'
 
 describe('sourcesFromLegacyService', () => {
@@ -330,5 +333,37 @@ describe('sourceHomeUrl (#369)', () => {
   it('links the Todoist app and has none for Local', () => {
     expect(sourceHomeUrl('todoist')).toBe('https://app.todoist.com/app/today')
     expect(sourceHomeUrl('local')).toBeNull()
+  })
+})
+
+describe('Apple Reminders as a source (#551)', () => {
+  it('normalizeSources keeps a connected reminders source and its default', () => {
+    expect(normalizeSources({ connected: ['reminders'], default: 'local' })).toEqual({ connected: ['reminders'], default: 'local' })
+    expect(normalizeSources({ connected: ['notion', 'reminders', 'reminders'], default: 'notion' })).toEqual({ connected: ['notion', 'reminders'], default: 'notion' })
+  })
+
+  it('a tasks list keeps Task.reminders through the hydrate normaliser', () => {
+    const reminders = { due: { date: '2026-11-19', time: null }, recurrence: null, listId: 'L1' }
+    const tasks = [{ id: 'r', source: 'reminders', externalId: 'r', reminders }]
+    expect(normalizeTasks(tasks, 'local')).toBe(tasks)
+    expect(normalizeTasks([{ id: 'r', source: 'reminders', reminders }], 'local')[0]).toMatchObject({ externalId: 'r', reminders })
+  })
+
+  it('sourceCan: Reminders cannot create, delete, move out or edit text; Local and Notion can do all four; Todoist cannot create', () => {
+    for (const capability of ['create', 'remove', 'moveOut', 'editText'] as const) {
+      expect(sourceCan('reminders', capability)).toBe(false)
+      expect(sourceCan('local', capability)).toBe(true)
+      expect(sourceCan('notion', capability)).toBe(true)
+    }
+    expect(sourceCan('todoist', 'create')).toBe(false)
+    expect(sourceCan('todoist', 'remove')).toBe(true)
+    expect(sourceCanCreate('reminders')).toBe(false)
+  })
+
+  it('names the source by its source name key, and reports its access problems under the reminders_access context', () => {
+    expect(SETUP_ERROR_CONTEXTS.reminders).toBe('reminders_access')
+    expect(SETUP_ERROR_CONTEXTS.notion).toBe('notion_setup')
+    expect(sourceTaskUrl({ source: 'reminders', externalId: 'r' })).toBeNull()
+    expect(deleteLabelKey('reminders')).toBe('task.delete.local')
   })
 })

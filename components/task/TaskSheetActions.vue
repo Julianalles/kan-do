@@ -8,6 +8,7 @@
 @responsibility
 - Quiet ghost buttons for the source actions (open in source, move to source with a dropdown of the targets, disabled ones as in the card menu), Delete last: soft error tone, trash icon, right-aligned
 - Open and move only exist on boards with a connected source; a Local board shows Delete alone
+- No Delete for a task whose source is read-only (`deleteLabel` null)
 - Delete only emits: the host runs the one shared, confirmed delete flow (never deletes by itself)
 - Wraps at 390 px, labels stay readable; DOM order is the keyboard order, Delete last
 -->
@@ -37,6 +38,7 @@
     </UDropdownMenu>
 
     <UButton
+      v-if="deleteLabel"
       color="error"
       variant="soft"
       :icon="ICONS.delete"
@@ -63,7 +65,8 @@ const props = defineProps<{
   openLabel?: string | null
   /** The other sources the task can move to; empty on a single-source board */
   moveTargets: MoveTarget[]
-  deleteLabel: string
+  /** "Löschen" with its source consequence; null for a task that cannot be deleted from kan-do (Reminders, #551): no button */
+  deleteLabel: string | null
 }>()
 
 const emit = defineEmits<{
