@@ -20,7 +20,7 @@
         <span class="size-3 shrink-0 rounded-full" :style="{ backgroundColor: inkColor(stepOf(row, index)) }" aria-hidden="true" />
         <TopicMark v-if="by === 'topic' && isNamed(row.key)" :topic="row.key" />
         <span class="truncate" :data-private="isNamed(row.key) ? '' : undefined">{{ labelOf(row.key) }}</span>
-        <span class="shrink-0 whitespace-nowrap text-muted tabular-nums">{{ Math.round(row.share) }} %</span>
+        <span class="shrink-0 whitespace-nowrap text-muted tabular-nums">{{ formatPercent(row.share) }}</span>
       </li>
     </ul>
   </div>
@@ -59,7 +59,7 @@ const props = withDefaults(defineProps<{
 }>(), { mode: 'chart', size: 110, legendCount: 3, stacked: false })
 
 const { t } = useI18n()
-const { formatDuration } = useLocaleFormat()
+const { formatDuration, formatPercent } = useLocaleFormat()
 
 const slices = computed<Slice[]>(() => (props.by === 'topic' ? props.split.byTopic : props.split.byActivity))
 const folded = computed(() => foldSlices(slices.value))
@@ -78,6 +78,6 @@ const labelOf = (key: string): string => {
   return key
 }
 const ringLabel = computed(() => t(props.by === 'topic' ? 'statistics.split.labelTopic' : 'statistics.split.labelActivity', {
-  values: folded.value.map(row => `${labelOf(row.key)} ${Math.round(row.share)} %`).join(', '),
+  values: folded.value.map(row => `${labelOf(row.key)} ${formatPercent(row.share)}`).join(', '),
 }))
 </script>

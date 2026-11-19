@@ -23,6 +23,7 @@ Voice: relatable, encouraging and inclusive, said calmly. Write for one person, 
 - **Empty states.** "Noch keine X." (plus how it fills, where there is something to do) when the thing appears with use; "Keine X gefunden." only for a search or filter result; never "… verfügbar".
 - **Progress.** German is passive with the object first ("Datenbanken werden geladen…", "Wird geprüft…"), English the present participle ("Loading databases…"); no space before `…`.
 - **Numbers.** German `1.000`, `2,1 %` (no-break space before `%`); English `1,000`, `2.1%`, `€7,000` (currency sign before the number, no space).
+- **Durations.** Prose and tables: `1 h 10 min` (`formatDuration(…, 'spaced')`); chips, the Jetzt bar and rings: `1:30 h` (`clockShort`). Percent only through `formatPercent`; a component never builds either by hand (`tests/config/duration-percent-format.test.ts`).
 - **Task state.** A task is "erledigt" / "done"; "Fertig" / "Done" only labels a button that closes a dialog; "abschließen" only for the day or a setup.
 - **Settings, token, time.** "Einstellungen" for the place and what can be changed, "einrichten" for the first guided setup, no "Konfiguration"; "Token" is the secret and "Zugriff" what it permits; "Aufgewendete Zeit" / "Time spent" (the running timer on a card keeps "Bisher gearbeitet").
 - **English.** American spelling (color, canceled, gray, realize); contractions by default (you'll, it's, don't).

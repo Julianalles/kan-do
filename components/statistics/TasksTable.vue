@@ -71,8 +71,8 @@ const handleRowSelect = (_event: Event, row: TableRow<TaskCompletionRecord>) => 
  * Format time duration
  */
 const { t } = useI18n();
-const { formatDuration, formatDateTime } = useLocaleFormat();
-const formatTime = (seconds: number): string => formatDuration(seconds, "compact");
+const { formatDuration, formatDateTime, formatPercent } = useLocaleFormat();
+const formatTime = (seconds: number): string => formatDuration(seconds, "spaced");
 
 /**
  * Format date
@@ -144,7 +144,7 @@ const tableColumns = computed<TableColumn<TaskCompletionRecord>[]>(() => {
         const accuracy = row.original.estimationAccuracy;
         if (accuracy === null) return h('span', { class: 'text-muted' }, '—');
         return h('div', { class: 'text-right' }, [
-          h('div', { class: 'font-semibold text-highlighted' }, `${Math.round(accuracy)}%`),
+          h('div', { class: 'font-semibold text-highlighted' }, formatPercent(accuracy)),
           h('div', { class: 'text-xs text-muted' }, getAccuracyLabel(accuracy))
         ]);
       }
@@ -185,9 +185,5 @@ const tableColumns = computed<TableColumn<TaskCompletionRecord>[]>(() => {
 :deep(tbody tr) {
   cursor: pointer;
   transition: background-color var(--duration-fast) ease;
-}
-
-:deep(tbody tr:hover) {
-  background-color: var(--ui-bg-elevated);
 }
 </style>
