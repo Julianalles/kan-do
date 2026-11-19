@@ -547,6 +547,13 @@ export default defineAppConfig({
         thumb: 'shadow-none data-[state=unchecked]:bg-(--ui-text-muted)'
       }
     },
+    // Hover of a selectable table row (#598): the stock `bg-elevated/50` is white on a white sheet and shows nothing; the list row's
+    // muted tint (DESIGN.md "Show a list row", `ListRow`) instead.
+    table: {
+      slots: {
+        tbody: '[&>tr]:data-[selectable=true]:hover:bg-muted'
+      }
+    },
     card: {
       variants: {
         variant: {
