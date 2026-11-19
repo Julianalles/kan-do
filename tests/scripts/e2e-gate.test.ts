@@ -336,7 +336,7 @@ describe('selectE2e', () => {
     })
     expect(result.tier).toBe('targeted')
     expect(result.specs).toEqual([...new Set([
-      ...config.smoke, ...config.design!.specs, 'notion-setup-stepper', 'notion-pagination', 'notion-native-status', 'feedback', 'feedback-screenshot', 'a11y', 'timebox-presets', 'text-zoom',
+      ...config.smoke, ...config.design!.specs, 'notion-setup-stepper', 'notion-pagination', 'notion-native-status', 'hover-answer', 'phone-hit-areas', 'feedback', 'feedback-screenshot', 'a11y', 'timebox-presets', 'text-zoom',
     ])].sort())
   })
 
