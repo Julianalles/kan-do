@@ -32,4 +32,9 @@ describe('motion tokens (#593)', () => {
     expect(rule).toContain('.animate-spin')
     expect(rule).toContain('[data-motion-progress]')
   })
+
+  it('the closing gap unmounts when its glide (--duration-slow) ends', () => {
+    const source = readFileSync(resolve(root, 'lib/deleteGapState.ts'), 'utf8')
+    expect(Number(/const GAP_CLOSE_MS = (\d+)/.exec(source)?.[1])).toBe(MOTION.slowMs)
+  })
 })

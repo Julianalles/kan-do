@@ -40,7 +40,7 @@ export function startOfDay(now: Date): number {
 /** `MOVE_UNDO_WINDOW_MS`, `DELETE_UNDO_WINDOW_MS` and `REMOVE_UNDO_WINDOW_MS`: all three undo windows. */
 export const UNDO_WINDOW_MS = 5000
 /** `GAP_CLOSE_MS`: how long a gap glides shut after its window; assert the layout only after it. */
-export const GAP_CLOSE_MS = 280
+export const GAP_CLOSE_MS = 300
 /** `UNDO_RETURN_MS`: the grow-back of a card that came back from an undo. */
 export const UNDO_RETURN_MS = 240
 /** `TOAST_CLOSE_POLL_MS`: a toast window re-checks this often after its duration whether the toast has closed. */
