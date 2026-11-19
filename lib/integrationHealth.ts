@@ -132,6 +132,18 @@ export function pushFailureScope(error: unknown): 'source' | 'task' {
   return httpStatus === 403 || httpStatus === 404 ? 'task' : 'source'
 }
 
+/**
+ * Whether a failed request was a 429 (#529): a limit on the whole source, not a fault of the task it carried. Looks
+ * through `error.cause` like the other classifiers. `retryAfterMs` is what the response's `Retry-After` asked for
+ * (`NotionAPIError.retryAfterMs`), null when it named no wait. Returns null for every other failure.
+ */
+export function rateLimitOf(error: unknown): { retryAfterMs: number | null } | null {
+  const cause = unwrapCause(error) as (ErrorFields & { retryAfterMs?: unknown }) | null
+  if ((cause?.statusCode ?? cause?.httpStatusCode) !== 429) return null
+  const wait = cause?.retryAfterMs
+  return { retryAfterMs: typeof wait === 'number' && Number.isFinite(wait) && wait > 0 ? wait : null }
+}
+
 /** A connected source that cannot sync right now, with what the user may need to know. */
 export interface SourceProblem {
   source: IntegrationSourceId

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { classifySyncFailure, emptySourceHealthMap, pushFailureScope, normalizeIntegrationHealthState, sourceProblems } from '~/lib/integrationHealth'
+import { classifySyncFailure, emptySourceHealthMap, pushFailureScope, rateLimitOf, normalizeIntegrationHealthState, sourceProblems } from '~/lib/integrationHealth'
 import type { SourceHealth } from '~/types/integration'
 import { SourceNotConfiguredError } from '~/integrations/sources/types'
 
@@ -107,5 +107,28 @@ describe('sourceProblems (#319)', () => {
   it('says nothing for healthy, never-synced or disconnected sources', () => {
     expect(sourceProblems(map('healthy', 'unconfigured'), ['notion', 'todoist'])).toEqual([])
     expect(sourceProblems(map('broken', 'broken'), [])).toEqual([])
+  })
+})
+
+describe('rateLimitOf (#529)', () => {
+  it('reads a 429 and the wait it named; a 429 stays a task-scope failure for the source health', () => {
+    const error = Object.assign(new Error('Too Many Requests'), { statusCode: 429, retryAfterMs: 60_000 })
+    expect(rateLimitOf(error)).toEqual({ retryAfterMs: 60_000 })
+    expect(pushFailureScope(error)).toBe('task')
+  })
+
+  it.each([[undefined], [null], [0], [-5], [Number.NaN]])('treats a wait of %s as unnamed', (wait) => {
+    expect(rateLimitOf(Object.assign(new Error('x'), { statusCode: 429, retryAfterMs: wait }))).toEqual({ retryAfterMs: null })
+  })
+
+  it('looks through the cause chain', () => {
+    const inner = Object.assign(new Error('Too Many Requests'), { statusCode: 429, retryAfterMs: 5_000 })
+    expect(rateLimitOf(new Error('Could not write', { cause: inner }))).toEqual({ retryAfterMs: 5_000 })
+  })
+
+  it.each([[0], [401], [403], [404], [500], [503]])('is null for status %s and for a plain error', (statusCode) => {
+    expect(rateLimitOf(Object.assign(new Error('x'), { statusCode }))).toBeNull()
+    expect(rateLimitOf(new Error('x'))).toBeNull()
+    expect(rateLimitOf(null)).toBeNull()
   })
 })

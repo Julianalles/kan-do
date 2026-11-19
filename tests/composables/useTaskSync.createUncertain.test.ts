@@ -36,7 +36,7 @@ vi.mock('~/composables/useNotionIntegration', () => ({
 vi.mock('~/store/notionConfig', () => ({ useNotionConfigStore: () => notionConfig }))
 
 /* eslint-disable import/first -- order-sensitive: mocks must be registered before the SUT is imported */
-import { useTaskSync } from '~/composables/useTaskSync'
+import { useTaskSync, RATE_LIMIT_WINDOW_MS } from '~/composables/useTaskSync'
 import { useTasksStore } from '~/store/tasks'
 import { useBoardStore } from '~/store/board'
 import { useIntegrationHealthStore } from '~/store/integrationHealth'
@@ -168,6 +168,7 @@ describe('a Notion create with an unknown outcome (#528)', () => {
     expect(tasksStore.task(created.id)?.pendingSync?.createUncertain).toBeUndefined()
 
     useIntegrationHealthStore().markHealthy('notion')
+    if (status === 429) vi.spyOn(Date, 'now').mockReturnValue(Date.now() + RATE_LIMIT_WINDOW_MS + 1000) // the push waits out the limit (#529)
     await useTaskSync().syncPendingChanges('notion')
     expect(notion.findLandedPage).not.toHaveBeenCalled()
     expect(tasksStore.task(created.id)).toMatchObject({ externalId: 'page-new' })

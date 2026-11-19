@@ -176,6 +176,21 @@ describe('NotionClientAPI', () => {
         expect(vi.getTimerCount()).toBe(0)
       })
 
+      it('a thrown 429 carries the wait it asked for (#529), null when it named none', async () => {
+        ;(fetch as any).mockResolvedValue(limited('60'))
+        const long = api.request('GET', '/databases/db-1')
+        const longFailure = expect(long).rejects.toMatchObject({ statusCode: 429, retryAfterMs: 60_000 })
+        await vi.advanceTimersByTimeAsync(0)
+        await longFailure
+
+        ;(fetch as any).mockReset()
+        ;(fetch as any).mockResolvedValue(limited(undefined))
+        const none = api.request('GET', '/databases/db-1')
+        const noneFailure = expect(none).rejects.toMatchObject({ statusCode: 429, retryAfterMs: null })
+        await vi.advanceTimersByTimeAsync(300)
+        await noneFailure
+      })
+
       it('waits exactly the cap and not longer', async () => {
         ;(fetch as any).mockResolvedValueOnce(limited('10')).mockResolvedValueOnce(ok)
         const result = api.request('GET', '/databases/db-1')
