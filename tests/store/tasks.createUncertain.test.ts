@@ -87,6 +87,38 @@ describe('tasksStore.dropLandedDuplicates and completeCreate (#555)', () => {
     expect(store.tasks).toHaveLength(1)
   })
 
+  it('keeps a same-title waiter a fetch handed the page to, with its notes and time (two creates in doubt)', () => {
+    store.setTasks([
+      task({ id: 'a', notes: null }),
+      task({ id: 'b', notes: 'keep me', timeSpentSeconds: 900 }),
+    ])
+    const revisionA = store.markPendingSync('a')
+    store.markPendingSync('b')
+    store.markCreateUncertain('a', 2000, 'Rückruf')
+    store.markCreateUncertain('b', 2000, 'Rückruf')
+    // A's second attempt is in flight; the fetch hands page P to the other waiter, B
+    store.mergeTasks('notion', [task({ id: 'P', externalId: 'P', createdAt: new Date(3000) })], { pushing: (id) => id === 'a' })
+    expect(store.task('b')?.externalId).toBe('P')
+
+    // A's lookup resolves with the same page: B must not be dropped as a stray
+    expect(store.completeCreate('a', { externalId: 'P' }, revisionA)).toEqual([])
+
+    expect(store.task('b')).toMatchObject({ externalId: 'P', notes: 'keep me', timeSpentSeconds: 900 })
+    expect(store.task('b')?.pendingSync).toBeDefined()
+    expect(store.task('a')?.externalId).toBe('P')
+  })
+
+  it('keeps a card that holds queued local changes and drops the one that holds none', () => {
+    store.setTasks([
+      task({ id: 'edited', externalId: 'P', pendingSync: { since: 1, attempts: 0, lastError: null } }),
+      task({ id: 'timed', externalId: 'P' }),
+      task({ id: 'stray', externalId: 'P' }),
+    ])
+    store.addTrackedSeconds('timed', 30)
+    expect(store.dropLandedDuplicates('notion', 'P')).toEqual(['stray'])
+    expect(store.tasks.map((t) => t.id).sort()).toEqual(['edited', 'timed'])
+  })
+
   it('matches nothing for Local or a missing page', () => {
     store.setTasks([task({ id: 'l', source: 'local' }), task({ id: 'a' })])
     expect(store.dropLandedDuplicates('local', null)).toEqual([])

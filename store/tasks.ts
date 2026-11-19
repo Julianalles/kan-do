@@ -750,12 +750,19 @@ export const useTasksStore = defineStore("tasks", () => {
    * is the one a fetch made of it while the write was in flight (`adoptLandedPages` leaves a page to a write under way),
    * so it is dropped here, in the same step that stores the page. `exceptTaskId` is the task that waited (it keeps its
    * `id`, position and local state, which statistics, order and timers key on); a task not on the board yet passes none.
+   * Only a card that holds nothing the source lacks goes: a card a fetch made carries no `pendingSync`, no queued time
+   * and no `pendingMove`, whereas another waiter a fetch handed the page to (two same-title creates in doubt) keeps its
+   * marker and its notes, time and statistics, which a drop would lose without a sign. Such a card stays, the board shows
+   * two cards for the page until the user sorts it out, and nothing is lost.
    * Local only: nothing is archived, deleted or pushed, and the page is not remembered in `deletedTaskIds`.
    * @returns the ids of the dropped cards (the caller removes their statistics records)
    */
   function dropLandedDuplicates(source: SourceId, externalId: string | null | undefined, exceptTaskId?: string): string[] {
     if (source === 'local' || externalId == null) return [];
-    return removeCards(tasks.value.filter((el) => el.source === source && el.externalId === externalId && el.id !== exceptTaskId));
+    return removeCards(tasks.value.filter((el) => (
+      el.source === source && el.externalId === externalId && el.id !== exceptTaskId
+      && !isSyncPending(el.id) && el.pendingMove === undefined
+    )));
   }
 
   /**
