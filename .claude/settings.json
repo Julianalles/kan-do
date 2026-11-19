@@ -140,7 +140,6 @@
   "skillOverrides": {
     "pdf-to-epub": "off",
     "last30days": "off",
-    "orca-computer-use": "off",
     "scrapling-official": "off",
     "research": "off",
     "artifact-design": "off",
