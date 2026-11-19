@@ -16,6 +16,7 @@ import { cleanNewValue } from "~/lib/quickAddSuggestions";
 import { fieldsForSource } from "~/utils/sourceFields";
 import { DEFAULT_PRIORITY, normalizePriority, normalizePriorityMapping, notionNameToPriority, priorityToNotionName } from "~/lib/priority";
 import { useErrorHandler } from '~/composables/useErrorHandler';
+import { landedPageFrom, isLandedCandidate } from '~/lib/createLookup';
 import { NotionClientAPI } from './NotionClientAPI';
 
 
@@ -59,15 +60,14 @@ type NotionTopicProperty = {
 /** Property types Notion accepts for the mapped status column. */
 type StatusPropertyType = 'select' | 'status';
 
+/** `findLandedPage` reads at most this many candidates; the oldest one is adopted. */
+const CREATE_LOOKUP_LIMIT = 50;
+
 /**
  * Detected type of the mapped status property per `${dataSourceId}:${propertyName}`, for the app
  * session (#312). Holds the pending read too, so concurrent first calls share one request; a
  * failed read is removed again and retried by the next call. Nothing is persisted.
  */
-/** `findLandedPage` reads pages created this long before the first doubtful create, for the clock difference to Notion (#528). */
-const CREATE_LOOKUP_SLACK_MS = 5 * 60 * 1000;
-/** `findLandedPage` reads at most this many candidates; the oldest one is adopted. */
-const CREATE_LOOKUP_LIMIT = 50;
 const statusTypeCache = new Map<string, Promise<StatusPropertyType>>();
 
 /** Property types a topic or activity can be written in (kd#16): Notion rejects a value of the wrong shape with a 400 */
@@ -564,7 +564,7 @@ export class NotionIntegration {
    */
   async findLandedPage(title: string, since: number, claimed: ReadonlySet<string> = new Set()): Promise<string | null> {
     if (!this.dataSourceId) throw new Error('No data source ID configured');
-    const from = new Date(Math.max(0, since - CREATE_LOOKUP_SLACK_MS)).toISOString();
+    const from = new Date(landedPageFrom({ since })).toISOString();
     const response = await this.api.queryDataSource(this.dataSourceId, {
       filter: {
         and: [
@@ -576,11 +576,16 @@ export class NotionIntegration {
       maxResults: CREATE_LOOKUP_LIMIT,
     });
     // Checked again here as well: a transport that ignores the filter must not hand back a page it did not make
-    const fromMs = Date.parse(from);
+    const doubt = { since, title };
     const match = (response.results as NotionPage[])
-      .filter((page) => !claimed.has(page.id) && Date.parse(page.created_time) >= fromMs)
-      .filter((page) => (page.properties?.[this.propertyMapping.title]?.title ?? []).map((part) => part.plain_text ?? '').join('') === title)
-      .sort((x, y) => Date.parse(x.created_time) - Date.parse(y.created_time))[0];
+      .filter((page) => !claimed.has(page.id))
+      .map((page) => ({
+        id: page.id,
+        title: (page.properties?.[this.propertyMapping.title]?.title ?? []).map((part) => part.plain_text ?? '').join(''),
+        createdAtMs: page.created_time ? Date.parse(page.created_time) : null,
+      }))
+      .filter((page) => isLandedCandidate(page, doubt))
+      .sort((x, y) => (x.createdAtMs ?? 0) - (y.createdAtMs ?? 0))[0];
     return match?.id ?? null;
   }
 

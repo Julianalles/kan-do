@@ -218,6 +218,9 @@ describe('pendingSync marker (#319)', () => {
     const tasks = [{ id: 'a', source: 'notion', externalId: null, pendingSync: withDoubt }]
     expect(normalizeTasks(tasks, 'notion')).toBe(tasks)
     expect(normalizePendingSync(withDoubt)).toBe(withDoubt)
+    const lastAttempt = { ...marker, createUncertain: { since: 1700000000000, at: 1700000009000, title: 'Rückruf' } }
+    expect(normalizePendingSync(lastAttempt)).toBe(lastAttempt)
+    expect(normalizePendingSync({ ...marker, createUncertain: { since: 1, at: 'x', title: 'a' } })).toEqual(marker)
     expect(normalizePendingSync({ ...marker, createUncertain: { since: 'x', title: 'a' } })).toEqual(marker)
     expect(normalizePendingSync({ ...marker, createUncertain: { since: 5 } })).toEqual(marker)
     expect(normalizePendingSync({ ...marker, createUncertain: 'yes' })).toEqual(marker)

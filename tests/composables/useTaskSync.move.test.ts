@@ -224,7 +224,7 @@ describe('useTaskSync: committing a move (#322)', () => {
     move('t1', 'notion')
     closeWindow('t1')
     expect(await commitTaskMove('t1')).toBe('queued')
-    expect(tasksStore.task('t1')?.pendingSync?.createUncertain).toEqual({ since: expect.any(Number), title: 'Rückruf' })
+    expect(tasksStore.task('t1')?.pendingSync?.createUncertain).toEqual({ since: expect.any(Number), at: expect.any(Number), title: 'Rückruf' })
 
     // The draft is the live task, whose marker the successful create drops: read what the create saw while it ran
     const seen: Array<{ doubt: unknown; claimed: string[] }> = []
@@ -234,7 +234,7 @@ describe('useTaskSync: committing a move (#322)', () => {
     })
     health.markHealthy('notion')
     await syncPendingChanges()
-    expect(seen).toEqual([{ doubt: { since: expect.any(Number), title: 'Rückruf' }, claimed: ['page-9'] }])
+    expect(seen).toEqual([{ doubt: { since: expect.any(Number), at: expect.any(Number), title: 'Rückruf' }, claimed: ['page-9'] }])
   })
 
   it('offline: the move waits without calling anything, then reconnecting creates once and removes the origin', async () => {

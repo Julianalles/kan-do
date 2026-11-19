@@ -168,10 +168,27 @@ export class CreateLookupError extends Error {
 }
 
 /**
+ * The lookup before a create in doubt found no page, but the doubtful create may still land (`createMayLandUntil`):
+ * nothing is created yet and the task stays queued with its doubt. Not a failure: no marker is written, no toast shown;
+ * the next push looks again (#528).
+ */
+export class CreateWaitingError extends Error {
+  readonly createNotSent = true
+  readonly createWaiting = true
+  constructor() {
+    super('A create with an unknown outcome may still land; waiting before the page is created')
+    this.name = 'CreateWaitingError'
+  }
+}
+
+/** Whether `error` is a `CreateWaitingError`: a quiet "not yet", never a failure to report. */
+export const isCreateWaiting = (error: unknown): boolean => (error as { createWaiting?: unknown } | null)?.createWaiting === true
+
+/**
  * Whether a failed create may still have made the page (#528): the request was sent and no answer says it was
  * refused, i.e. a timeout, an abort or a network error (status 0) or a 5xx. A 429 and every 4xx refused it before
  * a page was made. `NotionClientAPI` does not send such a create again by itself; the task carries
- * `pendingSync.createUncertainSince` and the next create looks the page up first.
+ * `pendingSync.createUncertain` and the next create looks the page up first.
  */
 export function createOutcomeUnknown(error: unknown): boolean {
   // The lookup before a create failed: no create was sent, whatever status the lookup's request carried
@@ -192,6 +209,7 @@ export function createOutcomeUnknown(error: unknown): boolean {
  * user must fix in the form.
  */
 export function createFailureKind(error: unknown): 'transient' | 'rejected' {
+  if (isCreateWaiting(error)) return 'transient'
   if (pushFailureScope(error) === 'source') return 'transient'
   const cause = unwrapCause(error) as ErrorFields | null
   const httpStatus = cause?.statusCode ?? cause?.httpStatusCode

@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { TaskStatus } from '~/types/taskStatus'
 import type { Task } from '~/types/task'
+import { afterTheLandingWait } from '../helpers/landingWait'
 
 const handleErrorMock = vi.fn()
 vi.mock('~/composables/useErrorHandler', () => ({
@@ -77,7 +78,7 @@ describe('a Notion create with an unknown outcome (#528)', () => {
     const before = Date.now()
     notion.createTask.mockRejectedValueOnce(statusError(status))
     const created = await useTaskSync().createTask(draft, 'notion')
-    expect(tasksStore.task(created.id)?.pendingSync?.createUncertain).toEqual({ since: expect.any(Number), title: 'Rückruf' })
+    expect(tasksStore.task(created.id)?.pendingSync?.createUncertain).toEqual({ since: expect.any(Number), at: expect.any(Number), title: 'Rückruf' })
     expect(tasksStore.task(created.id)?.pendingSync?.createUncertain?.since).toBeGreaterThanOrEqual(before)
 
     notion.findLandedPage.mockResolvedValueOnce('page-landed')
@@ -97,6 +98,7 @@ describe('a Notion create with an unknown outcome (#528)', () => {
     notion.createTask.mockRejectedValueOnce(statusError(0))
     const created = await useTaskSync().createTask(draft, 'notion')
 
+    afterTheLandingWait()
     useIntegrationHealthStore().markHealthy('notion')
     await useTaskSync().syncPendingChanges('notion')
 
@@ -187,5 +189,49 @@ describe('a Notion create with an unknown outcome (#528)', () => {
     await useTaskSync().syncPendingChanges('notion')
     expect(notion.createTask).toHaveBeenCalledTimes(1)
     expect(tasksStore.task(created.id)).toMatchObject({ externalId: 'page-landed' })
+  })
+
+  it('a fetch that returns the landed page before the push hands it to the waiting task: one page, one card (review of #536)', async () => {
+    const tasksStore = useTasksStore()
+    notion.createTask.mockRejectedValueOnce(statusError(0))
+    const created = await useTaskSync().createTask(draft, 'notion')
+    const since = tasksStore.task(created.id)!.pendingSync!.createUncertain!.since
+
+    // The periodic sync reads the page the doubtful create made, before anything is pushed
+    tasksStore.mergeTasks('notion', [{ ...notionPage('page-landed', { title: 'Rückruf' }), createdAt: new Date(since + 4000) }])
+    expect(tasksStore.tasks).toHaveLength(1)
+
+    afterTheLandingWait()
+    useIntegrationHealthStore().markHealthy('notion')
+    await useTaskSync().syncPendingChanges('notion')
+    expect(notion.createTask).toHaveBeenCalledTimes(1) // the doubtful try only
+    expect(tasksStore.tasks).toHaveLength(1)
+    expect(tasksStore.task(created.id)).toMatchObject({ id: created.id, externalId: 'page-landed' })
+    expect(tasksStore.task(created.id)?.pendingSync).toBeUndefined()
+    expect(notion.updateTask).toHaveBeenCalledWith(expect.objectContaining({ externalId: 'page-landed' }))
+  })
+
+  it('a lookup that finds nothing waits while the doubtful create can still land, quietly, and creates after that (review of #536)', async () => {
+    const tasksStore = useTasksStore()
+    notion.createTask.mockRejectedValueOnce(statusError(0))
+    const created = await useTaskSync().createTask(draft, 'notion')
+    const doubt = tasksStore.task(created.id)?.pendingSync?.createUncertain
+    const attempts = tasksStore.task(created.id)?.pendingSync?.attempts
+
+    useIntegrationHealthStore().markHealthy('notion')
+    handleErrorMock.mockClear()
+    await useTaskSync().syncPendingChanges('notion') // the proxy may still be waiting on Notion
+    expect(notion.findLandedPage).toHaveBeenCalledTimes(1)
+    expect(notion.createTask).toHaveBeenCalledTimes(1)
+    expect(handleErrorMock).not.toHaveBeenCalled()
+    expect(tasksStore.task(created.id)?.pendingSync?.createUncertain).toEqual(doubt)
+    expect(tasksStore.task(created.id)?.pendingSync?.attempts).toBe(attempts)
+    expect(useIntegrationHealthStore().statusOf('notion')).toBe('healthy')
+
+    // The page lands late: the next push finds it, still inside the wait
+    notion.findLandedPage.mockResolvedValueOnce('page-late')
+    await useTaskSync().syncPendingChanges('notion')
+    expect(notion.createTask).toHaveBeenCalledTimes(1)
+    expect(tasksStore.task(created.id)).toMatchObject({ externalId: 'page-late' })
   })
 })

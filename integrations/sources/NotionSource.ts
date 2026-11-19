@@ -7,7 +7,8 @@ import type { Task } from '~/types/task'
 import type { IntegrationHealth } from '~/types/integration'
 import type { NotionIntegration } from '~/integrations/NotionIntegration'
 import { externalIdOf, sourceSyncsTime } from '~/lib/taskSources'
-import { CreateLookupError } from '~/lib/integrationHealth'
+import { CreateLookupError, CreateWaitingError } from '~/lib/integrationHealth'
+import { createMayLandUntil } from '~/lib/createLookup'
 import { SourceNotConfiguredError, type CreateContext, type FetchedTasks, type TaskSourceAdapter } from './types'
 
 export interface NotionSourceDeps {
@@ -97,6 +98,9 @@ export class NotionSource implements TaskSourceAdapter {
         }
         return { ...draft, ...held, id: draft.id ?? pageId, source: 'notion', externalId: pageId } as Task
       }
+      // Nothing found, but a request that timed out in the browser can still be running at the proxy: it may land
+      // after this lookup. Until the wait is over a create could make the second page.
+      if (Date.now() < createMayLandUntil(doubt)) throw new CreateWaitingError()
     }
     return notion.createTask(draft)
   }

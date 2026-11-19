@@ -18,12 +18,12 @@ describe('tasksStore.markCreateUncertain (#528)', () => {
     store.setTasks([task({}), task({ id: 'held', externalId: 'page-1' }), task({ id: 'l', source: 'local' })])
   })
 
-  it('keeps the earliest time and the title of the last attempt, and survives a failure record', () => {
+  it('keeps the earliest time, the time of the last attempt and its title, and survives a failure record', () => {
     store.markPendingSync('a')
     store.markCreateUncertain('a', 2000, 'Rückruf')
     store.markCreateUncertain('a', 3000, 'Rückruf 2')
     store.recordPendingSyncFailure('a', 'timeout')
-    expect(store.task('a')?.pendingSync?.createUncertain).toEqual({ since: 2000, title: 'Rückruf 2' })
+    expect(store.task('a')?.pendingSync?.createUncertain).toEqual({ since: 2000, at: 3000, title: 'Rückruf 2' })
   })
 
   it('is gone with the marker once the create is stored', () => {

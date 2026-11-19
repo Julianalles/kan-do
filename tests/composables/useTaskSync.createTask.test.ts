@@ -6,6 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { TaskStatus } from '~/types/taskStatus'
+import { afterTheLandingWait } from '../helpers/landingWait'
 import type { Task } from '~/types/task'
 
 const handleErrorMock = vi.fn()
@@ -112,7 +113,8 @@ describe('useTaskSync.createTask (#321)', () => {
     expect(tasksStore.task(created.id)?.pendingSync).toBeDefined()
     expect(tasksStore.task(created.id)?.externalId).toBeNull()
 
-    // Reconnect: the next sync creates the page once
+    // Reconnect, after the doubtful create can no longer land (#528): the next sync creates the page once
+    afterTheLandingWait()
     health.markHealthy('notion')
     await useTaskSync().syncPendingChanges('notion')
     await useTaskSync().syncPendingChanges('notion')
@@ -181,6 +183,7 @@ describe('useTaskSync.createTask (#321)', () => {
     expect(notion.createTask).toHaveBeenCalledTimes(1)
     expect(tasksStore.task(created.id)?.pendingSync).toBeDefined()
 
+    afterTheLandingWait()
     useIntegrationHealthStore().markHealthy('notion')
     await useTaskSync().syncPendingChanges('notion')
     await useTaskSync().syncPendingChanges('notion')

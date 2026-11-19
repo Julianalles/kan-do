@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { CreateLookupError, createFailureKind, createOutcomeUnknown, pushFailureScope } from '~/lib/integrationHealth'
+import { CreateLookupError, CreateWaitingError, createFailureKind, createOutcomeUnknown, isCreateWaiting, pushFailureScope } from '~/lib/integrationHealth'
 import { SourceNotConfiguredError } from '~/integrations/sources/types'
 
 const http = (statusCode: number) => Object.assign(new Error(`HTTP ${statusCode}`), { statusCode })
@@ -57,6 +57,7 @@ describe('createOutcomeUnknown (#528)', () => {
     ['in conflict (409)', http(409)],
     ['a source that is not set up', new SourceNotConfiguredError('notion', 'not configured')],
     ['a failed lookup, whatever status its query had', new CreateLookupError(http(502))],
+    ['a lookup that waits for a late page', new CreateWaitingError()],
   ])('the create was refused or never sent: %s', (_name, error) => {
     expect(createOutcomeUnknown(error)).toBe(false)
   })
@@ -64,5 +65,12 @@ describe('createOutcomeUnknown (#528)', () => {
   it('a failed lookup is classified by its cause, as before', () => {
     expect(createFailureKind(new CreateLookupError(http(502)))).toBe('transient')
     expect(createFailureKind(new CreateLookupError(http(400)))).toBe('rejected')
+  })
+
+  it('a create that waits for a late page is transient and is the only error that says so', () => {
+    expect(createFailureKind(new CreateWaitingError())).toBe('transient')
+    expect(isCreateWaiting(new CreateWaitingError())).toBe(true)
+    expect(isCreateWaiting(new CreateLookupError(http(502)))).toBe(false)
+    expect(isCreateWaiting(http(0))).toBe(false)
   })
 })

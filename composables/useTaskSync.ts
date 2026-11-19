@@ -10,7 +10,7 @@ import { isNetworkError } from '~/lib/errorMessages';
 import { mapHelpers } from '~/utils/mapHelpers';
 import type { PendingTaskDelete } from '~/store/tasks';
 import { isIntegrationSourceId, sourceSyncsTime } from '~/lib/taskSources';
-import { classifySyncFailure, createFailureKind, createOutcomeUnknown, pushFailureScope } from '~/lib/integrationHealth';
+import { classifySyncFailure, createFailureKind, createOutcomeUnknown, isCreateWaiting, pushFailureScope } from '~/lib/integrationHealth';
 import { useBoardStore } from '~/store/board';
 import type { SourceId } from '~/types/taskSource';
 import { notifyTaskMoveRejected } from '~/lib/taskMoveEvents';
@@ -403,10 +403,6 @@ export const useTaskSync = () => {
   const timeEditFlag = (taskId: string): { timeEdited?: true } =>
     tasksStore.pendingTimeUpdates[taskId]?.absolute === true ? { timeEdited: true } : {};
 
-  /** The pages of `source` the store already holds: a lookup before a create (#528) must never adopt one of them. */
-  const claimedExternalIds = (source: SourceId): ReadonlySet<string> =>
-    new Set(tasksStore.tasks.flatMap((held) => (held.source === source && held.externalId !== null ? [held.externalId] : [])));
-
   /** One write of a non-Local task; never rejects, a failure goes to `reportPushFailure`. */
   const pushTask = async (task: Task, previousStatus?: TaskStatus, operationVersion?: number): Promise<boolean> => {
     const revision = tasksStore.markPendingSync(task.id, previousStatus === undefined ? undefined : previousStatus === TaskStatus.Done);
@@ -419,7 +415,7 @@ export const useTaskSync = () => {
       if (task.externalId === null) {
         // Made while the source was unreachable: it creates the task now and gives it its id
         createAttemptedAt = Date.now();
-        const created = await adapter.create(task, { claimedExternalIds: claimedExternalIds(task.source) });
+        const created = await adapter.create(task, { claimedExternalIds: tasksStore.claimedPages(task.source) });
         // Read before `completeCreate`, which drops the revision
         const timeSuperseded = tasksStore.pendingSyncRevision(task.id) !== revision;
         tasksStore.completeCreate(task.id, created, revision);
@@ -441,6 +437,8 @@ export const useTaskSync = () => {
       return true;
     } catch (error) {
       if (queuedTime) tasksStore.markPendingUpdateFailed(task.id, error instanceof Error ? error.message : String(error));
+      // A create in doubt that may still land (#528): not a failure, the next push looks again
+      if (isCreateWaiting(error)) return false;
       if (createAttemptedAt > 0 && createOutcomeUnknown(error)) tasksStore.markCreateUncertain(task.id, createAttemptedAt, task.title || 'Untitled');
       reportPushFailure(task, error, `Failed to sync task ${task.id} to ${task.source}`);
       return false;
@@ -807,8 +805,9 @@ export const useTaskSync = () => {
     let created: Task;
     const createAttemptedAt = Date.now();
     try {
-      created = await adapter.create(task, { claimedExternalIds: claimedExternalIds(target) });
+      created = await adapter.create(task, { claimedExternalIds: tasksStore.claimedPages(target) });
     } catch (error) {
+      if (isCreateWaiting(error)) return 'queued';
       if (createOutcomeUnknown(error)) tasksStore.markCreateUncertain(task.id, createAttemptedAt, task.title || 'Untitled');
       if (createFailureKind(error) === 'transient') {
         deferMove(task, error);
