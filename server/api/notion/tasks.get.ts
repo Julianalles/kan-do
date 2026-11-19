@@ -76,29 +76,7 @@ export default defineEventHandler(async (event) => {
         },
       }) as { results?: unknown[] }
     } catch (error) {
-      handleNotionError(error)
-    }
-
-    // Debug logging for response inspection (dev only)
-    if (process.env.NODE_ENV !== 'production' && response) {
-      console.log("=== NOTION API RESPONSE DEBUG ===");
-      console.log("Response object keys:", Object.keys(response));
-      console.log("Response.results length:", response.results?.length || 0);
-      console.log("Full response structure:", JSON.stringify(response, null, 2));
-    }
-    
-    if (process.env.NODE_ENV !== 'production' && response?.results && response.results.length > 0) {
-      const firstResult = response.results[0] as unknown;
-      console.log("First result structure:", JSON.stringify(firstResult, null, 2));
-      if (firstResult && typeof firstResult === 'object') {
-        const fr = firstResult as Record<string, unknown>;
-        if ('properties' in fr && typeof fr.properties === 'object' && fr.properties) {
-          console.log("First result properties:", Object.keys(fr.properties as Record<string, unknown>));
-        } else if ('object' in fr) {
-          console.log("First result type:", (fr as Record<string, unknown>).object);
-        }
-      }
-      console.log("=== END DEBUG ===");
+      handleNotionError(error, event)
     }
 
     return response?.results ?? [];

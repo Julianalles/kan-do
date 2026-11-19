@@ -1,5 +1,6 @@
 import { createError, getQuery, getHeader } from 'h3'
 import type { H3Event } from 'h3'
+import { logServerError } from './serverLog'
 
 /**
  * Extracts the Notion token from the Authorization header.
@@ -78,6 +79,7 @@ export function throwApiError(statusCode: number, message: string, data?: unknow
  * Handles Notion API errors and converts them to standardized H3 errors
  * 
  * @param {unknown} error - The caught error
+ * @param {H3Event} [event] - The request, only for the route in the log line
  * @throws {H3Error} Standardized error response
  * 
  * @example
@@ -87,8 +89,9 @@ export function throwApiError(statusCode: number, message: string, data?: unknow
  *   handleNotionError(error)
  * }
  */
-export function handleNotionError(error: unknown): never {
-  console.error('[Notion API Error]', error)
+export function handleNotionError(error: unknown, event?: H3Event): never {
+  // Status, code and route only: the error carries request and response detail (#511)
+  logServerError(error, event)
   
   if (error instanceof Error && error.name === 'APIResponseError') {
     // Try to read common fields exposed by @notionhq/client APIResponseError

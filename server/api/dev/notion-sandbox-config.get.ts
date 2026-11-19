@@ -26,6 +26,6 @@ export default defineEventHandler(async (event) => {
     }
     return notionSandboxConfig(creds.token, db)
   } catch (error) {
-    handleNotionError(error)
+    handleNotionError(error, event)
   }
 })
