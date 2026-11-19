@@ -242,7 +242,7 @@ What a check already guarantees is not repeated above. `npm run verify` runs the
 | Guarantee | Guard |
 |---|---|
 | Semantic tokens only: no palette classes, hex, arbitrary values, stray z-index, duration or easing | ESLint, `tests/config/token-literals.test.ts`, `scripts/lint/design-tokens.mjs` |
-| The 4 px grid: no half-step class but `-0.5` and `-1.5`, no padding, margin or gap off the grid in a style block, no icon class sized off 12, 16, 20, 24 px (a kept exception is on the file's allow list with its reason) | `scripts/lint/design-tokens.mjs` (`checkScaleLiterals`), `tests/config/token-literals.test.ts` |
+| The 4 px grid, in `.vue` files: no half-step spacing class but `-0.5` and `-1.5` (roots `p`, `m`, `gap`, `space`, `inset` and their axis/side forms; not `start-`, `end-`, `basis-`, `indent-`), no padding, margin or gap off the grid in a style block, no icon-class width or height off 12, 16, 20, 24 px in a style block (Tailwind `size-N` on a `UIcon` and `.css` files are not checked) (a kept exception is on the file's allow list with its reason) | `scripts/lint/design-tokens.mjs` (`checkScaleLiterals`), `tests/config/token-literals.test.ts` |
 | Button vocabulary: the one size, the allowed variants, the phone floor, the 96 px minimum of a solid button, the list of smaller buttons with their reasons | `tests/config/button-ladder.test.ts` |
 | Text and control contrast, the focus halo on the main button, the receding-text exceptions | `tests/e2e/a11y.spec.ts`, `tests/config/button-contrast.test.ts`, `role-contrast.test.ts`, `error-soft-contrast.test.ts` |
 | Warning text steps and notices on `UAlert` | `tests/config/warning-notices.test.ts` |
