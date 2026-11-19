@@ -2,9 +2,9 @@
 @component BoardCapacityEcho
 @kind component
 @category display
-@description The echo of Offen's "Kapazität" line on the place "Alle" (#354, #334 D6): the same wavy line and label with one muted sentence, shown at the foot of Offen while the real line (BoardCapacityDivider) is out of view. A click or tap shows the real line.
-@usage Inside BoardCapacityDock only. `watch-window` (desktop): shown while the day is full and the real line is outside the window; without it (phone, the "Meine Aufgaben" page) shown while the day is full and `active`.
-@avoid Not the line itself (BoardCapacityDivider, in the Offen list) and not an alert or a limit: it informs, nothing is blocked, no numbers of time and no room-left counter. Never on Heute.
+@description The echo of Offen's "Kapazität" line on the place "Alle" (#354, #334 D6): the same wavy line and label with one muted sentence, shown at the foot of Offen while the real line (BoardCapacityDivider) is out of view. A click shows the real line.
+@usage Inside BoardCapacityDock only (desktop, the foot of Offen): shown while the day is full and the real line is outside the window.
+@avoid Not the line itself (BoardCapacityDivider, in the Offen list) and not an alert or a limit: it informs, nothing is blocked, no numbers of time and no room-left counter. Never on Heute, never over "Meine Aufgaben" and not on a phone (#566).
 @responsibility
 - Reads the Offen column's own line (`useOpenCapacityLine`), so it follows the topic focus, the sorting and the stacks; it never calculates
 - Sentence: "Damit ist dein Tag vermutlich voll." while nothing lies under the line, else how many tasks do
@@ -32,7 +32,7 @@
       <span class="sr-only">{{ t('board.capacity.label') }}: </span>
       <span class="capacity-echo__text">
         <span class="capacity-echo__sentence">{{ sentence }}</span>
-        <UIcon :name="watchWindow ? 'i-ph-caret-down' : ICONS.forward" class="capacity-echo__caret" aria-hidden="true" />
+        <UIcon name="i-ph-caret-down" class="capacity-echo__caret" aria-hidden="true" />
       </span>
     </UButton>
   </Transition>
@@ -41,17 +41,10 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { ICONS } from '~/lib/icons'
 import { useOpenCapacityLine } from '~/composables/useOpenCapacityLine'
 
 defineOptions({ name: 'BoardCapacityEcho' })
 
-const props = withDefaults(defineProps<{
-  /** Desktop: follow whether the real line is inside the window, and show the echo only while it is not */
-  watchWindow?: boolean
-  /** Phone: the page without the line ("Meine Aufgaben") is the one showing */
-  active?: boolean
-}>(), { watchWindow: false, active: true })
 
 const emit = defineEmits<{
   /** The user asks for the real line */
@@ -77,7 +70,6 @@ const schedule = () => {
 }
 
 onMounted(() => {
-  if (!props.watchWindow) return
   // Capture: the list may scroll inside a column page, not only the document
   window.addEventListener('scroll', schedule, { passive: true, capture: true })
   window.addEventListener('resize', schedule, { passive: true })
@@ -89,9 +81,9 @@ onBeforeUnmount(() => {
   cancelAnimationFrame(frame)
 })
 // The line moved (a card planned, put back or reordered): look again once the list has rendered
-watch(() => [line.value.full, line.value.below], () => { if (props.watchWindow) schedule() }, { flush: 'post' })
+watch(() => [line.value.full, line.value.below], schedule, { flush: 'post' })
 
-const shown = computed(() => line.value.full && (props.watchWindow ? !lineInView.value : props.active))
+const shown = computed(() => line.value.full && !lineInView.value)
 const sentence = computed(() =>
   line.value.below === 0 ? t('board.notPlanned.capacityFull') : t('board.notPlanned.capacityBelow', { n: line.value.below }, line.value.below),
 )

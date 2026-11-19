@@ -93,6 +93,19 @@ function sawOutgoingTitle(page: Page, ms = 3000): Promise<string | null> {
   }), ms)
 }
 
+/** The in-card flow of #567 ends in a save: the title, then Enter through the steps until the card is gone (a slide of 140 ms lies between two steps) */
+async function saveInCard(page: Page, text: string) {
+  const flow = page.getByTestId('new-card-flow')
+  await expect(page.getByTestId('new-card-title')).toBeFocused()
+  await page.getByTestId('new-card-title').fill(text)
+  await page.keyboard.press('Enter')
+  for (let i = 0; i < 8 && await flow.count() > 0; i++) {
+    await expect(page.locator('.ncf-fwd-enter-active, .ncf-fwd-leave-active')).toHaveCount(0)
+    await page.keyboard.press('Enter')
+  }
+  await expect(flow).toHaveCount(0)
+}
+
 async function gotoAll(page: Page) {
   await page.goto('/all')
   await expect(board(page)).toHaveAttribute('data-place', 'all')
@@ -330,21 +343,22 @@ test.describe('The place "Alle" (#354), desktop', () => {
     await expect(page.getByTestId('not-planned-no-match')).toHaveText('Keine Aufgaben gefunden.')
   })
 
-  test('empty (#367): one sentence and "Aufgabe erstellen"; the task made there lands under "Meine Aufgaben", not in Offen', async ({ context, page }) => {
+  test('empty (#367, #567): one sentence and "Aufgabe erstellen" open the card in the list; the task made there lands under "Meine Aufgaben", not in Offen', async ({ context, page }) => {
     await seedLocalBoard(context, BOARD.filter(t => !t.notPlanned))
     await gotoAll(page)
     await expect(page.getByTestId('not-planned-empty')).toHaveText('Keine weiteren Aufgaben vorhanden.')
     expect(await openIds(page)).toEqual(['open-1', 'open-2'])
 
     await page.getByTestId('not-planned-create').click()
-    await expect(page).toHaveURL(/\/all\/add$/)
-    const dialog = page.getByRole('dialog')
-    // The task will not land in Offen: no draft card there while the form is open
-    await expect(page.locator('#column-open [data-testid="task-draft-card"]')).toHaveCount(0)
-    await dialog.getByPlaceholder('Aufgabe benennen…').fill('Fenster ausmessen')
-    await dialog.getByRole('button', { name: 'Aufgabe erstellen' }).click()
-
+    // The Heute flow: a card in the list, no sheet and no route change; the note gives way while it is open
     await expect(page).toHaveURL(/\/all$/)
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(notPlanned(page).getByTestId('new-card-flow')).toBeVisible()
+    await expect(page.locator('#column-open [data-testid="new-card-flow"]')).toHaveCount(0)
+    await expect(page.getByTestId('not-planned-empty')).toHaveCount(0)
+    await expect(page.getByTestId('not-planned-create')).toHaveCount(0)
+
+    await saveInCard(page, 'Fenster ausmessen')
     await expect(notPlanned(page).locator('[data-not-planned-id]')).toHaveCount(1)
     await expect(notPlanned(page).locator('[data-not-planned-id] .task')).toContainText('Fenster ausmessen')
     await expect(page.getByTestId('not-planned-empty')).toHaveCount(0)
@@ -354,89 +368,83 @@ test.describe('The place "Alle" (#354), desktop', () => {
     await expect(notPlanned(page).locator('.not-planned__card')).toBeFocused()
   })
 
-  test('a task made on "Alle" is not planned from every entry (#367); on Heute it lands in Offen', async ({ context, page }) => {
+  test('#567: the add button of "Meine Aufgaben" opens the Heute card at the top of its list; the task is made not planned, the button is off meanwhile', async ({ context, page }) => {
     await seedLocalBoard(context, BOARD)
     await gotoAll(page)
     const titles = () => notPlanned(page).locator('[data-not-planned-id] .task-title-text').allTextContents()
 
     // #380: the add button is in the header of "Meine Aufgaben", where the task lands; Offen's header has none here
     await expect(page.locator('#column-open [data-testid="add-task-header-button"]')).toHaveCount(0)
-    await page.getByTestId('not-planned-add').click()
-    await expect(page).toHaveURL(/\/all\/add$/)
-    const sheet = page.getByRole('dialog')
-    await sheet.getByPlaceholder('Aufgabe benennen…').fill('Aus der Karte')
-    await sheet.getByRole('button', { name: 'Aufgabe erstellen' }).click()
+    const add = page.getByTestId('not-planned-add')
+    await add.click()
     await expect(page).toHaveURL(/\/all$/)
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    const flow = notPlanned(page).getByTestId('new-card-flow')
+    await expect(flow).toBeVisible()
+    // The card stands above the first card of the list, and a second click opens no second card
+    await settleAnimations(page)
+    expect((await flow.boundingBox())!.y).toBeLessThan((await item(page, 'np-1').boundingBox())!.y)
+    await expect(add).toBeDisabled()
+
+    await saveInCard(page, 'Aus der Karte')
+    await expect(add).toBeEnabled()
     await expect.poll(async () => (await titles())[0]).toContain('Aus der Karte')
     expect(await openIds(page)).toEqual(['open-1', 'open-2'])
-
-    // The command palette: the sheet's add form under /all
-    await page.keyboard.press('ControlOrMeta+k')
-    await page.getByRole('option', { name: 'Aufgabe hinzufügen' }).click()
-    await expect(page).toHaveURL(/\/all\/add$/)
-    const dialog = page.getByRole('dialog')
-    await dialog.getByPlaceholder('Aufgabe benennen…').fill('Aus der Palette')
-    await dialog.getByRole('button', { name: 'Aufgabe erstellen' }).click()
-    await expect(page).toHaveURL(/\/all$/)
-    // The newest stands on top
-    await expect.poll(async () => (await titles()).slice(0, 2).map(title => title.trim())).toEqual(['Aus der Palette', 'Aus der Karte'])
-    expect(await openIds(page)).toEqual(['open-1', 'open-2'])
-
-    // Heute: as before, the new card is in Offen
-    await toHeute(page).click()
-    await atRest(page)
-    await page.locator('#column-open [data-testid="add-task-header-button"]').click()
-    await page.getByTestId('new-card-title').fill('Für heute')
-    await page.keyboard.press('ControlOrMeta+Enter')
-    await expect(page.locator('#column-open-list > .task-wrapper')).toHaveCount(3)
-    await expect(page.locator('#column-open-list > .task-wrapper', { hasText: 'Für heute' })).toBeVisible()
-    await expect(page).toHaveURL(/\/tasks$/)
-  })
-
-  test('the sheet of a not-planned task reads "Nicht geplant"; the picker plans it and puts it back (#359)', async ({ context, page }) => {
-    await seedLocalBoard(context, BOARD)
-    await gotoAll(page)
-    const status = page.getByTestId('task-status-select')
-    const choose = async (name: string) => {
-      await status.click()
-      await page.getByRole('option', { name, exact: true }).click()
-    }
-
-    await item(page, 'np-1').locator('.task').click()
-    await expect(page).toHaveURL(/\/all\/np-1$/)
-    await expect(status).toHaveAccessibleName('Status: Nicht geplant')
-    // Five choices, in the order of the places
-    await status.click()
-    await expect(page.getByRole('option')).toHaveText(['Nicht geplant', 'Offen', 'Jetzt', 'Wartet', 'Erledigt'])
-    await page.getByRole('option', { name: 'Offen', exact: true }).click()
-
-    // Planned: at the end of Offen, and the sheet stays on the task
-    await expect(status).toHaveAccessibleName('Status: Offen')
-    await expect(page).toHaveURL(/\/all\/np-1$/)
-    await expect.poll(() => openIds(page)).toEqual(['open-1', 'open-2', 'np-1'])
-    await expect.poll(() => notPlannedIds(page)).toEqual(['np-2'])
-
-    // Back: on top of "Meine Aufgaben"
-    await choose('Nicht geplant')
-    await expect(status).toHaveAccessibleName('Status: Nicht geplant')
-    await expect.poll(() => notPlannedIds(page)).toEqual(['np-1', 'np-2'])
-    await expect.poll(() => openIds(page)).toEqual(['open-1', 'open-2'])
-
-    // A column other than Offen plans it too
-    await choose('Wartet')
-    await expect(status).toHaveAccessibleName('Status: Wartet')
-    await expect.poll(() => notPlannedIds(page)).toEqual(['np-2'])
-
-    // And from there straight back: to Offen first, then off today's board
-    await choose('Nicht geplant')
-    await expect(status).toHaveAccessibleName('Status: Nicht geplant')
-    await expect.poll(() => notPlannedIds(page)).toEqual(['np-1', 'np-2'])
-    await expect.poll(() => openIds(page)).toEqual(['open-1', 'open-2'])
+    await expect(page.getByText('Aufgabe hinzugefügt', { exact: true })).toBeVisible()
+    await expect(notPlanned(page).locator('.not-planned__card').first()).toBeFocused()
     await expect.poll(() => page.evaluate(() => {
-      const tasks = JSON.parse(localStorage.getItem('tasks-store') ?? '{}').tasks as { id: string, status: number, notPlanned?: boolean }[]
-      const found = tasks.find(t => t.id === 'np-1')
+      const tasks = JSON.parse(localStorage.getItem('tasks-store') ?? '{}').tasks as { title: string, status: number, notPlanned?: boolean }[]
+      const found = tasks.find(t => t.title === 'Aus der Karte')
       return found ? [found.status, found.notPlanned] : null
     })).toEqual([0, true])
+  })
+
+  test('#567: Esc and back out of the card; a typed title is given back with "Rückgängig"; a blank card closes on a press outside', async ({ context, page }) => {
+    await seedLocalBoard(context, BOARD)
+    await gotoAll(page)
+    const add = page.getByTestId('not-planned-add')
+    const flow = notPlanned(page).getByTestId('new-card-flow')
+    const titleField = page.getByTestId('new-card-title')
+
+    await add.click()
+    await expect(titleField).toBeFocused()
+    await page.keyboard.press('Escape')
+    await expect(flow).toHaveCount(0)
+    await expect(add).toBeFocused()
+    expect(await notPlannedIds(page)).toEqual(['np-1', 'np-2'])
+
+    await add.click()
+    await titleField.fill('Fenster ausmessen')
+    await page.keyboard.press('Escape')
+    await expect(flow).toHaveCount(0)
+    await page.getByRole('button', { name: 'Rückgängig' }).click()
+    await expect(flow).toBeVisible()
+    await expect(titleField).toHaveValue('Fenster ausmessen')
+    await page.keyboard.press('Escape')
+    await expect(flow).toHaveCount(0)
+
+    // A blank card goes with a press beside it
+    await add.click()
+    await expect(flow).toBeVisible()
+    await page.locator('#column-open h2').click()
+    await expect(flow).toHaveCount(0)
+  })
+
+  test('#567: the sheet is still the way of the other entries; its task lands under "Meine Aufgaben" too, and opening it closes the card', async ({ context, page }) => {
+    await seedLocalBoard(context, BOARD)
+    await gotoAll(page)
+    await page.getByTestId('not-planned-add').click()
+    await expect(notPlanned(page).getByTestId('new-card-flow')).toBeVisible()
+    // The palette, the nav and the card menu navigate to `/all/add`: the same route change
+    await page.evaluate(() => (window as unknown as { useNuxtApp: () => { $router: { push: (to: string) => Promise<unknown> } } }).useNuxtApp().$router.push('/all/add'))
+    await expect(page).toHaveURL(/\/all\/add$/)
+    await expect(notPlanned(page).getByTestId('new-card-flow')).toHaveCount(0)
+    const sheet = page.getByRole('dialog')
+    await sheet.getByPlaceholder('Aufgabe benennen…').fill('Aus dem Blatt')
+    await sheet.getByRole('button', { name: 'Aufgabe erstellen' }).click()
+    await expect(page).toHaveURL(/\/all$/)
+    await expect(notPlanned(page).locator('[data-not-planned-id] .task-title-text', { hasText: 'Aus dem Blatt' })).toHaveCount(1)
+    expect(await openIds(page)).toEqual(['open-1', 'open-2'])
   })
 
   test('a board without any task: both columns blank, the add button works', async ({ context, page }) => {
@@ -510,6 +518,9 @@ test.describe('The place "Alle" (#354), desktop', () => {
     await expect(divider).not.toBeInViewport()
     await expect(echo).toBeVisible()
     await expect(echo).toContainText('Dein Tag ist vermutlich voll. 3 Aufgaben liegen unter der Linie.')
+    // #566: the echo is Offen's, at the foot of the Today column; nothing of it lies in or over "Meine Aufgaben"
+    await expect(notPlanned(page).getByTestId('capacity-echo')).toHaveCount(0)
+    expect((await echo.boundingBox())!.x).toBeGreaterThanOrEqual((await page.locator('#column-open').boundingBox())!.x)
 
     // Planning past the line is never blocked; the echo counts on
     await item(page, 'np-1').getByTestId('not-planned-pick').click()
@@ -629,19 +640,14 @@ test.describe('The place "Alle" (#354), phone', () => {
     await expect(page.locator('#column-done')).toBeHidden()
   })
 
-  test('#365/#378: scrolled to the end, the last card of both pages lies fully above the app bar and the echo', async ({ context, page }) => {
-    // Nine 1 h cards fill the 6 h day: the echo shows on the "Meine Aufgaben" page, the tallest case
+  test('#365/#378: scrolled to the end, the last card of both pages lies fully above the app bar', async ({ context, page }) => {
+    // Nine 1 h cards fill the 6 h day: the day is full, and nothing but the app bar lies over the pages (#566)
     const cards = Array.from({ length: 9 }, (_, i) => open(`cap-${i}`, `Karte ${i}`, null, 1))
     const many = Array.from({ length: 12 }, (_, i) => held(`many-${i}`, `Vorrat ${i}`))
     await seedLocalBoard(context, [...cards, ...many])
     await gotoAll(page)
-    const barTop = async () => {
-      const tops = [(await page.getByTestId('app-nav-pill').boundingBox())!.y]
-      const echoEl = page.getByTestId('capacity-echo')
-      if (await echoEl.isVisible()) tops.push((await echoEl.boundingBox())!.y)
-      return Math.min(...tops)
-    }
-    await expect(page.getByTestId('capacity-echo')).toBeVisible()
+    const barTop = async () => (await page.getByTestId('app-nav-pill').boundingBox())!.y
+    await expect(page.getByTestId('capacity-echo')).toHaveCount(0)
     await notPlanned(page).evaluate((el) => { el.scrollTop = el.scrollHeight })
     const lastHeld = item(page, 'many-11').locator('.task')
     await expect(lastHeld).toBeInViewport()
@@ -685,23 +691,23 @@ test.describe('The place "Alle" (#354), phone', () => {
     expect(await notPlannedIds(page)).toEqual(['open-1', 'np-2'])
   })
 
-  test('capacity: on the "Meine Aufgaben" page the echo sits above the bar; a tap shows the line on the Offen page', async ({ context, page }) => {
+  test('#566: with a full day the "Meine Aufgaben" page has no capacity element; Offen shows its own line in the list', async ({ context, page }) => {
     const cards = Array.from({ length: 7 }, (_, i) => open(`cap-${i}`, `Karte ${i}`, null, 1))
     await seedLocalBoard(context, [...cards, held('np-1', 'Angebot kalkulieren')])
     await gotoAll(page)
-    const echo = page.getByTestId('capacity-echo')
-    await expect(echo).toBeVisible()
-    await expect(echo).toContainText('Dein Tag ist vermutlich voll. Eine Aufgabe liegt unter der Linie.')
-    const echoBox = (await echo.boundingBox())!
-    const barBox = (await page.getByTestId('app-nav-pill').boundingBox())!
-    expect(echoBox.y + echoBox.height).toBeLessThanOrEqual(barBox.y)
+    await pageAtRest(page)
+    expect(await pageOf(page)).toBe('0')
+    await expect(page.getByTestId('capacity-divider')).toHaveCount(1)
+    // The bar over the unplanned tasks is gone: no echo and no dock, on either page of "Alle"
+    await expect(page.getByTestId('capacity-echo')).toHaveCount(0)
+    await expect(page.getByTestId('capacity-dock-bar')).toHaveCount(0)
 
-    await echo.tap()
+    await swipe(page, 'left')
     await expect.poll(() => pageOf(page)).toBe('1')
     await pageAtRest(page)
+    await page.getByTestId('capacity-divider').scrollIntoViewIfNeeded()
     await expect(page.getByTestId('capacity-divider')).toBeInViewport()
-    // On the Offen page the real line speaks for itself
-    await expect(echo).toBeHidden()
+    await expect(page.getByTestId('capacity-echo')).toHaveCount(0)
   })
 
   test('#355: press-and-hold on a "Meine Aufgaben" card carries it over the right edge into Offen; a tap still opens its sheet', async ({ context, page }) => {

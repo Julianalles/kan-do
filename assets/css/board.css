@@ -264,13 +264,6 @@
       grid-row: unset;
     }
 
-    /* "Alle" (#354, #373): the "Meine Aufgaben" page has room under its last card for the fixed capacity echo
-       (BoardCapacityDock: 0.5rem above the app bar, about 4.7rem tall, shown only while the day is full). The Offen
-       page needs none: the echo shows on the other page only, and the way on to Heute is the app bar's pill. */
-    :where(.board)[data-place='all'] > #column-not-planned {
-      padding-bottom: calc(var(--phone-bar-offset) + 7rem);
-    }
-
     /* Mobile task card: fill full column width */
     :root {
       --task-card-width: 100%;

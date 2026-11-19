@@ -3,7 +3,7 @@
 @kind component
 @category action
 @description Draft host of a column: the box the draft card of the task being added appears in (#125). Jetzt: a card-sized add-and-start control that morphs into its draft in the same box. Offen (#248): no button of its own, the header's add button asks it to open; its draft enters at the start of the list
-@usage Offen: first item of the task list (BoardColumn), opened by the header button (`open()`) or by the sheet's draft (`/tasks/add`). Jetzt: overlay of the empty column (BoardColumnProgressContent), opens add-and-start
+@usage Offen: first item of the task list (BoardColumn); on "Alle" a second `in-card` host at the top of the "Meine Aufgaben" list (BoardNotPlanned, #567: its header button and the empty note's button open it, the task is made not planned), opened by the header button (`open()`) or by the sheet's draft (`/tasks/add`). Jetzt: overlay of the empty column (BoardColumnProgressContent), opens add-and-start
 @avoid Not the full add form: the sheet's TaskForm adds with all fields, NewCardFlow asks the guided questions; not for editing an existing task.
 @responsibility
 - Offen (#248): renders nothing but the draft. While no draft is open it has no box at all (`display: contents` root, no wrapper), so card positions in the list equal a board without any slot and the list's gap never opens above the first card. The draft card enters at the top: its wrapper animates the row height 0fr to 1fr with opacity, and a negative bottom margin cancels the list gap while closed, so the cards below follow in step (--duration-base = 200ms, --ease-emphasized); cancel leaves just as fast and the cards close up; reduced motion is instant

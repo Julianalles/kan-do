@@ -62,6 +62,16 @@ test.describe('the place "Alle" (#354)', () => {
     await gotoAll(page)
     await expect(page.getByTestId('not-planned')).toMatchAriaSnapshot({ name: 'not-planned-tasks-390.aria.yml' })
   })
+
+  test('"Meine Aufgaben" with the add card open (#567): the add button is off, the card is a group above the cards (1280)', async ({ context, page }) => {
+    const held: SeedTask[] = SEED_TASKS.filter(task => task.status === 0).slice(0, 2).map(task => ({ ...task, notPlanned: true as const }))
+    await seedLocalBoard(context, [...held, ...SEED_TASKS.filter(task => task.status !== 0)])
+    await gotoAll(page)
+    await page.getByTestId('not-planned-add').click()
+    await expect(page.getByTestId('new-card-title')).toBeFocused()
+    await settleAnimations(page)
+    await expect(page.getByTestId('not-planned')).toMatchAriaSnapshot({ name: 'not-planned-add-card-1280.aria.yml' })
+  })
 })
 
 test.describe('a new day (#356, #387)', () => {

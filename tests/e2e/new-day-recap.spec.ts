@@ -1269,6 +1269,29 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await expect(note(page)).toBeVisible()
   })
 
+  test('#567: the add card stands above the panel; the saved task is listed under "Weitere Aufgaben", not in the panel', async ({ page, context }) => {
+    await seedNewDayBoard(context, { tasks: boardOnly() })
+    await page.goto('/all')
+    await startButton(page).click()
+    await expect.poll(() => groupIds(page, 'panel')).toHaveLength(4)
+    await page.getByTestId('not-planned-add').click()
+    const flow = side(page).getByTestId('new-card-flow')
+    await expect(flow).toBeVisible()
+    await expect(page.getByTestId('new-card-title')).toBeFocused()
+    await settled(page)
+    expect((await flow.boundingBox())!.y).toBeLessThan((await page.getByTestId('not-planned-panel').boundingBox())!.y)
+    await page.getByTestId('new-card-title').fill('Fenster ausmessen')
+    await page.keyboard.press('Enter')
+    for (let i = 0; i < 8 && await flow.count() > 0; i++) {
+      await expect(page.locator('.ncf-fwd-enter-active, .ncf-fwd-leave-active')).toHaveCount(0)
+      await page.keyboard.press('Enter')
+    }
+    await expect(flow).toHaveCount(0)
+    await expect.poll(() => groupIds(page, 'panel')).toHaveLength(4)
+    await expect.poll(async () => (await groupIds(page, 'others')).length).toBe(2)
+    await expect(side(page).locator('[data-testid="not-planned-list-others"] .task-title-text').first()).toHaveText('Fenster ausmessen')
+  })
+
   test('the pick moves keyboard focus on across the panel and "Weitere Aufgaben"', async ({ page, context }) => {
     await seedNewDayBoard(context, { tasks: boardOnly().filter(task => task.id !== 'nd-open-2' && task.id !== 'nd-now-1') })
     await page.goto('/all')
