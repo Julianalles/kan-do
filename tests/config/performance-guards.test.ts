@@ -42,7 +42,7 @@ describe('page-level :has() selectors (#275)', () => {
   // A rule whose `:has()` sits on the root keeps the whole document in its scope: every change below that the
   // argument might care about restyles every element (measured: 2 whole-page restyles per task sheet, 5 per drag on
   // a 73-task board). The state belongs on <html> as an attribute, set by the component that owns it
-  // (Board.vue: data-focus-lit, data-sheet-open; NewDayRecap.vue: data-recap-stage).
+  // (Board.vue: data-focus-lit, data-sheet-open, data-sheet-side; NewDayRecap.vue: data-recap-stage).
   it('finds the selector forms and ignores comments and descendants', () => {
     expect(findPageLevelHas('html:has(.a) .b { color: red }')).toHaveLength(1)
     expect(findPageLevelHas('html.dark:has(.a), body:has(.b), :root:has(.c) {}')).toHaveLength(3)

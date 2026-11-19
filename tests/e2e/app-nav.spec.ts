@@ -795,12 +795,13 @@ test.describe('App bar: ⋯ tooltip after a page change (kd#40)', () => {
   })
 })
 
-// #290: the side sheet covers the right of the centred bar; the group centres in the space left of it
-test.describe('App bar with the task sheet open (#290)', () => {
+// #290: the add route's slideover covers the right of the centred bar; the group centres in the space left of it.
+// #517: the detail route's morph sheet (#468) sits at its card, so the bar stays put.
+test.describe('App bar with a task sheet open (#290, #517)', () => {
   test.use({ viewport: { width: 1280, height: 800 } })
-  test('the pill and Mehr stay whole left of the sheet, and come back centred', async ({ context, page }) => {
+  test('the pill and Mehr stay whole left of the add slideover, and come back centred', async ({ context, page }) => {
     await seedLocalBoard(context, SEED_TASKS)
-    await page.goto('/tasks/seed-open-1')
+    await page.goto('/tasks/add')
     const sheet = page.getByRole('dialog')
     await expect(sheet).toBeVisible()
     await expect.poll(async () => {
@@ -823,5 +824,22 @@ test.describe('App bar with the task sheet open (#290)', () => {
     await page.keyboard.press('Escape')
     await expect(sheet).toBeHidden()
     await expect.poll(async () => (await group.boundingBox())!.x).toBeGreaterThan(open!.x + 100)
+  })
+
+  test('the detail sheet grows at its card and leaves the bar centred', async ({ context, page }) => {
+    await seedLocalBoard(context, SEED_TASKS)
+    await page.goto('/tasks')
+    await expect(appNav(page)).toBeVisible()
+    const group = appNav(page).locator('.app-nav-group')
+    await waitForNavIdle(page)
+    const resting = (await group.boundingBox())!.x
+    await page.goto('/tasks/seed-open-1')
+    const sheet = page.getByRole('dialog')
+    await expect(sheet).toBeVisible()
+    await expect(page.locator('html')).toHaveAttribute('data-sheet-open', '')
+    await expect(page.locator('html')).not.toHaveAttribute('data-sheet-side', /.*/)
+    // past the padding transition (the shift would take --sheet-fade-duration) the group has not moved
+    await page.waitForTimeout(600)
+    expect(Math.abs((await group.boundingBox())!.x - resting)).toBeLessThan(2)
   })
 })
