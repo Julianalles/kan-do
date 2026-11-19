@@ -22,7 +22,12 @@ Developer glossary. UI wording (preferred terms, forms to avoid, German and Engl
 
 **Capacity divider** (UI: "Kapazität"): the line in the Offen list after the card at which Jetzt, Wartet and Offen together use up the day's time. The day's length is learned from tracked work sessions, or is the working day the user sets in Einstellungen ("Arbeitszeit pro Tag", `settings-store.workingHoursMinutes`, #306), which replaces the learned one; a card without a timebox counts what similar done tasks took (activity, topic, title; at least 3 of them, else 30 min; `lib/learnedEstimate.ts`, #302), a card with a timebox its own value; it informs and never blocks (`lib/dayCapacity.ts`, #132).
 
-**Pattern**: a recurring UI solution to one user job (confirming a destructive action, showing a task's state, adding a task). Two elements share a pattern when they do the same job for the user, whatever they look like.
+**Job** (job to be done): one of the six solution-free jobs in `PRODUCT.md` "Jobs to be done" (Plan the day … Learn from previous work). Only the user changes that list. Setup, settings, data safety and feedback serve no job directly; they are supporting activities.
+
+**User task**: one concrete thing the user does in the app on the way to a job, in story-mapping terms (pick one of a few options, confirm a destructive action, walk through a setup). Always written "user task", never "task" alone: a Task is the app's domain object.
+_Avoid_: user job (a Job is one of the six in `PRODUCT.md`)
+
+**Pattern**: a recurring UI solution to one user task (confirming a destructive action, showing a task's state, adding a task). Two elements share a pattern when they do the same user task, whatever they look like.
 _Avoid_: component (that's the code unit; one pattern can span several components)
 
 **Token**: a named design value (colour, size, shadow, radius) that components use instead of a raw value, so one place retunes it. Example: `--topic-blue` and the semantic colour `bg-page`, defined in `assets/css/main.css` and `app.config.ts`; `DESIGN.md` lists them.
