@@ -19,6 +19,24 @@ export async function settleAnimations(page: Page): Promise<void> {
 }
 
 /**
+ * Waits until the desktop task sheet has finished its open morph (`TaskMorphShell`, 280 ms of Web Animations):
+ * the panel is visible, its running animations are gone and `settle()` of the shell has left it at `height: auto`.
+ * A shot taken earlier captures a transient: `animations: 'disabled'` fast-forwards the morph but the shell holds the
+ * end frame (`fill: both`) until it cancels, so text sits on an animated layer and its antialiasing differs from the
+ * resting sheet; which of the two a shot sees depends on machine load (#520). `height: auto` plus `visible` is
+ * what `playOpen` replaces with pixels at its start, so a panel that mounted but has not begun to animate yet does not pass.
+ */
+export async function settleSheet(page: Page): Promise<void> {
+  await page.waitForFunction(() => {
+    const panel = document.querySelector<HTMLElement>('.task-morph-panel')
+    return !!panel
+      && panel.style.visibility === 'visible'
+      && panel.style.height === 'auto'
+      && panel.getAnimations({ subtree: true }).length === 0
+  })
+}
+
+/**
  * Settles a stack expand/collapse: the list's `data-stack-animating` flag (#197) is gone and no finite
  * animation is left. Call it after asserting the resulting state (member count, header), never mid-drag.
  */
