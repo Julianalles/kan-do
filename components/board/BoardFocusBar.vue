@@ -123,7 +123,7 @@ const showsPill = computed(() => focusTopic.value !== null)
 }
 
 .board-focus-bar__topic {
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .board-focus-bar__end {

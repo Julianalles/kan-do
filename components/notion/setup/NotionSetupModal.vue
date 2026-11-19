@@ -37,7 +37,7 @@
             >
               <div class="flex justify-center">
                 <span
-                  class="flex size-7 items-center justify-center rounded-full text-xs font-semibold"
+                  class="flex size-7 items-center justify-center rounded-full text-xs font-medium"
                   :class="index <= activeStepIndex ? 'bg-primary text-inverted' : 'bg-accented text-muted'"
                   aria-hidden="true"
                 >{{ index + 1 }}</span>
