@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { TaskStatus } from '~/types/taskStatus'
 import type { Task } from '~/types/task'
 import type { NotionIntegration } from '~/integrations/NotionIntegration'
@@ -22,6 +22,7 @@ import { LocalSource } from '~/integrations/sources/LocalSource'
 import { NotionSource } from '~/integrations/sources/NotionSource'
 import { TodoistSource } from '~/integrations/sources/TodoistSource'
 import { SourceNotConfiguredError } from '~/integrations/sources/types'
+import { CreateLookupError, CreateWaitingError, createOutcomeUnknown } from '~/lib/integrationHealth'
 /* eslint-enable import/first */
 
 const task = (overrides: Partial<Task> = {}): Task => ({
@@ -71,6 +72,7 @@ describe('NotionSource', () => {
     updateTask: vi.fn(),
     archiveTask: vi.fn(),
     unarchiveTask: vi.fn(),
+    findLandedPage: vi.fn(),
   }
   let configured: boolean
   let dataSource: boolean
@@ -167,6 +169,57 @@ describe('NotionSource', () => {
     expect((await build().create({ title: 'x' })).id).toBe('new')
   })
 
+  describe('removeLanded (#538)', () => {
+    const NOW = Date.parse('2026-11-19T10:10:00.000Z')
+    const doubt = (at: number) => ({ since: at, at, title: 'Rückruf' })
+
+    beforeEach(() => {
+      vi.spyOn(Date, 'now').mockReturnValue(NOW)
+    })
+    afterEach(() => vi.restoreAllMocks())
+
+    it('archives the page the lookup identifies, never adopting a claimed one', async () => {
+      integration.findLandedPage.mockResolvedValue('landed')
+      integration.archiveTask.mockResolvedValue(undefined)
+      const claimed = new Set(['held'])
+      await build().removeLanded(doubt(NOW - 60_000), { claimedExternalIds: claimed })
+      expect(integration.findLandedPage).toHaveBeenCalledWith('Rückruf', NOW - 60_000, claimed)
+      expect(integration.archiveTask).toHaveBeenCalledWith('landed')
+    })
+
+    it('finds nothing while the create may still land: waits, archives nothing', async () => {
+      integration.findLandedPage.mockResolvedValue(null)
+      await expect(build().removeLanded(doubt(NOW - 10_000), { claimedExternalIds: new Set() })).rejects.toBeInstanceOf(CreateWaitingError)
+      expect(integration.archiveTask).not.toHaveBeenCalled()
+    })
+
+    it('finds nothing after the create can no longer land: resolves, archives nothing', async () => {
+      integration.findLandedPage.mockResolvedValue(null)
+      await expect(build().removeLanded(doubt(NOW - 3 * 60_000), { claimedExternalIds: new Set() })).resolves.toBeUndefined()
+      expect(integration.archiveTask).not.toHaveBeenCalled()
+    })
+
+    it('a failed lookup rejects as a lookup error and archives nothing', async () => {
+      integration.findLandedPage.mockRejectedValue(Object.assign(new Error('Bad Gateway'), { statusCode: 502 }))
+      await expect(build().removeLanded(doubt(NOW - 3 * 60_000), { claimedExternalIds: new Set() })).rejects.toBeInstanceOf(CreateLookupError)
+      expect(integration.archiveTask).not.toHaveBeenCalled()
+    })
+
+    it('a failed archive rejects as a lookup error, a page that is gone (404) counts as archived', async () => {
+      integration.findLandedPage.mockResolvedValue('landed')
+      integration.archiveTask.mockRejectedValueOnce(Object.assign(new Error('Too Many Requests'), { statusCode: 429 }))
+      await expect(build().removeLanded(doubt(NOW), { claimedExternalIds: new Set() })).rejects.toBeInstanceOf(CreateLookupError)
+      integration.archiveTask.mockRejectedValueOnce(Object.assign(new Error('Not found'), { statusCode: 404 }))
+      await expect(build().removeLanded(doubt(NOW), { claimedExternalIds: new Set() })).resolves.toBeUndefined()
+    })
+
+    it('rejects as not configured without calling Notion', async () => {
+      configured = false
+      await expect(build().removeLanded(doubt(NOW), { claimedExternalIds: new Set() })).rejects.toBeInstanceOf(SourceNotConfiguredError)
+      expect(integration.findLandedPage).not.toHaveBeenCalled()
+    })
+  })
+
   describe('restore (#422)', () => {
     it('un-archives the same page, writes the snapshot onto it and keeps id and externalId', async () => {
       integration.unarchiveTask.mockResolvedValue(undefined)
@@ -197,6 +250,71 @@ describe('NotionSource', () => {
       integration.unarchiveTask.mockRejectedValue(Object.assign(new Error('Bad Gateway'), { statusCode: 502 }))
       await expect(build().restore(task())).rejects.toThrow('Bad Gateway')
       expect(integration.createTask).not.toHaveBeenCalled()
+    })
+
+    describe('with a create in doubt (#535)', () => {
+      const NOW = Date.parse('2026-11-19T10:10:00.000Z')
+      const doubt = (at: number) => ({ since: at, at, title: 'T' })
+      const gone = () => integration.unarchiveTask.mockRejectedValue(Object.assign(new Error('Not found'), { statusCode: 404 }))
+      beforeEach(() => { vi.spyOn(Date, 'now').mockReturnValue(NOW) })
+      afterEach(() => vi.restoreAllMocks())
+
+      it('looks the page up before it creates, adopts it and writes the snapshot onto it', async () => {
+        gone()
+        integration.findLandedPage.mockResolvedValue('landed')
+        integration.updateTask.mockImplementation(async (t: Task) => t)
+        const claimed = new Set(['held'])
+        const restored = await build().restore(task(), { claimedExternalIds: claimed, createUncertain: doubt(NOW - 60_000) })
+        expect(integration.findLandedPage).toHaveBeenCalledWith('T', NOW - 60_000, claimed)
+        expect(integration.createTask).not.toHaveBeenCalled()
+        expect(integration.updateTask).toHaveBeenCalledWith(expect.objectContaining({ externalId: 'landed' }))
+        expect(restored).toMatchObject({ id: 't1', externalId: 'landed', source: 'notion' })
+      })
+
+      it('finds nothing while the first create may still land: waits and creates nothing', async () => {
+        gone()
+        integration.findLandedPage.mockResolvedValue(null)
+        await expect(build().restore(task(), { claimedExternalIds: new Set(), createUncertain: doubt(NOW - 10_000) })).rejects.toBeInstanceOf(CreateWaitingError)
+        expect(integration.createTask).not.toHaveBeenCalled()
+      })
+
+      it('finds nothing after the wait: creates the page', async () => {
+        gone()
+        integration.findLandedPage.mockResolvedValue(null)
+        integration.createTask.mockResolvedValue(task({ id: 'page-2', externalId: 'page-2' }))
+        const restored = await build().restore(task(), { claimedExternalIds: new Set(), createUncertain: doubt(NOW - 3 * 60_000) })
+        expect(integration.createTask).toHaveBeenCalledTimes(1)
+        expect(restored).toMatchObject({ id: 't1', externalId: 'page-2' })
+      })
+
+      it('a failed lookup creates nothing', async () => {
+        gone()
+        integration.findLandedPage.mockRejectedValue(new Error('boom'))
+        await expect(build().restore(task(), { claimedExternalIds: new Set(), createUncertain: doubt(NOW - 3 * 60_000) })).rejects.toBeInstanceOf(CreateLookupError)
+        expect(integration.createTask).not.toHaveBeenCalled()
+      })
+
+      it('a restore without a doubt creates directly, no lookup (task never created included)', async () => {
+        integration.createTask.mockResolvedValue(task({ id: 'page-2', externalId: 'page-2' }))
+        await build().restore(task({ externalId: null }), { claimedExternalIds: new Set() })
+        expect(integration.findLandedPage).not.toHaveBeenCalled()
+        expect(integration.unarchiveTask).not.toHaveBeenCalled()
+        expect(integration.createTask).toHaveBeenCalledTimes(1)
+      })
+
+      it('only the create request is an unknown outcome: a failed un-archive or write is not (no create was sent)', async () => {
+        integration.unarchiveTask.mockRejectedValue(Object.assign(new Error('Network error'), { statusCode: 0 }))
+        const unarchive = await build().restore(task()).catch((e: unknown) => e)
+        expect(createOutcomeUnknown(unarchive)).toBe(false)
+        integration.unarchiveTask.mockResolvedValue(undefined)
+        integration.updateTask.mockRejectedValue(Object.assign(new Error('Gateway Timeout'), { statusCode: 504 }))
+        const write = await build().restore(task()).catch((e: unknown) => e)
+        expect(createOutcomeUnknown(write)).toBe(false)
+        gone()
+        integration.createTask.mockRejectedValue(Object.assign(new Error('Network error'), { statusCode: 0 }))
+        const create = await build().restore(task()).catch((e: unknown) => e)
+        expect(createOutcomeUnknown(create)).toBe(true)
+      })
     })
 
     it('rejects as not configured without calling Notion', async () => {
