@@ -62,7 +62,10 @@
     "macOS": {
       "signingIdentity": "-",
       "hardenedRuntime": true,
-      "entitlements": "entitlements.plist"
+      "entitlements": "entitlements.plist",
+      "files": {
+        "Resources/de.lproj/InfoPlist.strings": "resources/de.lproj/InfoPlist.strings"
+      }
     },
     "icon": [
       "icons/32x32.png",

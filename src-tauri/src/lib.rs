@@ -7,6 +7,7 @@ mod logging;
 mod menu;
 mod overlay;
 mod relaunch;
+mod reminders;
 mod secrets;
 mod updater;
 mod window_state;
@@ -74,6 +75,13 @@ pub fn run() {
       secrets::secret_status,
       secrets::secret_get,
       github::github_request,
+      reminders::reminders_access_status,
+      reminders::reminders_request_access,
+      reminders::reminders_lists,
+      reminders::reminders_fetch,
+      reminders::reminders_set_due,
+      reminders::reminders_set_completed,
+      reminders::reminders_open_settings,
       capture::feedback_capture,
       data_file::data_load,
       data_file::data_set,

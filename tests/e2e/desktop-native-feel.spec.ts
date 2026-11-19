@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 import { seedLocalBoard } from './helpers/seed'
-import { installTauriStub } from './helpers/tauriStub'
+import { installTauriStub, setReminderDue, setRemindersStatus, stubState } from './helpers/tauriStub'
 import { dropSettled, hover, pickUp } from './helpers/dnd'
 
 /**
@@ -209,5 +209,84 @@ test.describe('Native feel (web)', () => {
     expect(await keydownCancelled(page, { key: '=', metaKey: true })).toBe(false)
     expect(await dragstartCancelled(page, '<a href="https://example.com">link</a>')).toBe(false)
     expect(await cursorOf(page, '<button type="button">x</button>')).toBe('pointer')
+  })
+})
+
+/**
+ * #550: the Tauri stub answers the `reminders_*` commands like `src-tauri/src/reminders.rs` (the slices 2 to 4 of #481 test
+ * against it): the prompt only from `reminders_request_access`, compare-and-set writes, the list guard, a recurring tick.
+ */
+test.describe('Reminders stub', () => {
+  type Outcome = { ok: true, value: unknown } | { ok: false, error: unknown }
+  const invoke = (page: Page, cmd: string, args: Record<string, unknown> = {}) =>
+    page.evaluate(async ({ cmd: command, args: payload }) => {
+      const internals = (window as unknown as { __TAURI_INTERNALS__: { invoke: (c: string, a: unknown) => Promise<unknown> } }).__TAURI_INTERNALS__
+      try {
+        return { ok: true, value: await internals.invoke(command, payload) }
+      } catch (error) {
+        return { ok: false, error }
+      }
+    }, { cmd, args }) as Promise<Outcome>
+
+  test('mirrors the bridge contract', async ({ page, context }) => {
+    await seedLocalBoard(context)
+    await installTauriStub(context, {
+      reminders: {
+        lists: [{ id: 'L1', title: 'Heute' }, { id: 'L2', title: 'Privat', color: '#ff8800' }],
+        reminders: [
+          { id: 'a', listId: 'L1', title: 'A', due: { date: '2026-11-20', time: '09:30' } },
+          { id: 'b', listId: 'L2', title: 'B' },
+          { id: 'old', listId: 'L1', title: 'Old', completed: true, completedAt: 100 },
+          { id: 'r', listId: 'L1', title: 'R', due: { date: '2026-11-20' }, recurrence: { rule: 'FREQ=WEEKLY;INTERVAL=1' }, nextDue: { date: '2026-11-27' } },
+        ],
+      },
+    })
+    await page.goto('/settings')
+    const allowed = ['L1']
+
+    // Undecided: the status never prompts, reads and writes are refused.
+    expect(await invoke(page, 'reminders_access_status')).toEqual({ ok: true, value: 'notDetermined' })
+    expect(await invoke(page, 'reminders_lists')).toEqual({ ok: false, error: 'access-denied' })
+    expect(await invoke(page, 'reminders_set_due', { id: 'a', expectedDate: '2026-11-20', date: '2026-11-21', allowedListIds: allowed })).toEqual({ ok: false, error: 'access-denied' })
+    expect((await stubState(page)).reminders.prompts).toBe(0)
+
+    // Only the request prompts, once.
+    expect(await invoke(page, 'reminders_request_access')).toEqual({ ok: true, value: 'granted' })
+    expect(await invoke(page, 'reminders_request_access')).toEqual({ ok: true, value: 'granted' })
+    expect((await stubState(page)).reminders.prompts).toBe(1)
+
+    expect(await invoke(page, 'reminders_lists')).toEqual({
+      ok: true,
+      value: [
+        { id: 'L1', title: 'Heute', color: null, openCount: 2, allowsWrites: true },
+        { id: 'L2', title: 'Privat', color: '#ff8800', openCount: 1, allowsWrites: true },
+      ],
+    })
+    const fetched = await invoke(page, 'reminders_fetch', { listIds: ['L1', 'GONE'], completedSince: 1000 })
+    expect(fetched.ok && (fetched.value as { reminders: { id: string }[] }).reminders.map(r => r.id)).toEqual(['a', 'r'])
+    expect(fetched.ok && (fetched.value as { missingListIds: string[] }).missingListIds).toEqual(['GONE'])
+
+    // Compare-and-set keeps the time; a moved date is `changed` and writes nothing; a list outside the allowed ones is `not-read`.
+    expect(await invoke(page, 'reminders_set_due', { id: 'a', expectedDate: '2026-11-20', date: '2026-11-21', allowedListIds: allowed }))
+      .toEqual({ ok: true, value: { date: '2026-11-21', time: '09:30' } })
+    expect(await invoke(page, 'reminders_set_due', { id: 'a', expectedDate: '2026-11-20', date: '2026-11-22', allowedListIds: allowed })).toEqual({ ok: false, error: 'changed' })
+    await setReminderDue(page, 'a', '2026-12-01')
+    expect(await invoke(page, 'reminders_set_due', { id: 'a', expectedDate: '2026-11-21', date: '2026-11-22', allowedListIds: allowed })).toEqual({ ok: false, error: 'changed' })
+    expect(await invoke(page, 'reminders_set_due', { id: 'b', expectedDate: null, date: '2026-11-22', allowedListIds: allowed })).toEqual({ ok: false, error: 'not-read' })
+    expect(await invoke(page, 'reminders_set_due', { id: 'b', expectedDate: null, date: 'tomorrow', allowedListIds: ['L2'] })).toEqual({ ok: false, error: 'invalid-request' })
+
+    // A recurring tick moves to the next date; the occurrence that is gone is `changed`.
+    expect(await invoke(page, 'reminders_set_completed', { id: 'r', completed: true, occurrenceDate: '2026-11-19', allowedListIds: allowed })).toEqual({ ok: false, error: 'changed' })
+    expect(await invoke(page, 'reminders_set_completed', { id: 'r', completed: true, occurrenceDate: '2026-11-20', allowedListIds: allowed }))
+      .toEqual({ ok: true, value: { completed: false, due: { date: '2026-11-27', time: null } } })
+    expect((await invoke(page, 'reminders_set_completed', { id: 'a', completed: true, allowedListIds: allowed })).ok).toBe(true)
+
+    // The user turns the permission off in System Settings.
+    await setRemindersStatus(page, 'denied')
+    expect(await invoke(page, 'reminders_access_status')).toEqual({ ok: true, value: 'denied' })
+    expect(await invoke(page, 'reminders_fetch', { listIds: ['L1'], completedSince: 0 })).toEqual({ ok: false, error: 'access-denied' })
+    expect(await invoke(page, 'reminders_open_settings')).toEqual({ ok: true, value: null })
+    expect((await stubState(page)).openedUrls).toContain('x-apple.systempreferences:com.apple.preference.security?Privacy_Reminders')
+    expect((await stubState(page)).calls.some(call => call.cmd === 'reminders_set_completed')).toBe(true)
   })
 })
