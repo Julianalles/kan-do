@@ -41,14 +41,14 @@
       <section :aria-labelledby="pageHeadingId">
         <h2 :id="pageHeadingId" class="px-2 pt-2 pb-1 text-xs font-semibold text-muted">{{ t('nav.groupPage') }}</h2>
         <div class="space-y-3 p-2">
-          <UFormField>
+          <UFormField :help="t('board.sync.stackHelp')">
             <USwitch
               :model-value="groupingEnabled"
               :label="t('board.sync.stackCards')"
               data-testid="more-stack"
               @update:model-value="setGroupingEnabled"
             />
-            <!-- The small note size of the panel (the last-sync note below), the reading size on a phone (#568) -->
+            <!-- `:help` keeps the field's aria-describedby (the slot alone does not); the slot sets the small of the panel (the last-sync note below), the reading size on a phone (#568) -->
             <template #help>
               <span class="text-xs max-md:text-body">{{ t('board.sync.stackHelp') }}</span>
             </template>
