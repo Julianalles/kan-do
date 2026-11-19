@@ -18,7 +18,7 @@
   default has no action and no menu button). Accepted trade-off: these actions are one tap further away
 - "Verbindung reparieren" stays a visible button before the menu button: a broken connection is the one thing the row asks for.
   On a phone it is the one part that takes a second line (under the name): 165 px of button do not fit beside name, badge and status in 310 px
-- The "…" glyph ends on the sheet's right edge like "Verbinden" below it (negative end margin, the hit area stays); `focusMenu()` is exposed so the page returns focus to the button when the disconnect dialog closes
+- The "…" glyph sits within 2 px of the sheet's right edge, like "Verbinden" below it (negative end margin on the 4 px grid, the hit area stays); `focusMenu()` is exposed so the page returns focus to the button when the disconnect dialog closes
 - Pattern: several secondary actions behind one trigger → reused UDropdownMenu (as the task sheet's move menu)
 -->
 <template>
