@@ -201,6 +201,16 @@ describe('update (the done tick)', () => {
     expect(bridge.setCompleted).not.toHaveBeenCalled()
   })
 
+  it('writes nothing for a push of a Done task that was already Done, or whose previous status is unknown', async () => {
+    const { source, state } = setup({ ledger: { 'ABC@2026-11-19': { completedAt: NOON } } })
+    const done = heldTask('ABC@2026-11-19', { status: TaskStatus.Done })
+    // A priority or time-box edit of a Done card, the "Gesehen" archive loop: no status change, no tick
+    expect(await source.update(done, { previousStatus: TaskStatus.Done })).toBeNull()
+    expect(await source.update(done)).toBeNull()
+    expect(bridge.setCompleted).not.toHaveBeenCalled()
+    expect(state.changed).toBe(0)
+  })
+
   it('`changed` is no failure: nothing is written, one quiet refetch is asked for', async () => {
     bridge.setCompleted.mockRejectedValue(new RemindersError('changed'))
     const { source, state } = setup()

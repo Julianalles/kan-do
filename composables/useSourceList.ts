@@ -13,7 +13,7 @@ import { computed, getCurrentInstance, onBeforeUnmount, ref, type ComputedRef } 
 import { useI18n } from 'vue-i18n'
 import { useBoardStore } from '~/store/board'
 import { useIntegrationHealthStore } from '~/store/integrationHealth'
-import { integrationLabel } from '~/lib/taskSources'
+import { integrationLabel, sourceCanBeDefault } from '~/lib/taskSources'
 import { INTEGRATION_SOURCE_IDS, type IntegrationSourceId, type SourceId } from '~/types/taskSource'
 
 export type SourceStatusTone = 'muted' | 'warning'
@@ -106,7 +106,7 @@ export function useSourceList(): {
         id,
         icon: SOURCE_ICONS[id],
         isDefault,
-        canSetDefault: !isDefault,
+        canSetDefault: !isDefault && sourceCanBeDefault(id),
       }
       if (id === 'local') {
         return {

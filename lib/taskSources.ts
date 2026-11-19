@@ -55,7 +55,7 @@ export function normalizeSources(raw: unknown): TaskSourcesConfig | null {
     ? [...new Set(raw.connected.filter(isIntegrationSourceId))]
     : []
   const wanted = raw.default
-  const usable = wanted === 'local' || (isIntegrationSourceId(wanted) && connected.includes(wanted))
+  const usable = wanted === 'local' || (isIntegrationSourceId(wanted) && connected.includes(wanted) && sourceCanBeDefault(wanted))
   const next: TaskSourcesConfig = { connected, default: usable ? (wanted as SourceId) : 'local' }
   const unchanged =
     Array.isArray(raw.connected)
@@ -265,6 +265,14 @@ export const SOURCE_CAPABILITIES: Partial<Record<SourceId, SourceCapabilities>> 
 /** Whether `source` allows `capability` (absent from the table: yes). */
 export function sourceCan(source: SourceId, capability: keyof SourceCapabilities): boolean {
   return SOURCE_CAPABILITIES[source]?.[capability] ?? true
+}
+
+/** Sources that are never the board's default source: Reminders is read-only (no create), and a cold start reads its permission as unconfigured. */
+const NEVER_DEFAULT_SOURCES: readonly SourceId[] = ['reminders']
+
+/** Whether `source` may be the default source (settings row, `setDefaultSource`, a stored or imported config). */
+export function sourceCanBeDefault(source: SourceId): boolean {
+  return !NEVER_DEFAULT_SOURCES.includes(source)
 }
 
 /** Whether the add form can create tasks in a source (and a task can be moved into it). */

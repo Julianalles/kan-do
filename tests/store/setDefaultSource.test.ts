@@ -29,6 +29,13 @@ describe('setDefaultSource', () => {
     expect(board.boardConfig.sources).toEqual({ connected: [], default: 'local' })
   })
 
+  it('Reminders is never the default source: refused even while connected (read-only, v1)', () => {
+    const board = useBoardStore()
+    board.setSources({ connected: ['reminders'], default: 'local' })
+    expect(board.setDefaultSource('reminders')).toBe(false)
+    expect(board.boardConfig.sources).toEqual({ connected: ['reminders'], default: 'local' })
+  })
+
   it('setting the current default is a no-op', () => {
     const board = useBoardStore()
     board.setSources({ connected: ['notion'], default: 'notion' })

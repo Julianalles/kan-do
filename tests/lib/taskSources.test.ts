@@ -46,6 +46,11 @@ describe('normalizeSources', () => {
       .toEqual({ connected: ['notion'], default: 'local' })
   })
 
+  it('repairs an imported default of Reminders to Local: it is never the default source', () => {
+    expect(normalizeSources({ connected: ['reminders'], default: 'reminders' }))
+      .toEqual({ connected: ['reminders'], default: 'local' })
+  })
+
   it('returns null for anything that is not an object', () => {
     expect(normalizeSources(null)).toBeNull()
     expect(normalizeSources('notion')).toBeNull()

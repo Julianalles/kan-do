@@ -166,7 +166,12 @@ export class RemindersSource implements TaskSourceAdapter {
    * recurring reminder can never tick its next occurrence. Resolves to `null`: the next fetch brings the state back.
    */
   async update(task: Task, change: { previousStatus?: TaskStatus } = {}): Promise<Task | null> {
-    const completed = task.status === TaskStatus.Done ? true : change.previousStatus === TaskStatus.Done ? false : null
+    // Only a change of the done state writes: a Done task pushed for another reason (a priority or time-box edit, the
+    // "Gesehen" archive loop) arrives with `previousStatus` Done or none, and must not tick a reminder reopened in Reminders
+    const { previousStatus } = change
+    const completed = task.status === TaskStatus.Done
+      ? (previousStatus !== undefined && previousStatus !== TaskStatus.Done ? true : null)
+      : previousStatus === TaskStatus.Done ? false : null
     if (completed === null) return null
     // Everything the write needs comes from `task` before the first `await`: it is the live store object
     const externalId = externalIdOf(task)
