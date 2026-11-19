@@ -560,9 +560,17 @@ const openDetails = (event: MouseEvent) => {
 }
 
 /* Undo (#422, D6): the card grows back and fades in; transform and opacity only. The gap that held its slot
-   disappears at once, so the card lands on the same box. */
+   disappears at once; the neighbours glide down in 200 ms (#595). */
 .task--returning {
-  animation: task-returning 180ms var(--ease-emphasized);
+  animation:
+    task-returning 180ms var(--ease-emphasized),
+    task-returning-room var(--duration-base) var(--ease-standard);
+}
+/* The compact gap gave up part of the card's height; the card takes it back as a negative bottom margin that runs to 0, so
+   the neighbours glide down in 200 ms (#595) instead of snapping, the way they glided up when the card was deleted */
+@keyframes task-returning-room {
+  from { margin-bottom: calc(var(--task-note-height) - var(--task-card-height)); }
+  to { margin-bottom: 0; }
 }
 @keyframes task-returning {
   from { opacity: 0; transform: scale(0.92); }

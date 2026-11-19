@@ -29,10 +29,9 @@
         color="neutral"
         variant="ghost"
         :label="currentLabel"
-        class="text-label font-medium text-muted hover:text-default"
       >
         <template #leading>
-          <!-- 16 px beside the 12 px label: the md button's own 20 px icon is out of proportion here -->
+          <!-- 16 px beside the button's own 14 px label: the md button's 20 px icon is out of proportion here -->
           <UIcon :name="currentIcon" class="size-4 shrink-0" aria-hidden="true" />
         </template>
       </UButton>
