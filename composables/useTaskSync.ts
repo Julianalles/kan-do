@@ -10,7 +10,7 @@ import { isNetworkError } from '~/lib/errorMessages';
 import { mapHelpers } from '~/utils/mapHelpers';
 import type { PendingTaskDelete } from '~/store/tasks';
 import { isIntegrationSourceId, sourceCan, sourceSyncsTime, SETUP_ERROR_CONTEXTS } from '~/lib/taskSources';
-import { classifySyncFailure, createFailureKind, createOutcomeUnknown, isCreateWaiting, pushFailureScope, rateLimitOf } from '~/lib/integrationHealth';
+import { CreateWaitingError, classifySyncFailure, createFailureKind, createOutcomeUnknown, isCreateWaiting, pushFailureScope, rateLimitOf } from '~/lib/integrationHealth';
 import { useBoardStore } from '~/store/board';
 import type { IntegrationSourceId, SourceId } from '~/types/taskSource';
 import { notifyTaskMoveRejected } from '~/lib/taskMoveEvents';
@@ -51,6 +51,13 @@ const statusWritesByStore = new WeakMap<object, Map<string, StatusWrite>>();
  * reconnect and a manual sync) never create an offline-made task twice: the second sees its id and updates.
  */
 const pushesByStore = new WeakMap<object, Map<string, Promise<boolean>>>();
+
+/**
+ * Creates and restores of a source in flight (a page may be on its way), per Pinia app (#578). A removal of a page
+ * waits for them: the page may be the one such a write is about to store on its task, and a removal that archived it
+ * first would leave that task on an archived page. In memory only.
+ */
+const sourceWritesByStore = new WeakMap<object, Map<SourceId, number>>();
 
 /** The writes a plan started (#553, one run per plan call, shared by its tasks): what `whenPlanWritten` waits for. */
 const planWritesInFlight = new Map<string, Promise<void>>();
@@ -126,6 +133,37 @@ export const useTaskSync = () => {
   pushesByStore.set(tasksStore, pushesInFlight);
   const rateLimitedUntil = rateLimitsByStore.get(tasksStore) ?? new Map<SourceId, number>();
   rateLimitsByStore.set(tasksStore, rateLimitedUntil);
+  const sourceWritesInFlight = sourceWritesByStore.get(tasksStore) ?? new Map<SourceId, number>();
+  sourceWritesByStore.set(tasksStore, sourceWritesInFlight);
+
+  /**
+   * A create or restore of `source` starts (#578): removals of its pages wait until the returned function runs. Call it
+   * after the write's local settle step (the page stored on its task) and on every way out; calling it twice is safe.
+   */
+  const beginSourceWrite = (source: SourceId): (() => void) => {
+    sourceWritesInFlight.set(source, (sourceWritesInFlight.get(source) ?? 0) + 1);
+    let ended = false;
+    return () => {
+      if (ended) return;
+      ended = true;
+      const left = (sourceWritesInFlight.get(source) ?? 1) - 1;
+      if (left > 0) sourceWritesInFlight.set(source, left);
+      else sourceWritesInFlight.delete(source);
+    };
+  };
+
+  /**
+   * What a removal of `page` (a card's page, or a move's origin page) may do (#578). Archiving is the one step here
+   * nothing takes back, so it only ever fires less: 'skip' when another live card holds the page (the waiting task of
+   * a write that stored the page a fetch had made a stray card of, #555: the page is its own, and no fetch may skip it
+   * as deleted), 'hold' while a create or restore of the source is in flight (the page may be the one it is about to
+   * store), otherwise 'send'.
+   */
+  const removalVerdict = (page: Pick<Task, 'source' | 'externalId'>): 'send' | 'hold' | 'skip' => {
+    if (page.externalId === null) return 'send';
+    if (tasksStore.holdsPage(page.source, page.externalId)) return 'skip';
+    return sourceWritesInFlight.has(page.source) ? 'hold' : 'send';
+  };
 
   /** Whether `source` is inside the window a 429 named (#529): nothing is sent to it, its tasks keep their marker. */
   const isRateLimited = (source: SourceId): boolean => {
@@ -340,41 +378,49 @@ export const useTaskSync = () => {
     let deferredReason: string | null = null;
     let deferredError: unknown = null;
     let createAttemptedAt = 0;
+    // Removals of the source's pages wait while its create is in flight, until the page sits on the board (#578)
+    let endWrite: () => void = () => {};
+    let notPlanned: boolean;
 
-    if (source === 'local') {
-      created = await adapterFor('local').create(draft);
-    } else if (health.needsAttention(source)) {
-      deferredReason = health.healthOf(source).lastError ?? 'Source needs attention';
-      created = { ...(await adapterFor('local').create(draft)), source };
-    } else if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-      deferredReason = 'Offline';
-      created = { ...(await adapterFor('local').create(draft)), source };
-    } else if (isRateLimited(source)) {
-      // A 429 paused the source (#529): the create waits behind the marker like one made offline
-      deferredReason = 'Rate limited';
-      created = { ...(await adapterFor('local').create(draft)), source };
-    } else {
-      createAttemptedAt = Date.now();
-      try {
-        created = await adapterFor(source).create(draft);
-      } catch (error) {
-        if (!isIntegrationSourceId(source) || createFailureKind(error) !== 'transient') throw error;
-        deferredError = error;
-        deferredReason = error instanceof Error ? error.message : String(error);
+    try {
+      if (source === 'local') {
+        created = await adapterFor('local').create(draft);
+      } else if (health.needsAttention(source)) {
+        deferredReason = health.healthOf(source).lastError ?? 'Source needs attention';
         created = { ...(await adapterFor('local').create(draft)), source };
+      } else if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+        deferredReason = 'Offline';
+        created = { ...(await adapterFor('local').create(draft)), source };
+      } else if (isRateLimited(source)) {
+        // A 429 paused the source (#529): the create waits behind the marker like one made offline
+        deferredReason = 'Rate limited';
+        created = { ...(await adapterFor('local').create(draft)), source };
+      } else {
+        createAttemptedAt = Date.now();
+        endWrite = beginSourceWrite(source);
+        try {
+          created = await adapterFor(source).create(draft);
+        } catch (error) {
+          if (!isIntegrationSourceId(source) || createFailureKind(error) !== 'transient') throw error;
+          deferredError = error;
+          deferredReason = error instanceof Error ? error.message : String(error);
+          created = { ...(await adapterFor('local').create(draft)), source };
+        }
       }
-    }
 
-    // Only an Open task can be not planned (`isNotPlanned`): add-and-start (Jetzt) stays on the board
-    const notPlanned = asksNotPlanned === true && created.status === TaskStatus.Open;
-    if (notPlanned) created = { ...created, notPlanned: true, ...(hold !== null ? { sourceNotPlanned: hold } : {}) };
-    else {
-      if (created.notPlanned !== undefined) delete created.notPlanned;
-      if (hold !== null) delete created.sourceNotPlanned;
+      // Only an Open task can be not planned (`isNotPlanned`): add-and-start (Jetzt) stays on the board
+      notPlanned = asksNotPlanned === true && created.status === TaskStatus.Open;
+      if (notPlanned) created = { ...created, notPlanned: true, ...(hold !== null ? { sourceNotPlanned: hold } : {}) };
+      else {
+        if (created.notPlanned !== undefined) delete created.notPlanned;
+        if (hold !== null) delete created.sourceNotPlanned;
+      }
+      // A fetch that landed while the create was in flight made a card of the page (#555): this task replaces it
+      dropLandedCards(created.source, created.externalId);
+      tasksStore.addTask(created);
+    } finally {
+      endWrite();
     }
-    // A fetch that landed while the create was in flight made a card of the page (#555): this task replaces it
-    dropLandedCards(created.source, created.externalId);
-    tasksStore.addTask(created);
     if (notPlanned) boardStore.noteNotPlanned(created.id);
     else if (created.status !== undefined) boardStore.updateTaskPosition(created.id, created.status);
     if (deferredReason !== null) {
@@ -480,12 +526,14 @@ export const useTaskSync = () => {
     const queuedTime = mapHelpers.has(tasksStore.pendingTimeUpdates, task.id);
     if (queuedTime) tasksStore.markPendingUpdateSyncing(task.id);
     let createAttemptedAt = 0;
+    let endWrite: () => void = () => {};
 
     try {
       const adapter = adapterFor(task.source);
       if (task.externalId === null) {
         // Made while the source was unreachable: it creates the task now and gives it its id
         createAttemptedAt = Date.now();
+        endWrite = beginSourceWrite(task.source);
         const created = await adapter.create(task, { claimedExternalIds: tasksStore.claimedPages(task.source) });
         // Read before `completeCreate`, which drops the revision
         const timeSuperseded = tasksStore.pendingSyncRevision(task.id) !== revision;
@@ -513,6 +561,8 @@ export const useTaskSync = () => {
       if (createAttemptedAt > 0 && createOutcomeUnknown(error)) tasksStore.markCreateUncertain(task.id, createAttemptedAt, task.title || 'Untitled');
       reportPushFailure(task, error, `Failed to sync task ${task.id} to ${task.source}`);
       return false;
+    } finally {
+      endWrite();
     }
   };
 
@@ -753,26 +803,28 @@ export const useTaskSync = () => {
    */
   const deleteTaskUpstream = async (pending: PendingTaskDelete): Promise<void> => {
     if (pending.task.source !== 'local' && !sourceCan(pending.task.source, 'remove')) throw new SourceReadOnlyError(pending.task.source, 'deleting a task');
+    // Both verdicts come before the first removal (#578): a hold on the origin after the own page was archived would
+    // make the next flush archive that page a second time
     // Made while its source was unreachable and never created there (#319): nothing upstream to remove
-    if (pending.task.externalId !== null) {
-      try {
-        await adapterFor(pending.task.source).remove(pending.task);
-      } catch (error) {
-        if (!isAlreadyGone(error)) {
-          noteRateLimit(pending.task.source, error);
-          throw error;
-        }
-      }
-    }
+    const own = pending.task.externalId !== null ? pending.task : null;
     // Deleted while a move was outstanding (#322): the origin copy goes too, or the next fetch of the origin
     // would bring the task back
     const origin = originToRemove(pending.task);
-    if (origin) {
+    const ownVerdict = own ? removalVerdict(own) : null;
+    const originVerdict = origin ? removalVerdict(origin) : null;
+    // A write of the source may be about to store the page on a task: the delete waits, quietly
+    if (ownVerdict === 'hold' || originVerdict === 'hold') throw new CreateWaitingError();
+    for (const [page, verdict] of [[own, ownVerdict], [origin, originVerdict]] as const) {
+      if (!page || verdict === null) continue;
+      if (verdict === 'skip') {
+        tasksStore.forgetDeletedPage(page.externalId!);
+        continue;
+      }
       try {
-        await adapterFor(origin.source).remove(origin);
+        await adapterFor(page.source).remove(page);
       } catch (error) {
         if (!isAlreadyGone(error)) {
-          noteRateLimit(origin.source, error);
+          noteRateLimit(page.source, error);
           throw error;
         }
       }
@@ -909,6 +961,8 @@ export const useTaskSync = () => {
     const queued = mapHelpers.get(tasksStore.pendingDeletes, taskId);
 
     let restored: Task;
+    // Removals of the source's pages wait while its restore is in flight, until the page sits on the board (#578)
+    let endWrite: () => void = () => {};
     if (queued) {
       // The source still holds the task: cancelling the queued delete is the whole upstream part. A fetch may have
       // handed the page of a create in doubt to the delete meanwhile (#538): the task takes that page back with it.
@@ -931,12 +985,14 @@ export const useTaskSync = () => {
       // While the create runs a fetch must not hand the page to this entry: the create finds or makes it itself (#545)
       const ownsGuard = !restoresInFlight.has(taskId);
       restoresInFlight.add(taskId);
+      endWrite = beginSourceWrite(base.source);
       try {
         restored = await adapterFor(base.source).restore(clean, {
           claimedExternalIds: tasksStore.claimedPages(base.source),
           ...(trashStore.entry(taskId)?.createUncertain ? { createUncertain: trashStore.entry(taskId)!.createUncertain } : {}),
         });
       } catch (error) {
+        endWrite();
         // The entry stays in the trash; a create that may have landed is remembered on it (the same rule as a push)
         if (createOutcomeUnknown(error)) trashStore.markCreateUncertain(taskId, attemptedAt, base.title || 'Untitled');
         throw error;
@@ -946,11 +1002,15 @@ export const useTaskSync = () => {
     }
 
     // One synchronous step from here: nothing may interleave between the guard release and the board
-    tasksStore.removePendingDelete(taskId);
-    tasksStore.undeleteTask(taskId, restored.externalId, entry.task.externalId);
-    // A fetch that landed while the restore's create was in flight made a card of the page (#555): the entry's task stays
-    dropLandedCards(restored.source, restored.externalId, taskId);
-    if (!tasksStore.task(taskId)) tasksStore.addTask({ ...restored, id: taskId, status, timerId: null });
+    try {
+      tasksStore.removePendingDelete(taskId);
+      tasksStore.undeleteTask(taskId, restored.externalId, entry.task.externalId);
+      // A fetch that landed while the restore's create was in flight made a card of the page (#555): the entry's task stays
+      dropLandedCards(restored.source, restored.externalId, taskId);
+      if (!tasksStore.task(taskId)) tasksStore.addTask({ ...restored, id: taskId, status, timerId: null });
+    } finally {
+      endWrite();
+    }
     tasksStore.guardRestoredTask(taskId);
     const back = tasksStore.task(taskId);
     if (back && isNotPlanned(back)) {
@@ -1015,29 +1075,36 @@ export const useTaskSync = () => {
     const revision = tasksStore.markPendingSync(task.id);
     const adapter = adapterFor(target);
     let created: Task;
+    let externalId: string;
+    let live: Task | null;
     const createAttemptedAt = Date.now();
+    const endWrite = beginSourceWrite(target);
     try {
-      created = await adapter.create(task, { claimedExternalIds: tasksStore.claimedPages(target) });
-    } catch (error) {
-      if (isCreateWaiting(error)) return 'queued';
-      if (createOutcomeUnknown(error)) tasksStore.markCreateUncertain(task.id, createAttemptedAt, task.title || 'Untitled');
-      if (createFailureKind(error) === 'transient') {
-        deferMove(task, error);
-        return 'queued';
+      try {
+        created = await adapter.create(task, { claimedExternalIds: tasksStore.claimedPages(target) });
+      } catch (error) {
+        if (isCreateWaiting(error)) return 'queued';
+        if (createOutcomeUnknown(error)) tasksStore.markCreateUncertain(task.id, createAttemptedAt, task.title || 'Untitled');
+        if (createFailureKind(error) === 'transient') {
+          deferMove(task, error);
+          return 'queued';
+        }
+        tasksStore.restoreMoveOrigin(task.id);
+        notifyTaskMoveRejected({ taskId: task.id, title: task.title, fromSource: move.fromSource, toSource: target, error });
+        return 'reverted';
       }
-      tasksStore.restoreMoveOrigin(task.id);
-      notifyTaskMoveRejected({ taskId: task.id, title: task.title, fromSource: move.fromSource, toSource: target, error });
-      return 'reverted';
+      externalId = created.externalId ?? created.id;
+      live = tasksStore.task(task.id);
+      if (live) forgetDroppedCards(tasksStore.completeMoveCreate(task.id, externalId));
+    } finally {
+      endWrite();
     }
-    const externalId = created.externalId ?? created.id;
 
-    const live = tasksStore.task(task.id);
     if (!live) {
       // Deleted while the create was in flight: the page it made must not stay behind
       await adapter.remove({ ...task, externalId }).catch((error) => console.error('[TaskSync] Could not remove the page of a deleted moving task:', error));
       return 'skipped';
     }
-    forgetDroppedCards(tasksStore.completeMoveCreate(task.id, externalId));
     restoreSourceAfterPush(target);
 
     // The create writes the title, status, priority, timebox, topic, activity, notes and custom values; time spent
@@ -1075,13 +1142,19 @@ export const useTaskSync = () => {
     if (origin) {
       if (typeof navigator !== 'undefined' && navigator.onLine === false) return 'queued';
       if (isRateLimited(origin.source)) return 'queued';
-      try {
-        await adapterFor(origin.source).remove(origin);
-      } catch (error) {
-        if (!isAlreadyGone(error)) {
-          noteRateLimit(origin.source, error);
-          console.error(`[TaskSync] Could not remove the origin copy of task ${taskId} yet:`, error);
-          return 'queued';
+      const verdict = removalVerdict(origin);
+      // A write of the origin source may be about to store this page on a task (#578): the removal waits
+      if (verdict === 'hold') return 'queued';
+      if (verdict === 'skip') tasksStore.forgetDeletedPage(origin.externalId!);
+      else {
+        try {
+          await adapterFor(origin.source).remove(origin);
+        } catch (error) {
+          if (!isAlreadyGone(error)) {
+            noteRateLimit(origin.source, error);
+            console.error(`[TaskSync] Could not remove the origin copy of task ${taskId} yet:`, error);
+            return 'queued';
+          }
         }
       }
     }

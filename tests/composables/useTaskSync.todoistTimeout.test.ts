@@ -105,8 +105,11 @@ describe('useTaskSync with the real TodoistIntegration: a request that times out
   it('queues a timed-out delete for the next reconnect instead of restoring the task', async () => {
     addTask('t1')
     const tasks = useTasksStore()
+    const card = tasks.task('t1')!
+    // As the delete flow leaves it: the card is off the board while the delete waits (#578)
+    tasks.removeTask('t1')
     tasks.addPendingDelete({
-      taskId: 't1', task: tasks.task('t1')!, carryOver: null, state: 'waiting', requestedAt: Date.now(),
+      taskId: 't1', task: card, carryOver: null, state: 'waiting', requestedAt: Date.now(),
     })
 
     const committed = useTaskSync().commitTaskDelete('t1')
