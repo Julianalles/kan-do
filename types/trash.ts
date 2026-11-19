@@ -1,4 +1,4 @@
-import type { Task } from '~/types/task'
+import type { CreateUncertain, Task } from '~/types/task'
 import type { TaskStatus } from '~/types/taskStatus'
 import type { CarryOverEntry } from '~/utils/carryOver'
 
@@ -18,4 +18,10 @@ export interface TrashEntry {
   fromStatus: TaskStatus
   /** The carried-over counter the task had, put back on a restore. */
   carryOver: CarryOverEntry | null
+  /**
+   * A restore of this task created a page and ended with an unknown outcome (#535: a timeout, a network error, a 5xx):
+   * the page may exist. The next restore looks for it first and uses it instead of creating a second one. Absent: no
+   * restore create is in doubt (also on every entry stored before #535).
+   */
+  createUncertain?: CreateUncertain
 }

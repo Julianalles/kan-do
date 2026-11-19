@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { LocalizedError } from '~/lib/errorMessages'
+import { CreateLookupError } from '~/lib/integrationHealth'
 import { useBoardStore } from '~/store/board'
 import { setActivePinia, createPinia } from 'pinia'
 import { defineComponent, h, provide } from 'vue'
@@ -52,6 +53,17 @@ describe('useErrorHandler', () => {
     // SHOULD trigger when structured error indicates 401
     handleError(Object.assign(new Error('Unauthorized'), { statusCode: 401 }))
     expect(markNotionBrokenMock).toHaveBeenCalledTimes(1)
+  })
+
+  it('reads through a CreateLookupError (#535): a 401 of a restore marks the source broken, a fetch TypeError marks it offline', () => {
+    const { handleError } = useErrorHandler()
+    handleError(new CreateLookupError(Object.assign(new Error('Token rejected on restore'), { statusCode: 401 })), 'task_restore')
+    expect(markNotionBrokenMock).toHaveBeenCalledTimes(1)
+
+    markNotionOfflineMock.mockReset()
+    // The wrapper keeps the cause's message; its type was a TypeError, which `isNetworkError` reads by instance
+    handleError(new CreateLookupError(new TypeError('boom')), 'task_restore')
+    expect(markNotionOfflineMock).toHaveBeenCalledTimes(1)
   })
 
   it('suppresses generic sync toast when Notion is already marked as broken', async () => {

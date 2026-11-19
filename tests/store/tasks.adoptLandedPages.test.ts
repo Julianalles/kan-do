@@ -81,4 +81,58 @@ describe('mergeTasks hands a landed page to the task that waits for it (#528)', 
     store.mergeTasks('notion', [{ ...page('P', 'Rückruf', '2026-11-19T10:00:05.000Z'), createdAt: null }])
     expect(store.task('a')?.externalId).toBeNull()
   })
+
+  describe('a page is handed to a delete or a move origin only when no rival doubt could own it (#535)', () => {
+    const doubtOf = (since: number, title = 'Rückruf') => ({ since: 1, attempts: 1, lastError: 'timeout', createUncertain: { since, at: since, title } })
+    const deleted = (since: number, title = 'Rückruf') => ({
+      taskId: 'gone', task: task({ id: 'gone', title, pendingSync: doubtOf(since, title) }), carryOver: null, state: 'queued' as const, requestedAt: 1,
+    })
+
+    it('leaves the page alone when a card holds a doubt of the same title: no delete takes it, the card does', () => {
+      store.setTasks([waiting()])
+      store.addPendingDelete(deleted(SINCE - 5000))
+      store.mergeTasks('notion', [page('P', 'Rückruf', '2026-11-19T10:00:05.000Z')])
+      expect(store.pendingDeletes.gone?.task.externalId).toBeNull()
+      expect(store.deletedTaskIds).not.toContain('P')
+      expect(store.task('a')?.externalId).toBe('P')
+    })
+
+    it('leaves the page alone when a trash entry holds a doubt of the same title: the page comes back as a card', async () => {
+      const { useTrashStore } = await import('~/store/trash')
+      const trash = useTrashStore()
+      trash.add({ taskId: 't', task: task({ id: 't' }), fromStatus: TaskStatus.Open, deletedAt: Date.now(), carryOver: null, createUncertain: { since: SINCE, at: SINCE, title: 'Rückruf' } } as never)
+      store.addPendingDelete(deleted(SINCE))
+      store.mergeTasks('notion', [page('P', 'Rückruf', '2026-11-19T10:00:05.000Z')])
+      expect(store.pendingDeletes.gone?.task.externalId).toBeNull()
+      expect(store.deletedTaskIds).not.toContain('P')
+    })
+
+    it('leaves the page alone when a card\'s move origin holds a doubt of the same title', () => {
+      store.setTasks([task({ id: 'mv', source: 'todoist', externalId: null, pendingMove: { fromSource: 'notion', fromExternalId: null, toSource: 'todoist', fromCreateUncertain: { since: SINCE, at: SINCE, title: 'Rückruf' } } })])
+      store.addPendingDelete(deleted(SINCE))
+      store.mergeTasks('notion', [page('P', 'Rückruf', '2026-11-19T10:00:05.000Z')])
+      expect(store.pendingDeletes.gone?.task.externalId).toBeNull()
+      expect(store.task('mv')?.pendingMove?.fromExternalId).toBeNull()
+      expect(store.deletedTaskIds).not.toContain('P')
+    })
+
+    it('leaves the page alone when a delete and a move origin of the same title compete', () => {
+      store.setTasks([task({ id: 'mv', source: 'todoist', externalId: null, pendingMove: { fromSource: 'notion', fromExternalId: null, toSource: 'todoist', fromCreateUncertain: { since: SINCE, at: SINCE, title: 'Rückruf' } } })])
+      store.mergeTasks('notion', [page('P', 'Rückruf', '2026-11-19T10:00:05.000Z')])
+      expect(store.task('mv')?.pendingMove?.fromExternalId).toBe('P') // alone, the origin takes it (control)
+      store.setTasks([task({ id: 'mv2', source: 'todoist', externalId: null, pendingMove: { fromSource: 'notion', fromExternalId: null, toSource: 'todoist', fromCreateUncertain: { since: SINCE, at: SINCE, title: 'Rückruf' } } })])
+      store.addPendingDelete(deleted(SINCE))
+      store.mergeTasks('notion', [page('Q', 'Rückruf', '2026-11-19T10:00:05.000Z')])
+      expect(store.task('mv2')?.pendingMove?.fromExternalId).toBeNull()
+      expect(store.pendingDeletes.gone?.task.externalId).toBeNull()
+    })
+
+    it('still hands the page over when the title is not shared (control)', () => {
+      store.setTasks([waiting({ title: 'Anderes', pendingSync: doubtOf(SINCE, 'Anderes') })])
+      store.addPendingDelete(deleted(SINCE))
+      store.mergeTasks('notion', [page('P', 'Rückruf', '2026-11-19T10:00:05.000Z')])
+      expect(store.pendingDeletes.gone?.task.externalId).toBe('P')
+      expect(store.deletedTaskIds).toContain('P')
+    })
+  })
 })

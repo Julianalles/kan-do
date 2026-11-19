@@ -4,6 +4,7 @@ import type { TrashEntry } from '~/types/trash'
 import { TRASH_SHEET_LIMIT, pruneTrash } from '~/lib/trash'
 import { reviveTaskDates } from '~/lib/taskDates'
 import { renameField, type NameKind } from '~/lib/topicNames'
+import { normalizeCreateUncertain } from '~/lib/taskSources'
 
 /**
  * The trash of deleted tasks (#422, D3): snapshots of what the user deleted, newest first, kept 30 days and at
@@ -28,6 +29,19 @@ export const useTrashStore = defineStore('trash', () => {
   /** Puts an entry on top. An entry of the same task is replaced (a re-delete after a restore). */
   function add(item: TrashEntry, now: number = Date.now()): void {
     entries.value = pruneTrash([item, ...entries.value.filter(existing => existing.taskId !== item.taskId)], now)
+  }
+
+  /**
+   * A restore of the task created a page and ended with an unknown outcome (#535): the entry keeps the doubt (the earliest
+   * attempt stays, the latest one and the title of the last one are kept; the same rule as `tasksStore.markCreateUncertain`),
+   * so the next restore looks for the page before it creates one.
+   */
+  function markCreateUncertain(taskId: string, attemptedAt: number, title: string): void {
+    const held = entry(taskId)
+    if (!held) return
+    const doubt = held.createUncertain
+    const next = { since: Math.min(attemptedAt, doubt?.since ?? attemptedAt), at: Math.max(attemptedAt, doubt?.at ?? doubt?.since ?? attemptedAt), title }
+    entries.value = entries.value.map(item => item.taskId === taskId ? { ...item, createUncertain: next } : item)
   }
 
   function remove(taskId: string): void {
@@ -59,7 +73,7 @@ export const useTrashStore = defineStore('trash', () => {
     return changed
   }
 
-  return { entries, count, recent, entry, add, remove, clear, purge, renameValue }
+  return { entries, count, recent, entry, add, markCreateUncertain, remove, clear, purge, renameValue }
 }, {
   persist: {
     key: 'trash-store',
@@ -71,6 +85,10 @@ export const useTrashStore = defineStore('trash', () => {
       const valid = stored.filter(item => item?.task)
       const revived = valid.map((item) => {
         const [task] = reviveTaskDates([item.task])
+        // #535: a malformed doubt reads as none (it only costs the lookup before the next create); a valid one is kept as it is
+        const { createUncertain: doubt, ...rest } = item
+        const keptDoubt = doubt === undefined ? undefined : normalizeCreateUncertain(doubt)
+        if (doubt !== undefined && keptDoubt === undefined) return { ...rest, task: task! }
         return task === item.task ? item : { ...item, task: task! }
       })
       ctx.store.entries = revived.some((item, index) => item !== valid[index]) || valid.length !== stored.length ? revived : stored

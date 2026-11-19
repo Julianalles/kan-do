@@ -72,6 +72,12 @@ export interface PendingMove {
   toSource: SourceId;
   /** `Task.sourceNotPlanned` as the origin held it (#357), put back when the move is undone or reverted. */
   fromSourceNotPlanned?: string;
+  /**
+   * The task's create in the origin ended with an unknown outcome and had no `externalId` when it moved (#538): the
+   * origin page may exist. Present only while `fromExternalId` is null; the origin removal looks the page up and
+   * archives it (or a fetch hands it over and it becomes `fromExternalId`), and an undo puts it back on the marker.
+   */
+  fromCreateUncertain?: CreateUncertain;
 }
 
 interface Task {
