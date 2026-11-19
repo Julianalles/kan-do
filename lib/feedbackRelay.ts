@@ -6,8 +6,11 @@
  * still never calls `fetch` itself and reaches GitHub through Rust only.
  * @responsibility
  * - Maps every outcome to one of a few results; never throws, never retries
- * - `unavailable`: there is no relay behind the URL (static host, fork) or it has no token. The caller
- *   falls back to the browser path for the session.
+ * - `unavailable`: there is no relay behind the URL (404, 405, 501, a non-JSON 201: static host, fork) or it
+ *   says it has no token (503 with the relay's own `FEEDBACK_NOT_CONFIGURED` body). The caller falls back to
+ *   the browser path for the session.
+ * - Any other 503 (a Cloudflare platform error page, a gateway) is a `server` error: retryable, the relay
+ *   route stays (#559).
  */
 export interface RelayReport {
   title: string
@@ -42,6 +45,11 @@ export async function sendToRelay(url: string, report: RelayReport): Promise<Rel
   }
   if (response.status === 429) return 'blocked'
   if (response.status === 400 || response.status === 413) return 'invalid'
-  if (response.status >= 500 && response.status !== 503 && response.status !== 501) return 'server'
+  if (response.status === 503) {
+    // Only the relay's own JSON answer means "no token here"; a platform error page is a transient failure.
+    const answer = await response.json().catch(() => null) as { data?: { error?: unknown } | null } | null
+    return answer?.data?.error === 'FEEDBACK_NOT_CONFIGURED' ? 'unavailable' : 'server'
+  }
+  if (response.status >= 500 && response.status !== 501) return 'server'
   return 'unavailable'
 }

@@ -33,7 +33,8 @@ The user runs the production app on this machine while you work. Two standing ru
 blocks the commonest forms of the commands and its message names the way, but it is a guard rail: the rules bind
 beyond it):
 
-1. **Never touch the production app.** No `pkill`/`killall` by name, no keystrokes, no `osascript` against it,
+1. **Never touch the production app.** Verification always runs against a separate test instance (the sandbox
+   run above), never the installed `/Applications/kan-do.app` and never the user's own `tauri dev` window. No `pkill`/`killall` by name, no keystrokes, no `osascript` against it,
    no full-screen `screencapture`. Several processes are named `app` (other workers' windows too): act on a
    process only by PID, after `lsof -a -p <pid> -d cwd` shows your own worktree's `src-tauri`.
 2. **Never interrupt the user's other work.** The recipe starts the window invisible and unfocused
@@ -41,6 +42,11 @@ beyond it):
    Never `set frontmost`, `activate`, `set_focus()` or `show()`. When a picture of the window is needed, the doc's
    "Capturing the window" section starts it behind everything and captures only that window
    (`screencapture -x -l <window id>`, window id from your verified PID).
+
+**Driving the sandbox window** (clicks, typing, menus, the accessibility tree, a window screenshot): skill
+`orca-computer-use`, which acts in the background without taking focus. Target only `--app pid:<your sandbox PID>`, never a bundle ID or the name `app`/`kan-do`: those can resolve to
+the production app or another worker's window. The guard hook refuses any other kan-do target (a PID passes only
+with the sandbox's throwaway `HOME` and `KANDO_SANDBOX_BACKGROUND=1`).
 
 A check that needs the frontmost app (the macOS menu bar contents) is skipped: say so in the PR, rely on the
 stub tests (`native-menu.spec.ts`) and leave the user a one-line note to look.
