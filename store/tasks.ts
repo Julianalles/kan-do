@@ -596,6 +596,27 @@ export const useTasksStore = defineStore("tasks", () => {
   }
 
   /**
+   * Whether a card of `source` holds `externalId` (#578). A removal of that page is not the user's to send: the card is
+   * a live task of its own (the waiting task of a write that stored the page a fetch had made a stray card of, #555),
+   * and archiving the page would leave it on an archived page. No card is excluded: the card a removal belongs to is
+   * already off the board (a delete) or in another source (a move), and a task the add form made can carry the
+   * very id of the stray card whose delete is pending (a Notion task's id is its page id).
+   */
+  function holdsPage(source: SourceId, externalId: string): boolean {
+    return source !== 'local' && tasks.value.some((el) => el.source === source && el.externalId === externalId);
+  }
+
+  /**
+   * A removal of the page was skipped because a live card holds it (#578): the page leaves `deletedTaskIds` (the
+   * stray card's delete put it there), or a fetch would skip the page and the card that holds it would never be
+   * updated again. The ids of the removed card stay, only the page's own id goes.
+   */
+  function forgetDeletedPage(externalId: string): void {
+    const index = deletedTaskIds.value.indexOf(externalId);
+    if (index > -1) deletedTaskIds.value.splice(index, 1);
+  }
+
+  /**
    * A fetch that returns the page a create in doubt made must not add it as a card of its own (#528): the task that
    * waits for it would create a second page at the next push. Hands each such page (same title, created since the
    * doubt, held by nothing else, the oldest first) to the oldest waiting task: it takes the page's id, drops the
@@ -2022,6 +2043,8 @@ export const useTasksStore = defineStore("tasks", () => {
     dropLandedDuplicates,
     markCreateUncertain,
     claimedPages,
+    holdsPage,
+    forgetDeletedPage,
     hasCompetingDoubt,
     reassignSource,
     restoreMoveOrigin,

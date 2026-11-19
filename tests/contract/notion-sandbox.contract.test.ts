@@ -162,6 +162,27 @@ describe.skipIf(!enabled)('Notion un-archive against the sandbox (#422)', () => 
     expect(matching).toHaveLength(1)
   })
 
+  it('a page that was archived refuses a write and is gone from the query: why a removal must never take a page a live card holds (#578)', async () => {
+    const created = await request.post('/api/notion/create-task').set('Authorization', auth).send({
+      databaseId: db.databaseId,
+      properties: { Name: { title: [{ text: { content: 'Archiviert und beschrieben' } }] }, Status: { select: { name: 'Doing' } } },
+    })
+    expect(created.status).toBe(200)
+    const pageId: string = created.body.pageId
+
+    expect((await request.post('/api/notion/archive-page').set('Authorization', auth).send({ pageId })).status).toBe(200)
+
+    // What the waiting task's next push would do on the page its stray card's delete archived
+    const written = await request.patch('/api/notion/update-task').set('Authorization', auth).send({
+      pageId,
+      properties: { Status: { select: { name: 'Today' } } },
+    })
+    expect(written.status).toBeGreaterThanOrEqual(400)
+
+    const query = await request.post('/api/notion/query-data-source').set('Authorization', auth).send({ dataSourceId: db.dataSourceId })
+    expect((query.body.results as Array<{ id: string }>).some(result => result.id === pageId)).toBe(false)
+  })
+
   it('un-archiving a page Notion does not have answers 404, so the client creates a new one', async () => {
     const gone = '00000000-0000-4000-8000-000000000422'
     const res = await request.post('/api/notion/unarchive-page').set('Authorization', auth).send({ pageId: gone })

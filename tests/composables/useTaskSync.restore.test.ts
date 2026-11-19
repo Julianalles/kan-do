@@ -405,6 +405,35 @@ describe('useTaskSync: restoring from the trash (#422)', () => {
       expect(tasksStore.deletedTaskIds).not.toContain('P')
     })
 
+    it('deleting the stray card of a restore under way does not archive the page the restore stores (#578)', async () => {
+      notionGone()
+      adapters.notion.restore.mockRejectedValueOnce(timeout())
+      await expect(useTaskSync().restoreTask(trash.entry('n1')!)).rejects.toThrow()
+      const sync = useTaskSync()
+      let release!: () => void
+      adapters.notion.restore.mockImplementationOnce(async (task: Task) => {
+        await new Promise<void>((resolve) => { release = resolve })
+        return { ...task, externalId: 'P' }
+      })
+      const running = sync.restoreTask(trash.entry('n1')!)
+      tasksStore.mergeTasks('notion', [makeTask({ id: 'P', source: 'notion', title: 'Rückruf' })], { fetchStartedAt: T, pushing: sync.isPushing })
+      const stray = tasksStore.task('P')!
+      tasksStore.removeTask('P')
+      tasksStore.addPendingDelete({ taskId: 'P', task: stray, carryOver: null, state: 'waiting', requestedAt: Date.now() })
+
+      // The restore is in flight: the stray's delete waits
+      await expect(sync.commitTaskDelete('P')).resolves.toBe('queued')
+      expect(calls).not.toContain('remove:notion:P')
+
+      release()
+      await running
+      expect(tasksStore.task('n1')).toMatchObject({ externalId: 'P' })
+      await expect(sync.commitTaskDelete('P')).resolves.toBe('committed')
+
+      expect(calls).not.toContain('remove:notion:P')
+      expect(tasksStore.task('n1')).toMatchObject({ externalId: 'P' })
+    })
+
     it('a fetch that lands while the restore is under way leaves the page to that restore (#545)', async () => {
       notionGone()
       adapters.notion.restore.mockRejectedValueOnce(timeout())

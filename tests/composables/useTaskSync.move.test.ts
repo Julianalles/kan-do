@@ -416,6 +416,8 @@ describe('useTaskSync: committing a move (#322)', () => {
       closeWindow('n1')
       await commitTaskMove('n1')
       const snapshot = { ...tasksStore.task('n1')! }
+      // As the delete flow leaves it: the card is off the board while the delete waits (a card that holds the page would own it, #578)
+      tasksStore.removeTask('n1')
       calls.length = 0
 
       await deleteTaskUpstream({ taskId: 'n1', task: snapshot, carryOver: null, state: 'waiting', requestedAt: 0 })
