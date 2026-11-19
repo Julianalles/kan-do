@@ -24,3 +24,8 @@ export function arrivedFromAnotherPage(): boolean {
 export function resetRouteArrival(): void {
   navigated = false
 }
+
+/** A sheet route: /tasks/:id, /tasks/add (and the same under /all and /statistics): a link to it opens a sheet on load (#594) */
+export function isSheetRoutePath(path: string): boolean {
+  return /^\/(tasks|all|statistics)\/[^/]+/.test(path)
+}

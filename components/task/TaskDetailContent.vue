@@ -64,6 +64,7 @@
             :model-value="task.title"
             :label="t('task.field.title')"
             required
+            reserve-error
             :readonly="!canEditText"
             :required-message="t('task.form.titleRequired')"
             class="text-2xl/tight"

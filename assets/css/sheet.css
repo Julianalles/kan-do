@@ -49,6 +49,15 @@
   /* The darkening is the sheet overlay's own scrim, over the whole window on every page (#419, TaskSheet.vue): a backdrop inside
      .board only covered the board's box and left the page background, the bar row and the title-bar strip bright. */
 
+  /* A task or add link loaded directly opens at rest (#594, DESIGN.md Motion: never on page load): the drawer and the slideover
+     and their scrim stand in place. plugins/route-arrival.client.ts sets the attribute for the first route and clears it at
+     the first move to another page, so closing and every later open animate as usual. */
+  html[data-load-rest] .task-sheet,
+  html[data-load-rest] [data-slot="overlay"] {
+    animation: none !important;
+    transition: none !important;
+  }
+
   /* prefers-reduced-motion: no slide, the sheet simply appears (overlay and content). */
   @media (prefers-reduced-motion: reduce) {
     .task-sheet {

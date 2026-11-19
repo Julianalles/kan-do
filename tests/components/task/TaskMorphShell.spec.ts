@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { flushPromises, mount, type VueWrapper } from '@vue/test-utils'
 import { h } from 'vue'
 import TaskMorphShell from '~/components/task/TaskMorphShell.vue'
+import { noteNavigation, resetRouteArrival } from '~/lib/routeArrival'
 
 interface Recorded { target: Element; keyframes: Keyframe[]; options: KeyframeAnimationOptions }
 
@@ -44,6 +45,9 @@ const panel = () => document.body.querySelector<HTMLElement>('.task-morph-panel'
 const panelAnimation = () => recorded.find((entry) => entry.target === panel() && entry.keyframes.some((frame) => 'left' in frame))
 
 beforeEach(() => {
+  // An in-app arrival: the sheet animates. The first route of the session opens at rest (#594, last test)
+  resetRouteArrival()
+  noteNavigation('/tasks', '/tasks/t1')
   recorded = []
   reduced = false
   vi.stubGlobal('CSS', { escape: (value: string) => value })
@@ -201,6 +205,16 @@ describe('TaskMorphShell', () => {
     const own = recorded.filter((entry) => entry.target === el)
     expect(own.map((entry) => entry.options.duration)).toEqual([1])
     expect(own[0]!.keyframes.some((frame) => 'left' in frame)).toBe(false)
+  })
+
+  it('opens at rest on a direct link, the first route of the session (#594)', async () => {
+    resetRouteArrival()
+    addCard('t1', rect(500, 300, 288, 132))
+    await mountShell({ open: true, originId: 't1' })
+    expect(panel()).not.toBeNull()
+    expect(recorded).toEqual([])
+    expect(panel()?.style.visibility).toBe('visible')
+    expect(panel()?.style.width).toBe('720px')
   })
 
   it('asks the host to close from its own close button, with an accessible name', async () => {
