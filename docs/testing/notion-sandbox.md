@@ -36,6 +36,8 @@ npm run notion:sandbox -- teardown [--all]
 
 Use a `--label` per worktree when agents work in parallel; `reset` only touches its own label. Tear labelled databases down when done.
 
+**A red contract run is read, not rerun (#544).** A full run takes about two minutes (four databases built in sequence); Notion latency is usually 0.3-0.5 s per call and now and then spikes to 20 s and more. Every contract test therefore gets a 120 s timeout and every hook 300 s, set once in the file (the root 15 s is for jsdom tests; one run stalled a 12-call test past 60 s), and a transient failure while building a contract database (HTTP 429/5xx, a request timeout, a dropped connection) rebuilds that database from scratch (`tests/contract/helpers/seededSandbox.ts`, 3 attempts, logged as `[contract] transient Notion failure…`). Assertions are never retried and a 4xx other than 429 fails at once, so a red run after that is a real contract failure: read its error first.
+
 ### One-time setup (user)
 
 1. https://www.notion.so/profile/integrations → **New integration**: name `kan-do dev sandbox`, type **Internal**, ideally in a separate free workspace. Capabilities: read, update and insert content; no user information.
