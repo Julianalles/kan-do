@@ -690,6 +690,7 @@ const remainingTimeClass = computed(() => {
   const box = task.value?.timeBoxSeconds;
   if (!box) return 'text-muted';
   const percentageLeft = ((box - (task.value ? liveTimeSpent(task.value) : 0)) / box) * 100;
+  if (percentageLeft <= 0) return 'text-warning-700 font-semibold';
   if (percentageLeft <= 20) return 'text-warning-700 font-medium';
   return 'text-muted';
 });
