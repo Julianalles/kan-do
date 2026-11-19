@@ -7,7 +7,7 @@
 @avoid Only the collapsed metadata section of the task detail.
 @responsibility
 - Quiet collapsible with the source, the creation date and the stable task id, each fact its own element, no separator character (#594); the id stays, #244 made Metadaten the one place it is readable
-- The chevron sits right beside the label, open or closed: the trigger is as wide as its label, so opening moves nothing (#594)
+- The chevron sits right beside the label, open or closed: the trigger is as wide as its label, so opening moves nothing (#594); a ghost button that answers the pointer with the neutral fill (DESIGN.md "States", Hover; #592), pulled 8 px left (`-ms-2 px-2`) so the label keeps the content edge
 - The host places it: with the action row on the sheet's last line (no hairline, no band), in the flow on mobile (#244)
 - The open state is a v-model owned by the parent; an expanded one grows the sheet downwards
 -->
@@ -17,7 +17,7 @@
       <UButton
         variant="ghost"
         color="neutral"
-        class="group/meta justify-start gap-1.5 px-0 hover:bg-transparent"
+        class="group/meta -ms-2 justify-start gap-1.5 px-2"
       >
         <SectionHeader :text="t('task.detail.metadata')" tag="h3" size="label" class="mb-0" />
         <template #trailing>

@@ -310,6 +310,9 @@ const isWaiting = computed(() => props.status === TaskStatus.Waiting);
       width: 2.75rem;
       height: 2.75rem;
       min-width: 2.75rem;
+      /* Above the sort control's spacer under the header, which would take the bottom 3 px of the 44 px hit area (#592) */
+      position: relative;
+      z-index: 1;
     }
   }
 

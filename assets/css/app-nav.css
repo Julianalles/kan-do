@@ -396,6 +396,8 @@
        every segment stays 44px high and wider than that. */
     .app-nav-place {
       min-height: 2.75rem;
+      /* "Alle" is a short word: its segment is still a 44 px target (#592) */
+      min-width: 2.75rem;
       padding-inline: 0.625rem;
       font-size: var(--text-title);
       transition: color var(--duration-fast) ease, background-color var(--duration-fast) ease, padding var(--nav-move) var(--nav-ease);

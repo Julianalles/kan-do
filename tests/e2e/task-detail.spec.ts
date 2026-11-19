@@ -973,7 +973,7 @@ test.describe('Task Detail View', () => {
 });
 
 // kd#178: one field height. Inputs, selects, textareas, the value controls of the task sheet's rows and the choice chip
-// are 36 px high on desktop and 44 px on a phone (the `--field-h` token); the title keeps its own size.
+// are 36 px high on desktop and 44 px on a phone (the `--field-h` token); the title keeps its own size, never under the field height (the phone floor, #592).
 const heightOf = async (locator: Locator) => Math.round((await locator.boundingBox())!.height);
 
 for (const { name, viewport, touch, expected } of [
@@ -1007,8 +1007,10 @@ for (const { name, viewport, touch, expected } of [
       await expect.poll(() => heightOf(page.getByRole('button', { name: /^Thema:/ }))).toBe(expected)
       // A select beside an input: the same height
       expect(await heightOf(page.getByRole('button', { name: /^Priorität:/ }))).toBe(await heightOf(page.getByTestId('add-task-timebox-input')))
-      // The title is the one field that is not 36 px
-      expect(await heightOf(page.locator('input[name="title"]'))).not.toBe(expected)
+      // The title is the one field with its own size: taller than 36 px on desktop; on a phone the 44 px floor (#592) is the least it takes
+      const titleHeight = await heightOf(page.locator('input[name="title"]'))
+      if (touch) expect(titleHeight).toBeGreaterThanOrEqual(expected)
+      else expect(titleHeight).not.toBe(expected)
       // A textarea line is never shorter than a field
       expect(await heightOf(page.locator('textarea[name="notes"]'))).toBeGreaterThanOrEqual(expected)
     })

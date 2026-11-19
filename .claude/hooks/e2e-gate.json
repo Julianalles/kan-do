@@ -460,7 +460,9 @@
         "sources-settings",
         "archive-feature",
         "new-day-recap",
-        "app-nav"
+        "app-nav",
+        "hover-answer",
+        "phone-hit-areas"
       ]
     },
     {
@@ -1129,7 +1131,8 @@
         "visual-regression",
         "welcome-setup",
         "design-detect",
-        "state-structure"
+        "state-structure",
+        "phone-hit-areas"
       ]
     },
     {
@@ -1166,6 +1169,26 @@
       "specs": [
         "feedback",
         "notion-stub-sync"
+      ]
+    },
+    {
+      "area": "pressable primitives and the shared states (#592): hover answer and the 44 px phone floor are measured on the rendered page, so a kit primitive, a shared stylesheet or the theme moves them",
+      "paths": [
+        "components/ui/**",
+        "components/AppShell.vue",
+        "assets/css/main.css",
+        "assets/css/board.css",
+        "assets/css/task-detail.css",
+        "components/board/BoardColumnHeader.vue",
+        "components/board/NewCardFlow.vue",
+        "components/setup/LocalSetupFlow.vue",
+        "components/task/TaskDetailMetadata.vue",
+        "pages/statistics.vue",
+        "pages/settings/notion.vue"
+      ],
+      "specs": [
+        "hover-answer",
+        "phone-hit-areas"
       ]
     }
   ]
