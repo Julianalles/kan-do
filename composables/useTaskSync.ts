@@ -1,7 +1,7 @@
 import { TaskStatus } from "~/types/taskStatus";
 import type { CreateUncertain, Task } from "@/types/task";
 import { useTaskSources } from '~/composables/useTaskSources';
-import { SourceNotConfiguredError } from '~/integrations/sources/types';
+import { SourceNotConfiguredError, SourceReadOnlyError } from '~/integrations/sources/types';
 import { useTasksStore } from "~/store/tasks";
 import { useIntegrationHealthStore } from "~/store/integrationHealth";
 import { useTaskStatisticsStore } from "~/store/taskStatistics";
@@ -9,10 +9,10 @@ import { useErrorHandler } from '~/composables/useErrorHandler';
 import { isNetworkError } from '~/lib/errorMessages';
 import { mapHelpers } from '~/utils/mapHelpers';
 import type { PendingTaskDelete } from '~/store/tasks';
-import { isIntegrationSourceId, sourceSyncsTime } from '~/lib/taskSources';
+import { isIntegrationSourceId, sourceCan, sourceSyncsTime, SETUP_ERROR_CONTEXTS } from '~/lib/taskSources';
 import { classifySyncFailure, createFailureKind, createOutcomeUnknown, isCreateWaiting, pushFailureScope, rateLimitOf } from '~/lib/integrationHealth';
 import { useBoardStore } from '~/store/board';
-import type { SourceId } from '~/types/taskSource';
+import type { IntegrationSourceId, SourceId } from '~/types/taskSource';
 import { notifyTaskMoveRejected } from '~/lib/taskMoveEvents';
 import { useTrashStore } from '~/store/trash';
 import type { TrashEntry } from '~/types/trash';
@@ -21,7 +21,7 @@ import { isWritesFrozen } from '~/lib/dataStorage';
 import { inStatus, isNotPlanned } from '~/lib/taskPlanning';
 
 /** Where a source's setup problems are reported (the context picks the localized message). */
-const setupContextOf = (source: SourceId) => (source === 'todoist' ? 'todoist_setup' : 'notion_setup') as 'todoist_setup' | 'notion_setup';
+const setupContextOf = (source: IntegrationSourceId) => SETUP_ERROR_CONTEXTS[source];
 
 /** Outcome of committing a pending delete upstream (#99). */
 export type DeleteCommitResult = 'committed' | 'queued' | 'restored' | 'skipped';
@@ -325,6 +325,8 @@ export const useTaskSync = () => {
    * @returns the task as it was added to the store
    */
   const createTask = async (draftIn: Partial<Task>, source: SourceId): Promise<Task> => {
+    // A source that is read-only in kan-do (#551) never gets a task from here, not even a queued one
+    if (source !== 'local' && !sourceCan(source, 'create')) throw new SourceReadOnlyError(source, 'creating a task');
     const { notPlanned: asksNotPlanned, sourceNotPlanned: _held, ...plain } = draftIn;
     const hold = asksNotPlanned === true && (plain.status === undefined || plain.status === TaskStatus.Open)
       ? adapterFor(source).notPlannedHold?.() ?? null
@@ -528,7 +530,7 @@ export const useTaskSync = () => {
     const sourceFault = pushFailureScope(error) === 'source';
     const alreadyKnown = retry || (sourceFault && health.needsAttention(task.source));
     if (!alreadyKnown) {
-      if (error instanceof SourceNotConfiguredError) handleError(error.message, setupContextOf(error.source));
+      if (error instanceof SourceNotConfiguredError && isIntegrationSourceId(error.source)) handleError(error.message, setupContextOf(error.source));
       else handleSyncError(error, syncContext, task.source);
     } else {
       console.error(`[TaskSync] ${syncContext}:`, error);
@@ -727,6 +729,7 @@ export const useTaskSync = () => {
    * Notion's trash). Todoist: delete the task (not recoverable). Local, or a task its source never got to create: nothing upstream. Throws on failure.
    */
   const deleteTaskUpstream = async (pending: PendingTaskDelete): Promise<void> => {
+    if (pending.task.source !== 'local' && !sourceCan(pending.task.source, 'remove')) throw new SourceReadOnlyError(pending.task.source, 'deleting a task');
     // Made while its source was unreachable and never created there (#319): nothing upstream to remove
     if (pending.task.externalId !== null) {
       try {
@@ -896,6 +899,7 @@ export const useTaskSync = () => {
     } else if (base.source === 'local') {
       restored = await adapterFor('local').restore(base);
     } else {
+      if (!sourceCan(base.source, 'remove')) throw new SourceReadOnlyError(base.source, 'restoring a task');
       if (isDisconnected(base.source)) throw new Error(`${base.source} is not connected`);
       if (typeof navigator !== 'undefined' && navigator.onLine === false) throw new Error('Network error: you are offline');
       const { pendingSync: _sync, pendingMove: _move, ...clean } = base;

@@ -5,7 +5,7 @@
  * @responsibility
  * - `connected`: Lokal always, then every connected integration, each with default flag, status line and the
  *   actions it offers
- * - `more`: the unconnected Notion (connectable) and Todoist (not yet available)
+ * - `more`: the unconnected Notion (connectable) and Todoist (not yet available); Reminders joins with its setup UI (#481 slice 3)
  * - Status per integration: warning "Verbindung prüfen" when broken or degraded, the last-sync line when
  *   healthy or merely offline, neutral "Wird geprüft…" before a first successful sync
  */
@@ -13,7 +13,7 @@ import { computed, getCurrentInstance, onBeforeUnmount, ref, type ComputedRef } 
 import { useI18n } from 'vue-i18n'
 import { useBoardStore } from '~/store/board'
 import { useIntegrationHealthStore } from '~/store/integrationHealth'
-import { integrationLabel } from '~/lib/taskSources'
+import { integrationLabel, sourceCanBeDefault } from '~/lib/taskSources'
 import { INTEGRATION_SOURCE_IDS, type IntegrationSourceId, type SourceId } from '~/types/taskSource'
 
 export type SourceStatusTone = 'muted' | 'warning'
@@ -48,10 +48,14 @@ export const SOURCE_ICONS: Record<SourceId, string> = {
   local: 'i-ph-desktop',
   notion: 'i-simple-icons-notion',
   todoist: 'i-simple-icons-todoist',
+  reminders: 'i-ph-list-checks',
 }
 
 /** The integrations that can be connected from the page today. */
 const CONNECTABLE: readonly IntegrationSourceId[] = ['notion']
+
+/** Integrations without a row in "Weitere Verbindungen" yet: Apple Reminders gets its connect row with the setup UI (#481 slice 3). */
+const NOT_LISTED_YET: readonly IntegrationSourceId[] = ['reminders']
 
 /** Minutes since `timestamp`, never negative. */
 export function minutesSince(timestamp: number, now: number): number {
@@ -102,7 +106,7 @@ export function useSourceList(): {
         id,
         icon: SOURCE_ICONS[id],
         isDefault,
-        canSetDefault: !isDefault,
+        canSetDefault: !isDefault && sourceCanBeDefault(id),
       }
       if (id === 'local') {
         return {
@@ -130,7 +134,7 @@ export function useSourceList(): {
 
   const more = computed<MoreSourceRow[]>(() =>
     INTEGRATION_SOURCE_IDS
-      .filter((id) => !board.isIntegrationConnected(id))
+      .filter((id) => !board.isIntegrationConnected(id) && !NOT_LISTED_YET.includes(id))
       .map((id) => ({
         id,
         name: integrationLabel(id),

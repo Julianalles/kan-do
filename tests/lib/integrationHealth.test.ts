@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { classifySyncFailure, emptySourceHealthMap, pushFailureScope, rateLimitOf, normalizeIntegrationHealthState, sourceProblems } from '~/lib/integrationHealth'
+import { classifySyncFailure, emptySourceHealthMap, healthNeedsWriteBack, pushFailureScope, rateLimitOf, normalizeIntegrationHealthState, sourceProblems } from '~/lib/integrationHealth'
 import type { SourceHealth } from '~/types/integration'
 import { SourceNotConfiguredError } from '~/integrations/sources/types'
 
@@ -10,6 +10,7 @@ describe('normalizeIntegrationHealthState (#318)', () => {
       sources: {
         notion: { status: 'offline', lastError: 'Failed to fetch', lastSuccessfulSync: null },
         todoist: { status: 'unconfigured', lastError: null, lastSuccessfulSync: null },
+        reminders: { status: 'unconfigured', lastError: null, lastSuccessfulSync: null },
       },
     })
   })
@@ -97,6 +98,7 @@ describe('sourceProblems (#319)', () => {
   const map = (notion: SourceHealth['status'], todoist: SourceHealth['status']) => ({
     notion: { status: notion, lastError: notion === 'healthy' ? null : `${notion} reason`, lastSuccessfulSync: null },
     todoist: { status: todoist, lastError: null, lastSuccessfulSync: null },
+    reminders: { status: 'unconfigured' as const, lastError: null, lastSuccessfulSync: null },
   })
 
   it('lists only connected sources that cannot sync, worst first', () => {
@@ -130,5 +132,45 @@ describe('rateLimitOf (#529)', () => {
     expect(rateLimitOf(Object.assign(new Error('x'), { statusCode }))).toBeNull()
     expect(rateLimitOf(new Error('x'))).toBeNull()
     expect(rateLimitOf(null)).toBeNull()
+  })
+})
+
+describe('a source added after the state was stored (#551, Apple Reminders)', () => {
+  const oldShape = () => ({
+    sources: {
+      notion: { status: 'healthy', lastError: null, lastSuccessfulSync: 5 },
+      todoist: { status: 'unconfigured', lastError: null, lastSuccessfulSync: null },
+    },
+  })
+
+  it('gets an unconfigured entry in memory, and the read asks for no write-back', () => {
+    const stored = oldShape()
+    const next = normalizeIntegrationHealthState(stored) as { sources: Record<string, unknown> }
+    expect(next.sources.reminders).toEqual({ status: 'unconfigured', lastError: null, lastSuccessfulSync: null })
+    expect(next.sources.notion).toBe(stored.sources.notion)
+    expect(healthNeedsWriteBack(stored, next)).toBe(false)
+  })
+
+  it('still writes back a legacy, malformed or unknown-source state', () => {
+    for (const raw of [
+      { notion: 'offline', notionLastErrorReason: 'x' },
+      { sources: { notion: { status: 'bogus' } } },
+      { sources: { ...oldShape().sources, linear: { status: 'healthy' } } },
+    ]) {
+      expect(healthNeedsWriteBack(raw, normalizeIntegrationHealthState(raw))).toBe(true)
+    }
+  })
+})
+
+describe('RemindersError (#551)', () => {
+  const kind = (value: string) => Object.assign(new Error(`reminders: ${value}`), { name: 'RemindersError', kind: value })
+
+  it('a missing permission is the source\'s fault, every other bridge failure is degraded and the task\'s', () => {
+    expect(classifySyncFailure(kind('access-denied'))).toBe('broken')
+    expect(pushFailureScope(kind('access-denied'))).toBe('source')
+    for (const name of ['failed', 'save-failed', 'not-found', 'invalid-request']) {
+      expect(classifySyncFailure(kind(name))).toBe('degraded')
+      expect(pushFailureScope(kind(name))).toBe('task')
+    }
   })
 })

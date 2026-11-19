@@ -42,6 +42,12 @@ describe('useSourceList (#324)', () => {
     expect(connected.value.map((row) => [row.id, row.isDefault, row.canSetDefault])).toEqual([['local', true, false], ['notion', false, true]])
   })
 
+  it('a connected Reminders source offers no "Als Standard festlegen"', () => {
+    useBoardStore().setSources({ connected: ['reminders'], default: 'local' })
+    const { connected } = useSourceList()
+    expect(connected.value.find((row) => row.id === 'reminders')).toMatchObject({ isDefault: false, canSetDefault: false })
+  })
+
   it.each(['broken', 'degraded'] as const)('%s: warning "Verbindung prüfen" with the repair, no matter how old the last sync is', (status) => {
     const health = useIntegrationHealthStore()
     useBoardStore().setSources({ connected: ['notion'], default: 'local' })

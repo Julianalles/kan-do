@@ -991,6 +991,25 @@ export async function setRemindersStatus(page: Page, status: RemindersAccess): P
   }, status)
 }
 
+/** The persisted stores the desktop app wrote into the stub's data file so far (`data_set`), by persist key. */
+export async function persistedStores(page: Page): Promise<Record<string, Record<string, unknown> | undefined>> {
+  const envelope = (await stubState(page)).data.envelope as { stores?: Record<string, Record<string, unknown>> } | null
+  return envelope?.stores ?? {}
+}
+
+/** Plays the user ticking (or unticking) a reminder in Reminders itself (#551): a one-off only; the time of the tick is now. */
+export async function setReminderCompleted(page: Page, id: string, completed: boolean): Promise<void> {
+  await page.evaluate(({ id: reminderId, completed: value }) => {
+    const stub = (window as unknown as { __tauriStub: { reminders: RemindersStubState } }).__tauriStub
+    if (!stub.reminders.reminders.some(r => r.id === reminderId)) throw new Error(`no stub reminder ${reminderId}`)
+    // Assigned through the proxy so the change reaches sessionStorage.
+    stub.reminders = {
+      ...stub.reminders,
+      reminders: stub.reminders.reminders.map(r => r.id === reminderId ? { ...r, completed: value, completedAt: value ? Date.now() : null } : r),
+    }
+  }, { id, completed })
+}
+
 /** Plays the user changing a reminder's due date in Reminders itself (`null` clears it); the time stays (#550). */
 export async function setReminderDue(page: Page, id: string, date: string | null): Promise<void> {
   await page.evaluate(({ id: reminderId, date: value }) => {

@@ -13,6 +13,7 @@ import { onTaskMoveRejected, type TaskMoveRejection } from '~/lib/taskMoveEvents
 import { useTasksStore } from '~/store/tasks'
 import { useTaskSync } from '~/composables/useTaskSync'
 import { resetUndoWindows, useUndoWindow } from '~/composables/useUndoWindow'
+import { sourceCan } from '~/lib/taskSources'
 import { SOURCE_META } from '~/utils/sourceMeta'
 import type { Task } from '~/types/task'
 import type { SourceId } from '~/types/taskSource'
@@ -63,6 +64,9 @@ export function useTaskMove() {
    * unknown, already in `target`, or has a move that is not finished.
    */
   function moveTaskToSource(taskId: string, target: SourceId): boolean {
+    // Neither out of nor into a source that is read-only in kan-do (Reminders, #551)
+    const from = tasksStore.task(taskId)?.source
+    if (from !== undefined && (!sourceCan(from, 'moveOut') || !sourceCan(target, 'create'))) return false
     const previous = tasksStore.reassignSource(taskId, target)
     if (!previous) return false
     tasksStore.holdMove(taskId)

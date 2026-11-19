@@ -1,13 +1,13 @@
 /**
  * @module utils/sourceMeta
  * @description What the UI shows of a source (#322, #323): the i18n key of its name and its bundled icon
- * (Local `ph`, Notion and Todoist `simple-icons`: no remote fetch, ADR 012). One map for the card's source
+ * (Local and Reminders `ph`, Notion and Todoist `simple-icons`: no remote fetch, ADR 012). One map for the card's source
  * icon and the "Verschieben nach …" entries, so the two never drift.
  */
 import type { SourceId } from '~/types/taskSource'
 
 export interface SourceMeta {
-  /** i18n key of the source's display name ("Lokal", "Notion", "Todoist") */
+  /** i18n key of the source's display name ("Lokal", "Notion", "Todoist", "Erinnerungen") */
   nameKey: string
   /** Iconify name from a bundled collection */
   icon: string
@@ -17,6 +17,7 @@ export const SOURCE_META: Record<SourceId, SourceMeta> = {
   local: { nameKey: 'source.name.local', icon: 'i-ph-desktop' },
   notion: { nameKey: 'source.name.notion', icon: 'i-simple-icons-notion' },
   todoist: { nameKey: 'source.name.todoist', icon: 'i-simple-icons-todoist' },
+  reminders: { nameKey: 'source.name.reminders', icon: 'i-ph-list-checks' },
 }
 
 /** Meta of a source; a missing or unknown one (a task added without `source`) degrades to Local instead of throwing (#360) */

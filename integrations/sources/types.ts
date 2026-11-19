@@ -9,7 +9,7 @@
 import type { CreateUncertain, Task } from '~/types/task'
 import type { TaskStatus } from '~/types/taskStatus'
 import type { IntegrationHealth } from '~/types/integration'
-import type { SourceId } from '~/types/taskSource'
+import type { SourceCapabilities, SourceId } from '~/types/taskSource'
 
 /** The source cannot be called: its credentials or configuration are missing. */
 export class SourceNotConfiguredError extends Error {
@@ -18,6 +18,21 @@ export class SourceNotConfiguredError extends Error {
   constructor(source: SourceId, message: string) {
     super(message)
     this.name = 'SourceNotConfiguredError'
+    this.source = source
+  }
+}
+
+/**
+ * An operation the source does not allow in kan-do (`TaskSourceAdapter.capabilities`, #551): create, delete, restore or
+ * move out. Not a failure of the source: the UI never offers the operation, so reaching it is a bug, and no health or
+ * marker changes for it.
+ */
+export class SourceReadOnlyError extends Error {
+  readonly source: SourceId
+
+  constructor(source: SourceId, operation: string) {
+    super(`${source} is read-only in kan-do: ${operation} is not supported`)
+    this.name = 'SourceReadOnlyError'
     this.source = source
   }
 }
@@ -100,6 +115,15 @@ export interface TaskSourceAdapter {
    * column kan-do holds it in (Jetzt, Wartet), instead of going back to Offen with every fetch (#357).
    */
   readonly holdsOnlyOpenDone?: boolean
+
+  /** Absent: everything is allowed. See `SourceCapabilities`. */
+  readonly capabilities?: SourceCapabilities
+
+  /**
+   * `true` for a source that holds neither a time box, a priority nor the ad-hoc marker of its tasks (Apple Reminders,
+   * #551): `mergeTasks` keeps kan-do's own values of a task it already holds, because a fetch carries only defaults.
+   */
+  readonly keepsKanDoFields?: boolean
 
   /**
    * `true` for a source without a planning state of its own whose tasks start not planned (#357, the user's

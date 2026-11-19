@@ -59,6 +59,7 @@ import { useDayEndTracking } from "~/composables/useDayEndTracking";
 import { useTaskDeletion } from "~/composables/useTaskDeletion";
 import { useUndoDeleteShortcut } from "~/composables/useUndoDeleteShortcut";
 import { useTaskMove } from "~/composables/useTaskMove";
+import { onRemindersChanged } from "~/lib/remindersEvents";
 import { usePropertyOptionsSync } from "~/composables/usePropertyOptionsSync";
 import SyncWarningModal from "~/components/sync/SyncWarningModal.vue";
 import TaskSheetHost from "~/components/task/TaskSheetHost.vue";
@@ -278,6 +279,10 @@ function cleanupTasksPageOnUnmount() {
 }
 
 onUnmounted(cleanupTasksPageOnUnmount);
+// A Reminders write that found the stored state moved on (a recurring reminder ticked elsewhere, #551) is no failure: one
+// quiet refetch brings the board up to date, with no toast and no change to the source's health
+const stopRemindersChanged = onRemindersChanged(() => { void fetchTasks(); });
+onUnmounted(stopRemindersChanged);
 // A warning still waiting would hold its fetch (and a manual refresh awaiting it) until the next one
 onBeforeUnmount(resetSyncValidation);
 </script>

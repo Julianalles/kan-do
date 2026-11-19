@@ -10,7 +10,7 @@ import { dayKey, isValidDayKey } from "~/utils/recapDay";
 import { useToday } from "~/composables/useToday";
 import { persistOmitFor } from "~/lib/secrets";
 import { useTasksStore } from "~/store/tasks";
-import { normalizeBoardConfig, singleSource } from "~/lib/taskSources";
+import { normalizeBoardConfig, singleSource, sourceCanBeDefault } from "~/lib/taskSources";
 import { isNotPlanned } from "~/lib/taskPlanning";
 import type { SourceId, IntegrationSourceId, TaskSourcesConfig } from "~/types/taskSource";
 
@@ -314,7 +314,7 @@ export const useBoardStore = defineStore("board", () => {
 
   /**
    * Makes a connected source the default for new tasks (#324). Local is always allowed; an integration only
-   * while it is connected. A pending source switch survives only next to an integration default (as in
+   * while it is connected, and never Reminders (`sourceCanBeDefault`). A pending source switch survives only next to an integration default (as in
    * `disconnectIntegration`).
    * @returns whether the default changed
    */
@@ -322,6 +322,7 @@ export const useBoardStore = defineStore("board", () => {
     const sources = boardConfig.value.sources;
     if (!sources || sources.default === id) return false;
     if (id !== 'local' && !sources.connected.includes(id)) return false;
+    if (!sourceCanBeDefault(id)) return false;
     const { pendingSourceSwitch, ...rest } = boardConfig.value;
     const keepSwitch = pendingSourceSwitch === true && id !== 'local';
     boardConfig.value = { ...rest, sources: { ...sources, default: id }, ...(keepSwitch ? { pendingSourceSwitch: true } : {}) };

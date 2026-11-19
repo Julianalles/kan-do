@@ -30,7 +30,7 @@ const adapter = (id: SourceId) => ({
   remove: vi.fn(async (task: Task) => { calls.push(`remove:${id}:${task.externalId}`) }),
   archivesAsStatus: () => false, health: () => 'healthy' as const,
 })
-const adapters = { local: adapter('local'), notion: adapter('notion'), todoist: adapter('todoist') }
+const adapters = { local: adapter('local'), notion: adapter('notion'), todoist: adapter('todoist'), reminders: adapter('reminders') }
 vi.mock('~/composables/useTaskSources', () => ({ useTaskSources: () => ({ adapterFor: (id: SourceId) => adapters[id] }) }))
 
 /* eslint-disable import/first -- order-sensitive: mocks must be registered before the SUT is imported */

@@ -254,8 +254,23 @@ describe('hydration writes nothing (#273)', () => {
         sources: {
           notion: { status: 'broken', lastError: '401 Unauthorized', lastSuccessfulSync: null },
           todoist: { status: 'unconfigured', lastError: null, lastSuccessfulSync: null },
+          reminders: { status: 'unconfigured', lastError: null, lastSuccessfulSync: null },
         },
       })
+    })
+
+    it('a stored state from before Apple Reminders (#551) hydrates with an entry for it and writes nothing', async () => {
+      const backend = await desktopPinia({
+        'integration-health-store': {
+          sources: {
+            notion: { status: 'healthy', lastError: null, lastSuccessfulSync: 5 },
+            todoist: { status: 'unconfigured', lastError: null, lastSuccessfulSync: null },
+          },
+        },
+      })
+      await instantiateAll()
+      await nextTick()
+      expect(sets(backend.calls).filter(call => call === 'set:integration-health-store')).toHaveLength(0)
     })
 
     it('seeds sources.notion.lastSuccessfulSync from the stored board last sync when it converts the legacy shape', async () => {

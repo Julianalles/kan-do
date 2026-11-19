@@ -1259,6 +1259,8 @@ export const useTasksStore = defineStore("tasks", () => {
    *   (`TaskSourceAdapter.timeWritable`, a Notion select time property, #331): the source takes no time write, so
    *   local time above the fetched value queues no push. `holdsOnlyOpenDone` (`TaskSourceAdapter.holdsOnlyOpenDone`,
    *   Todoist): the source knows no Jetzt or Wartet, so a task it reports as open keeps the column kan-do holds it in.
+   *   `keepsKanDoFields` (`TaskSourceAdapter.keepsKanDoFields`, Apple Reminders, #551): the source holds neither a time box, a
+   *   priority nor the ad-hoc marker, so a task already held keeps kan-do's values of them over a fetch's defaults.
    *   `startsNotPlanned` (`TaskSourceAdapter.startsNotPlanned`, Todoist, #357): an Open task seen for the first time
    *   starts not planned; a task already held is never moved by it (#387: the app moves no card by itself).
    *   `fetchStartedAt` (epoch ms, when the fetch began) and `pushing` (whether a write of a task is under way now,
@@ -1276,7 +1278,7 @@ export const useTasksStore = defineStore("tasks", () => {
    *   held as one of these values `fetchedTasks` is only a part of what the source holds. Such a task that the list
    *   lacks stays as it is, and so does a task with unpushed changes; every other task the list lacks is dropped.
    */
-  function mergeTasks(source: SourceId, fetchedTasks: Task[], options: { replaceOthers?: boolean; heldTime?: (seconds: number) => number; timeWritable?: boolean; holdsOnlyOpenDone?: boolean; startsNotPlanned?: boolean; partialNotPlanned?: readonly string[]; readInParts?: boolean; confirmedDrop?: boolean; fetchStartedAt?: number; pushing?: (taskId: string) => boolean } = {}): void {
+  function mergeTasks(source: SourceId, fetchedTasks: Task[], options: { replaceOthers?: boolean; heldTime?: (seconds: number) => number; timeWritable?: boolean; holdsOnlyOpenDone?: boolean; keepsKanDoFields?: boolean; startsNotPlanned?: boolean; partialNotPlanned?: readonly string[]; readInParts?: boolean; confirmedDrop?: boolean; fetchStartedAt?: number; pushing?: (taskId: string) => boolean } = {}): void {
     // The page of a create in doubt (#528) belongs to the task that waits for it, not to a card of its own
     adoptLandedPages(source, fetchedTasks, options.pushing);
     const boardStore = useBoardStore();
@@ -1359,6 +1361,13 @@ export const useTasksStore = defineStore("tasks", () => {
           timeSpentSeconds: userSetTime || heldAsLocal ? effectiveLocal : Math.max(effectiveLocal, externalTimeSpent),
           timerId: existingTask.timerId, // Preserve active timer
         };
+
+        // A source that carries no time box, priority or ad-hoc marker (Reminders, #551) leaves them to kan-do
+        if (options.keepsKanDoFields) {
+          mergedTask.timeBoxSeconds = existingTask.timeBoxSeconds;
+          mergedTask.priority = existingTask.priority;
+          mergedTask.isUnplanned = existingTask.isUnplanned;
+        }
 
         // A source without Jetzt and Wartet (Todoist) says "open" for them too: the column is kan-do's (#357)
         if (options.holdsOnlyOpenDone && mergedTask.status === TaskStatus.Open

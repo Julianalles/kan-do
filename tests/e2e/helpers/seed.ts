@@ -12,6 +12,7 @@
 
 import type { BrowserContext } from '@playwright/test'
 import { NOTION_STUB_API_KEY } from './constants'
+import { installTauriStub, type ReminderStub, type RemindersAccess, type RemindersListStub } from './tauriStub'
 
 // ---------------------------------------------------------------------------
 // Types
@@ -20,7 +21,7 @@ import { NOTION_STUB_API_KEY } from './constants'
 export interface SeedTask {
   id: string
   /** Where the task lives (#326); `buildTasksStore` fills it from the board's source when missing. */
-  source?: 'local' | 'notion' | 'todoist'
+  source?: 'local' | 'notion' | 'todoist' | 'reminders'
   externalId?: string | null
   title: string
   status: 0 | 1 | 2 | 3
@@ -563,6 +564,95 @@ export async function seedMixedBoard(
     },
     { board, taskStore, notion: mergedConfig, settings, onceKey },
   )
+}
+
+// ---------------------------------------------------------------------------
+// Apple Reminders source (#551, epic #481)
+// ---------------------------------------------------------------------------
+
+/** The three lists of the Reminders seed: Thema, Aktivität and Aus (never fetched). */
+export const REMINDERS_SEED_LISTS: RemindersListStub[] = [
+  { id: 'list-home', title: 'Zuhause' },
+  { id: 'list-work', title: 'Arbeit' },
+  { id: 'list-private', title: 'Privat' },
+]
+
+export const REMINDERS_SEED_ROLES: Record<string, 'topic' | 'activity' | 'off'> = {
+  'list-home': 'topic',
+  'list-work': 'activity',
+  'list-private': 'off',
+}
+
+/** Local `YYYY-MM-DD` of the day `daysAhead` days from now. */
+export function dayKeyDaysAhead(daysAhead: number): string {
+  return dayKeyDaysAgo(-daysAhead)
+}
+
+/**
+ * The reminders of the seed: a one-off with notes, a one-off in the Aktivität list, a weekly recurring one (ticking it
+ * leaves it open at the next date, the Reminders behaviour of the stub), one that was completed today, and one in the list
+ * set to Off. Titles are unique so a spec finds a card by text.
+ */
+export function remindersSeedReminders(): ReminderStub[] {
+  return [
+    { id: 'rem-milk', listId: 'list-home', title: 'Milch kaufen', notes: 'Hafermilch', due: { date: dayKeyDaysAhead(0), time: null } },
+    { id: 'rem-report', listId: 'list-work', title: 'Quartalsbericht schreiben', due: { date: dayKeyDaysAhead(3), time: '09:30' } },
+    {
+      id: 'rem-plants', listId: 'list-home', title: 'Pflanzen gießen', due: { date: dayKeyDaysAhead(0), time: null },
+      recurrence: { rule: 'FREQ=WEEKLY' }, nextDue: { date: dayKeyDaysAhead(7), time: null },
+    },
+    { id: 'rem-trash', listId: 'list-home', title: 'Müll rausgebracht', completed: true, completedAt: Date.now() - 60_000, due: { date: dayKeyDaysAhead(0), time: null } },
+    { id: 'rem-secret', listId: 'list-private', title: 'Geschenk verstecken', due: { date: dayKeyDaysAhead(1), time: null } },
+  ]
+}
+
+/** Options of `seedRemindersBoard`. */
+export interface SeedRemindersOptions {
+  /** Local tasks that sit beside the Reminders ones (a mixed board shows the source icon); none by default. */
+  tasks?: SeedTask[]
+  /** The answer per list (`remindersConfig.lists`); the three roles of the seed by default. */
+  roles?: Record<string, 'topic' | 'activity' | 'off'>
+  lists?: RemindersListStub[]
+  reminders?: ReminderStub[]
+  /** The macOS permission at start; `granted` by default. */
+  status?: RemindersAccess
+}
+
+/**
+ * Seeds a desktop board with a connected Reminders source (`sources.connected: ['reminders']`, default Local) and the
+ * Tauri stub that answers the `reminders_*` commands, so the Mac app's source runs without a Mac: the first fetch brings
+ * the reminders in, the lists carry the roles of `remindersConfig`. Local tasks are optional. The board lives in the stub's
+ * data envelope (what a desktop spec does, `.claude/rules/desktop.md`): the stub keeps it across a `page.reload()`, so no
+ * `once` flag is needed, and a spec reads the persisted state with `stubState(page).data.envelope` (`remindersStores`).
+ *
+ * @example
+ * await seedRemindersBoard(context)                                   // three lists, five reminders
+ * const stores = await remindersStores(page)                          // what the app persisted so far
+ */
+export async function seedRemindersBoard(context: BrowserContext, options: SeedRemindersOptions = {}): Promise<void> {
+  const tasks = options.tasks ?? []
+  const lists = options.lists ?? REMINDERS_SEED_LISTS
+  const config = {
+    lists: Object.fromEntries(Object.entries(options.roles ?? REMINDERS_SEED_ROLES).map(([id, role]) => [id, { role, title: lists.find(list => list.id === id)?.title ?? id }])),
+    doneOccurrences: {},
+  }
+  await installTauriStub(context, {
+    reminders: { status: options.status ?? 'granted', lists, reminders: options.reminders ?? remindersSeedReminders() },
+    data: {
+      envelope: {
+        schemaVersion: 2,
+        writtenAt: new Date().toISOString(),
+        writtenBy: 'device-e2e',
+        appVersion: '0.1.0',
+        stores: {
+          'board-store': boardStoreOf({ connected: ['reminders'], default: 'local' }, tasks, NO_GROUPING),
+          'tasks-store': buildTasksStore(tasks, {}, 'local'),
+          'settings-store': buildSettingsStore(),
+          remindersConfig: config,
+        },
+      },
+    },
+  })
 }
 
 // ---------------------------------------------------------------------------
