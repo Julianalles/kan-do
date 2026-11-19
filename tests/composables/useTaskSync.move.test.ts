@@ -118,7 +118,7 @@ describe('useTaskSync: committing a move (#322)', () => {
     expect(await commitTaskMove('a')).toBe('committed')
 
     expect(calls).toEqual(['create:notion'])
-    expect(adapters.notion.create).toHaveBeenCalledWith(expect.objectContaining({ title: 'Task a', priority: 2, topic: 'Büro', timeBoxSeconds: 900, notes: 'n' }))
+    expect(adapters.notion.create).toHaveBeenCalledWith(expect.objectContaining({ title: 'Task a', priority: 2, topic: 'Büro', timeBoxSeconds: 900, notes: 'n' }), expect.anything())
     const moved = tasksStore.task('a')!
     expect(moved).toMatchObject({ id: 'a', source: 'notion', externalId: 'notion-page-1' })
     expect(moved.pendingSync).toBeUndefined()
@@ -211,6 +211,30 @@ describe('useTaskSync: committing a move (#322)', () => {
     expect(tasksStore.task('n1')?.pendingMove).toBeUndefined()
     // Exactly one page in the target and the origin removed once
     expect(calls.filter((c) => c === 'remove:notion:page-1')).toHaveLength(1)
+  })
+
+  it('a create in the target that times out (#528) leaves a doubt: the next create sees it and the ids the board holds', async () => {
+    tasksStore.setTasks([
+      makeTask({ id: 't1', source: 'todoist', externalId: 'todo-1', title: 'Rückruf' }),
+      makeTask({ id: 'n9', source: 'notion', externalId: 'page-9' }),
+    ])
+    adapters.notion.create.mockRejectedValueOnce(networkError())
+    const { commitTaskMove, syncPendingChanges } = useTaskSync()
+
+    move('t1', 'notion')
+    closeWindow('t1')
+    expect(await commitTaskMove('t1')).toBe('queued')
+    expect(tasksStore.task('t1')?.pendingSync?.createUncertain).toEqual({ since: expect.any(Number), at: expect.any(Number), title: 'Rückruf' })
+
+    // The draft is the live task, whose marker the successful create drops: read what the create saw while it ran
+    const seen: Array<{ doubt: unknown; claimed: string[] }> = []
+    adapters.notion.create.mockImplementationOnce(async (draft: Partial<Task>, ctx?: { claimedExternalIds: ReadonlySet<string> }) => {
+      seen.push({ doubt: draft.pendingSync?.createUncertain, claimed: [...(ctx?.claimedExternalIds ?? [])] })
+      return { ...(draft as Task), id: 'notion-page-1', source: 'notion', externalId: 'notion-page-1' }
+    })
+    health.markHealthy('notion')
+    await syncPendingChanges()
+    expect(seen).toEqual([{ doubt: { since: expect.any(Number), at: expect.any(Number), title: 'Rückruf' }, claimed: ['page-9'] }])
   })
 
   it('offline: the move waits without calling anything, then reconnecting creates once and removes the origin', async () => {
@@ -327,7 +351,7 @@ describe('useTaskSync: committing a move (#322)', () => {
     closeWindow('a')
     await commitTaskMove('a')
 
-    expect(adapters.notion.create).toHaveBeenCalledWith(expect.objectContaining({ timeSpentSeconds: 150, status: TaskStatus.Progress }))
+    expect(adapters.notion.create).toHaveBeenCalledWith(expect.objectContaining({ timeSpentSeconds: 150, status: TaskStatus.Progress }), expect.anything())
     // The create does not write time spent: a follow-up write does, with the page id
     expect(adapters.notion.update).toHaveBeenCalledWith(expect.objectContaining({ externalId: 'notion-page-1', timeSpentSeconds: 150 }))
     expect(tasksStore.task('a')).toMatchObject({ timerId: 42, timeSpentSeconds: 150, source: 'notion', status: TaskStatus.Progress })
@@ -358,7 +382,7 @@ describe('useTaskSync: committing a move (#322)', () => {
     closeWindow('a')
     await commitTaskMove('a')
 
-    expect(adapters.notion.create).toHaveBeenCalledWith(expect.objectContaining({ status: TaskStatus.Waiting }))
+    expect(adapters.notion.create).toHaveBeenCalledWith(expect.objectContaining({ status: TaskStatus.Waiting }), expect.anything())
   })
 
   it('a move that is already committing is not started twice (two triggers, one create)', async () => {

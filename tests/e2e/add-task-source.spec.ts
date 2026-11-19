@@ -313,8 +313,10 @@ test.describe('creating while the default source needs attention (#321)', () => 
     expect(pending.externalId).toBeNull()
     expect(pending.id).toMatch(/^local_/)
 
-    // The connection is back: the retry from the Mehr panel creates the page
+    // The connection is back: the retry from the Mehr panel creates the page. The refused create may still have
+    // reached the proxy (#528), so a retry inside the landing wait only looks for the page; two minutes on, it creates.
     await page.unroute('**/api/notion/**')
+    await page.clock.setSystemTime(new Date(Date.now() + 3 * 60 * 1000))
     await resync(page)
 
     await expect(page.locator(CLOUD)).toHaveCount(0)

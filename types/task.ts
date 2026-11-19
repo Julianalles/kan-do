@@ -45,6 +45,21 @@ export interface PendingSync {
    * replay after a restart needs no in-memory state. Absent on a marker written before #344.
    */
   upstreamDone?: boolean;
+  /**
+   * A create of this never-created task ended with an unknown outcome (a timeout, a network error, a 5xx: the page may
+   * exist, #528). `since` is the epoch ms of the first such attempt, `at` the last, `title` the title the last one sent (the title can
+   * be edited while the task waits). While it is set the next create looks the page up first and adopts it instead of
+   * making a second one. Absent: no create is in doubt.
+   */
+  createUncertain?: CreateUncertain;
+}
+
+export interface CreateUncertain {
+  /** Epoch ms of the first doubtful attempt. */
+  since: number;
+  /** Epoch ms of the last one: the page may still land until a while after it (`createMayLandUntil`). Absent on a marker without it: `since` stands in. */
+  at?: number;
+  title: string;
 }
 
 /**

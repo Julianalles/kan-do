@@ -469,6 +469,43 @@ describe('NotionClientAPI', () => {
     })
   })
 
+  describe('a create is never re-sent after an unknown outcome (#528)', () => {
+    const body = { Name: { title: [{ text: { content: 'New Task' } }] } }
+
+    it('does not retry a create that timed out or hit a network error: the page may exist', async () => {
+      ;(fetch as any).mockRejectedValue(new Error('The operation was aborted'))
+
+      await expect(api.createPage('db-123', body)).rejects.toMatchObject({ name: 'NotionAPIError', statusCode: 0 })
+      expect(fetch).toHaveBeenCalledTimes(1)
+    })
+
+    it('does not retry a create that got a 5xx: Notion may have made the page', async () => {
+      ;(fetch as any).mockResolvedValue({ ok: false, status: 502, statusText: 'Bad Gateway', json: () => Promise.resolve({}) })
+
+      await expect(api.createPage('db-123', body)).rejects.toMatchObject({ statusCode: 502 })
+      expect(fetch).toHaveBeenCalledTimes(1)
+    })
+
+    it('still retries a create that a 429 refused before it made a page', async () => {
+      ;(fetch as any)
+        .mockResolvedValueOnce({ ok: false, status: 429, statusText: 'Too Many Requests', headers: new Headers(), json: () => Promise.resolve({}) })
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ id: 'new-page', object: 'page' }) })
+
+      const result = await api.createPage('db-123', body)
+      expect(fetch).toHaveBeenCalledTimes(2)
+      expect(result.id).toBe('new-page')
+    })
+
+    it('keeps retrying a read POST (a query) after a timeout', async () => {
+      ;(fetch as any)
+        .mockRejectedValueOnce(new Error('The operation was aborted'))
+        .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve({ results: [], has_more: false }) })
+
+      await api.queryDataSource('ds-1', {})
+      expect(fetch).toHaveBeenCalledTimes(2)
+    })
+  })
+
   describe('updatePage()', () => {
     it('updates page properties', async () => {
       const mockUpdated = { id: 'page-1', object: 'page' }

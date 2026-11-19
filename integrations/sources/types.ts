@@ -40,6 +40,12 @@ export interface FetchedTasks {
   readInParts?: boolean
 }
 
+/** What `create` may need to know about the board (#528). */
+export interface CreateContext {
+  /** `externalId`s of the tasks the store already holds for this source: pages a lookup must not adopt. */
+  claimedExternalIds: ReadonlySet<string>
+}
+
 export interface TaskSourceAdapter {
   readonly id: SourceId
   /** Whether time spent is written upstream (Notion). Todoist has no such field, Local has no upstream. */
@@ -97,8 +103,12 @@ export interface TaskSourceAdapter {
    */
   readonly startsNotPlanned?: boolean
 
-  /** Creates a task upstream and resolves to it, source and externalId stamped. */
-  create(draft: Partial<Task>): Promise<Task>
+  /**
+   * Creates a task upstream and resolves to it, source and externalId stamped. A draft whose `pendingSync.createUncertain`
+   * is set had a create with an unknown outcome (#528): a source that can tell looks for the page it may have made and
+   * adopts it instead of creating a second one, never adopting an id in `ctx.claimedExternalIds` (held by another task).
+   */
+  create(draft: Partial<Task>, ctx?: CreateContext): Promise<Task>
 
   /**
    * Writes the task's current state upstream. `change.previousStatus` is the status the source held before

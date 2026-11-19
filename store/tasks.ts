@@ -18,6 +18,7 @@ import { isValidDayKey } from "~/utils/recapDay";
 import { isKnownSource } from "~/utils/sourceMeta";
 import type { IntegrationSourceId, SourceId } from "~/types/taskSource";
 import { disarmTaskTimer } from "~/lib/taskTimers";
+import { isLandedCandidate } from "~/lib/createLookup";
 import { discardLiveSeconds, liveSecondsOf } from "~/lib/liveTime";
 import { generateTaskId, legacyTaskSource, normalizePendingDeletes, normalizeTasks, sourceSyncsTime } from "~/lib/taskSources";
 import { normalizePriority } from "~/lib/priority";
@@ -536,6 +537,71 @@ export const useTasksStore = defineStore("tasks", () => {
     pendingSyncRevisions.delete(taskId);
     mapHelpers.delete(pendingTimeUpdates.value, taskId);
     return true;
+  }
+
+  /**
+   * A create of the task ended with an unknown outcome (#528: the page may exist): the marker says since when (the
+   * earliest attempt stays), until when the last attempt may still land (`at`, the latest stays) and under which
+   * title (the last one sent), so the next create looks for the page first and waits for a late one. A task that
+   * already has an `externalId` has none.
+   */
+  function markCreateUncertain(taskId: string, attemptedAt: number, title: string): void {
+    const target = tasks.value.find((el) => el.id === taskId);
+    if (!target?.pendingSync || target.externalId !== null) return;
+    const held = target.pendingSync.createUncertain;
+    target.pendingSync = {
+      ...target.pendingSync,
+      createUncertain: { since: Math.min(attemptedAt, held?.since ?? attemptedAt), at: Math.max(attemptedAt, held?.at ?? held?.since ?? attemptedAt), title },
+    };
+  }
+
+  /**
+   * The pages of `source` that belong to something already: a card, a delete still to reach the source (its undo
+   * window or the queue), a move's origin page, a page the user deleted. A lookup for the page of a create in doubt
+   * must never adopt one of them (#528).
+   */
+  function claimedPages(source: SourceId): Set<string> {
+    const claimed = new Set<string>();
+    const add = (id: string | null | undefined) => { if (id != null) claimed.add(id); };
+    for (const held of tasks.value) {
+      if (held.source === source) add(held.externalId);
+      if (held.pendingMove?.fromSource === source) add(held.pendingMove.fromExternalId);
+    }
+    for (const pending of Object.values(pendingDeletes.value)) {
+      if (pending.task.source === source) add(pending.task.externalId);
+      if (pending.task.pendingMove?.fromSource === source) add(pending.task.pendingMove.fromExternalId);
+    }
+    for (const id of deletedTaskIds.value) add(id);
+    return claimed;
+  }
+
+  /**
+   * A fetch that returns the page a create in doubt made must not add it as a card of its own (#528): the task that
+   * waits for it would create a second page at the next push. Hands each such page (same title, created since the
+   * doubt, held by nothing else, the oldest first) to the oldest waiting task: it takes the page's id, drops the
+   * doubt and keeps its marker, so the next push writes its current state onto the page. A task whose push is under
+   * way is left alone (its create is in flight).
+   */
+  function adoptLandedPages(source: SourceId, fetched: readonly Task[], pushing?: (taskId: string) => boolean): void {
+    if (source === 'local') return;
+    const waiting = tasks.value
+      .filter((el) => el.source === source && el.externalId === null && el.pendingSync?.createUncertain !== undefined && pushing?.(el.id) !== true)
+      .sort((x, y) => x.pendingSync!.createUncertain!.since - y.pendingSync!.createUncertain!.since);
+    if (waiting.length === 0) return;
+    const claimed = claimedPages(source);
+    const free = fetched
+      .map((page) => ({ page, id: page.externalId ?? page.id, createdAtMs: page.createdAt ? new Date(page.createdAt).getTime() : null }))
+      .filter((entry) => !claimed.has(entry.id))
+      .sort((x, y) => (x.createdAtMs ?? 0) - (y.createdAtMs ?? 0));
+    for (const waiter of waiting) {
+      const doubt = waiter.pendingSync!.createUncertain!;
+      const hit = free.findIndex((entry) => isLandedCandidate({ title: entry.page.title, createdAtMs: entry.createdAtMs }, doubt));
+      if (hit < 0) continue;
+      const id = free.splice(hit, 1)[0]!.id;
+      const { createUncertain: _doubt, ...rest } = waiter.pendingSync!;
+      waiter.externalId = id;
+      waiter.pendingSync = rest;
+    }
   }
 
   /** A push of the task failed: counts the attempt and keeps the reason on the marker. */
@@ -1105,6 +1171,8 @@ export const useTasksStore = defineStore("tasks", () => {
    *   lacks stays as it is, and so does a task with unpushed changes; every other task the list lacks is dropped.
    */
   function mergeTasks(source: SourceId, fetchedTasks: Task[], options: { replaceOthers?: boolean; heldTime?: (seconds: number) => number; timeWritable?: boolean; holdsOnlyOpenDone?: boolean; startsNotPlanned?: boolean; partialNotPlanned?: readonly string[]; readInParts?: boolean; confirmedDrop?: boolean; fetchStartedAt?: number; pushing?: (taskId: string) => boolean } = {}): void {
+    // The page of a create in doubt (#528) belongs to the task that waits for it, not to a card of its own
+    adoptLandedPages(source, fetchedTasks, options.pushing);
     const boardStore = useBoardStore();
 
     // A completed switch replaces the Local tasks it adopted; another connected integration's tasks stay (#320)
@@ -1736,6 +1804,8 @@ export const useTasksStore = defineStore("tasks", () => {
     clearPendingSync,
     recordPendingSyncFailure,
     completeCreate,
+    markCreateUncertain,
+    claimedPages,
     reassignSource,
     restoreMoveOrigin,
     completeMoveCreate,

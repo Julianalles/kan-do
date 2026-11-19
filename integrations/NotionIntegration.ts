@@ -16,6 +16,7 @@ import { cleanNewValue } from "~/lib/quickAddSuggestions";
 import { fieldsForSource } from "~/utils/sourceFields";
 import { DEFAULT_PRIORITY, normalizePriority, normalizePriorityMapping, notionNameToPriority, priorityToNotionName } from "~/lib/priority";
 import { useErrorHandler } from '~/composables/useErrorHandler';
+import { landedPageFrom, isLandedCandidate } from '~/lib/createLookup';
 import { NotionClientAPI } from './NotionClientAPI';
 
 
@@ -58,6 +59,9 @@ type NotionTopicProperty = {
 
 /** Property types Notion accepts for the mapped status column. */
 type StatusPropertyType = 'select' | 'status';
+
+/** `findLandedPage` reads at most this many candidates; the oldest one is adopted. */
+const CREATE_LOOKUP_LIMIT = 50;
 
 /**
  * Detected type of the mapped status property per `${dataSourceId}:${propertyName}`, for the app
@@ -550,6 +554,39 @@ export class NotionIntegration {
       [TaskStatus.Backlog]: "Backlog", // Backlog is not configurable, use default
     };
     return reverseStatusMap[status] || this.statusMapping.today;
+  }
+
+  /**
+   * The page an earlier create with an unknown outcome may have made (#528): the oldest page of the data source that
+   * has `title`, was created at or after `since` (less `CREATE_LOOKUP_SLACK_MS` for the clock difference to Notion) and
+   * is not in `claimed` (held by another task). `null` when there is none: the create did not land.
+   * A failed query rejects; the caller must not create then.
+   */
+  async findLandedPage(title: string, since: number, claimed: ReadonlySet<string> = new Set()): Promise<string | null> {
+    if (!this.dataSourceId) throw new Error('No data source ID configured');
+    const from = new Date(landedPageFrom({ since })).toISOString();
+    const response = await this.api.queryDataSource(this.dataSourceId, {
+      filter: {
+        and: [
+          { property: this.propertyMapping.title, title: { equals: title } },
+          { timestamp: 'created_time', created_time: { on_or_after: from } },
+        ],
+      },
+      sorts: [{ timestamp: 'created_time', direction: 'ascending' }],
+      maxResults: CREATE_LOOKUP_LIMIT,
+    });
+    // Checked again here as well: a transport that ignores the filter must not hand back a page it did not make
+    const doubt = { since, title };
+    const match = (response.results as NotionPage[])
+      .filter((page) => !claimed.has(page.id))
+      .map((page) => ({
+        id: page.id,
+        title: (page.properties?.[this.propertyMapping.title]?.title ?? []).map((part) => part.plain_text ?? '').join(''),
+        createdAtMs: page.created_time ? Date.parse(page.created_time) : null,
+      }))
+      .filter((page) => isLandedCandidate(page, doubt))
+      .sort((x, y) => (x.createdAtMs ?? 0) - (y.createdAtMs ?? 0))[0];
+    return match?.id ?? null;
   }
 
   /**
