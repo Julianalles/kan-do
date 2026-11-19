@@ -32,12 +32,15 @@ const MAX_QUERY_PAGES = 100;
 export class NotionAPIError extends Error {
   public readonly statusCode: number;
   public readonly data: unknown;
+  /** What a 429's `Retry-After` asked for, in ms (#529); null when the response named no wait or was not a 429. */
+  public readonly retryAfterMs: number | null;
 
-  constructor(statusCode: number, message: string, data?: unknown) {
+  constructor(statusCode: number, message: string, data?: unknown, retryAfterMs: number | null = null) {
     super(message);
     this.name = 'NotionAPIError';
     this.statusCode = statusCode;
     this.data = data;
+    this.retryAfterMs = retryAfterMs;
   }
 }
 
@@ -154,6 +157,8 @@ export class NotionClientAPI {
             'Content-Type': 'application/json',
           },
           body: body ? JSON.stringify(body) : undefined,
+          // The timer below must cancel the request itself, or a stalled desktop request never ends (#527)
+          signal: controller.signal,
         });
       } else {
         // Browser: Use server proxy to avoid CORS
@@ -162,10 +167,10 @@ export class NotionClientAPI {
         response = await fetch(proxyUrl, proxyOptions);
       }
 
-      clearTimeout(timeoutId);
-
+      // The timer stays armed until the body is read: a stalled body ends the request as well (#527)
       if (response.ok) {
         const data = await response.json();
+        clearTimeout(timeoutId);
         // Normalize server proxy responses that return arrays directly
         // to match Notion API format { results: [...] }
         if (!isTauri() && Array.isArray(data) && endpoint === '/search') {
@@ -186,6 +191,10 @@ export class NotionClientAPI {
       } catch {
         errorData = { message: response.statusText };
       }
+      clearTimeout(timeoutId);
+
+      // What a 429 asked for (#507); a thrown 429 carries it so the push loops can pause the source (#529)
+      const asked = response.status === 429 ? retryAfterMs(response) : null;
 
       // Don't retry on 401 (auth error) or 4xx client errors (except 429)
       if (response.status === 401 || (response.status >= 400 && response.status < 500 && response.status !== 429)) {
@@ -196,15 +205,14 @@ export class NotionClientAPI {
       if (retriesLeft > 0 && (response.status === 429 || (response.status >= 500 && !isPageCreate(method, endpoint)))) {
         // A 429 says when the limit lifts (#507): retrying earlier fails again and spends more quota. A wait over
         // the cap is not slept: throw the 429 so the caller can keep the work for later.
-        const asked = response.status === 429 ? retryAfterMs(response) : null;
         if (asked !== null && asked > MAX_RETRY_AFTER_MS) {
-          throw new NotionAPIError(response.status, response.statusText, errorData);
+          throw new NotionAPIError(response.status, response.statusText, errorData, asked);
         }
         await this.sleep(asked ?? backoffMs);
         return this.fetchWithRetry<T>(method, endpoint, body, retriesLeft - 1, backoffMs * 2, timeoutMs);
       }
 
-      throw new NotionAPIError(response.status, response.statusText, errorData);
+      throw new NotionAPIError(response.status, response.statusText, errorData, asked);
     } catch (error) {
       clearTimeout(timeoutId);
 

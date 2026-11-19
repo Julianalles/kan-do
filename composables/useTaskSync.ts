@@ -10,7 +10,7 @@ import { isNetworkError } from '~/lib/errorMessages';
 import { mapHelpers } from '~/utils/mapHelpers';
 import type { PendingTaskDelete } from '~/store/tasks';
 import { isIntegrationSourceId, sourceSyncsTime } from '~/lib/taskSources';
-import { classifySyncFailure, createFailureKind, createOutcomeUnknown, isCreateWaiting, pushFailureScope } from '~/lib/integrationHealth';
+import { classifySyncFailure, createFailureKind, createOutcomeUnknown, isCreateWaiting, pushFailureScope, rateLimitOf } from '~/lib/integrationHealth';
 import { useBoardStore } from '~/store/board';
 import type { SourceId } from '~/types/taskSource';
 import { notifyTaskMoveRejected } from '~/lib/taskMoveEvents';
@@ -49,6 +49,19 @@ const statusWritesByStore = new WeakMap<object, Map<string, StatusWrite>>();
  * reconnect and a manual sync) never create an offline-made task twice: the second sees its id and updates.
  */
 const pushesByStore = new WeakMap<object, Map<string, Promise<boolean>>>();
+
+/**
+ * How long a source's pushes pause after a 429 that named no wait (#529): the public instance's Worker answers 60 s,
+ * Notion's own limit is per minute.
+ */
+export const RATE_LIMIT_WINDOW_MS = 60_000;
+
+/**
+ * When a source's push pause ends (epoch ms), per Pinia app (#529). A 429 is a limit on the whole source, so one
+ * request that gets it stops every push loop for that source until the window has passed. In memory only: after a
+ * restart the first request finds the limit again.
+ */
+const rateLimitsByStore = new WeakMap<object, Map<SourceId, number>>();
 
 /**
  * One queued or running status write. `upstream` is the status the task's source holds once the
@@ -98,6 +111,25 @@ export const useTaskSync = () => {
   statusWritesByStore.set(tasksStore, statusWritesInFlight);
   const pushesInFlight = pushesByStore.get(tasksStore) ?? new Map<string, Promise<boolean>>();
   pushesByStore.set(tasksStore, pushesInFlight);
+  const rateLimitedUntil = rateLimitsByStore.get(tasksStore) ?? new Map<SourceId, number>();
+  rateLimitsByStore.set(tasksStore, rateLimitedUntil);
+
+  /** Whether `source` is inside the window a 429 named (#529): nothing is sent to it, its tasks keep their marker. */
+  const isRateLimited = (source: SourceId): boolean => {
+    const until = rateLimitedUntil.get(source);
+    if (until === undefined) return false;
+    if (Date.now() < until) return true;
+    rateLimitedUntil.delete(source);
+    return false;
+  };
+
+  /** A failed request that was a 429 pauses the pushes of its source; any other failure changes nothing. */
+  const noteRateLimit = (source: SourceId, error: unknown): void => {
+    const limit = rateLimitOf(error);
+    if (!limit || source === 'local') return;
+    const until = Date.now() + (limit.retryAfterMs ?? RATE_LIMIT_WINDOW_MS);
+    rateLimitedUntil.set(source, Math.max(until, rateLimitedUntil.get(source) ?? 0));
+  };
 
   /**
    * Updates a task's status and syncs with the appropriate integration
@@ -300,6 +332,10 @@ export const useTaskSync = () => {
     } else if (typeof navigator !== 'undefined' && navigator.onLine === false) {
       deferredReason = 'Offline';
       created = { ...(await adapterFor('local').create(draft)), source };
+    } else if (isRateLimited(source)) {
+      // A 429 paused the source (#529): the create waits behind the marker like one made offline
+      deferredReason = 'Rate limited';
+      created = { ...(await adapterFor('local').create(draft)), source };
     } else {
       createAttemptedAt = Date.now();
       try {
@@ -451,6 +487,8 @@ export const useTaskSync = () => {
 
   /** A write went through, so the source is reachable again: a push-only recovery needs no fetch to show it (#319). */
   const restoreSourceAfterPush = (source: SourceId): void => {
+    // A write went through, so the limit has lifted
+    rateLimitedUntil.delete(source);
     if (isDisconnected(source)) return;
     if (isIntegrationSourceId(source) && health.needsAttention(source)) health.markHealthy(source);
   };
@@ -464,6 +502,8 @@ export const useTaskSync = () => {
    * the sync button's popover offers the repair.
    */
   const reportPushFailure = (task: Task, error: unknown, syncContext: string): void => {
+    // A 429 limits the whole source: the loops stop sending to it until the window has passed (#529)
+    noteRateLimit(task.source, error);
     // The source was disconnected while the push was in flight (#320): nobody is waiting for its health or a toast
     if (isDisconnected(task.source)) {
       console.error(`[TaskSync] ${syncContext} (source disconnected meanwhile):`, error);
@@ -542,6 +582,8 @@ export const useTaskSync = () => {
       }
 
       for (const taskId of sourceTaskIds) {
+        // A 429 limits the whole source (#529): the rest waits for the next push, the markers stay
+        if (isRateLimited(source)) break;
         const task = tasksStore.task(taskId);
         if (!task) {
           continue;
@@ -550,7 +592,7 @@ export const useTaskSync = () => {
         // Never created upstream (made while the source was unreachable): the push creates it first
         if (task.externalId === null) {
           const pushed = await runSync(task);
-          if (!pushed && health.needsAttention(source)) break;
+          if (!pushed && (health.needsAttention(source) || isRateLimited(source))) break;
           continue;
         }
 
@@ -619,12 +661,15 @@ export const useTaskSync = () => {
 
     for (const [source, sourceTasks] of bySource) {
       for (const task of sourceTasks) {
+        // A 429 limits the whole source (#529): nothing more is sent until the window has passed; the tasks keep
+        // their marker and their order for the next push
+        if (isRateLimited(source)) break;
         const live = tasksStore.task(task.id);
         if (!live || !tasksStore.isSyncPending(live.id) || pushesInFlight.has(live.id)) continue;
         const pushed = await runSync(live);
         // A source that is down, rejects us or is failing fails the same way for every other task: try again
         // next time. A page the source refuses (the task's own failure) does not stop the others.
-        if (!pushed && health.needsAttention(source)) break;
+        if (!pushed && (health.needsAttention(source) || isRateLimited(source))) break;
       }
     }
 
@@ -793,6 +838,7 @@ export const useTaskSync = () => {
     const move = task.pendingMove!;
     const reason = health.needsAttention(target) ? health.healthOf(target).lastError ?? 'Source needs attention'
       : typeof navigator !== 'undefined' && navigator.onLine === false ? 'Offline'
+      : isRateLimited(target) ? 'Rate limited'
       : null;
     if (reason !== null) {
       // Nothing is called: the move waits behind the marker. The reason shows on the card, once.
@@ -850,6 +896,7 @@ export const useTaskSync = () => {
 
   /** A create failed for a reason that may pass: the move stays local, the reason goes on the marker, no toast. */
   const deferMove = (task: Task, error: unknown): void => {
+    noteRateLimit(task.source, error);
     tasksStore.recordPendingSyncFailure(task.id, error instanceof Error ? error.message : String(error));
     if (isIntegrationSourceId(task.source) && !isDisconnected(task.source) && pushFailureScope(error) === 'source') {
       health.recordFailure(task.source, error);
@@ -864,10 +911,12 @@ export const useTaskSync = () => {
     const origin = originToRemove(task);
     if (origin) {
       if (typeof navigator !== 'undefined' && navigator.onLine === false) return 'queued';
+      if (isRateLimited(origin.source)) return 'queued';
       try {
         await adapterFor(origin.source).remove(origin);
       } catch (error) {
         if (!isAlreadyGone(error)) {
+          noteRateLimit(origin.source, error);
           console.error(`[TaskSync] Could not remove the origin copy of task ${taskId} yet:`, error);
           return 'queued';
         }
@@ -918,6 +967,8 @@ export const useTaskSync = () => {
     void (async () => {
       for (const taskId of toPush) {
         const live = tasksStore.task(taskId);
+        // Inside a 429 window the rest stays marked; `syncPendingChanges` sends it after the window (#529)
+        if (live && isRateLimited(live.source)) continue;
         if (live && live.pendingSync) await runSync(live);
       }
     })();
