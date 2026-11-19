@@ -122,6 +122,16 @@ describe('MorePanel: the Mehr panel (#470)', () => {
     expect(w.find('[data-testid="more-stack"]').exists()).toBe(true)
   })
 
+  it('keeps its rows when the route and `open` change in the same tick (#595)', async () => {
+    route.path = '/tasks'
+    const w = render()
+    route.path = '/settings'
+    await w.setProps({ open: false })
+    await nextTick()
+    expect(w.find('[data-testid="more-settings"]').exists()).toBe(true)
+    expect(w.find('[data-testid="more-stack"]').exists()).toBe(true)
+  })
+
   it.each(['/all', '/tasks', '/statistics', '/trash', '/settings'])('on %s the places are the pill\'s segments: no Heute and Statistik rows', (path) => {
     route.path = path
     const w = render()

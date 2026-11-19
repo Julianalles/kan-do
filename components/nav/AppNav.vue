@@ -198,7 +198,7 @@ const tooltipText = computed(() => t('nav.moreWithCommands', { commands: t('nav.
 // A source that cannot sync stays visible on ⋯ (the dock's sync icon is gone); a healthy sync is silent
 const worstProblem = computed(() => health.problemsOf(boardStore.connectedIntegrations)[0] ?? null)
 // One colour for every failing state, orange (#595, DESIGN.md "Colour": a connection that needs a look); the 500 step is below 3:1 (WCAG 1.4.11): the dot takes the 700 step
-const dotTone = computed(() => ('bg-warning-700'))
+const dotTone = 'bg-warning-700'
 
 // A route change closes the panel (a row that stays on the same route closes it itself)
 watch(() => route.value.fullPath, () => { open.value = false })

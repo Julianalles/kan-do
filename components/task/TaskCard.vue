@@ -560,7 +560,9 @@ const openDetails = (event: MouseEvent) => {
 }
 
 /* Undo (#422, D6): the card grows back and fades in; transform and opacity only. The gap that held its slot
-   disappears at once; the neighbours glide down in 200 ms (#595). */
+   disappears at once; the neighbours glide down in 200 ms (#595). The card's own grow-back is transform and
+   opacity only; the room it takes back is a `margin-bottom` run, the one layout property here (the glide of the cards below). Reduced
+   motion replaces the whole shorthand, so the neighbours snap there on purpose. */
 .task--returning {
   animation:
     task-returning 180ms var(--ease-emphasized),

@@ -214,15 +214,16 @@ const props = defineProps<{
 }>()
 const nav = useAppNav()
 // The panel closes on a route change, so the rows that depend on the route are frozen while it leaves: the
-// panel keeps its shape for the fade instead of shrinking and moving (#595)
+// panel keeps its shape for the fade instead of shrinking and moving (#595). The route and `open` change in the
+// same tick, so the snapshot is taken after render (`post`), when `open` is already false.
 const frozen = ref({ onBoard: nav.onBoard.value, thirdItem: nav.thirdItem.value, recapShown: nav.recapShown.value })
 watchEffect(() => {
-  if (!props.open) return
-  frozen.value = { onBoard: nav.onBoard.value, thirdItem: nav.thirdItem.value, recapShown: nav.recapShown.value }
-})
-const onBoard = computed(() => frozen.value.onBoard)
-const thirdItem = computed(() => frozen.value.thirdItem)
-const recapShown = computed(() => frozen.value.recapShown)
+  const live = { onBoard: nav.onBoard.value, thirdItem: nav.thirdItem.value, recapShown: nav.recapShown.value }
+  if (props.open) frozen.value = live
+}, { flush: 'post' })
+const onBoard = computed(() => (props.open ? nav.onBoard.value : frozen.value.onBoard))
+const thirdItem = computed(() => (props.open ? nav.thirdItem.value : frozen.value.thirdItem))
+const recapShown = computed(() => (props.open ? nav.recapShown.value : frozen.value.recapShown))
 const boardStore = useBoardStore()
 const health = useIntegrationHealthStore()
 const { groupingOptions, effectiveGroupKey, setGroupingEnabled, setGroupingKey } = useBoardGrouping()
