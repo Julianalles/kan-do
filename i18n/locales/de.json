@@ -1048,7 +1048,7 @@
         "heading": "Sicherungen",
         "open": "Sicherungen öffnen",
         "last": "Letzte Sicherung: {time}",
-            "now": "Jetzt sichern",
+        "now": "Jetzt sichern",
         "working": "Wird gesichert…",
         "empty": "Noch keine Sicherungen. Die erste entsteht vor der nächsten Änderung.",
         "loading": "Sicherungen werden gelesen…",
@@ -1253,7 +1253,7 @@
     "reminders": {
       "pageTitle": "Erinnerungen-Einstellungen",
       "pageDescription": "Hier änderst du jederzeit, was du beim Einrichten gewählt hast.",
-    "pageDescriptionNew": "Verbinde Apple Erinnerungen mit Kan-Do.",
+      "pageDescriptionNew": "Verbinde Apple Erinnerungen mit Kan-Do.",
       "lists": "Listen",
       "today": "Heute",
       "access": "Zugriff",

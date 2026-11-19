@@ -1048,7 +1048,7 @@
         "heading": "Backups",
         "open": "Open backups",
         "last": "Last backup: {time}",
-            "now": "Back up now",
+        "now": "Back up now",
         "working": "Backing up…",
         "empty": "No backups yet. The first one appears before your next change.",
         "loading": "Reading backups…",
@@ -1253,7 +1253,7 @@
     "reminders": {
       "pageTitle": "Reminders settings",
       "pageDescription": "Change what you chose during setup any time.",
-    "pageDescriptionNew": "Connect Apple Reminders to Kan-Do.",
+      "pageDescriptionNew": "Connect Apple Reminders to Kan-Do.",
       "lists": "Lists",
       "today": "Today",
       "access": "Access",

@@ -28,7 +28,8 @@ event, the page owns the single confirmation modal.
 
     <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
       <p v-if="lastLine" class="text-sm text-muted" data-testid="data-backups-last">{{ lastLine }}</p>
-      <UButton class="ms-auto"
+      <UButton
+        class="ms-auto"
         variant="soft"
         color="neutral"
         :loading="working"
