@@ -78,9 +78,18 @@ describe('dropdown menu rows keep the phone floor (#336)', () => {
 
 describe('command palette rows keep the phone floor (#345)', () => {
   it('a row is 36 px from md up and at least 44 px below it, content centred below md', () => {
-    const src = readFileSync(join(root, 'components/CommandPalette.vue'), 'utf8')
-    const item = src.match(/^\s*item: '([^']+)'/m)?.[1] ?? ''
+    // The rows' look is the `commandPalette` theme (#599), not a call-site `:ui`
+    const src = readFileSync(join(root, 'app.config.ts'), 'utf8')
+    const item = src.slice(src.indexOf('commandPalette: {')).match(/^\s*item: '([^']+)'/m)?.[1] ?? ''
     expect(item.split(' ')).toEqual(expect.arrayContaining(['min-h-9', 'max-md:min-h-11', 'max-md:items-center']))
     expect(item.split(' ')).not.toContain('items-center')
+  })
+})
+
+describe('the app bar problem dot takes the 700 step (#599, WCAG 1.4.11)', () => {
+  it('the chip theme fills with the same role steps as the solid badge, not the 500 step', () => {
+    const src = readFileSync(join(root, 'app.config.ts'), 'utf8')
+    expect(src).toMatch(/chip: \{\s*variants: \{ color: ROLE_FILL \}/)
+    expect(src).toMatch(/const ROLE_FILL = \{[^}]*warning: 'bg-warning-700'/)
   })
 })

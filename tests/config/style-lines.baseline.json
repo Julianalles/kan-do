@@ -1,0 +1,118 @@
+{
+  "components/board/AddTaskSlot.vue": {
+    "count": 184,
+    "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
+  },
+  "components/board/BoardCapacityDivider.vue": {
+    "count": 66,
+    "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
+  },
+  "components/board/BoardCapacityDock.vue": {
+    "count": 7,
+    "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
+  },
+  "components/board/BoardCapacityEcho.vue": {
+    "count": 75,
+    "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
+  },
+  "components/board/BoardColumn.vue": {
+    "count": 84,
+    "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
+  },
+  "components/board/BoardColumnHeader.vue": {
+    "count": 133,
+    "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
+  },
+  "components/board/BoardColumnNotice.vue": {
+    "count": 68,
+    "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
+  },
+  "components/board/BoardColumnProgressContent.vue": {
+    "count": 41,
+    "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
+  },
+  "components/board/BoardColumnYesterdayNote.vue": {
+    "count": 140,
+    "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
+  },
+  "components/board/BoardFocusBar.vue": {
+    "count": 112,
+    "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
+  },
+  "components/board/BoardFocusTrigger.vue": {
+    "count": 34,
+    "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
+  },
+  "components/board/BoardNotPlanned.vue": {
+    "count": 142,
+    "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
+  },
+  "components/board/BoardNotPlannedGroup.vue": {
+    "count": 75,
+    "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
+  },
+  "components/board/BoardNotPlannedItem.vue": {
+    "count": 68,
+    "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
+  },
+  "components/board/BoardPageDots.vue": {
+    "count": 49,
+    "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
+  },
+  "components/board/ColumnDropZone.vue": {
+    "count": 22,
+    "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
+  },
+  "components/board/NewCardFlow.vue": {
+    "count": 396,
+    "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
+  },
+  "components/board/SortableTaskWrapper.vue": {
+    "count": 35,
+    "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
+  },
+  "components/board/TaskDraftCard.vue": {
+    "count": 21,
+    "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
+  },
+  "components/task/TaskCard.vue": {
+    "count": 447,
+    "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
+  },
+  "components/task/TaskCarryOverDots.vue": {
+    "count": 40,
+    "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
+  },
+  "components/task/TaskCompletionBurst.vue": {
+    "count": 63,
+    "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
+  },
+  "components/task/TaskDeletedGap.vue": {
+    "count": 116,
+    "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
+  },
+  "components/task/TaskPriorityBadge.vue": {
+    "count": 6,
+    "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
+  },
+  "components/task/TaskProgressChip.vue": {
+    "count": 150,
+    "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
+  },
+  "components/task/TaskStack.vue": {
+    "count": 166,
+    "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
+  },
+  "components/task/TaskStackHeader.vue": {
+    "count": 59,
+    "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
+  },
+  "components/task/TaskStackPill.vue": {
+    "count": 65,
+    "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
+  },
+  "components/task/TaskTimeboxNudge.vue": {
+    "count": 226,
+    "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
+  }
+}

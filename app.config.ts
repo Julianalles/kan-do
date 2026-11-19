@@ -76,6 +76,20 @@ const alertRoleCompounds = [
   ...(['secondary', 'success', 'info', 'warning'] as const).map((color) => ({ color, variant: 'solid' as const, class: { root: ROLE_FILL[color] } }))
 ]
 
+// The flat note (`variant="flat"` of the alert): the subtle wash without the ring. Literal class names, like above.
+const ALERT_FLAT_WASH = {
+  primary: 'bg-primary/10',
+  secondary: 'bg-secondary/10',
+  success: 'bg-success/10',
+  info: 'bg-info/10',
+  warning: 'bg-warning/10',
+  error: 'bg-error/10'
+} as const
+const alertFlatCompounds = [
+  ...ROLE_NAMES.map((color) => ({ color, variant: 'flat' as const, class: { root: `${ALERT_FLAT_WASH[color]} ${ALERT_ROLE_TEXT[color]}` } })),
+  { color: 'neutral' as const, variant: 'flat' as const, class: { root: 'text-highlighted bg-elevated/50' } }
+]
+
 export default defineAppConfig({
   ui: {
     // tailwind-merge does not know our `--text-*` type roles (main.css `@theme`, #70): without this `text-label/3` reads as
@@ -396,7 +410,10 @@ export default defineAppConfig({
       slots: {
         // The state language (DESIGN.md "States"): the one disabled look here; the hand cursor, the press and the
         // fast transition come from the base layer (assets/css/main.css) for every pressable element.
-        base: 'max-md:min-h-11 disabled:opacity-50 aria-disabled:opacity-50'
+        base: 'group/btn max-md:min-h-11 disabled:opacity-50 aria-disabled:opacity-50',
+        // A trailing caret turns while the button controls an open popup (`aria-expanded`), the way the select's caret does; the
+        // button names its own group, so a button inside another group is not read by that one
+        trailingIcon: 'transition-transform duration-(--duration-base) group-aria-expanded/btn:rotate-180'
       },
       variants: {
         size: {
@@ -519,8 +536,46 @@ export default defineAppConfig({
         // Full-strength description: Nuxt UI's `opacity-90` takes every role's text below AA on its own wash (#353, kd#123)
         description: 'text-body opacity-100'
       },
+      variants: {
+        // The flat note (DESIGN.md "Tell the user something": one quiet line above the content): the subtle alert without its ring,
+        // a line high instead of a box, the title in the text colour. Trash note, data storage notice. It stays off a sheet that
+        // already is the box (`DataResetSection` keeps icon and text, no card in a card).
+        variant: { flat: { root: 'py-3', title: 'text-default' } }
+      },
       // Role text on the role's wash: the default 500 step measures 1.8 to 4.1:1 (#353, #368, #74, kd#123)
-      compoundVariants: alertRoleCompounds
+      compoundVariants: [...alertRoleCompounds, ...alertFlatCompounds]
+    },
+    // The app bar's problem dot is the one chip: the fill takes the 700 step, the 500 one is below 3:1 (WCAG 1.4.11), like the solid badge
+    chip: {
+      variants: { color: ROLE_FILL }
+    },
+    // The palette (Variant B "Quiet Desk", chosen over stock A and dense C): display-role group headings like the column names, no
+    // hard dividers between groups, suffix in Graphite (`text-muted`) for AA contrast. The slots sit in a compound variant, not in
+    // `slots`: Nuxt UI's `size` and `virtualize` variants come after the slots and would win the merge (`text-xs`, `divide-y`).
+    commandPalette: {
+      compoundVariants: [
+        {
+          size: 'md',
+          class: {
+            root: 'divide-default/40',
+            viewport: 'divide-y-0 p-2 mask-b-from-92%',
+            group: 'p-0 pb-3',
+            label: 'text-base font-semibold text-muted px-3 pt-3 pb-1',
+            // The stock highlight (bg-elevated/50) is invisible on the bg-elevated (white) modal, and so is bg-muted (~1.07:1); use the
+            // canvas fill's hover step, the same warm tint as every other state fill (main.css `--fill-on-canvas-hover`).
+            // Disabled rows keep full opacity so the reason suffix stays AA; only the label is dimmed.
+            // 36 px from md up, at least 44 px below it (DESIGN.md "Control height", #345), content on the row's middle there.
+            item: 'min-h-9 max-md:min-h-11 max-md:items-center px-3 py-2 text-sm before:rounded-lg data-disabled:opacity-100 data-highlighted:not-data-disabled:before:bg-(--fill-on-canvas-hover)',
+            itemLabelBase: 'group-data-disabled:text-dimmed',
+            itemLeadingIcon: 'group-data-disabled:text-dimmed',
+            itemLabelSuffix: 'text-muted'
+          }
+        }
+      ]
+    },
+    // A group's legend is the 14 px medium label in the highlighted text colour (the one radio group is the data folder choice)
+    radioGroup: {
+      slots: { legend: 'text-sm font-medium text-highlighted' }
     },
     badge: {
       variants: {

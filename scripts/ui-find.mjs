@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Search the UI kit manifest by job words (#79, epic #58): `npm run ui:find -- <words>`.
+ * Search the UI kit manifest by user-task words (#79, epic #58): `npm run ui:find -- <words>`.
  *
  * First step of the Pattern check (`.claude/rules/ui-patterns.md`). Reads the manifest (`buildManifest()` in
  * scripts/ui-manifest.mjs, derived from the doc blocks on every run, no committed file; nothing is hard-coded here), scores every entry by how many query words start a word of its
@@ -64,7 +64,7 @@ export function formatResult({ entry, score }) {
 if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const words = queryWords(process.argv.slice(2).join(' '))
   if (!words.length) {
-    console.error('usage: npm run ui:find -- <job words>   e.g. npm run ui:find -- "confirm destructive"')
+    console.error('usage: npm run ui:find -- <user-task words>   e.g. npm run ui:find -- "confirm destructive"')
     process.exit(2)
   }
   let manifest

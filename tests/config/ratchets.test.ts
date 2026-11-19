@@ -7,7 +7,7 @@ import { buildManifest, loadCatalogEntries, UI_CATEGORIES } from '../../scripts/
 import { missingEntries } from '~/dev-tools/ui-catalog/validateEntry'
 import type { ManifestRow } from '~/dev-tools/ui-catalog/catalogModel'
 
-// Count ratchets of the UI kit (#78, epic #58): raw `<button>` and `:ui` bindings per file, against committed baselines
+// Count ratchets of the UI kit (#78, epic #58, #599): raw `<button>`, `:ui` bindings, raw page elements, style blocks and look classes per file, against committed baselines
 // that may only fall (`npm run ratchet:lower`), and the `/ui` entries check. Counts, not a frozen file list, so the category
 // slices that remove buttons and bindings in parallel only lower their own file's number.
 
@@ -61,6 +61,54 @@ describe('seeded violations (#78)', () => {
     expect(finding).toContain('pages/p.vue has 4 :ui bindings, the baseline allows 0')
     expect(finding).toContain('app.config.ts theme')
     expect(finding).toContain('D1')
+  })
+
+  it('raw elements: a page counts everything but div, template and slot; a component and the dev page are not counted (#599, guard 90)', () => {
+    const page = '<template>\n  <div><section><p>a</p><ul><li>x</li></ul></section><slot /><UButton /><template #x><span /></template></div>\n</template>\n<script setup lang="ts">\nconst a: Array<string> = []\n</script>'
+    const dir = fixture({ 'pages/p.vue': page, 'pages/ui.vue': page, 'layouts/l.vue': '<template>\n  <main><slot /></main>\n</template>', 'components/C.vue': page })
+    expect(countRatchet(dir, 'raw-element')).toEqual({ 'pages/p.vue': 5, 'layouts/l.vue': 1 })
+    const [finding] = checkRatchet(dir, 'raw-element')
+    expect(finding).toContain('pages/p.vue has 5 raw elements, the baseline allows 0')
+  })
+
+  it('style blocks: counted outside board, task, ui, overlay and recap; lines counted in board and task only (#599, guard 91)', () => {
+    const block = '<template><div /></template>\n<style scoped>\n.a {\n  color: red;\n}\n</style>\n'
+    const dir = fixture({
+      'components/Misc.vue': block,
+      'components/topic/T.vue': block,
+      'components/board/B.vue': block,
+      'components/ui/K.vue': block,
+      'components/overlay/O.vue': block,
+      'components/recap/R.vue': block,
+      'components/task/Card.vue': `${block}<style>\n.b { top: 0; }\n</style>\n`,
+      'pages/p.vue': '<template><div /></template>\n<style></style>\n',
+    })
+    expect(countRatchet(dir, 'style-block')).toEqual({ 'components/Misc.vue': 1, 'components/topic/T.vue': 1, 'pages/p.vue': 1 })
+    expect(countRatchet(dir, 'style-lines')).toEqual({ 'components/board/B.vue': 3, 'components/task/Card.vue': 4 })
+    expect(checkRatchet(dir, 'style-block')[0]).toContain('components/Misc.vue has 1 style block outside board, task, ui, overlay and recap, the baseline allows 0')
+  })
+
+  it('a look class on a kit component: text, font, padding to zero, ring and background count; layout classes and a UIcon tint do not (#599, guard 98)', () => {
+    const dir = fixture({
+      'components/Look.vue': [
+        '<template>',
+        '  <div>',
+        '    <UButton class="px-0">a</UButton>',
+        '    <UBadge :class="active ? \'ring ring-accented\' : \'\'" />',
+        '    <ULink class="hover:text-default underline" />',
+        '    <UCard class="bg-elevated" />',
+        '    <UAlert class="items-center w-full mt-2 flex-wrap" />',
+        '    <UIcon name="i-ph-x" class="text-muted size-4" />',
+        '    <UButton class="text-center" @click="() => go()">b</UButton>',
+        '    <p class="text-muted bg-muted">no kit tag</p>',
+        '  </div>',
+        '</template>',
+      ].join('\n'),
+    })
+    expect(countRatchet(dir, 'ui-class-look')).toEqual({ 'components/Look.vue': 4 })
+    const [finding] = checkRatchet(dir, 'ui-class-look')
+    expect(finding).toContain('components/Look.vue has 4 kit component tags with a look class, the baseline allows 0')
+    expect(finding).toContain('app.config.ts theme')
   })
 
   it('a file at its baseline passes; above fails; a baseline above the count fails and says how to lower it', () => {

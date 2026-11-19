@@ -3,8 +3,8 @@ import { ICONS } from '../../lib/icons.ts'
 
 /**
  * Nuxt UI button. The matrix is read from the merged theme (`.nuxt/ui/button.ts` plus `app.config.ts`), so a colour,
- * variant or size the theme gains appears without an edit here. The button ladder (kd#177, DESIGN.md "Components"): two
- * heights, `md` 32 px (the default) and `lg` 36 px (the one main action of a surface), and four looks (solid, soft, ghost,
+ * variant or size the theme gains appears without an edit here. The One Height Rule (#424, DESIGN.md
+ * "The One Height Rule"): one height, 36 px (48 px on a phone), for `md` and `lg` alike, and four looks (solid, soft, ghost,
  * link). The theme still holds Nuxt UI's `xs`, `sm`, `xl`, `outline` and `subtle` (a theme cannot delete a key); no template uses them and the matrix (`only`) leaves them out.
  */
 export default {
@@ -12,8 +12,8 @@ export default {
   source: 'nuxt-ui',
   kind: 'primitive',
   category: 'action',
-  description: 'The one button of the app: solid, soft, ghost and link looks in the semantic colour roles, in two heights (32 px, and 36 px for the one main action of a surface).',
-  usage: 'Every action that is not a navigation; a text-style action inside a quiet surface is `ghost` neutral, a button that reads as a link `link`. Back and forward steps are a ghost neutral square button with `ICONS.back` / `ICONS.forward` and an `aria-label` (never a raw `<button>`). `md` is the default; the one primary action of a surface sets `size="lg"`, every other button keeps the default; soft for a neutral action that stands alone and the one main action of a row, ghost for further actions in a row, card, menu or toolbar and every icon-only button (the button ladder, DESIGN.md "Components"). Icon-only buttons set `square` and an aria-label.',
+  description: 'The one button of the app: solid, soft, ghost and link looks in the semantic colour roles, at one height (36 px, 48 px on a phone).',
+  usage: 'Every action that is not a navigation; a text-style action inside a quiet surface is `ghost` neutral, a button that reads as a link `link`. Back and forward steps are a ghost neutral square button with `ICONS.back` / `ICONS.forward` and an `aria-label` (never a raw `<button>`). `md` is the default and the one height (36 px, `lg` lands on the same line); the one primary action of a surface is solid primary, not a taller button; soft for a neutral action that stands alone and the one main action of a row, ghost for further actions in a row, card, menu or toolbar and every icon-only button (the button ladder, DESIGN.md "Components", The One Height Rule). Icon-only buttons set `square` and an aria-label.',
   avoid: 'Not for navigation to a page (NuxtLink, ExternalLink for outside pages) and not for a toggle that stays pressed (UCheckbox, USwitch).',
   alternatives: ['ExternalLink', 'ULink', 'UDropdownMenu'],
   theme: 'button',

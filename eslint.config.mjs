@@ -207,6 +207,11 @@ export default withNuxt([
     }
   },
   {
+    // No empty <template>, <script> or <style> block (#599, guard 92): an empty style block is dead code that a later edit fills by habit
+    files: ['**/*.vue'],
+    rules: { 'vue/no-empty-component-block': 'error' }
+  },
+  {
     // TaskStatus is a numeric enum and Open is 0 (#435): no truthiness check on a status value. Untyped name-based
     // custom rule (a typed one costs ~+80% lint time here); see the rule's header for the trade-off.
     files: ['**/*.ts', '**/*.vue'],

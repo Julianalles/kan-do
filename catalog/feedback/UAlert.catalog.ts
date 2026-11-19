@@ -10,7 +10,7 @@ export default {
   kind: 'compound',
   category: 'feedback',
   description: 'The inline notice: a short message with an optional title, icon and actions in the semantic colour roles (DESIGN.md "Components").',
-  usage: '`variant="subtle"` with `color` `error` for a failure, `warning` for "needs attention", `info` for a hint, `success` for a confirmed good result, `neutral` for a quiet result. The call site sets `role` (`alert` for a failure that appears, `status` for a state) and `data-testid`; text goes into `description` (and `title` when a second line helps). A system notice with actions is `orientation="horizontal"` (DataStorageNotice).',
+  usage: '`variant="subtle"` with `color` `error` for a failure, `warning` for "needs attention", `info` for a hint, `success` for a confirmed good result, `neutral` for a quiet result. The call site sets `role` (`alert` for a failure that appears, `status` for a state) and `data-testid`; text goes into `description` (and `title` when a second line helps). A system notice with actions is `orientation="horizontal"` (DataStorageNotice). The flat note, one quiet line above the content (the trash note, DataStorageNotice), is `variant="flat"`: the subtle alert without its ring, a line high; never `ring-0` or `py-3` at the call site.',
   avoid: 'Not for a field\'s own error (UFormField error), not for a reaction to an action that passes by (a toast, raised with `useToast`), and no hand-built tinted box or coloured `<p role="alert">` line next to it.',
   alternatives: ['DataStorageNotice', 'EmptyNote'],
   theme: 'alert',
@@ -21,6 +21,7 @@ export default {
   variants: [
     { id: 'failure', label: 'failure line (subtle error)', props: { color: 'error', variant: 'subtle', icon: 'i-ph-x-circle', role: 'alert', description: { $t: 'feedback.screenshot.failed' } } },
     { id: 'title-description', label: 'title and description', props: { color: 'warning', variant: 'subtle', icon: 'i-ph-warning', title: { $t: 'sync.warning.title' }, description: { $t: 'settings.data.backups.loadFailed' } } },
+    { id: 'flat-note', label: 'flat note (quiet line above the content)', props: { color: 'neutral', variant: 'flat', icon: 'i-ph-info', description: { $t: 'settings.data.backups.loadFailed' } } },
   ],
   states: [
     { id: 'error', state: 'error', props: { color: 'error', variant: 'subtle', icon: 'i-ph-x-circle', role: 'alert', description: { $t: 'settings.data.backups.loadFailed' } } },

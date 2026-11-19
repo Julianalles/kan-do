@@ -58,7 +58,6 @@ stays), a folder that already holds data offers "use the data already there" (th
             color="neutral"
             name="data-folder-mode"
             :aria-label="t('settings.data.modal.choiceLabel')"
-            :ui="{ legend: 'text-sm font-medium text-highlighted', description: 'text-muted' }"
           />
         </template>
 
