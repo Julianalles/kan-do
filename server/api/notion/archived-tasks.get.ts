@@ -81,21 +81,9 @@ export default defineEventHandler(async (event) => {
 
       hasMore = response.has_more ?? false
       startCursor = response.next_cursor ?? undefined
-
-      // Debug logging for pagination (dev only)
-      if (process.env.NODE_ENV !== 'production') {
-        console.log(`[Archived Tasks] Fetched ${response.results?.length || 0} tasks, total: ${allResults.length}, has_more: ${hasMore}`);
-      }
     }
   } catch (error) {
-    handleNotionError(error)
-  }
-
-  // Debug logging for final response (dev only)
-  if (process.env.NODE_ENV !== 'production') {
-    console.log("=== NOTION ARCHIVED TASKS API RESPONSE DEBUG ===");
-    console.log("Total archived tasks fetched:", allResults.length);
-    console.log("=== END DEBUG ===");
+    handleNotionError(error, event)
   }
 
   const readTitle = (props: Record<string, unknown>, key: string): string | null => {

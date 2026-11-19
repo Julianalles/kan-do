@@ -12,5 +12,5 @@ export default defineEventHandler((event) => {
   const token = getTokenFromEvent(event)
   if (!token || !isNotionStubEnabled(token)) return
   const status = stubFailureStatus(token)
-  if (status !== null) handleNotionError(stubFailureError(status))
+  if (status !== null) handleNotionError(stubFailureError(status), event)
 })

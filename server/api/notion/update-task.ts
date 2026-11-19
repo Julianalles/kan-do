@@ -69,6 +69,6 @@ export default defineEventHandler(async (event) => {
 
     return { success: true }
   } catch (error) {
-    handleNotionError(error)
+    handleNotionError(error, event)
   }
 });

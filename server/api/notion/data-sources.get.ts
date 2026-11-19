@@ -29,7 +29,7 @@ export default defineEventHandler(async (event) => {
       try {
         return getStubbedDataSource(dataSourceId, token)
       } catch (error) {
-        handleNotionError(error)
+        handleNotionError(error, event)
       }
     }
     const stubbed = getStubbedDataSources<NormalizedDataSource[]>()
@@ -56,7 +56,7 @@ export default defineEventHandler(async (event) => {
     try {
       return await notion.request<Record<string, unknown>>({ method: 'get', path: `data_sources/${dataSourceId}` })
     } catch (error) {
-      handleNotionError(error)
+      handleNotionError(error, event)
     }
   }
 
@@ -158,6 +158,6 @@ export default defineEventHandler(async (event) => {
 
     return normalized
   } catch (error) {
-    handleNotionError(error)
+    handleNotionError(error, event)
   }
 })
