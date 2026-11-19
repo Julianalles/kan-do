@@ -233,7 +233,8 @@ export default defineAppConfig({
     // rows 32 px (`min-h-8`), at least 44 px below `md` and centred (the phone floor, #342). The list holds about 5 rows, then scrolls.
     inputMenu: {
       slots: {
-        base: 'h-(--field-h) disabled:cursor-not-allowed disabled:opacity-50',
+        // `max-md:pe-11`: the text stops before the 44 px chevron (the `lg` field's `pe-10` is 40 px)
+        base: 'h-(--field-h) max-md:pe-11 disabled:cursor-not-allowed disabled:opacity-50',
         // The chevron button at the end is at least 44 px wide on a phone (it is `--field-h` high), its icon centred in it (#592)
         trailing: 'max-md:min-w-11 max-md:justify-center',
         // The chevron answers the pointer: its ink darkens (DESIGN.md "States", Hover: a text control darkens its text; #592)
@@ -556,8 +557,8 @@ export default defineAppConfig({
     // An outlined white track with a muted-ink thumb (--ui-text-muted, 5.5:1 on the page wash) reads as off; on stays the filled primary track.
     switch: {
       slots: {
-        // On a phone the 36 x 20 track gets an invisible 44 px hit area (14 px around it): every switch, no call site repeats it (#592)
-        base: 'relative max-md:after:absolute max-md:after:-inset-3.5 data-[state=unchecked]:bg-default data-[state=unchecked]:border-(--ui-text-muted)',
+        // On a phone the 36 x 20 track gets an invisible 44 px hit area (4 px to the sides, inside the 12 px gap a field leaves; 12 px above and below): every switch, no call site repeats it (#592)
+        base: 'relative max-md:after:absolute max-md:after:-inset-x-1 max-md:after:-inset-y-3 data-[state=unchecked]:bg-default data-[state=unchecked]:border-(--ui-text-muted)',
         thumb: 'shadow-none data-[state=unchecked]:bg-(--ui-text-muted)'
       }
     },

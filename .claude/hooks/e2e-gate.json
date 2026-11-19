@@ -856,7 +856,10 @@
         "components/notion/**",
         "composables/useNotion*",
         "composables/usePropertyOptionsSync*",
-        "pages/settings/notion.vue"
+        "pages/settings/**",
+        "components/nav/**",
+        "components/notion/**",
+        "assets/css/app-nav.css"
       ],
       "specs": [
         "notion-setup-stepper",
@@ -1184,7 +1187,10 @@
         "components/setup/LocalSetupFlow.vue",
         "components/task/TaskDetailMetadata.vue",
         "pages/statistics.vue",
-        "pages/settings/notion.vue"
+        "pages/settings/**",
+        "components/nav/**",
+        "components/notion/**",
+        "assets/css/app-nav.css"
       ],
       "specs": [
         "hover-answer",
