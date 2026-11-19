@@ -3,7 +3,7 @@
 @kind component
 @category action
 @description Draft host of a column: the box the draft card of the task being added appears in (#125). Jetzt: a card-sized add-and-start control that morphs into its draft in the same box. Offen (#248): no button of its own, the header's add button asks it to open; its draft enters at the start of the list
-@usage Offen: first item of the task list (BoardColumn), opened by the header button (`open()`) or by the sheet's draft (`/tasks/add`). Jetzt: overlay of the empty column (BoardColumnProgressContent), opens add-and-start
+@usage Offen: first item of the task list (BoardColumn); on "Alle" a second `in-card` host at the top of the "Meine Aufgaben" list (BoardNotPlanned, #567: its header button and the empty note's button open it, the task is made not planned), opened by the header button (`open()`) or by the sheet's draft (`/tasks/add`). Jetzt: overlay of the empty column (BoardColumnProgressContent), opens add-and-start
 @avoid Not the full add form: the sheet's TaskForm adds with all fields, NewCardFlow asks the guided questions; not for editing an existing task.
 @responsibility
 - Offen (#248): renders nothing but the draft. While no draft is open it has no box at all (`display: contents` root, no wrapper), so card positions in the list equal a board without any slot and the list's gap never opens above the first card. The draft card enters at the top: its wrapper animates the row height 0fr to 1fr with opacity, and a negative bottom margin cancels the list gap while closed, so the cards below follow in step (--duration-base = 200ms, --ease-emphasized); cancel leaves just as fast and the cards close up; reduced motion is instant
@@ -40,6 +40,7 @@
       <div v-if="isDrafting" class="add-task-slot-draft-wrap">
         <new-card-flow
           v-if="flowOpen"
+          ref="flowRef"
           class="add-task-slot-draft"
           :initial-title="flowTitle"
           :suspended="props.hidden"
@@ -99,6 +100,7 @@ const variant = computed(() => (props.status === TaskStatus.Progress ? 'progress
 const route = useRoute();
 const buttonEl = ref<HTMLButtonElement | null>(null);
 const flowOpen = ref(false);
+const flowRef = ref<{ title: string } | null>(null);
 trackInCardAdding(flowOpen); // the focus overlay steps aside while the form is up (kd#56)
 /** The title the card opens with: only after "Rückgängig" on a dropped title (#665) */
 const flowTitle = ref<string | undefined>(undefined);
@@ -170,6 +172,13 @@ function revealSavedWhenReady(id: string, frame = 0) {
 // The sheet (palette, nav, menu) takes over: the unsaved card gives way. A drag does not: the card keeps its box, hidden, and comes back after the drop (#248)
 watch(() => route.path, (path) => {
   if (flowOpen.value && /^\/(tasks|all)\/add/.test(path)) flowOpen.value = false;
+});
+// Offen's card carried from Heute to "Alle" would save a task that lands under "Meine Aufgaben" while its card stands in
+// Offen, beside the card of that side (#567): it gives way like a card the sheet takes over, a typed title comes back with "Rückgängig"
+watch(place, (next, prev) => {
+  if (next !== 'all' || prev === 'all' || !flowOpen.value) return;
+  const title = flowRef.value?.title?.trim();
+  void closeFlow(title ? { title } : undefined);
 });
 /** Neither button nor draft: nothing to reserve the card box for */
 const isEmpty = computed(() => !props.showButton && !isDrafting.value);

@@ -18,7 +18,7 @@
 - One-off (owner, #351, 2026-11-16): "Alle" and "Heute" show Offen with the same look and vertical position, so the way between them reads as one sideways move of the board; no general rule for other places
 - "Alle", drag (#355): a card is carried between "Meine Aufgaben" and Offen with the board's own drag (useBoardDndKit); `data-over-not-planned` on `.board` while that side is the drop
   target (dnd.css takes the placeholder out of Offen's layout). Phone: the edge scroll and its arrows work on the two pages of "Alle" as on Heute's three
-- "Alle": BoardCapacityDock (the capacity echo) in Offen's footer on desktop and as a fixed bar on the phone (the way on to Heute is the app bar's green pill, #373); the two planning moves are announced politely (usePlanMoves)
+- "Alle": BoardCapacityDock (the capacity echo) in Offen's footer on desktop only, so the capacity element shows with the Today column and never over "Meine Aufgaben" (#566; on a phone Offen's own line is in its list); the two planning moves are announced politely (usePlanMoves)
 - Phone: column pages moved by swipe and drag edge-scroll only (no tabs, #470), per place: "Alle" has two ("Meine Aufgaben", Offen), "Heute" three (Offen, Jetzt + Wartet, Erledigt); a swipe, the
   edge-scroll and focus never leave the place. The active page within the place is `data-mobile-page`. Heute opens on Jetzt while a task sits there, else on Offen (kd#191), and on Offen when
   coming from "Alle"; "Alle" opens on "Meine Aufgaben". Focus entering an off-screen page of the place makes it active (the keyboard / screen-reader path the tabs were)
@@ -42,15 +42,6 @@
     <BoardPageDots :page="placePage" :count="placePageCount" :offset-px="swipeOffsetPx" :live="isSwiping" />
 
     <BoardFocusBar />
-    <!-- Phone, on "Alle" (#354): the echo of Offen's capacity line, fixed above the app bar (the way on to Heute is the app bar's green pill, #373) -->
-    <BoardCapacityDock
-      v-if="isAll && isMobile"
-      phone
-      :echo-active="stripPage === NOT_PLANNED_PAGE"
-      :lifted="focusBarShows"
-      :hidden="isDragging"
-      @show-line="showCapacityLineOnPhone"
-    />
 
     <div
       ref="boardEl"
@@ -302,9 +293,7 @@ const { effectiveGroupKey: groupingKey } = useBoardGrouping();
 /**
  * Tasks in the Open/Today column.
  */
-const { applyFocus, focusTopic, chipsOpen } = useBoardFocus();
-/** The topic focus bar shows (its chip row or its pill): on the phone the capacity echo bar steps up above it */
-const focusBarShows = computed(() => focusTopic.value !== null || chipsOpen.value);
+const { applyFocus } = useBoardFocus();
 const tasksOpen = computed(() => applyFocus(tasksStore.tasksOpen));
 
 /**
@@ -464,14 +453,6 @@ onBeforeUnmount(() => {
   placeMove?.cancel();
   placeFades.forEach((fade) => fade.cancel());
 });
-
-/** Phone: the echo's tap. Offen is the other page of "Alle": go there, then bring its capacity line into view. */
-function showCapacityLineOnPhone() {
-  scrollToTab(0);
-  void nextTick(() => {
-    document.querySelector('#column-open [data-testid="capacity-divider"]')?.scrollIntoView({ block: 'center', behavior: 'auto' });
-  });
-}
 
 /** Strip page of a column element: "Meine Aufgaben", Offen, the Jetzt/Wartet group, Erledigt */
 const pageOf = (el: Element): number | null => {

@@ -6,14 +6,14 @@
 @usage Rendered once by Board.vue as the first child of `.board`, left of Offen (desktop: two column tracks wide, the cards in two columns one `--task-list-gap` apart and centred in it, #373, #469; phone: a swipe page of its own left of Offen). `active` says whether the place "Alle" shows, `rendered` whether the cards are in the DOM (also while the board travels to Heute).
 @avoid Not a board column: no status, no sorting and no slot inside it (BoardColumn). Not for the trash or another static list of cards.
 @responsibility
-- Headline: BoardColumnHeader with the same 40 px row below it as every column, so the first card sits level with Offen's first. It carries the round add button (#380): a task made on "Alle" is not planned and lands here, so the button sits where the task appears (the sheet's add form under `/all/add`, as "Aufgabe erstellen" in the empty note); Offen's header has none on "Alle"
+- Headline: BoardColumnHeader with the same 40 px row below it as every column, so the first card sits level with Offen's first. It carries the round add button (#380): a task made on "Alle" is not planned and lands here, so the button sits where the task appears (#567: it opens the Heute flow, an AddTaskSlot `in-card` at the top of this list, which makes the task not planned; the empty note's "Aufgabe erstellen" opens the same card; the sheet under `/all/add` stays for the palette, nav and menu); Offen's header has none on "Alle". The card is one card wide, centred above the panel and the cards (a place in the first grid cell would leave a gap beside it, and moving it between groups would lose the typed title), and the note gives way while it is open; unsaved input is lost when "Alle" is left
 - Cards: TaskCard as the board shows it, always with the source icon (the question here is where a task comes from); a click, a tap or Enter on the focused card opens its sheet under `/all/:id`, so closing returns to "Alle". No card menu. Each card is a BoardNotPlannedItem
 - Drag (#355): a card can be carried onto Offen with the board's own drag (it is planned and lands where it is dropped). The side is one dnd-kit droppable (`data.notPlannedZone`) for a card or stack from Offen: while one is held over it the side shows a wash and "Hier ablegen: nicht heute" under the headline, and the drop takes it off today's board, on top of this list. The cards never make room for one another: no sorting here
 - Pick: a round button per card ("Für heute einplanen", named with the task's title). In the card's top right corner at every width (#469 D2: #467's edge arrow would land on the neighbour card at the 12 px gap), in the soft primary look (primary wash, green arrow; #467); desktop hides it at rest and shows it on hover and keyboard focus, as "Nicht heute" is in the Heute column (#373; it was quiet at rest so a first-time user found it, #354 D1e; a touch-only device keeps it visible); a phone has it always, where a board card has its menu button. The move is `usePlanMoves().planForToday`; keyboard focus goes on to the next card's button
 - Order: `tasksStore.tasksNotPlanned` (put back by hand first, newest first); the topic focus filters it like a column (`useBoardFocus`)
 - A new day (#356, #387, #469): the tasks that were on yesterday's board and are still not planned stand on top in one panel (BoardNotPlannedGroup) headed "Gestern auf dem Board" with their count, for that one day only: the Jetzt and Offen tasks the user's fresh start of today took off the board (`useNewDay().groupIds`) in their board order, then the tasks it took out of Wartet (`waitingIds`, until each is planned again; a task in both shows once, in `groupIds`). Every other task follows plain under "Weitere Aufgaben" (heading and count, no surface). The panel's heading is the 40 px row under the headline, so its first card stays level with Offen's; while an Offen card is held over the side the hint takes that row. Without a panel there are no headings at all; a panel the topic focus leaves empty is not shown. Pick, drag and the focus hand-over work across the groups
 - Limit (#357): when Notion holds more "not planned" pages than a sync loads (`notionConfig.notPlannedLimited`, the most recently edited 500), one muted line under the list says so
-- Empty: one muted note. Nothing held here: "Keine weiteren Aufgaben vorhanden." and the soft button "Aufgabe erstellen" (#367, the user's wording), which opens the sheet's add form under `/all/add`; a task made while "Alle" shows is not planned, so it lands here; a focus without a match: "Keine Aufgaben gefunden."; a board without any task stays blank
+- Empty: one muted note. Nothing held here: "Keine weiteren Aufgaben vorhanden." and the soft button "Aufgabe erstellen" (#367, the user's wording), which opens the card (#567); a task made while "Alle" shows is not planned, so it lands here; a focus without a match: "Keine Aufgaben gefunden."; a board without any task stays blank
 - Many items: on desktop the side is as tall as the window and its list scrolls inside it, so Offen and the capacity echo stay in view; on a phone the page scrolls like every column page
 - Out of view (`active` false) the side is `inert`; Board.vue's CSS takes it out of layout or view once the move is over
 -->
@@ -29,13 +29,14 @@
   >
     <!-- The add button (#380): a task made on "Alle" is not planned and lands here, so the button sits where the task appears -->
     <BoardColumnHeader
+      ref="headerRef"
       :title="t('board.notPlanned.title')"
       :status="TaskStatus.Open"
       :task-count="shown.length"
       :show-add="true"
-      :add-disabled="draftTask !== null"
+      :add-disabled="draftTask !== null || isDrafting || inCardAdding"
       add-test-id="not-planned-add"
-      @add="createTask"
+      @add="addTask"
     />
     <!-- The 40 px row every column has under its title (the sorting control's), so the cards start on Offen's line.
          While an Offen card is held over the side it says what a drop does (#355), where Erledigt has its drop line.
@@ -54,15 +55,27 @@
     </div>
 
     <div v-if="rendered" ref="bodyEl" class="not-planned__body">
+      <!-- The draft host (#567): the Heute flow, in the card, at the top of the list. It has no box while no draft is open -->
+      <div class="not-planned__draft">
+        <AddTaskSlot
+          ref="addSlotRef"
+          :status="TaskStatus.Open"
+          :label="t('board.addTask')"
+          :show-button="false"
+          :hidden="dragState.isDragging"
+          :in-card="true"
+          :focus-fallback="() => headerRef?.addButtonEl() ?? null"
+        />
+      </div>
       <EmptyNote v-if="held.length > 0 && shown.length === 0" class="not-planned__note" data-testid="not-planned-no-match">
         {{ t('board.notPlanned.noMatch') }}
       </EmptyNote>
       <!-- Nothing held here (#367): the sentence and the one way to fill the side from here. The new task is not planned -->
-      <div v-else-if="held.length === 0 && hasTasks" class="not-planned__note flex flex-col items-center gap-3">
+      <div v-else-if="held.length === 0 && hasTasks && !isDrafting" class="not-planned__note flex flex-col items-center gap-3">
         <EmptyNote data-testid="not-planned-empty">
           {{ t('board.notPlanned.empty') }}
         </EmptyNote>
-        <UButton color="neutral" variant="soft" icon="i-ph-plus" data-testid="not-planned-create" @click="createTask">
+        <UButton color="neutral" variant="soft" icon="i-ph-plus" data-testid="not-planned-create" @click="addTask">
           {{ t('board.notPlanned.create') }}
         </UButton>
       </div>
@@ -135,6 +148,7 @@ import { computed, nextTick, ref, useId } from 'vue'
 import { useDroppable } from '@dnd-kit/vue'
 import { useI18n } from 'vue-i18n'
 import { navigateTo } from 'nuxt/app'
+import AddTaskSlot from '~/components/board/AddTaskSlot.vue'
 import BoardColumnHeader from '~/components/board/BoardColumnHeader.vue'
 import EmptyNote from '~/components/ui/EmptyNote.vue'
 import BoardNotPlannedGroup from '~/components/board/BoardNotPlannedGroup.vue'
@@ -144,6 +158,7 @@ import { useBoardFocus } from '~/composables/useBoardFocus'
 import { useBoardPlace } from '~/composables/useBoardPlace'
 import { usePlanMoves } from '~/composables/usePlanMoves'
 import { useNewDay } from '~/composables/useNewDay'
+import { inCardAdding } from '~/composables/useInCardAdding'
 import { useTaskDraft } from '~/composables/useTaskDraft'
 import { useBoardDragState } from '~/composables/useBoardDragState'
 import { notPlannedZoneAccepts } from '~/utils/planDrop'
@@ -215,8 +230,14 @@ const othersHeadingId = useId()
 const hasTasks = computed(() => tasksStore.tasks.length > 0)
 
 const openTask = (id: string) => void navigateTo({ path: `${basePath.value}/${id}` })
-/** "Aufgabe erstellen" (#367): the sheet's add form under "Alle"; `createTask` makes the task not planned there */
-const createTask = () => void navigateTo({ path: `${basePath.value}/add` })
+/** The add button and "Aufgabe erstellen" (#367, #567): the Heute flow in a card at the top of this list; the task is made not planned (NewCardFlow) */
+const headerRef = ref<{ addButtonEl: () => HTMLElement | null } | null>(null)
+const addSlotRef = ref<{ open: () => void, isDrafting: boolean } | null>(null)
+const isDrafting = computed(() => addSlotRef.value?.isDrafting ?? false)
+const addTask = () => {
+  if (inCardAdding.value) return
+  addSlotRef.value?.open()
+}
 
 /** Plans the card. A keyboard user's focus was on the button that now leaves: it goes on to the next card's button. */
 async function pick(id: string, event: MouseEvent) {
@@ -236,6 +257,17 @@ async function pick(id: string, event: MouseEvent) {
 <style scoped>
 .not-planned__body {
   padding-bottom: 2rem;
+}
+
+/* The draft card's row (#567): no box while no draft is open. Open, the card keeps the list's gap below it (the slot's
+   own negative margin only cancels the gap inside Offen's flex list, here there is none) and enters from no margin */
+.not-planned__draft :deep(.add-task-slot-draft-wrap) {
+  margin-bottom: var(--task-list-gap);
+}
+
+.not-planned__draft :deep(.add-task-slot-draft-enter-from),
+.not-planned__draft :deep(.add-task-slot-draft-leave-to) {
+  margin-bottom: 0;
 }
 
 .not-planned__grid {

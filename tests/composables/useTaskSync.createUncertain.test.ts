@@ -93,6 +93,34 @@ describe('a Notion create with an unknown outcome (#528)', () => {
     expect(notion.updateTask).toHaveBeenCalledWith(expect.objectContaining({ externalId: 'page-landed' }))
   })
 
+  it('a fetch that lands while the push looks the page up leaves one card, the task that waited (#555)', async () => {
+    const tasksStore = useTasksStore()
+    notion.createTask.mockRejectedValueOnce(statusError(0))
+    const created = await useTaskSync().createTask(draft, 'notion')
+    let release!: () => void
+    notion.findLandedPage.mockImplementationOnce(async () => {
+      await new Promise<void>((resolve) => { release = resolve })
+      return 'page-landed'
+    })
+    useIntegrationHealthStore().markHealthy('notion')
+    const sync = useTaskSync()
+    const running = sync.syncPendingChanges('notion')
+    await vi.waitFor(() => expect(release).toBeTypeOf('function'))
+    // The page is already in Notion: the fetch makes a card of it, the push is under way and is left alone
+    tasksStore.mergeTasks('notion', [notionPage('page-landed', draft)], { fetchStartedAt: Date.now(), pushing: sync.isPushing })
+    expect(tasksStore.tasks.map((t) => t.id).sort()).toEqual([created.id, 'page-landed'].sort())
+
+    release()
+    await running
+
+    expect(tasksStore.tasks.map((t) => [t.id, t.externalId])).toEqual([[created.id, 'page-landed']])
+    expect(tasksStore.task(created.id)?.pendingSync).toBeUndefined()
+    expect(notion.createTask).toHaveBeenCalledTimes(1)
+    // The next fetch matches the waiting task by its page: one card
+    tasksStore.mergeTasks('notion', [notionPage('page-landed', draft)], { fetchStartedAt: Date.now(), pushing: sync.isPushing })
+    expect(tasksStore.tasks.map((t) => t.id)).toEqual([created.id])
+  })
+
   it('a create that did not land is created on the next push: the task is never lost', async () => {
     const tasksStore = useTasksStore()
     notion.createTask.mockRejectedValueOnce(statusError(0))
