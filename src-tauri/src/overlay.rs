@@ -247,6 +247,82 @@ fn make_non_activating<R: Runtime>(window: &WebviewWindow<R>) {
 #[cfg(not(target_os = "macos"))]
 fn make_non_activating<R: Runtime>(_window: &WebviewWindow<R>) {}
 
+/// One circular clip for everything in the window (#565). The glass view draws its own corner (`CORNER_RADIUS` through
+/// `effects`) and the web view draws the CSS capsule; two curves that are not the same arc differ at the extreme left
+/// and right pixel, which reads as cut ends. Masking the content view's layer (the parent of both) with the circular
+/// curve makes glass, web view and the shadow follow one arc. Core Animation is reached with plain messages, like
+/// `make_non_activating` (no new crate); each is sent only to an object that answers it, so a missing one leaves the
+/// pill as it was. Runs on the main thread, after the glass is applied and before the window is first shown. No effect
+/// off macOS.
+#[cfg(target_os = "macos")]
+fn round_corners<R: Runtime>(window: &WebviewWindow<R>) {
+    use objc2::runtime::AnyObject;
+    use objc2::{msg_send, sel};
+    use objc2_foundation::NSString;
+
+    let target = window.clone();
+    let _ = window.run_on_main_thread(move || {
+        let Ok(ptr) = target.ns_window() else { return };
+        if ptr.is_null() {
+            return;
+        }
+        // SAFETY: `ns_window` is the live NSWindow of this window, and this closure runs on the main thread. Every
+        // object below is checked for null and for the selector before it is messaged.
+        unsafe {
+            let ns_window = &*(ptr as *const AnyObject);
+            let content: *mut AnyObject = msg_send![ns_window, contentView];
+            if content.is_null() {
+                log::warn!("overlay: corner mask skipped (no content view)");
+                return;
+            }
+            let content = &*content;
+            let _: () = msg_send![content, setWantsLayer: true];
+            let layer: *mut AnyObject = msg_send![content, layer];
+            if layer.is_null() {
+                log::warn!("overlay: corner mask skipped (no layer)");
+                return;
+            }
+            let layer = &*layer;
+            let _: () = msg_send![layer, setCornerRadius: CORNER_RADIUS];
+            let can_curve: bool = msg_send![layer, respondsToSelector: sel!(setCornerCurve:)];
+            if can_curve {
+                let circular = NSString::from_str("circular");
+                let _: () = msg_send![layer, setCornerCurve: &*circular];
+            }
+            let _: () = msg_send![layer, setMasksToBounds: true];
+            let _: () = msg_send![ns_window, invalidateShadow];
+        }
+        log::info!("overlay: corner mask applied");
+    });
+}
+
+#[cfg(not(target_os = "macos"))]
+fn round_corners<R: Runtime>(_window: &WebviewWindow<R>) {}
+
+/// The window server derives the shadow from what the window has drawn: once the pill has painted, it is recomputed
+/// along the mask's arc (#565). Main thread, macOS only.
+#[cfg(target_os = "macos")]
+fn refresh_shadow<R: Runtime>(window: &WebviewWindow<R>) {
+    use objc2::runtime::AnyObject;
+    use objc2::msg_send;
+
+    let target = window.clone();
+    let _ = window.run_on_main_thread(move || {
+        let Ok(ptr) = target.ns_window() else { return };
+        if ptr.is_null() {
+            return;
+        }
+        // SAFETY: the live NSWindow, on the main thread; `invalidateShadow` takes no argument and returns nothing
+        unsafe {
+            let ns_window = &*(ptr as *const AnyObject);
+            let _: () = msg_send![ns_window, invalidateShadow];
+        }
+    });
+}
+
+#[cfg(not(target_os = "macos"))]
+fn refresh_shadow<R: Runtime>(_window: &WebviewWindow<R>) {}
+
 fn create_window<R: Runtime>(app: &AppHandle<R>) -> Option<WebviewWindow<R>> {
     let window = WebviewWindowBuilder::new(app, OVERLAY_LABEL, WebviewUrl::App("overlay".into()))
         .title("kan-do")
@@ -269,6 +345,7 @@ fn create_window<R: Runtime>(app: &AppHandle<R>) -> Option<WebviewWindow<R>> {
         .map_err(|error| log::warn!("overlay: window not created: {error}"))
         .ok()?;
     make_non_activating(&window);
+    round_corners(&window);
     let saved = position_path(app).and_then(|path| fs::read_to_string(path).ok()).and_then(|text| parse_position(&text));
     let size = window.outer_size().map(|s| (s.width, s.height)).unwrap_or((WINDOW_WIDTH as u32, WINDOW_HEIGHT as u32));
     let (areas, primary) = work_areas(app);
@@ -416,6 +493,9 @@ pub async fn overlay_ready(
     };
     log::info!("overlay: pill ready (task {})", snapshot.is_some());
     apply(&app);
+    if let Some(window) = app.get_webview_window(OVERLAY_LABEL) {
+        refresh_shadow(&window);
+    }
     Ok(snapshot)
 }
 

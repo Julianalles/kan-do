@@ -4,7 +4,7 @@ import { getTimeboxRingColor, getTimerBarShare } from '~/utils/timeboxProgress'
  * @module nowWindow
  * @description The pure half of the floating Now window (#383, ADR 020): the names it shares with
  * `src-tauri/src/overlay.rs` (`tests/config/overlay-contract.test.ts` keeps both in step), the snapshot the main
- * window publishes, and what the pill derives from it (remaining time, timer line, warning). Plain TypeScript, no store.
+ * window publishes, and what the pill derives from it (remaining time, the tint's share, warning). Plain TypeScript, no store.
  */
 
 /** Label of the pill window (also the key of `capabilities/overlay.json`). */
@@ -62,7 +62,7 @@ export function spentAt(snapshot: NowSnapshot, now: number): number {
 export type NowTone = 'normal' | 'warning'
 
 export interface NowView {
-  /** Share of the timebox that is left, 1 at the start, 0 at the timebox; over it the line is `1` again and `over` is set (a full warning line: it has run out); `null` without a timebox (no line) */
+  /** Share of the timebox that is left, 1 at the start, 0 at the timebox; over it the share is `1` again and `over` is set (a full warning tint: it has run out); `null` without a timebox (no line) */
   line: number | null
   /** What `label` says: the time left, the overrun, or (no timebox) the time passed */
   mode: 'left' | 'over' | 'elapsed'
@@ -82,9 +82,9 @@ function clock(total: number): string {
 }
 
 /**
- * The pill's timer line is a countdown (#436): it starts full and shrinks with the remaining time, in the app's colours
+ * The pill's tint (a line until #565) is a countdown (#436): it starts full and shrinks with the remaining time, in the app's colours
  * (`getTimeboxRingColor`: primary until 80 % of the timebox is spent, warning above and over it; no sound, D8). A task
- * without a timebox has no line; its label counts the time passed.
+ * without a timebox has no tint; its label counts the time passed.
  */
 export function nowView(snapshot: NowSnapshot, now: number): NowView {
   const spent = spentAt(snapshot, now)
@@ -104,7 +104,7 @@ export function nowView(snapshot: NowSnapshot, now: number): NowView {
   }
 }
 
-/** What `lineAnimates` compares between two renders of the timer line */
+/** What `lineAnimates` compares between two renders of the tint */
 export interface LineFrame {
   taskId: string
   /** The timebox in seconds, `null` without one */
@@ -117,13 +117,13 @@ export function lineFrame(snapshot: NowSnapshot, view: NowView): LineFrame {
   return { taskId: snapshot.taskId, box: snapshot.timeBoxSeconds, over: view.over, line: view.line }
 }
 
-/** The longest step (in seconds of the timebox) the line still glides over: a tick, with a second of slack for a late timer */
+/** The longest step (in seconds of the timebox) the tint still glides over: a tick, with a second of slack for a late timer */
 const MAX_GLIDE_SECONDS = 2
 
 /**
- * Whether the line's width may transition from `prev` to `next`. Only the per-tick shrink does: a new task, a changed
+ * Whether the tint's width may transition from `prev` to `next`. Only the per-tick shrink does: a new task, a changed
  * timebox, the step into the overrun (6 px to full), a clock jump or the first frame set the width without motion, so the
- * line never slides across the pill for something other than time passing (#436).
+ * tint never slides across the pill for something other than time passing (#436).
  */
 export function lineAnimates(prev: LineFrame | null, next: LineFrame): boolean {
   if (!prev || prev.line === null || next.line === null || prev.box === null || prev.box !== next.box) return false
