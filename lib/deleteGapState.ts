@@ -10,20 +10,27 @@ import { mapHelpers } from '~/utils/mapHelpers'
 
 /** How long a closing gap glides shut (ms); the gap component's CSS uses the same value. */
 export const GAP_CLOSE_MS = 280
-/** How long a card that came back from an undo plays its grow-back (ms). */
-export const UNDO_RETURN_MS = 180
+/** How long a card that came back from an undo keeps its return class (ms): a little over the longest animation, the 200 ms room glide (`--duration-base`), so it never ends mid-glide (#595). */
+export const UNDO_RETURN_MS = 240
 
 /** Gaps whose undo window has closed and which glide shut, by task id. */
 export const closingGaps = reactive<Record<string, PendingTaskDelete>>({})
-/** Tasks that just came back from an undo and play the grow-back. */
-const returning = reactive<Record<string, true>>({})
+/** Tasks that just came back from an undo and play the grow-back, with the room (px) the card takes back from the cards below. */
+const returning = reactive<Record<string, number>>({})
 
 /** Whether the card just came back from an undo (it plays the grow-back). */
-export const isTaskReturning = (taskId: string): boolean => returning[taskId] === true
+export const isTaskReturning = (taskId: string): boolean => returning[taskId] !== undefined
 
-/** Starts the grow-back of a card for the length of the animation. */
-export function markTaskReturning(taskId: string): void {
-  returning[taskId] = true
+/** The height (px) the card takes back from the cards below while it grows back; 0 when its slot never shrank. */
+export const returningRoom = (taskId: string): number => returning[taskId] ?? 0
+
+/**
+ * Starts the grow-back of a card for the length of the animation. `room` is what the card's slot gave up: the
+ * measured slot height minus the height the gap had when the undo came (0 when no gap held the slot: a card that
+ * lands in another column, a member of a stack that never left the layout).
+ */
+export function markTaskReturning(taskId: string, room = 0): void {
+  returning[taskId] = Math.max(0, Math.round(room))
   setTimeout(() => { mapHelpers.delete(returning, taskId) }, UNDO_RETURN_MS)
 }
 
