@@ -138,7 +138,7 @@ function normalizePendingMove(raw: unknown): PendingMove | undefined {
   const held = fromExternalId === null ? normalizeCreateUncertain(raw.fromCreateUncertain) : undefined
   const doubt = held === undefined ? undefined : { since: held.since, ...(held.at === undefined ? {} : { at: held.at }), title: held.title }
   const exact = raw.fromExternalId === fromExternalId && raw.fromSourceNotPlanned === fromSourceNotPlanned
-    && (doubt === undefined ? raw.fromCreateUncertain === undefined : (held === raw.fromCreateUncertain && Object.keys(held).length === Object.keys(doubt).length))
+    && (doubt === undefined || held === undefined ? raw.fromCreateUncertain === undefined : (held === raw.fromCreateUncertain && Object.keys(held).length === Object.keys(doubt).length))
     && Object.keys(raw).length === 3 + (fromSourceNotPlanned === undefined ? 0 : 1) + (doubt === undefined ? 0 : 1)
   return exact ? (raw as unknown as PendingMove) : {
     fromSource: raw.fromSource, fromExternalId, toSource: raw.toSource,
