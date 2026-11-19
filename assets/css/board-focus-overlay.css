@@ -25,7 +25,8 @@
  *
  * State outside the board (#275): what the lit overlay and an open task sheet change above the board (the app bar's
  * veil, the page dots, the root colours) keys on attributes that Board.vue mirrors in the same update:
- * `data-focus-lit` on `.board-container` and on `<html>`, `data-sheet-open` on `<html>`. Never `html:has(…)` or
+ * `data-focus-lit` on `.board-container` and on `<html>`, `data-sheet-open` and `data-sheet-side` (the add route's
+ * slideover only, #517) on `<html>`. Never `html:has(…)` or
  * `.board-container:has(…)`: a `:has()` on an ancestor keeps everything below in its scope, so each card change
  * restyled the whole page (2 whole-page passes per task sheet on a 73-task board;
  * tests/config/performance-guards.test.ts).
@@ -158,7 +159,8 @@ html[data-sheet-open] .app-nav::before,
   transition: opacity var(--sheet-fade-duration) var(--sheet-fade-easing);
 }
 
-/* #290: the side sheet (md:max-w-xl, 36rem) covers the right of the centred bar. While it is open the group centres in
+/* #290: the side sheet (the add route's slideover, md:max-w-xl, 36rem; `data-sheet-side`, not `data-sheet-open`: the detail
+   route's morph sheet sits at its card and leaves the bar, #517) covers the right of the centred bar. While it is open the group centres in
    the space left of it, so the pill and ⋯ stay whole. On a narrow desktop window the shift stops at 26rem (about the
    group's width) short of the viewport, so the group is never squeezed further. */
 @media (--desktop) {
@@ -166,7 +168,7 @@ html[data-sheet-open] .app-nav::before,
     transition: padding-inline-end var(--sheet-fade-duration) var(--sheet-fade-easing);
   }
 
-  html[data-sheet-open] .app-nav {
+  html[data-sheet-side] .app-nav {
     padding-inline-end: min(36rem, max(0px, calc(100vw - 26rem)));
   }
 }

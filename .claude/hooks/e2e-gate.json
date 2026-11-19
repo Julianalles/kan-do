@@ -799,6 +799,20 @@
       ]
     },
     {
+      "area": "task sheet shells (#468, #517): the add slideover moves the app bar (#290), the detail morph sheet must not, so a sheet component change, or the Board.vue mirror and the stylesheet that read `data-sheet-side`, runs the app bar spec (flagged risk so the fast tier selects it: #513 passed that tier without app-nav)",
+      "risk": true,
+      "paths": [
+        "components/task/TaskSheet*.vue",
+        "components/task/TaskMorphShell.vue",
+        "composables/useSheetSpotlight*",
+        "components/board/Board.vue",
+        "assets/css/board-focus-overlay.css"
+      ],
+      "specs": [
+        "app-nav"
+      ]
+    },
+    {
       "paths": [
         "components/notion/**",
         "composables/useNotion*",
