@@ -150,6 +150,21 @@
         "purpose": "A surface changing size or position."
       },
       {
+        "name": "duration-place",
+        "value": "400ms",
+        "purpose": "A place change: the board and the app bar's indicator moving between places."
+      },
+      {
+        "name": "duration-curtain",
+        "value": "700ms",
+        "purpose": "A key moment's curtain lifting or closing."
+      },
+      {
+        "name": "duration-stage",
+        "value": "1300ms",
+        "purpose": "A key moment's stage arriving or leaving, and the place change inside it."
+      },
+      {
         "name": "ease-standard",
         "value": "cubic-bezier(0.4, 0, 0.2, 1)",
         "purpose": "Things that change in place."
@@ -225,7 +240,7 @@
   ],
   "narrative": {
     "northStar": "Paper Desk",
-    "overview": "A warm paper desk with white sheets on it. Everything you read, enter or edit lies on a sheet; the desk itself stays empty and calm. Kan-Do is a working tool that is glanced at many times a day, so the columns, the cards and the one running task have to stand clearly apart, and nothing asks for attention it has not earned.",
+    "overview": "A warm paper desk with white sheets on it. Everything you enter, edit or operate, and the hard data, lies on a sheet; a page's intro and a side note lie flat on the desk, which otherwise stays empty and calm. Kan-Do is a working tool that is glanced at many times a day, so the columns, the cards and the one running task have to stand clearly apart, and nothing asks for attention it has not earned.",
     "keyCharacteristics": [
       "A warm neutral canvas, never a saturated one. Colour comes in small doses.",
       "White sheets lifted by one warm shadow, one level only: never a sheet on a sheet.",
@@ -268,7 +283,7 @@
       },
       {
         "name": "The Bright Ground Rule",
-        "body": "Text that is read (a brand, a headline, a summary) may lie directly on a photo only where the picture behind it is bright and even enough for WCAG AA (4.5:1, 3:1 for large text). The photo is positioned per breakpoint to guarantee that (the welcome photo is anchored to its bright wall on a phone, so the strip above the sheet shows no table, plant or book), and the contrast is checked on the rendered page at 1280 and 390 px, not assumed from the file. This is the one exception to \"everything you read lies on a sheet\" (Direction); a photo that cannot guarantee a bright ground behind the text gets a sheet (rule candidate #472, owner, 2026-11-18).",
+        "body": "Text that is read (a brand, a headline, a summary) may lie directly on a photo only where the picture behind it is bright and even enough for WCAG AA (4.5:1, 3:1 for large text). The photo is positioned per breakpoint to guarantee that (the welcome photo is anchored to its bright wall on a phone, so the strip above the sheet shows no table, plant or book), and the contrast is checked on the rendered page at 1280 and 390 px, not assumed from the file. Flat text on the plain canvas follows \"Flat intro, lifted work\" (Layout); on a photo this rule decides, and a photo that cannot guarantee a bright ground behind the text gets a sheet (rule candidate #472, owner, 2026-11-18).",
         "section": "colors"
       },
       {
@@ -285,14 +300,24 @@
         "name": "The Sheets Cast Shadows Rule",
         "body": "A shadow belongs to a sheet: a surface lifted off the canvas that holds content. A control never casts one; a selected tab or place is a fill. The one named exception is the app bar's nav pill (flat white, no glass).",
         "section": "elevation"
+      },
+      {
+        "name": "The One Piece Rule",
+        "body": "A view arrives as one piece: incoming content does not rearrange after it is visible, a surface changes size only as a guided motion, and hover never moves a neighbour (user, ten corrections, among them #43, #225, #294).",
+        "section": "motion"
+      },
+      {
+        "name": "The Key Moment Rule",
+        "body": "Deliberate exception (user, 2026-11-19): a once-a-day key moment (welcome to board, recap, planning to \"Heute\", day close) is a full-size stage and moves slower than a mechanical change, because it is \"a one-time-per-day key transition helping to tell the story\" (#433); the key moments share the curtain and take `--duration-curtain` and `--duration-stage`. Challenge was: conflicts: Material's longest duration is 1000 ms, and motion here is otherwise short.",
+        "section": "motion"
       }
     ],
     "dos": [
       "**Do** follow the styling priority: (1) Nuxt UI semantic tokens (`text-muted`, `bg-elevated`, `text-primary`) → (2) baseline overrides in `assets/css/main.css` → (3) custom domain tokens in `assets/css/main.css`.",
       "**Do** put component overrides in `app.config.ts → ui.<component>` and verify slot names via the Nuxt UI MCP `get-component-metadata` or `.nuxt/ui/<component>.ts`.",
-      "**Do** use `bg-page` for the canvas and a white sheet (`PageSheet`, the card, the task sheet, a dialog, a menu) for everything read, entered or edited.",
+      "**Do** use `bg-page` for the canvas and a white sheet (`PageSheet`, the card, the task sheet, a dialog, a menu) for everything entered, edited or operated and for the hard data; a page's intro and a side note lie flat on the canvas.",
       "**Do** name each sheet with a heading in the display face (`SectionHeader`, `PageHeader`).",
-      "**Do** take a line height from the size token of the role (`text-body` for reading text) and a duration from the three duration tokens.",
+      "**Do** take a line height from the size token of the role (`text-body` for reading text) and a duration from the duration tokens.",
       "**Do** ask small questions in place, on the card or the row they belong to, and offer undo for reversible actions."
     ],
     "donts": [

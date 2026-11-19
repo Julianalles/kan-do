@@ -157,6 +157,41 @@ Output: `findings-motion.md`. Done when: every transition of step 1 has a verdic
 
 Screen the ticked items together, batch them by surface (items on the same surface share an issue and a PR), file the issues into the right lane and add the guards. Adopted rule candidates go through skill `design-rule`.
 
+### Session 7 result: batches (2026-11-19)
+
+The user ticked 111 of 117 items (not ticked: 2, 61, 69, 96, 104, 105) and asked for more than the plan: file the batches, adopt the ticked rule candidates and get the issues built through `/orchestrate-gh-issues`. One issue and one PR per surface and lane; a class that spans the whole app (type, grid, hit areas, motion tokens, the kit) is its own surface and carries its guard. Items 10 and 43 are split by place, each issue says which part it holds.
+
+| Issue | Lane | Overview items | Surface |
+|---|---|---|---|
+| #590 | ready | 1, 3, 4, 5, 7 ; guards 93, 94, 95 | type and headings follow the type table, with their guards |
+| #591 | ready | 9 ; guards 99 | spacing and icon sizes on the 4 px grid, with the lint guard |
+| #592 | ready | 12, 14, 27 ; guards 102, 103 | hover answer, disabled look and the 44 px phone floor, with their specs |
+| #593 | ready | 20, 25 ; guards 100 | motion tokens, reduced motion and key-moment durations, with the motion ratchet |
+| #594 | ready | 10, 24, 26, 32 | task sheet, steady layout and a clean metadata line |
+| #595 | ready | 8, 15, 22, 23 | board and Mehr panel, sort control, failing-source colour, steady close and undo |
+| #596 | ready | 6, 10, 17, 18, 28, 30, 34 ; guards 97 | settings pages, headings, destructive and save buttons, clipped tabs, text said once |
+| #597 | ready | 16, 29, 33 | welcome and setup, spelling, failure notice and the back label of the local step |
+| #598 | ready | 11, 13, 31 ; guards 106 | Statistik, aligned tile button, visible row hover, one duration and percent format |
+| #599 | ready | 35, 36, 37, 38, 39, 40 ; guards 90, 91, 92, 98 | kit and theme, call-site overrides into the theme, shared tokens, dead code, wording, ratchets |
+| #600 | ready | guard 101 | guard spec, nothing jumps during a transition and reduced motion is instant |
+| #601 | needs-spec | 19, 45, 73, 74 | place changes, overlay timings and the command palette move one way |
+| #602 | needs-spec | 43, 63, 65, 66, 67, 70 | board controls, sort control on focus, context menu groups, tooltips, one round icon button, steady Mehr switch |
+| #603 | needs-spec | 56, 57, 58, 59, 60 | settings siblings share tab form, token row, text link, text action and loading line |
+| #604 | needs-spec | 50, 53, 79 | Statistik and day close say the same facts the same way; tiles fill the row; empty lists |
+| #605 | needs-spec | 51, 52 | type table gets a key-figure row and an answer for the 14 px group heading |
+| #606 | needs-spec | 48, 62, 68, 72, 78 | settle where DESIGN.md disagrees with itself (sheet radius, selected fill, pill fields, checkbox, confirm colour) |
+| #607 | needs-design | 54, 21, 10, 55, 76, 77, 80 | one setup shell for Notion and Reminders, in the welcome flow and in settings |
+| #608 | needs-design | 41, 42, 75 | topic focus, where the chip row and the "Fokus" pill live |
+| #609 | needs-design | 44, 64 | "Alle", one scroll model, the phone heading and when a card names its source |
+| #610 | needs-design | 46, 43 | one way for a block to open in place (caret, side, motion), and regrouping the board |
+| #611 | needs-design | 47 | one footer per surface kind (dialog, side sheet, flow step) |
+| #612 | needs-design | 49 | day close and recap share one stage shell |
+| #613 | needs-design | 71 | add sheet, one field language and one list of offered timeboxes |
+
+- Rule candidates 81 to 89: adopted and written into `DESIGN.md` through skill `design-rule`; the proposal blocks and code follow-ups are in `rules-adopted.md`.
+- Already tracked (107 to 117): the sweep's additions are a comment on #573, #575, #577, #579, #580, #581, #562, #374 and #478; #554 and #587 got none (nothing to add).
+- Wave order: 1 the seven design rounds and the three issues that park on a `DESIGN.md` decision (#601, #605, #606), so every question reaches the user together; 2 and 3 the ready issues; 4 the guard spec #600, the Specify lane and what the answers release.
+
 ## Tracker
 
 | # | Session | Status | Date | Output | Notes |
@@ -167,7 +202,7 @@ Screen the ticked items together, batch them by surface (items on the same surfa
 | 4 | Rendered walk | done | 2026-11-19 | `findings-rendered.md` | 36 findings: 14 obvious fixes, 20 proposals, 2 guards; its "Not reachable" table lists the rows not walked (mostly Tauri-only states behind a click) |
 | 5 | Motion | done | 2026-11-19 | `findings-motion.md` | 17 findings: 5 obvious fixes, 9 proposals, 1 rule candidate, 2 guards; 217 recordings; its "Not recorded" table lists the gaps (trash, desktop-only pages, phone touch gestures) |
 | 6 | Blind test and overview | done | 2026-11-19 | `overview.md` | blind test: 4 of 4 found unprompted, no rerun needed; 117 items: 40 obvious fixes, 40 proposals, 9 rule candidates, 17 guards, 11 already tracked |
-| 7 | Issues and guards | waits for the user | | | |
+| 7 | Issues and guards | done (filing); the build runs as an orchestration | 2026-11-19 | issues #590 to #613, `rules-adopted.md`, `DESIGN.md` | 24 batches: 11 ready, 6 needs-spec, 7 needs-design; table above the tracker |
 
 Status values: open, running, done, blocked (say on what).
 

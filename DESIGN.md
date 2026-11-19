@@ -59,7 +59,7 @@ This file states the direction, the foundations, the rules and the recurring pat
 
 ## Direction
 
-**Paper Desk.** A warm paper desk with white sheets on it. Everything you read, enter or edit lies on a sheet; the desk itself stays empty and calm. Kan-Do is a working tool that is glanced at many times a day, so the columns, the cards and the one running task have to stand clearly apart, and nothing asks for attention it has not earned.
+**Paper Desk.** A warm paper desk with white sheets on it. Everything you enter, edit or operate, and the hard data, lies on a sheet; a page's intro and a side note lie flat on the desk, which otherwise stays empty and calm. Kan-Do is a working tool that is glanced at many times a day, so the columns, the cards and the one running task have to stand clearly apart, and nothing asks for attention it has not earned.
 
 Airbnb is the positive reference (calm, generous layouts, friendly warmth, flows that happen in place, small polished motion). Trello (rainbow labels, gamified clutter), Notion (dense, technical) and Slack (a saturated block of brand colour as chrome, a dense sidebar, many interactive elements at once) are the anti-references.
 
@@ -103,7 +103,7 @@ Token values live in `assets/css/main.css` and `app.config.ts`; these tables nam
 
 **The Receding Text Rule.** Waiting cards, done titles and placeholders step down through a token colour, never through `opacity` on text, and keep body contrast. The recorded exceptions live with their component and in the a11y test.
 
-**The Bright Ground Rule.** Text that is read (a brand, a headline, a summary) may lie directly on a photo only where the picture behind it is bright and even enough for WCAG AA (4.5:1, 3:1 for large text). The photo is positioned per breakpoint to guarantee that (the welcome photo is anchored to its bright wall on a phone, so the strip above the sheet shows no table, plant or book), and the contrast is checked on the rendered page at 1280 and 390 px, not assumed from the file. This is the one exception to "everything you read lies on a sheet" (Direction); a photo that cannot guarantee a bright ground behind the text gets a sheet (rule candidate #472, owner, 2026-11-18).
+**The Bright Ground Rule.** Text that is read (a brand, a headline, a summary) may lie directly on a photo only where the picture behind it is bright and even enough for WCAG AA (4.5:1, 3:1 for large text). The photo is positioned per breakpoint to guarantee that (the welcome photo is anchored to its bright wall on a phone, so the strip above the sheet shows no table, plant or book), and the contrast is checked on the rendered page at 1280 and 390 px, not assumed from the file. Flat text on the plain canvas follows "Flat intro, lifted work" (Layout); on a photo this rule decides, and a photo that cannot guarantee a bright ground behind the text gets a sheet (rule candidate #472, owner, 2026-11-18).
 
 ### Type
 
@@ -154,10 +154,17 @@ One shadow colour (`--shadow-color`, a warm brown) at three steps.
 | `--duration-fast` | 150 ms | a control or a card changing colour, a press |
 | `--duration-base` | 200 ms | fades, washes, a card settling, neighbours making room |
 | `--duration-slow` | 300 ms | a surface changing size or position |
+| `--duration-place` | 400 ms | a place change: the board and the app bar's indicator moving between places |
+| `--duration-curtain` | 700 ms | a key moment's curtain lifting or closing |
+| `--duration-stage` | 1300 ms | a key moment's stage arriving or leaving, and the place change inside it |
 | `--ease-standard` | `cubic-bezier(0.4, 0, 0.2, 1)` | things that change in place |
 | `--ease-emphasized` | `cubic-bezier(0.2, 0, 0, 1)` | things that arrive and settle |
 
-Motion explains a state change, the way paper would move. It is short, never decorative or looping, never runs on page load, and `prefers-reduced-motion` makes it instant. A component with its own choreography (the app bar's indicator, the progress chip, the completion burst) records it in its doc block.
+Motion explains a state change, the way paper would move. A mechanical change is short; motion is never decorative or looping, and `prefers-reduced-motion` makes it instant. On page load nothing moves except a key moment that opens the session (the new-day recap, the welcome photo). A component with its own choreography (the app bar's indicator, the progress chip, the completion burst) records it in its doc block.
+
+**The One Piece Rule.** A view arrives as one piece: incoming content does not rearrange after it is visible, a surface changes size only as a guided motion, and hover never moves a neighbour (user, ten corrections, among them #43, #225, #294).
+
+**The Key Moment Rule.** Deliberate exception (user, 2026-11-19): a once-a-day key moment (welcome to board, recap, planning to "Heute", day close) is a full-size stage and moves slower than a mechanical change, because it is "a one-time-per-day key transition helping to tell the story" (#433); the key moments share the curtain and take `--duration-curtain` and `--duration-stage`. Challenge was: conflicts: Material's longest duration is 1000 ms, and motion here is otherwise short.
 
 ### States
 
@@ -178,8 +185,13 @@ One answer per state, on every control, whoever built it.
 ## Layout
 
 - **Sheets on a desk.** Everything entered or edited sits on a white sheet; a page is a column of sheets on the canvas (settings sections, statistics tiles) and a heading names each sheet. One concern is one sheet: its parts are separated inside the sheet by a hairline and a lower-level heading, never by a second sheet (owner, 2026-11-15, #333). Inside a sheet, type, space and hairlines group content. No card in a card.
+- **Flat intro, lifted work.** A sheet holds what is operated and the hard data; a page's intro (headline, lead sentence) and a side note lie flat on the canvas (user, #238, #217, #428, #437).
+- **Shared edges.** What belongs together shares an edge: a heading, a button or a note takes the content edge of the block it belongs to (its centre line where the block is centred) (user, among them #437, #297, #293, #565).
+- **Nothing pressed to an edge.** A control inside a strip keeps the strip's padding on every side (user, #293, #573).
+- **One scroll per page.** No scroll area inside a page that scrolls, except a list inside a sheet; a sheet grows with its content (user, #575, #44).
 - **Board (desktop):** three equal columns, Offen | Jetzt with Wartet below it | Erledigt, centred on wide screens. Cards are fixed-size sheets. The Jetzt slot is always one card tall, filled or empty.
 - **Board (phone):** one column page per screen, moved by a swipe (`.claude/rules/mobile-board.md`).
+- **Only the app bar is fixed.** On a phone only the app bar is fixed over a list; an action or a note sits in the header or at the end of the list, so no task is covered (user, #248, #297, #373, #566). A drawer or a toast is an overlay, not a fixed bar.
 - **Groups of cards** collapse into a stack; no lines, boxes or tints around a group.
 - **Chrome:** one global app bar on every page. The board has no toolbar of its own, and the bar is the way between pages. A step inside a flow (the welcome steps) and a deeper route (a settings sub-page) go back with the back button, not with the bar: see "Step back" under Components.
 
@@ -194,10 +206,10 @@ Nuxt UI components first, themed in `app.config.ts`; a shared primitive in `comp
 - **Show a list row:** `ListRow`, one density (cozy, 44 px at least), a muted tint on hover; trailing actions follow the button rule.
 - **Show a status or count:** a neutral `UBadge` in the label role, one size; priority "Hoch" is the one tinted badge on a card. A topic is muted text with its mark, never a chip.
 - **Head a section:** `SectionHeader` (roles: hero, display, headline, sub and the 12 px label) and `PageHeader` (the page title); no hand-written heading classes.
-- **Hold content as a surface:** the sheet. `TaskCard` on the board; `PageSheet` for a page (settings section, statistics tile, trash header, welcome) takes its radius and resting shadow. A card in a page (the trash entries) is a sheet already and sits on the canvas.
+- **Hold content as a surface:** the sheet. `TaskCard` on the board; `PageSheet` for a page (settings section, statistics tile, welcome) takes its radius and resting shadow; a page's intro and a side note (the trash note) take none ("Flat intro, lifted work"). A card in a page (the trash entries) is a sheet already and sits on the canvas.
 - **The task card:** topic first, the title below it, the footer with the source icon first (when the card names its source), then the timebox chip, the carried-over dots and priority (#471). The Jetzt card is a regular card: focus comes from the board stepping back, not from the card changing.
 - **The task sheet:** details and the add form are one sheet, opened the same way from the board and from statistics. A task's detail on desktop is a card-sized sheet that grows out of its card and folds back into it (720 px wide, 32 px corners, title across the top, the rows left and the notes right, Metadaten and Löschen on the last line; `TaskMorphShell`, #468); the add form on desktop is a side sheet; on a phone both are a bottom drawer.
-- **Ask in a dialog:** `AppDialog` in three widths; `ResponsiveOverlay` when it becomes a drawer on a phone. For flows that need the whole stage; one overlay at a time.
+- **Ask in a dialog:** `AppDialog` in three widths; `ResponsiveOverlay` when it becomes a drawer on a phone. For a question or a short task the user returns from, never for a process ("A process is a page"); one overlay at a time.
 - **Ask about one card:** on the card (`TaskTimeboxNudge`, the new-card flow): non-modal, self-dismissing, ignoring it loses nothing.
 - **Tell the user something:** an undo toast after a reversible action or for news; `UAlert` subtle for a state inside a flow; the `UFormField` error for a field; one quiet line above the content for a state the user cannot fix now. A healthy sync is silent.
 - **Show an empty place:** `EmptyState` for a page or tab whose main content is a list that fills with use, `EmptyNote` (one muted sentence) everywhere else; empty columns stay blank.
@@ -214,9 +226,11 @@ Nuxt UI components first, themed in `app.config.ts`; a shared primitive in `comp
 - **Undo instead of confirm.** Deleting and completing act at once and offer undo; no "Are you sure?". An irreversible action confirms in place, never in a modal.
 - **Optimistic moves.** Moves apply at once; sync runs in the background and surfaces only on failure.
 - **No modal on modal.** A sub-flow replaces the dialog or happens inside it.
+- **A process is a page.** A process the user stays in until it is done (a setup, a key moment) is a page or a stage; a dialog is for a question or a short task the user returns from, and carries no header or footer line without a purpose (user, #43, #468, #463).
 - **Quiet notices over interruptions.** System states and news are a notice, a toast or a popover, never a dialog that opens by itself.
 - **Earned celebration.** Everyday actions confirm quietly; completing a task earns a short celebration around the card: once per completion, about a second, design-system colours, no sound, never blocking. Recorded exception (owner, 2026-11-06): rewarding achievements supports motivation. Recorded exception (owner, #295, 2026-11-14): a task finished below its timebox shows one praise line on the confirmation layer ("Sehr gut! Schneller als geplant."), and the burst is bolder and carries green, warning orange, sky and marker yellow (never raspberry, never a topic hue); this is the only praise text.
 - **A view filter never hides Jetzt.** Any view-only reduction of the board (property filter, focus mode, search) leaves the card in Jetzt visible and unchanged, so the board always shows that Jetzt is occupied. A filtered view may then show one card outside the filter; that is the intended trade (owner, #235, 2026-11-16).
+- **Say it once.** A heading, description or control that only repeats what its neighbour already says (a stepper label, the page subline, a field label, a labelled button) is left out; a control keeps its accessible name (user, ten corrections, among them #441, #480, #434).
 - **One heading level in a menu.** A group inside a menu or popover carries one heading level: its group heading is the only heading. A second sub-heading never splits a group; a hairline or the row language separates what is left. It applies to menus and popovers only: a sheet keeps its lower-level heading ("Sheets on a desk"). Example: the Mehr panel (#431; rule candidate #464, owner, 2026-11-18).
 - **Keyboard.** Everything is keyboard-reachable, including board moves; `⌘K` opens the command palette. Announcements name the task and the column, never ids.
 - **Accessibility.** WCAG 2.2 AA (text 4.5:1, non-text 3:1), with the recorded exceptions named in the a11y test.
