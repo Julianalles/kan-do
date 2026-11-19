@@ -295,7 +295,7 @@ describe('AppNav: the global app bar (#470)', () => {
     health.markBroken('notion', 'Unauthorized')
     await nextTick()
     expect(more(w).attributes('aria-label')).toBe('Mehr, Verbindungsproblem')
-    expect(w.find('[data-dot]').attributes('data-dot')).toBe('bg-error-700')
+    expect(w.find('[data-dot]').attributes('data-dot')).toBe('bg-warning-700')
 
     health.markOffline('notion', 'Network')
     await nextTick()

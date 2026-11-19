@@ -12,7 +12,7 @@
 - Selected state is a function of the route and the recap (useAppNav `selectedPlace`): Alle on /all*, Heute on /tasks*, Rückblick instead of both while the recap is open on the board page, Statistik on /statistics, the third segment (Papierkorb, Einstellungen) on /trash and /settings*. ⋯ is never selected and carries no aria-current. An open panel is an overlay, not a navigation: the place keeps its chip, ⋯ shows only a soft "open" fill and aria-expanded
 - Third segment (#583): grows in the pill when a page behind ⋯ is entered, shrinks away when Heute or Statistik is chosen, re-measures when Einstellungen <-> Papierkorb. MorePanel leaves out the row of the page the pill shows. One 420 ms timeline (`--nav-move`, `--nav-ease` in app-nav.css, 0 under reduced motion) drives the segment and the phone segment padding; a retarget mid-move continues from the current width. The grey pill is content-sized, so its width follows the segment frame by frame on that same timeline (#616); the segment's left margin runs -gap -> 0 with it, so the pill's 1px flex gap does not step in at the first frame or out at the last. The move starts on the second animation frame after the route change, not at the DOM patch (#643): the first frame lays out and paints the new page and, on a slow main thread (WKWebView, a big board), can outlast the whole 420 ms, which left a timeline started before it already over (segment and pill jumped to the end). Until then the segment holds its start state by inline style, and the phone `has-third` class (padding transitions) flips with the move so all three share one start. Direct load and the first paint show the segment without motion
 - One indicator (a fill, no shadow) behind the selected segment: two springs chase the live box of the `aria-current` segment (useNavIndicator, lib/navSpring.ts). `data-moving` on the nav is set until chip and layout are idle (E2E waits on it)
-- A failing source puts a status dot on ⋯ (error for broken, else warning) and the accessible name says so; the panel explains it
+- A failing source puts a status dot on ⋯ (orange for every failing state, #595) and the accessible name says so; the panel explains it
 - Tag abschließen: closes the panel, returns focus to ⋯, then opens the dialog, so the dialog's return target is ⋯ and not a removed row
 - Phone: fades out and ignores pointers while a card is dragged (no drop target is covered); the pills and the veil fade (the veil also steps back while the new-day recap stage is mounted, #262: the photo runs behind the bar)
 - The topic focus funnel (#161, BoardFocusTrigger) sits right of ⋯ on the board page only (Heute and Alle), outside the group's flow (`.app-nav-focus`), so the pills do not re-centre when it appears. Phone (#381): out of the flow it was cut off at the right edge of a 360px screen, so while it shows (`has-focus`) the group shifts left by half of funnel and gap, on the nav timeline: group and funnel are centred together and the funnel lies inside the bar's side room. Desktop keeps the centre
@@ -125,13 +125,13 @@
             @pointermove="tipHeldBack = false"
             @pointerleave="tipHeldBack = false"
           >
-            <UChip :show="worstProblem !== null" size="lg" color="error" :ui="{ base: dotTone }" inset>
+            <UChip :show="worstProblem !== null" size="lg" color="warning" :ui="{ base: dotTone }" inset>
               <UIcon name="i-ph-dots-three-bold" class="app-nav-more-icon" aria-hidden="true" />
             </UChip>
           </button>
         </UTooltip>
         <template #content>
-          <MorePanel @close="open = false" @day-close="closeAndOpenDayClose" @commands="closeAndOpenCommands" />
+          <MorePanel :open="open" @close="open = false" @day-close="closeAndOpenDayClose" @commands="closeAndOpenCommands" />
         </template>
       </UPopover>
 
@@ -197,8 +197,8 @@ const tooltipText = computed(() => t('nav.moreWithCommands', { commands: t('nav.
 
 // A source that cannot sync stays visible on ⋯ (the dock's sync icon is gone); a healthy sync is silent
 const worstProblem = computed(() => health.problemsOf(boardStore.connectedIntegrations)[0] ?? null)
-// The 500 step of error and warning is below 3:1 (WCAG 1.4.11): the dot takes the 700 step
-const dotTone = computed(() => (worstProblem.value?.status === 'broken' ? 'bg-error-700' : 'bg-warning-700'))
+// One colour for every failing state, orange (#595, DESIGN.md "Colour": a connection that needs a look); the 500 step is below 3:1 (WCAG 1.4.11): the dot takes the 700 step
+const dotTone = 'bg-warning-700'
 
 // A route change closes the panel (a row that stays on the same route closes it itself)
 watch(() => route.value.fullPath, () => { open.value = false })

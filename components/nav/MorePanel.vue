@@ -3,19 +3,19 @@
 @kind block
 @category navigation
 @description Content of the Mehr popover behind the app bar's ⋯ (#470): the board controls and the pages that are not places
-@usage Rendered inside the UPopover of AppNav; reads stores and composables only, no props
+@usage Rendered inside the UPopover of AppNav; reads stores and composables, one prop (`open`, to freeze the route-dependent rows while it fades out)
 @avoid Only the popover behind AppNav's ⋯; the places (Heute, Statistik) are the pill's segments, so no rows for them on any route.
 @responsibility
 - Groups, set apart by hairlines (#431): Befehle (desktop, a group of its own, no heading: the row names itself) -> "Auf dieser Seite" (Karten stapeln + group-by chips, Tag abschließen) -> "Seiten" (Papierkorb (n), Einstellungen, App-Update, each with a trailing arrow) -> sync footer. One heading level, no heading inside a group (DESIGN.md Behaviour, "One heading level in a menu"); each heading names its `section`
 - "Auf dieser Seite" exists only while the board is the current place; its "Tag abschließen" is disabled while the new-day recap is open (the two never stand together, #480); "Seiten" and the sync footer on every page
-- The page the pill shows as its third segment (#583: Einstellungen on /settings*, Papierkorb on /trash*) is not listed here; the row returns when the page leaves the pill. App-Update stays on /settings/updates (a different page). The panel closes on every route change, so a row never appears or disappears while it is open
+- The page the pill shows as its third segment (#583: Einstellungen on /settings*, Papierkorb on /trash*) is not listed here; the row returns when the page leaves the pill. App-Update stays on /settings/updates (a different page). The panel closes on every route change, so a row never appears or disappears while it is open, and the rows are frozen (`open` false) while it fades out, so it keeps its shape (#595)
 - App-Update only in the desktop app (`isTauri()`, absent in the web build, never disabled)
 - Sync footer: a failing source shows its worst problem (title, hint, "Verbindung reparieren") above "Jetzt synchronisieren" + last sync; silent while every source is healthy
 - While a sync runs (manual or background) the row's second line reads "Wird synchronisiert…" (spinner from the button's `loading`), so the accessible name carries the state, and a sibling `role="status"` announces it (#647)
 - Desktop only, on every page with the bar (#224): "Befehle" with the palette shortcut hint opens the command palette (U7 of kd#17: the hint was tooltip-only; the palette has no phone entry), always the first row. AppNav closes the panel and returns focus to ⋯ first, like `dayClose`
 - Keyboard: ↑/↓ move focus to the previous/next enabled control (clamped, no wrap), Home/End to the first/last; Tab order and roles stay (a popover, not role=menu)
 - Emits `close` when a navigation row is chosen and `dayClose` for "Tag abschließen": AppNav closes the panel and returns focus to ⋯ first, then opens the dialog
-- Sync status (moved from DESIGN.md, kd#176): a source that cannot sync puts a status dot on ⋯ (error for a rejected token, else warning; the 700 step, and ⋯'s accessible name says "Verbindungsproblem"), and this panel names the worst problem above the resync row with the fix; never a dialog on its own. A healthy sync is silent: no dot, no extra line
+- Sync status (moved from DESIGN.md, kd#176): a source that cannot sync puts a status dot on ⋯ (orange for every failing state, #595; the 700 step, and ⋯'s accessible name says "Verbindungsproblem"), and this panel names the worst problem above the resync row with the fix; never a dialog on its own. A healthy sync is silent: no dot, no extra line
 -->
 <template>
   <div ref="panelEl" class="more-panel w-72 max-w-full p-2" data-testid="more-panel" @keydown="onKeydown">
@@ -179,7 +179,7 @@
 
 <script setup lang="ts">
 import { ICONS } from '~/lib/icons'
-import { computed, ref, useId } from 'vue'
+import { computed, ref, useId, watchEffect } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import ChoiceChip from '~/components/ui/ChoiceChip.vue'
@@ -208,7 +208,22 @@ const emit = defineEmits<{
 const { t } = useI18n()
 const pageHeadingId = useId()
 const placesHeadingId = useId()
-const { onBoard, thirdItem, recapShown } = useAppNav()
+const props = defineProps<{
+  /** Whether the popover is open; while it fades out the route-dependent rows stay as they were (#595) */
+  open: boolean
+}>()
+const nav = useAppNav()
+// The panel closes on a route change, so the rows that depend on the route are frozen while it leaves: the
+// panel keeps its shape for the fade instead of shrinking and moving (#595). The route and `open` change in the
+// same tick, so the snapshot is taken after render (`post`), when `open` is already false.
+const frozen = ref({ onBoard: nav.onBoard.value, thirdItem: nav.thirdItem.value, recapShown: nav.recapShown.value })
+watchEffect(() => {
+  const live = { onBoard: nav.onBoard.value, thirdItem: nav.thirdItem.value, recapShown: nav.recapShown.value }
+  if (props.open) frozen.value = live
+}, { flush: 'post' })
+const onBoard = computed(() => (props.open ? nav.onBoard.value : frozen.value.onBoard))
+const thirdItem = computed(() => (props.open ? nav.thirdItem.value : frozen.value.thirdItem))
+const recapShown = computed(() => (props.open ? nav.recapShown.value : frozen.value.recapShown))
 const boardStore = useBoardStore()
 const health = useIntegrationHealthStore()
 const { groupingOptions, effectiveGroupKey, setGroupingEnabled, setGroupingKey } = useBoardGrouping()
@@ -247,8 +262,8 @@ const worstProblem = computed(() => health.problemsOf(boardStore.connectedIntegr
 
 const PROBLEM_ICONS = { broken: 'i-ph-warning-circle', offline: 'i-ph-wifi-slash', degraded: 'i-ph-warning' } as const
 
-// The 500 step of warning and error is below 3:1 (WCAG 1.4.11): the icon takes the 700 step
-const problemTone = computed(() => (worstProblem.value?.status === 'broken' ? 'text-error-700' : 'text-warning-700'))
+// One colour for every failing state, as on the ⋯ dot (#595); the 500 step is below 3:1 (WCAG 1.4.11): the icon takes the 700 step
+const problemTone = 'text-warning-700'
 
 const problemTitle = (problem: SourceProblem) => {
   const named = { source: integrationLabel(problem.source) }

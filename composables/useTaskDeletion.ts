@@ -142,6 +142,14 @@ export function groupHasNoHeaderOrStack(groupKey: string, taskId: string): boole
   return !list.querySelector(`:scope > [data-stack-header="${key}"], :scope > .task-stack[data-stack-key="${key}"]`)
 }
 
+/** What the card takes back from the cards below on an undo: its measured slot minus the gap's height right now (0 without a gap in the layout). */
+function returnRoomOf(pending: PendingTaskDelete): number {
+  const height = pending.slot?.height
+  if (typeof document === 'undefined' || typeof height !== 'number') return 0
+  const gap = document.querySelector<HTMLElement>(`.task-gap[data-gap-id="${cssEscape(pending.taskId)}"]`)
+  return gap ? height - gap.offsetHeight : 0
+}
+
 export function useTaskDeletion() {
   const tasksStore = useTasksStore()
   const trashStore = useTrashStore()
@@ -153,6 +161,7 @@ export function useTaskDeletion() {
   function undoDelete(taskId: string): void {
     const pending = mapHelpers.get(tasksStore.pendingDeletes, taskId)
     if (!pending || !undoWindow.cancel(taskId)) return
+    const room = returnRoomOf(pending)
     tasksStore.removePendingDelete(taskId)
     tasksStore.undeleteTask(taskId, pending.task.externalId, pending.task.pendingMove?.fromExternalId)
     // Back in Jetzt only while Jetzt is free: it holds one card (WIP limit)
@@ -168,7 +177,8 @@ export function useTaskDeletion() {
       boardStore.moveTaskToIndex(taskId, status, status, pending.orderIndex)
     }
     tasksStore.restoreCarryOver(taskId, pending.carryOver)
-    markTaskReturning(taskId)
+    // Back in Offen (Jetzt taken) the card lands where no gap stood: nothing to glide
+    markTaskReturning(taskId, jetztTaken ? 0 : room)
   }
 
   /** The task's place in its column's manual order, so an undo can put it back there. */

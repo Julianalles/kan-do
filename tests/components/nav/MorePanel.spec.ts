@@ -32,7 +32,7 @@ const stubs = {
   UIcon: true,
 }
 
-const render = (): VueWrapper => mount(MorePanel, { global: { stubs } })
+const render = (open = true): VueWrapper => mount(MorePanel, { props: { open }, global: { stubs } })
 
 describe('MorePanel: the Mehr panel (#470)', () => {
   beforeEach(() => {
@@ -109,6 +109,27 @@ describe('MorePanel: the Mehr panel (#470)', () => {
     route.path = '/statistics'
     await nextTick()
     expect(w.find('[data-testid="more-settings"]').exists()).toBe(true)
+  })
+
+  it('keeps its rows while it fades out after a route change (#595)', async () => {
+    route.path = '/tasks'
+    const w = render()
+    expect(w.find('[data-testid="more-settings"]').exists()).toBe(true)
+    await w.setProps({ open: false })
+    route.path = '/settings'
+    await nextTick()
+    expect(w.find('[data-testid="more-settings"]').exists()).toBe(true)
+    expect(w.find('[data-testid="more-stack"]').exists()).toBe(true)
+  })
+
+  it('keeps its rows when the route and `open` change in the same tick (#595)', async () => {
+    route.path = '/tasks'
+    const w = render()
+    route.path = '/settings'
+    await w.setProps({ open: false })
+    await nextTick()
+    expect(w.find('[data-testid="more-settings"]').exists()).toBe(true)
+    expect(w.find('[data-testid="more-stack"]').exists()).toBe(true)
   })
 
   it.each(['/all', '/tasks', '/statistics', '/trash', '/settings'])('on %s the places are the pill\'s segments: no Heute and Statistik rows', (path) => {

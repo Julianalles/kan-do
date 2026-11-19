@@ -47,6 +47,7 @@
     class="task"
     :class="[taskClass, { muted, 'task--draft': draft, 'task--confirming': isConfirming, 'task--celebrating': burstPlaying, 'task--nudged': isNudged, 'task--readonly': readonly, 'task--swap-target': isSwapTarget, 'task--returning': isTaskReturning(task.id) }]"
     :data-task-id="readonly ? undefined : task.id"
+    :style="isTaskReturning(task.id) ? { '--return-room': `${returningRoom(task.id)}px` } : undefined"
     :data-current="isCurrent ? '' : undefined"
     :data-sheet-active="spotlightTaskId === task.id ? '' : undefined"
     variant="task"
@@ -202,7 +203,7 @@ import { useTasksStore } from "~/store/tasks";
 import { useTaskCarryOver } from "~/composables/useCarryOver";
 import { useRemindersHint } from '~/composables/useRemindersHint';
 import { useSavePending } from "~/composables/useSavePending";
-import { isTaskReturning } from "~/lib/deleteGapState";
+import { isTaskReturning, returningRoom } from "~/lib/deleteGapState";
 import { HIGH, normalizePriority } from "~/lib/priority";
 import TaskCompletionBurst from "~/components/task/TaskCompletionBurst.vue";
 import TopicMark from "~/components/topic/TopicMark.vue";
@@ -559,10 +560,21 @@ const openDetails = (event: MouseEvent) => {
   cursor: default;
 }
 
-/* Undo (#422, D6): the card grows back and fades in; transform and opacity only. The gap that held its slot
-   disappears at once, so the card lands on the same box. */
+/* Undo (#422, D6): the card grows back and fades in. The gap that held its slot disappears at once; the neighbours
+   glide down in 200 ms (#595). The card's own grow-back is transform and opacity; the room it takes back is a
+   `margin-bottom` run, the one layout property here (the glide of the cards below). The room is measured at undo time
+   (`--return-room`: slot height minus the gap's height, 0 where no gap held the slot). Reduced motion replaces the
+   whole shorthand, so the neighbours snap there on purpose. */
 .task--returning {
-  animation: task-returning 180ms var(--ease-emphasized);
+  animation:
+    task-returning 180ms var(--ease-emphasized),
+    task-returning-room var(--duration-base) var(--ease-standard);
+}
+/* The compact gap gave up part of the card's height; the card takes it back as a negative bottom margin that runs to 0 (measured, so a taller phone card or an undo without a gap is exact), so
+   the neighbours glide down in 200 ms (#595) instead of snapping, the way they glided up when the card was deleted */
+@keyframes task-returning-room {
+  from { margin-bottom: calc(var(--return-room, 0px) * -1); }
+  to { margin-bottom: 0; }
 }
 @keyframes task-returning {
   from { opacity: 0; transform: scale(0.92); }

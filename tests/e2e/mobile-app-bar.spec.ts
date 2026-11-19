@@ -177,13 +177,13 @@ test.describe('Mobile app bar', () => {
     await page.mouse.up();
   });
 
-  test('the sort control label is the 12px label role at 390px and on desktop (#229, kd#190)', async ({ page }) => {
+  test('the sort control is the plain ghost button: the 14px interface size at 390px and on desktop (#229, kd#190, #595)', async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openBoard(page, '/tasks?seed=local');
     const trigger = page.locator('[data-testid="column-sorting-control"] button').first();
-    await expect(trigger).toHaveCSS('font-size', '12px');
+    await expect(trigger).toHaveCSS('font-size', '14px');
     await page.setViewportSize({ width: 1280, height: 800 });
-    await expect(trigger).toHaveCSS('font-size', '12px');
+    await expect(trigger).toHaveCSS('font-size', '14px');
   });
 
   test('390px: the Erledigt CTA ends the list at the cards\' width (#297), above the bar, and the last card is never covered', async ({ page, context }) => {
