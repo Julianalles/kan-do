@@ -96,7 +96,6 @@
       "stackCards": "Karten stapeln",
       "stackHelp": "Stapelt ähnliche Aufgaben in den Spalten Offen, Wartet und Erledigt.",
       "groupBy": "Gruppieren nach",
-      "stackHint": "Klicke auf einen Stapel, um alle Karten einzublenden.",
       "sourceOffline": "{source} offline – Synchronisierung läuft weiter",
       "sourceBroken": "{source}: Verbindung prüfen",
       "sourceDegraded": "{source}: Synchronisierung fehlgeschlagen",

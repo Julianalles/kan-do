@@ -1,7 +1,7 @@
 <!--
 @component WelcomePage
 @description Willkommensseite (#294): ein Start mit einer gefüllten Schaltfläche („Loslegen“) und dem Ausprobieren mit Beispielaufgaben als leiser zweiter Weg (#236); Schritt 2 sagt „lokal ist immer dabei“ und bietet Erinnerungen (nur Mac-App, #552), Notion (und Todoist, später) als Checkliste an
-@usage Einstiegspunkt für neue Nutzer unter /welcome
+@usage Einstiegspunkt für neue Nutzer unter /welcome; ein schon eingerichtetes Board wird von `middleware/welcome-guard.ts` nach /tasks (Heute) geleitet (#561), App zurücksetzen räumt zuerst und erreicht die Seite wieder
 @responsibility
 - Startansicht: Wortmarke „kan-do“ mit Subline (`Subline`) als Seitenkopf über dem Bogen, direkt auf dem Foto, linksbündig mit dem Inhalt des Bogens (gleiche Innenabstände; im Notion-Setup folgt der Kopf dem breiteren Bogen, beide teilen einen Spaltenrahmen); der Bogen hat die kleinere Überschrift (22 px), die Einleitung, einen zweiten Absatz „Du bist erst einmal nur neugierig? …“, „Jetzt starten“ (die einzige gefüllte Schaltfläche, The One Lamp Rule) und „Beispiel anzeigen“ (soft) ab 640 px nebeneinander, darunter gestapelt (#437)
 - „Loslegen“ öffnet Schritt 2 (LocalSetupFlow, kein Dialog, #43): Erinnerungen (in der Web-Version deaktiviert „(nur in der Mac-App)“) und Notion als Checkboxen, Todoist deaktiviert „(kommt später)“; ohne Haken endet er mit Lokal als einziger Verbindung und Standard, mit Haken startet er das Erinnerungen-Setup (RemindersSetupFlow, drei Schritte Zugriff, Listen, Heute, #552) und/oder das Notion-Setup auf dieser Seite (Schienen-Führung, Schritte des WizardController). Erinnerungen allein endet mit Lokal als Standard und Erinnerungen verbunden (nie Standard); sind beide gesetzt, läuft Erinnerungen zuerst (Verbinden-Knopf „Weiter zu Notion“, Erinnerungen ist dann schon verbunden), dann Notion, und das Board öffnet gemischt mit Notion als Standard. Zurück aus einem Setup führt zu Schritt 2, die Haken bleiben
@@ -126,7 +126,7 @@ import { useFirstRunSources } from '~/composables/useFirstRunSources';
 import { useErrorHandler } from '~/composables/useErrorHandler';
 
 // No app bar here (#470): first run, developer pages and the empty redirect page
-definePageMeta({ appNav: false })
+definePageMeta({ appNav: false, middleware: 'welcome-guard' })
 
 const { t } = useI18n();
 const { fetchTasks } = useIntegrationManager();

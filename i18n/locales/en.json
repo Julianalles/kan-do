@@ -96,7 +96,6 @@
       "stackCards": "Stack cards",
       "stackHelp": "Stacks similar tasks in the Open, Waiting and Done columns.",
       "groupBy": "Group by",
-      "stackHint": "Click a stack to expand all cards.",
       "sourceOffline": "{source} offline – sync will continue",
       "sourceBroken": "{source}: check the connection",
       "sourceDegraded": "{source}: sync failed",

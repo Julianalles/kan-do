@@ -447,6 +447,7 @@ test.describe('Landmarks, focus and motion', () => {
 
   test('primary button shows the focus ring (DESIGN.md "States": the 3px halo, no offset)', async ({ page }) => {
     // A solid primary button on a real route: the confirmation of the Local setup on /welcome (#65: the styleguide that hosted this check is gone)
+    await page.context().addInitScript(() => localStorage.clear()) // a set-up board never shows /welcome (#561)
     await page.goto('/welcome')
     await page.getByTestId('welcome-choice-local').click()
     const button = page.getByTestId('local-confirm')
