@@ -45,6 +45,23 @@ export default defineNuxtConfig({
     'pages:extend'(pages) {
       removeDevPages(pages, process.env)
     },
+    // Nitro's default error handler logs an unhandled throw with the full URL query and the raw error (#525).
+    // `server/error-handler.ts` replaces that log and wraps Nuxt's own handler: setting `nitro.errorHandler` directly
+    // would make Nuxt skip it (no `/__nuxt_error` page, no `vary`), so the handler Nuxt chose is read here and handed in.
+    'nitro:config'(nitroConfig) {
+      if (isDev) return
+      const nuxtHandler = typeof nitroConfig.errorHandler === 'string' ? nitroConfig.errorHandler : undefined
+      const ours = fileURLToPath(new URL('./server/error-handler.ts', import.meta.url))
+      nitroConfig.virtual = {
+        ...nitroConfig.virtual,
+        'kan-do:error-handler': [
+          `import { createErrorHandler } from ${JSON.stringify(ours)}`,
+          ...(nuxtHandler ? [`import nuxtHandler from ${JSON.stringify(nuxtHandler)}`] : []),
+          `export default createErrorHandler(${nuxtHandler ? 'nuxtHandler' : ''})`,
+        ].join('\n'),
+      }
+      nitroConfig.errorHandler = 'kan-do:error-handler'
+    },
     // Closed-at-start dialogs load on first open (#288): Nuxt would still prefetch every dynamic chunk after load, which
     // fetches the code the lazy mount exists to avoid. Their chunks stay out of the prefetch and preload hints.
     'build:manifest'(manifest) {
@@ -222,8 +239,6 @@ export default defineNuxtConfig({
         // Builds (`WORKERS_CI=1`) Nitro would turn this on by itself, write `.output/server/wrangler.json` and redirect
         // `wrangler deploy` to it through `.wrangler/deploy/config.json`: Nitro's bare handler, no gate, would go live.
         cloudflare: { deployConfig: false },
-        // Nitro's default error handler logs an unhandled throw with the full URL query and the raw error (#525): ours logs through `logServerError` only.
-        errorHandler: fileURLToPath(new URL('./server/error-handler.ts', import.meta.url)),
         // Cloudflare (#504): the shell is rendered at request time, so a build step needs a copy to hash its inline scripts.
         ...(process.env.NITRO_PRESET === 'cloudflare_module' ? { prerender: { routes: ['/200.html'], crawlLinks: false } } : {}),
         ...(e2eBuildDir ? { output: { dir: `${e2eBuildDir}/output` } } : {}),

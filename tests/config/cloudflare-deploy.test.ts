@@ -40,8 +40,13 @@ describe('Cloudflare deploy path', () => {
     expect(observability).toMatchObject({ enabled: true, redact_query_string: true, logs: { invocation_logs: false } })
   })
 
-  it('the production build registers the error handler that keeps the query out of the log (#525)', () => {
-    expect(read('nuxt.config.ts')).toContain("errorHandler: fileURLToPath(new URL('./server/error-handler.ts', import.meta.url))")
+  it('the production build registers the error handler that keeps the query out of the log and wraps Nuxt\'s own (#525)', () => {
+    const config = read('nuxt.config.ts')
+    expect(config).toContain("'nitro:config'(nitroConfig)")
+    expect(config).toContain("new URL('./server/error-handler.ts', import.meta.url)")
+    expect(config).toContain("nitroConfig.errorHandler = 'kan-do:error-handler'")
+    // a plain `errorHandler:` key in the nitro block would make Nuxt skip its own handler (the `/__nuxt_error` page)
+    expect(config).not.toMatch(/^\s*errorHandler:/m)
   })
 
   it('the marker is the gate cookie of worker/gate.ts', () => {

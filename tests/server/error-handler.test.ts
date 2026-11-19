@@ -5,7 +5,8 @@ import type { H3Error, H3Event } from 'h3'
 import supertest from 'supertest'
 // The built-in handler Nitro hands to a custom one (the same module the virtual error-handler imports in production)
 import { defaultHandler } from 'nitropack/runtime/internal/error/prod'
-import errorHandler from '~/server/error-handler'
+import type { NitroErrorHandler } from 'nitropack/types'
+import errorHandler, { createErrorHandler } from '~/server/error-handler'
 
 /**
  * #525: an unhandled throw in a route reached Nitro's `[request error] [unhandled] [METHOD] <url>` log, with the full
@@ -24,7 +25,7 @@ function logged(spies: Array<ReturnType<typeof vi.spyOn>>): string {
 }
 
 /** An h3 app wired like Nitro: `onError` runs the custom handler with the built-in one as its third argument. */
-function appWith(routeHandler: () => unknown, handler = errorHandler) {
+function appWith(routeHandler: () => unknown, handler: NitroErrorHandler = errorHandler) {
   const app = createApp({
     onError: (error: H3Error, event: H3Event) => handler(error, event, { defaultHandler } as never),
   })
@@ -54,7 +55,7 @@ describe('Nitro error handler (#525)', () => {
       const res = builtin(error, event) as { status: number }
       setResponseStatus(event, res.status)
       return send(event, '{}')
-    }) as typeof errorHandler).get(`/api/notion/tasks?${SECRET_QUERY}`)
+    }) as NitroErrorHandler).get(`/api/notion/tasks?${SECRET_QUERY}`)
     const out = logged(spies)
     expect(out).toContain('[request error]')
     expect(out).toContain('db-secret-1')
@@ -91,6 +92,82 @@ describe('Nitro error handler (#525)', () => {
       throw createError({ statusCode: 429, statusMessage: 'Too Many Requests', data: { error: 'RATE_LIMITED' } })
     }))
     const res = await supertest(toNodeListener(app)).get('/limited')
+    expect(res.status).toBe(429)
+    expect(res.headers['retry-after']).toBe('7')
+  })
+})
+
+/**
+ * Nuxt's handler (`@nuxt/nitro-server`, `runtime/handlers/error`) renders the `/__nuxt_error` page for a document request
+ * and leaves a JSON request unhandled. Stand-in: HTML for a request that accepts it, nothing for JSON, calling the
+ * `defaultHandler` it is given the way the real one does (a non-silent call logs the URL and the raw error).
+ */
+const fakeNuxtHandler: NitroErrorHandler = async (error, event, { defaultHandler: builtin }) => {
+  if (event.handled) return
+  if (String(event.node.req.headers.accept).includes('application/json')) return
+  const res = await builtin(error, event, { json: true })
+  setResponseStatus(event, res.status)
+  setResponseHeader(event, 'content-type', 'text/html;charset=UTF-8')
+  setResponseHeader(event, 'vary', 'accept, sec-fetch-mode')
+  await send(event, `<html><body>Nuxt error page ${res.status}</body></html>`)
+}
+
+describe('Nitro error handler wrapping Nuxt\'s handler (#525)', () => {
+  afterEach(() => vi.restoreAllMocks())
+  const wrapped = createErrorHandler(fakeNuxtHandler)
+
+  it('a 404 for a document request renders Nuxt\'s error page with its vary header, and logs nothing', async () => {
+    const spies = spyConsole()
+    const res = await appWith(() => { throw createError({ statusCode: 404, statusMessage: 'Not Found' }) }, wrapped)
+      .get(`/api/notion/tasks?${SECRET_QUERY}`).set('accept', 'text/html')
+
+    expect(res.status).toBe(404)
+    expect(res.headers['content-type']).toContain('text/html')
+    expect(res.headers.vary).toBe('accept, sec-fetch-mode')
+    expect(res.text).toContain('Nuxt error page 404')
+    expect(logged(spies)).toBe('')
+  })
+
+  it('an unhandled throw for a document request renders the page and logs one [server-error] line, never the URL or the error', async () => {
+    const spies = spyConsole()
+    const res = await appWith(() => { throw new TypeError(SECRET_MESSAGE) }, wrapped)
+      .get(`/api/notion/tasks?${SECRET_QUERY}`).set('accept', 'text/html')
+
+    expect(res.status).toBe(500)
+    expect(res.text).toContain('Nuxt error page 500')
+    const out = logged(spies)
+    expect(out).toBe('[server-error] route=/api/notion/tasks status=500 code=UNKNOWN')
+    expect(spies.flatMap(s => s.mock.calls)).toHaveLength(1)
+  })
+
+  it('a JSON request, which Nuxt\'s handler leaves unhandled, gets the built-in JSON response without the raw message', async () => {
+    const spies = spyConsole()
+    const res = await appWith(() => { throw new Error(SECRET_MESSAGE) }, wrapped).get('/api/notion/tasks').set('accept', 'application/json')
+
+    expect(res.status).toBe(500)
+    expect(res.headers['content-type']).toContain('application/json')
+    expect(res.body).toMatchObject({ error: true, statusCode: 500, message: 'Server Error' })
+    expect(logged(spies)).toBe('[server-error] route=/api/notion/tasks status=500 code=UNKNOWN')
+  })
+
+  it('a throw inside Nuxt\'s handler is caught: the JSON response goes out and the error is not logged', async () => {
+    const spies = spyConsole()
+    const broken = createErrorHandler(() => { throw new Error(`render failed for ${SECRET_MESSAGE}`) })
+    const res = await appWith(() => { throw new TypeError(SECRET_MESSAGE) }, broken).get(`/api/notion/tasks?${SECRET_QUERY}`)
+
+    expect(res.status).toBe(500)
+    expect(res.body).toMatchObject({ statusCode: 500, message: 'Server Error' })
+    expect(logged(spies)).toBe('[server-error] route=/api/notion/tasks status=500 code=UNKNOWN')
+  })
+
+  it('a header set before the throw (Retry-After, #526) survives Nuxt\'s page too', async () => {
+    spyConsole()
+    const app = createApp({ onError: (error: H3Error, event: H3Event) => wrapped(error, event, { defaultHandler } as never) })
+    app.use('/limited', eventHandler((event) => {
+      setResponseHeader(event, 'retry-after' as string, '7')
+      throw createError({ statusCode: 429, statusMessage: 'Too Many Requests' })
+    }))
+    const res = await supertest(toNodeListener(app)).get('/limited').set('accept', 'text/html')
     expect(res.status).toBe(429)
     expect(res.headers['retry-after']).toBe('7')
   })
