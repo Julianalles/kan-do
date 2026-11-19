@@ -270,8 +270,8 @@ export const useTaskSync = () => {
    * the adapter is not called: the task is made here with a generated `id`, no `externalId` and the
    * `pendingSync` marker, and the next push creates it upstream (`pushTask`), which gives it its `externalId`
    * and never changes the `id`. A create that fails for transient reasons (no connection, a rejected token, 403,
-   * a 5xx; `createFailureKind`) takes the same path, by the push rules (`reportPushFailure`): a source fault (no
-   * connection, a missing setup, 401) is recorded in the source's health, anything else (403, 5xx) only in the
+   * a 429 rate limit, a 5xx; `createFailureKind`) takes the same path, by the push rules (`reportPushFailure`): a source fault (no
+   * connection, a missing setup, 401) is recorded in the source's health, anything else (403, 429, 5xx) only in the
    * task's marker, and the first failure that is not plain offline is reported once. A rejected create (400, 409,
    * 404, any other 4xx: the source refuses this task) throws, the caller keeps the form open and reports it.
    * A draft with `notPlanned: true` and the status Open makes a task that is not planned (#367: one made while the
@@ -753,7 +753,7 @@ export const useTaskSync = () => {
    * current state, then removes the origin copy. The order is the safety net: the origin is only touched after
    * the target holds the task. The task keeps its `id` throughout.
    * - target Local: no create, only the origin copy is removed;
-   * - target offline or needing attention, or a transient failure (no connection, 401, 403, 5xx): the move
+   * - target offline or needing attention, or a transient failure (no connection, 401, 403, 429, 5xx): the move
    *   stays local with its marker and failure reason, the next flush continues it ('queued', no toast);
    * - create rejected for good (400, 409, any other 4xx): the task goes back to its origin and nothing is
    *   deleted ('reverted'), `lib/taskMoveEvents` tells the toast;
