@@ -104,8 +104,8 @@ export interface SetDueArgs {
 export interface SetCompletedArgs {
   id: string
   completed: boolean
-  /** Recurring reminder: the due date kan-do holds; a moved date answers `changed`. */
-  occurrenceDate?: string | null
+  /** The due date kan-do holds (`null` = none), always passed: a recurring reminder whose stored date differs answers `changed`, so a retried tick never ticks the next occurrence. */
+  occurrenceDate: string | null
   allowedListIds: string[]
 }
 
@@ -141,7 +141,7 @@ export const remindersSetDue = (args: SetDueArgs): Promise<ReminderDue | null> =
 
 /** Ticks or unticks one reminder; answers the state re-read after the save. */
 export const remindersSetCompleted = (args: SetCompletedArgs): Promise<RemindersCompletion> =>
-  call('reminders_set_completed', { ...args, occurrenceDate: args.occurrenceDate ?? null })
+  call('reminders_set_completed', { ...args })
 
 /** Opens System Settings at Privacy & Security > Reminders. */
 export const remindersOpenSettings = (): Promise<void> => call('reminders_open_settings')

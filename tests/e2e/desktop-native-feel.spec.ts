@@ -279,7 +279,9 @@ test.describe('Reminders stub', () => {
     expect(await invoke(page, 'reminders_set_completed', { id: 'r', completed: true, occurrenceDate: '2026-11-19', allowedListIds: allowed })).toEqual({ ok: false, error: 'changed' })
     expect(await invoke(page, 'reminders_set_completed', { id: 'r', completed: true, occurrenceDate: '2026-11-20', allowedListIds: allowed }))
       .toEqual({ ok: true, value: { completed: false, due: { date: '2026-11-27', time: null } } })
-    expect((await invoke(page, 'reminders_set_completed', { id: 'a', completed: true, allowedListIds: allowed })).ok).toBe(true)
+    // A retried tick without the occurrence is the same: nothing is ticked.
+    expect(await invoke(page, 'reminders_set_completed', { id: 'r', completed: true, occurrenceDate: null, allowedListIds: allowed })).toEqual({ ok: false, error: 'changed' })
+    expect((await invoke(page, 'reminders_set_completed', { id: 'a', completed: true, occurrenceDate: null, allowedListIds: allowed })).ok).toBe(true)
 
     // The user turns the permission off in System Settings.
     await setRemindersStatus(page, 'denied')

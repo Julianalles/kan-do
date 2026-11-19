@@ -312,7 +312,8 @@ pub mod logic {
     }
 
     /// Ticks or unticks one reminder. For a recurring reminder `occurrence_date` is the due date kan-do holds; when
-    /// the stored due date differs, the occurrence is gone and nothing is written.
+    /// the stored due date differs (or kan-do holds none while the reminder has one), the occurrence is gone and nothing
+    /// is written; the caller always passes the date it holds, so a retried tick cannot tick the next occurrence.
     pub fn set_completed(
         store: &dyn RemindersStore,
         id: &str,
@@ -327,7 +328,7 @@ pub mod logic {
             return Ok(Completion { completed, due: snapshot.due });
         }
         let recurring = snapshot.recurrence.is_some();
-        if recurring && occurrence.is_some() && date_of(&snapshot.due) != occurrence {
+        if recurring && date_of(&snapshot.due) != occurrence {
             return Err(RemindersError::Changed);
         }
         store.write_completed(id, completed)?;
@@ -1288,6 +1289,17 @@ mod tests {
         let fake = Fake::new(vec![weekly]);
         // kan-do still holds the 20th; the reminder is already on the 27th.
         assert_eq!(logic::set_completed(&fake, "r", true, Some("2026-11-20"), &ids(&["L1"])), Err(RemindersError::Changed));
+        assert!(fake.saves.borrow().is_empty());
+    }
+
+    #[test]
+    fn ticking_a_dated_recurring_reminder_without_an_occurrence_is_changed() {
+        // A retried tick that carries no occurrence must not tick the occurrence that followed the first one.
+        let mut weekly = item("r", "L1", Some(Parts::date(2026, 11, 27)));
+        weekly.recurrence = Some("FREQ=WEEKLY;INTERVAL=1");
+        weekly.on_complete = OnComplete::NextDate(Parts::date(2026, 12, 4));
+        let fake = Fake::new(vec![weekly]);
+        assert_eq!(logic::set_completed(&fake, "r", true, None, &ids(&["L1"])), Err(RemindersError::Changed));
         assert!(fake.saves.borrow().is_empty());
     }
 

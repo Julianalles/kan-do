@@ -545,7 +545,7 @@ export async function installTauriStub(context: BrowserContext, options: TauriSt
           const completed = !!args.completed
           if (!!target.completed === completed) return { completed, due: dueOf(target) }
           const occurrence = (args.occurrenceDate as string | null | undefined) ?? null
-          if (target.recurrence && occurrence !== null && !sameDue(dateOf(target), occurrence)) return reject('changed')
+          if (target.recurrence && !sameDue(dateOf(target), occurrence)) return reject('changed')
           if (completed && target.recurrence && target.nextDue) {
             target.due = target.nextDue
             target.nextDue = null

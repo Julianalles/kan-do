@@ -25,7 +25,7 @@ describe('reminders wrapper on the web', () => {
       reminders.remindersLists(),
       reminders.remindersFetch(['l'], 0),
       reminders.remindersSetDue({ id: 'r', expectedDate: null, date: '2026-11-20', allowedListIds: ['l'] }),
-      reminders.remindersSetCompleted({ id: 'r', completed: true, allowedListIds: ['l'] }),
+      reminders.remindersSetCompleted({ id: 'r', completed: true, occurrenceDate: null, allowedListIds: ['l'] }),
       reminders.remindersOpenSettings(),
     ]
     for (const call of calls) await expect(call).rejects.toMatchObject({ name: 'RemindersError', kind: 'unsupported' })
@@ -44,7 +44,7 @@ describe('reminders wrapper on the desktop', () => {
     await reminders.remindersSetDue({ id: 'r', expectedDate: '2026-11-20', date: '2026-11-21', allowedListIds: ['a'] })
     await reminders.remindersSetDue({ id: 'r', expectedDate: '2026-11-21', date: null, allowedListIds: ['a'] })
     await reminders.remindersSetCompleted({ id: 'r', completed: true, occurrenceDate: '2026-11-20', allowedListIds: ['a'] })
-    await reminders.remindersSetCompleted({ id: 'r', completed: false, allowedListIds: ['a'] })
+    await reminders.remindersSetCompleted({ id: 'r', completed: false, occurrenceDate: null, allowedListIds: ['a'] })
     await reminders.remindersOpenSettings()
     expect(invoke.mock.calls).toEqual([
       ['reminders_access_status', undefined],
@@ -64,7 +64,7 @@ describe('reminders wrapper on the desktop', () => {
     invoke.mockResolvedValueOnce('denied')
     expect(await reminders.remindersAccessStatus()).toBe('denied')
     invoke.mockResolvedValueOnce({ completed: false, due: { date: '2026-11-27', time: '09:00' } })
-    expect(await reminders.remindersSetCompleted({ id: 'r', completed: true, allowedListIds: ['a'] }))
+    expect(await reminders.remindersSetCompleted({ id: 'r', completed: true, occurrenceDate: null, allowedListIds: ['a'] }))
       .toEqual({ completed: false, due: { date: '2026-11-27', time: '09:00' } })
   })
 
