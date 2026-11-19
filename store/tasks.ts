@@ -731,11 +731,31 @@ export const useTasksStore = defineStore("tasks", () => {
   /**
    * The source created a task that was made while it was unreachable: the task keeps its `id` and takes the
    * `externalId` the source gave it, then counts as pushed (unless it changed again meanwhile).
+   * @returns the ids of the cards a fetch made of that page meanwhile and that were dropped (#555)
    */
-  function completeCreate(taskId: string, created: Pick<Task, 'externalId'>, revision?: number): void {
+  function completeCreate(taskId: string, created: Pick<Task, 'externalId'>, revision?: number): string[] {
     const target = tasks.value.find((el) => el.id === taskId);
-    if (target && target.source !== 'local') target.externalId = created.externalId ?? target.externalId;
+    let dropped: string[] = [];
+    if (target && target.source !== 'local') {
+      target.externalId = created.externalId ?? target.externalId;
+      // A fetch that landed while the create was in flight made a card of the page (#555): the task that waited stays
+      dropped = dropLandedDuplicates(target.source, target.externalId, taskId);
+    }
     clearPendingSync(taskId, revision);
+    return dropped;
+  }
+
+  /**
+   * A write that made or found a page of `source` has resolved (#555): every other card that already holds the page
+   * is the one a fetch made of it while the write was in flight (`adoptLandedPages` leaves a page to a write under way),
+   * so it is dropped here, in the same step that stores the page. `exceptTaskId` is the task that waited (it keeps its
+   * `id`, position and local state, which statistics, order and timers key on); a task not on the board yet passes none.
+   * Local only: nothing is archived, deleted or pushed, and the page is not remembered in `deletedTaskIds`.
+   * @returns the ids of the dropped cards (the caller removes their statistics records)
+   */
+  function dropLandedDuplicates(source: SourceId, externalId: string | null | undefined, exceptTaskId?: string): string[] {
+    if (source === 'local' || externalId == null) return [];
+    return removeCards(tasks.value.filter((el) => el.source === source && el.externalId === externalId && el.id !== exceptTaskId));
   }
 
   /**
@@ -813,14 +833,7 @@ export const useTasksStore = defineStore("tasks", () => {
     const moved = tasks.value.find((el) => el.id === taskId);
     if (!moved || moved.source === 'local') return [];
     moved.externalId = externalId;
-    const duplicates = tasks.value.filter((el) => el.id !== taskId && el.source === moved.source && el.externalId === externalId);
-    if (duplicates.length === 0) return [];
-    const dropped = new Set(duplicates.map((el) => el.id));
-    tasks.value = tasks.value.filter((el) => !dropped.has(el.id));
-    for (const id of dropped) mapHelpers.delete(pendingTimeUpdates.value, id);
-    pruneCarryOver(tasks.value.map((el) => el.id));
-    useBoardStore().reconcileColumnsWithTasks(tasks.value);
-    return [...dropped];
+    return dropLandedDuplicates(moved.source, externalId, taskId);
   }
 
   /** The move is finished: the origin copy is gone (or nothing was there to remove). */
@@ -1273,9 +1286,17 @@ export const useTasksStore = defineStore("tasks", () => {
    * @returns the ids that left
    */
   function dropSourceTasks(source: IntegrationSourceId, belongs: (task: Task) => boolean): string[] {
-    const boardStore = useBoardStore();
-    const leaving = tasks.value.filter((el) => el.source === source && belongs(el));
+    return removeCards(tasks.value.filter((el) => el.source === source && belongs(el)));
+  }
+
+  /**
+   * Takes cards off the board without remembering them as deleted: their timers stop, their locks, queued time, order
+   * and carry-over go, and nothing is pushed (the shared part of `dropSourceTasks` and `dropLandedDuplicates`).
+   * @returns the ids that left
+   */
+  function removeCards(leaving: readonly Task[]): string[] {
     if (leaving.length === 0) return [];
+    const boardStore = useBoardStore();
     const ids = new Set(leaving.map((el) => el.id));
 
     for (const leavingTask of leaving) {
@@ -1991,6 +2012,7 @@ export const useTasksStore = defineStore("tasks", () => {
     clearPendingSync,
     recordPendingSyncFailure,
     completeCreate,
+    dropLandedDuplicates,
     markCreateUncertain,
     claimedPages,
     hasCompetingDoubt,
