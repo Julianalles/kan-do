@@ -86,10 +86,9 @@ Standalone so the closing step (#98) can list it under "still open". Renders not
       </UButton>
       <UButton
         v-if="canDelete"
-        color="neutral"
-        variant="ghost"
+        color="error"
+        variant="soft"
         :icon="ICONS.delete"
-        :ui="{ leadingIcon: 'text-error' }"
         data-testid="carry-over-delete"
         @click="emit('delete')"
       >

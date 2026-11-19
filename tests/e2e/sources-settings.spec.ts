@@ -85,7 +85,7 @@ test.describe('Local only', () => {
 
     await expect(page.getByRole('heading', { level: 1, name: 'Einstellungen' })).toBeVisible()
     await expect(page.getByTestId('sources-lead')).toHaveText(
-      'Wähle, wo neue Aufgaben standardmäßig gespeichert werden. Beim Hinzufügen kannst du eine andere Verbindung wählen und du kannst Aufgaben jederzeit verschieben.',
+      'Beim Hinzufügen kannst du eine andere Verbindung wählen und du kannst Aufgaben jederzeit verschieben.',
     )
     await expect(page.getByText('Neue Aufgaben speichern in')).toHaveCount(0)
 
