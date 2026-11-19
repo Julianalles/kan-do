@@ -106,7 +106,7 @@ const showsPill = computed(() => focusTopic.value !== null)
   height: var(--field-h);
   /* The same block height as the chip row (its 0.125rem padding), so swapping the row for the pill does not move the board */
   margin-block: 0.125rem;
-  padding: 0 0.25rem 0 0.875rem;
+  padding: 0 0.25rem 0 0.75rem;
   border-radius: 9999px;
   background: color-mix(in oklab, var(--ui-primary) 10%, transparent);
   color: var(--ui-primary);

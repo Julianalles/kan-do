@@ -12,7 +12,7 @@
 <template>
   <div>
     <p v-if="isEmpty" class="text-body text-toned" data-testid="day-close-headline">{{ t('dayClose.nothingDone') }}</p>
-    <div v-else class="flex items-center gap-2.5">
+    <div v-else class="flex items-center gap-3">
       <UIcon v-if="allDone" name="i-ph-trophy-fill" class="size-6 shrink-0 text-primary" aria-hidden="true" data-testid="day-close-trophy" />
       <SectionHeader tag="h3" size="headline" data-testid="day-close-headline">{{ headline }}</SectionHeader>
     </div>
