@@ -130,12 +130,12 @@ const tableColumns = computed<TableColumn<TaskCompletionRecord>[]>(() => {
     {
       accessorKey: 'actualTimeSpentSeconds',
       header: t('statistics.table.timeSpent'),
-      cell: ({ row }) => formatTime(row.original.actualTimeSpentSeconds)
+      cell: ({ row }) => h('span', { class: 'whitespace-nowrap' }, formatTime(row.original.actualTimeSpentSeconds))
     },
     {
       accessorKey: 'timeBoxSeconds',
       header: t('statistics.table.plannedTime'),
-      cell: ({ row }) => row.original.timeBoxSeconds ? formatTime(row.original.timeBoxSeconds) : '—'
+      cell: ({ row }) => row.original.timeBoxSeconds ? h('span', { class: 'whitespace-nowrap' }, formatTime(row.original.timeBoxSeconds)) : '—'
     },
     {
       accessorKey: 'estimationAccuracy',

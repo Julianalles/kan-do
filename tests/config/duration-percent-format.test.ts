@@ -6,6 +6,7 @@ import { join, relative, resolve } from 'node:path'
 // (`formatDuration`, `formatPercent`). A component that builds "12 min" or "60 %" by hand drifts from the locale spacing
 // ("60 %" in German, "60%" in English) and from the one duration shape. Comments and doc blocks are removed first.
 // CSS lengths (`height: ${n}%`) are not a user-facing percent and are skipped.
+// Scope: component and TS source only; percent written inside i18n locale strings (`{share} %`) is not scanned.
 const root = resolve(__dirname, '../..')
 const SCANNED = ['components', 'pages', 'composables', 'layouts', 'lib', 'store']
 
