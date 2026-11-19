@@ -11,6 +11,7 @@
 - Open (about 280 ms, ease-out `cubic-bezier(0.2, 0, 0, 1)`): the panel's box and corner radius run from the card's (16 px) to the sheet's (32 px, twice the card's, `--task-sheet-radius`); a copy of the card's face holds the card's place on screen and fades out after the first beat while the content fades in; the scrim fades in over 160 ms. The grow is the Web Animations API on left/top/width/height, the content keeps its final size meanwhile so it does not reflow
 - Close (about 200 ms, `cubic-bezier(0.4, 0, 0.2, 1)`): the sheet folds into the card where it sits now (a status change may have moved it), the content fades out first, the face fades back in, the scrim fades out
 - No origin card (a statistics row, a deep link, a card scrolled out of the window or gone): centred, a 160 ms scale-in from 97 % with a fade; it leaves with a 140 ms fade
+- Direct link (#594): a sheet that is open from the first route of the session (`arrivedFromAnotherPage()` is false) stands at its place at once, no grow, no fade, no scrim fade; "never runs on page load" (DESIGN.md Motion)
 - Reduced motion (read when the sheet opens and closes): no grow and no fold, a 1 ms fade, same place as without it
 - The panel is `bg-elevated` with the overlay shadow, as every sheet; the scrim is today's `--overlay-scrim` over the whole window (#419), the other cards fade through sheet.css as today
 - Close button: first in the tab order inside the sheet (kd#201), aria label `common.close`; the title is the next stop (TaskDetailContent)
@@ -52,6 +53,7 @@ import { DialogContent, DialogOverlay, DialogPortal, DialogRoot, DialogTitle } f
 import { useI18n } from 'vue-i18n';
 import { ICONS } from '~/lib/icons';
 import { OVERLAY_DESKTOP_KEY } from '~/composables/useIsDesktop';
+import { arrivedFromAnotherPage } from '~/lib/routeArrival';
 import { isUsableOrigin, keepInside, placeSheet, SHEET_MOTION, sheetMaxHeight, sheetWidth, type SheetBox } from '~/utils/sheetPlacement';
 
 defineOptions({ name: 'TaskMorphShell' });
@@ -177,7 +179,7 @@ async function panelReady(mine: number): Promise<boolean> {
   return mine === generation && !!panel() && !!innerRef.value;
 }
 
-async function playOpen(mine: number) {
+async function playOpen(mine: number, atRest: boolean) {
   cancelAll();
   if (!(await panelReady(mine))) return;
   const el = panel();
@@ -202,6 +204,13 @@ async function playOpen(mine: number) {
 
   const reduced = reducedMotion();
   const fade: Keyframe[] = [{ opacity: 0 }, { opacity: 1 }];
+  if (atRest) {
+    // A direct link, the first route of the session: the sheet stands there, nothing plays on page load (#594)
+    settle();
+    animating = false;
+    keepPanelInside();
+    return;
+  }
   void run(scrimEl(), fade, { duration: reduced ? SHEET_MOTION.reducedMs : SHEET_MOTION.scrimInMs, easing: 'linear' });
 
   if (reduced) {
@@ -273,9 +282,10 @@ function keepPanelInside() {
 watch(() => props.open, async (isOpen) => {
   const mine = ++generation;
   if (isOpen) {
+    const atRest = !arrivedFromAnotherPage();
     shown.value = true;
     await nextTick();
-    if (mine === generation) await playOpen(mine);
+    if (mine === generation) await playOpen(mine, atRest);
     return;
   }
   if (!shown.value) return;

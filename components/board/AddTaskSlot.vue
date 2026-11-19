@@ -36,7 +36,7 @@
       </span>
     </button>
     <!-- A saved draft is replaced by its card, so only cancel fades it back out -->
-    <Transition name="add-task-slot-draft" :css="!draftSaved && !flowSaved">
+    <Transition name="add-task-slot-draft" :css="!draftSaved && !flowSaved && !restDraft">
       <div v-if="isDrafting" class="add-task-slot-draft-wrap">
         <new-card-flow
           v-if="flowOpen"
@@ -67,6 +67,7 @@ import { TaskStatus } from '~/types/taskStatus';
 import { focusWhenReady, findSavedCardElement } from '~/utils/focusRecovery';
 import { revealSavedCard } from '~/utils/revealDraft';
 import { isPhoneNow } from '~/composables/useIsDesktop';
+import { arrivedFromAnotherPage, loadRestEnds } from '~/lib/routeArrival';
 
 defineOptions({ name: 'AddTaskSlot' });
 
@@ -112,6 +113,14 @@ const flowSaved = ref(false);
 const isSheetDrafting = computed(() => draftTask.value?.status === props.status
   && !(props.status === TaskStatus.Open && place.value === 'all'));
 const isDrafting = computed(() => isSheetDrafting.value || flowOpen.value);
+
+/** The add route loaded directly (the first route of the session): its draft stands at once, the cards do not move on page load (#594) */
+const restDraft = ref(false);
+watch(isSheetDrafting, (drafting) => {
+  if (drafting) restDraft.value = !arrivedFromAnotherPage() && /^\/(tasks|all)\/add(?:$|[/?#])/.test(route.path);
+}, { immediate: true, flush: 'sync' });
+// Leaving the route is the user's move: the draft's leave is animated as always
+watch([() => route.path, loadRestEnds], () => { restDraft.value = false; }, { flush: 'sync' });
 
 /** The header button's entry (Offen) and the Jetzt button's click. A second call while a draft is up does nothing */
 function open() {
