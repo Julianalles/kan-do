@@ -29,6 +29,8 @@ describe('sendToRelay', () => {
     [405, '', 'unavailable'],
     [501, '', 'unavailable'],
     // #572: edge-layer refusals and redirects are transient, never the browser fallback.
+    [200, '<!doctype html>', 'unavailable'],
+    [504, '', 'server'],
     [401, '', 'server'],
     [403, '<!doctype html><title>Attention Required</title>', 'server'],
     [408, '', 'server'],
