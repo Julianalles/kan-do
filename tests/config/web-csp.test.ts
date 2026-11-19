@@ -3,7 +3,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'no
 import { tmpdir } from 'node:os'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { CHUNK_DIR, HASHES_FILE, SHELL_FILES, chunkScriptHashes, cspHash, executableInlineScripts, runtimeInlineScripts, scriptHashes, shipsBuiltIn404 } from '../../scripts/csp-hashes.mjs'
+import { CHUNK_DIR, HASHES_FILE, SHELL_FILES, chunkScriptHashes, cspHash, executableInlineScripts, runtimeInlineScripts, scriptHashes, builtIn404Chunks } from '../../scripts/csp-hashes.mjs'
 import { buildCsp } from '../../worker/csp'
 
 // Guard for the web CSP (#504, ADR 021, ADR 012 "Web build"), the counterpart of tauri-csp.test.ts and
@@ -68,14 +68,14 @@ describe('scripts/csp-hashes.mjs runtime-injected scripts (#512)', () => {
     expect(() => runtimeInlineScripts('script:[{innerHTML:`go(${a})`}]')).toThrow(/interpolation/)
   })
 
-  it('recognises a build that ships the built-in 404 page, so a missed script fails the build instead of warning', () => {
+  it('finds the chunk of the built-in 404 page, so a missed script in it fails the build', () => {
     const dir = mkdtempSync(resolve(tmpdir(), 'csp-chunks-'))
     try {
-      expect(shipsBuiltIn404(dir)).toBe(false)
+      expect(builtIn404Chunks(dir)).toEqual([])
       writeFileSync(resolve(dir, 'a.js'), 'var x=l({__name:`other`,props:{}})')
-      expect(shipsBuiltIn404(dir)).toBe(false)
+      expect(builtIn404Chunks(dir)).toEqual([])
       writeFileSync(resolve(dir, 'b.js'), 'var x=l({__name:`error-404`,props:{}})')
-      expect(shipsBuiltIn404(dir)).toBe(true)
+      expect(builtIn404Chunks(dir)).toEqual(['b.js'])
     }
     finally {
       rmSync(dir, { recursive: true, force: true })

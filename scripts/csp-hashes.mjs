@@ -13,8 +13,8 @@
  * A third source (#512): scripts the client injects at runtime through `useHead({ script: [{ innerHTML }] })`. The shell
  * cannot show them; the one that ships today is Nuxt's built-in 404 page ("Go back" wiring, a constant of the installed Nuxt
  * version). They are read from the built client chunks, so a Nuxt upgrade follows by itself. A literal with an interpolation
- * is no constant and fails the build, and so does a build that ships the built-in 404 page but no script from it (a changed
- * chunk shape would put the violation back unseen); with no built-in 404 page (an app-owned error page) none is expected.
+ * is no constant and fails the build, and so does a built-in 404 page chunk that yields no script (a changed chunk shape
+ * would put the violation back unseen); with no built-in 404 page (an app-owned error page) none is expected.
  */
 import { createHash } from 'node:crypto'
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -64,10 +64,11 @@ function evalLiteral(quote, body) {
   }
 }
 
-/** Nuxt's built-in 404 page is part of the client output: its component chunk carries `__name:\`error-404\``. */
-export function shipsBuiltIn404(dir) {
-  if (!existsSync(dir)) return false
-  return readdirSync(dir).some(name => name.endsWith('.js') && /__name\s*:\s*["'`]error-404["'`]/.test(readFileSync(resolve(dir, name), 'utf8')))
+/** Chunk files of `dir` that hold Nuxt's built-in 404 page (its component chunk carries `__name:\`error-404\``). */
+export function builtIn404Chunks(dir) {
+  if (!existsSync(dir)) return []
+  return readdirSync(dir)
+    .filter(name => name.endsWith('.js') && /__name\s*:\s*["'`]error-404["'`]/.test(readFileSync(resolve(dir, name), 'utf8')))
 }
 
 export function scriptHashes(html) {
@@ -100,8 +101,10 @@ function main() {
     console.error(`csp-hashes: ${error.message}`)
     process.exit(1)
   }
-  if (!runtimeHashes.length && shipsBuiltIn404(resolve(root, CHUNK_DIR))) {
-    console.error(`csp-hashes: ${CHUNK_DIR} ships Nuxt's built-in 404 page but no inline script of it was found; its "Go back" script would be blocked by the policy (#512). Update runtimeInlineScripts to the new chunk shape.`)
+  // The chunk of the built-in 404 page must itself yield a script: another chunk's match must not hide a miss.
+  const missed = builtIn404Chunks(resolve(root, CHUNK_DIR)).filter(name => !runtimeInlineScripts(readFileSync(resolve(root, CHUNK_DIR, name), 'utf8')).length)
+  if (missed.length) {
+    console.error(`csp-hashes: ${missed.join(', ')} in ${CHUNK_DIR} ships Nuxt's built-in 404 page but no inline script of it was found; its "Go back" script would be blocked by the policy (#512). Update runtimeInlineScripts to the new chunk shape.`)
     process.exit(1)
   }
   const hashes = [...new Set([...shellHashes, ...runtimeHashes])].sort()
