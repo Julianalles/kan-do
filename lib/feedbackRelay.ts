@@ -10,7 +10,8 @@
  *   says it has no token (503 with the relay's own `FEEDBACK_NOT_CONFIGURED` body). The caller falls back to
  *   the browser path for the session.
  * - Any other 503 (a Cloudflare platform error page, a gateway) is a `server` error: retryable, the relay
- *   route stays (#559).
+ *   route stays (#559). So is every other status not named here (401, 403, 408, 410, 421, 3xx: an edge WAF
+ *   or challenge, #572); a 2xx other than a JSON 201 is a static host's shell and `unavailable`.
  */
 export interface RelayReport {
   title: string
@@ -50,6 +51,9 @@ export async function sendToRelay(url: string, report: RelayReport): Promise<Rel
     const answer = await response.json().catch(() => null) as { data?: { error?: unknown } | null } | null
     return answer?.data?.error === 'FEEDBACK_NOT_CONFIGURED' ? 'unavailable' : 'server'
   }
-  if (response.status >= 500 && response.status !== 501) return 'server'
-  return 'unavailable'
+  // Only a status that says "nothing answers here" switches to the browser path. Every other unnamed status
+  // (401/403/408/410/421, a 3xx, any 5xx but 501: an edge WAF or challenge, a timeout) is transient: retryable (#572).
+  if (response.status === 404 || response.status === 405 || response.status === 501) return 'unavailable'
+  if (response.status >= 200 && response.status < 300) return 'unavailable'
+  return 'server'
 }
