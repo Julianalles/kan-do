@@ -17,6 +17,12 @@ const NOTION_VERSION_DATA_SOURCES = '2025-09-03'; // Required for data_sources e
 const DEFAULT_TIMEOUT_MS = 10000;
 const DEFAULT_RETRIES = 1;
 const DEFAULT_BACKOFF_MS = 300;
+/**
+ * The longest `Retry-After` of a 429 the client sleeps before its retry (#507, equal to the per-request timeout).
+ * A longer wait (the public instance's Worker answers 60 s) is not slept: the 429 is thrown at once, so the add
+ * form never hangs on one request, and the caller keeps the task for the next push (`createFailureKind`).
+ */
+const MAX_RETRY_AFTER_MS = 10000;
 /** Pagination ceiling for `queryDataSource` (100 pages of 100 rows); reaching it throws instead of truncating. */
 const MAX_QUERY_PAGES = 100;
 
@@ -33,6 +39,17 @@ export class NotionAPIError extends Error {
     this.statusCode = statusCode;
     this.data = data;
   }
+}
+
+/**
+ * The wait a response's `Retry-After` asks for, in ms: delta seconds or an HTTP date. `null` when the header is
+ * missing, not parsable, zero or a date in the past (the caller then uses its own backoff).
+ */
+export function retryAfterMs(response: Pick<Response, 'headers'>, now: number = Date.now()): number | null {
+  const raw = response.headers?.get?.('Retry-After')?.trim();
+  if (!raw) return null;
+  const ms = /^\d+(\.\d+)?$/.test(raw) ? Number(raw) * 1000 : Date.parse(raw) - now;
+  return Number.isFinite(ms) && ms > 0 ? ms : null;
 }
 
 /** True for the archive request body (`{ archived: true }`), which has its own proxy route. */
@@ -169,7 +186,13 @@ export class NotionClientAPI {
 
       // Retry on 429 (rate limit) or 5xx (server error)
       if (retriesLeft > 0 && (response.status === 429 || response.status >= 500)) {
-        await this.sleep(backoffMs);
+        // A 429 says when the limit lifts (#507): retrying earlier fails again and spends more quota. A wait over
+        // the cap is not slept: throw the 429 so the caller can keep the work for later.
+        const asked = response.status === 429 ? retryAfterMs(response) : null;
+        if (asked !== null && asked > MAX_RETRY_AFTER_MS) {
+          throw new NotionAPIError(response.status, response.statusText, errorData);
+        }
+        await this.sleep(asked ?? backoffMs);
         return this.fetchWithRetry<T>(method, endpoint, body, retriesLeft - 1, backoffMs * 2, timeoutMs);
       }
 

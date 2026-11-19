@@ -159,13 +159,13 @@ export function sourceProblems(sources: SourceHealthMap, connected: readonly Int
  * (`pushFailureScope`): `transient` when the source could not take it right now, so the task is kept locally
  * with its marker and created on the next push: no connection, a missing setup, a rejected token (401, the
  * source's fault) or a refusal of this page that may pass (403 while the integration is not yet shared with the
- * database, a 5xx; the task's fault, so the source's health stays as it is). `rejected` when the source refuses
- * this very task for good (an invalid property, 409, any other 4xx, a database that is gone: 404), which the
+ * database, a 429 rate limit (#507), a 5xx; the task's fault, so the source's health stays as it is).
+ * `rejected` when the source refuses this very task for good (an invalid property, 409, any other 4xx, a database that is gone: 404), which the
  * user must fix in the form.
  */
 export function createFailureKind(error: unknown): 'transient' | 'rejected' {
   if (pushFailureScope(error) === 'source') return 'transient'
   const cause = unwrapCause(error) as ErrorFields | null
   const httpStatus = cause?.statusCode ?? cause?.httpStatusCode
-  return httpStatus === 403 || (httpStatus !== undefined && httpStatus >= 500) ? 'transient' : 'rejected'
+  return httpStatus === 403 || httpStatus === 429 || (httpStatus !== undefined && httpStatus >= 500) ? 'transient' : 'rejected'
 }
