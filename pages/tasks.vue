@@ -48,7 +48,7 @@ import { ref, onMounted, onBeforeUnmount, onUnmounted, watch, defineAsyncCompone
 import { useI18n } from "vue-i18n";
 import { useTasksStore } from "~/store/tasks";
 import { useIntegrationManager } from "~/composables/useIntegrationManager";
-import { useKeychainStatus } from "~/composables/useKeychainStatus";
+import { useBoardSetup } from "~/composables/useBoardSetup";
 import DataStorageNotice from "~/components/settings/DataStorageNotice.vue";
 import NewDayNote from "~/components/board/NewDayNote.vue";
 import NewDayTimeNote from "~/components/board/NewDayTimeNote.vue";
@@ -90,7 +90,7 @@ const { t } = useI18n();
 const route = useRoute();
 const tasksStore = useTasksStore();
 const { fetchTasks, isIntegrationConfigured } = useIntegrationManager();
-const { unavailable: keychainUnavailable } = useKeychainStatus();
+const { isSetUp } = useBoardSetup();
 
 // Carried-over cue (#99): count board days on load, after merges and when the tab returns
 const { record: recordCarryOver } = useCarryOverTracking();
@@ -191,16 +191,17 @@ definePageMeta({ alias: ['/all'], key: 'board' });
  */
 async function initializeTasksPageOnMount() {
   // Initialize if not already initialized
-  if (!isIntegrationConfigured()) {
-    // A token that is only unreachable (Keychain locked or denied) is not a missing setup: stay on the
-    // cached board instead of sending the user through the welcome flow.
-    if (keychainUnavailable.value.length > 0) return;
+  // One answer with the welcome page's guard (#561), so the two redirects never point at each other
+  if (!isSetUp()) {
     if (import.meta.dev) {
       console.log("No integration configured, redirecting to welcome page");
     }
     await navigateTo("/welcome");
     return;
   }
+  // A token that is only unreachable (Keychain locked or denied) is not a missing setup: stay on the
+  // cached board instead of sending the user through the welcome flow, and do not fetch.
+  if (!isIntegrationConfigured()) return;
 
   // Fetch tasks on mount (non-blocking - let it run in background)
   // Page will render with persisted data, then update when fetch completes

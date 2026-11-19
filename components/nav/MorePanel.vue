@@ -41,27 +41,28 @@
       <section :aria-labelledby="pageHeadingId">
         <h2 :id="pageHeadingId" class="px-2 pt-2 pb-1 text-xs font-semibold text-muted">{{ t('nav.groupPage') }}</h2>
         <div class="space-y-3 p-2">
-          <UFormField :help="t('board.sync.stackHelp')">
+          <UFormField>
             <USwitch
               :model-value="groupingEnabled"
               :label="t('board.sync.stackCards')"
               data-testid="more-stack"
               @update:model-value="setGroupingEnabled"
             />
+            <!-- The small note size of the panel (the last-sync note below), the reading size on a phone (#568) -->
+            <template #help>
+              <span class="text-xs max-md:text-body">{{ t('board.sync.stackHelp') }}</span>
+            </template>
           </UFormField>
-          <div v-if="groupingEnabled" class="space-y-2">
-            <div role="group" :aria-label="t('board.sync.groupBy')" class="flex flex-wrap gap-1.5">
-              <ChoiceChip
-                v-for="option in groupingOptions"
-                :key="option.value"
-                :picked="effectiveGroupKey === option.value"
-                :aria-pressed="effectiveGroupKey === option.value"
-                @click="setGroupingKey(option.value)"
-              >
-                {{ option.label }}
-              </ChoiceChip>
-            </div>
-            <p class="text-xs text-muted max-md:text-body">{{ t('board.sync.stackHint') }}</p>
+          <div v-if="groupingEnabled" role="group" :aria-label="t('board.sync.groupBy')" class="flex flex-wrap gap-1.5">
+            <ChoiceChip
+              v-for="option in groupingOptions"
+              :key="option.value"
+              :picked="effectiveGroupKey === option.value"
+              :aria-pressed="effectiveGroupKey === option.value"
+              @click="setGroupingKey(option.value)"
+            >
+              {{ option.label }}
+            </ChoiceChip>
           </div>
         </div>
         <UButton

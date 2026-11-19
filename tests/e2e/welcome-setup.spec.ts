@@ -2,7 +2,7 @@ import { test, expect, type Page } from '@playwright/test'
 import { completeNotionWizard } from './helpers/notionWizard'
 import { expectContrast } from './helpers/contrast'
 import { moreButton, openSettings } from './helpers/appNav'
-import { buildBoardStore, buildTasksStore, SEED_TASKS } from './helpers/seed'
+import { buildBoardStore, buildTasksStore, seedLocalBoard, SEED_TASKS } from './helpers/seed'
 import { installTauriStub } from './helpers/tauriStub'
 
 // E2E: the welcome page asks one question with two equal answers (#324); both end on the board. The trial with sample
@@ -462,3 +462,37 @@ for (const height of [600, 700, 800]) {
     expect(brandBox.y).toBeGreaterThanOrEqual(noticeBox.y + noticeBox.height)
   })
 }
+
+// A board that is already set up does not get the first-run page again (#561): a bookmark, a typed address or a history
+// entry that points at /welcome ends on Heute. App reset still reaches the page (data-settings.spec.ts, the samples test above).
+test.describe('a set-up board requests /welcome (#561)', () => {
+  test('a board with tasks opens Heute, the welcome page never shows', async ({ page, context, baseURL }) => {
+    await seedLocalBoard(context)
+    await page.goto(baseURL! + '/welcome')
+    await expect(page).toHaveURL(/\/tasks$/)
+    await expect(page.getByTestId('welcome-photo')).toHaveCount(0)
+    await expect(page.locator('[data-task-id="seed-open-1"]').first()).toBeVisible()
+  })
+
+  test('a board started fresh (no tasks) opens Heute too', async ({ page, context, baseURL }) => {
+    await seedLocalBoard(context, [])
+    await page.goto(baseURL! + '/welcome')
+    await expect(page).toHaveURL(/\/tasks$/)
+    await expect(page.getByTestId('welcome-photo')).toHaveCount(0)
+  })
+
+  test('the redirect replaces the history entry: Back does not bounce to /welcome', async ({ page, context, baseURL }) => {
+    await seedLocalBoard(context)
+    await page.goto(baseURL! + '/settings')
+    await page.goto(baseURL! + '/welcome')
+    await expect(page).toHaveURL(/\/tasks$/)
+    await page.goBack()
+    await expect(page).toHaveURL(/\/settings$/)
+  })
+
+  test('a board that is not set up still gets the welcome page', async ({ page, baseURL }) => {
+    await page.goto(baseURL! + '/welcome')
+    await expect(page).toHaveURL(/\/welcome$/)
+    await expect(page.getByTestId('welcome-choice-local')).toBeVisible()
+  })
+})
