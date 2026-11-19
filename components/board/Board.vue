@@ -213,6 +213,7 @@ import { useStackExpansion } from "~/composables/useStackExpansion";
 import { TaskStatus } from "~/types/taskStatus";
 import { useBoardDragState } from "~/composables/useBoardDragState";
 import { useSheetSpotlight } from "~/composables/useSheetSpotlight";
+import { DRAFT_TASK_ID } from "~/composables/useTaskDraft";
 import { DragDropProvider, DragOverlay } from "@dnd-kit/vue";
 import TaskCard from "~/components/task/TaskCard.vue";
 import TaskStack from "~/components/task/TaskStack.vue";
@@ -527,9 +528,13 @@ const mirrorOnRoot = (attribute: string, on: boolean) => {
 };
 watch(focusLit, (lit) => mirrorOnRoot('data-focus-lit', lit), { immediate: true, flush: 'post' });
 watch(spotlightTaskId, (id) => mirrorOnRoot('data-sheet-open', !!id), { immediate: true, flush: 'post' });
+// Only a sheet docked to the window's right edge moves the app bar (#290, #517): the add route's slideover. The detail
+// route's morph sheet (#468) sits at its card and leaves the bar where it is. The draft card is the add route's spotlight.
+watch(() => spotlightTaskId.value === DRAFT_TASK_ID, (side) => mirrorOnRoot('data-sheet-side', side), { immediate: true, flush: 'post' });
 onBeforeUnmount(() => {
   mirrorOnRoot('data-focus-lit', false);
   mirrorOnRoot('data-sheet-open', false);
+  mirrorOnRoot('data-sheet-side', false);
 });
 
 /** The card left Jetzt (done, waiting, synced away) while the overlay was up: it stays mounted to fade out (#394).
