@@ -270,10 +270,17 @@
         "store/remindersConfig.ts",
         "lib/remindersSource.ts",
         "lib/remindersEvents.ts",
-        "lib/reminders.ts"
+        "lib/reminders.ts",
+        "lib/remindersHint.ts",
+        "lib/dayBegun.ts",
+        "composables/usePlanToasts.ts",
+        "composables/useRemindersHint.ts"
       ],
       "specs": [
         "reminders-source",
+        "reminders-today",
+        "connections-not-planned",
+        "new-day-recap",
         "mixed-board",
         "source-icon-footer",
         "source-connections",

@@ -13,6 +13,7 @@ const bridge = vi.hoisted(() => ({
   lists: vi.fn(),
   fetch: vi.fn(),
   setCompleted: vi.fn(),
+  setDue: vi.fn(),
   available: vi.fn(() => true),
 }))
 
@@ -24,6 +25,7 @@ vi.mock('~/lib/reminders', async (importOriginal) => {
     remindersLists: bridge.lists,
     remindersFetch: bridge.fetch,
     remindersSetCompleted: bridge.setCompleted,
+    remindersSetDue: bridge.setDue,
     remindersAvailable: bridge.available,
   }
 })
@@ -33,7 +35,7 @@ import { RemindersError } from '~/lib/reminders'
 import { RemindersReadOnlyError, RemindersSource, type RemindersSourceDeps } from '~/integrations/sources/RemindersSource'
 import { SourceNotConfiguredError, type TaskSourceAdapter } from '~/integrations/sources/types'
 import { classifySyncFailure, pushFailureScope } from '~/lib/integrationHealth'
-import { reminderExternalId, splitExternalId, startOfLocalDay, type DoneOccurrence, type ReminderListRole } from '~/lib/remindersSource'
+import { reminderExternalId, splitExternalId, wroteOf, startOfLocalDay, type DoneOccurrence, type ReminderListRole } from '~/lib/remindersSource'
 /* eslint-enable import/first */
 
 const NOON = new Date(2026, 10, 19, 12, 0, 0).getTime()
@@ -51,7 +53,7 @@ const reminder = (over: Partial<Reminder> & Pick<Reminder, 'id' | 'listId'>): Re
 
 function setup(opts: { roles?: Record<string, ReminderListRole>; held?: Task[]; ledger?: Record<string, DoneOccurrence> } = {}) {
   const roles = opts.roles ?? { 'L-home': 'topic', 'L-work': 'activity', 'L-off': 'off' }
-  const state = { ledger: { ...(opts.ledger ?? {}) }, access: null as string | null, changed: 0 }
+  const state = { ledger: { ...(opts.ledger ?? {}) }, access: null as string | null, changed: 0, begun: true }
   const deps: RemindersSourceDeps = {
     roleOf: id => roles[id] ?? 'topic',
     heldTasks: () => opts.held ?? [],
@@ -66,6 +68,8 @@ function setup(opts: { roles?: Record<string, ReminderListRole>; held?: Task[]; 
     },
     health: () => 'healthy',
     now: () => NOON,
+    today: () => '2026-11-19',
+    dayHasBegun: () => state.begun,
     onChanged: () => { state.changed++ },
   }
   return { source: new RemindersSource(deps), state }
@@ -122,8 +126,9 @@ describe('fetchActive', () => {
     expect(tasks[1]!.reminders?.recurrence).toBe('FREQ=WEEKLY')
     expect(tasks[2]).toMatchObject({ status: TaskStatus.Done })
     expect(tasks[2]!.completedAt).toEqual(new Date(NOON - 1000))
-    // A fetched task starts without a planning state (slice 4 decides by date)
-    expect(tasks.every(t => t.notPlanned === undefined && t.sourceNotPlanned === undefined)).toBe(true)
+    // The date is the plan (#553): only the reminder dated today is delivered without a planning state; the marker is never a fetch's
+    expect(tasks.map(t => t.sourceNotPlanned)).toEqual(['not-today', undefined, 'not-today'])
+    expect(tasks.every(t => t.notPlanned === undefined)).toBe(true)
   })
 
   it('a list created in Reminders later reads as Thema; a list set to Off is never passed to the bridge', async () => {
@@ -313,5 +318,169 @@ describe('done-occurrence ledger (E2)', () => {
     const { source, state } = setup({ roles: { 'L-home': 'off' }, held: [ticked], ledger: { 'ABC@2026-11-19': { completedAt: NOON - 5000 } } })
     expect(await source.fetchActive()).toEqual([])
     expect(state.ledger).toEqual({})
+  })
+})
+
+describe('the date is the plan (#553)', () => {
+  const dated = (id: string, date: string | null, over: Partial<Reminder> = {}) =>
+    reminder({ id, listId: 'L-home', due: date ? { date, time: null } : null, ...over })
+
+  it('delivers no planning state for a reminder dated today once the day has begun, not-today for every other date', async () => {
+    bridge.fetch.mockResolvedValue({ reminders: [dated('today', '2026-11-19'), dated('past', '2026-11-18'), dated('future', '2026-11-20'), dated('none', null)], missingListIds: [] })
+    const { source } = setup()
+    const tasks = await source.fetchActive()
+    expect(Object.fromEntries(tasks.map(t => [t.externalId, t.sourceNotPlanned]))).toEqual({ today: undefined, past: 'not-today', future: 'not-today', none: 'not-today' })
+    expect(source.planningByDate).toBe(true)
+  })
+
+  it('a reminder dated today waits for the day: before it has begun it is delivered as not-today', async () => {
+    bridge.fetch.mockResolvedValue({ reminders: [dated('today', '2026-11-19')], missingListIds: [] })
+    const { source, state } = setup()
+    state.begun = false
+    expect((await source.fetchActive())[0]!.sourceNotPlanned).toBe('not-today')
+    state.begun = true
+    expect((await source.fetchActive())[0]!.sourceNotPlanned).toBeUndefined()
+  })
+
+  it('planWrite: a write only when the date is not today and the reminder does not repeat', () => {
+    const { source } = setup()
+    const base = heldTask('a', { reminders: { due: { date: '2026-11-25', time: null }, recurrence: null, listId: 'L-home' } })
+    expect(source.planWrite(base)).toBe(true)
+    expect(source.planWrite({ ...base, reminders: { ...base.reminders!, due: null } })).toBe(true)
+    expect(source.planWrite({ ...base, reminders: { ...base.reminders!, due: { date: '2026-11-19', time: null } } })).toBe(false)
+    expect(source.planWrite({ ...base, reminders: { ...base.reminders!, recurrence: 'FREQ=DAILY' } })).toBe(false)
+  })
+
+  it('planningHeld: not-today unless dated today, whether or not the day has begun (a put-back is never undone by the day starting)', () => {
+    const { source, state } = setup()
+    state.begun = false
+    const at = (date: string | null) => heldTask('a', { reminders: { due: date ? { date, time: null } : null, recurrence: null, listId: 'L-home' } })
+    expect(source.planningHeld(at('2026-11-19'))).toBeNull()
+    expect(source.planningHeld(at('2026-11-20'))).toBe('not-today')
+    expect(source.planningHeld(at(null))).toBe('not-today')
+  })
+
+  describe('update writes the date', () => {
+    const planned = (over: Partial<Task> = {}, due: { date: string; time: string | null } | null = { date: '2026-11-25', time: '09:00' }): Task => heldTask('a', {
+      pendingSync: { since: 1, attempts: 0, lastError: null, dateWrite: true },
+      reminders: { due, recurrence: null, listId: 'L-home' }, ...over,
+    })
+
+    it('today\'s date against the date kan-do holds; time stays; the result carries what was written', async () => {
+      bridge.setDue.mockResolvedValue({ date: '2026-11-19', time: '09:00' })
+      const { source } = setup()
+      const result = await source.update(planned())
+      expect(bridge.setDue).toHaveBeenCalledWith({ id: 'a', expectedDate: '2026-11-25', date: '2026-11-19', allowedListIds: ['L-home'] })
+      expect(result?.reminders).toEqual({ due: { date: '2026-11-19', time: '09:00' }, recurrence: null, listId: 'L-home', wrote: { from: '2026-11-25', to: '2026-11-19', at: NOON } })
+    })
+
+    it('no date becomes today without a time: expectedDate null, wrote.from null', async () => {
+      bridge.setDue.mockResolvedValue({ date: '2026-11-19', time: null })
+      const result = await setup().source.update(planned({}, null))
+      expect(bridge.setDue).toHaveBeenCalledWith(expect.objectContaining({ expectedDate: null, date: '2026-11-19' }))
+      expect(result?.reminders?.wrote).toEqual({ from: null, to: '2026-11-19', at: NOON })
+    })
+
+    it('a past date is replaced too', async () => {
+      bridge.setDue.mockResolvedValue({ date: '2026-11-19', time: null })
+      const result = await setup().source.update(planned({}, { date: '2026-11-01', time: null }))
+      expect(result?.reminders?.wrote?.from).toBe('2026-11-01')
+    })
+
+    it('writes nothing without the dateWrite flag: a push for another reason never writes a date', async () => {
+      const { source } = setup()
+      expect(await source.update(planned({ pendingSync: { since: 1, attempts: 0, lastError: null } }))).toBeNull()
+      expect(bridge.setDue).not.toHaveBeenCalled()
+    })
+
+    it('writes nothing for a recurring reminder, a reminder already dated today, a task put back or not Open', async () => {
+      const { source } = setup()
+      expect(await source.update(planned({ reminders: { due: { date: '2026-11-25', time: null }, recurrence: 'FREQ=WEEKLY', listId: 'L-home' } }))).toBeNull()
+      expect(await source.update(planned({}, { date: '2026-11-19', time: null }))).toBeNull()
+      expect(await source.update(planned({ notPlanned: true }))).toBeNull()
+      expect(await source.update(planned({ status: TaskStatus.Progress }))).toBeNull()
+      expect(bridge.setDue).not.toHaveBeenCalled()
+    })
+
+    it('a list switched to Off passes no list: the bridge refuses, the task stays as it is', async () => {
+      bridge.setDue.mockRejectedValue(new RemindersError('not-read'))
+      const { source } = setup({ roles: { 'L-home': 'off' } })
+      expect(await source.update(planned())).toBeNull()
+      expect(bridge.setDue).toHaveBeenCalledWith(expect.objectContaining({ allowedListIds: [] }))
+    })
+
+    it('changed: reads the reminder once; dated today now means no write at all', async () => {
+      bridge.setDue.mockRejectedValue(new RemindersError('changed'))
+      bridge.fetch.mockResolvedValue({ reminders: [dated('a', '2026-11-19', { due: { date: '2026-11-19', time: '10:00' } })], missingListIds: [] })
+      const result = await setup().source.update(planned())
+      expect(bridge.setDue).toHaveBeenCalledTimes(1)
+      expect(result?.reminders?.due).toEqual({ date: '2026-11-19', time: '10:00' })
+      expect(result?.reminders?.wrote).toBeUndefined()
+    })
+
+    it('changed to another date: one more write against the fresh date, never a blind overwrite', async () => {
+      bridge.setDue.mockRejectedValueOnce(new RemindersError('changed')).mockResolvedValueOnce({ date: '2026-11-19', time: null })
+      bridge.fetch.mockResolvedValue({ reminders: [dated('a', '2026-12-24')], missingListIds: [] })
+      const result = await setup().source.update(planned())
+      expect(bridge.setDue).toHaveBeenNthCalledWith(2, expect.objectContaining({ expectedDate: '2026-12-24', date: '2026-11-19' }))
+      expect(result?.reminders?.wrote).toMatchObject({ from: '2026-12-24', to: '2026-11-19' })
+    })
+
+    it('changed twice: not chased, the task stays pending with the error', async () => {
+      bridge.setDue.mockRejectedValue(new RemindersError('changed'))
+      bridge.fetch.mockResolvedValue({ reminders: [dated('a', '2026-12-24')], missingListIds: [] })
+      await expect(setup().source.update(planned())).rejects.toMatchObject({ kind: 'changed' })
+      expect(bridge.setDue).toHaveBeenCalledTimes(2)
+    })
+
+    it('a bridge failure rejects (the push marks the task and reports it)', async () => {
+      bridge.setDue.mockRejectedValue(new RemindersError('save-failed'))
+      await expect(setup().source.update(planned())).rejects.toMatchObject({ kind: 'save-failed' })
+    })
+
+    it('a reminder gone in Reminders is refused quietly', async () => {
+      bridge.setDue.mockRejectedValue(new RemindersError('not-found'))
+      expect(await setup().source.update(planned())).toBeNull()
+    })
+  })
+
+  describe('restoreDueDate', () => {
+    const wrote = (from: string | null) => heldTask('a', { reminders: { due: { date: '2026-11-19', time: '09:00' }, recurrence: null, listId: 'L-home', wrote: { from, to: '2026-11-19', at: NOON } } })
+
+    it('compare-and-set against today, writing the old date; the result drops wrote', async () => {
+      bridge.setDue.mockResolvedValue({ date: '2026-11-25', time: '09:00' })
+      const result = await setup().source.restoreDueDate(wrote('2026-11-25'))
+      expect(bridge.setDue).toHaveBeenCalledWith({ id: 'a', expectedDate: '2026-11-19', date: '2026-11-25', allowedListIds: ['L-home'] })
+      expect(result?.reminders?.due).toEqual({ date: '2026-11-25', time: '09:00' })
+      expect(result && wroteOf(result)).toBeNull()
+    })
+
+    it('a reminder that had no date gets it cleared (date null)', async () => {
+      bridge.setDue.mockResolvedValue(null)
+      const result = await setup().source.restoreDueDate(wrote(null))
+      expect(bridge.setDue).toHaveBeenCalledWith(expect.objectContaining({ date: null }))
+      expect(result?.reminders?.due).toBeNull()
+    })
+
+    it('without wrote it is a no-op success (an undo twice)', async () => {
+      expect(await setup().source.restoreDueDate(heldTask('a'))).toBeNull()
+      expect(bridge.setDue).not.toHaveBeenCalled()
+    })
+
+    it('Reminders moved on: the compare-and-set refuses and the error rejects', async () => {
+      bridge.setDue.mockRejectedValue(new RemindersError('changed'))
+      await expect(setup().source.restoreDueDate(wrote('2026-11-25'))).rejects.toMatchObject({ kind: 'changed' })
+    })
+  })
+
+  it('wroteOf reads older data and malformed values as none', () => {
+    expect(wroteOf({ reminders: undefined })).toBeNull()
+    expect(wroteOf({ reminders: { due: null, recurrence: null, listId: 'L' } })).toBeNull()
+    const bad = (wrote: unknown) => wroteOf({ reminders: { due: null, recurrence: null, listId: 'L', wrote: wrote as never } })
+    expect(bad('x')).toBeNull()
+    expect(bad({ from: 5, to: '2026-11-19', at: 1 })).toBeNull()
+    expect(bad({ from: null, to: 3, at: 1 })).toBeNull()
+    expect(bad({ from: null, to: '2026-11-19', at: Number.NaN })).toBeNull()
+    expect(bad({ from: null, to: '2026-11-19', at: 5 })).toEqual({ from: null, to: '2026-11-19', at: 5 })
   })
 })

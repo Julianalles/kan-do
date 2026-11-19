@@ -39,10 +39,10 @@ test.describe('Apple Reminders source (#551)', () => {
     const tasks = await storedTasks(page)
     const by = (title: string) => tasks.find(task => task.title === title)
     expect(by('Milch kaufen')).toMatchObject({ source: 'reminders', externalId: 'rem-milk', topic: 'Zuhause', activity: null, notes: 'Hafermilch', status: 0 })
-    expect(by('Quartalsbericht schreiben')).toMatchObject({ topic: null, activity: 'Arbeit', reminders: { due: { date: dayKeyDaysAhead(3), time: '09:30' }, listId: 'list-work' } })
+    expect(by('Quartalsbericht schreiben')).toMatchObject({ topic: null, activity: 'Arbeit', reminders: { due: { date: dayKeyDaysAhead(0), time: '09:30' }, listId: 'list-work' } })
     // A recurring reminder is one task per occurrence: its externalId carries the date
     expect(by('Pflanzen gießen')).toMatchObject({ externalId: `rem-plants@${dayKeyDaysAhead(0)}`, reminders: { recurrence: 'FREQ=WEEKLY' } })
-    // No planning state yet: everything starts Offen on the board
+    // Dated today: the date is the plan (#553), so each starts Offen on the board, nothing written
     expect(tasks.filter(task => task.status === 0 && task.source === 'reminders').every(task => task.notPlanned === undefined)).toBe(true)
   })
 
@@ -84,9 +84,11 @@ test.describe('Apple Reminders source (#551)', () => {
 
     await page.reload()
     await expect(column(page, 'done').getByText('Pflanzen gießen')).toHaveCount(1)
-    await expect(column(page, 'open').getByText('Pflanzen gießen')).toHaveCount(1)
+    // The next occurrence is dated a week ahead: the date is the plan (#553), so it waits in "Meine Aufgaben", not in Offen
+    await expect(column(page, 'open').getByText('Pflanzen gießen')).toHaveCount(0)
     await expect.poll(async () => (await storedTasks(page)).filter(task => task.title === 'Pflanzen gießen')).toHaveLength(2)
     const plants = (await storedTasks(page)).filter(task => task.title === 'Pflanzen gießen')
+    expect(plants.find(task => task.externalId === `rem-plants@${dayKeyDaysAhead(7)}`)?.notPlanned).toBe(true)
     expect(plants.map(task => [task.externalId, task.status]).sort()).toEqual([
       [`rem-plants@${dayKeyDaysAhead(0)}`, 3],
       [`rem-plants@${dayKeyDaysAhead(7)}`, 0],

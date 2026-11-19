@@ -129,6 +129,7 @@ export const useIntegrationManager = () => {
       holdsOnlyOpenDone: adapter.holdsOnlyOpenDone === true,
       keepsKanDoFields: adapter.keepsKanDoFields === true,
       startsNotPlanned: adapter.startsNotPlanned === true,
+      planningByDate: adapter.planningByDate === true,
       partialNotPlanned,
       readInParts,
       confirmedDrop: asked,

@@ -60,6 +60,9 @@ import { useTaskDeletion } from "~/composables/useTaskDeletion";
 import { useUndoDeleteShortcut } from "~/composables/useUndoDeleteShortcut";
 import { useTaskMove } from "~/composables/useTaskMove";
 import { onRemindersChanged } from "~/lib/remindersEvents";
+import { dayHasBegun } from "~/lib/dayBegun";
+import { useBoardStore } from "~/store/board";
+import { useTaskSources } from "~/composables/useTaskSources";
 import { usePropertyOptionsSync } from "~/composables/usePropertyOptionsSync";
 import SyncWarningModal from "~/components/sync/SyncWarningModal.vue";
 import TaskSheetHost from "~/components/task/TaskSheetHost.vue";
@@ -283,6 +286,13 @@ onUnmounted(cleanupTasksPageOnUnmount);
 // quiet refetch brings the board up to date, with no toast and no change to the source's health
 const stopRemindersChanged = onRemindersChanged(() => { void fetchTasks(); });
 onUnmounted(stopRemindersChanged);
+// A source that plans by date lets a task dated today join once the day has begun (#553): the fetch before it delivered the
+// task as not planned, so the day beginning (the fresh start, the skipped notice, the closed recap) fetches once more
+const { adapterFor } = useTaskSources();
+const boardStore = useBoardStore();
+watch(() => dayHasBegun(), (begun) => {
+  if (begun && boardStore.connectedIntegrations.some(id => adapterFor(id).planningByDate === true)) void fetchTasks();
+});
 // A warning still waiting would hold its fetch (and a manual refresh awaiting it) until the next one
 onBeforeUnmount(resetSyncValidation);
 </script>

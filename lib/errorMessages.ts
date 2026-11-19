@@ -1,6 +1,6 @@
 import { translate } from '~/lib/i18n'
 
-export type ErrorContext = 'notion_setup' | 'todoist_setup' | 'reminders_access' | 'task_sync' | 'task_operation' | 'setup' | 'network' | 'statistics_backfill' | 'task_delete' | 'task_restore' | 'task_create' | 'clipboard' | 'copy_title' | 'secrets' | 'secrets_reset' | 'external_link' | 'feedback'
+export type ErrorContext = 'notion_setup' | 'todoist_setup' | 'reminders_access' | 'reminders_write' | 'task_sync' | 'task_operation' | 'setup' | 'network' | 'statistics_backfill' | 'task_delete' | 'task_restore' | 'task_create' | 'clipboard' | 'copy_title' | 'secrets' | 'secrets_reset' | 'external_link' | 'feedback'
 
 /** Locale keys of the user-facing error messages produced by `getErrorMessageKey`. */
 export type ErrorMessageKey =
@@ -15,6 +15,7 @@ export type ErrorMessageKey =
   | 'errors.todoistSyncFailed'
   | 'errors.remindersAccessDenied'
   | 'errors.remindersSyncFailed'
+  | 'errors.remindersWriteFailed'
   | 'errors.taskNotFound'
   | 'errors.taskUpdateFailed'
   | 'errors.taskDeleteFailed'
@@ -127,6 +128,11 @@ export const getErrorMessageKey = (error: string | LocalizedError, errContext?: 
   // Apple Reminders (#551): a revoked or missing permission; a task's own write that failed is the sync message
   if (errContext === 'reminders_access') {
     return 'errors.remindersAccessDenied'
+  }
+
+  // A date kan-do wrote or restores (#553) that Reminders refused or that moved on meanwhile
+  if (errContext === 'reminders_write') {
+    return 'errors.remindersWriteFailed'
   }
 
   if (errContext === 'task_sync') {

@@ -77,6 +77,10 @@
           <p v-if="isSmallerStep" :id="smallerHintId" class="mt-1 text-body text-muted" data-testid="carry-over-smaller-hint">
             {{ t('task.carryOver.smallerHint') }}
           </p>
+          <p v-else-if="remindersHint" class="mt-1 flex items-center gap-2 text-sm text-muted" data-testid="reminders-hint-line">
+            <UIcon :name="remindersHint.icon" class="size-4 shrink-0" aria-hidden="true" />
+            {{ remindersHint.text }}
+          </p>
           <p
             v-else-if="isCarryOverVisible && !isCarryOverNudgeDue"
             class="mt-1 flex items-center gap-2 text-sm text-muted"
@@ -341,6 +345,7 @@ import TaskPropertySelect from '~/components/task/TaskPropertySelect.vue';
 import DatePickerField from '~/components/task/DatePickerField.vue';
 import { doneDayBounds } from '~/lib/doneDay';
 import { dayKey } from '~/utils/recapDay';
+import { useRemindersHint } from '~/composables/useRemindersHint';
 import { useToday } from '~/composables/useToday';
 import TopicPropertyPicker from '~/components/task/TopicPropertyPicker.vue';
 import TopicEditorHost from '~/components/topic/TopicEditorHost.vue';
@@ -475,6 +480,8 @@ function setTimeSpentAndSync(seconds: number) {
 
 // Done day (kd#131): the local calendar day of a done task's completion, and the days it may be moved to
 const { today } = useToday();
+// Reminders plans by date (#553): the line under the title says why the task is where it is
+const remindersHint = useRemindersHint(() => task.value ?? undefined);
 const doneDay = computed(() => {
   const current = task.value;
   if (!current || current.status !== TaskStatus.Done || !current.completedAt) return null;

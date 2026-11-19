@@ -18,6 +18,9 @@ import { TodoistSource } from '~/integrations/sources/TodoistSource'
 import { RemindersSource } from '~/integrations/sources/RemindersSource'
 import type { TaskSourceAdapter } from '~/integrations/sources/types'
 import type { SourceId } from '~/types/taskSource'
+import { syncToday, useToday } from '~/composables/useToday'
+import { dayHasBegun } from '~/lib/dayBegun'
+import { dayKey } from '~/utils/recapDay'
 
 export const useTaskSources = () => {
   const boardStore = useBoardStore()
@@ -63,6 +66,12 @@ export const useTaskSources = () => {
           dropDone: (externalId) => remindersConfig.dropDoneOccurrence(externalId),
           pruneLedger: (now) => remindersConfig.pruneDoneOccurrences(now),
           health: () => health.statusOf('reminders'),
+          // The local date as the string a reminder's date is compared with, never `Date()` inline
+          today: () => {
+            syncToday()
+            return dayKey(useToday().today.value)
+          },
+          dayHasBegun: () => dayHasBegun(),
         })
     }
   }

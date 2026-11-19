@@ -589,14 +589,14 @@ export function dayKeyDaysAhead(daysAhead: number): string {
 }
 
 /**
- * The reminders of the seed: a one-off with notes, a one-off in the Aktivität list, a weekly recurring one (ticking it
+ * The reminders of the seed (all dated today, so the date is the plan and each starts on today's board, #553): a one-off with notes, a one-off in the Aktivität list, a weekly recurring one (ticking it
  * leaves it open at the next date, the Reminders behaviour of the stub), one that was completed today, and one in the list
  * set to Off. Titles are unique so a spec finds a card by text.
  */
 export function remindersSeedReminders(): ReminderStub[] {
   return [
     { id: 'rem-milk', listId: 'list-home', title: 'Milch kaufen', notes: 'Hafermilch', due: { date: dayKeyDaysAhead(0), time: null } },
-    { id: 'rem-report', listId: 'list-work', title: 'Quartalsbericht schreiben', due: { date: dayKeyDaysAhead(3), time: '09:30' } },
+    { id: 'rem-report', listId: 'list-work', title: 'Quartalsbericht schreiben', due: { date: dayKeyDaysAhead(0), time: '09:30' } },
     {
       id: 'rem-plants', listId: 'list-home', title: 'Pflanzen gießen', due: { date: dayKeyDaysAhead(0), time: null },
       recurrence: { rule: 'FREQ=WEEKLY' }, nextDue: { date: dayKeyDaysAhead(7), time: null },

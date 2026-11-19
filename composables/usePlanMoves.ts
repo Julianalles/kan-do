@@ -11,9 +11,11 @@
  * - Reduced motion: no motion, the state changes at once
  * - `announcement`: one polite line per move, rendered by Board.vue's live region
  * - A second request for a card that is still leaving is ignored (a double click plans once)
+ * - A source that plans by date (Apple Reminders, #553) gets its toasts from `usePlanToasts` after each move
  */
 import { nextTick, ref } from 'vue'
 import { useTaskSync } from '~/composables/useTaskSync'
+import { usePlanToasts } from '~/composables/usePlanToasts'
 import { useTasksStore } from '~/store/tasks'
 import { isPhoneNow } from '~/composables/useIsDesktop'
 import { translate } from '~/lib/i18n'
@@ -80,6 +82,7 @@ export function usePlanMoves() {
   async function move(id: string, kind: 'plan' | 'unplan'): Promise<boolean> {
     // Resolved per move, not per caller: every Offen card on "Alle" holds this composable for its arrow
     const { planTask, unplanTask } = useTaskSync()
+    const { afterPlan, afterPutBack } = usePlanToasts()
     const task = useTasksStore().task(id)
     if (!task || leaving.has(id)) return false
     const source = () => (kind === 'plan' ? notPlannedItem(id) : openCard(id))
@@ -101,6 +104,9 @@ export function usePlanMoves() {
     if (!changed) return false
     announcement.value = translate(kind === 'plan' ? 'board.notPlanned.planned' : 'board.notPlanned.unplanned', { title: task.title })
     void fly(from, () => target()?.querySelector<HTMLElement>('.task') ?? null)
+    // A source that plans by date says what happened to its date (#553); the toast waits for the write, the move does not
+    if (kind === 'plan') void afterPlan(id)
+    else afterPutBack(id)
     return true
   }
 

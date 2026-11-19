@@ -366,6 +366,30 @@
       "setValue": "+ add",
       "clear": "Remove {field}",
       "suggest": "Suggestion {n} min"
+    },
+    "reminders": {
+      "planned": "{title} is planned for today. In Reminders now today instead of {date}.",
+      "plannedNoTime": "{title} is planned for today. In Reminders now today instead of {date}, without a time.",
+      "plannedNoDate": "{title} is planned for today. In Reminders now today.",
+      "plannedNoDateNoTime": "{title} is planned for today. In Reminders now today, without a time.",
+      "plannedRecurring": "{title} is planned for today. The date stays, the task repeats.",
+      "putBack": "{title} is no longer planned for today. In Reminders it still says today.",
+      "restoreDate": "Restore old date: {date}",
+      "hint": {
+        "putBack": "Due today in Reminders, put back here",
+        "planned": "You chose it for today in Reminders",
+        "repeats": "Repeats {rule}"
+      },
+      "rule": {
+        "daily": "daily",
+        "weekly": "weekly",
+        "monthly": "monthly",
+        "yearly": "yearly",
+        "everyDays": "every {n} days",
+        "everyWeeks": "every {n} weeks",
+        "everyMonths": "every {n} months",
+        "everyYears": "every {n} years"
+      }
     }
   },
   "source": {
@@ -613,7 +637,8 @@
     "feedbackFailed": "The feedback couldn't be sent. Your draft is kept.",
     "taskRestoreFailed": "The task couldn't be restored and stays in the trash.",
     "remindersAccessDenied": "Kan-Do isn't allowed to read Reminders. Allow access in the macOS system settings.",
-    "remindersSyncFailed": "The sync with Reminders couldn't be completed."
+    "remindersSyncFailed": "The sync with Reminders couldn't be completed.",
+    "remindersWriteFailed": "The old date couldn't be restored. Reminders holds a different date now."
   },
   "notion": {
     "modal": {

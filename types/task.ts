@@ -32,6 +32,13 @@ export interface TaskReminders {
   due: { date: string; time: string | null } | null;
   recurrence: string | null;
   listId: string;
+  /**
+   * The date kan-do wrote when the user planned the task for today (#553): `from` is the date Reminders held (`null`: none),
+   * `to` the date written (today then), `at` when (epoch ms). It makes the plan's "Rückgängig" and the put-back's "Altes Datum
+   * zurück" possible and is dropped once the date is restored or Reminders holds another date than `to`. Additive and
+   * tolerant: older data has none, a malformed value reads as none (`wroteOf`, `lib/remindersSource.ts`).
+   */
+  wrote?: { from: string | null; to: string; at: number };
 }
 
 /**
@@ -59,6 +66,12 @@ export interface PendingSync {
    * making a second one. Absent: no create is in doubt.
    */
   createUncertain?: CreateUncertain;
+  /**
+   * The push has to write today's date to the reminder (#553): set when the user plans a task of a source that plans by
+   * date and its date is not today. State-based pushes of other changes (a time box, a priority) never write a date;
+   * only this flag does, and a put-back before the write clears it. Gone with the marker once the push succeeded.
+   */
+  dateWrite?: true;
 }
 
 export interface CreateUncertain {

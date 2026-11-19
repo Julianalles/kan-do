@@ -12,6 +12,7 @@
   Jetzt, a bar in Jetzt that grows to the right from the chip's own position to the footer's end, over the dots and the priority badge, never over the source icon; the card has no progress ring
   (the task sheet keeps its own)
 - Shows the carried-over dots (#99) for not-done cards, with the numeral only past the dot cap (#584)
+- Shows the quiet footer icon of a Reminders task whose place the date explains (#553: put back while Reminders says today, planned by Reminders' date, a series held here), its sentence as the label
 - Shows the source icon at the far left of the footer (#471) on a board with tasks from 2+ sources (#323) and, with `sourceIcon`, on every "Meine Aufgaben" card (#354), the cloud "save pending" icon next to it while the task's source cannot sync (#319)
 - Manages task timer functionality (for Progress status)
 - Handles visual states for different task statuses
@@ -120,7 +121,7 @@
              only on a board with tasks from 2+ sources (never on the add sheet's draft). The sync button names the source
              that is the problem; the card shows nothing else about source health. It is not covered by the Jetzt bar,
              which starts at the chip after it. -->
-        <span v-if="showSourceIcon || savePending" ref="sourceEl" class="flex shrink-0 items-center gap-1" data-testid="task-footer-source">
+        <span v-if="showSourceIcon || savePending || remindersHint" ref="sourceEl" class="flex shrink-0 items-center gap-1" data-testid="task-footer-source">
           <TaskSourceIcon v-if="showSourceIcon" :source="task.source" />
           <UIcon
             v-if="savePending"
@@ -130,6 +131,17 @@
             :aria-label="savePendingLabel"
             :title="savePendingLabel"
             data-testid="task-save-pending"
+          />
+          <!-- Why a Reminders task is here (#553): the same quiet footer icon as the cloud, its sentence is the label -->
+          <UIcon
+            v-if="remindersHint"
+            :name="remindersHint.icon"
+            class="task-reminders-hint size-4 shrink-0 text-muted"
+            role="img"
+            :aria-label="remindersHint.text"
+            :title="remindersHint.text"
+            :data-hint="remindersHint.kind"
+            data-testid="task-reminders-hint"
           />
         </span>
         <!-- Timebox as the progress item (#388), after the source unit (#584, #471); the Jetzt draft shows its running time
@@ -186,6 +198,7 @@ import TaskSourceIcon from "~/components/task/TaskSourceIcon.vue";
 import TaskTimeboxNudge from "~/components/task/TaskTimeboxNudge.vue";
 import { useTasksStore } from "~/store/tasks";
 import { useTaskCarryOver } from "~/composables/useCarryOver";
+import { useRemindersHint } from '~/composables/useRemindersHint';
 import { useSavePending } from "~/composables/useSavePending";
 import { isTaskReturning } from "~/lib/deleteGapState";
 import { HIGH, normalizePriority } from "~/lib/priority";
@@ -334,6 +347,8 @@ const savePending = computed(() => isSavePending(props.task));
 const tasksStore = useTasksStore();
 // A "Meine Aufgaben" card (#354) always names its source (`sourceIcon`): there the question is where a task comes from
 const showSourceIcon = computed(() => (tasksStore.hasMultipleSources || props.sourceIcon) && !props.draft);
+// Reminders plans by date (#553): the footer says why a task is where it is, in the cases the user cannot see
+const remindersHint = props.draft ? computed(() => null) : useRemindersHint(() => props.task);
 const savePendingLabel = computed(() =>
   t('task.savePending', { source: isIntegrationSourceId(props.task.source) ? integrationLabel(props.task.source) : '' }),
 );
@@ -379,7 +394,7 @@ onMounted(() => {
 });
 
 // The unit appears and disappears (the cloud, a second source joining the board) without the footer resizing
-watch([showSourceIcon, savePending], () => nextTick(measureFooter));
+watch([showSourceIcon, savePending, remindersHint], () => nextTick(measureFooter));
 
 onBeforeUnmount(() => footerObserver?.disconnect());
 

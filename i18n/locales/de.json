@@ -366,6 +366,30 @@
       "setValue": "+ hinzufügen",
       "clear": "{field} entfernen",
       "suggest": "Vorschlag {n} min"
+    },
+    "reminders": {
+      "planned": "{title} ist für heute geplant. In Erinnerungen jetzt heute statt {date}.",
+      "plannedNoTime": "{title} ist für heute geplant. In Erinnerungen jetzt heute statt {date}, ohne Uhrzeit.",
+      "plannedNoDate": "{title} ist für heute geplant. In Erinnerungen jetzt heute.",
+      "plannedNoDateNoTime": "{title} ist für heute geplant. In Erinnerungen jetzt heute, ohne Uhrzeit.",
+      "plannedRecurring": "{title} ist für heute geplant. Das Datum bleibt, die Aufgabe wiederholt sich.",
+      "putBack": "{title} ist nicht mehr für heute geplant. In Erinnerungen steht sie weiter auf heute.",
+      "restoreDate": "Altes Datum zurück: {date}",
+      "hint": {
+        "putBack": "Heute in Erinnerungen fällig, hier zurückgelegt",
+        "planned": "Von dir in Erinnerungen für heute gewählt",
+        "repeats": "Wiederholt sich: {rule}"
+      },
+      "rule": {
+        "daily": "täglich",
+        "weekly": "wöchentlich",
+        "monthly": "monatlich",
+        "yearly": "jährlich",
+        "everyDays": "alle {n} Tage",
+        "everyWeeks": "alle {n} Wochen",
+        "everyMonths": "alle {n} Monate",
+        "everyYears": "alle {n} Jahre"
+      }
     }
   },
   "source": {
@@ -613,7 +637,8 @@
     "feedbackFailed": "Das Feedback konnte nicht gesendet werden. Dein Entwurf bleibt erhalten.",
     "taskRestoreFailed": "Die Aufgabe konnte nicht wiederhergestellt werden und bleibt im Papierkorb.",
     "remindersAccessDenied": "Kan-Do darf Erinnerungen nicht lesen. Erlaube den Zugriff in den Systemeinstellungen von macOS.",
-    "remindersSyncFailed": "Die Synchronisation mit Erinnerungen konnte nicht abgeschlossen werden."
+    "remindersSyncFailed": "Die Synchronisation mit Erinnerungen konnte nicht abgeschlossen werden.",
+    "remindersWriteFailed": "Das alte Datum ließ sich nicht zurückschreiben. In Erinnerungen steht inzwischen ein anderes Datum."
   },
   "notion": {
     "modal": {

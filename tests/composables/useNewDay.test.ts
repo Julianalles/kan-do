@@ -27,6 +27,8 @@ vi.mock('~/composables/useNotionDataSource', () => ({
 /* eslint-disable import/first -- order-sensitive: mocks must be registered before the SUT is imported */
 import { isNewDayDue, resetNewDay, useNewDay } from '~/composables/useNewDay'
 import { resetNewDayRecap, useNewDayRecap } from '~/composables/useNewDayRecap'
+import { dayHasBegun } from '~/lib/dayBegun'
+import { recapIsOpen } from '~/lib/recapOpenState'
 import { syncToday } from '~/composables/useToday'
 import { useDayClose } from '~/composables/useDayClose'
 import { useTaskSync } from '~/composables/useTaskSync'
@@ -167,6 +169,59 @@ describe('useNewDay: the day check and the fresh start (#387)', () => {
       syncToday()
       expect(newDay.isDayBegun()).toBe(false)
       expect(newDay.noticeShown.value).toBe(false)
+    })
+  })
+
+  describe('dayHasBegun: when a source that plans by date may let a task dated today join (#553)', () => {
+    it('false before the day check ran in this window', () => {
+      setup()
+      expect(dayHasBegun()).toBe(false)
+    })
+
+    it('false while the day is due and its notice is open: yesterday\'s board still waits for the user', () => {
+      const { newDay } = setup()
+      newDay.check()
+      expect(isNewDayDue()).toBe(true)
+      expect(dayHasBegun()).toBe(false)
+    })
+
+    it('true once the day was started fresh', () => {
+      const { newDay } = setup()
+      startFresh(newDay)
+      expect(dayHasBegun()).toBe(true)
+    })
+
+    it('true once the notice for today was closed (skipped), the board as it is', () => {
+      const { newDay } = setup()
+      newDay.check()
+      newDay.closeNotice()
+      expect(dayHasBegun()).toBe(true)
+    })
+
+    it('true when the day is not due at all (the board was started today)', () => {
+      const { newDay } = setup({ lastNewDay: TODAY, lastShownDay: TODAY })
+      newDay.check()
+      expect(dayHasBegun()).toBe(true)
+    })
+
+    it('false while the recap is open, even on a started day: never in the middle of the recap', () => {
+      const { newDay } = setup({ lastNewDay: TODAY, lastShownDay: TODAY })
+      newDay.check()
+      recapIsOpen.value = true
+      try {
+        expect(dayHasBegun()).toBe(false)
+      } finally {
+        recapIsOpen.value = false
+      }
+      expect(dayHasBegun()).toBe(true)
+    })
+
+    it('false again the next day until its own check ran', () => {
+      const { newDay } = setup({ lastNewDay: TODAY, lastShownDay: TODAY })
+      newDay.check()
+      vi.setSystemTime(at(23, 0, 5))
+      syncToday()
+      expect(dayHasBegun()).toBe(false)
     })
   })
 

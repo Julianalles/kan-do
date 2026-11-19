@@ -34,6 +34,10 @@ export const ICONS = {
   external: 'i-ph-arrow-square-out',
   /** Opens the task details inside the app. */
   openDetail: 'i-ph-corners-out',
+  /** A Reminders task held here on another day because it repeats (#553): the card footer's hint. */
+  repeats: 'i-ph-repeat',
+  /** A Reminders task whose date is today, planned or put back by the date (#553): the card footer's hint. */
+  dueToday: 'i-ph-calendar-dot',
   /** The annotator's arrow tool (a shape, not an affordance). */
   arrowTool: 'i-ph-arrow-up-right',
 } as const satisfies Record<string, `i-ph-${string}`>

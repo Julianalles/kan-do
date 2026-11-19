@@ -6,7 +6,7 @@
  * `store/remindersConfig.ts` build on it.
  */
 import type { Reminder, ReminderList } from '~/lib/reminders'
-import type { Task } from '~/types/task'
+import type { Task, TaskReminders } from '~/types/task'
 import { TaskStatus } from '~/types/taskStatus'
 import { DEFAULT_PRIORITY } from '~/lib/priority'
 
@@ -117,3 +117,16 @@ export function reminderToTask(reminder: Reminder, list: Pick<ReminderList, 'tit
     },
   }
 }
+
+/** `Task.reminders.wrote` made usable: anything but `{ from: string | null, to: string, at: finite number }` reads as none. */
+export function wroteOf(task: Pick<Task, 'reminders'>): NonNullable<TaskReminders['wrote']> | null {
+  const wrote: unknown = task.reminders?.wrote
+  if (!isRecord(wrote)) return null
+  const { from, to, at } = wrote
+  if (typeof to !== 'string' || typeof at !== 'number' || !Number.isFinite(at)) return null
+  if (from !== null && typeof from !== 'string') return null
+  return { from, to, at }
+}
+
+/** The planning state a source that plans by date delivers (`Task.sourceNotPlanned`): a date that is not today, or today before the day has begun. */
+export const NOT_TODAY = 'not-today'
