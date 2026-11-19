@@ -49,7 +49,10 @@ test.describe('card to sheet morph (desktop)', () => {
     const box = (await dialog.boundingBox())!
     expect(box.width).toBeCloseTo(720, 0)
     expect(box.x + box.width / 2).toBeCloseTo(cardBox.x + cardBox.width / 2, 0)
-    expect(box.y + box.height / 2).toBeCloseTo(cardBox.y + cardBox.height / 2, 0)
+    // centred vertically too, unless that would reach into the app bar row (#518): then it starts right below it
+    const bar = (await page.getByTestId('app-nav').boundingBox())!
+    const barBottom = bar.y + bar.height
+    expect(box.y).toBeCloseTo(Math.max(cardBox.y + cardBox.height / 2 - box.height / 2, barBottom), 0)
 
     // The first frames are card-sized and the box widens frame by frame: a grow, not a pop
     const frames = await samples(page)
@@ -70,6 +73,26 @@ test.describe('card to sheet morph (desktop)', () => {
     expect(box.y).toBeGreaterThanOrEqual(15)
     expect(box.x + box.width).toBeLessThanOrEqual(1280 - 15)
     expect(box.y + box.height).toBeLessThanOrEqual(800 - 15)
+  })
+
+  test('a card high in the left column leaves the whole app bar uncovered (#518)', async ({ page }) => {
+    await page.goto('/tasks')
+    const origin = card(page, 'seed-open-1')
+    await expect(origin).toBeVisible()
+    await origin.click()
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toBeVisible()
+    await settleAnimations(page)
+    const sheet = (await dialog.boundingBox())!
+    const bar = (await page.getByTestId('app-nav').boundingBox())!
+    // the sheet starts at or below the bar row, and no part of the centred group (wordmark, pill, Mehr) lies under it
+    expect(sheet.y).toBeGreaterThanOrEqual(bar.y + bar.height - 1)
+    for (const id of ['app-nav-brand', 'app-nav-pill', 'app-nav-more']) {
+      const part = (await page.getByTestId(id).boundingBox())!
+      expect(part.y + part.height, id).toBeLessThanOrEqual(sheet.y)
+    }
+    expect(sheet.x).toBeGreaterThanOrEqual(15)
+    expect(sheet.y + sheet.height).toBeLessThanOrEqual(800 - 15)
   })
 
   test('closing folds the sheet back into its card and returns focus to it', async ({ page }) => {

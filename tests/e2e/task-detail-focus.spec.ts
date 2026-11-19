@@ -81,7 +81,8 @@ test.describe('desktop sheet', () => {
     await openFromCard(page)
     // Past the 600 ms double-click guard (kd#25): an earlier outside press is a second click of the opening double-click
     await page.waitForTimeout(700)
-    await page.mouse.click(100, 450)
+    // Right of the sheet: for this card it spans x 16-736 and starts below the app bar (#518)
+    await page.mouse.click(1100, 450)
     await expect(page).toHaveURL(/\/tasks$/)
   })
 
