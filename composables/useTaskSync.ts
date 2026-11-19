@@ -661,6 +661,22 @@ export const useTaskSync = () => {
    * when a timer stops and after a fetch of a recovered source (`only` limits it to one source). A task whose
    * write is already in flight is left to that write. Local tasks need no push: they are persisted via Pinia.
    */
+  /**
+   * Sends the deletes that wait in the queue (`state: 'queued'`: their undo window is over and the trash entry exists)
+   * to their source (#543). `commitTaskDelete` itself queues again, without a request, while the source is inside a
+   * 429 window, so one request that meets the limit is the most a flush spends.
+   */
+  const commitQueuedDeletes = async (only?: SourceId): Promise<void> => {
+    for (const pending of Object.values(tasksStore.pendingDeletes)) {
+      if (pending.state !== 'queued' || deletesInFlight.has(pending.taskId)) continue;
+      const origin = originToRemove(pending.task);
+      const sources = [pending.task.source, origin?.source].filter((source): source is SourceId => source !== undefined && source !== 'local');
+      if (sources.length === 0 || (only && !sources.includes(only))) continue;
+      if (sources.some((source) => isRateLimited(source))) continue;
+      await commitTaskDelete(pending.taskId);
+    }
+  };
+
   const syncPendingChanges = async (only?: SourceId): Promise<void> => {
     // After an app reset the stores still hold the erased state until the reload: never push it upstream (kd#227)
     if (isWritesFrozen()) return;
@@ -670,6 +686,9 @@ export const useTaskSync = () => {
       const owner = tasksStore.task(taskId);
       if (owner && !sourceSyncsTime(owner.source)) tasksStore.clearPendingTimeUpdate(taskId);
     }
+
+    // Deletes that wait (offline, a 429, #543) go before everything else; a source inside a 429 window sends none
+    await commitQueuedDeletes(only);
 
     // Moves first: a moved task is created in its target before anything else is pushed for it
     await commitPendingMoves(only);
@@ -709,7 +728,10 @@ export const useTaskSync = () => {
       try {
         await adapterFor(pending.task.source).remove(pending.task);
       } catch (error) {
-        if (!isAlreadyGone(error)) throw error;
+        if (!isAlreadyGone(error)) {
+          noteRateLimit(pending.task.source, error);
+          throw error;
+        }
       }
     }
     // Deleted while a move was outstanding (#322): the origin copy goes too, or the next fetch of the origin
@@ -719,7 +741,10 @@ export const useTaskSync = () => {
       try {
         await adapterFor(origin.source).remove(origin);
       } catch (error) {
-        if (!isAlreadyGone(error)) throw error;
+        if (!isAlreadyGone(error)) {
+          noteRateLimit(origin.source, error);
+          throw error;
+        }
       }
     }
   };
@@ -740,8 +765,14 @@ export const useTaskSync = () => {
     const pending = mapHelpers.get(tasksStore.pendingDeletes, taskId);
     if (!pending || deletesInFlight.has(taskId)) return 'skipped';
 
-    const hasUpstream = pending.task.source !== 'local' || originToRemove(pending.task) !== null;
+    const origin = originToRemove(pending.task);
+    const hasUpstream = pending.task.source !== 'local' || origin !== null;
     if (hasUpstream && typeof navigator !== 'undefined' && navigator.onLine === false) {
+      tasksStore.markPendingDeleteQueued(taskId);
+      return 'queued';
+    }
+    // A 429 limits the whole source (#543): the delete waits behind the pause like an offline one, without a request
+    if ((pending.task.source !== 'local' && isRateLimited(pending.task.source)) || (origin !== null && isRateLimited(origin.source))) {
       tasksStore.markPendingDeleteQueued(taskId);
       return 'queued';
     }
@@ -751,7 +782,7 @@ export const useTaskSync = () => {
       await deleteTaskUpstream(pending);
     } catch (error) {
       if (!isAlreadyGone(error)) {
-        if (isDeleteNetworkFailure(error)) {
+        if (isDeleteNetworkFailure(error) || rateLimitOf(error) !== null) {
           tasksStore.markPendingDeleteQueued(taskId);
           return 'queued';
         }
@@ -759,6 +790,9 @@ export const useTaskSync = () => {
         tasksStore.undeleteTask(taskId, pending.task.externalId, pending.task.pendingMove?.fromExternalId);
         if (!tasksStore.task(taskId)) tasksStore.addTask(pending.task);
         tasksStore.restoreCarryOver(taskId, pending.carryOver);
+        // The task is back on the board for good: whoever called (the delete window, a flush) leaves no trash entry (#543)
+        useTrashStore().remove(taskId);
+        statisticsStore.removeDiscardedTime(taskId);
         handleError(error instanceof Error ? error : String(error), 'task_delete');
         return 'restored';
       }
