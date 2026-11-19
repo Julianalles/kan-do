@@ -12,7 +12,7 @@ export const FEEDBACK_REPO_DEFAULT = 'jaylouiz/kan-do-feedback'
 export const FEEDBACK_HOURLY_CAP = 30
 export const TITLE_MAX = 120
 export const BODY_MAX = 20000
-/** Decoded PNG size. Vercel refuses request bodies over 4.5 MB; base64 adds a third. */
+/** Decoded PNG size. Kept from the Vercel relay (which refuses request bodies over 4.5 MB; base64 adds a third); it still bounds the Worker body. */
 export const SCREENSHOT_MAX_BYTES = 3 * 1024 * 1024
 
 const SCREENSHOT_PATH = /^feedback\/\d{4}\/\d{2}\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.png$/

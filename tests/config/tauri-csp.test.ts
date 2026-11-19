@@ -51,7 +51,7 @@ describe.each([['csp'], ['devCsp']] as const)('tauri.conf.json app.security.%s',
 
   it('connect-src lists IPC, the one webview-side integration host and the feedback relay, and no GitHub or release host', () => {
     const connect = sources(csp, 'connect-src')
-    expect(connect).toEqual(expect.arrayContaining(["'self'", 'ipc:', 'http://ipc.localhost', 'https://api.todoist.com', 'https://kan-do-zeta.vercel.app']))
+    expect(connect).toEqual(expect.arrayContaining(["'self'", 'ipc:', 'http://ipc.localhost', 'https://api.todoist.com', 'https://kando.julius-wuestefeld.workers.dev']))
     const hosts = connect.filter(s => !s.startsWith("'"))
     // GitHub (#223 github_request, #225 updater) is reached by Rust only; allowing it would let the page reach it
     expect(hosts.filter(h => /github/i.test(h))).toEqual([])
@@ -64,7 +64,7 @@ describe('production csp', () => {
   const csp = conf.app.security.csp as Csp
 
   it('allows exactly the expected connect-src hosts', () => {
-    expect(sources(csp, 'connect-src')).toEqual(["'self'", 'ipc:', 'http://ipc.localhost', 'https://api.todoist.com', 'https://kan-do-zeta.vercel.app'])
+    expect(sources(csp, 'connect-src')).toEqual(["'self'", 'ipc:', 'http://ipc.localhost', 'https://api.todoist.com', 'https://kando.julius-wuestefeld.workers.dev'])
   })
 
   it('the feedback relay host is the one the build posts to (#268)', () => {
