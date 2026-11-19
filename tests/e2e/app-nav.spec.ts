@@ -216,25 +216,29 @@ for (const { label, size } of VIEWPORTS) {
       await waitForNavIdle(page)
       const panel = await openMore(page)
       await page.evaluate(() => {
-        const w = window as Window & { __retarget: { clicked: boolean, widest: number, shrinkFrom: number | null } }
-        w.__retarget = { clicked: false, widest: 0, shrinkFrom: null }
+        const w = window as Window & { __retarget: { clicked: boolean, widest: number, shrinkFrom: number | null, clickWidth: number, grow: Animation | null } }
+        w.__retarget = { clicked: false, widest: 0, shrinkFrom: null, clickWidth: 0, grow: null }
         const state = w.__retarget
         const orig = Element.prototype.animate
         Element.prototype.animate = function (this: Element, ...args: Parameters<Element['animate']>) {
           const frames = args[0] as Keyframe[]
+          const anim = orig.apply(this, args)
+          if (this.classList.contains('app-nav-third') && !state.clicked && Number(frames[1]?.opacity) === 1) state.grow = anim
           if (this.classList.contains('app-nav-third') && state.clicked && Number(frames[1]?.opacity) === 0 && state.shrinkFrom === null) {
             state.shrinkFrom = Number.parseFloat(String(frames[0]!.width))
           }
-          return orig.apply(this, args)
+          return anim
         }
         const tick = () => {
           const third = document.querySelector('.app-nav-third')
           if (third && state.shrinkFrom === null) {
             const width = third.getBoundingClientRect().width
             state.widest = Math.max(state.widest, width)
-            // retarget in the middle of the grow
-            if (!state.clicked && third.getAnimations().length && width > 40) {
+            // retarget in the middle of the grow: the move's own animation is running (not a padding transition or the
+            // held start state) and the segment is visibly wide
+            if (!state.clicked && state.grow?.playState === 'running' && Number(state.grow.currentTime) > 0 && width > 40) {
               state.clicked = true
+              state.clickWidth = width
               ;(document.querySelector('[data-testid="app-nav-place-board"]') as HTMLElement).click()
             }
           }
@@ -248,8 +252,10 @@ for (const { label, size } of VIEWPORTS) {
       await expect(thirdItem(page)).toHaveCount(0)
       await waitForNavIdle(page)
       await expect(page).toHaveURL(/\/tasks(\?.*)?$/)
-      const { widest, shrinkFrom } = await page.evaluate(() => (window as Window & { __retarget: { widest: number, shrinkFrom: number } }).__retarget)
-      expect(shrinkFrom, 'the retarget happened mid-move: the segment is neither empty nor done').toBeGreaterThan(40)
+      const { widest, shrinkFrom, clickWidth } = await page.evaluate(() => (window as Window & { __retarget: { widest: number, shrinkFrom: number, clickWidth: number } }).__retarget)
+      expect(clickWidth, 'the retarget happened mid-move: the segment is neither empty nor done').toBeGreaterThan(40)
+      // the shrink continues from the width on screen at the retarget (the grow only widens until then), never from zero
+      expect(shrinkFrom).toBeGreaterThanOrEqual(clickWidth - 0.5)
       // every width the segment showed up to the first frame of the shrink is at most the width the shrink starts from
       expect(widest).toBeLessThanOrEqual(shrinkFrom + 0.5)
     })
