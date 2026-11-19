@@ -346,4 +346,71 @@ describe('server/api/notion/databases.get.ts', () => {
     expect(res.status).toBe(502)
     expect(res.body?.data?.error).toBe('NOTION_API_ERROR')
   })
+  describe('Notion 429 on a tolerated request (#539)', () => {
+    const rateLimited = () =>
+      Object.assign(new Error('rate limited'), { name: 'APIResponseError', status: 429, code: 'rate_limited', headers: { 'retry-after': '7' } })
+
+    const call = async (requestSpy: ReturnType<typeof vi.fn>, url = '/api/notion/databases') => {
+      vi.doMock('@notionhq/client', () => ({
+        Client: vi.fn().mockImplementation(function () { return { request: requestSpy } }),
+      }))
+      const handler = (await import('~/server/api/notion/databases.get')).default
+      const app = createApp(); app.use('/api/notion/databases', handler)
+      return supertest(toNodeListener(app)).get(url).set('Authorization', 'Bearer tkn')
+    }
+
+    it('answers 429 with Retry-After when a databases/{id} lookup is rate limited, not an Untitled Database', async () => {
+      const requestSpy = vi.fn().mockImplementation(async ({ path }: { path: string }) => {
+        if (path === 'search') return { results: [buildSearchResult('db1', 'ds1', 'Alpha')] }
+        if (path === 'databases/db1') throw rateLimited()
+        throw new Error(`Unexpected request path: ${path}`)
+      })
+      const res = await call(requestSpy)
+      expect(res.status).toBe(429)
+      expect(res.headers['retry-after']).toBe('7')
+      expect(res.body?.data?.error).toBe('RATE_LIMITED')
+    })
+
+    it('answers 429 with a parentId filter too, not a missing database', async () => {
+      const requestSpy = vi.fn().mockImplementation(async ({ path }: { path: string }) => {
+        if (path === 'search') return { results: [buildSearchResult('db1', 'ds1', 'Alpha')] }
+        if (path === 'databases/db1') throw rateLimited()
+        throw new Error(`Unexpected request path: ${path}`)
+      })
+      const res = await call(requestSpy, '/api/notion/databases?parentId=page-1')
+      expect(res.status).toBe(429)
+      expect(res.headers['retry-after']).toBe('7')
+    })
+
+    it.each(['query probe', 'details probe'])('answers 429 when the %s of a data source without a location is rate limited', async (which) => {
+      const requestSpy = vi.fn().mockImplementation(async ({ path, method }: { path: string; method?: string }) => {
+        if (path === 'search') return { results: [{ object: 'data_source', id: 'ds1', data_source: { id: 'ds1', name: 'Alpha' } }] }
+        if (path === 'data_sources/ds1/query' && method === 'post') {
+          if (which === 'query probe') throw rateLimited()
+          return { results: [] }
+        }
+        if (path === 'data_sources/ds1') {
+          if (which === 'details probe') throw rateLimited()
+          return {}
+        }
+        throw new Error(`Unexpected request path: ${path}`)
+      })
+      const res = await call(requestSpy)
+      expect(res.status).toBe(429)
+      expect(res.headers['retry-after']).toBe('7')
+    })
+
+    it('keeps the placeholder fallback for a non-429 lookup failure', async () => {
+      const requestSpy = vi.fn().mockImplementation(async ({ path }: { path: string }) => {
+        if (path === 'search') return { results: [buildSearchResult('db1', 'ds1', 'Alpha')] }
+        if (path === 'databases/db1') throw Object.assign(new Error('gone'), { name: 'APIResponseError', status: 404, code: 'object_not_found' })
+        throw new Error(`Unexpected request path: ${path}`)
+      })
+      const res = await call(requestSpy)
+      expect(res.status).toBe(200)
+      expect(res.body).toEqual([
+        { id: 'db1', title: 'Untitled Database', dataSources: [{ id: 'ds1', name: 'Alpha', databaseId: 'db1', databaseTitle: 'Untitled Database' }] },
+      ])
+    })
+  })
 })
