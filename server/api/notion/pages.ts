@@ -46,6 +46,6 @@ export default defineEventHandler(async (event) => {
         'Untitled Page',
     }))
   } catch (error) {
-    handleNotionError(error)
+    handleNotionError(error, event)
   }
 })

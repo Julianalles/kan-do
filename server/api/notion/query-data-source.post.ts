@@ -48,7 +48,6 @@ export default defineEventHandler(async (event) => {
 
     return response
   } catch (error) {
-    console.error('Error querying Notion data source:', error)
-    handleNotionError(error)
+    handleNotionError(error, event)
   }
 })

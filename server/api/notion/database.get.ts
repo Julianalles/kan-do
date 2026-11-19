@@ -2,6 +2,7 @@ import { Client } from "@notionhq/client";
 import { defineEventHandler, createError } from "h3";
 import { getStubbedDatabases, isNotionStubEnabled } from "~/server/utils/notionStub";
 import { validateRequest } from "~/server/utils/apiError";
+import { logServerError } from "~/server/utils/serverLog";
 
 // Define a type for Notion database results
 interface NotionDatabase {
@@ -59,7 +60,8 @@ export default defineEventHandler(async (event) => {
   } catch (error) {
     // Cast to NotionApiError to access status property
     const apiError = error as NotionApiError;
-    console.error("Error accessing Notion database:", error);
+    // Code, status and route only: the error carries request and response detail (#511)
+    logServerError(error, event);
     throw createError({
       statusCode: apiError.status || 500,
       message: apiError.message || "Failed to access Notion database",

@@ -2,6 +2,7 @@ import { Client } from '@notionhq/client'
 import { defineEventHandler } from 'h3'
 import type { DatabaseObjectResponse } from '@notionhq/client/build/src/api-endpoints'
 import { validateRequest, handleNotionError } from '~/server/utils/apiError'
+import { logServerError } from '~/server/utils/serverLog'
 import { getStubbedDatabases, isNotionStubEnabled } from '~/server/utils/notionStub'
 
 interface DataSourceSearchResult {
@@ -201,9 +202,8 @@ export default defineEventHandler(async (event) => {
           }
           return summary
         } catch (error) {
-          if (process.env.NODE_ENV !== 'production') {
-            console.warn('[Notion] Failed to retrieve data sources for database', databaseId, error)
-          }
+          // A non-fatal fallback: log code, status and route only (#511)
+          logServerError(error, event)
 
           if (!parentId) {
             const fallbackTitle = fallbackTitles.get(databaseId) ?? 'Untitled Database'
@@ -227,6 +227,6 @@ export default defineEventHandler(async (event) => {
 
     return databaseSummaries.filter((summary): summary is DatabaseSummary => summary !== null)
   } catch (error) {
-    handleNotionError(error)
+    handleNotionError(error, event)
   }
 })

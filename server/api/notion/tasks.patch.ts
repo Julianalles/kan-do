@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
 
     return response
   } catch (error) {
-    handleNotionError(error)
+    handleNotionError(error, event)
   }
 })
 ;
