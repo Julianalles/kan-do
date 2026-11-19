@@ -194,4 +194,102 @@ describe('a 429 pauses the pushes of its source (#529)', () => {
     await useTaskSync().syncPendingChanges('notion')
     expect(sentIds()).toEqual(['a'])
   })
+  describe('batch paths that send a task each', () => {
+    const clean = (id: string, input: Partial<Task> = {}): Task => {
+      const { pendingSync: _marker, ...rest } = pendingNotion(id, input)
+      return rest as Task
+    }
+
+    describe('"Gesehen" (syncArchiveStatusForTasks)', () => {
+      beforeEach(() => { notionConfig.config.statusMapping.archive = 'Archived' })
+      afterEach(() => { notionConfig.config.statusMapping.archive = null })
+
+      const archive = async (ids: string[]) => {
+        useTasksStore().archiveTasks(ids)
+        await useTaskSync().syncArchiveStatusForTasks(ids)
+      }
+
+      it('a 429 inside the loop leaves every skipped task marked, and the next push sends them after the window', async () => {
+        const tasksStore = useTasksStore()
+        tasksStore.setTasks(['a', 'b', 'c'].map((id) => clean(id, { status: TaskStatus.Done })))
+        notion.updateTask.mockRejectedValueOnce(limited(30_000))
+
+        await archive(['a', 'b', 'c'])
+        expect(sentIds()).toEqual(['a'])
+        for (const id of ['a', 'b', 'c']) expect(tasksStore.task(id)?.pendingSync).toBeDefined()
+
+        notion.updateTask.mockClear()
+        now += 31_000
+        await useTaskSync().syncPendingChanges('notion')
+        expect(sentIds()).toEqual(['a', 'b', 'c'])
+        for (const id of ['a', 'b', 'c']) expect(tasksStore.task(id)?.pendingSync).toBeUndefined()
+      })
+
+      it('archiving inside an open window sends nothing and marks every task', async () => {
+        const tasksStore = useTasksStore()
+        tasksStore.setTasks([pendingNotion('a'), ...['b', 'c'].map((id) => clean(id, { status: TaskStatus.Done }))])
+        notion.updateTask.mockRejectedValueOnce(limited(30_000))
+        await useTaskSync().syncPendingChanges('notion')
+        notion.updateTask.mockClear()
+
+        await archive(['b', 'c'])
+        expect(notion.updateTask).not.toHaveBeenCalled()
+        for (const id of ['b', 'c']) expect(tasksStore.task(id)?.pendingSync).toBeDefined()
+
+        now += 31_000
+        await useTaskSync().syncPendingChanges('notion')
+        expect(sentIds()).toEqual(['a', 'b', 'c'])
+      })
+    })
+
+    describe('several status writes at once (updateTaskStatuses)', () => {
+      it('a 429 on the first write holds the rest: they keep their new status and marker, and go out after the window', async () => {
+        const tasksStore = useTasksStore()
+        tasksStore.setTasks(['a', 'b', 'c'].map((id) => clean(id)))
+        notion.updateTask.mockRejectedValueOnce(limited(30_000))
+
+        await useTaskSync().updateTaskStatuses(['a', 'b', 'c'], TaskStatus.Progress)
+        expect(sentIds()).toEqual(['a'])
+        for (const id of ['a', 'b', 'c']) {
+          expect(tasksStore.task(id)?.status).toBe(TaskStatus.Progress)
+          expect(tasksStore.task(id)?.pendingSync).toBeDefined()
+        }
+        expect(handleErrorMock.mock.calls.length).toBeLessThanOrEqual(1) // not one toast per task
+
+        notion.updateTask.mockClear()
+        now += 31_000
+        await useTaskSync().syncPendingChanges('notion')
+        expect(sentIds()).toEqual(['a', 'b', 'c'])
+        expect(notion.updateTask.mock.calls.every(([sent]) => sent.status === TaskStatus.Progress)).toBe(true)
+        for (const id of ['a', 'b', 'c']) expect(tasksStore.task(id)?.pendingSync).toBeUndefined()
+      })
+
+      it('a batch inside an open window sends nothing', async () => {
+        const tasksStore = useTasksStore()
+        tasksStore.setTasks([pendingNotion('x'), ...['a', 'b'].map((id) => clean(id))])
+        notion.updateTask.mockRejectedValueOnce(limited(30_000))
+        await useTaskSync().syncPendingChanges('notion')
+        notion.updateTask.mockClear()
+
+        await useTaskSync().updateTaskStatuses(['a', 'b'], TaskStatus.Done)
+        expect(notion.updateTask).not.toHaveBeenCalled()
+        for (const id of ['a', 'b']) {
+          expect(tasksStore.task(id)?.status).toBe(TaskStatus.Done)
+          expect(tasksStore.task(id)?.pendingSync).toBeDefined()
+        }
+      })
+
+      it('another source in the same batch is still written', async () => {
+        const tasksStore = useTasksStore()
+        useBoardStore().setSources({ connected: ['notion', 'todoist'], default: 'notion' })
+        useBoardStore().boardConfig.todoistApiToken = 'token'
+        tasksStore.setTasks([clean('a'), clean('b'), clean('t1', { source: 'todoist' })])
+        notion.updateTask.mockRejectedValueOnce(limited(30_000))
+
+        await useTaskSync().updateTaskStatuses(['a', 'b', 't1'], TaskStatus.Done)
+        expect(sentIds()).toEqual(['a'])
+        expect(todoistClosed).toEqual(['t1'])
+      })
+    })
+  })
 })

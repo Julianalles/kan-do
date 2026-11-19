@@ -97,6 +97,11 @@ export interface IUpdateStatusPayload {
   skipLocalUpdate?: boolean;
   /** The local change applies at once; the upstream write waits until this has settled (#150) */
   after?: Promise<unknown>;
+  /**
+   * A write of a batch (#529): inside a 429 window of its source the task is not sent, it keeps its new status and
+   * its marker and goes out with the next push after the window. A single user-made write leaves this off and sends.
+   */
+  holdWhenRateLimited?: boolean;
 }
 
 export const useTaskSync = () => {
@@ -234,6 +239,8 @@ export const useTaskSync = () => {
       entry.upstream = upstreamBefore;
       const current = tasksStore.task(payload.taskId);
       if (!current) return;
+      // The marker is set above and stays: the push after the window sends the status (#529)
+      if (payload.holdWhenRateLimited && isRateLimited(current.source)) return;
       const sentStatus = current.status; // `current` is live: read before the await
       const synced = await runSync(current, upstreamBefore, operationVersion);
       if (synced) entry.upstream = sentStatus;
@@ -286,7 +293,7 @@ export const useTaskSync = () => {
     for (const taskId of taskIds) {
       if (!tasksStore.task(taskId)) continue;
       // updateTaskStatus pins the status against merges until its own write is done
-      previous = updateTaskStatus({ taskId, status, after: previous });
+      previous = updateTaskStatus({ taskId, status, after: previous, holdWhenRateLimited: true });
       writes.push(previous);
     }
     // Every write has finished before this resolves; a failure that escaped one of them (the
@@ -581,9 +588,18 @@ export const useTaskSync = () => {
         continue;
       }
 
-      for (const taskId of sourceTaskIds) {
-        // A 429 limits the whole source (#529): the rest waits for the next push, the markers stay
-        if (isRateLimited(source)) break;
+      // The archive is local at once and its marker is only set per task inside the loop: a loop that stops early
+      // (a 429, a source that is down) marks the tasks it leaves, or no push would ever send their archive
+      const markRest = (from: number): void => {
+        for (const restId of sourceTaskIds.slice(from)) tasksStore.markPendingSync(restId);
+      };
+
+      for (const [index, taskId] of sourceTaskIds.entries()) {
+        // A 429 limits the whole source (#529): the rest waits for the next push
+        if (isRateLimited(source)) {
+          markRest(index);
+          break;
+        }
         const task = tasksStore.task(taskId);
         if (!task) {
           continue;
@@ -592,7 +608,10 @@ export const useTaskSync = () => {
         // Never created upstream (made while the source was unreachable): the push creates it first
         if (task.externalId === null) {
           const pushed = await runSync(task);
-          if (!pushed && (health.needsAttention(source) || isRateLimited(source))) break;
+          if (!pushed && (health.needsAttention(source) || isRateLimited(source))) {
+            markRest(index + 1);
+            break;
+          }
           continue;
         }
 
@@ -626,7 +645,10 @@ export const useTaskSync = () => {
         } catch (error) {
           reportPushFailure(task, error, `Failed to sync archived task ${taskId}`);
           // A source that is down or not set up fails the same way for every other task
-          if (pushFailureScope(error) === 'source') break;
+          if (pushFailureScope(error) === 'source') {
+            markRest(index + 1);
+            break;
+          }
         }
       }
     }
