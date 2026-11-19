@@ -28,6 +28,17 @@ describe('sendToRelay', () => {
     [404, 'Not found', 'unavailable'],
     [405, '', 'unavailable'],
     [501, '', 'unavailable'],
+    // #572: edge-layer refusals and redirects are transient, never the browser fallback.
+    [200, '<!doctype html>', 'unavailable'],
+    [504, '', 'server'],
+    [401, '', 'server'],
+    [403, '<!doctype html><title>Attention Required</title>', 'server'],
+    [408, '', 'server'],
+    [410, '', 'server'],
+    [421, '', 'server'],
+    [301, '', 'server'],
+    [302, '', 'server'],
+    [307, '', 'server'],
   ] as const)('maps %i to %s', async (status, body, result) => {
     answer(status, body)
     expect(await sendToRelay('/api/feedback', REPORT)).toBe(result)
