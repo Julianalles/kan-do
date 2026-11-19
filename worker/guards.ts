@@ -8,7 +8,7 @@
  *    without `Origin` (curl, server to server) passes: this is no authentication, the visitor's own token still is.
  * 2. Rate limit: the Durable Object `NOTION_LIMITER` (`limiter.ts`, `durable_objects` in `wrangler.jsonc`), one object
  *    per client (`CF-Connecting-IP`, named by a keyed hash, no IP at rest), exact across isolates and locations; over the limit answers 429 `RATE_LIMITED`
- *    (the client retries 429 with backoff). Without the binding (a test) or when the object fails (its Free quota
+ *    (the client honours `Retry-After` up to its 10 s cap, #507, and throws a longer wait at once). Without the binding (a test) or when the object fails (its Free quota
  *    included), the request passes: the guard never blocks the app by itself. The Workers Rate Limiting binding it
  *    replaced (#503) did not limit on the live instance (#508).
  */

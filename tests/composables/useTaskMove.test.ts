@@ -326,6 +326,19 @@ describe('useTaskMove (#322)', () => {
     expect(tasksStore.task('a')?.pendingMove).toBeDefined()
   })
 
+  it('a rate-limited create (429, #507) is kept like a transient failure: no failure toast, no revert, queued for the next push', async () => {
+    adapters.notion.create.mockRejectedValueOnce(Object.assign(new Error('HTTP 429'), { statusCode: 429 }))
+    const { moveTaskToSource } = useTaskMove()
+    moveTaskToSource('a', 'notion')
+    toastAddMock.mockClear()
+    vi.advanceTimersByTime(MOVE_UNDO_WINDOW_MS)
+    await flushPromises()
+
+    expect(toastAddMock).not.toHaveBeenCalled()
+    expect(tasksStore.task('a')).toMatchObject({ source: 'notion', externalId: null })
+    expect(tasksStore.task('a')?.pendingMove).toBeDefined()
+  })
+
   it('a running timer is not interrupted by the move or its commit', async () => {
     tasksStore.setTasks([makeTask('t', { status: TaskStatus.Progress, timerId: 99, timeSpentSeconds: 60 })])
     const { moveTaskToSource } = useTaskMove()

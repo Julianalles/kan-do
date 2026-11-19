@@ -6,7 +6,7 @@ const http = (statusCode: number) => Object.assign(new Error(`HTTP ${statusCode}
 
 describe('createFailureKind (#321)', () => {
   it('agrees with pushFailureScope: only the source\'s own faults are source-scoped, and none of the task-scoped kinds marks the source', () => {
-    for (const status of [400, 403, 404, 409, 422, 500, 503]) expect(pushFailureScope(http(status))).toBe('task')
+    for (const status of [400, 403, 404, 409, 422, 429, 500, 503]) expect(pushFailureScope(http(status))).toBe('task')
     for (const error of [http(0), http(401), new SourceNotConfiguredError('notion', 'not configured')]) {
       expect(pushFailureScope(error)).toBe('source')
       expect(createFailureKind(error)).toBe('transient')
@@ -17,6 +17,8 @@ describe('createFailureKind (#321)', () => {
     ['no connection (statusCode 0)', http(0)],
     ['a rejected token (401)', http(401)],
     ['no access to the database (403)', http(403)],
+    ['a rate limit (429, #507)', http(429)],
+    ['a 429 behind a wrapping error', new Error('Cannot create', { cause: http(429) })],
     ['a 403 behind a wrapping error', new Error('Cannot create', { cause: http(403) })],
     ['a server error (500)', http(500)],
     ['a gateway error (503)', http(503)],

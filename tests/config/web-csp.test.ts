@@ -1,8 +1,9 @@
 // @vitest-environment node
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { HASHES_FILE, SHELL_FILES, cspHash, executableInlineScripts, scriptHashes } from '../../scripts/csp-hashes.mjs'
+import { CHUNK_DIR, HASHES_FILE, SHELL_FILES, chunkScriptHashes, cspHash, executableInlineScripts, runtimeInlineScripts, scriptHashes, builtIn404Chunks } from '../../scripts/csp-hashes.mjs'
 import { buildCsp } from '../../worker/csp'
 
 // Guard for the web CSP (#504, ADR 021, ADR 012 "Web build"), the counterpart of tauri-csp.test.ts and
@@ -49,6 +50,43 @@ describe('scripts/csp-hashes.mjs', () => {
   })
 })
 
+describe('scripts/csp-hashes.mjs runtime-injected scripts (#512)', () => {
+  // The shape Nuxt's built-in 404 page has in a built chunk: a useHead call with a script and a style entry.
+  const chunk = 'setup(){return t({title:`x`,script:[{innerHTML:`(()=>{if(!(window.history.state))return;e.onclick=()=>window.history.back()})();`,tagPosition:`bodyClose`}],style:[{innerHTML:`*,:after{box-sizing:border-box}`}]})}'
+
+  it('picks the innerHTML of script entries only, not of style entries', () => {
+    expect(runtimeInlineScripts(chunk)).toEqual(['(()=>{if(!(window.history.state))return;e.onclick=()=>window.history.back()})();'])
+  })
+
+  it('reads the literal as the browser will execute it: quote styles and escapes', () => {
+    expect(runtimeInlineScripts('script:[{innerHTML:"a(\\"b\\");"}]')).toEqual(['a("b");'])
+    expect(runtimeInlineScripts('script: [ { children: \'x\\\\y\' } ]')).toEqual(['x\\y'])
+    expect(runtimeInlineScripts('script:[]')).toEqual([])
+  })
+
+  it('refuses an interpolated script: it has no constant hash', () => {
+    expect(() => runtimeInlineScripts('script:[{innerHTML:`go(${a})`}]')).toThrow(/interpolation/)
+  })
+
+  it('finds the chunk of the built-in 404 page, so a missed script in it fails the build', () => {
+    const dir = mkdtempSync(resolve(tmpdir(), 'csp-chunks-'))
+    try {
+      expect(builtIn404Chunks(dir)).toEqual([])
+      writeFileSync(resolve(dir, 'a.js'), 'var x=l({__name:`other`,props:{}})')
+      expect(builtIn404Chunks(dir)).toEqual([])
+      writeFileSync(resolve(dir, 'b.js'), 'var x=l({__name:`error-404`,props:{}})')
+      expect(builtIn404Chunks(dir)).toEqual(['b.js'])
+    }
+    finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
+  })
+
+  it('every hash it produces is accepted by the policy builder', () => {
+    expect(() => buildCsp(runtimeInlineScripts(chunk).map(cspHash))).not.toThrow()
+  })
+})
+
 describe('build:cloudflare wiring', () => {
   it('prerenders the shell for the Cloudflare preset, so a built HTML file exists to hash', () => {
     expect(read('nuxt.config.ts')).toMatch(/NITRO_PRESET === 'cloudflare_module'[^\n]*prerender:\s*\{\s*routes:\s*\['\/200\.html'\]/)
@@ -76,9 +114,20 @@ describe.skipIf(!shells.length || !existsSync(hashesPath))('built shell under th
     for (const hash of needed) expect(scriptSrc, `${file}: ${hash}`).toContain(`'${hash}'`)
   })
 
-  it('script-src names no hash the shell does not have (a stale generated file)', () => {
-    const live = new Set(shells.flatMap(file => executableInlineScripts(read(file)).map(cspHash)))
+  it('script-src names no hash the shell or the client chunks do not have (a stale generated file)', () => {
+    const live = new Set([
+      ...shells.flatMap(file => executableInlineScripts(read(file)).map(cspHash)),
+      ...chunkScriptHashes(resolve(root, CHUNK_DIR)),
+    ])
     expect(generated.scriptHashes.filter(hash => !live.has(hash))).toEqual([])
+  })
+
+  // #512: the 404 page runs a script the shell cannot show; Nuxt's own source is the independent witness for the chunk scan.
+  it("the script of Nuxt's built-in 404 page has its hash in script-src", () => {
+    const vue = read('node_modules/nuxt/dist/app/components/error-404.vue')
+    const script = /script:\s*\[\s*\{\s*innerHTML:\s*`([^`]*)`/.exec(vue)?.[1]
+    expect(script, 'error-404.vue no longer holds an inline script literal: update this test').toBeTruthy()
+    expect(scriptSrc).toContain(`'${cspHash(script ?? '')}'`)
   })
 
   it.each(shells)('%s has no inline <style>, event handler or javascript: URL (style-src and script-src would block them)', (file) => {

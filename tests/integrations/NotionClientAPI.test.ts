@@ -132,6 +132,92 @@ describe('NotionClientAPI', () => {
       expect(result).toEqual({ success: true })
     })
 
+    describe('Retry-After on a 429 (#507)', () => {
+      const limited = (retryAfter?: string) => ({
+        ok: false,
+        status: 429,
+        statusText: 'Too Many Requests',
+        headers: new Headers(retryAfter === undefined ? {} : { 'Retry-After': retryAfter }),
+        json: () => Promise.resolve({ error: 'RATE_LIMITED' }),
+      })
+      const ok = { ok: true, json: () => Promise.resolve({ success: true }) }
+
+      beforeEach(() => vi.useFakeTimers())
+      afterEach(() => vi.useRealTimers())
+
+      it('waits the given seconds before its one retry', async () => {
+        ;(fetch as any).mockResolvedValueOnce(limited('2')).mockResolvedValueOnce(ok)
+        const result = api.request('GET', '/databases/db-1')
+        await vi.advanceTimersByTimeAsync(1999)
+        expect(fetch).toHaveBeenCalledTimes(1)
+        await vi.advanceTimersByTimeAsync(1)
+        expect(fetch).toHaveBeenCalledTimes(2)
+        await expect(result).resolves.toEqual({ success: true })
+      })
+
+      it('reads an HTTP date as the remaining wait', async () => {
+        vi.setSystemTime(new Date('2026-11-19T10:00:00Z'))
+        ;(fetch as any).mockResolvedValueOnce(limited('Thu, 19 Nov 2026 10:00:03 GMT')).mockResolvedValueOnce(ok)
+        const result = api.request('GET', '/databases/db-1')
+        await vi.advanceTimersByTimeAsync(2999)
+        expect(fetch).toHaveBeenCalledTimes(1)
+        await vi.advanceTimersByTimeAsync(1)
+        expect(fetch).toHaveBeenCalledTimes(2)
+        await expect(result).resolves.toEqual({ success: true })
+      })
+
+      it('gives up at once when the wait is over the cap: no sleep, no retry, the 429 is thrown', async () => {
+        ;(fetch as any).mockResolvedValue(limited('60'))
+        const result = api.request('GET', '/databases/db-1')
+        const failure = expect(result).rejects.toMatchObject({ name: 'NotionAPIError', statusCode: 429 })
+        await vi.advanceTimersByTimeAsync(0)
+        await failure
+        expect(fetch).toHaveBeenCalledTimes(1)
+        expect(vi.getTimerCount()).toBe(0)
+      })
+
+      it('waits exactly the cap and not longer', async () => {
+        ;(fetch as any).mockResolvedValueOnce(limited('10')).mockResolvedValueOnce(ok)
+        const result = api.request('GET', '/databases/db-1')
+        await vi.advanceTimersByTimeAsync(10_000)
+        expect(fetch).toHaveBeenCalledTimes(2)
+        await expect(result).resolves.toEqual({ success: true })
+      })
+
+      it.each([
+        ['missing', undefined],
+        ['not a number or date', 'soon'],
+        ['zero', '0'],
+        ['a date in the past', 'Thu, 01 Jan 2026 00:00:00 GMT'],
+      ])('falls back to the 300 ms backoff when the header is %s', async (_name, header) => {
+        ;(fetch as any).mockResolvedValueOnce(limited(header)).mockResolvedValueOnce(ok)
+        const result = api.request('GET', '/databases/db-1')
+        await vi.advanceTimersByTimeAsync(299)
+        expect(fetch).toHaveBeenCalledTimes(1)
+        await vi.advanceTimersByTimeAsync(1)
+        expect(fetch).toHaveBeenCalledTimes(2)
+        await expect(result).resolves.toEqual({ success: true })
+      })
+
+      it('a response without a headers object (older mocks) uses the backoff', async () => {
+        ;(fetch as any)
+          .mockResolvedValueOnce({ ok: false, status: 429, statusText: 'Too Many Requests', json: () => Promise.resolve({}) })
+          .mockResolvedValueOnce(ok)
+        const result = api.request('GET', '/databases/db-1')
+        await vi.advanceTimersByTimeAsync(300)
+        await expect(result).resolves.toEqual({ success: true })
+      })
+
+      it('a 429 on the last retry throws without a sleep', async () => {
+        ;(fetch as any).mockResolvedValue(limited('2'))
+        const result = api.request('GET', '/databases/db-1', undefined, { retries: 0 })
+        const failure = expect(result).rejects.toMatchObject({ statusCode: 429 })
+        await vi.advanceTimersByTimeAsync(0)
+        await failure
+        expect(fetch).toHaveBeenCalledTimes(1)
+      })
+    })
+
     it('retries on 500+ server errors', async () => {
       ;(fetch as any)
         .mockResolvedValueOnce({

@@ -149,6 +149,7 @@ describe('useTaskSync.createTask (#321)', () => {
   it.each([
     ['no access to the database (403)', 403],
     ['a server error (503)', 503],
+    ['a rate limit (429, #507)', 429],
   ])('%s: kept with the task-scoped marker and reported once, the source stays healthy (as for an update)', async (_name, status) => {
     notion.createTask.mockRejectedValueOnce(httpError(status))
     const created = await useTaskSync().createTask(draft(), 'notion')
