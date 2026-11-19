@@ -1,0 +1,6 @@
+- heading "Offen" [level=2]
+- button "Aufgabe hinzufügen"
+- group "Heute fällig":
+  - paragraph: Zuhause
+  - paragraph: Heute fällig
+  - img "Von dir in Erinnerungen für heute gewählt"

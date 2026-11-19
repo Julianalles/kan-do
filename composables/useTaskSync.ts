@@ -52,6 +52,9 @@ const statusWritesByStore = new WeakMap<object, Map<string, StatusWrite>>();
  */
 const pushesByStore = new WeakMap<object, Map<string, Promise<boolean>>>();
 
+/** The writes a plan started (#553, one run per plan call, shared by its tasks): what `whenPlanWritten` waits for. */
+const planWritesInFlight = new Map<string, Promise<void>>();
+
 /**
  * How long a source's pushes pause after a 429 that named no wait (#529): the public instance's Worker answers 60 s,
  * Notion's own limit is per minute.
@@ -570,6 +573,8 @@ export const useTaskSync = () => {
       activity: synced.activity,
       ...(doneDayKept ? {} : { completedAt: synced.completedAt }),
       custom: synced.custom,
+      // What a source that writes a date handed back (#553: the date written and `wrote`); no other source has the field
+      ...(synced.reminders ? { reminders: synced.reminders } : {}),
     });
 
     if (import.meta.dev) {
@@ -1100,6 +1105,16 @@ export const useTaskSync = () => {
     }
   };
 
+  /** Notes what a source that plans by date holds the task as by its date now (`TaskSourceAdapter.planningHeld`, #553). */
+  const noteHeldByDate = (taskId: string): void => {
+    const live = tasksStore.task(taskId);
+    if (!live) return;
+    const adapter = adapterFor(live.source);
+    // Only a source that plans by date notes a held value from the date; another source's value is the one it wrote
+    if (adapter.planningByDate !== true || !adapter.planningHeld) return;
+    tasksStore.setSourceNotPlanned(taskId, adapter.planningHeld(live) ?? undefined);
+  };
+
   /**
    * Writes the user's plan or put-back to the sources that store planning (#357): a task of a source whose
    * adapter answers `notPlannedHold()` (Notion with a "not planned" status mapped) gets the status it is now held
@@ -1107,13 +1122,33 @@ export const useTaskSync = () => {
    * that lands before its write keeps the local state; the writes then run one after another (rate limits). A
    * task whose source already holds it that way and a task of a source without planning (Local, Todoist) get no
    * write.
+   *
+   * A source that plans by date (#553, `planningByDate`, Apple Reminders) writes on a plan only, and only when
+   * `planWrite` answers a day (today: the date is not today, the reminder does not recur): the task is marked `dateWrite`
+   * with that day and pushed, one after another. A put-back writes nothing and takes back a write that did not go out yet
+   * (one already started cannot be stopped: `usePlanToasts.afterPutBack` waits for it). `whenPlanWritten` resolves when the
+   * writes of a plan are done.
    */
   const writePlanning = (taskIds: readonly string[], back: boolean): void => {
     const toPush: string[] = [];
     for (const taskId of taskIds) {
       const task = tasksStore.task(taskId);
       if (!task || task.source === 'local') continue;
-      const hold = adapterFor(task.source).notPlannedHold?.() ?? null;
+      const adapter = adapterFor(task.source);
+      if (adapter.planningByDate === true) {
+        if (back) tasksStore.dropDateWrite(taskId);
+        // The plan the source cannot hold stays kan-do's: what the source delivers for the date is noted as it is now, so the
+        // next fetch sees "the same answer as last time" and leaves the user's choice alone (a put-back while the source says
+        // today, a series planned on another day)
+        noteHeldByDate(taskId);
+        const day = back ? null : (adapter.planWrite?.(task) ?? null);
+        if (day !== null) {
+          tasksStore.markDateWrite(taskId, day);
+          toPush.push(taskId);
+        }
+        continue;
+      }
+      const hold = adapter.notPlannedHold?.() ?? null;
       if (hold === null) continue;
       // A put-back keeps the "not planned" status the source already holds the task in (its second or third one)
       const changed = back
@@ -1124,14 +1159,56 @@ export const useTaskSync = () => {
       toPush.push(taskId);
     }
     if (toPush.length === 0) return;
-    void (async () => {
+    const writes = (async () => {
       for (const taskId of toPush) {
         const live = tasksStore.task(taskId);
         // Inside a 429 window the rest stays marked; `syncPendingChanges` sends it after the window (#529)
         if (live && isRateLimited(live.source)) continue;
         if (live && live.pendingSync) await runSync(live);
+        // The date was written: the source holds the task as planned now
+        noteHeldByDate(taskId);
       }
     })();
+    for (const taskId of toPush) planWritesInFlight.set(taskId, writes);
+    void writes.finally(() => {
+      for (const taskId of toPush) if (planWritesInFlight.get(taskId) === writes) planWritesInFlight.delete(taskId);
+    });
+  };
+
+  /** Resolves when the writes the task's plan started have finished (at once when there are none). Never rejects. */
+  const whenPlanWritten = (taskId: string): Promise<void> => (planWritesInFlight.get(taskId) ?? Promise.resolve()).catch(() => undefined);
+
+  /**
+   * Gives back the date the user's plan wrote (#553, the plan toast's "Rückgängig" and the put-back toast's "Altes Datum
+   * zurück"): the adapter's compare-and-set, never blind. A task whose date was never written, or already restored, is a
+   * no-op success. When Reminders moved on or the write fails, the error is reported (context `reminders_write`) and the
+   * task keeps its state. The write waits for a push of the task that is under way and is noted like one, so a fetch that
+   * lands meanwhile cannot undo it.
+   * @returns whether the date is as asked for now (restored, or nothing to restore)
+   */
+  const restorePlannedDate = async (taskId: string): Promise<boolean> => {
+    const first = tasksStore.task(taskId);
+    if (!first || first.source === 'local') return true;
+    const adapter = adapterFor(first.source);
+    if (!adapter.restoreDueDate) return true;
+    await pushesInFlight.get(taskId)?.catch(() => undefined);
+    const task = tasksStore.task(taskId);
+    if (!task) return true;
+    // A task with unpushed changes (a failed done tick) already has a marker that shields it from a fetch and keeps it
+    // queued: it stays exactly as it is. Only a marker this restore makes is this restore's to clear.
+    const ownMarker = task.pendingSync === undefined;
+    const revision = ownMarker ? tasksStore.markPendingSync(taskId) : undefined;
+    try {
+      const restored = await adapter.restoreDueDate(task);
+      if (restored) applySyncedTask(taskId, restored);
+      return true;
+    } catch (error) {
+      handleError(error instanceof Error ? error.message : String(error), 'reminders_write');
+      if (import.meta.dev) console.error('[TaskSync] Restoring the old date failed:', error);
+      return false;
+    } finally {
+      if (ownMarker) tasksStore.clearPendingSync(taskId, revision);
+    }
   };
 
   /**
@@ -1182,6 +1259,8 @@ export const useTaskSync = () => {
     unplanTask,
     planTasks,
     unplanTasks,
+    whenPlanWritten,
+    restorePlannedDate,
     updateTaskStatus,
     updateTaskStatuses,
     setCompletedDay,

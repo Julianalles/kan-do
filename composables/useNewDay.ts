@@ -40,7 +40,7 @@
  *   work sessions and reaches a connection that stores time, never below zero, exactly once. Only the away time
  *   between the last midnight and the day check is offered (#356 D3 b, #387 D1 g).
  */
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { syncToday, useToday } from '~/composables/useToday'
 import { useTasksStore, type AfterMidnightCount } from '~/store/tasks'
 import { useBoardStore } from '~/store/board'
@@ -54,34 +54,15 @@ import { armGlide } from '~/lib/boardPlace'
 import { isDemoTaskId } from '~/lib/demoIds'
 import { isNotPlanned } from '~/lib/taskPlanning'
 import { dayKey } from '~/utils/recapDay'
+import { begunDay, dueOn, resetNewDay } from '~/lib/dayBegun'
+
+export { resetNewDay }
 
 /** The question is asked for a stretch of at least a minute: a shorter one is not worth asking about. */
 export const TIME_OFFER_MIN_SECONDS = 60
 
 /** Desktop only: nothing is written while the data file is in conflict or unavailable. */
 const writesBlocked = () => dataState.available && dataState.status !== 'ok'
-
-/**
- * The local day whose check ran in this window (runtime only: a reload is an app start and checks again). The
- * notice and the recap of a new day wait for it, so neither appears under the hands of someone working across
- * midnight.
- */
-const begunDay = ref<string | null>(null)
-
-/** Test seam: a fresh app start. */
-export function resetNewDay(): void {
-  begunDay.value = null
-}
-
-/** Whether `today` (a day key) is a day after the last fresh start, or after the recap's marker before the first one. */
-function dueOn(today: string): boolean {
-  if (useBoardStore().boardConfig.sources === null) return false
-  const recapStore = useDayRecapStore()
-  const marker = recapStore.validLastNewDay
-  if (marker !== null) return marker < today
-  const lastShown = recapStore.validLastShownDay
-  return lastShown !== null && lastShown < today
-}
 
 /**
  * Whether a day has passed since the last fresh start (or, before the first one, since the recap's marker): today

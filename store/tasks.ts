@@ -23,6 +23,7 @@ import { isLandedCandidate } from "~/lib/createLookup";
 import { discardLiveSeconds, liveSecondsOf } from "~/lib/liveTime";
 import { generateTaskId, legacyTaskSource, normalizePendingDeletes, normalizeTasks, sourceSyncsTime } from "~/lib/taskSources";
 import { normalizePriority } from "~/lib/priority";
+import { startOfLocalDay, wroteOf } from "~/lib/remindersSource";
 import { renameField, type NameKind } from "~/lib/topicNames";
 import { reviveDate, revivePendingDeletes, revivePendingTimeUpdates, reviveTaskDates } from "~/lib/taskDates";
 
@@ -510,6 +511,24 @@ export const useTasksStore = defineStore("tasks", () => {
       target.pendingSync.upstreamDone = upstreamDone ?? target.status === TaskStatus.Done;
     }
     return revision;
+  }
+
+  /**
+   * The user planned a task of a source that plans by date and its date has to become today (#553): marks it pending like
+   * any edit and sets `pendingSync.dateWrite` to the local day the plan is made for (`day`, `YYYY-MM-DD`), the only thing
+   * that makes the adapter write a date, and only on that day. Returns the revision of `markPendingSync`.
+   */
+  function markDateWrite(taskId: string, day: string): number {
+    const revision = markPendingSync(taskId);
+    const target = tasks.value.find((el) => el.id === taskId);
+    if (target?.pendingSync) target.pendingSync.dateWrite = day;
+    return revision;
+  }
+
+  /** A put-back before the date was written: nothing is to be written any more (#553). */
+  function dropDateWrite(taskId: string): void {
+    const marker = tasks.value.find((el) => el.id === taskId)?.pendingSync;
+    if (marker?.dateWrite !== undefined) delete marker.dateWrite;
   }
 
   /** The revision a push of the task starts from (0 for a marker restored from storage, or none). */
@@ -1295,6 +1314,11 @@ export const useTasksStore = defineStore("tasks", () => {
    *   priority nor the ad-hoc marker, so a task already held keeps kan-do's values of them over a fetch's defaults.
    *   `startsNotPlanned` (`TaskSourceAdapter.startsNotPlanned`, Todoist, #357): an Open task seen for the first time
    *   starts not planned; a task already held is never moved by it (#387: the app moves no card by itself).
+   *   `planningByDate` (`TaskSourceAdapter.planningByDate`, Apple Reminders, #553): the date is the plan. The adapter
+   *   delivers `sourceNotPlanned` for a date that is not today (or today before the day has begun), and the same
+   *   presence rule moves a task, with two additions: a planned card never leaves the board by a fetch (the planned to
+   *   not-planned direction is ignored: a date moved in Reminders, yesterday's board while the day has not begun), and the
+   *   date the user's plan wrote (`Task.reminders.wrote`) outlives the fetch while Reminders still holds it.
    *   `fetchStartedAt` (epoch ms, when the fetch began) and `pushing` (whether a write of a task is under way now,
    *   `useTaskSync.isPushing`): a task written since the fetch began, or being written, stays as it is when the
    *   list lacks it, because the list may have been read before the write (#357); the next fetch decides. A task the
@@ -1310,7 +1334,7 @@ export const useTasksStore = defineStore("tasks", () => {
    *   held as one of these values `fetchedTasks` is only a part of what the source holds. Such a task that the list
    *   lacks stays as it is, and so does a task with unpushed changes; every other task the list lacks is dropped.
    */
-  function mergeTasks(source: SourceId, fetchedTasks: Task[], options: { replaceOthers?: boolean; heldTime?: (seconds: number) => number; timeWritable?: boolean; holdsOnlyOpenDone?: boolean; keepsKanDoFields?: boolean; startsNotPlanned?: boolean; partialNotPlanned?: readonly string[]; readInParts?: boolean; confirmedDrop?: boolean; fetchStartedAt?: number; pushing?: (taskId: string) => boolean } = {}): void {
+  function mergeTasks(source: SourceId, fetchedTasks: Task[], options: { replaceOthers?: boolean; heldTime?: (seconds: number) => number; timeWritable?: boolean; holdsOnlyOpenDone?: boolean; keepsKanDoFields?: boolean; startsNotPlanned?: boolean; planningByDate?: boolean; partialNotPlanned?: readonly string[]; readInParts?: boolean; confirmedDrop?: boolean; fetchStartedAt?: number; pushing?: (taskId: string) => boolean } = {}): void {
     // The page of a create in doubt (#528) belongs to the task that waits for it, not to a card of its own
     adoptLandedPages(source, fetchedTasks, options.pushing);
     const boardStore = useBoardStore();
@@ -1424,12 +1448,26 @@ export const useTasksStore = defineStore("tasks", () => {
         const heldBefore = existingTask.sourceNotPlanned;
         const heldNow = mergedTask.sourceNotPlanned;
         if (heldNow === undefined) delete mergedTask.sourceNotPlanned;
-        const sourceMoved = (heldBefore !== undefined) !== (heldNow !== undefined);
+        // A source that plans by date (#553) never takes a planned card off the board: the date moved in Reminders (or
+        // yesterday's board, while the day has not begun) leaves the card where it is, and the held value stays unset
+        const leavesBoard = options.planningByDate === true && heldBefore === undefined && heldNow !== undefined && existingTask.notPlanned !== true;
+        if (leavesBoard) delete mergedTask.sourceNotPlanned;
+        const sourceMoved = !leavesBoard && (heldBefore !== undefined) !== (heldNow !== undefined);
         const notPlannedNow = sourceMoved
           ? heldNow !== undefined && mergedTask.status === TaskStatus.Open
           : existingTask.notPlanned === true && markerSurvives(existingTask.status, mergedTask.status);
         if (notPlannedNow) mergedTask.notPlanned = true;
         else delete mergedTask.notPlanned;
+
+        // The date the user's plan wrote (#553) stays for as long as Reminders still holds it, today: a fetch carries none
+        if (options.planningByDate === true) {
+          const wrote = wroteOf(existingTask);
+          const kept = wrote !== null && mergedTask.reminders?.due?.date === wrote.to && wrote.at >= startOfLocalDay(Date.now());
+          if (mergedTask.reminders) {
+            const { wrote: _fetched, ...rest } = mergedTask.reminders;
+            mergedTask.reminders = kept ? { ...rest, wrote } : rest;
+          }
+        }
 
         // A done day the user corrected (kd#131) outlives the fetch while both sides hold the task as done: a
         // source without a completion date would report "now", one with a date may still hold the old day
@@ -1947,6 +1985,8 @@ export const useTasksStore = defineStore("tasks", () => {
     updateTask,
     addPendingTimeUpdate,
     markPendingSync,
+    markDateWrite,
+    dropDateWrite,
     pendingSyncRevision,
     clearPendingSync,
     recordPendingSyncFailure,

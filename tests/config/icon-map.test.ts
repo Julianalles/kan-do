@@ -17,7 +17,7 @@ const NOTATION_FILES = new Set(['nuxt.config.ts'])
 // Every glyph a mapped meaning (or a competitor that lost, #67 Decisions) is drawn with.
 const MAPPED_GLYPHS = [
   'caret-left', 'caret-left-bold', 'caret-right', 'caret-right-bold', 'arrow-left', 'arrow-right',
-  'x', 'trash', 'archive', 'arrow-square-out', 'arrow-up-right', 'corners-out',
+  'x', 'trash', 'archive', 'arrow-square-out', 'arrow-up-right', 'corners-out', 'repeat', 'calendar-dot',
 ]
 
 const LITERAL_NOTATION = /(?<![\w-])(?:i-)?ph:[a-z]/

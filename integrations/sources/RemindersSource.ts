@@ -28,17 +28,22 @@ import {
   remindersFetch,
   remindersLists,
   remindersSetCompleted,
+  remindersSetDue,
+  type ReminderDue,
   type RemindersAccessStatus,
 } from '~/lib/reminders'
 import {
+  NOT_TODAY,
   isReadRole,
   reminderToTask,
   splitExternalId,
   startOfLocalDay,
+  wroteOf,
   type DoneOccurrence,
   type ReminderListRole,
 } from '~/lib/remindersSource'
 import { notifyRemindersChanged } from '~/lib/remindersEvents'
+import { isNotPlanned } from '~/lib/taskPlanning'
 import { SourceNotConfiguredError, SourceReadOnlyError, type TaskSourceAdapter } from './types'
 
 /** The source is read-only in kan-do: a create, delete or restore never reaches it (the UI does not offer them). */
@@ -64,6 +69,10 @@ export interface RemindersSourceDeps {
   /** Drops what was completed before local midnight. */
   pruneLedger: (now: number) => void
   health: () => IntegrationHealth
+  /** Today as the local `YYYY-MM-DD` (`useToday`): a reminder's date is compared to it as the string the bridge returns. */
+  today: () => string
+  /** Whether today's day has begun in this window (`dayHasBegun`, `composables/useNewDay.ts`): a task dated today joins only then. */
+  dayHasBegun: () => boolean
   /** The clock; tests pass their own. */
   now?: () => number
   /** A write found the stored state moved on: one quiet refetch follows. Defaults to the shared event. */
@@ -93,6 +102,8 @@ export class RemindersSource implements TaskSourceAdapter {
   /** A reminder carries neither a time box nor a priority: kan-do's own values stay over a fetch. */
   readonly keepsKanDoFields = true
   readonly capabilities = SOURCE_CAPABILITIES.reminders!
+  /** The date is the plan (#553): see `TaskSourceAdapter.planningByDate`. */
+  readonly planningByDate = true
 
   constructor(private readonly deps: RemindersSourceDeps) {}
 
@@ -119,9 +130,41 @@ export class RemindersSource implements TaskSourceAdapter {
     const tasks: Task[] = []
     for (const reminder of fetched) {
       const list = titles.get(reminder.listId)
-      if (list) tasks.push(reminderToTask(reminder, list, this.deps.roleOf(list.id)))
+      if (list) tasks.push(this.withPlanning(reminderToTask(reminder, list, this.deps.roleOf(list.id))))
     }
     return [...tasks, ...this.doneOccurrences(tasks, now)]
+  }
+
+  /**
+   * The date is the plan (#553): a reminder dated today is delivered without a planning state once the day has begun,
+   * every other one (past, future, none; or today while the day has not begun) as `not-today`. The merge moves a task
+   * only when that presence changes, and never takes a planned card off the board.
+   */
+  private withPlanning(task: Task): Task {
+    const today = task.reminders?.due?.date === this.deps.today()
+    // A task the user put back while Reminders said today (held with no planning state, `planningHeld`) keeps that answer
+    // before the day has begun: the day starting must not read as a change of the source and take the put-back back
+    const putBack = today && this.heldAsPutBack(task)
+    return today && (putBack || this.deps.dayHasBegun()) ? task : { ...task, sourceNotPlanned: NOT_TODAY }
+  }
+
+  private heldAsPutBack(task: Task): boolean {
+    const held = this.deps.heldTasks().find(candidate => candidate.externalId === task.externalId)
+    return held?.notPlanned === true && held.sourceNotPlanned === undefined
+  }
+
+  /** What Reminders holds the task as by its date: `not-today` unless dated today (the user's plan and put-back note it). */
+  planningHeld(task: Task): string | null {
+    return task.reminders?.due?.date === this.deps.today() ? null : NOT_TODAY
+  }
+
+  /**
+   * Planning needs a write when the date is not today; a recurring reminder is never written (it could move the series).
+   * Answers the day the write is for (today), which the marker keeps (`pendingSync.dateWrite`).
+   */
+  planWrite(task: Task): string | null {
+    const reminders = task.reminders
+    return reminders !== undefined && !reminders.recurrence && reminders.due?.date !== this.deps.today() ? this.deps.today() : null
   }
 
   /**
@@ -161,25 +204,30 @@ export class RemindersSource implements TaskSourceAdapter {
   }
 
   /**
-   * The done tick, both ways: `set_completed` when the status changed to Done or from Done, otherwise nothing is
-   * written and nothing is loaded. Always passes the due date kan-do holds as `occurrenceDate`, so a retried tick of a
-   * recurring reminder can never tick its next occurrence. Resolves to `null`: the next fetch brings the state back.
+   * Two writes, both state-based. The date (#553): a task the user planned for today whose reminder is not dated today
+   * (`pendingSync.dateWrite`, set by `useTaskSync.writePlanning` and by nothing else) gets today's date, compare-and-set
+   * against the date kan-do holds, and resolves to the task with what was written (`Task.reminders.wrote`). A push for any
+   * other reason (a time box, a priority) never writes a date. The done tick: `set_completed` when the status changed to
+   * Done or from Done, otherwise nothing is written and nothing is loaded; it always passes the due date kan-do holds as
+   * `occurrenceDate`, so a retried tick of a recurring reminder can never tick its next occurrence. Resolves to `null` when
+   * no date was written: the next fetch brings the state back.
    */
   async update(task: Task, change: { previousStatus?: TaskStatus } = {}): Promise<Task | null> {
+    const dated = await this.writePlannedDate(task)
     // Only a change of the done state writes: a Done task pushed for another reason (a priority or time-box edit, the
     // "Gesehen" archive loop) arrives with `previousStatus` Done or none, and must not tick a reminder reopened in Reminders
     const { previousStatus } = change
     const completed = task.status === TaskStatus.Done
       ? (previousStatus !== undefined && previousStatus !== TaskStatus.Done ? true : null)
       : previousStatus === TaskStatus.Done ? false : null
-    if (completed === null) return null
+    if (completed === null) return dated
     // Everything the write needs comes from `task` before the first `await`: it is the live store object
     const externalId = externalIdOf(task)
     const { id, occurrenceDate } = splitExternalId(externalId)
     const listId = task.reminders?.listId
     const recurring = !!task.reminders?.recurrence
     // A list switched off since the tick was queued passes no list: the bridge answers `not-read`
-    const allowedListIds = listId !== undefined && isReadRole(this.deps.roleOf(listId)) ? [listId] : []
+    const allowedListIds = this.allowedLists(listId)
     const occurrence = occurrenceDate ?? task.reminders?.due?.date ?? null
 
     try {
@@ -189,16 +237,94 @@ export class RemindersSource implements TaskSourceAdapter {
         // The reminder moved on since the last fetch (the series was ticked elsewhere): nothing is written, one quiet refetch
         if (error.kind === 'changed') {
           ;(this.deps.onChanged ?? notifyRemindersChanged)()
-          return null
+          return dated
         }
         // Refused: the list is switched off, or the reminder is gone. The task stays as it is, the source stays healthy
-        if (error.kind === 'not-read' || error.kind === 'not-found') return null
+        if (error.kind === 'not-read' || error.kind === 'not-found') return dated
       }
       throw error
     }
     if (recurring && completed) this.deps.recordDone(externalId, (this.deps.now ?? Date.now)())
     else if (!completed) this.deps.dropDone(externalId)
-    return null
+    return dated
+  }
+
+  /** The lists a write may touch: the task's own, while its role still reads it. */
+  private allowedLists(listId: string | undefined): string[] {
+    return listId !== undefined && isReadRole(this.deps.roleOf(listId)) ? [listId] : []
+  }
+
+  /** The date a reminder holds now (`undefined`: it is gone or its list is not read), read once after a `changed`. */
+  private async readDue(id: string, listId: string): Promise<ReminderDue | null | undefined> {
+    const fetched = await viaBridge(() => remindersFetch([listId], startOfLocalDay((this.deps.now ?? Date.now)())))
+    const found = fetched.reminders.find(reminder => reminder.id === id)
+    return found === undefined ? undefined : found.due ? { date: found.due.date, time: found.due.time } : null
+  }
+
+  /**
+   * Plan for today writes today's date (#553). Everything comes from `task` before the first `await` (the live store
+   * object). Never blind: `expectedDate` is the date kan-do holds; when Reminders answers `changed` the reminder is read
+   * once more, no write if it says today now (the bridge answers `changed` for a date already set to the target, so a date the
+   * user set there is never recorded as a write of ours), else one more write against the date it holds. A reminder already
+   * dated today, a recurring one, a task that is not planned any more and a refused list write nothing (a no-op success).
+   */
+  private async writePlannedDate(task: Task): Promise<Task | null> {
+    const reminders = task.reminders
+    const today = this.deps.today()
+    // The marker names the day of the plan: a write that failed and is retried on a later day is dropped, never replayed
+    // with that day's date (a date the user did not plan for, maybe before the day has begun)
+    if (task.pendingSync?.dateWrite !== today || !reminders || reminders.recurrence) return null
+    if (task.status !== TaskStatus.Open || isNotPlanned(task)) return null
+    if (reminders.due?.date === today) return null
+    const { id } = splitExternalId(externalIdOf(task))
+    const allowedListIds = this.allowedLists(reminders.listId)
+    const now = this.deps.now ?? Date.now
+    const written = (from: string | null, due: ReminderDue | null): Task =>
+      ({ ...task, reminders: { ...reminders, due, wrote: { from, to: today, at: now() } } })
+
+    let expectedDate = reminders.due?.date ?? null
+    for (let attempt = 0; ; attempt++) {
+      try {
+        const due = await viaBridge(() => remindersSetDue({ id, expectedDate, date: today, allowedListIds }))
+        return written(expectedDate, due)
+      } catch (error) {
+        if (!(error instanceof RemindersError)) throw error
+        // Refused: the list is switched off, or the reminder is gone. The task stays planned here, the source stays healthy
+        if (error.kind === 'not-read' || error.kind === 'not-found') return null
+        if (error.kind !== 'changed') throw error
+        // The date moved in Reminders after the fetch: one read decides, never a blind overwrite
+        const fresh = await this.readDue(id, reminders.listId)
+        if (fresh === undefined) return null
+        if (fresh?.date === today) return { ...task, reminders: { ...reminders, due: fresh } }
+        // A second change is not chased: the task stays pending and the next push or sync tries again
+        if (attempt >= 1) throw error
+        expectedDate = fresh?.date ?? null
+      }
+    }
+  }
+
+  /**
+   * Gives back the date the user's plan overwrote (#553): compare-and-set against the date that plan wrote
+   * (`wrote.to`), writing `wrote.from` (`null` clears the date, only for a reminder that had none). A task without `wrote`
+   * is a no-op (an undo twice). `changed` (Reminders holds another date now) rejects: the caller reports it.
+   */
+  async restoreDueDate(task: Task): Promise<Task | null> {
+    const wrote = wroteOf(task)
+    const reminders = task.reminders
+    if (!wrote || !reminders) return null
+    const { id } = splitExternalId(externalIdOf(task))
+    const allowedListIds = this.allowedLists(reminders.listId)
+    const { wrote: _gone, ...rest } = reminders
+    try {
+      const due = await viaBridge(() => remindersSetDue({ id, expectedDate: wrote.to, date: wrote.from, allowedListIds }))
+      return { ...task, reminders: { ...rest, due } }
+    } catch (error) {
+      // Already the old date (the user set it back in Reminders, or this call's answer was lost): restored, nothing to report
+      if (!(error instanceof RemindersError) || error.kind !== 'changed') throw error
+      const fresh = await this.readDue(id, reminders.listId)
+      if (fresh === undefined || (fresh?.date ?? null) !== wrote.from) throw error
+      return { ...task, reminders: { ...rest, due: fresh } }
+    }
   }
 
   create(): Promise<Task> {

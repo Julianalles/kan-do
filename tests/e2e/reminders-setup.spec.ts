@@ -356,15 +356,18 @@ test.describe('Erinnerungen-Einstellungen (#552)', () => {
     // Privat is Aus already: switching it on fetches its reminder
     await roleChoice(page, 'list-private', 'activity').click()
     await expect(page.getByTestId('reminders-exclude-confirm')).toHaveCount(0)
+    // Dated tomorrow, so by #553 it is not on today's board: it waits in "Alle"
     await goToPlace(page, 'Heute')
+    await expect(page.getByText('Geschenk verstecken')).toHaveCount(0)
+    await goToPlace(page, 'Alle')
     await expect(page.getByText('Geschenk verstecken')).toBeVisible()
 
     await openSettings(page, 'sources')
     await page.getByTestId('source-actions-reminders').click()
     await page.getByRole('menuitem', { name: 'Erinnerungen-Einstellungen' }).click()
     await roleChoice(page, 'list-private', 'off').click()
-    // It has a task now, so it asks: one task, one on the board
-    await expect(page.getByTestId('reminders-exclude-confirm')).toContainText('1 Aufgabe verlässt Kan-Do, 1 davon steht heute auf dem Board.')
+    // It has a task now, so it asks: one task, none of it on today's board
+    await expect(page.getByTestId('reminders-exclude-confirm')).toContainText('1 Aufgabe verlässt Kan-Do, 0 davon stehen heute auf dem Board.')
   })
 
   test('access revoked in macOS: "Verbindung reparieren" in the sources tab and on the page, no dialog opens by itself; repair after allowing it', async ({ context, page }) => {

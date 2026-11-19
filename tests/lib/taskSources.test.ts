@@ -238,6 +238,19 @@ describe('pendingSync marker (#319)', () => {
     expect(normalizePendingSync({ ...marker, createUncertain: 'yes' })).toEqual(marker)
   })
 
+  it('keeps dateWrite (#553) with its day without a write, and reads a malformed one as none', () => {
+    const withDate = { ...marker, dateWrite: '2026-11-19' }
+    const tasks = [{ id: 'a', source: 'reminders', externalId: 'a', pendingSync: withDate }]
+    expect(normalizeTasks(tasks, 'reminders')).toBe(tasks)
+    expect(normalizePendingSync(withDate)).toBe(withDate)
+    // a repaired marker keeps the day too: a failed date write is retried after a restart
+    expect(normalizePendingSync({ since: 5, dateWrite: '2026-11-19' })).toEqual({ since: 5, attempts: 0, lastError: null, dateWrite: '2026-11-19' })
+    // an older `true`, a non-day string or any other type never writes
+    expect(normalizePendingSync({ ...marker, dateWrite: true })).toEqual(marker)
+    expect(normalizePendingSync({ ...marker, dateWrite: 'today' })).toEqual(marker)
+    expect(normalizePendingSync({ ...marker, dateWrite: 5 })).toEqual(marker)
+  })
+
   it('repairs a half-written marker so the task still gets pushed', () => {
     const [task] = normalizeTasks([{ id: 'a', source: 'notion', externalId: 'a', pendingSync: { since: 5 } }], 'notion') as Array<{ pendingSync: unknown }>
     expect(task?.pendingSync).toEqual({ since: 5, attempts: 0, lastError: null })

@@ -128,13 +128,17 @@ export function normalizePendingSync(raw: unknown): PendingSync | undefined {
   const upstreamDone = typeof raw.upstreamDone === 'boolean' ? raw.upstreamDone : undefined
   // #528: a malformed value reads as none, which only costs the lookup before the next create
   const doubt = normalizeCreateUncertain(raw.createUncertain)
+  // #553: the day a failed date write is retried for; an older `true` or any non-day value reads as none (never writes)
+  const dateWrite = typeof raw.dateWrite === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw.dateWrite) ? raw.dateWrite : undefined
   const exact = raw.since === since && raw.attempts === attempts && raw.lastError === lastError
     && raw.upstreamDone === upstreamDone && raw.createUncertain === doubt && (doubt === undefined || Object.keys(doubt).length === (doubt.at === undefined ? 2 : 3))
-    && Object.keys(raw).length === 3 + (upstreamDone === undefined ? 0 : 1) + (doubt === undefined ? 0 : 1)
+    && raw.dateWrite === dateWrite
+    && Object.keys(raw).length === 3 + (upstreamDone === undefined ? 0 : 1) + (doubt === undefined ? 0 : 1) + (dateWrite === undefined ? 0 : 1)
   return exact ? (raw as unknown as PendingSync) : {
     since, attempts, lastError,
     ...(upstreamDone === undefined ? {} : { upstreamDone }),
     ...(doubt === undefined ? {} : { createUncertain: { since: doubt.since, ...(doubt.at === undefined ? {} : { at: doubt.at }), title: doubt.title } }),
+    ...(dateWrite === undefined ? {} : { dateWrite }),
   }
 }
 

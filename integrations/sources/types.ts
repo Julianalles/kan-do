@@ -134,6 +134,36 @@ export interface TaskSourceAdapter {
   readonly startsNotPlanned?: boolean
 
   /**
+   * `true` for a source whose date is the plan (Apple Reminders, #553): the adapter delivers `Task.sourceNotPlanned` for a
+   * task whose date is not today, and `mergeTasks` takes the `planningByDate` rules (a planned card never leaves the board by
+   * a fetch). `useTaskSync` then gives a plan the `planWrite` path and a put-back no write at all.
+   */
+  readonly planningByDate?: boolean
+
+  /**
+   * What a source that plans by date holds the task as, by its date alone (#553): `Task.sourceNotPlanned`'s value while the
+   * date is not today, `null` while it is. `useTaskSync` notes it after the user's plan or put-back (and after a date write),
+   * so the next fetch finds "the same answer as last time" and leaves the user's choice alone. It ignores whether the day has
+   * begun: that only delays a task's first join, a put-back the user made is never undone by the day starting.
+   */
+  planningHeld?(task: Task): string | null
+
+  /**
+   * The day (local `YYYY-MM-DD`, today) planning this task writes as its date, or `null` when planning needs no write
+   * upstream (#553): the source plans by date and the date is not today (a recurring reminder never needs one: it could
+   * move the series). `useTaskSync` marks such a task `pendingSync.dateWrite` with that day and pushes it; `update` then
+   * writes the date, only while the day is still today, and resolves to the task with what it wrote.
+   */
+  planWrite?(task: Task): string | null
+
+  /**
+   * Gives back the date the user's plan overwrote (#553, `Task.reminders.wrote`): compare-and-set against the date that
+   * plan wrote. Resolves to the task as the source now holds it (without `wrote`), or `null` when there is nothing to restore.
+   * Rejects when the source moved on or the write failed: the caller reports it and the task keeps its state.
+   */
+  restoreDueDate?(task: Task): Promise<Task | null>
+
+  /**
    * Creates a task upstream and resolves to it, source and externalId stamped. A draft whose `pendingSync.createUncertain`
    * is set had a create with an unknown outcome (#528): a source that can tell looks for the page it may have made and
    * adopts it instead of creating a second one, never adopting an id in `ctx.claimedExternalIds` (held by another task).

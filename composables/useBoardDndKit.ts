@@ -2,6 +2,7 @@ import { useTasksStore } from '~/store/tasks'
 import { useBoardStore } from '~/store/board'
 import { useBoardDragState, type DraggedStack } from '~/composables/useBoardDragState'
 import { useTaskSync } from '~/composables/useTaskSync'
+import { usePlanToasts } from '~/composables/usePlanToasts'
 import { useCompletionUndo } from '~/composables/useCompletionUndo'
 import { TaskStatus } from '~/types/taskStatus'
 import { finishedFasterThanPlan } from '~/lib/completionPace'
@@ -45,6 +46,7 @@ export function useBoardDndKit() {
   const boardStore = useBoardStore()
   const { dragState } = useBoardDragState()
   const { updateTaskStatus, updateTaskStatuses, handleSyncError, planTask, unplanTask } = useTaskSync()
+  const { afterPlan, afterPutBack } = usePlanToasts()
   const { captureCompletionSnapshots, notifyCompletedBlock } = useCompletionUndo()
   const { swapIntoProgress } = useTaskSwap()
   const stacks = useStackExpansion()
@@ -472,6 +474,7 @@ export function useBoardDndKit() {
       if (planDrop === 'plan') {
         const taskId = String(id)
         if (!planTask(taskId)) return
+        void afterPlan(taskId)
         // Not in Offen's list: the drop went on the column's drop zone, below the cards
         saveRenderedOrder(TaskStatus.Open, [taskId], { nextId: slotNextId === undefined ? null : slotNextId, index: 0, downward: false })
         if (import.meta.dev) console.log('[DnD] plan', { taskId, before: slotNextId })
@@ -480,7 +483,12 @@ export function useBoardDndKit() {
         const taskIds = members ? members.taskIds : [String(id)]
         // Each task goes on top of "Meine Aufgaben": last member first, so a stack keeps its order there
         let taken = false
-        for (const taskId of [...taskIds].reverse()) taken = unplanTask(taskId) || taken
+        for (const taskId of [...taskIds].reverse()) {
+          const moved = unplanTask(taskId)
+          // One toast for one card: a stack carried over never raises one per member
+          if (moved && taskIds.length === 1) void afterPutBack(taskId)
+          taken = moved || taken
+        }
         // The card lands on top: a scrolled list shows its start, so the drop glide ends on a card in view
         // (the arrow's move does the same, usePlanMoves)
         if (taken && origin?.list) {
