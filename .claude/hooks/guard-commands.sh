@@ -9,7 +9,7 @@
 #                                       -> only the user approves decided UI terms (#472)
 #   - `osascript` that sets `frontmost`/`activate`s, sends `keystroke`/`key code`, or picks a System Events process
 #     other than by `unix id`; a bare full-screen `screencapture` (no `-l`/`-R`); `pkill`/`killall` of the desktop app by name,
-#     `kill $(pgrep ...)` (#629)
+#     `kill $(pgrep ...)` (#629); `orca computer --app` naming the desktop app, or a PID that is not a sandbox run
 #                                       -> never touch the user's production app or steal focus (#623)
 #   - `rm` chained with a git command in one call (kd#203) -> two calls: a chain stops an unattended worker at a permission dialog
 # Only real invocations count (start of a command segment, optionally behind VAR=val words): separators inside
@@ -25,14 +25,14 @@ shopt -s nocasematch
 if ! cmd=$(hook_command "$input"); then
   # Neither jq nor perl's JSON::PP could read the input (kd#2): block anything the guard's own pre-filter would look at.
   case "$input" in
-    *pkill*|*killall*|*pgrep*|*tauri*|*release*|*npm*|*copy-terms*|*osascript*|*screencapture*)
+    *pkill*|*killall*|*pgrep*|*tauri*|*release*|*npm*|*copy-terms*|*osascript*|*screencapture*|*orca*)
       echo "guard-commands: cannot read the hook input (no working jq, and perl's JSON::PP failed), and it may hold a guarded command. Install jq (brew install jq), then retry." >&2
       exit 2 ;;
   esac
   exit 0
 fi
 case "$cmd" in
-  *pkill*|*killall*|*pgrep*|*tauri*|*release*|*npm*|*copy-terms*|*osascript*|*screencapture*|*rm*git*|*git*rm*) ;;
+  *pkill*|*killall*|*pgrep*|*tauri*|*release*|*npm*|*copy-terms*|*osascript*|*screencapture*|*orca*|*rm*git*|*git*rm*) ;;
   *) exit 0 ;;
 esac
 

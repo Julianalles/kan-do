@@ -53,4 +53,22 @@
     if ($s =~ /^(?:\S*\/)?screencapture\b/ && $s !~ /(?:^|\s)-[A-Za-z]*[lR]/) {
       print "no full-screen screencapture (it shows the user's private windows): capture only your own window, `screencapture -x -l <window id>` of a PID-verified process (docs/testing/tauri-dev-sandbox.md)"; last;
     }
+    # Verification only ever drives a separate test instance, never the user's production install or their own
+    # `tauri:dev` window: `orca computer` may target a kan-do process only by the PID of a sandbox run (throwaway HOME,
+    # KANDO_SANDBOX_BACKGROUND=1, docs/testing/tauri-dev-sandbox.md). Other apps (a browser) pass untouched.
+    if ($s =~ /^(?:\S*\/)?orca(?:-dev|-ide)?\s+computer\b/ && $s =~ /--app(?:=|\s+)["']?([^\s"']+)/) {
+      my $app = $1;
+      my $sandboxOnly = "desktop verification drives only a sandboxed test instance, never the production install (/Applications/kan-do.app) or the user's own tauri dev window: start one with docs/testing/tauri-dev-sandbox.md (skill desktop-verify) and target it as `--app pid:<its PID>`";
+      if ($app =~ /^pid:(\d+)$/) {
+        my $pid = $1;
+        my $ps = `ps eww -o command= -p $pid 2>/dev/null`;
+        my $kando = $ps =~ m{kan-?do\.app/|(?:^|/)target/(?:debug|release)/app(?:\s|$)}i;
+        my ($home) = $ps =~ /(?:^|\s)HOME=(\S+)/;
+        if ($kando && !($ps =~ /(?:^|\s)KANDO_SANDBOX_BACKGROUND=1(?:\s|$)/ && defined $home && $home ne $ENV{HOME})) {
+          print "pid:$pid is not a sandbox run (production app or a tauri dev with the real HOME): $sandboxOnly"; last;
+        }
+      } elsif ($app =~ /kan-?do|jaylouiz|^app$|tauri/i) {
+        print "never target the desktop app by name or bundle ID (it resolves to the production app or another worker's window): $sandboxOnly"; last;
+      }
+    }
   }

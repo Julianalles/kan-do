@@ -418,10 +418,20 @@ describe('useTaskSync: restoring from the trash (#422)', () => {
       const running = sync.restoreTask(trash.entry('n1')!)
       tasksStore.mergeTasks('notion', [makeTask({ id: 'P', source: 'notion', title: 'Rückruf' })], { fetchStartedAt: T, pushing: sync.isPushing })
       expect(tasksStore.pendingDeletes.n1).toBeUndefined()
+      // The fetch made a card of the page meanwhile (#555); the restore settles it when it resolves
+      expect(tasksStore.tasks.map((t) => [t.id, t.externalId])).toEqual([['P', 'P']])
       release()
       await running
       expect(tasksStore.pendingDeletes.n1).toBeUndefined()
       expect(tasksStore.task('n1')).toMatchObject({ externalId: 'P' })
+      // One card for the page: the entry's task, not the fetch's (#555)
+      expect(tasksStore.tasks.map((t) => [t.id, t.externalId])).toEqual([['n1', 'P']])
+      expect(trash.entry('n1')).toBeUndefined()
+      expect(statistics.removeTaskRecord).toHaveBeenCalledWith('P')
+      expect(tasksStore.deletedTaskIds).not.toContain('P')
+      // A later fetch of the same page finds the restored task: still one card
+      tasksStore.mergeTasks('notion', [makeTask({ id: 'P', source: 'notion', title: 'Rückruf' })], { fetchStartedAt: T, pushing: sync.isPushing })
+      expect(tasksStore.tasks.map((t) => t.id)).toEqual(['n1'])
     })
   })
 })

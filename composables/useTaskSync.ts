@@ -372,6 +372,8 @@ export const useTaskSync = () => {
       if (created.notPlanned !== undefined) delete created.notPlanned;
       if (hold !== null) delete created.sourceNotPlanned;
     }
+    // A fetch that landed while the create was in flight made a card of the page (#555): this task replaces it
+    dropLandedCards(created.source, created.externalId);
     tasksStore.addTask(created);
     if (notPlanned) boardStore.noteNotPlanned(created.id);
     else if (created.status !== undefined) boardStore.updateTaskPosition(created.id, created.status);
@@ -447,6 +449,22 @@ export const useTaskSync = () => {
   };
 
   /**
+   * A create or restore resolved with a page (#555): the cards a fetch made of that page while the write was in flight
+   * are dropped (`tasksStore.dropLandedDuplicates`), and so are their statistics records. `exceptTaskId` is the task
+   * that waited; a task not on the board yet passes none.
+   */
+  const dropLandedCards = (source: SourceId, externalId: string | null | undefined, exceptTaskId?: string): void => {
+    forgetDroppedCards(tasksStore.dropLandedDuplicates(source, externalId, exceptTaskId));
+  };
+
+  /** The statistics records of cards that were dropped as duplicates of another card of the same page. */
+  const forgetDroppedCards = (ids: readonly string[]): void => {
+    for (const id of ids) {
+      try { statisticsStore.removeTaskRecord(id); } catch (error) { console.warn('Failed to remove statistics of a duplicate:', error); }
+    }
+  };
+
+  /**
    * Whether a write of the task is under way or waits for an earlier one. A fetch that is merged meanwhile may
    * have read the source before that write and must not take the task for gone (`mergeTasks`' `pushing`, #357).
    */
@@ -471,7 +489,7 @@ export const useTaskSync = () => {
         const created = await adapter.create(task, { claimedExternalIds: tasksStore.claimedPages(task.source) });
         // Read before `completeCreate`, which drops the revision
         const timeSuperseded = tasksStore.pendingSyncRevision(task.id) !== revision;
-        tasksStore.completeCreate(task.id, created, revision);
+        forgetDroppedCards(tasksStore.completeCreate(task.id, created, revision));
         applySyncedTask(task.id, created, operationVersion, timeSuperseded);
       } else {
         // What the source holds comes from the marker (it survives a restart), else from the caller (#344).
@@ -930,6 +948,8 @@ export const useTaskSync = () => {
     // One synchronous step from here: nothing may interleave between the guard release and the board
     tasksStore.removePendingDelete(taskId);
     tasksStore.undeleteTask(taskId, restored.externalId, entry.task.externalId);
+    // A fetch that landed while the restore's create was in flight made a card of the page (#555): the entry's task stays
+    dropLandedCards(restored.source, restored.externalId, taskId);
     if (!tasksStore.task(taskId)) tasksStore.addTask({ ...restored, id: taskId, status, timerId: null });
     tasksStore.guardRestoredTask(taskId);
     const back = tasksStore.task(taskId);
@@ -1017,10 +1037,7 @@ export const useTaskSync = () => {
       await adapter.remove({ ...task, externalId }).catch((error) => console.error('[TaskSync] Could not remove the page of a deleted moving task:', error));
       return 'skipped';
     }
-    const dropped = tasksStore.completeMoveCreate(task.id, externalId);
-    for (const id of dropped) {
-      try { statisticsStore.removeTaskRecord(id); } catch (error) { console.warn('Failed to remove statistics of a duplicate:', error); }
-    }
+    forgetDroppedCards(tasksStore.completeMoveCreate(task.id, externalId));
     restoreSourceAfterPush(target);
 
     // The create writes the title, status, priority, timebox, topic, activity, notes and custom values; time spent

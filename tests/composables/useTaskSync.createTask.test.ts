@@ -75,6 +75,27 @@ describe('useTaskSync.createTask (#321)', () => {
   })
   afterEach(() => vi.restoreAllMocks())
 
+  it('a fetch that lands while the create is in flight leaves one card for the page (#555)', async () => {
+    const tasksStore = useTasksStore()
+    let release!: () => void
+    notion.createTask.mockImplementationOnce(async (input) => {
+      await new Promise<void>((resolve) => { release = resolve })
+      return notionPage('page-new', input)
+    })
+    const running = useTaskSync().createTask(draft(), 'notion')
+    await vi.waitFor(() => expect(release).toBeTypeOf('function'))
+    // Notion already holds the page: the fetch makes a card of it, with the page id as its id
+    tasksStore.mergeTasks('notion', [notionPage('page-new', draft())], { fetchStartedAt: Date.now() })
+    expect(tasksStore.tasks.map((t) => t.id)).toEqual(['page-new'])
+
+    release()
+    const created = await running
+
+    expect(tasksStore.tasks.map((t) => [t.id, t.externalId])).toEqual([['page-new', 'page-new']])
+    expect(created).toMatchObject({ id: 'page-new' })
+    expect(useBoardStore().columnByTaskStatus(TaskStatus.Open)?.taskOrder).toEqual(['page-new'])
+  })
+
   it('Local: a generated local_ id, no externalId, no upstream call, placed in its column', async () => {
     const created = await useTaskSync().createTask(draft(), 'local')
     expect(created).toMatchObject({ source: 'local', externalId: null, title: 'Rückruf', status: TaskStatus.Open })
