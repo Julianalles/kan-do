@@ -31,6 +31,6 @@ export default defineEventHandler(async (event) => {
 
     return { success: true, pageId, archived: true }
   } catch (error) {
-    handleNotionError(error)
+    handleNotionError(error, event)
   }
 })

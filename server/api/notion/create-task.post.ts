@@ -41,9 +41,7 @@ export default defineEventHandler(async (event) => {
       page: response,
     };
   } catch (error: any) {
-    console.error("Error creating Notion page:", error);
-    
     // Use standard Notion error handler
-    handleNotionError(error);
+    handleNotionError(error, event);
   }
 });
