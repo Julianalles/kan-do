@@ -1,4 +1,4 @@
-import { spawnSync } from 'node:child_process'
+import { spawn, spawnSync } from 'node:child_process'
 import { chmodSync, copyFileSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -336,4 +336,57 @@ describe('guard-commands hook without jq (kd#2)', () => {
     }
     expect(run(path, 'git status').status).toBe(0)
   })
+})
+
+// Desktop verification drives only a separate test instance: `orca computer` never targets the production install or
+// a tauri dev with the real HOME, only the PID of a sandbox run (throwaway HOME, KANDO_SANDBOX_BACKGROUND=1).
+describe('guard-commands hook: orca computer targets only a sandbox run', () => {
+  const orca = (app: string) => `orca computer get-app-state --app ${app} --json`
+
+  // A stand-in for the dev binary: a copy of `sleep` at <tmp>/target/debug/app, started with the given env.
+  const withFakeApp = (env: Record<string, string>, check: (pid: number) => void) => {
+    const dir = mkdtempSync(join(tmpdir(), 'kando-orca-'))
+    const bin = join(dir, 'target/debug/app')
+    spawnSync('mkdir', ['-p', join(dir, 'target/debug')])
+    copyFileSync('/bin/sleep', bin)
+    chmodSync(bin, 0o755)
+    const child = spawn(bin, ['30'], { cwd: dir, env: { ...process.env, ...env }, stdio: 'ignore' })
+    try {
+      // Wait until the exec happened, so the allow case cannot pass on a process that is not the fake app yet.
+      for (let i = 0; i < 100 && !spawnSync('ps', ['-o', 'command=', '-p', String(child.pid)], { encoding: 'utf8' }).stdout.includes('target/debug/app'); i++) {
+        spawnSync('sleep', ['0.05'])
+      }
+      check(child.pid!)
+    } finally {
+      child.kill()
+      rmSync(dir, { recursive: true, force: true })
+    }
+  }
+
+  it.each(['io.github.jaylouiz.kan-do', 'app', 'kan-do', 'Kan-Do', '=app'])('blocks the desktop app by name: %s', (app) => {
+    const r = hook(app.startsWith('=') ? `orca computer click --app${app} --element-index 1` : orca(app))
+    expect(r.status).toBe(2)
+    expect(r.stderr).toContain('sandbox')
+  })
+
+  it('blocks the PID of a dev build running with the real HOME', () => {
+    withFakeApp({}, (pid) => {
+      const r = hook(orca(`pid:${pid}`))
+      expect(r.status).toBe(2)
+      expect(r.stderr).toContain(`pid:${pid} is not a sandbox run`)
+    })
+  })
+
+  it('allows the PID of a sandbox run', () => {
+    const home = mkdtempSync(join(tmpdir(), 'kando-home-'))
+    withFakeApp({ HOME: home, KANDO_SANDBOX_BACKGROUND: '1' }, (pid) => {
+      expect(hook(orca(`pid:${pid}`)).status).toBe(0)
+    })
+    rmSync(home, { recursive: true, force: true })
+  })
+
+  it.each([orca('com.google.Chrome'), orca(`pid:${process.pid}`), 'orca computer list-apps --json', "git commit -m 'orca computer --app app'"])(
+    'passes %s', (command) => {
+      expect(hook(command).status).toBe(0)
+    })
 })
