@@ -33,6 +33,11 @@ export const useRemindersConfigStore = defineStore('remindersConfig', () => {
     lists.value = { ...lists.value, [listId]: { role: config.role, title: config.title } }
   }
 
+  /** Replaces every answer at once: the setup writes the draft in one step, and puts the earlier answers back when the connect fails. */
+  function setLists(next: Record<string, ReminderListConfig>) {
+    lists.value = Object.fromEntries(Object.entries(next).map(([id, config]) => [id, { role: config.role, title: config.title }]))
+  }
+
   function setAccessStatus(status: RemindersAccessStatus | null) {
     accessStatus.value = status
   }
@@ -60,6 +65,7 @@ export const useRemindersConfigStore = defineStore('remindersConfig', () => {
     accessStatus,
     roleOf,
     setList,
+    setLists,
     setAccessStatus,
     recordDoneOccurrence,
     dropDoneOccurrence,

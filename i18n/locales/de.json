@@ -1222,6 +1222,26 @@
     "floatingNow": {
       "label": "Schwebender Timer",
       "help": "Zeigt deine Aufgabe in „Jetzt“ zusammen mit einem Timer als eigenes kleines Fenster, das immer sichtbar ist."
+    },
+    "reminders": {
+      "pageTitle": "Erinnerungen-Einstellungen",
+      "pageDescription": "Hier änderst du jederzeit, was du beim Einrichten gewählt hast.",
+      "lists": "Listen",
+      "today": "Heute",
+      "access": "Zugriff",
+      "accessGranted": "Kan-Do darf auf Erinnerungen zugreifen.",
+      "openSettings": "Systemeinstellungen öffnen",
+      "disconnect": "Trennen",
+      "repair": "Verbindung reparieren",
+      "listsLoading": "Listen werden geladen…",
+      "listsFailed": "Die Listen konnten nicht geladen werden. Prüfe den Zugriff.",
+      "listsNoAccess": "Ohne Zugriff sieht Kan-Do deine Listen nicht. Erlaube ihn unten unter Zugriff.",
+      "excludeTitle": "{list} nicht mehr lesen?",
+      "excludeLeaving": "{n} Aufgabe verlässt Kan-Do | {n} Aufgaben verlassen Kan-Do",
+      "excludeOnBoard": "{m} davon steht heute auf dem Board. | {m} davon stehen heute auf dem Board.",
+      "excludeStays": "In Erinnerungen bleibt alles, wie es ist.",
+      "excludeConfirm": "Nicht mehr lesen",
+      "excludeCancel": "Abbrechen"
     }
   },
   "sources": {
@@ -1249,7 +1269,8 @@
       "lead": "Wähle, wo neue Aufgaben standardmäßig gespeichert werden.",
       "help": "Beim Hinzufügen kannst du eine andere Verbindung wählen und du kannst Aufgaben jederzeit verschieben.",
       "moreHeading": "Eine App verbinden",
-      "soon": "bald verfügbar"
+      "soon": "bald verfügbar",
+      "macOnly": "nur in der Mac-App"
     },
     "row": {
       "default": "Standard",
@@ -1315,7 +1336,11 @@
         "legend": "Du kannst eine oder mehrere verbinden",
         "notion": "Notion",
         "todoist": "Todoist (Bald verfübar)",
-        "confirmNotion": "Mit Notion einrichten"
+        "confirmNotion": "Mit Notion einrichten",
+        "reminders": "Erinnerungen",
+        "remindersWebOnly": "Erinnerungen (nur in der Mac-App)",
+        "confirmReminders": "Mit Erinnerungen einrichten",
+        "confirmRemindersNotion": "Weiter mit Erinnerungen und Notion"
       },
       "samples": {
         "label": "Mit Beispielaufgaben starten",
@@ -1348,6 +1373,74 @@
         "custom-properties": "Optional: weitere Eigenschaften wie Thema oder Aktivität mitnehmen.",
         "priority-mapping": "Ordne die Werte deiner Prioritäts-Eigenschaft den drei Stufen zu.",
         "status-mapping": "Zuletzt: welcher Notion-Status zu welcher Spalte gehört. Danach geht es los."
+      },
+      "reminders": {
+        "label": "Mit Erinnerungen verbinden",
+        "connected": "Erinnerungen ist verbunden",
+        "loadingBoard": "Dein Board lädt die Aufgaben von heute.",
+        "connect": "Verbinden",
+        "toNotion": "Weiter zu Notion",
+        "connectFailed": "Das Verbinden hat nicht geklappt. Prüfe den Zugriff und versuche es noch einmal.",
+        "steps": {
+          "access": "Zugriff",
+          "lists": "Listen",
+          "today": "Heute"
+        },
+        "help": {
+          "access": "macOS fragt nur einmal. Kan-Do ändert nichts, solange du nichts planst.",
+          "lists": "Du änderst das später in den Einstellungen.",
+          "today": "So nutzt Kan-Do das Datum.",
+          "todayNotion": "Danach richtest du Notion ein."
+        },
+        "access": {
+          "title": "Zugriff auf Erinnerungen",
+          "intro": "Kan-Do liest deine Erinnerungen und zeigt die von heute auf dem Board. Dafür fragt macOS gleich nach deiner Erlaubnis.",
+          "previewLabel": "Das siehst du gleich",
+          "previewText": "„Kan-Do liest deine Erinnerungen, zeigt die von heute auf dem Board und setzt das Datum, wenn du etwas für heute einplanst.“",
+          "whyTitle": "Warum Vollzugriff?",
+          "whyText": "macOS kennt für Erinnerungen nur alles oder nichts. Kan-Do liest deine Aufgaben, setzt das Datum, wenn du etwas für heute einplanst, und hakt Erledigtes ab.",
+          "neverTitle": "Was Kan-Do nie tut",
+          "neverText": "Titel oder Notizen ändern, Aufgaben anlegen oder löschen, Listen ändern oder etwas an einen Server schicken. Listen, die du auf Aus stellst, liest es nicht.",
+          "laterTitle": "Später ändern",
+          "laterText": "Systemeinstellungen › Datenschutz & Sicherheit › Erinnerungen.",
+          "allow": "Zugriff erlauben",
+          "recheck": "Erneut prüfen",
+          "retry": "Erneut versuchen",
+          "listsFailedTitle": "Die Listen konnten nicht gelesen werden.",
+          "listsFailedText": "Der Zugriff ist erteilt, aber Erinnerungen hat keine Listen geliefert. Versuche es erneut.",
+          "openSettings": "Systemeinstellungen öffnen",
+          "waiting": "macOS fragt gerade. Antworte im Fenster von macOS.",
+          "granted": "Zugriff erteilt. Kan-Do sieht {n} Liste. | Zugriff erteilt. Kan-Do sieht {n} Listen.",
+          "deniedTitle": "Kan-Do hat keinen Zugriff.",
+          "deniedText": "Erlaube ihn in den Systemeinstellungen unter Datenschutz & Sicherheit › Erinnerungen. Danach prüft Kan-Do es noch einmal."
+        },
+        "lists": {
+          "title": "Deine Listen",
+          "lead": "Was bedeutet jede Liste für dich? Standard ist Thema. Listen, die du nicht brauchst, stellst du auf Aus.",
+          "groupLabel": "Erinnerungen-Listen",
+          "choiceLabel": "{list} zählt als",
+          "topic": "Thema",
+          "activity": "Aktivität",
+          "off": "Aus",
+          "open": "{n} offen",
+          "notRead": "Wird nicht gelesen",
+          "help": "Thema: worum es geht, etwa Steuer oder Wohnung. Aktivität: wie du arbeitest, etwa Anrufe. Aus: Kan-Do liest die Liste nicht, in Erinnerungen bleibt sie, wie sie ist.",
+          "empty": "Alle Listen sind aus. Stelle mindestens eine auf Thema oder Aktivität.",
+          "none": "In Erinnerungen gibt es noch keine Liste. Lege dort eine an und prüfe dann noch einmal.",
+          "loading": "Listen werden geladen…"
+        },
+        "today": {
+          "title": "Heute",
+          "lead": "Das Datum in Erinnerungen entscheidet, was heute auf dein Board kommt.",
+          "tableLabel": "Datum und Board",
+          "rowToday": "Heute",
+          "rowEarlier": "Gestern oder früher",
+          "rowLater": "Morgen oder später",
+          "rowNone": "Kein Datum",
+          "onBoard": "Auf dem Board",
+          "inMyTasks": "In Meine Aufgaben",
+          "writes": "Planst du in Kan-Do eine Aufgabe für heute ein, setzt Kan-Do ihr Datum auf heute. Uhrzeit und Erinnerungen bleiben. Rückgängig im Hinweis stellt das alte Datum wieder her."
+        }
       }
     }
   },

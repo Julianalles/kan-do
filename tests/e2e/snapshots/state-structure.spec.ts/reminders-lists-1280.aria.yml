@@ -1,0 +1,21 @@
+- paragraph: Was bedeutet jede Liste für dich? Standard ist Thema. Listen, die du nicht brauchst, stellst du auf Aus.
+- paragraph: "Thema: worum es geht, etwa Steuer oder Wohnung. Aktivität: wie du arbeitest, etwa Anrufe. Aus: Kan-Do liest die Liste nicht, in Erinnerungen bleibt sie, wie sie ist."
+- list "Erinnerungen-Listen":
+  - listitem:
+    - text: Zuhause 2 offen
+    - radiogroup "Zuhause zählt als":
+      - radio "Thema" [checked]
+      - radio "Aktivität"
+      - radio "Aus"
+  - listitem:
+    - text: Arbeit 1 offen
+    - radiogroup "Arbeit zählt als":
+      - radio "Thema" [checked]
+      - radio "Aktivität"
+      - radio "Aus"
+  - listitem:
+    - text: Privat Wird nicht gelesen
+    - radiogroup "Privat zählt als":
+      - radio "Thema"
+      - radio "Aktivität"
+      - radio "Aus" [checked]
