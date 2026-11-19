@@ -225,6 +225,20 @@ export function handleNotionError(error: unknown, event?: H3Event): never {
 }
 
 /**
+ * For a catch that tolerates a failed Notion request (a probe, a per-database lookup): lets a Notion 429 through to
+ * `handleNotionError`, so the browser gets the 429 and its `Retry-After` and retries. The proxy does not wait out a 429
+ * itself (`retry: false`, #539); swallowing one here would turn it into a 200 with missing or placeholder entries.
+ * Any other error returns, and the caller keeps its own fallback.
+ *
+ * @throws {H3Error} 429 for a rate-limited Notion response
+ */
+export function rethrowNotionRateLimit(error: unknown, event?: H3Event): void {
+  if (!(error instanceof Error) || error.name !== 'APIResponseError') return
+  const { status, code } = error as unknown as { status?: number; code?: string }
+  if (status === 429 || code === 'rate_limited') handleNotionError(error, event)
+}
+
+/**
  * Gets the standard HTTP status message for a status code
  */
 function getStatusMessage(statusCode: number): string {

@@ -1,6 +1,6 @@
 import { createNotionClient } from '~/server/utils/notionClient'
 import { defineEventHandler } from 'h3'
-import { validateRequest, handleNotionError } from '~/server/utils/apiError'
+import { validateRequest, handleNotionError, rethrowNotionRateLimit } from '~/server/utils/apiError'
 import { getStubbedDataSource, getStubbedDataSources, isNotionStubEnabled } from '~/server/utils/notionStub'
 
 interface NormalizedDataSourceLocation {
@@ -104,6 +104,8 @@ export default defineEventHandler(async (event) => {
             location = { ...(location ?? {}), type: 'database_id', database_id: parentDbId }
           }
         } catch (e: any) {
+          // A 429 reaches the browser (Retry-After), not a 200 without a location (#539)
+          rethrowNotionRateLimit(e, event)
           if (debug) {
             detailsError = {
               name: e?.name,
@@ -130,6 +132,7 @@ export default defineEventHandler(async (event) => {
               probeDbId = dbId
             }
           } catch (pe: any) {
+            rethrowNotionRateLimit(pe, event)
             if (debug) {
               probeError = {
                 name: pe?.name,

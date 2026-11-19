@@ -42,6 +42,17 @@ describe('createNotionClient (#530)', () => {
     expect(spies.flatMap(s => s.mock.calls)).toEqual([])
   })
 
+  it('a 429 is thrown after one request: no SDK retry waits on top of the forwarded Retry-After (#539)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({ object: 'error', status: 429, code: 'rate_limited', message: 'slow down' }),
+      { status: 429, headers: { 'content-type': 'application/json', 'retry-after': '7' } },
+    ))
+    vi.stubGlobal('fetch', fetchMock)
+    const notion = createNotionClient('secret_token', '2025-09-03')
+    await expect(notion.request({ method: 'get', path: 'pages/p1' })).rejects.toMatchObject({ status: 429, code: 'rate_limited' })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
   it('control: a client built without the factory does log the failure, quoting the message', async () => {
     const spies = failingNotion(404)
     const notion = new Client({ auth: 'secret_token' })

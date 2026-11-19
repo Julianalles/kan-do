@@ -1,18 +1,12 @@
 import { createNotionClient } from '~/server/utils/notionClient'
 import { defineEventHandler, createError } from "h3";
 import { getStubbedDatabases, isNotionStubEnabled } from "~/server/utils/notionStub";
-import { validateRequest } from "~/server/utils/apiError";
-import { logServerError } from "~/server/utils/serverLog";
+import { handleNotionError, validateRequest } from "~/server/utils/apiError";
 
 // Define a type for Notion database results
 interface NotionDatabase {
   id: string;
   title?: Array<{ plain_text?: string }> | string;
-}
-
-// Define a type for API errors with status code
-interface NotionApiError extends Error {
-  status?: number;
 }
 
 export default defineEventHandler(async (event) => {
@@ -58,13 +52,7 @@ export default defineEventHandler(async (event) => {
       title: db.title || "Untitled",
     }));
   } catch (error) {
-    // Cast to NotionApiError to access status property
-    const apiError = error as NotionApiError;
-    // Code, status and route only: the error carries request and response detail (#511)
-    logServerError(error, event);
-    throw createError({
-      statusCode: apiError.status || 500,
-      message: apiError.message || "Failed to access Notion database",
-    });
+    // 429 with Retry-After, status mapping and the code-only log line, like every other Notion route (#539)
+    handleNotionError(error, event);
   }
 });

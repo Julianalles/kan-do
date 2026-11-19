@@ -16,6 +16,8 @@
  * import) so `limiter.test.ts` runs it in Node.
  */
 
+import { logWorkerError } from './log'
+
 /** Requests allowed per window and client. Normal use is an order of magnitude below (ADR 021). */
 export const LIMIT = 120
 /** The window in seconds; also the `Retry-After` of a 429. */
@@ -110,7 +112,7 @@ export class NotionLimiter {
       return true
     } catch (error) {
       this.ready = undefined // the next request reads again: counting from zero is only for the requests in between
-      console.error('limiter: could not read the window, counting from zero', error)
+      logWorkerError('limiter: could not read the window, counting from zero', error)
       return false
     }
   }
@@ -150,7 +152,7 @@ export class NotionLimiter {
         this.alarmFor = windowStart
       }
     } catch (error) {
-      console.error('limiter: could not set the cleanup alarm, counting in memory only', error)
+      logWorkerError('limiter: could not set the cleanup alarm, counting in memory only', error)
       return
     }
     const next = { windowStart, count: Math.min(LIMIT, count + CHECKPOINT - 1) }
@@ -158,7 +160,7 @@ export class NotionLimiter {
       await this.storage.put('window', next)
       this.saved = next // a failed write is tried again with the next hit
     } catch (error) {
-      console.error('limiter: could not write the window, counting in memory only', error)
+      logWorkerError('limiter: could not write the window, counting in memory only', error)
     }
   }
 }

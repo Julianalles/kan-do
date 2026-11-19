@@ -8,6 +8,8 @@
  * posts there without a cookie; the relay has its own hourly cap).
  */
 
+import { logWorkerError } from './log'
+
 /** `__Host-` binds the cookie to this exact host, Secure and Path=/. It moves with the instance to a custom domain. */
 export const COOKIE_NAME = '__Host-kd_gate'
 export const COOKIE_MAX_AGE = 90 * 24 * 60 * 60
@@ -66,7 +68,7 @@ export async function decide(request: Request, env: GateEnv): Promise<Decision> 
 
   const secret = env.GATE_SECRET
   if (!secret) {
-    console.error('gate: GATE_SECRET is not set, denying every request')
+    logWorkerError('gate: GATE_SECRET is not set, denying every request')
     return { kind: 'deny' }
   }
   const expected = await sha256Hex(secret)

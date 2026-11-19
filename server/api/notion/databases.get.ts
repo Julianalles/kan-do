@@ -1,7 +1,7 @@
 import { createNotionClient } from '~/server/utils/notionClient'
 import { defineEventHandler } from 'h3'
 import type { DatabaseObjectResponse } from '@notionhq/client/build/src/api-endpoints'
-import { validateRequest, handleNotionError } from '~/server/utils/apiError'
+import { validateRequest, handleNotionError, rethrowNotionRateLimit } from '~/server/utils/apiError'
 import { logServerError } from '~/server/utils/serverLog'
 import { getStubbedDatabases, isNotionStubEnabled } from '~/server/utils/notionStub'
 
@@ -101,8 +101,9 @@ export default defineEventHandler(async (event) => {
           if (inferredDbId) {
             databaseId = inferredDbId
           }
-        } catch {
-          // ignore and try details
+        } catch (error) {
+          // A 429 reaches the browser (Retry-After); anything else: ignore and try details
+          rethrowNotionRateLimit(error, event)
         }
         try {
           const dsDetails = await notion.request({
@@ -112,8 +113,9 @@ export default defineEventHandler(async (event) => {
           // Prefer explicit location; otherwise map from parent.database_id
           databaseId = dsDetails?.location?.database_id || dsDetails?.parent?.database_id || databaseId
           dsName = (dsName ?? dsDetails?.name ?? null) as string | null
-        } catch {
-          // No action needed
+        } catch (error) {
+          // A 429 reaches the browser (Retry-After); anything else needs no action
+          rethrowNotionRateLimit(error, event)
         }
       }
 
@@ -202,6 +204,8 @@ export default defineEventHandler(async (event) => {
           }
           return summary
         } catch (error) {
+          // A 429 must reach the browser, not become a placeholder entry (#539)
+          rethrowNotionRateLimit(error, event)
           // A non-fatal fallback: log code, status and route only (#511)
           logServerError(error, event)
 

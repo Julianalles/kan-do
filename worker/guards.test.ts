@@ -144,10 +144,10 @@ describe('rate limit', () => {
 
   it('the object fails (its Free quota included): fails open and logs', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {})
-    const { app, run } = withLimiter(new Error('boom'))
+    const { app, run } = withLimiter(new Error('boom for 203.0.113.9'))
     expect((await run('/api/notion/pages')).status).toBe(200)
     expect(app).toHaveBeenCalledOnce()
-    expect(spy).toHaveBeenCalled()
+    expect(spy.mock.calls).toEqual([['guards: the rate limiter failed, letting the request through [Error]']]) // #540: no message
     spy.mockRestore()
   })
 
