@@ -42,5 +42,10 @@ beyond it):
    "Capturing the window" section starts it behind everything and captures only that window
    (`screencapture -x -l <window id>`, window id from your verified PID).
 
+**Driving the sandbox window** (clicks, typing, menus, the accessibility tree, a window screenshot): skill
+`orca-computer-use`, which acts in the background without taking focus. Target only `--app pid:<your verified
+PID>`, never a bundle ID or the name `app`/`kan-do`: those can resolve to the production app or another worker's
+window.
+
 A check that needs the frontmost app (the macOS menu bar contents) is skipped: say so in the PR, rely on the
 stub tests (`native-menu.spec.ts`) and leave the user a one-line note to look.
