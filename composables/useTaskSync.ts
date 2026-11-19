@@ -783,8 +783,6 @@ export const useTaskSync = () => {
     const adapter = adapterFor(source);
     if (!adapter.removeLanded) return;
     if (tasksStore.hasCompetingDoubt(source, doubt.title, ownerId)) return;
-    // A restore whose create is in doubt may own the page as well (#535)
-    if (useTrashStore().entries.some((item) => item.taskId !== ownerId && item.task.source === source && item.createUncertain?.title === doubt.title)) return;
     await adapter.removeLanded(doubt, { claimedExternalIds: tasksStore.claimedPages(source) });
   };
 
@@ -841,10 +839,13 @@ export const useTaskSync = () => {
           tasksStore.markPendingDeleteQueued(taskId);
           return 'queued';
         }
+        // A fetch may have handed the page of a create in doubt to the delete meanwhile (#538): the task comes back on
+        // the live delete, with that page and without the doubt, and the page leaves `deletedTaskIds` (#535 review)
+        const live = mapHelpers.get(tasksStore.pendingDeletes, taskId) ?? pending;
         tasksStore.removePendingDelete(taskId);
-        tasksStore.undeleteTask(taskId, pending.task.externalId, pending.task.pendingMove?.fromExternalId);
-        if (!tasksStore.task(taskId)) tasksStore.addTask(pending.task);
-        tasksStore.restoreCarryOver(taskId, pending.carryOver);
+        tasksStore.undeleteTask(taskId, live.task.externalId, live.task.pendingMove?.fromExternalId);
+        if (!tasksStore.task(taskId)) tasksStore.addTask(live.task);
+        tasksStore.restoreCarryOver(taskId, live.carryOver);
         // The task is back on the board for good: whoever called (the delete window, a flush) leaves no trash entry (#543)
         useTrashStore().remove(taskId);
         statisticsStore.removeDiscardedTime(taskId);

@@ -2,6 +2,7 @@ import { hasInjectionContext } from 'vue'
 import { useNuxtApp, useToast } from '#imports'
 import { getErrorMessageKey, isNetworkError, LocalizedError, type ErrorContext, type ErrorMessageKey } from "~/lib/errorMessages"
 import { translate } from "~/lib/i18n"
+import { CreateLookupError } from "~/lib/integrationHealth"
 import { useIntegrationHealthStore } from "~/store/integrationHealth"
 import { useBoardStore } from "~/store/board"
 import { isIntegrationSourceId } from "~/lib/taskSources"
@@ -40,7 +41,9 @@ export const useErrorHandler = () => {
   const handleError = (error: Error | string, errorContext?: ErrorContext, options: HandleErrorOptions = {}) => {
     const message = typeof error === 'string' ? error : error.message
     // Try to extract structured fields if available
-    const anyErr = error as unknown as { statusCode?: number; code?: string; data?: { error?: string } }
+    // A lookup that failed before a create (#528, #535) wraps the real failure: its status and type are the cause's
+    const inner = error instanceof CreateLookupError && error.cause != null ? error.cause : error
+    const anyErr = inner as unknown as { statusCode?: number; code?: string; data?: { error?: string } }
     const statusCode = anyErr?.statusCode
     const code = anyErr?.code || anyErr?.data?.error
     const health = useIntegrationHealthStore()
@@ -54,7 +57,7 @@ export const useErrorHandler = () => {
       console.log('[ErrorHandler] Error details:', {
         type: error?.constructor?.name,
         message,
-        isNetworkError: isNetworkError(error),
+        isNetworkError: isNetworkError(inner),
         statusCode,
         code
       })
@@ -74,7 +77,7 @@ export const useErrorHandler = () => {
     lastErrorMessage = message
     
     // Detect network errors and mark as offline
-    if (isNetworkError(error)) {
+    if (isNetworkError(inner)) {
       // Only show toast if transitioning from non-offline to offline state
       const wasOffline = source !== null && health.isOffline(source)
       if (source !== null) health.markOffline(source, message)

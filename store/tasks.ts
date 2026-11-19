@@ -3,6 +3,7 @@ import { ref, computed, type Ref } from "vue";
 import type { CreateUncertain, PendingSync, Task } from "@/types/task";
 import { TaskStatus } from "~/types/taskStatus";
 import { useBoardStore } from "./board";
+import { useTrashStore } from "./trash";
 import { useToday } from "~/composables/useToday";
 import { usePropertyOptionsStore } from "./propertyOptions";
 import type { PendingTimeUpdate } from "@/types/pendingTimeUpdate";
@@ -587,7 +588,7 @@ export const useTasksStore = defineStore("tasks", () => {
    */
   function adoptLandedPages(source: SourceId, fetched: readonly Task[], pushing?: (taskId: string) => boolean): void {
     if (source === 'local') return;
-    interface Waiter { doubt: CreateUncertain; take: (id: string) => void }
+    interface Waiter { doubt: CreateUncertain; take: (id: string) => void; /** the task whose doubt it is; set when the page is archived after it is taken (a delete, a move origin) */ archivedFor?: string }
     const waiters: Waiter[] = [];
     for (const el of tasks.value) {
       const doubt = el.pendingSync?.createUncertain;
@@ -605,6 +606,7 @@ export const useTasksStore = defineStore("tasks", () => {
       if (move?.fromSource === source && move.fromExternalId === null && move.fromCreateUncertain !== undefined) {
         waiters.push({
           doubt: move.fromCreateUncertain,
+          archivedFor: el.id,
           take: (id) => {
             const { fromCreateUncertain: _doubt, ...rest } = move;
             el.pendingMove = { ...rest, fromExternalId: id };
@@ -617,6 +619,7 @@ export const useTasksStore = defineStore("tasks", () => {
       if (pending.task.source === source && pending.task.externalId === null && doubt !== undefined) {
         waiters.push({
           doubt,
+          archivedFor: pending.taskId,
           take: (id) => {
             const current = mapHelpers.get(pendingDeletes.value, pending.taskId) ?? pending;
             const { createUncertain: _doubt, ...rest } = current.task.pendingSync!;
@@ -630,6 +633,7 @@ export const useTasksStore = defineStore("tasks", () => {
       if (move?.fromSource === source && move.fromExternalId === null && move.fromCreateUncertain !== undefined) {
         waiters.push({
           doubt: move.fromCreateUncertain,
+          archivedFor: pending.taskId,
           take: (id) => {
             const { fromCreateUncertain: _doubt, ...rest } = move;
             const current = mapHelpers.get(pendingDeletes.value, pending.taskId) ?? pending;
@@ -647,6 +651,9 @@ export const useTasksStore = defineStore("tasks", () => {
       .filter((entry) => !claimed.has(entry.id))
       .sort((x, y) => (x.createdAtMs ?? 0) - (y.createdAtMs ?? 0));
     for (const waiter of waiters) {
+      // A page that is archived once taken needs the evidence of #528's lookup AND no other doubt of the title: with
+      // a rival it could be the rival's page, so it stays out of this waiter's hands (#535 review, D2)
+      if (waiter.archivedFor !== undefined && hasCompetingDoubt(source, waiter.doubt.title, waiter.archivedFor)) continue;
       const hit = free.findIndex((entry) => isLandedCandidate({ title: entry.page.title, createdAtMs: entry.createdAtMs }, waiter.doubt));
       if (hit < 0) continue;
       waiter.take(free.splice(hit, 1)[0]!.id);
@@ -655,15 +662,16 @@ export const useTasksStore = defineStore("tasks", () => {
 
   /**
    * Whether another task of `source` holds a create in doubt under `title` (#538): a card, a pending delete, a move
-   * origin. The page a lookup finds for such a title could be theirs, so a delete or move of one of them must not
-   * archive it.
+   * origin, a trash entry's restore. The page a lookup finds (or a fetch hands over) for such a title could be theirs,
+   * so a delete or move of one of them must not archive it.
    */
   function hasCompetingDoubt(source: SourceId, title: string, exceptTaskId: string): boolean {
     const holds = (task: Task): boolean =>
       (task.source === source && task.externalId === null && task.pendingSync?.createUncertain?.title === title)
       || (task.pendingMove?.fromSource === source && task.pendingMove.fromCreateUncertain?.title === title);
     return tasks.value.some((el) => el.id !== exceptTaskId && holds(el))
-      || Object.values(pendingDeletes.value).some((pending) => pending.taskId !== exceptTaskId && holds(pending.task));
+      || Object.values(pendingDeletes.value).some((pending) => pending.taskId !== exceptTaskId && holds(pending.task))
+      || useTrashStore().entries.some((item) => item.taskId !== exceptTaskId && item.task.source === source && item.createUncertain?.title === title);
   }
 
   /** A push of the task failed: counts the attempt and keeps the reason on the marker. */

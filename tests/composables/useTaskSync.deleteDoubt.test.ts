@@ -184,6 +184,26 @@ describe('deleting a Notion task whose create is in doubt (#538)', () => {
     expect(notion.findLandedPage).not.toHaveBeenCalled() // the page is known, no lookup
   })
 
+  it('a delete that fails for good after a fetch handed it the page restores the task on that page (#535 review)', async () => {
+    deleted(inDoubt('a'))
+    now = T0 + 3 * 60_000 // the create can no longer land: the lookup alone decides
+    // The fetch that hands the page over runs while the commit's lookup is under way
+    notion.findLandedPage.mockImplementation(async () => {
+      tasks().mergeTasks('notion', [page('P', 'Rückruf', '2026-11-19T10:00:05.000Z')], { fetchStartedAt: now, pushing: () => false })
+      return null
+    })
+    notion.archiveTask.mockRejectedValue(Object.assign(new Error('forbidden'), { statusCode: 403 }))
+
+    await expect(useTaskSync().commitTaskDelete('a')).resolves.toBe('restored')
+
+    expect(notion.archiveTask).toHaveBeenCalledWith('P')
+    // Back on its page, with no doubt left: the next push updates P instead of creating a second page
+    expect(tasks().task('a')).toMatchObject({ source: 'notion', externalId: 'P' })
+    expect(tasks().task('a')?.pendingSync?.createUncertain).toBeUndefined()
+    expect(tasks().deletedTaskIds).not.toContain('P')
+    expect(handleErrorMock).toHaveBeenCalled()
+  })
+
   it('the next fetch after the hand-over does not bring the page back either', async () => {
     deleted(inDoubt('a'))
     tasks().mergeTasks('notion', [page('P', 'Rückruf', '2026-11-19T10:00:05.000Z')], { fetchStartedAt: now, pushing: () => false })
