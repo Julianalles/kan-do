@@ -256,7 +256,7 @@ const onBarEnd = (event: AnimationEvent) => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.625rem;
+  gap: 0.75rem;
   padding: 0 0.75rem;
 }
 

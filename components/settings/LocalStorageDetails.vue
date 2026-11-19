@@ -35,7 +35,7 @@ so with the few actions that state allows. Moved here from /settings/data so a s
       <UButton v-if="!choosesBelow" ref="changeButton" variant="soft" color="neutral" data-testid="data-folder-change" @click="onChangeFolder">
         {{ t('settings.data.changeFolder') }}
       </UButton>
-      <UButton variant="ghost" color="neutral" icon="i-ph-folder-open" :class="choosesBelow ? '' : 'max-sm:-ms-2.5'" data-testid="data-folder-reveal" @click="onReveal">
+      <UButton variant="ghost" color="neutral" icon="i-ph-folder-open" :class="choosesBelow ? '' : 'max-sm:-ms-2'" data-testid="data-folder-reveal" @click="onReveal">
         {{ t('settings.data.reveal') }}
       </UButton>
     </div>
