@@ -360,4 +360,23 @@ describe.skipIf(!enabled).each(['select', 'status'] as const)('NotionIntegration
     expect(planned.sourceNotPlanned).toBeUndefined()
     expect((await planning.fetchActiveBoardTasks()).find((task) => task.id === created.id)?.sourceNotPlanned).toBeUndefined()
   }, 60_000)
+
+  // #528: a create whose answer never arrived may have made the page. The lookup that runs before the next create finds it
+  // (title equals + created_time on_or_after, oldest first) and skips a page another task holds.
+  it('findLandedPage finds the page a lost create made, and skips one that another task holds', async () => {
+    const since = Date.now() - 1000
+    const title = `Verlorene Antwort ${statusType} ${since}`
+    const created = await integration.createTask({ title, status: TaskStatus.Open })
+
+    // Notion's index can lag a moment behind a write
+    let found: string | null = null
+    for (let attempt = 0; attempt < 10 && found === null; attempt++) {
+      found = await integration.findLandedPage(title, since)
+      if (found === null) await new Promise((resolve) => setTimeout(resolve, 1500))
+    }
+    expect(found).toBe(created.id)
+    expect(await integration.findLandedPage(title, since, new Set([created.id]))).toBeNull()
+    expect(await integration.findLandedPage(`${title} anders`, since)).toBeNull()
+    expect(await integration.findLandedPage(title, Date.now() + 60 * 60 * 1000)).toBeNull()
+  }, 60_000)
 })

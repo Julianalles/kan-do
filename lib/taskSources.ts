@@ -8,7 +8,7 @@
  * (same reference) when nothing needs to change, which lets hydration skip the write-back (#273).
  */
 import type { IBoardConfig } from '~/types/state'
-import type { PendingMove, PendingSync, Task } from '~/types/task'
+import type { CreateUncertain, PendingMove, PendingSync, Task } from '~/types/task'
 import {
   INTEGRATION_SOURCE_IDS,
   SOURCE_IDS,
@@ -111,9 +111,19 @@ export function normalizePendingSync(raw: unknown): PendingSync | undefined {
   const attempts = isCount(raw.attempts) ? Math.floor(raw.attempts) : 0
   const lastError = typeof raw.lastError === 'string' ? raw.lastError : null
   const upstreamDone = typeof raw.upstreamDone === 'boolean' ? raw.upstreamDone : undefined
+  // #528: a malformed value reads as none, which only costs the lookup before the next create
+  const held = raw.createUncertain
+  const doubt = isRecord(held) && isCount(held.since) && typeof held.title === 'string' && (held.at === undefined || isCount(held.at))
+    ? held as unknown as CreateUncertain
+    : undefined
   const exact = raw.since === since && raw.attempts === attempts && raw.lastError === lastError
-    && raw.upstreamDone === upstreamDone && Object.keys(raw).length === (upstreamDone === undefined ? 3 : 4)
-  return exact ? (raw as unknown as PendingSync) : { since, attempts, lastError, ...(upstreamDone === undefined ? {} : { upstreamDone }) }
+    && raw.upstreamDone === upstreamDone && raw.createUncertain === doubt && (doubt === undefined || Object.keys(doubt).length === (doubt.at === undefined ? 2 : 3))
+    && Object.keys(raw).length === 3 + (upstreamDone === undefined ? 0 : 1) + (doubt === undefined ? 0 : 1)
+  return exact ? (raw as unknown as PendingSync) : {
+    since, attempts, lastError,
+    ...(upstreamDone === undefined ? {} : { upstreamDone }),
+    ...(doubt === undefined ? {} : { createUncertain: { since: doubt.since, ...(doubt.at === undefined ? {} : { at: doubt.at }), title: doubt.title } }),
+  }
 }
 
 function normalizePendingMove(raw: unknown): PendingMove | undefined {

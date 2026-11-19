@@ -6,6 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { TaskStatus } from '~/types/taskStatus'
+import { afterTheLandingWait } from '../helpers/landingWait'
 import type { Task } from '~/types/task'
 
 const handleErrorMock = vi.fn()
@@ -25,6 +26,7 @@ const notion = {
   fetchActiveBoardTasks: vi.fn<() => Promise<Task[]>>(),
   updateTask: vi.fn<(task: Task) => Promise<Task>>(),
   createTask: vi.fn<(draft: Partial<Task>) => Promise<Task>>(),
+  findLandedPage: vi.fn<(title: string, since: number, claimed?: ReadonlySet<string>) => Promise<string | null>>(),
   archiveTask: vi.fn<(externalId: string) => Promise<void>>(),
 }
 const notionConfig = { isConfigured: true, hasDataSourceSelected: true, config: { token: 't', statusMapping: { archive: null as string | null } } }
@@ -64,6 +66,7 @@ describe('useTaskSync.createTask (#321)', () => {
     Object.values(notion).forEach((fn) => fn.mockReset())
     notion.createTask.mockImplementation(async (input) => notionPage('page-new', input))
     notion.updateTask.mockImplementation(async (task) => task)
+    notion.findLandedPage.mockResolvedValue(null)
     vi.spyOn(console, 'error').mockImplementation(() => {})
     vi.spyOn(console, 'log').mockImplementation(() => {})
     useBoardStore().setSources({ connected: ['notion'], default: 'notion' })
@@ -110,7 +113,8 @@ describe('useTaskSync.createTask (#321)', () => {
     expect(tasksStore.task(created.id)?.pendingSync).toBeDefined()
     expect(tasksStore.task(created.id)?.externalId).toBeNull()
 
-    // Reconnect: the next sync creates the page once
+    // Reconnect, after the doubtful create can no longer land (#528): the next sync creates the page once
+    afterTheLandingWait()
     health.markHealthy('notion')
     await useTaskSync().syncPendingChanges('notion')
     await useTaskSync().syncPendingChanges('notion')
@@ -179,6 +183,7 @@ describe('useTaskSync.createTask (#321)', () => {
     expect(notion.createTask).toHaveBeenCalledTimes(1)
     expect(tasksStore.task(created.id)?.pendingSync).toBeDefined()
 
+    afterTheLandingWait()
     useIntegrationHealthStore().markHealthy('notion')
     await useTaskSync().syncPendingChanges('notion')
     await useTaskSync().syncPendingChanges('notion')

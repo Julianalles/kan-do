@@ -155,6 +155,51 @@ export function sourceProblems(sources: SourceHealthMap, connected: readonly Int
 }
 
 /**
+ * The lookup that runs before a create in doubt (#528), or the write that adopts the page it found, failed. No create
+ * was sent, so the doubt stays as it was (`createOutcomeUnknown` is false); the `cause` keeps the status, so a failed
+ * push is classified as before.
+ */
+export class CreateLookupError extends Error {
+  readonly createNotSent = true
+  constructor(cause: unknown) {
+    super(cause instanceof Error ? cause.message : String(cause), { cause })
+    this.name = 'CreateLookupError'
+  }
+}
+
+/**
+ * The lookup before a create in doubt found no page, but the doubtful create may still land (`createMayLandUntil`):
+ * nothing is created yet and the task stays queued with its doubt. Not a failure: no marker is written, no toast shown;
+ * the next push looks again (#528).
+ */
+export class CreateWaitingError extends Error {
+  readonly createNotSent = true
+  readonly createWaiting = true
+  constructor() {
+    super('A create with an unknown outcome may still land; waiting before the page is created')
+    this.name = 'CreateWaitingError'
+  }
+}
+
+/** Whether `error` is a `CreateWaitingError`: a quiet "not yet", never a failure to report. */
+export const isCreateWaiting = (error: unknown): boolean => (error as { createWaiting?: unknown } | null)?.createWaiting === true
+
+/**
+ * Whether a failed create may still have made the page (#528): the request was sent and no answer says it was
+ * refused, i.e. a timeout, an abort or a network error (status 0) or a 5xx. A 429 and every 4xx refused it before
+ * a page was made. `NotionClientAPI` does not send such a create again by itself; the task carries
+ * `pendingSync.createUncertain` and the next create looks the page up first.
+ */
+export function createOutcomeUnknown(error: unknown): boolean {
+  // The lookup before a create failed: no create was sent, whatever status the lookup's request carried
+  if ((error as { createNotSent?: unknown } | null)?.createNotSent === true) return false
+  const cause = unwrapCause(error) as ErrorFields | null
+  if (cause?.name === 'SourceNotConfiguredError') return false
+  const httpStatus = cause?.statusCode ?? cause?.httpStatusCode
+  return httpStatus === 0 || (httpStatus !== undefined && httpStatus >= 500) || (httpStatus === undefined && isNetworkError(cause))
+}
+
+/**
  * What a failed create says about the task (#321), by the same scope rule as a failed push
  * (`pushFailureScope`): `transient` when the source could not take it right now, so the task is kept locally
  * with its marker and created on the next push: no connection, a missing setup, a rejected token (401, the
@@ -164,6 +209,7 @@ export function sourceProblems(sources: SourceHealthMap, connected: readonly Int
  * user must fix in the form.
  */
 export function createFailureKind(error: unknown): 'transient' | 'rejected' {
+  if (isCreateWaiting(error)) return 'transient'
   if (pushFailureScope(error) === 'source') return 'transient'
   const cause = unwrapCause(error) as ErrorFields | null
   const httpStatus = cause?.statusCode ?? cause?.httpStatusCode

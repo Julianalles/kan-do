@@ -7,7 +7,9 @@ import type { Task } from '~/types/task'
 import type { IntegrationHealth } from '~/types/integration'
 import type { NotionIntegration } from '~/integrations/NotionIntegration'
 import { externalIdOf, sourceSyncsTime } from '~/lib/taskSources'
-import { SourceNotConfiguredError, type FetchedTasks, type TaskSourceAdapter } from './types'
+import { CreateLookupError, CreateWaitingError } from '~/lib/integrationHealth'
+import { createMayLandUntil } from '~/lib/createLookup'
+import { SourceNotConfiguredError, type CreateContext, type FetchedTasks, type TaskSourceAdapter } from './types'
 
 export interface NotionSourceDeps {
   isConfigured: () => boolean
@@ -72,9 +74,35 @@ export class NotionSource implements TaskSourceAdapter {
     return this.deps.createInstance().timeIsWritable()
   }
 
-  async create(draft: Partial<Task>): Promise<Task> {
+  async create(draft: Partial<Task>, ctx?: CreateContext): Promise<Task> {
     // `createInstance` rejects an unconfigured Notion with the localized setup error the add form shows
-    return this.deps.createInstance().createTask(draft)
+    const notion = this.deps.createInstance()
+    // An earlier create ended with an unknown outcome (#528): the page may exist. Look for it first and adopt it; a
+    // failed lookup rejects (the task stays queued), it never falls through to a create that could duplicate the page.
+    const doubt = draft.externalId == null ? draft.pendingSync?.createUncertain : undefined
+    if (doubt) {
+      let pageId: string | null
+      try {
+        pageId = await notion.findLandedPage(doubt.title, doubt.since, ctx?.claimedExternalIds)
+      } catch (error) {
+        throw new CreateLookupError(error)
+      }
+      if (pageId !== null) {
+        // The page holds the draft as it was sent; the task may have changed since, so its current state goes onto it
+        let held: Task
+        try {
+          held = await notion.updateTask({ ...draft, externalId: pageId } as Task)
+        } catch (error) {
+          // No create was sent: the doubt (and the title it was made under) stays, so the next try finds the page again
+          throw new CreateLookupError(error)
+        }
+        return { ...draft, ...held, id: draft.id ?? pageId, source: 'notion', externalId: pageId } as Task
+      }
+      // Nothing found, but a request that timed out in the browser can still be running at the proxy: it may land
+      // after this lookup. Until the wait is over a create could make the second page.
+      if (Date.now() < createMayLandUntil(doubt)) throw new CreateWaitingError()
+    }
+    return notion.createTask(draft)
   }
 
   async update(task: Task, change: { timeEdited?: boolean } = {}): Promise<Task | null> {

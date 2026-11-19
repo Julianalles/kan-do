@@ -52,6 +52,14 @@ export function retryAfterMs(response: Pick<Response, 'headers'>, now: number = 
   return Number.isFinite(ms) && ms > 0 ? ms : null;
 }
 
+/**
+ * True for the request that creates a page. It is not idempotent and Notion has no idempotency key: after a timeout,
+ * a network error or a 5xx the page may exist already, so this request is never sent again by the retry below (#528).
+ * The caller keeps the task and looks the page up before it creates again (`NotionIntegration.findLandedPage`).
+ * A 429 refused the request before a page was made, so it stays retryable.
+ */
+const isPageCreate = (method: HttpMethod, endpoint: string): boolean => method === 'POST' && endpoint === '/pages';
+
 /** True for the archive request body (`{ archived: true }`), which has its own proxy route. */
 const isArchiveBody = (body: unknown): boolean =>
   typeof body === 'object' && body !== null && (body as { archived?: unknown }).archived === true;
@@ -184,8 +192,8 @@ export class NotionClientAPI {
         throw new NotionAPIError(response.status, response.statusText, errorData);
       }
 
-      // Retry on 429 (rate limit) or 5xx (server error)
-      if (retriesLeft > 0 && (response.status === 429 || response.status >= 500)) {
+      // Retry on 429 (rate limit) or 5xx (server error); a 5xx of a create may have made the page (#528)
+      if (retriesLeft > 0 && (response.status === 429 || (response.status >= 500 && !isPageCreate(method, endpoint)))) {
         // A 429 says when the limit lifts (#507): retrying earlier fails again and spends more quota. A wait over
         // the cap is not slept: throw the 429 so the caller can keep the work for later.
         const asked = response.status === 429 ? retryAfterMs(response) : null;
@@ -205,8 +213,8 @@ export class NotionClientAPI {
         throw error;
       }
 
-      // Network error or timeout - retry if possible
-      if (retriesLeft > 0) {
+      // Network error or timeout - retry if possible, but never a create: the page may exist (#528)
+      if (retriesLeft > 0 && !isPageCreate(method, endpoint)) {
         await this.sleep(backoffMs);
         return this.fetchWithRetry<T>(method, endpoint, body, retriesLeft - 1, backoffMs * 2, timeoutMs);
       }

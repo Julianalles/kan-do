@@ -213,6 +213,19 @@ describe('pendingSync marker (#319)', () => {
     expect(normalizePendingSync({ ...marker, upstreamDone: 'yes' })).toEqual(marker)
   })
 
+  it('keeps createUncertain (#528) without a write, and reads a malformed one as none', () => {
+    const withDoubt = { ...marker, createUncertain: { since: 1700000000000, title: 'Rückruf' } }
+    const tasks = [{ id: 'a', source: 'notion', externalId: null, pendingSync: withDoubt }]
+    expect(normalizeTasks(tasks, 'notion')).toBe(tasks)
+    expect(normalizePendingSync(withDoubt)).toBe(withDoubt)
+    const lastAttempt = { ...marker, createUncertain: { since: 1700000000000, at: 1700000009000, title: 'Rückruf' } }
+    expect(normalizePendingSync(lastAttempt)).toBe(lastAttempt)
+    expect(normalizePendingSync({ ...marker, createUncertain: { since: 1, at: 'x', title: 'a' } })).toEqual(marker)
+    expect(normalizePendingSync({ ...marker, createUncertain: { since: 'x', title: 'a' } })).toEqual(marker)
+    expect(normalizePendingSync({ ...marker, createUncertain: { since: 5 } })).toEqual(marker)
+    expect(normalizePendingSync({ ...marker, createUncertain: 'yes' })).toEqual(marker)
+  })
+
   it('repairs a half-written marker so the task still gets pushed', () => {
     const [task] = normalizeTasks([{ id: 'a', source: 'notion', externalId: 'a', pendingSync: { since: 5 } }], 'notion') as Array<{ pendingSync: unknown }>
     expect(task?.pendingSync).toEqual({ since: 5, attempts: 0, lastError: null })
