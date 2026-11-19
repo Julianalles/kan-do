@@ -1,4 +1,4 @@
-import { createError, getQuery, getHeader } from 'h3'
+import { createError, getQuery, getHeader, setResponseHeader } from 'h3'
 import type { H3Event } from 'h3'
 import { logServerError } from './serverLog'
 
@@ -50,6 +50,62 @@ export function validateRequest(event: H3Event, requiredParams: string[] = []): 
   }
   
   return query
+}
+
+// A `string` name: h3 types the known name `Retry-After` as a number only
+const RETRY_AFTER: string = 'Retry-After'
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/**
+ * Parses the `propertyMapping` and `statusMapping` query parameters of the task routes. Both must be JSON objects:
+ * `null`, an array or a primitive is valid JSON but a later property read would throw an unhandled TypeError (a 500
+ * that Nitro logs with the full URL, #525), so it answers 400 `INVALID_JSON` here.
+ *
+ * @throws {H3Error} 400 error if either parameter is not a JSON object
+ */
+// The mapping values are config strings (property and status names) or null; the routes index them like the untyped `JSON.parse` result before
+export function parseMappings(query: Record<string, unknown>): {
+  propertyMapping: Record<string, any>
+  statusMapping: Record<string, any>
+} {
+  let propertyMapping: unknown
+  let statusMapping: unknown
+  try {
+    propertyMapping = JSON.parse(query.propertyMapping as string)
+    statusMapping = JSON.parse(query.statusMapping as string)
+  } catch {
+    propertyMapping = statusMapping = null
+  }
+  if (!isPlainObject(propertyMapping) || !isPlainObject(statusMapping)) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Bad Request',
+      data: {
+        error: 'INVALID_JSON',
+        message: 'Invalid propertyMapping or statusMapping format'
+      }
+    })
+  }
+  return { propertyMapping, statusMapping }
+}
+
+/**
+ * A Notion `Retry-After` worth forwarding: delta seconds or an HTTP date (what `retryAfterMs` of the client reads, #507);
+ * anything else is dropped so no foreign string reaches the response.
+ */
+function forwardableRetryAfter(error: unknown): string | null {
+  // The SDK types `headers` as unknown: a `Headers` object or a plain record, names in any case
+  const headers = (error as { headers?: unknown }).headers
+  let value: unknown
+  if (typeof (headers as { get?: unknown } | undefined)?.get === 'function') value = (headers as Headers).get('retry-after')
+  else if (isPlainObject(headers)) value = Object.entries(headers).find(([name]) => name.toLowerCase() === 'retry-after')?.[1]
+  const raw = typeof value === 'string' ? value.trim() : ''
+  if (!raw) return null
+  if (/^\d{1,6}$/.test(raw)) return raw
+  return /^[A-Za-z]{3}, \d{2} [A-Za-z]{3} \d{4} \d{2}:\d{2}:\d{2} GMT$/.test(raw) ? raw : null
 }
 
 /**
@@ -113,6 +169,9 @@ export function handleNotionError(error: unknown, event?: H3Event): never {
 
     // Rate limiting hint (Notion may surface 429)
     if (status === 429 || code === 'rate_limited') {
+      // Notion's own wait reaches the browser, so its retry does not land inside Notion's limit window (#526)
+      const retryAfter = event ? forwardableRetryAfter(error) : null
+      if (event && retryAfter) setResponseHeader(event, RETRY_AFTER, retryAfter)
       throw createError({
         statusCode: 429,
         statusMessage: 'Too Many Requests',

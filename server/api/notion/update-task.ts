@@ -1,4 +1,4 @@
-import { Client } from '@notionhq/client'
+import { createNotionClient } from '~/server/utils/notionClient'
 import { defineEventHandler, readBody } from 'h3'
 import type { UpdatePageParameters } from '@notionhq/client/build/src/api-endpoints'
 import { handleNotionError, getTokenFromEvent } from '~/server/utils/apiError'
@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
       return { success: true, pageId, properties }
     }
 
-    const notion = new Client({ auth: token!, notionVersion: '2025-09-03' })
+    const notion = createNotionClient(token!, '2025-09-03')
     
     // If we need to merge multi_select properties, fetch current page first
     let mergedProperties = properties;

@@ -1,4 +1,4 @@
-import { Client } from "@notionhq/client";
+import { createNotionClient } from '~/server/utils/notionClient'
 import { defineEventHandler, createError } from "h3";
 import { getStubbedDatabases, isNotionStubEnabled } from "~/server/utils/notionStub";
 import { validateRequest } from "~/server/utils/apiError";
@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
     return databases.map((db) => ({ id: db.id, title: db.title }));
   }
 
-  const notion = new Client({ auth: token, notionVersion: '2022-06-28' });
+  const notion = createNotionClient(token, '2022-06-28');
 
   try {
     // If id is provided, retrieve specific database

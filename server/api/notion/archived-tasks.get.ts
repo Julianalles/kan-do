@@ -1,6 +1,6 @@
-import { Client } from '@notionhq/client'
-import { defineEventHandler, createError } from 'h3'
-import { validateRequest, handleNotionError } from '~/server/utils/apiError'
+import { createNotionClient } from '~/server/utils/notionClient'
+import { defineEventHandler } from 'h3'
+import { validateRequest, handleNotionError, parseMappings } from '~/server/utils/apiError'
 import { isNotionStubEnabled } from '~/server/utils/notionStub'
 
 type NotionSelect = { select?: { name?: string | null } | null }
@@ -21,21 +21,8 @@ export default defineEventHandler(async (event) => {
   const _databaseId = query.databaseId as string
   const dataSourceId = query.dataSourceId as string
   
-  // Parse JSON parameters with error handling
-  let propertyMapping, statusMapping
-  try {
-    propertyMapping = JSON.parse(query.propertyMapping as string)
-    statusMapping = JSON.parse(query.statusMapping as string)
-  } catch {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Bad Request',
-      data: {
-        error: 'INVALID_JSON',
-        message: 'Invalid propertyMapping or statusMapping format'
-      }
-    })
-  }
+  // Both mappings must be JSON objects: a `null` would throw below, outside any try (#525)
+  const { propertyMapping, statusMapping } = parseMappings(query)
 
   // Check if archive status is configured
   if (!statusMapping.archive) {
@@ -48,7 +35,7 @@ export default defineEventHandler(async (event) => {
     return []
   }
 
-  const notion = new Client({ auth: token, notionVersion: '2025-09-03' })
+  const notion = createNotionClient(token, '2025-09-03')
   
   // Build filter for archived status only
   const archivedFilter = {

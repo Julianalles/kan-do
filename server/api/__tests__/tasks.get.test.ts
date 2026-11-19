@@ -46,6 +46,27 @@ describe('server/api/notion/tasks.get.ts', () => {
     expect(res.body?.data?.error).toBe('INVALID_JSON')
   })
 
+  // #525: valid JSON that is no object made the property reads below throw an unhandled TypeError (a 500 that Nitro logs with the URL)
+  it.each(['null', '[]', '"x"', '1', 'true'])('returns 400 INVALID_JSON, not 500, when a mapping is the JSON value %s', async (value) => {
+    const requestSpy = vi.fn()
+    vi.doMock('@notionhq/client', () => ({
+      Client: vi.fn().mockImplementation(function () { return { request: requestSpy } }),
+    }))
+    const handler = (await import('~/server/api/notion/tasks.get')).default
+    const app = createApp(); app.use('/api/notion/tasks', handler)
+    const request = supertest(toNodeListener(app))
+    const valid = JSON.stringify({ title: 'Name', status: 'Status' })
+    for (const query of [
+      { propertyMapping: valid, statusMapping: value },
+      { propertyMapping: value, statusMapping: JSON.stringify({ today: 'Today' }) },
+    ]) {
+      const res = await request.get('/api/notion/tasks').set('Authorization', 'Bearer tkn').query({ databaseId: 'db1', dataSourceId: 'ds1', ...query })
+      expect(res.status).toBe(400)
+      expect(res.body?.data?.error).toBe('INVALID_JSON')
+    }
+    expect(requestSpy).not.toHaveBeenCalled()
+  })
+
   it('returns 502 when Notion API throws APIResponseError', async () => {
     const requestSpy = vi.fn().mockRejectedValue(Object.assign(new Error('fail'), { name: 'APIResponseError' }))
     vi.doMock('@notionhq/client', () => ({

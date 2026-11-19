@@ -45,6 +45,23 @@ export default defineNuxtConfig({
     'pages:extend'(pages) {
       removeDevPages(pages, process.env)
     },
+    // Nitro's default error handler logs an unhandled throw with the full URL query and the raw error (#525).
+    // `server/error-handler.ts` replaces that log and wraps Nuxt's own handler: setting `nitro.errorHandler` directly
+    // would make Nuxt skip it (no `/__nuxt_error` page, no `vary`), so the handler Nuxt chose is read here and handed in.
+    'nitro:config'(nitroConfig) {
+      if (isDev) return
+      const nuxtHandler = typeof nitroConfig.errorHandler === 'string' ? nitroConfig.errorHandler : undefined
+      const ours = fileURLToPath(new URL('./server/error-handler.ts', import.meta.url))
+      nitroConfig.virtual = {
+        ...nitroConfig.virtual,
+        'kan-do:error-handler': [
+          `import { createErrorHandler } from ${JSON.stringify(ours)}`,
+          ...(nuxtHandler ? [`import nuxtHandler from ${JSON.stringify(nuxtHandler)}`] : []),
+          `export default createErrorHandler(${nuxtHandler ? 'nuxtHandler' : ''})`,
+        ].join('\n'),
+      }
+      nitroConfig.errorHandler = 'kan-do:error-handler'
+    },
     // Closed-at-start dialogs load on first open (#288): Nuxt would still prefetch every dynamic chunk after load, which
     // fetches the code the lazy mount exists to avoid. Their chunks stay out of the prefetch and preload hints.
     'build:manifest'(manifest) {

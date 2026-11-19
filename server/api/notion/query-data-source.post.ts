@@ -1,4 +1,4 @@
-import { Client } from '@notionhq/client'
+import { createNotionClient } from '~/server/utils/notionClient'
 import { defineEventHandler, readBody } from 'h3'
 import { throwApiError, handleNotionError, getTokenFromEvent } from '~/server/utils/apiError'
 import { assertStubStatusShape, isNotionStubEnabled, queryStubPages } from '~/server/utils/notionStub'
@@ -31,7 +31,7 @@ export default defineEventHandler(async (event) => {
       }
     }
 
-    const notion = new Client({ auth: token!, notionVersion: '2025-09-03' })
+    const notion = createNotionClient(token!, '2025-09-03')
 
     const response = await notion.request({
       method: 'post',

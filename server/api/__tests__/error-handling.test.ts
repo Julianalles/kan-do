@@ -165,3 +165,55 @@ describe('Error Handling', () => {
     })
   })
 })
+
+describe('Notion Retry-After on a 429 (#526)', () => {
+  const HTTP_DATE = 'Wed, 21 Oct 2026 07:28:00 GMT'
+
+  /** What `APIResponseError` carries: `headers` as a `Headers` object or a plain record. */
+  function notionError(status: number, headers: unknown) {
+    return Object.assign(new Error('Notion API Error'), { name: 'APIResponseError', status, code: status === 429 ? 'rate_limited' : 'internal_server_error', headers })
+  }
+
+  function requestFor(error: unknown, withEvent = true) {
+    vi.spyOn(console, 'error').mockImplementation(() => {})
+    const app = createApp()
+    app.use('/limited', eventHandler((event) => { handleNotionError(error, withEvent ? event : undefined) }))
+    return supertest(toNodeListener(app)).get('/limited')
+  }
+
+  afterAll(() => vi.restoreAllMocks())
+
+  it.each([
+    ['a Headers object', new Headers({ 'Retry-After': '7' }), '7'],
+    ['a plain record, any case', { 'retry-after': '12' }, '12'],
+    ['an HTTP date', new Headers({ 'retry-after': HTTP_DATE }), HTTP_DATE],
+  ])('forwards the header of %s to the browser, so its retry waits as long as Notion asks', async (_label, headers, expected) => {
+    const res = await requestFor(notionError(429, headers))
+    expect(res.status).toBe(429)
+    expect(res.headers['retry-after']).toBe(expected)
+  })
+
+  it.each([
+    ['missing', new Headers()],
+    ['no headers at all', undefined],
+    ['empty', new Headers({ 'retry-after': ' ' })],
+    ['negative', new Headers({ 'retry-after': '-5' })],
+    ['not a number or a date', new Headers({ 'retry-after': 'soon, <script>' })],
+  ])('sets no Retry-After when Notion\'s is %s', async (_label, headers) => {
+    const res = await requestFor(notionError(429, headers))
+    expect(res.status).toBe(429)
+    expect(res.headers['retry-after']).toBeUndefined()
+  })
+
+  it('never sets it on another status', async () => {
+    const res = await requestFor(notionError(500, new Headers({ 'retry-after': '7' })))
+    expect(res.status).toBe(502)
+    expect(res.headers['retry-after']).toBeUndefined()
+  })
+
+  it('without an event (a caller that omits it) the 429 still throws, nothing to set', async () => {
+    const res = await requestFor(notionError(429, new Headers({ 'retry-after': '7' })), false)
+    expect(res.status).toBe(429)
+    expect(res.headers['retry-after']).toBeUndefined()
+  })
+})

@@ -1,4 +1,4 @@
-import { Client } from '@notionhq/client'
+import { createNotionClient } from '~/server/utils/notionClient'
 import { defineEventHandler, createError } from 'h3'
 import { validateRequest, handleNotionError } from '~/server/utils/apiError'
 import { getStubbedPing, isNotionStubEnabled } from '~/server/utils/notionStub'
@@ -14,7 +14,7 @@ export default defineEventHandler(async (event) => {
     return getStubbedPing()
   }
 
-  const notion = new Client({ auth: token, notionVersion: '2025-09-03' })
+  const notion = createNotionClient(token, '2025-09-03')
 
   try {
     const me = await notion.request({ path: 'users/me', method: 'get' })

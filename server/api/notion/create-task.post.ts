@@ -1,4 +1,4 @@
-import { Client } from "@notionhq/client";
+import { createNotionClient } from '~/server/utils/notionClient'
 import { defineEventHandler, readBody } from "h3";
 import { throwApiError, handleNotionError, getTokenFromEvent } from "~/server/utils/apiError";
 import { assertStubStatusShape, createStubPage, isNotionStubEnabled, stubCreateFailureStatus, stubFailureError } from "~/server/utils/notionStub";
@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
       return { success: true, pageId: page.id, page };
     }
 
-    const notion = new Client({ auth: token!, notionVersion: '2022-06-28' });
+    const notion = createNotionClient(token!, '2022-06-28');
 
     const response = await notion.pages.create({
       parent: { database_id: databaseId },

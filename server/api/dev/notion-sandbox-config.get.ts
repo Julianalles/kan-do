@@ -6,7 +6,7 @@ import {
   NOTION_SANDBOX_DB_PREFIX,
   notionSandboxConfig,
 } from '~/server/utils/notionSandbox'
-import { Client } from '@notionhq/client'
+import { createNotionClient } from '~/server/utils/notionClient'
 
 /**
  * Dev only: the `NotionConfig` for a Notion sandbox database (docs/testing/notion-sandbox.md),
@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
 
   const label = typeof getQuery(event).label === 'string' ? String(getQuery(event).label) : 'default'
   try {
-    const notion = new Client({ auth: creds.token, notionVersion: '2025-09-03' })
+    const notion = createNotionClient(creds.token, '2025-09-03')
     const db = await getSandboxDatabase(notion, creds.parentPageId, label)
     if (!db) {
       throwApiError(404, `No sandbox database "${NOTION_SANDBOX_DB_PREFIX}${label}". Run: node scripts/notion-sandbox.mts reset --label ${label}`)
