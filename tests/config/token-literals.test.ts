@@ -204,24 +204,66 @@ describe('spacing (#70)', () => {
   })
 })
 
-describe('motion (#70)', () => {
-  it('counts durations and curves in transition and animation, not tokens, custom properties or 0', () => {
+describe('motion (#70, #593)', () => {
+  it('counts durations, curves and easing keywords in transition and animation, not tokens or 0', () => {
     const file = join(dir, 'components', 'Motion.vue')
-    writeFileSync(file, `<template><div class="duration-300 ease-[cubic-bezier(0.1,0,0,1)] duration-(--duration-fast)" /></template>\n${style(
+    writeFileSync(file, `<template><div class="duration-300 ease-[cubic-bezier(0.1,0,0,1)] duration-(--duration-fast) ease-(--ease-standard)" /></template>\n${style(
       'transition: color 150ms ease, opacity var(--duration-base) var(--ease-standard);',
       'animation: pop 0.2s cubic-bezier(0.4, 0, 0.2, 1);',
-      '--local-ease: cubic-bezier(0.2, 0, 0, 1);',
-      '--local-duration: 220ms;',
       'transition-duration: 0ms;',
       'transition: opacity calc(var(--duration-fast) * 2);',
     )}`)
-    expect((checkScaleLiterals(dir, [file]) as Finding[]).map(f => f.message.split(' ').slice(0, 3).join(' '))).toEqual(['5 motion literals'])
+    expect((checkScaleLiterals(dir, [file]) as Finding[]).map(f => f.message.split(' ').slice(0, 3).join(' '))).toEqual(['6 motion literals'])
+  })
+
+  it('counts easing keywords, also beside a token duration, and the Tailwind ease classes (#593)', () => {
+    const file = join(dir, 'components', 'Keywords.vue')
+    writeFileSync(file, `<template><div class="transition ease-out ease-in-out md:ease-linear duration-(--duration-base)" /></template>\n${style(
+      'transition: color var(--duration-fast) ease;',
+      'transition: opacity var(--duration-fast) ease-in, transform var(--duration-fast) ease-out;',
+      'animation: spin var(--duration-slow) linear infinite;',
+      'transition-timing-function: ease-in-out;',
+      'animation-name: ease-in-fade;',
+      'transition: opacity var(--duration-fast) var(--ease-standard);',
+    )}`)
+    expect((checkScaleLiterals(dir, [file]) as Finding[]).map(f => f.message.split(' ').slice(0, 3).join(' '))).toEqual(['8 motion literals'])
+  })
+
+  it('counts a time or a curve stored in a custom property, not a token reference or 0 (#593)', () => {
+    const file = join(dir, 'components', 'Custom.vue')
+    writeFileSync(file, `<template><div class="probe" /></template>\n${style(
+      '--nav-move: 420ms;',
+      '--local-ease: cubic-bezier(0.2, 0, 0, 1);',
+      '--place-ease: ease;',
+      '--tick: 1s linear;',
+      '--spring: linear(0, 0.5, 1);',
+      '--other: 12px;',
+      '--hold: 0ms;',
+      '--alias: var(--duration-base);',
+      '--content: "ease";',
+    )}`)
+    expect((checkScaleLiterals(dir, [file]) as Finding[]).map(f => f.message.split(' ').slice(0, 3).join(' '))).toEqual(['6 motion literals'])
+  })
+
+  it('counts the literal duration and easing of a scripted .animate(), not a named constant or token (#593)', () => {
+    const file = join(dir, 'components', 'Scripted.vue')
+    writeFileSync(file, `<script setup lang="ts">
+const SLIDE_MS = 240
+el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 240, easing: 'ease-in-out' })
+el.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 0.3 })
+el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: SLIDE_MS, easing: MOTION.standard })
+el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: toValue(ms), easing: 'cubic-bezier(.3,.8,.3,1)' })
+// el.animate(x, { duration: 99 })
+const toast = { duration: 8000 }
+</script>
+<template><div /></template>`)
+    expect((checkScaleLiterals(dir, [file]) as Finding[]).map(f => f.message.split(' ').slice(0, 3).join(' '))).toEqual(['4 motion literals'])
   })
 
   it('fails above the baseline and reports a baseline above the count', () => {
     mkdirSync(join(dir, 'scripts/lint'), { recursive: true })
     const file = join(dir, 'components', 'Base.vue')
-    writeFileSync(file, style('transition: opacity 150ms ease;', 'transition: color 150ms ease;'))
+    writeFileSync(file, style('transition: opacity 150ms var(--ease-standard);', 'transition: color 150ms var(--ease-standard);'))
     writeFileSync(join(dir, 'scripts/lint/literal-baseline.json'), JSON.stringify({ motion: { 'components/Base.vue': 2, 'components/Gone.vue': 3 } }))
     expect(checkScaleLiterals(dir, [file])).toEqual([])
     writeFileSync(join(dir, 'scripts/lint/literal-baseline.json'), JSON.stringify({ motion: { 'components/Base.vue': 1 } }))

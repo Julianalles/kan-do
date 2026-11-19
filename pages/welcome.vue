@@ -31,7 +31,7 @@
       aria-hidden="true"
       decoding="async"
       data-testid="welcome-photo"
-      class="welcome-photo pointer-events-none absolute inset-0 size-full object-cover transition-opacity duration-700 motion-reduce:transition-none"
+      class="welcome-photo pointer-events-none absolute inset-0 size-full object-cover transition-opacity duration-(--duration-curtain) motion-reduce:transition-none"
       :class="photoLoaded ? 'opacity-100' : 'opacity-0'"
       @load="photoLoaded = true"
     >
@@ -43,7 +43,7 @@
     <!-- Brand block and sheet share one column: it owns the width (wider in the Notion flow), so the brand follows the
          sheet's left edge. The brand sits on the photo's bright wall, not on a plate (#437). -->
     <div
-      class="welcome-column relative mt-24 w-full transition-[max-width] duration-(--duration-slow) ease-out motion-reduce:transition-none"
+      class="welcome-column relative mt-24 w-full transition-[max-width] duration-(--duration-slow) ease-(--ease-emphasized) motion-reduce:transition-none"
       :class="flow === 'notion' || flow === 'reminders' ? 'sm:max-w-3xl' : 'sm:max-w-lg'"
     >
       <header class="mb-4 px-6 sm:mb-5 sm:px-8">
@@ -114,6 +114,7 @@
 import SectionHeader from '~/components/ui/SectionHeader.vue'
 import Subline from '~/components/ui/Subline.vue'
 import { flyBrandToBar } from '~/utils/brandFlight'
+import { MOTION } from '~/lib/motionTokens'
 import { ref, onMounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import LocalSetupFlow from '~/components/setup/LocalSetupFlow.vue';
@@ -169,7 +170,7 @@ function onEnter(el: Element, done: () => void) {
   const from = container.offsetHeight;
   container.style.height = '';
   const to = (el as HTMLElement).offsetHeight;
-  const anim = container.animate([{ height: `${from}px` }, { height: `${to}px` }], { duration: 300, easing: 'cubic-bezier(.3,.8,.3,1)' });
+  const anim = container.animate([{ height: `${from}px` }, { height: `${to}px` }], { duration: MOTION.slowMs, easing: MOTION.emphasized });
   anim.finished.then(done, done);
 }
 /**
@@ -299,14 +300,13 @@ const handleNotionSetupComplete = async () => {
 /* 12px clip margin: the Back button sits 4px outside the body and its focus ring reaches 4px beyond it (2px offset + 2px width) */
 .setup-body { position: relative; overflow: clip; overflow-clip-margin: 12px; }
 /* Steps read as steps in a row (#236): forward leaves to the left and the next enters from the right, back mirrors it.
-   Leave 140 ms, enter 260 ms straight after it (no delay: a delay shows an empty sheet for a beat). Both ends rest at
+   Leave `--duration-fast`, enter `--duration-slow` straight after it (no delay: a delay shows an empty sheet for a beat). Both ends rest at
    .12, not 0: out-in has one frame between leave and enter, and at 0 the sheet shows an empty block for a beat */
-.slide-fwd-enter-active, .slide-back-enter-active { transition: opacity 0.26s cubic-bezier(0.3, 0.8, 0.3, 1), transform 0.26s cubic-bezier(0.3, 0.8, 0.3, 1); }
-.slide-fwd-leave-active, .slide-back-leave-active { transition: opacity 0.14s ease-in, transform 0.14s ease-in; }
+.slide-fwd-enter-active, .slide-back-enter-active { transition: opacity var(--duration-slow) var(--ease-emphasized), transform var(--duration-slow) var(--ease-emphasized); }
+.slide-fwd-leave-active, .slide-back-leave-active { transition: opacity var(--duration-fast) var(--ease-standard), transform var(--duration-fast) var(--ease-standard); }
 .slide-fwd-enter-from, .slide-back-leave-to { opacity: 0.12; transform: translateX(32px); }
 .slide-fwd-leave-to, .slide-back-enter-from { opacity: 0.12; transform: translateX(-32px); }
 @media (prefers-reduced-motion: reduce) {
-  .slide-fwd-enter-active, .slide-fwd-leave-active, .slide-back-enter-active, .slide-back-leave-active { transition: none; }
   .slide-fwd-enter-from, .slide-fwd-leave-to, .slide-back-enter-from, .slide-back-leave-to { opacity: 1; transform: none; }
 }
 </style>

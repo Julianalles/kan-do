@@ -387,14 +387,4 @@ async function pick(id: string, event: MouseEvent) {
     padding-bottom: 0.75rem;
   }
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .not-planned,
-  .not-planned-item-move,
-  .not-planned-item-enter-active,
-  .not-planned-hint-enter-active,
-  .not-planned-hint-leave-active {
-    transition: none;
-  }
-}
 </style>

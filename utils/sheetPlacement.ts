@@ -4,6 +4,7 @@
  * Pure geometry, no DOM: the shell measures the card and the window and asks here where the sheet goes. Everything is
  * in CSS pixels of the viewport.
  */
+import { MOTION } from '~/lib/motionTokens'
 
 /** Gap between the sheet and every window edge. */
 export const SHEET_MARGIN = 16;
@@ -28,8 +29,8 @@ export const SHEET_MOTION = {
   scrimInMs: 160,
   /** Reduced motion: no grow and no fold, only this fade. */
   reducedMs: 1,
-  easeOpen: 'cubic-bezier(0.2, 0, 0, 1)',
-  easeClose: 'cubic-bezier(0.4, 0, 0.2, 1)',
+  easeOpen: MOTION.emphasized,
+  easeClose: MOTION.standard,
 } as const;
 
 export interface SheetBox {

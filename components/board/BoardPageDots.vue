@@ -82,6 +82,7 @@ const progress = computed(() =>
   width: calc(0.375rem + var(--w) * 0.875rem);
   border-radius: 9999px;
   background: color-mix(in oklab, var(--ui-text-muted) calc(var(--w) * 100%), var(--ui-border-accented));
+  /* 320 ms: the dots settle with the phone strip's swipe (board.css), kept off the tokens together (#593) */
   transition: width 320ms var(--ease-standard), background-color 320ms, opacity var(--sheet-fade-duration) var(--sheet-fade-easing);
 }
 .page-dots--live .page-dot {
@@ -90,12 +91,6 @@ const progress = computed(() =>
 @media (--desktop) {
   .page-dots {
     display: none;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .page-dot,
-  .page-dots::before {
-    transition: none;
   }
 }
 </style>

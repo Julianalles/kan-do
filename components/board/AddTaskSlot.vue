@@ -370,14 +370,4 @@ defineExpose({ open, isDrafting });
     min-height: var(--task-card-height);
   }
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .add-task-button,
-  .add-task-button-icon,
-  .add-task-button-label,
-  .add-task-slot-draft-enter-active,
-  .add-task-slot-draft-leave-active {
-    transition: none !important;
-  }
-}
 </style>

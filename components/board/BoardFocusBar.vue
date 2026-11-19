@@ -137,7 +137,7 @@ const showsPill = computed(() => focusTopic.value !== null)
   min-width: 1.75rem;
   border-radius: 9999px;
   color: var(--ui-primary);
-  transition: background-color var(--duration-fast) ease;
+  transition: background-color var(--duration-fast) var(--ease-standard);
 }
 
 .board-focus-bar__end:hover {
@@ -174,12 +174,6 @@ const showsPill = computed(() => focusTopic.value !== null)
   .board-focus-bar__end {
     min-width: 2.75rem;
     min-height: 2.75rem;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .board-focus-bar__end {
-    transition: none;
   }
 }
 </style>

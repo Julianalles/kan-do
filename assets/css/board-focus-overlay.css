@@ -43,7 +43,9 @@
   z-index: 1;
 }
 
-/* The lamp warming up: the overlay's fade-in, and the paper veils that fade out with it (bottom of this file) */
+/* The lamp warming up: the overlay's fade-in, and the paper veils that fade out with it (bottom of this file).
+   Kept at its own 1100 ms and curve (#593): it is the focus overlay's choreography, not a once-a-day key moment, so it does
+   not fold onto `--duration-stage` (DESIGN.md "Motion", The Key Moment Rule). The 600 ms of `.is-leaving` below is the same: its own. */
 :root {
   --focus-in-duration: 1100ms;
   --focus-in-ease: cubic-bezier(0.3, 0, 0, 1);
@@ -124,7 +126,7 @@
   .is-on > .focus-overlay__blur,
   .is-leaving > .focus-overlay__tint,
   .is-leaving > .focus-overlay__blur {
-    transition-duration: var(--duration-fast);
+    transition-duration: var(--duration-fast) !important;
   }
 }
 
@@ -190,7 +192,7 @@ html[data-sheet-open] .app-nav::before,
   .board-container[data-focus-lit] .page-dots::before,
   html[data-sheet-open] .app-nav::before,
   .board-container[data-sheet-task-id] .page-dots::before {
-    transition-duration: var(--duration-fast);
+    transition-duration: var(--duration-fast) !important;
   }
 }
 
@@ -240,6 +242,6 @@ html[data-sheet-open] .app-nav::before,
   .page-dots,
   html[data-focus-lit],
   .board-container[data-focus-lit] .page-dots {
-    transition-duration: var(--duration-fast);
+    transition-duration: var(--duration-fast) !important;
   }
 }

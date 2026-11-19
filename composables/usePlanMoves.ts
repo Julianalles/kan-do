@@ -19,6 +19,7 @@ import { usePlanToasts } from '~/composables/usePlanToasts'
 import { useTasksStore } from '~/store/tasks'
 import { isPhoneNow } from '~/composables/useIsDesktop'
 import { translate } from '~/lib/i18n'
+import { MOTION } from '~/lib/motionTokens'
 
 /** The card's slide out of its page on a phone (#334 D8). */
 export const PLAN_SLIDE_MS = 200
@@ -44,7 +45,7 @@ async function slideOut(el: HTMLElement | null, direction: 1 | -1): Promise<void
   try {
     await el.animate(
       [{ transform: 'translateX(0)', opacity: 1 }, { transform: `translateX(${direction * distance}px)`, opacity: 0.6 }],
-      { duration: PLAN_SLIDE_MS, easing: 'cubic-bezier(0.4, 0, 0.2, 1)', fill: 'forwards' },
+      { duration: PLAN_SLIDE_MS, easing: MOTION.standard, fill: 'forwards' },
     ).finished
   } catch {
     // Cancelled (the card left the DOM): the state change still happens
@@ -74,6 +75,7 @@ async function fly(from: DOMRect | null, find: () => HTMLElement | null): Promis
   }
   el.animate(
     [{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'translate(0, 0)' }],
+    // the place curve of the app bar and the board (`--nav-ease`, app-nav.css): it has no token (#593)
     { duration: PLAN_FLY_MS, easing: 'cubic-bezier(0.2, 0.7, 0.2, 1)' },
   ).finished.then(done, done)
 }

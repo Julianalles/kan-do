@@ -62,8 +62,8 @@
 
   .app-nav {
     /* One timeline for everything that changes the pill's layout (#583); read by AppNav.vue as well */
-    --nav-move: 420ms;
-    --nav-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+    --nav-move: var(--duration-place);
+    --nav-ease: cubic-bezier(0.2, 0.7, 0.2, 1); /* the place curve; its slower twin below is the key-moment curve of the board's two paces (#593: both stay curves of their own, the time is the token) */
     /* The paper veil, one gradient for both placements: it fades away from the row (down on desktop, up on a phone) */
     --nav-veil-dir: to bottom;
     --nav-veil: linear-gradient(var(--nav-veil-dir),
@@ -191,7 +191,7 @@
     line-height: 1;
     white-space: nowrap;
     color: var(--ui-text-toned);
-    transition: color var(--duration-fast) ease, background-color var(--duration-fast) ease;
+    transition: color var(--duration-fast) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard);
   }
 
   .app-nav-place:hover {
@@ -259,7 +259,7 @@
     height: var(--app-nav-pill-height);
     border-radius: 9999px;
     color: var(--ui-text-toned);
-    transition: color var(--duration-fast) ease, background-color var(--duration-fast) ease;
+    transition: color var(--duration-fast) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard);
   }
 
   .app-nav-more:hover {
@@ -305,12 +305,12 @@
   /* The board's two slow moves (#433, board.css): the chip and the pill follow on the same time and curve */
   @media (prefers-reduced-motion: no-preference) {
     html[data-place-pace='glide'] .app-nav {
-      --nav-move: 1200ms;
+      --nav-move: var(--duration-stage);
       --nav-ease: cubic-bezier(0.45, 0, 0.15, 1);
     }
 
     html[data-place-pace='lift'] .app-nav {
-      --nav-move: 1400ms;
+      --nav-move: var(--duration-stage);
       --nav-ease: cubic-bezier(0.45, 0, 0.15, 1);
     }
   }
@@ -318,11 +318,6 @@
   @media (prefers-reduced-motion: reduce) {
     .app-nav {
       --nav-move: 0ms;
-    }
-
-    .app-nav-place,
-    .app-nav-more {
-      transition: none;
     }
   }
 
@@ -338,7 +333,7 @@
     /* The drag fade lives on the pills and the veil */
     .app-nav-pill,
     .app-nav::before {
-      transition: opacity var(--duration-fast) ease;
+      transition: opacity var(--duration-fast) var(--ease-standard);
     }
 
     /* The funnel (#161) hangs off the group's right edge, out of the flow, and was cut off at the edge of a 360px screen
@@ -354,7 +349,7 @@
 
     .app-nav-more,
     .app-nav-focus {
-      transition: color var(--duration-fast) ease, background-color var(--duration-fast) ease, opacity var(--duration-fast) ease;
+      transition: color var(--duration-fast) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard), opacity var(--duration-fast) var(--ease-standard);
     }
 
     .app-nav-group {
@@ -398,7 +393,7 @@
       min-height: 2.75rem;
       padding-inline: 0.625rem;
       font-size: var(--text-title);
-      transition: color var(--duration-fast) ease, background-color var(--duration-fast) ease, padding var(--nav-move) var(--nav-ease);
+      transition: color var(--duration-fast) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard), padding var(--nav-move) var(--nav-ease);
     }
 
     .app-nav-third-link {
@@ -454,14 +449,6 @@
 
     /* The phone rules above re-declare transitions after the global reduced-motion block (same specificity, later
        wins), so reduced motion is repeated here: every change instant, no fades. */
-    @media (prefers-reduced-motion: reduce) {
-      .app-nav-pill,
-      .app-nav-more,
-      .app-nav::before,
-      .app-nav-place {
-        transition: none;
-      }
-    }
   }
 }
 
@@ -469,9 +456,4 @@
    its 3px, and under reduced motion its width and fade are instant (Nuxt sets its transitions inline, hence !important). */
 .nav-loading-bar {
   pointer-events: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .nav-loading-bar {
-    transition: none !important;
-  }
 }

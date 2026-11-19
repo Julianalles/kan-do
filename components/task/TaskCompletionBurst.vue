@@ -119,6 +119,8 @@ onBeforeUnmount(() => clearTimeout(timer))
   border-radius: calc(var(--ui-radius) / 4); /* a hair of rounding on the 8 x 16 px rectangles and 12 px dots: a recorded exception to the closed radius scale (kd#181), a particle is decoration, not a surface */
   background-color: var(--completion-burst-tint);
   opacity: 0;
+  /* 1200 ms and its curve: the burst's own choreography. It plays on every completion, not once a day, so it does not
+     take `--duration-stage` (DESIGN.md "Motion", The Key Moment Rule; #593) */
   animation: completion-burst-fly 1200ms cubic-bezier(0.15, 0.7, 0.3, 1) var(--delay) 1 both;
 }
 
