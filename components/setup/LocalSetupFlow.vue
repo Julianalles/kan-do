@@ -9,12 +9,12 @@
 - Explains that tasks stay on this device, local tasks are always possible and services can be connected now or later in Einstellungen
 - Lists Erinnerungen (Apple Reminders, #552) and Notion as checkboxes (`UCheckbox`, neutral) and Todoist as a disabled one with "(kommt später)"; Erinnerungen is enabled only in the Mac app (`useRemindersSupported`), in the web build it is disabled and reads "(nur in der Mac-App)"
 - One primary action whose label follows the checkboxes: none checked empties the task store and emits `complete` ("Zum Board"); Notion only emits `connect-notion` ("Mit Notion einrichten"); Erinnerungen emits `connect-reminders` ("Mit Erinnerungen einrichten", with Notion also "Weiter mit Erinnerungen und Notion": the host runs the Reminders setup first, then Notion); the store is left alone for both
-- Back returns to the start view: the shared `BackButton` ("Zurück")
+- Back returns to the start view: the shared `BackButton` ("Zurück zur Auswahl")
 - Pattern: first-run setup, diverged from the modal wizard; checkbox list aligned with the feedback dialog's context list
 -->
 <template>
   <section class="flex flex-col gap-6" data-testid="local-setup-flow" :aria-label="t('onboarding.flow.local.label')">
-    <BackButton :label="t('common.back')" @click="emit('back')" />
+    <BackButton :label="t('onboarding.flow.backToChoice')" @click="emit('back')" />
     <div>
       <SectionHeader ref="headingRef" tag="h2" size="display" tabindex="-1" class="text-balance outline-none">
         {{ t('onboarding.flow.local.title') }}

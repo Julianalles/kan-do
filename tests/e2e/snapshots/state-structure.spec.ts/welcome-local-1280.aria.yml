@@ -1,13 +1,13 @@
 - region "Lokal starten":
-  - button "Zurück"
+  - button "Zurück zur Auswahl"
   - heading "Eine App verbinden?" [level=2]
-  - paragraph: Jetzt oder später kannst du Apps verbinden, in denen du deine Aufgaben organisierst. Du kannst kan-do auch nur mit lokalem Speicher auf deinem Gerät nutzen.
+  - paragraph: Jetzt oder später kannst du Apps verbinden, in denen du deine Aufgaben organisierst. Du kannst Kan-Do auch nur mit lokalem Speicher auf deinem Gerät nutzen.
   - group "Du kannst eine oder mehrere verbinden":
     - text: ""
     - checkbox "Erinnerungen (nur in der Mac-App)" [disabled]
     - text: Erinnerungen (nur in der Mac-App)
     - checkbox "Notion"
     - text: Notion
-    - checkbox "Todoist (Bald verfübar)" [disabled]
-    - text: Todoist (Bald verfübar)
+    - checkbox "Todoist (bald verfügbar)" [disabled]
+    - text: Todoist (bald verfügbar)
   - button "Zum Board"
