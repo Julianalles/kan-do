@@ -8,22 +8,22 @@ paths:
 
 # Pattern check (#586)
 
-Applies every time you create or change a UI element: lane work and ad-hoc edits alike. A **Pattern** (GLOSSARY.md) is a recurring UI solution to one user job; two elements share one when they do the same job, whatever they look like. You decide alone and never ask the user; the record is how they veto afterwards.
+Applies every time you create or change a UI element: lane work and ad-hoc edits alike. A **Pattern** (GLOSSARY.md) is a recurring UI solution to one **user task** (GLOSSARY.md; not one of the six Jobs of PRODUCT.md); two elements share one when they do the same user task, whatever they look like. You decide alone and never ask the user; the record is how they veto afterwards.
 
-1. **Name the job** in user terms (confirming a destructive action, showing a task's state, adding a task, asking a question about one card). A job with a named rule in DESIGN.md "Behaviour" (a confirm or a question is "Ask in place": never a modal) is bound by it before any component is chosen: read that section first.
-2. **Search by job, not by name**, in this order: (a) `npm run ui:find -- <job words>` searches the manifest (derived from the doc blocks, #117; every component's `@description`, `@usage`, `@avoid`; prints name, tier, kind, category, `@usage`, `@avoid`, variants; prefer a `kit` hit, a `feature` hit is a part of one screen and is reused only inside its own feature; read the `@avoid` of a near hit, it names the neighbour); (b) `/ui` (dev route) for how the candidates look and their variants; (c) DESIGN.md "Components" and "Behaviour", `rg -i '@(description|responsibility).*<job words>' components/`, `ls components/<area>`. Try two or three wordings before you conclude there is none; a `new` line names them.
-3. **Decide one outcome per job**:
+1. **Name the user task** in user terms (confirming a destructive action, showing a task's state, adding a task, asking a question about one card). A user task with a named rule in DESIGN.md "Behaviour" (a confirm or a question is "Ask in place": never a modal) is bound by it before any component is chosen: read that section first.
+2. **Search by user task, not by name**, in this order: (a) `npm run ui:find -- <user-task words>` searches the manifest (derived from the doc blocks, #117; every component's `@description`, `@usage`, `@avoid`; prints name, tier, kind, category, `@usage`, `@avoid`, variants; prefer a `kit` hit, a `feature` hit is a part of one screen and is reused only inside its own feature; read the `@avoid` of a near hit, it names the neighbour); (b) `/ui` (dev route) for how the candidates look and their variants; (c) DESIGN.md "Components" and "Behaviour", `rg -i '@(description|responsibility).*<user-task words>' components/`, `ls components/<area>`. Try two or three wordings before you conclude there is none; a `new` line names them.
+3. **Decide one outcome per user task**:
    - **reuse**: the existing element does it as is; use it.
    - **align**: build the new element but follow the existing Pattern (same structure, tokens, copy form, a11y behaviour); name what stays different.
    - **diverge**: break from the Pattern on purpose, with a reason a reviewer can weigh (a different user situation, not taste).
-   - **new**: nothing does this job; say what you searched for.
-4. **Write one line per job** (no outcome needs the user's approval):
+   - **new**: nothing does this user task; say what you searched for.
+4. **Write one line per user task** (no outcome needs the user's approval):
    ```
-   Pattern: <user job> → reused <Element>
-   Pattern: <user job> → aligned with <Element> (<what stays different>)
-   Pattern: <user job> → diverged from <Element>: <reason>
-   Pattern: <user job> → new (no existing pattern; searched: <terms>)
-   Pattern: none (<why no element does a user job here: copy fix, spacing, bug fix>)
+   Pattern: <user task> → reused <Element>
+   Pattern: <user task> → aligned with <Element> (<what stays different>)
+   Pattern: <user task> → diverged from <Element>: <reason>
+   Pattern: <user task> → new (no existing pattern; searched: <terms>)
+   Pattern: none (<why no element does a user task here: copy fix, spacing, bug fix>)
    ```
    `<Element>` is a component name or a DESIGN.md Components heading. Lane work: the lines go in the PR body (the PR guard `wf_pr_body_check` requires them when the diff touches these paths). Ad-hoc work: in your final report.
    After a new or changed component run `npx vitest run tests/config` before the screenshots: the ratchets (raw button, call-site `:ui` look, size xs) fail otherwise only in the Stop hook.

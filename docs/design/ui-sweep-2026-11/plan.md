@@ -159,7 +159,7 @@ Screen the ticked items together, batch them by surface (items on the same surfa
 
 | # | Session | Status | Date | Output | Notes |
 |---|---|---|---|---|---|
-| 1 | Baseline and user-task map | open | | `baseline.md`, `map.md`, `routes.md` | audited commit: |
+| 1 | Baseline and user-task map | done | 2026-11-19 | `baseline.md`, `map.md`, `routes.md`, `findings-baseline.md` | audited commit: `e6786ddc`; 8 findings (baseline-1 to baseline-8) |
 | 2 | The user's feedback | open | | `findings-feedback.md` | |
 | 3 | Source scan | open | | `findings-source.md` | |
 | 4 | Rendered walk | open | | `findings-rendered.md` | |
@@ -173,4 +173,9 @@ Status values: open, running, done, blocked (say on what).
 
 Newest first. At most five lines per session: what the next session must know that the output files do not say.
 
+- 2026-11-19, session 1 done. Audit `e6786ddc`: later commits of this sweep are docs only, so `git diff e6786ddc --stat -- components pages layouts assets app.config.ts` must stay empty; if it is not, note the difference in your findings file.
+- Issue numbers: the tracker restarted when the repo moved. Older documents write `kd#n` for today's tracker and plain `#n` for the old one, and code comments mix both, so check a number with `gh issue view <n>` before you call something tracked. Open on 2026-11-19: #588, #587, #581, #580, #579, #577, #575, #573, #562, #554, #478, #374.
+- `map.md` part B numbers the user tasks 1 to 34; part C lists the convergence candidates and the two gaps that session 4 step 3 compares. `routes.md` was derived from the source, not walked: correct a row whose clicks do not lead there and fill its "Not reachable" table.
+- The seed plugin runs in dev and in the E2E production build only (`scripts/e2e-server.mjs`); sessions 4 and 5 run on different free ports, never `:3000`, and stop only their own server by its port's PID.
+- "user job" is still written in `DESIGN.md`, `CLAUDE.md`, `CONTRIBUTING.md` and `.claude/issue-workflow.md` (finding baseline-8); the plan allowed session 1 to change `GLOSSARY.md` and `.claude/rules/ui-patterns.md` only.
 - 2026-11-19: plan written. A first draft of the user-task map (from the doc blocks only, 141 app components) was shown to the user in chat and accepted as a start; session 1 rebuilds it in full.
