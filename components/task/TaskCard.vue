@@ -132,17 +132,19 @@
             :title="savePendingLabel"
             data-testid="task-save-pending"
           />
-          <!-- Why a Reminders task is here (#553): the same quiet footer icon as the cloud, its sentence is the label -->
-          <UIcon
+          <!-- Why a Reminders task is here (#553): the same quiet footer icon as the cloud. The span carries the sentence (the
+               icon component is aria-hidden itself), so a screen reader hears it -->
+          <span
             v-if="remindersHint"
-            :name="remindersHint.icon"
-            class="task-reminders-hint size-4 shrink-0 text-muted"
+            class="task-reminders-hint inline-flex shrink-0 text-muted"
             role="img"
             :aria-label="remindersHint.text"
             :title="remindersHint.text"
             :data-hint="remindersHint.kind"
             data-testid="task-reminders-hint"
-          />
+          >
+            <UIcon :name="remindersHint.icon" class="size-4" />
+          </span>
         </span>
         <!-- Timebox as the progress item (#388), after the source unit (#584, #471); the Jetzt draft shows its running time
              in the group below instead. It sits outside the inert group: it is the progressbar and stays in the

@@ -4,6 +4,7 @@ import { goToPlace, openDayClose, openMore } from './helpers/appNav'
 import { pinClock, pinnedNow } from './helpers/clock'
 import { settleAnimations } from './helpers/settle'
 import { installTauriStub } from './helpers/tauriStub'
+import { dayKeyDaysAhead, seedRemindersBoard } from './helpers/seed'
 
 /**
  * Structure of the empty, loading and error states and of the open task sheet, as Playwright ARIA snapshots
@@ -118,6 +119,17 @@ test.describe('a new day (#356, #387)', () => {
     await seedAfterMidnight(context, { taskId: 'nd-now-1', seconds: 4500 })
     await gotoBoard(page)
     await expect(page.getByTestId('new-day-time-note')).toMatchAriaSnapshot({ name: 'new-day-time-note-1280.aria.yml' })
+  })
+})
+
+test.describe('Apple Reminders: the hint on a card (#553)', () => {
+  test('a reminder dated today is on today\'s board with its hint: an image named by the sentence (1280)', async ({ context, page }) => {
+    await seedRemindersBoard(context, {
+      reminders: [{ id: 'r-today', listId: 'list-home', title: 'Heute fällig', due: { date: dayKeyDaysAhead(0), time: '08:00' } }],
+    })
+    await gotoBoard(page)
+    await expect(page.getByTestId('task-reminders-hint')).toBeVisible()
+    await expect(page.locator('#column-open')).toMatchAriaSnapshot({ name: 'reminders-hint-open-1280.aria.yml' })
   })
 })
 
