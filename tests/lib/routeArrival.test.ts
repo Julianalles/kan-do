@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest'
-import { arrivedFromAnotherPage, isSheetRoutePath, noteNavigation, resetRouteArrival } from '~/lib/routeArrival'
+import { endLoadRest, loadRestEnds, arrivedFromAnotherPage, isSheetRoutePath, noteNavigation, resetRouteArrival } from '~/lib/routeArrival'
 
 // kd#133: a cold load is not an arrival; leaving any real page is, and stays one
 describe('routeArrival', () => {
@@ -29,5 +29,13 @@ describe('routeArrival', () => {
     expect(isSheetRoutePath('/statistics/abc')).toBe(true)
     expect(isSheetRoutePath('/tasks')).toBe(false)
     expect(isSheetRoutePath('/settings/notion')).toBe(false)
+  })
+
+  // #594: the first close ends the rest, so the leave animates
+  it('endLoadRest drops the attribute and signals the end', () => {
+    document.documentElement.setAttribute('data-load-rest', '')
+    endLoadRest()
+    expect(document.documentElement.hasAttribute('data-load-rest')).toBe(false)
+    expect(loadRestEnds.value).toBe(1)
   })
 })

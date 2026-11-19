@@ -4,7 +4,17 @@
  * was reached from another page, not by a cold load: the board then lets its focus overlay wait before it appears.
  * `plugins/route-arrival.client.ts` feeds it from the router; the state lives as long as the page load.
  */
+import { ref } from 'vue'
+
 let navigated = false
+/** Bumped when the direct-load rest ends (the first close or the first move to another page): AddTaskSlot's draft watches it (#594) */
+export const loadRestEnds = ref(0)
+
+/** Ends the direct-load rest: from here the sheet's motion runs as usual, so a close animates (#594) */
+export function endLoadRest(): void {
+  if (typeof document !== 'undefined') document.documentElement.removeAttribute('data-load-rest')
+  loadRestEnds.value++
+}
 
 /**
  * Called for every finished navigation with the path it left (`null`: the router's start location) and the path it
@@ -23,6 +33,7 @@ export function arrivedFromAnotherPage(): boolean {
 /** Tests only */
 export function resetRouteArrival(): void {
   navigated = false
+  loadRestEnds.value = 0
 }
 
 /** A sheet route: /tasks/:id, /tasks/add (and the same under /all and /statistics): a link to it opens a sheet on load (#594) */

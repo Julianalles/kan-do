@@ -123,6 +123,9 @@
       <!-- reserveError: the error's line is already there while editing, so the error appears without moving what is below (#594) -->
       <div v-else-if="reserveError" class="mt-1 min-h-5" aria-hidden="true" data-testid="inline-required-reserve" />
     </div>
+
+    <!-- reserveError: the error's line is held in read mode too, so starting to edit moves nothing (#594) -->
+    <div v-if="reserveError && !isEditing && !readonly" class="mt-1 min-h-5" aria-hidden="true" data-testid="inline-required-reserve" />
   </div>
 </template>
 

@@ -51,9 +51,9 @@
 
   /* A task or add link loaded directly opens at rest (#594, DESIGN.md Motion: never on page load): the drawer and the slideover
      and their scrim stand in place. plugins/route-arrival.client.ts sets the attribute for the first route and clears it at
-     the first move to another page, so closing and every later open animate as usual. */
-  html[data-load-rest] .task-sheet,
-  html[data-load-rest] [data-slot="overlay"] {
+     the first close or move to another page, so closing and every later open animate as usual. Scoped to .task-sheet (the sheet's
+     overlay carries it too): other modals keep their motion. */
+  html[data-load-rest] .task-sheet {
     animation: none !important;
     transition: none !important;
   }
