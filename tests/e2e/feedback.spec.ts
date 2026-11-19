@@ -90,6 +90,26 @@ test.describe('Feedback (web)', () => {
     expect(bodies).toHaveLength(2)
   })
 
+  test('a platform 503 (Cloudflare error page) keeps the relay route; "Erneut versuchen" sends (#559)', async ({ page }) => {
+    let broken = true
+    const bodies: string[] = []
+    await page.route('**/api/feedback', async (route) => {
+      bodies.push(route.request().postData() ?? '')
+      if (broken) await route.fulfill({ status: 503, contentType: 'text/html', body: '<!doctype html><title>Error 1102</title>' })
+      else await route.fulfill({ status: 201, json: { ok: true } })
+    })
+    await openFeedback(page)
+    await toReview(page)
+    await page.getByTestId('feedback-send-relay').click()
+    await expect(page.getByTestId('feedback-problem')).toContainText('Das Feedback konnte gerade nicht gesendet werden.')
+    await expect(page.getByTestId('feedback-send-relay')).toHaveText('Erneut versuchen')
+    await expect(page.getByTestId('feedback-open-browser')).toHaveCount(0)
+    broken = false
+    await page.getByTestId('feedback-send-relay').click()
+    await expect(dialog(page)).toBeHidden()
+    expect(bodies).toHaveLength(2)
+  })
+
   test('without a relay the dialog falls back to GitHub in a new tab and keeps the draft', async ({ page, context }) => {
     await mockFeedbackRelay(page, 503)
     await openFeedback(page)
