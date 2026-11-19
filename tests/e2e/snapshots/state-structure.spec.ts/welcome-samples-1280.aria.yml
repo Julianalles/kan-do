@@ -1,6 +1,6 @@
 - region "Mit Beispielaufgaben starten":
   - button "Zurück zur Auswahl"
   - heading "Beispielaufgaben" [level=2]
-  - paragraph: "Das Board ist mit Beispieldaten gefüllt, sodass du viele Möglichkeiten von kan-do direkt sehen und ausprobieren kannst."
+  - paragraph: "Das Board ist mit Beispieldaten gefüllt, sodass du viele Möglichkeiten von Kan-Do direkt sehen und ausprobieren kannst."
   - paragraph: In den Einstellungen kannst du die App jederzeit zurücksetzen, um mit eigenen Aufgaben und deinen eigenen Statistiken zu beginnen.
   - button "Board ansehen"

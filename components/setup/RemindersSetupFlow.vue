@@ -77,9 +77,16 @@
             </div>
           </div>
 
-          <p v-if="setup.connectFailed.value" class="mt-4 text-body text-error" role="alert" data-testid="reminders-connect-failed">
-            {{ t('onboarding.flow.reminders.connectFailed') }}
-          </p>
+          <UAlert
+            v-if="setup.connectFailed.value"
+            class="mt-4"
+            role="alert"
+            color="error"
+            variant="subtle"
+            icon="i-ph-warning"
+            :description="t('onboarding.flow.reminders.connectFailed')"
+            data-testid="reminders-connect-failed"
+          />
           <div class="mt-6 flex items-center justify-end">
             <UButton
               color="primary"
