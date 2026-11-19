@@ -6,6 +6,7 @@ import {
   formatDuration,
   formatDurationParts,
   formatMinutesAgo,
+  formatPercent,
   formatNumber,
   type DurationStyle,
 } from '~/utils/localeFormat'
@@ -139,5 +140,12 @@ describe('compareText', () => {
   it('sorts with the locale collation', () => {
     expect(['Zebra', 'Äpfel', 'Apfel'].sort((a, b) => compareText(a, b, 'de'))).toEqual(['Apfel', 'Äpfel', 'Zebra'])
     expect(compareText('a', 'b', 'en')).toBeLessThan(0)
+  })
+})
+
+describe('formatPercent (#598)', () => {
+  it('writes a share as a whole percent with the locale spacing', () => {
+    expect(formatPercent(60.4, 'de')).toBe('60\u00a0%')
+    expect(formatPercent(117, 'en')).toBe('117%')
   })
 })

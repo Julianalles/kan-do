@@ -5,7 +5,7 @@
 @responsibility
 - Provide consistent page structure for sub-pages (settings, statistics, etc.), below the app bar (#470); a settings sub-page (`/settings/*`, #236) opens its header with the `BackButton` "Zurück zu Einstellungen" above the title (#263; in the column when a page has no header) that links to the tab holding it (`thirdItemOfPath`, #691), the pages the app bar leads to (Einstellungen, Papierkorb, Statistik) have none
 - Stays out of the way of the phone bar: the content pads by --phone-bar-offset
-- Render PageHeader with title/description from route meta, except on a page with `definePageMeta({ pageHeader: false })`
+- Render PageHeader with title/description from route meta (a page may override the description key through `useState('sub-page-description-key')`), except on a page with `definePageMeta({ pageHeader: false })`
   (Einstellungen, Papierkorb, Statistik; #670, #686): the app bar's pill already names it, so the title stays only as a
   screen-reader-only h1 (the page keeps its heading outline) and the content takes over the header's `pt-safe`
 - Wrap content in one centred column on the app bar's axis (#673): the full container (`max-w-5xl`, 992 px of content at 1280)
@@ -69,8 +69,11 @@ const pageTitle = computed(() => {
   return (route.meta.title as string) || t('common.settings');
 });
 
+/** A page whose subtitle depends on its state (the unconnected Reminders page) sets the key here; route meta is static */
+const descriptionOverride = useState<string | null>('sub-page-description-key', () => null);
+
 const pageDescription = computed(() => {
-  const key = route.meta.descriptionKey as string | undefined;
+  const key = descriptionOverride.value ?? (route.meta.descriptionKey as string | undefined);
   if (key) return t(key);
   return (route.meta.description as string) || undefined;
 });

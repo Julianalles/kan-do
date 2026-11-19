@@ -24,7 +24,7 @@
     </div>
 
     <template v-else>
-      <BackButton :label="setup.step.value === 0 ? t('onboarding.flow.backToChoice') : t('common.back')" @click="goBack" />
+      <BackButton v-if="firstRun || setup.step.value > 0" :label="setup.step.value === 0 ? t('onboarding.flow.backToChoice') : t('common.back')" @click="goBack" />
 
       <div class="flex flex-col gap-6 md:grid md:grid-cols-[13rem_1fr] md:gap-10">
         <SetupRail

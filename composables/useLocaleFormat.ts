@@ -13,6 +13,7 @@ import {
   formatDurationParts as formatDurationPartsFor,
   formatMinutesAgo as formatMinutesAgoFor,
   formatNumber as formatNumberFor,
+  formatPercent as formatPercentFor,
   type DateTimePreset,
   type DurationStyle,
 } from '~/utils/localeFormat'
@@ -33,6 +34,7 @@ export function useLocaleFormat() {
       formatDateTimeFor(value, locale.value, preset),
     formatNumber: (value: number, options?: Intl.NumberFormatOptions) =>
       formatNumberFor(value, locale.value, options),
+    formatPercent: (value: number) => formatPercentFor(value, locale.value),
     compareText: (a: string, b: string) => compareTextFor(a, b, locale.value),
     formatMinutesAgo: (minutes: number | null) => formatMinutesAgoFor(minutes, translate),
   }

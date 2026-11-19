@@ -19,7 +19,7 @@
       <li v-for="item in legend" :key="item.key" class="flex items-center gap-2 text-default">
         <span class="size-3 shrink-0 rounded-full" :style="{ backgroundColor: inkColor(item.step) }" aria-hidden="true" />
         <span>{{ item.label }}</span>
-        <span class="shrink-0 whitespace-nowrap text-muted tabular-nums">{{ Math.round(item.value) }} %</span>
+        <span class="shrink-0 whitespace-nowrap text-muted tabular-nums">{{ formatPercent(item.value) }}</span>
       </li>
     </ul>
   </div>
@@ -28,6 +28,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useLocaleFormat } from '~/composables/useLocaleFormat'
 import { inkColor } from '~/lib/inkRamp'
 import type { Review } from '~/lib/statisticsReview'
 import StatsRing from '~/components/statistics/StatsRing.vue'
@@ -36,6 +37,7 @@ defineOptions({ name: 'StatsEstimateRing' })
 
 const props = withDefaults(defineProps<{ estimate: Review['estimate']; size?: number; stacked?: boolean }>(), { size: 110, stacked: false })
 const { t } = useI18n()
+const { formatPercent } = useLocaleFormat()
 
 const legend = computed(() => [
   { key: 'longer', step: 0, value: props.estimate.longer, label: t('statistics.estimate.longer') },
