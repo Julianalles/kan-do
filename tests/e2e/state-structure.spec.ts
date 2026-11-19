@@ -1,10 +1,10 @@
 import { expect, test, type Page, type Route } from '@playwright/test'
 import { fillerTasks, MIXED_SEED_TASKS, newDayBackTasks, seedAfterMidnight, seedLocalBoard, seedMixedBoard, seedNewDayBoard, SEED_TASKS, type SeedTask } from './helpers/seed'
-import { goToPlace, openDayClose, openMore } from './helpers/appNav'
+import { goToPlace, openDayClose, openMore, openSettings } from './helpers/appNav'
 import { pinClock, pinnedNow } from './helpers/clock'
 import { settleAnimations } from './helpers/settle'
 import { installTauriStub } from './helpers/tauriStub'
-import { dayKeyDaysAhead, seedRemindersBoard } from './helpers/seed'
+import { dayKeyDaysAhead, REMINDERS_SEED_LISTS, remindersSeedReminders, seedRemindersBoard } from './helpers/seed'
 
 /**
  * Structure of the empty, loading and error states and of the open task sheet, as Playwright ARIA snapshots
@@ -299,6 +299,76 @@ test.describe('welcome setup on the page (#43)', () => {
     await page.getByTestId('welcome-choice-samples').click()
     await expect(page.getByRole('heading', { name: 'Beispielaufgaben' })).toBeFocused()
     await expect(page.getByTestId('samples-setup-flow')).toMatchAriaSnapshot({ name: 'welcome-samples-1280.aria.yml' })
+  })
+})
+
+test.describe('Apple Reminders setup and settings (#552)', () => {
+  const remindersStub = (status: 'notDetermined' | 'granted' | 'denied', answer: 'granted' | 'denied' = 'granted') => ({
+    reminders: { status, answer, lists: REMINDERS_SEED_LISTS, reminders: remindersSeedReminders() },
+  })
+  async function openSetup(page: Page) {
+    await page.goto('/welcome')
+    await page.getByTestId('welcome-choice-local').click()
+    await page.getByTestId('local-source-reminders').click()
+    await page.getByTestId('local-confirm').click()
+    await expect(page.getByTestId('reminders-step-title')).toBeFocused()
+  }
+
+  test('access step before the prompt: announcement, preview and facts (1280)', async ({ context, page }) => {
+    await installTauriStub(context, remindersStub('notDetermined'))
+    await openSetup(page)
+    await expect(page.getByTestId('reminders-setup-flow')).toMatchAriaSnapshot({ name: 'reminders-access-1280.aria.yml' })
+  })
+
+  test('access denied: the way to allow it (1280)', async ({ context, page }) => {
+    await installTauriStub(context, remindersStub('notDetermined', 'denied'))
+    await openSetup(page)
+    await page.getByTestId('reminders-proceed').click()
+    await expect(page.getByTestId('reminders-denied')).toBeVisible()
+    await expect(page.getByTestId('reminders-setup-flow')).toMatchAriaSnapshot({ name: 'reminders-denied-1280.aria.yml' })
+  })
+
+  test('lists step: one radio group per list, an Aus list, then every list Aus (1280)', async ({ context, page }) => {
+    await installTauriStub(context, remindersStub('granted'))
+    await openSetup(page)
+    await page.getByTestId('reminders-proceed').click()
+    await expect(page.getByTestId('reminders-lists-step')).toBeVisible()
+    await page.getByTestId('reminders-role-list-private-off').click()
+    await expect(page.getByTestId('reminders-lists-step')).toMatchAriaSnapshot({ name: 'reminders-lists-1280.aria.yml' })
+    await page.getByTestId('reminders-role-list-home-off').click()
+    await page.getByTestId('reminders-role-list-work-off').click()
+    await expect(page.getByTestId('reminders-lists-empty')).toBeVisible()
+    await expect(page.getByTestId('reminders-setup-flow')).toMatchAriaSnapshot({ name: 'reminders-lists-empty-1280.aria.yml' })
+  })
+
+  test('today step: the four-row table and the write line (1280)', async ({ context, page }) => {
+    await installTauriStub(context, remindersStub('granted'))
+    await openSetup(page)
+    await page.getByTestId('reminders-proceed').click()
+    await page.getByTestId('reminders-proceed').click()
+    await expect(page.getByTestId('reminders-today-rules')).toBeVisible()
+    await expect(page.getByTestId('reminders-setup-flow')).toMatchAriaSnapshot({ name: 'reminders-today-1280.aria.yml' })
+  })
+
+  test('settings page with the question before a list leaves (1280)', async ({ context, page }) => {
+    await seedRemindersBoard(context)
+    // From the board, so the tasks of the list are loaded and the question has counts
+    await page.goto('/tasks')
+    await expect(page.locator('#column-open-list').getByText('Milch kaufen')).toBeVisible()
+    await openSettings(page, 'sources')
+    await page.getByTestId('source-actions-reminders').click()
+    await page.getByRole('menuitem', { name: 'Erinnerungen-Einstellungen' }).click()
+    await page.getByTestId('reminders-role-list-home-off').click()
+    await expect(page.getByTestId('reminders-exclude-confirm')).toBeVisible()
+    await settleAnimations(page)
+    await expect(page.getByTestId('reminders-settings')).toMatchAriaSnapshot({ name: 'reminders-settings-exclude-1280.aria.yml' })
+  })
+
+  test('settings page, access revoked: the denied panel with the repair (1280)', async ({ context, page }) => {
+    await seedRemindersBoard(context, { status: 'denied' })
+    await page.goto('/settings/reminders')
+    await expect(page.getByTestId('reminders-access-denied')).toBeVisible()
+    await expect(page.getByTestId('reminders-section-access')).toMatchAriaSnapshot({ name: 'reminders-settings-denied-1280.aria.yml' })
   })
 })
 

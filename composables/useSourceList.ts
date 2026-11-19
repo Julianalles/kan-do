@@ -5,7 +5,7 @@
  * @responsibility
  * - `connected`: Lokal always, then every connected integration, each with default flag, status line and the
  *   actions it offers
- * - `more`: the unconnected Notion (connectable) and Todoist (not yet available); Reminders joins with its setup UI (#481 slice 3)
+ * - `more`: the unconnected Notion (connectable), Todoist (not yet available) and Apple Reminders (connectable on a Mac that supports it, else "nur in der Mac-App", #552)
  * - Status per integration: warning "Verbindung prüfen" when broken or degraded, the last-sync line when
  *   healthy or merely offline, neutral "Wird geprüft…" before a first successful sync
  */
@@ -14,6 +14,7 @@ import { useI18n } from 'vue-i18n'
 import { useBoardStore } from '~/store/board'
 import { useIntegrationHealthStore } from '~/store/integrationHealth'
 import { integrationLabel, sourceCanBeDefault } from '~/lib/taskSources'
+import { useRemindersSupported } from '~/composables/useRemindersSupported'
 import { INTEGRATION_SOURCE_IDS, type IntegrationSourceId, type SourceId } from '~/types/taskSource'
 
 export type SourceStatusTone = 'muted' | 'warning'
@@ -39,8 +40,8 @@ export interface MoreSourceRow {
   id: IntegrationSourceId
   name: string
   icon: string
-  /** `connectable`: "Verbinden"; `soon`: "bald verfügbar", no button */
-  state: 'connectable' | 'soon'
+  /** `connectable`: "Verbinden"; `soon`: "bald verfügbar", no button; `macOnly`: "nur in der Mac-App", no button (Reminders on the web) */
+  state: 'connectable' | 'soon' | 'macOnly'
 }
 
 /** Source icons, bundled (ADR 012): neutral ink, no brand colour. */
@@ -51,11 +52,8 @@ export const SOURCE_ICONS: Record<SourceId, string> = {
   reminders: 'i-ph-list-checks',
 }
 
-/** The integrations that can be connected from the page today. */
+/** The integrations that can be connected from the page today (Apple Reminders only where it is supported, see `more`). */
 const CONNECTABLE: readonly IntegrationSourceId[] = ['notion']
-
-/** Integrations without a row in "Weitere Verbindungen" yet: Apple Reminders gets its connect row with the setup UI (#481 slice 3). */
-const NOT_LISTED_YET: readonly IntegrationSourceId[] = ['reminders']
 
 /** Minutes since `timestamp`, never negative. */
 export function minutesSince(timestamp: number, now: number): number {
@@ -69,6 +67,7 @@ export function useSourceList(): {
   const { t } = useI18n()
   const board = useBoardStore()
   const health = useIntegrationHealthStore()
+  const remindersSupported = useRemindersSupported()
 
   // The relative time must not freeze on an open page
   const now = ref(Date.now())
@@ -134,12 +133,12 @@ export function useSourceList(): {
 
   const more = computed<MoreSourceRow[]>(() =>
     INTEGRATION_SOURCE_IDS
-      .filter((id) => !board.isIntegrationConnected(id) && !NOT_LISTED_YET.includes(id))
-      .map((id) => ({
+      .filter((id) => !board.isIntegrationConnected(id))
+      .map((id): MoreSourceRow => ({
         id,
         name: integrationLabel(id),
         icon: SOURCE_ICONS[id],
-        state: CONNECTABLE.includes(id) ? 'connectable' : 'soon',
+        state: id === 'reminders' ? (remindersSupported.value ? 'connectable' : 'macOnly') : CONNECTABLE.includes(id) ? 'connectable' : 'soon',
       })),
   )
 

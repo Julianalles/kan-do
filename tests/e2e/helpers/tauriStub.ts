@@ -227,6 +227,8 @@ export interface RemindersStubState {
   reminders: ReminderStub[]
   /** How often the (fake) macOS prompt was shown. */
   prompts: number
+  /** `reminders_lists` fails with `failed` while the permission is granted (EventKit that returns no sources); `setRemindersListsFailing` flips it. */
+  listsFail?: boolean
 }
 
 export interface TauriStubOptions {
@@ -505,6 +507,7 @@ export async function installTauriStub(context: BrowserContext, options: TauriSt
         }
         if (rem.status !== 'granted') return reject('access-denied')
         if (cmd === 'reminders_lists') {
+          if (rem.listsFail) return reject('failed')
           return rem.lists.map(list => ({
             id: list.id,
             title: list.title,
@@ -989,6 +992,14 @@ export async function setRemindersStatus(page: Page, status: RemindersAccess): P
     // Assigned through the proxy so the change reaches sessionStorage.
     stub.reminders = { ...stub.reminders, status: value as RemindersAccess }
   }, status)
+}
+
+/** Makes `reminders_lists` fail (or work again) while access stays granted. */
+export async function setRemindersListsFailing(page: Page, failing: boolean): Promise<void> {
+  await page.evaluate((value) => {
+    const stub = (window as unknown as { __tauriStub: { reminders: RemindersStubState } }).__tauriStub
+    stub.reminders = { ...stub.reminders, listsFail: value }
+  }, failing)
 }
 
 /** The persisted stores the desktop app wrote into the stub's data file so far (`data_set`), by persist key. */

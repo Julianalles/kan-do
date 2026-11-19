@@ -33,9 +33,13 @@ export function isIntegrationSourceId(value: unknown): value is IntegrationSourc
   return (INTEGRATION_SOURCE_IDS as readonly unknown[]).includes(value)
 }
 
-/** The sources config of a board with exactly one source: Local alone, or one integration as default. */
+/**
+ * The sources config of a board with exactly one source: Local alone, or one integration as default. A source that
+ * can never be the default (Apple Reminders, `sourceCanBeDefault`) is connected beside Local, which stays the default.
+ */
 export function singleSource(source: SourceId): TaskSourcesConfig {
-  return source === 'local' ? { connected: [], default: 'local' } : { connected: [source], default: source }
+  if (source === 'local') return { connected: [], default: 'local' }
+  return { connected: [source], default: sourceCanBeDefault(source) ? source : 'local' }
 }
 
 /**

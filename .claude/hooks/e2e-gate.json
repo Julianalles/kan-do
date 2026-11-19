@@ -263,7 +263,7 @@
       ]
     },
     {
-      "area": "Apple Reminders source (#481): its adapter, list roles, ledger and helpers; the specs drive the Tauri stub",
+      "area": "Apple Reminders source and its setup (#481): the adapter, list roles, ledger and helpers, the setup state and the settings page; the specs drive the Tauri stub",
       "risk": true,
       "paths": [
         "integrations/sources/RemindersSource.ts",
@@ -274,7 +274,11 @@
         "lib/remindersHint.ts",
         "lib/dayBegun.ts",
         "composables/usePlanToasts.ts",
-        "composables/useRemindersHint.ts"
+        "composables/useRemindersHint.ts",
+        "composables/useRemindersSetup.ts",
+        "composables/useRemindersSupported.ts",
+        "pages/settings/reminders.vue",
+        "composables/useFirstRunSources.ts"
       ],
       "specs": [
         "reminders-source",
@@ -285,7 +289,10 @@
         "source-icon-footer",
         "source-connections",
         "task-move-source",
-        "add-task-source"
+        "add-task-source",
+        "reminders-setup",
+        "welcome-setup",
+        "sources-settings"
       ]
     },
     {
@@ -964,6 +971,7 @@
       ],
       "specs": [
         "welcome-setup",
+        "reminders-setup",
         "sources-settings",
         "tasks-settings",
         "a11y"

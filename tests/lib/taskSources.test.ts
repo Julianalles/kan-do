@@ -198,6 +198,10 @@ describe('helpers', () => {
     expect(singleSource('notion')).toEqual({ connected: ['notion'], default: 'notion' })
   })
 
+  it('singleSource never makes Reminders the default source (#552)', () => {
+    expect(singleSource('reminders')).toEqual({ connected: ['reminders'], default: 'local' })
+  })
+
   it('externalIdOf returns the id an integration receives and fails loudly for Local tasks', () => {
     expect(externalIdOf({ id: 'a', source: 'notion', externalId: 'page' })).toBe('page')
     expect(() => externalIdOf({ id: 'a', source: 'local', externalId: null })).toThrow(/externalId/)

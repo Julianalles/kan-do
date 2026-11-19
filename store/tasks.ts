@@ -1248,6 +1248,14 @@ export const useTasksStore = defineStore("tasks", () => {
 
     const remaining = tasks.value.filter((el) => el.source !== source);
     tasks.value = remaining;
+    forgetTasks(ids);
+    boardStore.disconnectIntegration(source);
+    boardStore.reconcileColumnsWithTasks(remaining);
+    return [...ids];
+  }
+
+  /** What is keyed by a task that left the store for good: its archive entry, carry-over and custom-property index entries. */
+  function forgetTasks(ids: ReadonlySet<string>): void {
     archivedTaskIds.value = archivedTaskIds.value.filter((id) => !ids.has(id));
     for (const id of ids) mapHelpers.delete(carryOverByTaskId.value, id);
     for (const index of Object.values(customPropertyIndexes.value)) {
@@ -1255,7 +1263,31 @@ export const useTasksStore = defineStore("tasks", () => {
         index.taskIdsByValue[valueKey] = (index.taskIdsByValue[valueKey] ?? []).filter((id) => !ids.has(id));
       }
     }
-    boardStore.disconnectIntegration(source);
+  }
+
+  /**
+   * Takes some tasks of one source off the board while the source stays connected: Reminders lists switched to Aus
+   * (#552). Like `disconnectSource` for those tasks alone: their timers stop and nothing about them is queued or pushed,
+   * and unlike a delete they are not remembered as deleted (`deletedTaskIds`), so switching the list on again brings
+   * them back with the next fetch. The source itself is untouched.
+   * @returns the ids that left
+   */
+  function dropSourceTasks(source: IntegrationSourceId, belongs: (task: Task) => boolean): string[] {
+    const boardStore = useBoardStore();
+    const leaving = tasks.value.filter((el) => el.source === source && belongs(el));
+    if (leaving.length === 0) return [];
+    const ids = new Set(leaving.map((el) => el.id));
+
+    for (const leavingTask of leaving) {
+      disarmTaskTimer(leavingTask.id);
+      statusLocks.delete(leavingTask.id);
+      pendingSyncRevisions.delete(leavingTask.id);
+      mapHelpers.delete(pendingTimeUpdates.value, leavingTask.id);
+      mapHelpers.delete(taskOperationVersions.value, leavingTask.id);
+    }
+    const remaining = tasks.value.filter((el) => !ids.has(el.id));
+    tasks.value = remaining;
+    forgetTasks(ids);
     boardStore.reconcileColumnsWithTasks(remaining);
     return [...ids];
   }
@@ -1993,6 +2025,7 @@ export const useTasksStore = defineStore("tasks", () => {
     beginSourceSwitch,
     unsyncedOf,
     disconnectSource,
+    dropSourceTasks,
     mergeTasks,
     setLoading,
     setLastSyncTimestamp,

@@ -19,6 +19,7 @@ App-Reset, and on desktop Updates and GitHub-Zugriff).
   "Notion-Einstellungen" goes to /settings/notion, "Trennen" opens the disconnect dialog of #320
   (`useSourceConnections` does the work)
 - "Weitere Verbindungen": Notion with "Verbinden" while disconnected (today's Notion setup, then `connectSource`),
+  Erinnerungen with "Verbinden" in the Mac app (it opens /settings/reminders, which runs the setup there; the web build reads "nur in der Mac-App", #552),
   Todoist as "bald verfügbar"
 - "Verwaltung": `ListRow` link rows (`to`, kd#179; #683 sizing), every sub-page has one; a tab click `router.replace`s the query, so back from a sub-page returns to the tab it was opened from
 - "Arbeitszeit pro Tag" (#306): a `USelect` under the Fokus row in the same sheet, hairline between the rows; "Automatisch" (the default: the day length is learned from tracked work) or 1-12 h in 30 min steps (`settingsStore.workingHoursMinutes`, minutes, null = automatic); the divider moves at once. Phone: label and help above, the select full width. Pattern: aligned with the Fokus switch row (label, help, control on the right)
@@ -141,11 +142,11 @@ App-Reset, and on desktop Updates and GitHub-Zugriff).
                       :aria-label="t('sources.row.connectNamed', { source: row.name })"
                       :loading="isConnecting"
                       :data-testid="`source-connect-${row.id}`"
-                      @click="onConnect"
+                      @click="onConnect(row.id)"
                     >
                       {{ t('sources.row.connect') }}
                     </UButton>
-                    <span v-else class="text-sm text-muted">{{ t('sources.page.soon') }}</span>
+                    <span v-else class="text-sm text-muted">{{ t(row.state === 'macOnly' ? 'sources.page.macOnly' : 'sources.page.soon') }}</span>
                   </ListRow>
                 </ul>
               </template>
@@ -305,6 +306,8 @@ const openSetup = (purpose: SetupPurpose, forced: boolean) => {
 
 // A broken connection needs its credentials again: the token step, never the mapping a dead token cannot serve
 const onRepair = (id: SourceId) => {
+  // Reminders has no credentials to enter: its repair is the permission, which the settings page shows (#552)
+  if (id === 'reminders') return void navigateTo('/settings/reminders')
   if (id !== 'notion') return
   const row = connected.value.find((r) => r.id === id)
   openSetup('repair', row?.repairNeedsCredentials ?? false)
@@ -312,6 +315,7 @@ const onRepair = (id: SourceId) => {
 
 const onOpenSettings = (id: SourceId) => {
   if (id === 'notion') void navigateTo('/settings/notion')
+  if (id === 'reminders') void navigateTo('/settings/reminders')
 }
 
 const onDisconnect = (id: SourceId) => {
@@ -333,7 +337,9 @@ watch(isDisconnectOpen, async (open) => {
   rowRefs[disconnectTarget.value]?.focusMenu()
 })
 
-const onConnect = () => {
+const onConnect = (id: IntegrationSourceId) => {
+  // Apple Reminders connects on its own page (the same setup as the welcome flow, #552)
+  if (id === 'reminders') return void navigateTo('/settings/reminders')
   openSetup('connect', true)
 }
 

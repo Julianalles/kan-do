@@ -1248,6 +1248,26 @@
     "floatingNow": {
       "label": "Floating timer",
       "help": "Shows your task in “Now” together with a timer in its own small window that's always visible."
+    },
+    "reminders": {
+      "pageTitle": "Reminders settings",
+      "pageDescription": "Change what you chose during setup any time.",
+      "lists": "Lists",
+      "today": "Today",
+      "access": "Access",
+      "accessGranted": "Kan-Do can access Reminders.",
+      "openSettings": "Open System Settings",
+      "disconnect": "Disconnect",
+      "repair": "Repair connection",
+      "listsLoading": "Loading lists…",
+      "listsFailed": "The lists could not be loaded. Check the access.",
+      "listsNoAccess": "Without access, Kan-Do can't see your lists. Allow it below under Access.",
+      "excludeTitle": "Stop reading {list}?",
+      "excludeLeaving": "{n} task leaves Kan-Do | {n} tasks leave Kan-Do",
+      "excludeOnBoard": "{m} of them is on today's board. | {m} of them are on today's board.",
+      "excludeStays": "Everything in Reminders stays as it is.",
+      "excludeConfirm": "Stop reading",
+      "excludeCancel": "Cancel"
     }
   },
   "sources": {
@@ -1275,7 +1295,8 @@
       "lead": "Choose where new tasks are saved by default.",
       "help": "When adding a task, you can choose another connection, and you can move tasks at any time.",
       "moreHeading": "Connect an app",
-      "soon": "coming soon"
+      "soon": "coming soon",
+      "macOnly": "Mac app only"
     },
     "row": {
       "default": "Default",
@@ -1341,7 +1362,11 @@
         "legend": "You can connect one or more",
         "notion": "Notion",
         "todoist": "Todoist (coming soon)",
-        "confirmNotion": "Set up Notion"
+        "confirmNotion": "Set up Notion",
+        "reminders": "Reminders",
+        "remindersWebOnly": "Reminders (Mac app only)",
+        "confirmReminders": "Set up with Reminders",
+        "confirmRemindersNotion": "Continue with Reminders and Notion"
       },
       "samples": {
         "label": "Start with sample tasks",
@@ -1374,6 +1399,74 @@
         "custom-properties": "Optional: bring along more properties such as topic or activity.",
         "priority-mapping": "Match the values of your priority property to the three levels.",
         "status-mapping": "Last: which Notion status belongs to which column. Then you're set."
+      },
+      "reminders": {
+        "label": "Connect with Reminders",
+        "connected": "Reminders is connected",
+        "loadingBoard": "Your board loads today's tasks.",
+        "connect": "Connect",
+        "toNotion": "Continue to Notion",
+        "connectFailed": "Connecting did not work. Check the access and try again.",
+        "steps": {
+          "access": "Access",
+          "lists": "Lists",
+          "today": "Today"
+        },
+        "help": {
+          "access": "macOS asks only once. Kan-Do changes nothing until you plan something.",
+          "lists": "You can change this later in Settings.",
+          "today": "How Kan-Do uses the date.",
+          "todayNotion": "Notion is next."
+        },
+        "access": {
+          "title": "Access to Reminders",
+          "intro": "Kan-Do reads your Reminders and shows today's on the board. macOS will ask for your permission first.",
+          "previewLabel": "What you'll see next",
+          "previewText": "“Kan-Do reads your Reminders, shows today's on the board and sets the date when you plan something for today.”",
+          "whyTitle": "Why full access?",
+          "whyText": "macOS offers only all or nothing for Reminders. Kan-Do reads your tasks, sets the date when you plan something for today, and ticks off what you finish.",
+          "neverTitle": "What Kan-Do never does",
+          "neverText": "Change titles or notes, create or delete tasks, change lists, or send anything to a server. It does not read lists you switch off.",
+          "laterTitle": "Change it later",
+          "laterText": "System Settings › Privacy & Security › Reminders.",
+          "allow": "Allow access",
+          "recheck": "Check again",
+          "retry": "Try again",
+          "listsFailedTitle": "The lists couldn't be read.",
+          "listsFailedText": "Access is granted, but Reminders didn't return any lists. Try again.",
+          "openSettings": "Open System Settings",
+          "waiting": "macOS is asking. Answer in the macOS window.",
+          "granted": "Access granted. Kan-Do sees {n} list. | Access granted. Kan-Do sees {n} lists.",
+          "deniedTitle": "Kan-Do has no access.",
+          "deniedText": "Allow it in System Settings under Privacy & Security › Reminders. Kan-Do then checks again."
+        },
+        "lists": {
+          "title": "Your lists",
+          "lead": "What does each list mean to you? Topic is the default. Switch off lists you don't need.",
+          "groupLabel": "Reminders lists",
+          "choiceLabel": "{list} counts as",
+          "topic": "Topic",
+          "activity": "Activity",
+          "off": "Off",
+          "open": "{n} open",
+          "notRead": "Not read",
+          "help": "Topic: what it is about, such as taxes or housing. Activity: how you work, such as calls. Off: Kan-Do doesn't read the list, and it stays as it is in Reminders.",
+          "empty": "All lists are off. Set at least one to Topic or Activity.",
+          "none": "Reminders has no list yet. Create one there, then check again.",
+          "loading": "Loading lists…"
+        },
+        "today": {
+          "title": "Today",
+          "lead": "The date in Reminders decides what lands on your board today.",
+          "tableLabel": "Date and board",
+          "rowToday": "Today",
+          "rowEarlier": "Yesterday or earlier",
+          "rowLater": "Tomorrow or later",
+          "rowNone": "No date",
+          "onBoard": "On the board",
+          "inMyTasks": "In My tasks",
+          "writes": "When you plan a task for today in Kan-Do, Kan-Do sets its date to today. Time and alerts stay. Undo in the notice restores the old date."
+        }
       }
     }
   },
