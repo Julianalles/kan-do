@@ -164,7 +164,7 @@ Screen the ticked items together, batch them by surface (items on the same surfa
 | 1 | Baseline and user-task map | done | 2026-11-19 | `baseline.md`, `map.md`, `routes.md`, `findings-baseline.md` | audited commit: `e6786ddc`; 8 findings (baseline-1 to baseline-8) |
 | 2 | The user's feedback | done | 2026-11-19 | `findings-feedback.md` | 16 findings: 8 rule candidates, 4 proposals, 2 obvious fixes, 2 guards; 234 issues read |
 | 3 | Source scan | done | 2026-11-19 | `findings-source.md` | 23 findings: 11 obvious fixes, 10 proposals, 2 guards; ratchet counts in its step 5 |
-| 4 | Rendered walk | running | 2026-11-19 | `findings-rendered.md` | subagent of the session that did session 1 |
+| 4 | Rendered walk | done | 2026-11-19 | `findings-rendered.md` | 36 findings: 14 obvious fixes, 20 proposals, 2 guards; its "Not reachable" table lists the rows not walked (mostly Tauri-only states behind a click) |
 | 5 | Motion | done | 2026-11-19 | `findings-motion.md` | 17 findings: 5 obvious fixes, 9 proposals, 1 rule candidate, 2 guards; 217 recordings; its "Not recorded" table lists the gaps (trash, desktop-only pages, phone touch gestures) |
 | 6 | Blind test and overview | open | | `overview.md` | blind test: |
 | 7 | Issues and guards | waits for the user | | | |
@@ -175,6 +175,9 @@ Status values: open, running, done, blocked (say on what).
 
 Newest first. At most five lines per session: what the next session must know that the output files do not say.
 
+- 2026-11-19, session 4 done; sessions 1 to 5 are complete, **session 6 is next** and should start in a fresh context. Totals to merge: baseline 8, feedback 16, source 23, rendered 36, motion 17 (100 entries before folding). Session 4's evidence is in `.playwright-screenshots/ui-sweep/4/` (`<name>-d.png` 1280, `<name>-m.png` 390, `work/` for scripts and logs).
+- Session 4 answered the waiting checks: source-15 = rendered-11, source-23 = rendered-1, feedback-5 = rendered-25, feedback-11 = rendered-10, feedback-12 = rendered-36 (contrast fine, only the guard is missing); source-18 (checkbox colour) could not be compared. More folds: rendered-17 with feedback-7 and source-21; rendered-18 with feedback-9; rendered-32 with feedback-14; rendered-33 and rendered-4 add places to feedback-1 and feedback-2; rendered-22 with source-19; rendered-4's focus bar is motion-8.
+- If the blind test misses an entry, the one allowed rerun of a rendered or motion part needs the server again (ports 3104 / 3105) and node scripts, not `playwright-cli`.
 - 2026-11-19, session 5 done (it and session 4 stopped once on the usage limit and were resumed). Its evidence and scripts are in `.playwright-screenshots/ui-sweep/5/` (`video/<id>.webm`, `raw/<id>.json`, `node agg.mjs anims`). feedback-2 now has measurements (motion-1, 4, 6 to 11, 16) and a guard proposal (motion-17); motion-13 is the rendered side of source-14 and feedback-3; motion-9 is the motion half of baseline-6; motion-4 and motion-5 belong to #577.
 - 2026-11-19, sessions 2 and 3 done. The harness refuses a findings file written by a subagent ("return findings as text"), so each returned its file's text and the parent session wrote it word for word. A later parallel run should expect the same.
 - For the merge in session 6: source-12 answers baseline-1 (7 of the 29 `ui` entries change the look), source-13 extends baseline-4, source-4 includes baseline-3, source-7 and feedback-8 are the same defect (a destructive button in a row), source-21 and feedback-7 belong to #562. feedback-3 and feedback-4 are places where `DESIGN.md` disagrees with decisions the app already follows: rule candidates with a document correction, not app defects.

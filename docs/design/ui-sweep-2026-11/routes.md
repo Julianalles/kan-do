@@ -160,8 +160,20 @@ Excluded by the plan: `/ui`, `/error-test`, `components/prototype/`.
 | 9.7 | Tooltips on icon-only buttons | `local` | hover the card menu, the column header buttons, the plan arrows |
 | 9.8 | Reduced motion for 9.3 and every step change of section 1 (session 5) | | `reducedMotion: 'reduce'` in the context |
 
-## Not reachable (filled in by sessions 4 and 5)
+## Corrections after the walk (session 4, 2026-11-19)
 
-| # | Reason |
-|---|---|
-| | |
+The tables above are as session 1 derived them from the source. Where they disagree with this list, this list is right.
+
+- 5.7 and 2.21: the recap's buttons are "Tag neu planen" and "Überspringen und Board anzeigen", not "Direkt zum Board".
+- 5.1: at 390 the stage is reached through Mehr, "Tag abschließen"; the stage shows the summary and the two charts, no not-done cards with triage.
+- 8.1: the tabs of `/settings` are `?tab=board|sources|manage`, named "Board", "Aufgabenspeicher", "System".
+- On the web `/settings/github` and `/settings/updates` redirect to `/tasks`, `/settings/reminders` to `/settings?tab=sources`, `/overlay` to `/tasks`.
+- 2.14: on the `local` seed the Mehr panel has no group-by chips until "Karten stapeln" is on.
+- 2.27: the Mehr panel has no Feedback row on the web (Tauri only).
+- 2.28: the phone pages move by a real touch swipe only; setting a scroll position does nothing.
+- Seeds `demo` and `notion` open the new-day recap first when the seeded day is not today; skip it before walking the board.
+- `playwright-cli` found no Chrome on this machine: sessions 4 and 5 ran node scripts on the repo's Playwright chromium.
+
+## Not reachable
+
+The rows each session could not reach, with the reason: `findings-rendered.md` "Not reachable" (session 4) and `findings-motion.md` "Not recorded" (session 5). In short: the Tauri-only states behind a click (1.10, 1.12, 2.27, 8.10 to 8.16, 9.5), the trash transitions, phone touch gestures, and 2.17, 2.22, 2.25, 2.29, 3.4, 4.4, 4.9, 6.5.
