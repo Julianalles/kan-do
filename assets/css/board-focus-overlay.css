@@ -120,6 +120,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  @layer components { /* the global reduced-motion rule (main.css, last layer) yields to an earlier layer's !important */
   .focus-overlay__tint,
   .focus-overlay__blur,
   .is-on > .focus-overlay__tint,
@@ -127,6 +128,7 @@
   .is-leaving > .focus-overlay__tint,
   .is-leaving > .focus-overlay__blur {
     transition-duration: var(--duration-fast) !important;
+  }
   }
 }
 
@@ -183,16 +185,14 @@ html[data-sheet-open] .app-nav::before,
 }
 
 @media (prefers-reduced-motion: reduce) {
-  /* #290: the bar's shift away from the sheet is a jump, not a slide */
-  .app-nav {
-    transition-property: none;
-  }
-
+  @layer components { /* the global reduced-motion rule (main.css, last layer) yields to an earlier layer's !important */
+  /* #290: the bar's shift away from the sheet is a jump, not a slide: the global reduced-motion rule (main.css) makes it one */
   html[data-focus-lit] .app-nav::before,
   .board-container[data-focus-lit] .page-dots::before,
   html[data-sheet-open] .app-nav::before,
   .board-container[data-sheet-task-id] .page-dots::before {
     transition-duration: var(--duration-fast) !important;
+  }
   }
 }
 
@@ -238,10 +238,12 @@ html[data-sheet-open] .app-nav::before,
 }
 
 @media (--phone) and (prefers-reduced-motion: reduce) {
+  @layer components { /* the global reduced-motion rule (main.css, last layer) yields to an earlier layer's !important */
   html,
   .page-dots,
   html[data-focus-lit],
   .board-container[data-focus-lit] .page-dots {
     transition-duration: var(--duration-fast) !important;
+  }
   }
 }
