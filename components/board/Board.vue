@@ -80,7 +80,7 @@
       <BoardColumn
         :tasks="tasksOpen"
         :task-status="TaskStatus.Open"
-        :yesterday-waiting="yesterdayWaiting"
+        :yesterday-count="yesterdayCount"
         :is-dragging="isDragging"
         :mute-others="false"
         :grouping-enabled="groupingEnabled"
@@ -332,12 +332,12 @@ const tasksDone = computed(() => applyFocus(tasksStore.tasksDoneToday));
 // the app bar changes the place.
 
 const { place, isAll } = useBoardPlace();
-// The tasks today's fresh start took off the board that still wait under "Alle" (#356, #387): Offen says so while it is empty on Heute. The
-// count is what "Alle" shows of the group, so the topic focus applies to it as it does there (a link must not lead to
-// a group that is not shown)
-const { groupIds: yesterdayIds } = useNewDay();
-const yesterdayWaiting = computed(() =>
-  applyFocus(yesterdayIds.value.flatMap(id => tasksStore.task(id) ?? [])).length);
+// The tasks today's fresh start took off the board that still wait under "Alle" (#356, #387, #469): Offen says so while it is
+// empty on Heute. The count is the panel's: the Jetzt and Offen group and the tasks taken out of Wartet (`waitingIds` never
+// repeats one of `groupIds`). The topic focus applies to it as it does there (a link must not lead to a group that is not shown)
+const { groupIds: yesterdayIds, waitingIds: yesterdayWaitingIds } = useNewDay();
+const yesterdayCount = computed(() =>
+  applyFocus([...yesterdayIds.value, ...yesterdayWaitingIds.value].flatMap(id => tasksStore.task(id) ?? [])).length);
 const { announcement: planAnnouncement } = usePlanMoves();
 
 /** Strip index of the "Meine Aufgaben" page */

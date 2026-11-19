@@ -183,7 +183,6 @@ describe('useNewDay: the day check and the fresh start (#387)', () => {
       // the group is what came from Jetzt and Offen; what came from Wartet is kept apart, both for this day only
       expect(recap.sentBack).toEqual({ day: TODAY, ids: ['j', 'o1', 'o2'], waiting: ['w'] })
       expect(newDay.groupIds.value).toEqual(['j', 'o1', 'o2'])
-      expect(board.notPlannedFromWaiting).toEqual(['w'])
       expect(newDay.waitingIds.value).toEqual(['w'])
       expect(isNewDayDue()).toBe(false)
     })
@@ -398,14 +397,12 @@ describe('useNewDay: the day check and the fresh start (#387)', () => {
       expect(notPlannedIds()).toContain('old')
     })
 
-    it('data stored before #469 (a fresh start without `waiting` in sentBack, the list `notPlannedFromWaiting` full of older ids) shows no Wartet task in the panel and loses none', () => {
-      const { tasks, board, recap, newDay } = setup({ tasks: [task('o1', TaskStatus.Open, { notPlanned: true }), task('stale', TaskStatus.Open, { notPlanned: true })] })
-      board.noteFromWaiting(['stale'])
+    it('data stored before #469 (a fresh start without `waiting` in sentBack) shows no Wartet task in the panel and loses none', () => {
+      const { tasks, recap, newDay } = setup({ tasks: [task('o1', TaskStatus.Open, { notPlanned: true }), task('stale', TaskStatus.Open, { notPlanned: true })] })
       recap.lastNewDay = TODAY
       recap.sentBack = { day: TODAY, ids: ['o1'] }
       expect(newDay.groupIds.value).toEqual(['o1'])
       expect(newDay.waitingIds.value).toEqual([])
-      expect(board.notPlannedFromWaiting).toEqual(['stale'])
       expect(tasks.task('stale')).toBeDefined()
     })
 
