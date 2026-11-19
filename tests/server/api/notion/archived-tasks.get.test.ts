@@ -57,6 +57,30 @@ describe('/api/notion/archived-tasks.get.ts', () => {
     expect(response.body).toEqual([]);
   });
 
+  // #525: `statusMapping=null` is valid JSON; reading `.archive` of it threw an unhandled TypeError (500, logged with the URL)
+  it.each(['null', '[]', '"x"', '1', 'true'])('answers 400 INVALID_JSON, not 500, when a mapping is the JSON value %s', async (value) => {
+    const requestSpy = vi.fn()
+    await vi.resetModules()
+    vi.doMock('@notionhq/client', () => ({
+      Client: vi.fn().mockImplementation(function () { return { request: requestSpy } }),
+    }))
+    const handler = (await import('~/server/api/notion/archived-tasks.get')).default
+    const app = createApp()
+    app.use(handler)
+    const request = supertest(toNodeListener(app))
+    const valid = JSON.stringify({ title: 'Title', status: 'Status' })
+
+    for (const query of [
+      { propertyMapping: valid, statusMapping: value },
+      { propertyMapping: value, statusMapping: JSON.stringify({ archive: 'Archived' }) },
+    ]) {
+      const res = await request.get('/').set('Authorization', 'Bearer test-token').query({ databaseId: 'test-db', dataSourceId: 'test-ds', ...query })
+      expect(res.status).toBe(400)
+      expect(res.body?.data?.error).toBe('INVALID_JSON')
+    }
+    expect(requestSpy).not.toHaveBeenCalled()
+  })
+
   it('should return empty array when stub mode is enabled', async () => {
     vi.mocked(isNotionStubEnabled).mockReturnValue(true);
 

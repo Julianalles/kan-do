@@ -34,6 +34,16 @@ describe('Cloudflare deploy path', () => {
     expect(read('worker/index.ts')).toMatch(/export \{ NotionLimiter \} from '\.\/limiter'/)
   })
 
+  it('Workers Logs keep no request detail: query strings redacted, invocation logs off (#530)', () => {
+    const config = read('wrangler.jsonc').replace(/^\s*\/\/.*$/gm, '')
+    const observability = JSON.parse(config.replace(/,(\s*[}\]])/g, '$1')).observability
+    expect(observability).toMatchObject({ enabled: true, redact_query_string: true, logs: { invocation_logs: false } })
+  })
+
+  it('the production build registers the error handler that keeps the query out of the log (#525)', () => {
+    expect(read('nuxt.config.ts')).toContain("errorHandler: fileURLToPath(new URL('./server/error-handler.ts', import.meta.url))")
+  })
+
   it('the marker is the gate cookie of worker/gate.ts', () => {
     expect(read('worker/gate.ts')).toContain(`COOKIE_NAME = '${GATE_MARKER}'`)
   })

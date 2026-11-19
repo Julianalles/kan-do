@@ -1,4 +1,4 @@
-import { Client } from '@notionhq/client'
+import { createNotionClient } from '~/server/utils/notionClient'
 import { defineEventHandler, readBody } from 'h3'
 import { validateRequest, handleNotionError } from '~/server/utils/apiError'
 import { isNotionStubEnabled, updateStubPage } from '~/server/utils/notionStub'
@@ -19,7 +19,7 @@ export default defineEventHandler(async (event) => {
       return updateStubPage(token, taskId, body.properties)
     }
 
-    const notion = new Client({ auth: token, notionVersion: '2022-06-28' })
+    const notion = createNotionClient(token, '2022-06-28')
     const response = await notion.pages.update({
       page_id: taskId,
       properties: body.properties,

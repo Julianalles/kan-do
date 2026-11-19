@@ -1,4 +1,4 @@
-import { Client } from '@notionhq/client'
+import { createNotionClient } from '~/server/utils/notionClient'
 import { defineEventHandler } from 'h3'
 import { validateRequest, handleNotionError } from '~/server/utils/apiError'
 import { getStubbedDataSource, getStubbedDataSources, isNotionStubEnabled } from '~/server/utils/notionStub'
@@ -49,7 +49,7 @@ export default defineEventHandler(async (event) => {
     }))
   }
 
-  const notion = new Client({ auth: token, notionVersion: '2025-09-03' })
+  const notion = createNotionClient(token, '2025-09-03')
 
   // One data source with its schema (`properties`), as Notion returns it
   if (dataSourceId) {

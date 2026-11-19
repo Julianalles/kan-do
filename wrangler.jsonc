@@ -32,5 +32,14 @@
   // client data outlives its window); the object is named by an HMAC of the client key (keyed with GATE_SECRET), never by the IP. A missing or failing binding lets requests through (the guard never blocks by itself).
   "durable_objects": { "bindings": [{ "name": "NOTION_LIMITER", "class_name": "NotionLimiter" }] },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["NotionLimiter"] }],
-  "observability": { "enabled": true },
+  // Workers Logs (#530, #511, epic #279: the Worker stores nothing of the user's). They stay on, so the allow-listed
+  // `[server-error] route status code` line (`server/utils/serverLog.ts`) can diagnose an outage, but nothing else of a
+  // request persists: invocation logs (URL, Cloudflare request fields) are off and query strings are redacted. Sampling stays
+  // at 1 so a rare error is not lost. Lost on purpose: per-request path/status/CPU lines; the dashboard's request and error metrics stay.
+  "observability": {
+    "enabled": true,
+    "head_sampling_rate": 1,
+    "redact_query_string": true,
+    "logs": { "enabled": true, "head_sampling_rate": 1, "invocation_logs": false },
+  },
 }

@@ -1,4 +1,4 @@
-import { Client } from '@notionhq/client'
+import { createNotionClient } from '~/server/utils/notionClient'
 import { defineEventHandler } from 'h3'
 import type { PageObjectResponse } from '@notionhq/client/build/src/api-endpoints'
 import { validateRequest, handleNotionError } from '~/server/utils/apiError'
@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
       return pageId ? getStubPage(token, pageId) : []
     }
 
-    const notion = new Client({ auth: token, notionVersion: '2025-09-03' })
+    const notion = createNotionClient(token, '2025-09-03')
     
     // If pageId is provided, retrieve that specific page
     if (pageId) {

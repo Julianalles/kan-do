@@ -1,4 +1,4 @@
-import { Client } from '@notionhq/client'
+import { createNotionClient } from '~/server/utils/notionClient'
 import { defineEventHandler, readBody } from 'h3'
 import { handleNotionError, getTokenFromEvent, throwApiError } from '~/server/utils/apiError'
 import { archiveStubPage, isNotionStubEnabled } from '~/server/utils/notionStub'
@@ -26,7 +26,7 @@ export default defineEventHandler(async (event) => {
       return { success: true, pageId, archived: true }
     }
 
-    const notion = new Client({ auth: token, notionVersion: '2025-09-03' })
+    const notion = createNotionClient(token, '2025-09-03')
     await notion.pages.update({ page_id: pageId, archived: true })
 
     return { success: true, pageId, archived: true }
