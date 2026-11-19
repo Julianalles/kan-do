@@ -40,6 +40,7 @@
       <div v-if="isDrafting" class="add-task-slot-draft-wrap">
         <new-card-flow
           v-if="flowOpen"
+          ref="flowRef"
           class="add-task-slot-draft"
           :initial-title="flowTitle"
           :suspended="props.hidden"
@@ -99,6 +100,7 @@ const variant = computed(() => (props.status === TaskStatus.Progress ? 'progress
 const route = useRoute();
 const buttonEl = ref<HTMLButtonElement | null>(null);
 const flowOpen = ref(false);
+const flowRef = ref<{ title: string } | null>(null);
 trackInCardAdding(flowOpen); // the focus overlay steps aside while the form is up (kd#56)
 /** The title the card opens with: only after "Rückgängig" on a dropped title (#665) */
 const flowTitle = ref<string | undefined>(undefined);
@@ -170,6 +172,13 @@ function revealSavedWhenReady(id: string, frame = 0) {
 // The sheet (palette, nav, menu) takes over: the unsaved card gives way. A drag does not: the card keeps its box, hidden, and comes back after the drop (#248)
 watch(() => route.path, (path) => {
   if (flowOpen.value && /^\/(tasks|all)\/add/.test(path)) flowOpen.value = false;
+});
+// Offen's card carried from Heute to "Alle" would save a task that lands under "Meine Aufgaben" while its card stands in
+// Offen, beside the card of that side (#567): it gives way like a card the sheet takes over, a typed title comes back with "Rückgängig"
+watch(place, (next, prev) => {
+  if (next !== 'all' || prev === 'all' || !flowOpen.value) return;
+  const title = flowRef.value?.title?.trim();
+  void closeFlow(title ? { title } : undefined);
 });
 /** Neither button nor draft: nothing to reserve the card box for */
 const isEmpty = computed(() => !props.showButton && !isDrafting.value);

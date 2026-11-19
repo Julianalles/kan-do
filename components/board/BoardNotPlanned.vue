@@ -34,7 +34,7 @@
       :status="TaskStatus.Open"
       :task-count="shown.length"
       :show-add="true"
-      :add-disabled="draftTask !== null || isDrafting"
+      :add-disabled="draftTask !== null || isDrafting || inCardAdding"
       add-test-id="not-planned-add"
       @add="addTask"
     />
@@ -158,6 +158,7 @@ import { useBoardFocus } from '~/composables/useBoardFocus'
 import { useBoardPlace } from '~/composables/useBoardPlace'
 import { usePlanMoves } from '~/composables/usePlanMoves'
 import { useNewDay } from '~/composables/useNewDay'
+import { inCardAdding } from '~/composables/useInCardAdding'
 import { useTaskDraft } from '~/composables/useTaskDraft'
 import { useBoardDragState } from '~/composables/useBoardDragState'
 import { notPlannedZoneAccepts } from '~/utils/planDrop'
@@ -233,7 +234,10 @@ const openTask = (id: string) => void navigateTo({ path: `${basePath.value}/${id
 const headerRef = ref<{ addButtonEl: () => HTMLElement | null } | null>(null)
 const addSlotRef = ref<{ open: () => void, isDrafting: boolean } | null>(null)
 const isDrafting = computed(() => addSlotRef.value?.isDrafting ?? false)
-const addTask = () => addSlotRef.value?.open()
+const addTask = () => {
+  if (inCardAdding.value) return
+  addSlotRef.value?.open()
+}
 
 /** Plans the card. A keyboard user's focus was on the button that now leaves: it goes on to the next card's button. */
 async function pick(id: string, event: MouseEvent) {

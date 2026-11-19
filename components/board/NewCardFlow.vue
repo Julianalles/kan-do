@@ -326,6 +326,8 @@ const faceEl = ref<HTMLElement | null>(null);
 const titleTop = ref<string | undefined>(undefined);
 
 const title = ref(props.initialTitle ?? '');
+/** The typed title, for a host that closes the card on its own (AddTaskSlot, a move to "Alle") */
+defineExpose({ title });
 const topic = ref<string | null>(null);
 const activity = ref<string | null>(null);
 const minutes = ref<number | null>(null);

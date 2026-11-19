@@ -447,6 +447,74 @@ test.describe('The place "Alle" (#354), desktop', () => {
     expect(await openIds(page)).toEqual(['open-1', 'open-2'])
   })
 
+  test('the sheet of a not-planned task reads "Nicht geplant"; the picker plans it and puts it back (#359)', async ({ context, page }) => {
+    await seedLocalBoard(context, BOARD)
+    await gotoAll(page)
+    const status = page.getByTestId('task-status-select')
+    const choose = async (name: string) => {
+      await status.click()
+      await page.getByRole('option', { name, exact: true }).click()
+    }
+
+    await item(page, 'np-1').locator('.task').click()
+    await expect(page).toHaveURL(/\/all\/np-1$/)
+    await expect(status).toHaveAccessibleName('Status: Nicht geplant')
+    // Five choices, in the order of the places
+    await status.click()
+    await expect(page.getByRole('option')).toHaveText(['Nicht geplant', 'Offen', 'Jetzt', 'Wartet', 'Erledigt'])
+    await page.getByRole('option', { name: 'Offen', exact: true }).click()
+
+    // Planned: at the end of Offen, and the sheet stays on the task
+    await expect(status).toHaveAccessibleName('Status: Offen')
+    await expect(page).toHaveURL(/\/all\/np-1$/)
+    await expect.poll(() => openIds(page)).toEqual(['open-1', 'open-2', 'np-1'])
+    await expect.poll(() => notPlannedIds(page)).toEqual(['np-2'])
+
+    // Back: on top of "Meine Aufgaben"
+    await choose('Nicht geplant')
+    await expect(status).toHaveAccessibleName('Status: Nicht geplant')
+    await expect.poll(() => notPlannedIds(page)).toEqual(['np-1', 'np-2'])
+    await expect.poll(() => openIds(page)).toEqual(['open-1', 'open-2'])
+
+    // A column other than Offen plans it too
+    await choose('Wartet')
+    await expect(status).toHaveAccessibleName('Status: Wartet')
+    await expect.poll(() => notPlannedIds(page)).toEqual(['np-2'])
+
+    // And from there straight back: to Offen first, then off today's board
+    await choose('Nicht geplant')
+    await expect(status).toHaveAccessibleName('Status: Nicht geplant')
+    await expect.poll(() => notPlannedIds(page)).toEqual(['np-1', 'np-2'])
+    await expect.poll(() => openIds(page)).toEqual(['open-1', 'open-2'])
+    await expect.poll(() => page.evaluate(() => {
+      const tasks = JSON.parse(localStorage.getItem('tasks-store') ?? '{}').tasks as { id: string, status: number, notPlanned?: boolean }[]
+      const found = tasks.find(t => t.id === 'np-1')
+      return found ? [found.status, found.notPlanned] : null
+    })).toEqual([0, true])
+  })
+
+  test('#567: Offen\'s card opened on Heute gives way on the move to "Alle"; its typed title comes back, one card at a time', async ({ context, page }) => {
+    await seedLocalBoard(context, BOARD)
+    await page.goto('/tasks')
+    await expect(page.locator('#column-open')).toBeVisible()
+    await page.locator('#column-open').getByTestId('add-task-header-button').click()
+    await page.getByTestId('new-card-title').fill('Von Heute')
+    await placeLink(page, 'all').click()
+    await expect(board(page)).toHaveAttribute('data-place', 'all')
+    await atRest(page)
+    await expect(page.getByTestId('new-card-flow')).toHaveCount(0)
+    const add = page.getByTestId('not-planned-add')
+    await expect(add).toBeEnabled()
+    await add.click()
+    await expect(page.getByTestId('new-card-flow')).toHaveCount(1)
+    await expect(notPlanned(page).getByTestId('new-card-flow')).toBeVisible()
+    await expect(add).toBeDisabled()
+    await page.keyboard.press('Escape')
+    // "Rückgängig" of the card that gave way reopens it with its title (one card only)
+    await page.getByRole('button', { name: 'Rückgängig' }).first().click()
+    await expect(page.getByTestId('new-card-flow')).toHaveCount(1)
+  })
+
   test('a board without any task: both columns blank, the add button works', async ({ context, page }) => {
     await seedLocalBoard(context, [])
     await gotoAll(page)
