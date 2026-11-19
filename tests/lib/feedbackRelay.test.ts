@@ -24,12 +24,26 @@ describe('sendToRelay', () => {
     [502, '{}', 'server'],
     [500, '{}', 'server'],
     // No relay behind the URL, or it has no token: the caller falls back to the browser path.
-    [503, '{"data":{"error":"FEEDBACK_NOT_CONFIGURED"}}', 'unavailable'],
+    [503, '{"statusCode":503,"statusMessage":"FEEDBACK_NOT_CONFIGURED","data":{"error":"FEEDBACK_NOT_CONFIGURED"}}', 'unavailable'],
     [404, 'Not found', 'unavailable'],
     [405, '', 'unavailable'],
+    [501, '', 'unavailable'],
   ] as const)('maps %i to %s', async (status, body, result) => {
     answer(status, body)
     expect(await sendToRelay('/api/feedback', REPORT)).toBe(result)
+  })
+
+  // #559: a 503 that is not the relay's own "not configured" answer is a platform failure (a Cloudflare
+  // Worker limit page, a gateway): retryable, never the browser fallback.
+  it.each([
+    ['a Cloudflare HTML error page', '<!doctype html><title>Error 1102</title>', 'text/html'],
+    ['an empty body', '', 'text/plain'],
+    ['JSON with another code', '{"data":{"error":"RELAY"}}', 'application/json'],
+    ['JSON without a data object', '{"error":"FEEDBACK_NOT_CONFIGURED"}', 'application/json'],
+    ['a JSON null', 'null', 'application/json'],
+  ])('a 503 with %s is a server error', async (_label, body, type) => {
+    answer(503, body, type)
+    expect(await sendToRelay('/api/feedback', REPORT)).toBe('server')
   })
 
   it('a static host that answers with its HTML shell is not a sent report', async () => {
