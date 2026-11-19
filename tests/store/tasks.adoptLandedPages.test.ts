@@ -162,6 +162,23 @@ describe('mergeTasks hands a landed page to the task that waits for it (#528)', 
       expect(store.tasks).toHaveLength(0)
     })
 
+    it('the queued delete carries no old pendingSync or pendingMove of the deleted task (a restore would copy them back)', async () => {
+      const trash = await withEntry({
+        task: task({
+          id: 't', externalId: 'old',
+          pendingSync: { since: SINCE, attempts: 1, lastError: 'x' },
+          pendingMove: { fromSource: 'todoist', fromExternalId: 'orig', toSource: 'notion' },
+        }),
+      })
+      store.mergeTasks('notion', [landed()])
+      const queued = store.pendingDeletes.t
+      expect(queued?.task.externalId).toBe('P')
+      expect(queued?.task.pendingSync).toBeUndefined()
+      expect(queued?.task.pendingMove).toBeUndefined()
+      // The entry keeps its snapshot; only the delete is cleaned
+      expect(trash.entry('t')?.task.externalId).toBe('P')
+    })
+
     it('leaves the page as a card when its title, age or holder does not fit', async () => {
       const trash = await withEntry()
       store.mergeTasks('notion', [page('A', 'Anderes', '2026-11-19T10:00:05.000Z'), page('B', 'Rückruf', '2026-11-19T08:00:00.000Z')])

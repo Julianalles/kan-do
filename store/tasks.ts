@@ -659,8 +659,12 @@ export const useTasksStore = defineStore("tasks", () => {
         take: (id) => {
           const taken = trash.takeLandedPage(entry.taskId, id);
           if (!taken) return;
+          // The snapshot's old marker and move belong to the deleted task's earlier life: a restore that cancels this
+          // delete copies them back, and the commit would run the old move's origin removal again (the same strip as
+          // a restore that does not cancel, `restoreTask`)
+          const { pendingSync: _sync, pendingMove: _move, ...bare } = taken.task;
           mapHelpers.set(pendingDeletes.value, taken.taskId, {
-            taskId: taken.taskId, task: taken.task, carryOver: taken.carryOver, state: 'queued', requestedAt: Date.now(), fromStatus: taken.fromStatus,
+            taskId: taken.taskId, task: bare, carryOver: taken.carryOver, state: 'queued', requestedAt: Date.now(), fromStatus: taken.fromStatus,
           });
           if (!deletedTaskIds.value.includes(id)) deletedTaskIds.value.push(id);
         },
