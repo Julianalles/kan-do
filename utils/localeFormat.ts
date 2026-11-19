@@ -15,7 +15,7 @@ export type Translate = (key: string, named?: Record<string, unknown>, plural?: 
 /**
  * Duration output shapes (examples in German/English, identical):
  * - `spaced`:       `45s`, `1 min 1s`, `1 h 30 min` (zero/negative/null -> `0 min`)
- * - `compact`:      `45s`, `5min`, `1h 30min`
+ * - `compact`:      `45s`, `5min`, `1h 30min` (no component uses it since #598: prose and tables use `spaced`)
  * - `clock`:        `45 min`, `1 h`, `1:30 h`, `2:00 h` (minutes floored)
  * - `clockRounded`: like `clock`, minutes rounded to the nearest half minute first
  * - `clockShort`:   `45 min`, `2 h`, `1:30 h` (minutes rounded, never negative)
@@ -148,6 +148,14 @@ export function formatDateTime(
 /** Formats a number with the locale's grouping and decimal separators. */
 export function formatNumber(value: number, locale: AppLocale, options?: Intl.NumberFormatOptions): string {
   return new Intl.NumberFormat(locale, options).format(value)
+}
+
+/**
+ * Formats a share given as 0-100 (not 0-1) as a whole percent with the locale's own spacing:
+ * `60 %` (no-break space) in German, `60%` in English. The one percent format of the app (#598).
+ */
+export function formatPercent(value: number, locale: AppLocale): string {
+  return new Intl.NumberFormat(locale, { style: 'percent', maximumFractionDigits: 0 }).format(Math.round(value) / 100)
 }
 
 /** Locale-aware string comparison for `Array.prototype.sort`. */
