@@ -188,7 +188,7 @@ describe('StatsTrendBars', () => {
     expect(bars.map(b => (b.element as HTMLElement).style.height)).toEqual(['50%', '84%', '90%', '100%', '20%', '60%', '70%'])
     const tracks = bars.map(b => b.element.parentElement!)
     expect(new Set(tracks.map(t => t.className)).size).toBe(1)
-    expect(w.text()).toContain('84 %')
+    expect(w.text()).toContain('84\u00a0%')
   })
 })
 
@@ -454,6 +454,6 @@ describe('StatsTimeSplit labels', () => {
     const records = ['a', 'b', 'c', 'd', 'e', 'f'].map((topic, i) => rec(1 + i, { topic, actualTimeSpentSeconds: 600 * (6 - i) }))
     const w = mountIt(StatsTimeSplit, { split: split(records), by: 'topic', mode: 'chart', legendCount: 5 })
     expect(w.text()).toContain('Sonstiges')
-    expect(w.find('svg').attributes('aria-label')).toMatch(/^Zeit nach Thema, letzte 4 Wochen: a \d+ %/)
+    expect(w.find('svg').attributes('aria-label')).toMatch(/^Zeit nach Thema, letzte 4 Wochen: a \d+\u00a0%/)
   })
 })

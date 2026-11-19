@@ -9,6 +9,7 @@
  */
 
 import { ref, readonly } from 'vue';
+import { endLoadRest } from '~/lib/routeArrival';
 
 /** Safety net in case the leave event never fires. */
 const LEAVE_FALLBACK_MS = 600;
@@ -82,6 +83,7 @@ const closeTaskSheet = (options: { focusTaskId?: string } = {}): Promise<void> =
   }
   // A fresh close never inherits the target of an earlier one
   returnFocusTaskId = options.focusTaskId ?? null;
+  endLoadRest(); // a sheet loaded at rest (#594) closes with its motion
   isDismissed.value = true;
   pendingClose = new Promise<void>((resolve) => {
     resolveClose = resolve;

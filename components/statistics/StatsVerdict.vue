@@ -29,7 +29,7 @@
         :thickness="14"
         :label="ringLabel"
       >
-        <span class="text-display font-semibold text-highlighted tabular-nums">{{ inTimeboxNow === null ? '–' : `${pct(inTimeboxNow)} %` }}</span>
+        <span class="text-display font-semibold text-highlighted tabular-nums">{{ inTimeboxNow === null ? '–' : formatPercent(inTimeboxNow) }}</span>
         <span class="text-xs text-toned">{{ t('statistics.verdict.ring.center') }}</span>
       </StatsRing>
       <StatsRing v-else-if="review.state === 'empty'" placeholder :size="160" :thickness="14" class="max-md:hidden" data-testid="stats-verdict-placeholder" />
@@ -49,7 +49,7 @@ defineOptions({ name: 'StatsVerdict' })
 
 const props = defineProps<{ review: Review }>()
 const { t } = useI18n()
-const { formatNumber } = useLocaleFormat()
+const { formatNumber, formatPercent } = useLocaleFormat()
 
 const pct = (value: number): number => Math.round(value)
 

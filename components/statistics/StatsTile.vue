@@ -33,7 +33,7 @@
         @keydown.esc="open && emit('toggle')"
       >
         <SectionHeader tag="span" class="block">{{ question }}</SectionHeader>
-        <span class="mt-1 flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-toned group-hover:text-highlighted" aria-hidden="true">
+        <span class="-mt-1.5 flex size-9 shrink-0 items-center justify-center rounded-full bg-muted text-toned group-hover:text-highlighted" aria-hidden="true">
           <UIcon :name="open ? ICONS.close : 'i-ph-arrows-out-simple'" class="size-4" />
         </span>
       </button>

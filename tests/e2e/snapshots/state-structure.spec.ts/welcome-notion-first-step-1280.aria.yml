@@ -9,7 +9,7 @@
     - listitem: Status
   - paragraph: Eine kurze Orientierung, bevor du etwas eingibst.
   - heading "Vorbereitung" [level=2]
-  - paragraph: Deine Aufgaben bleiben in Notion. Kan-do zeigt sie als Board und speichert Änderungen dorthin zurück.
+  - paragraph: Deine Aufgaben bleiben in Notion. Kan-Do zeigt sie als Board und speichert Änderungen dorthin zurück.
   - paragraph: Das brauchst du
   - list "Das brauchst du":
     - listitem: Notion-Konto

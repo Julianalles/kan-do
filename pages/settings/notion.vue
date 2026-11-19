@@ -10,7 +10,8 @@
   to stick at). The `orientation` prop follows the breakpoint, so the arrow keys match what is seen
 - Without an integration: one muted sentence and a soft button to the settings (no warning block)
 - Allows direct access to specific settings without wizard flow
-- Manages save/cancel actions per section
+- Manages save/cancel actions per section; the inline database edit pairs a soft "Abbrechen" with a solid "Speichern" (#596)
+- Phone: while tabs hide past the right edge the row fades out there (the cue that it scrolls, #596)
 -->
 <template>
   <div>
@@ -97,6 +98,7 @@
                     variant="link"
                     color="primary"
                     icon="i-ph-pencil-simple"
+                    class="px-0"
                     @click="() => { isEditingDatabase = true; }"
                   >
                     {{ t('notion.settings.connection.changeDatabase') }}
@@ -125,7 +127,7 @@
                         {{ t('common.cancel') }}
                       </UButton>
                       <UButton
-                        variant="link"
+                        variant="solid"
                         color="primary"
                         @click="saveDatabase"
                       >
@@ -239,7 +241,7 @@
 
 <script setup lang="ts">
 import PageSheet from '~/components/ui/PageSheet.vue'
-import { ref, computed, nextTick, onMounted, watch } from 'vue';
+import { ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useIsDesktop } from '~/composables/useIsDesktop';
 import { useNotionConfigStore } from '~/store/notionConfig';
@@ -272,7 +274,6 @@ defineOptions({ name: 'NotionSettingsPage' });
 definePageMeta({
   layout: false,
   titleKey: 'notion.settings.pageTitle',
-  descriptionKey: 'notion.settings.pageDescription',
 });
 
 const { t } = useI18n();
@@ -296,10 +297,28 @@ const statusMappingRef = ref<InstanceType<typeof StatusMappingStep> | null>(null
 const activeTab = ref('connection');
 const tabsRef = ref<{ $el?: HTMLElement } | null>(null);
 
+// Phone cue (#596): while tabs hide past the right edge, the row fades out there, so it reads as scrollable
+const moreTabsRight = ref(false);
+function updateTabsCue() {
+  const list = tabsRef.value?.$el?.querySelector<HTMLElement>('[role=tablist]');
+  moreTabsRight.value = !!list && !isDesktopWidth.value && list.scrollLeft + list.clientWidth < list.scrollWidth - 1;
+}
+let cueList: HTMLElement | null = null;
+watch([isDesktopWidth, tabsRef], async () => {
+  cueList?.removeEventListener('scroll', updateTabsCue);
+  cueList = null;
+  await nextTick();
+  cueList = tabsRef.value?.$el?.querySelector<HTMLElement>('[role=tablist]') ?? null;
+  cueList?.addEventListener('scroll', updateTabsCue, { passive: true });
+  updateTabsCue();
+}, { immediate: false, flush: 'post' });
+onMounted(() => { updateTabsCue(); window.addEventListener('resize', updateTabsCue); });
+onBeforeUnmount(() => { window.removeEventListener('resize', updateTabsCue); cueList?.removeEventListener('scroll', updateTabsCue); });
+
 // Desktop: the vertical list sticks below the bar and veil. Phone: a horizontal row that scrolls inside itself, full width
 const tabsUi = computed(() => isDesktopWidth.value
   ? { list: 'w-56 shrink-0 sticky sticky-below-page-header', trigger: 'justify-start', content: 'flex-1 min-w-0' }
-  : { list: 'w-full overflow-x-auto', trigger: 'shrink-0 whitespace-nowrap', content: 'w-full min-w-0 pt-6' });
+  : { list: `w-full overflow-x-auto${moreTabsRight.value ? ' [mask-image:linear-gradient(to_right,black_calc(100%-3rem),transparent)]' : ''}`, trigger: 'shrink-0 whitespace-nowrap', content: 'w-full min-w-0 pt-6' });
 
 // Phone: the list scrolls sideways, so keep the chosen tab in view (also after a resize into phone width). Scrolls the
 // list itself, never the page.

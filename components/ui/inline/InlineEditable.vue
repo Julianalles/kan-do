@@ -117,10 +117,15 @@
           @keydown.esc.stop="cancelEdit(true)"
         />
       </slot>
-      <p v-if="requiredError" :id="requiredId" class="mt-1 ms-2 text-sm text-error-700" role="alert" data-testid="inline-required-error">
+      <p v-if="requiredError" :id="requiredId" class="mt-1 ms-2 text-sm text-error-700" :class="{ 'min-h-5': reserveError }" role="alert" data-testid="inline-required-error">
         {{ requiredMessage }}
       </p>
+      <!-- reserveError: the error's line is already there while editing, so the error appears without moving what is below (#594) -->
+      <div v-else-if="reserveError" class="mt-1 min-h-5" aria-hidden="true" data-testid="inline-required-reserve" />
     </div>
+
+    <!-- reserveError: the error's line is held in read mode too, so starting to edit moves nothing (#594) -->
+    <div v-if="reserveError && !isEditing && !readonly" class="mt-1 min-h-5" aria-hidden="true" data-testid="inline-required-reserve" />
   </div>
 </template>
 
@@ -171,6 +176,8 @@ const props = withDefaults(defineProps<{
    * leaving the field restore the old value. Needs `requiredMessage`.
    */
   required?: boolean;
+  /** Keep the line of the required error free while editing, so showing it moves nothing below (#594). */
+  reserveError?: boolean;
   /** The text shown (and announced) when a required value is confirmed empty. */
   requiredMessage?: string;
   /** The value cannot be edited (a title or notes a source owns, #551): the display only, never an editor */
@@ -178,6 +185,7 @@ const props = withDefaults(defineProps<{
 }>(), {
   readonly: false,
   required: false,
+  reserveError: false,
   requiredMessage: undefined,
   interactiveDisplay: false,
   modelValue: '',

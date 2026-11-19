@@ -100,7 +100,7 @@ test('welcome has no horizontal overflow at 390px, the headline stays within two
   expect((await page.locator('.welcome-sheet').boundingBox())!.height).toBeLessThan(844 * 0.6)
 })
 
-test('"Jetzt starten" opens step 2: local always, Notion as a checkbox, Todoist disabled "(Bald verfübar)"; the button follows the checkbox (#294)', async ({ page, baseURL }) => {
+test('"Jetzt starten" opens step 2: local always, Notion as a checkbox, Todoist disabled "(bald verfügbar)"; the button follows the checkbox (#294)', async ({ page, baseURL }) => {
   await page.goto(baseURL! + '/welcome')
   await page.getByRole('button', { name: 'Jetzt starten' }).click()
 
@@ -108,7 +108,7 @@ test('"Jetzt starten" opens step 2: local always, Notion as a checkbox, Todoist 
   await expect(flow).toBeVisible()
   await expect(flow.getByRole('heading', { name: 'Eine App verbinden?' })).toBeFocused()
   const notion = flow.getByRole('checkbox', { name: 'Notion' })
-  const todoist = flow.getByRole('checkbox', { name: 'Todoist (Bald verfübar)' })
+  const todoist = flow.getByRole('checkbox', { name: 'Todoist (bald verfügbar)' })
   await expect(notion).not.toBeChecked()
   await expect(todoist).toBeDisabled()
   await expect(flow.getByRole('button', { name: 'Zum Board' })).toBeVisible()
@@ -173,7 +173,7 @@ test('local step: no sample cards, nothing stored before the confirmation; Back 
   await expect(page).toHaveURL(/\/welcome$/)
   expect(await storedSources(page)).toBeNull() // nothing happens before the confirmation
   const back = page.getByTestId('setup-back')
-  await expect(back).toHaveText('Zurück')
+  await expect(back).toHaveText('Zurück zur Auswahl')
   await expect(back.locator('[data-slot="leadingIcon"]')).toBeVisible() // the arrow
   await back.click()
   await expect(page.getByRole('button', { name: 'Jetzt starten' })).toBeFocused()
@@ -325,7 +325,7 @@ test('welcome: the small texts on the sheet keep AA contrast (kd#14)', async ({ 
   await expect(page.getByTestId('welcome-photo')).toHaveCSS('opacity', '1')
   await expectContrast(page, page.getByText(/Du kannst Aufgaben lokal auf diesem Gerät speichern/), 4.5)
   await expectContrast(page, page.getByText(/^Version:/), 4.5)
-  await expectContrast(page, page.getByText('Das Kanban Board mit dem du deine Aufgaben des Tages fokussiert erledigst.'), 4.5)
+  await expectContrast(page, page.getByText('Das Kanban-Board, mit dem du deine Aufgaben des Tages fokussiert erledigst.'), 4.5)
 })
 
 test('welcome sheet pads its bottom by the safe-area inset on a phone, 40px on desktop', async ({ page, baseURL }) => {
@@ -364,7 +364,7 @@ test('welcome: brand and subline sit on the photo with AA contrast at 1280 and 3
     await page.goto(baseURL! + '/welcome')
     await expect(page.getByTestId('welcome-photo')).toHaveCSS('opacity', '1')
     await expectContrast(page, page.getByTestId('welcome-brand'), 3)
-    await expectContrast(page, page.getByText('Das Kanban Board mit dem du deine Aufgaben des Tages fokussiert erledigst.'), 4.5)
+    await expectContrast(page, page.getByText('Das Kanban-Board, mit dem du deine Aufgaben des Tages fokussiert erledigst.'), 4.5)
   }
 })
 

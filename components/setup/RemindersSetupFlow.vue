@@ -24,7 +24,7 @@
     </div>
 
     <template v-else>
-      <BackButton :label="setup.step.value === 0 ? t('onboarding.flow.backToChoice') : t('common.back')" @click="goBack" />
+      <BackButton v-if="firstRun || setup.step.value > 0" :label="setup.step.value === 0 ? t('onboarding.flow.backToChoice') : t('common.back')" @click="goBack" />
 
       <div class="flex flex-col gap-6 md:grid md:grid-cols-[13rem_1fr] md:gap-10">
         <SetupRail
@@ -77,9 +77,16 @@
             </div>
           </div>
 
-          <p v-if="setup.connectFailed.value" class="mt-4 text-body text-error" role="alert" data-testid="reminders-connect-failed">
-            {{ t('onboarding.flow.reminders.connectFailed') }}
-          </p>
+          <UAlert
+            v-if="setup.connectFailed.value"
+            class="mt-4"
+            role="alert"
+            color="error"
+            variant="subtle"
+            icon="i-ph-warning"
+            :description="t('onboarding.flow.reminders.connectFailed')"
+            data-testid="reminders-connect-failed"
+          />
           <div class="mt-6 flex items-center justify-end">
             <UButton
               color="primary"

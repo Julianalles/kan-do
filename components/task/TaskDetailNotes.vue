@@ -20,7 +20,7 @@
     class="task-detail-section"
     data-testid="task-notes"
   >
-    <SectionHeader id="notes-heading" :text="t('task.field.notes')" tag="h3" size="label" class="mb-0" />
+    <SectionHeader id="notes-heading" :text="t('task.field.notes')" tag="h3" size="label" :class="['mb-0', { 'min-h-(--field-h)': twoColumn }]" />
 
     <div>
       <InlineEditable
@@ -65,6 +65,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useOverlayIsDesktop } from '~/composables/useIsDesktop';
 import { useI18n } from 'vue-i18n';
 import SectionHeader from '~/components/ui/SectionHeader.vue';
 import InlineEditable from '~/components/ui/inline/InlineEditable.vue';
@@ -72,6 +73,9 @@ import { renderMarkdown } from '~/utils/renderMarkdown';
 import { isSubmitShortcut, usePlatformShortcut } from '~/composables/usePlatformShortcut';
 
 defineOptions({ name: 'TaskDetailNotes' });
+
+/** The sheet's two columns: the label shares the row line of the rows beside it (#594) */
+const twoColumn = useOverlayIsDesktop();
 
 const props = withDefaults(defineProps<{
   /** Notes as Markdown source; empty shows the placeholder */

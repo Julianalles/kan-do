@@ -46,7 +46,7 @@
         >
           {{ t('settings.github.test') }}
         </UButton>
-        <UButton ref="removeButton" variant="ghost" color="neutral" :icon="ICONS.delete" :ui="{ leadingIcon: 'text-error' }" @click="onRemove">
+        <UButton ref="removeButton" variant="soft" color="error" :icon="ICONS.delete" @click="onRemove">
           {{ t('settings.github.remove') }}
         </UButton>
       </div>

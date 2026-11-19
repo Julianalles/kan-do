@@ -7,8 +7,8 @@
 - Connected: one `PageSheet` with three sections (hairlines, `SectionHeader` h2): Listen (`RemindersListChoices`, the live lists of Reminders with the role from `remindersConfig`), Heute (`RemindersTodayRules`) and Zugriff (the permission as macOS holds it now, "Systemeinstellungen öffnen", "Trennen")
 - A list to Aus asks first when tasks would leave Kan-Do (a list holding only archived tasks switches without a question and drops them silently) (in place, under its row): how many and how many of them are on today's board, counted live from the store; Confirm takes them off the board (`tasksStore.dropSourceTasks`: nothing is written to Reminders, nothing is remembered as deleted), Cancel puts the choice back. Any other change applies at once and fetches the source
 - Access revoked in macOS: the Zugriff section shows how to allow it and "Verbindung reparieren" (rechecks the permission, then fetches); nothing opens by itself (#319)
-- "Trennen" opens the existing `DisconnectSourceDialog`; afterwards the page returns to the sources tab. Access that macOS granted stays: the dialog says nothing about revoking it
-- Not connected: `RemindersSetupFlow` with `first-run` off; its Back returns to the sources tab, completion keeps the page and shows the settings
+- "Trennen" (soft, error tone: the destructive action of the row, #596) opens the existing `DisconnectSourceDialog`; afterwards the page returns to the sources tab. Access that macOS granted stays: the dialog says nothing about revoking it
+- Not connected: `RemindersSetupFlow` with `first-run` off; the first step has no inner Back (the layout's "Zurück zu Einstellungen" leads to the sources tab, #596), the subtitle says "Verbinde Apple Erinnerungen mit Kan-Do." (the layout's `sub-page-description-key` state) until something is set up, completion keeps the page and shows the settings
 - Pattern: settings page, aligned with the sources tab sheet and SourceRow (hairline sections, quiet buttons)
 -->
 <template>
@@ -66,7 +66,7 @@
           <UButton color="neutral" variant="soft" :icon="ICONS.external" data-testid="reminders-open-settings" @click="openSystemSettings">
             {{ t('settings.reminders.openSettings') }}
           </UButton>
-          <UButton color="error" variant="ghost" data-testid="reminders-disconnect" @click="isDisconnectOpen = true">
+          <UButton color="error" variant="soft" data-testid="reminders-disconnect" @click="isDisconnectOpen = true">
             {{ t('settings.reminders.disconnect') }}
           </UButton>
         </div>
@@ -78,9 +78,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watchEffect } from 'vue'
+import { useState, navigateTo } from 'nuxt/app'
 import { useI18n } from 'vue-i18n'
-import { navigateTo } from 'nuxt/app'
 import PageSheet from '~/components/ui/PageSheet.vue'
 import SectionHeader from '~/components/ui/SectionHeader.vue'
 import DisconnectSourceDialog from '~/components/settings/DisconnectSourceDialog.vue'
@@ -124,6 +124,10 @@ const leaveToSources = () => navigateTo(sourcesTab)
 
 /** The setup runs here while Reminders is not connected (decided once on arrival, so its own "connected" beat can finish) */
 const showSetup = ref(!board.isIntegrationConnected('reminders'))
+// The subtitle says what was set up before: untrue until something is (#596)
+const descriptionKey = useState<string | null>('sub-page-description-key', () => null)
+watchEffect(() => { descriptionKey.value = showSetup.value ? 'settings.reminders.pageDescriptionNew' : null })
+onBeforeUnmount(() => { descriptionKey.value = null })
 const onSetupComplete = () => {
   showSetup.value = false
   void load()
