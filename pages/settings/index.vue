@@ -9,6 +9,7 @@ App-Reset, and on desktop Updates and GitHub-Zugriff).
 `/settings/sources` redirects here.
 @usage Board gear, command palette "Einstellungen", the sync popover's "Verbindung reparieren"
 @responsibility
+- Board and Verwaltung sheets carry a `SectionHeader` h2 ("Fokus und Arbeitszeit", "Verwaltung"), like the Aufgabenspeicher sheet (#596); the tab strip keeps its normal padded tabs, so the first tab label sits 16 px inside the sheet edge by design (#596 item 10)
 - "Fokus": one switch row, "Jetzt-Karte im Fokus" (`settingsStore.focusEnabled`); takes effect on the board at once; on phone the 36×20 switch has a 44 px hit area (an invisible `::after`, kd#27)
 - "Schwebendes Jetzt-Fenster" (#383): a switch row below "Fokus", desktop only (`settingsStore.floatingNowEnabled`, default on); the main window pushes the setting to Rust at once, which hides or destroys the window
 - Aufgabenquellen is one sheet (#333: one concern): "Deine Verbindungen" (h2), the lead, the connected rows, then a separator and "Weitere Verbindungen" a level below (h3, the `sub` role); separator and heading drop out when nothing is left to connect
@@ -50,7 +51,8 @@ App-Reset, and on desktop Updates and GitHub-Zugriff).
         >
           <p class="text-body text-muted" data-testid="settings-tab-lead">{{ t(`settings.tabs.lead.${tab === 'manage' && !isDesktop ? 'manageWeb' : tab}`) }}</p>
 
-          <PageSheet v-if="tab === 'board'" data-testid="focus-settings">
+          <PageSheet v-if="tab === 'board'" tag="section" data-testid="focus-settings" aria-labelledby="board-settings-heading">
+            <SectionHeader id="board-settings-heading" tag="h2" class="pb-4">{{ t('settings.tabs.heading.board') }}</SectionHeader>
             <div class="flex items-center gap-4 pb-6">
               <div class="min-w-0 flex-1">
                 <label id="focus-label" class="block text-default" for="focus-switch">{{ t('settings.focus.label') }}</label>
@@ -102,7 +104,7 @@ App-Reset, and on desktop Updates and GitHub-Zugriff).
                 {{ t('sources.page.connectedHeading') }}
               </SectionHeader>
               <p class="text-body text-muted" data-testid="sources-lead">
-                {{ t('sources.page.lead') }} {{ t('sources.page.help') }}
+                {{ t('sources.page.help') }}
               </p>
               <ul class="divide-y divide-default pt-2" data-testid="sources-connected">
                 <SourceRow
@@ -153,7 +155,8 @@ App-Reset, and on desktop Updates and GitHub-Zugriff).
             </PageSheet>
           </template>
 
-          <PageSheet v-else>
+          <PageSheet v-else tag="section" aria-labelledby="manage-settings-heading">
+          <SectionHeader id="manage-settings-heading" tag="h2" class="pb-2">{{ t('settings.tabs.heading.manage') }}</SectionHeader>
           <ul class="divide-y divide-default" data-testid="settings-subpages">
             <ListRow v-for="link in manageLinks" :key="link.to" :to="link.to" button-testid="settings-subpage-link">
               <span class="flex items-center gap-4">

@@ -423,10 +423,13 @@ test.describe('Erinnerungen-Einstellungen (#552)', () => {
     await openSettings(page, 'sources')
     await page.getByTestId('source-connect-reminders').click()
     await expect(page).toHaveURL(/\/settings\/reminders$/)
+    await expect(page.getByText('Verbinde Apple Erinnerungen mit Kan-Do.')).toBeVisible()
     await expect(page.getByTestId('reminders-setup-flow')).toBeVisible()
     await expect(page.getByTestId('reminders-granted')).toBeVisible()
 
-    await page.getByTestId('reminders-setup-flow').getByTestId('setup-back').click()
+    // The first step has no inner back button here (#596): the layout's link leads back to the sources tab
+    await expect(page.getByTestId('reminders-setup-flow').getByTestId('setup-back')).toHaveCount(0)
+    await page.getByRole('link', { name: 'Zurück zu Einstellungen' }).click()
     await expect(page).toHaveURL(/\/settings\?tab=sources/)
 
     await page.getByTestId('source-connect-reminders').click()
