@@ -118,6 +118,50 @@ describe('trash store (#422, D3)', () => {
     expect(JSON.parse(localStorage.getItem('trash-store') ?? '{}').entries).toHaveLength(1)
   })
 
+  it('keeps the doubt of a restore\'s create (#535): the earliest attempt, the latest one, the last title', () => {
+    const trash = useTrashStore()
+    trash.add(entry('a', Date.now() - 1000))
+    trash.markCreateUncertain('a', 5000, 'First')
+    trash.markCreateUncertain('a', 9000, 'Second')
+    trash.markCreateUncertain('a', 7000, 'Third')
+    expect(trash.entry('a')?.createUncertain).toEqual({ since: 5000, at: 9000, title: 'Third' })
+    trash.markCreateUncertain('missing', 1, 'x') // no entry, nothing happens
+    expect(trash.entry('missing')).toBeUndefined()
+  })
+
+  it('a re-delete after a restore starts without the doubt', () => {
+    const trash = useTrashStore()
+    trash.add(entry('a', Date.now() - 1000))
+    trash.markCreateUncertain('a', 5000, 'First')
+    trash.add(entry('a', Date.now()))
+    expect(trash.entry('a')?.createUncertain).toBeUndefined()
+  })
+
+  it('hydrates an entry with the doubt unchanged and without a write; an entry stored before it has none', () => {
+    const withDoubt = { ...entry('a', Date.now() - 1000), createUncertain: { since: 5000, at: 9000, title: 'Rückruf' } }
+    localStorage.setItem('trash-store', JSON.stringify({ entries: [withDoubt, entry('old', Date.now() - 2000)] }))
+    const setItem = vi.spyOn(Storage.prototype, 'setItem')
+    freshPinia()
+    const trash = useTrashStore()
+    expect(trash.entry('a')?.createUncertain).toEqual({ since: 5000, at: 9000, title: 'Rückruf' })
+    expect(trash.entry('old')?.createUncertain).toBeUndefined()
+    expect(setItem).not.toHaveBeenCalled()
+    setItem.mockRestore()
+  })
+
+  it('reads a malformed doubt as none and keeps the entry', () => {
+    const bad = [
+      { ...entry('a', Date.now() - 1000), createUncertain: { since: 'x', title: 'a' } },
+      { ...entry('b', Date.now() - 1000), createUncertain: 'yes' },
+      { ...entry('c', Date.now() - 1000), createUncertain: { since: 5 } },
+    ]
+    localStorage.setItem('trash-store', JSON.stringify({ entries: bad }))
+    freshPinia()
+    const trash = useTrashStore()
+    expect(trash.entries.map(e => e.taskId).sort()).toEqual(['a', 'b', 'c'])
+    for (const e of trash.entries) expect(e.createUncertain).toBeUndefined()
+  })
+
   it('persists an add under trash-store', async () => {
     const trash = useTrashStore()
     trash.add(entry('a'))

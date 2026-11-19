@@ -252,6 +252,31 @@ describe('pendingSync marker (#319)', () => {
     expect(moved).toMatchObject({ externalId: null, pendingMove })
   })
 
+  it('keeps the doubt of a move\'s origin create (#538) without a write; older moves load as before', () => {
+    const withDoubt = { fromSource: 'notion', fromExternalId: null, toSource: 'todoist', fromCreateUncertain: { since: 1700000000000, at: 1700000009000, title: 'Rückruf' } }
+    const tasks = [{ id: 'm', source: 'todoist', externalId: null, pendingMove: withDoubt }]
+    expect(normalizeTasks(tasks, 'todoist')).toBe(tasks)
+    const old = [{ id: 'o', source: 'todoist', externalId: null, pendingMove: { fromSource: 'notion', fromExternalId: null, toSource: 'todoist' } }]
+    expect(normalizeTasks(old, 'todoist')).toBe(old)
+  })
+
+  it('reads a malformed origin doubt as none, and drops one once the origin page has an id', () => {
+    const base = { fromSource: 'notion', toSource: 'todoist' }
+    const bad = [
+      { id: 'a', source: 'todoist', externalId: null, pendingMove: { ...base, fromExternalId: null, fromCreateUncertain: { since: 'x', title: 'a' } } },
+      { id: 'b', source: 'todoist', externalId: null, pendingMove: { ...base, fromExternalId: null, fromCreateUncertain: 'yes' } },
+      { id: 'c', source: 'todoist', externalId: null, pendingMove: { ...base, fromExternalId: 'P', fromCreateUncertain: { since: 1, title: 'a' } } },
+    ]
+    for (const task of normalizeTasks(bad, 'todoist') as Array<{ pendingMove: Record<string, unknown> }>) {
+      expect(task.pendingMove).not.toHaveProperty('fromCreateUncertain')
+    }
+  })
+
+  it('keeps the origin\'s "not planned" value of a move through the read (#357)', () => {
+    const tasks = [{ id: 'm', source: 'local', externalId: null, pendingMove: { fromSource: 'notion', fromExternalId: 'P', toSource: 'local', fromSourceNotPlanned: 'Backlog' } }]
+    expect(normalizeTasks(tasks, 'local')).toBe(tasks)
+  })
+
   it('keeps a valid move next to its marker', () => {
     const pendingMove = { fromSource: 'local', fromExternalId: null, toSource: 'notion' }
     const tasks = [{ id: 'm', source: 'notion', externalId: 'm', pendingSync: marker, pendingMove }]

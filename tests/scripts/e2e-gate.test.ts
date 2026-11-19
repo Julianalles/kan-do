@@ -135,10 +135,17 @@ describe('selectE2e', () => {
 
   it.each([
     'package.json', 'package-lock.json', 'nuxt.config.ts', 'vercel.json',
-  ])('runs smoke + visual-regression when the dependency or build config %s changes', (file) => {
+  ])('runs smoke + visual-regression + the server error page spec when the dependency or build config %s changes (#541)', (file) => {
     const result = select({ files: [file] })
     expect(result).toMatchObject({ tier: 'targeted', unmapped: [] })
-    expect(result.specs).toEqual([...new Set([...config.smoke, ...designFor(file), 'visual-regression'])].sort())
+    expect(result.specs).toEqual([...new Set([...config.smoke, ...designFor(file), 'visual-regression', 'server-error-page'])].sort())
+  })
+
+  // #541: the spec proves server/error-handler.ts still wraps Nuxt's handler (nuxt.config.ts wires it, a Nuxt/Nitro bump can break it)
+  it('runs the server error page spec when the error handler changes, next to the source specs of server/** (#541)', () => {
+    const result = select({ files: ['server/error-handler.ts'] })
+    expect(result).toMatchObject({ tier: 'targeted', unmapped: [] })
+    expect(result.specs).toEqual(expect.arrayContaining([...config.smoke, 'server-error-page', 'notion-stub-sync']))
   })
 
   // #456: app.config.ts is also the button theme (#424): visual-regression plus the specs that assert a button's height
@@ -415,6 +422,12 @@ describe('selectE2e in fast testing mode (#693)', () => {
       specsMentioning: strings => specsMentioning(strings, e2eSources),
       cataloguedComponents: () => listCataloguedComponents(root),
     })
+
+  it('keeps the server error page spec in the fast tier for the error handler and the Nuxt config (#541)', () => {
+    for (const file of ['server/error-handler.ts', 'nuxt.config.ts', 'package.json']) {
+      expect(fast({ files: [file] }).specs).toContain('server-error-page')
+    }
+  })
 
   it('runs smoke only for a non-risk, uncatalogued file: no design specs, no label/testid match', () => {
     const result = fast({ files: ['utils/middleEllipsis.ts'] })

@@ -3,13 +3,13 @@
  * @description Thin adapter over `NotionIntegration`. The class is created per call from the current
  * Notion config (`useNotionIntegration`), so a changed config is picked up without a new adapter.
  */
-import type { Task } from '~/types/task'
+import type { CreateUncertain, Task } from '~/types/task'
 import type { IntegrationHealth } from '~/types/integration'
 import type { NotionIntegration } from '~/integrations/NotionIntegration'
 import { externalIdOf, sourceSyncsTime } from '~/lib/taskSources'
 import { CreateLookupError, CreateWaitingError } from '~/lib/integrationHealth'
 import { createMayLandUntil } from '~/lib/createLookup'
-import { SourceNotConfiguredError, type CreateContext, type FetchedTasks, type TaskSourceAdapter } from './types'
+import { SourceNotConfiguredError, type CreateContext, type FetchedTasks, type RestoreContext, type TaskSourceAdapter } from './types'
 
 export interface NotionSourceDeps {
   isConfigured: () => boolean
@@ -105,6 +105,32 @@ export class NotionSource implements TaskSourceAdapter {
     return notion.createTask(draft)
   }
 
+  /**
+   * The page a create with an unknown outcome may have made belongs to a task the user deleted or moved away (#538):
+   * the lookup of `create` finds it and it is archived. Nothing found proves nothing until the create can no longer
+   * land (`createMayLandUntil`); a failed lookup or archive rejects, the caller keeps the delete or move queued.
+   */
+  async removeLanded(doubt: CreateUncertain, ctx: CreateContext): Promise<void> {
+    const notion = this.instance()
+    let pageId: string | null
+    try {
+      pageId = await notion.findLandedPage(doubt.title, doubt.since, ctx.claimedExternalIds)
+    } catch (error) {
+      throw new CreateLookupError(error)
+    }
+    if (pageId === null) {
+      if (Date.now() < createMayLandUntil(doubt)) throw new CreateWaitingError()
+      return
+    }
+    try {
+      await notion.archiveTask(pageId)
+    } catch (error) {
+      // A page that is gone has reached the goal
+      if ((error as { statusCode?: number } | null)?.statusCode === 404) return
+      throw new CreateLookupError(error)
+    }
+  }
+
   async update(task: Task, change: { timeEdited?: boolean } = {}): Promise<Task | null> {
     return change.timeEdited ? this.instance().updateTask(task, { timeEdited: true }) : this.instance().updateTask(task)
   }
@@ -115,9 +141,12 @@ export class NotionSource implements TaskSourceAdapter {
 
   /**
    * Un-archives the task's page and writes the snapshot onto it (the page kept the properties of the last
-   * upstream write, which may differ from the snapshot). A page Notion no longer has (404) is created anew.
+   * upstream write, which may differ from the snapshot). A page Notion no longer has (404) is created anew, through
+   * `create`: an earlier restore whose create ended with an unknown outcome (`ctx.createUncertain`, #535) finds the page
+   * it may have made and uses it instead of making a second one. A failure of the un-archive or of the write is no
+   * create (`CreateLookupError`: nothing was sent that could have made a page, the cause keeps the status).
    */
-  async restore(task: Task): Promise<Task> {
+  async restore(task: Task, ctx?: RestoreContext): Promise<Task> {
     const notion = this.instance()
     if (task.externalId !== null) {
       let gone = false
@@ -125,15 +154,26 @@ export class NotionSource implements TaskSourceAdapter {
         await notion.unarchiveTask(externalIdOf(task))
       } catch (error) {
         // Only the un-archive says "gone"; a 404 from the write below must not create a second page
-        if ((error as { statusCode?: number } | null)?.statusCode !== 404) throw error
+        if ((error as { statusCode?: number } | null)?.statusCode !== 404) throw new CreateLookupError(error)
         gone = true
       }
       if (!gone) {
-        const held = await notion.updateTask(task)
+        let held: Task | null
+        try {
+          held = await notion.updateTask(task)
+        } catch (error) {
+          throw new CreateLookupError(error)
+        }
         return { ...task, ...(held ?? {}), id: task.id, source: 'notion', externalId: task.externalId }
       }
     }
-    const created = await notion.createTask(task)
+    const doubt = ctx?.createUncertain
+    const draft: Partial<Task> = {
+      ...task,
+      externalId: null,
+      ...(doubt ? { pendingSync: { since: doubt.since, attempts: 0, lastError: null, createUncertain: doubt } } : {}),
+    }
+    const created = await this.create(draft, ctx)
     return { ...task, ...created, id: task.id, source: 'notion', externalId: created.externalId ?? created.id }
   }
 
