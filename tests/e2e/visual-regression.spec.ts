@@ -151,6 +151,9 @@ test.beforeEach(async ({ context }) => {
   await seedLocalBoard(context, SEED)
 })
 
+/** A board that is set up never shows /welcome (#561): the first-run shots start from an empty browser. Runs after the seed. */
+const unseed = (page: Page) => page.context().addInitScript(() => localStorage.clear())
+
 /**
  * Waits until the page is visually settled: web fonts loaded and every Iconify icon
  * has rendered its SVG (icons load asynchronously; capturing earlier yields baselines
@@ -387,6 +390,7 @@ async function tabTo(page: Page, target: Locator, maxTabs = 60) {
 
 test.describe('welcome page (kd#14)', () => {
   const shot = async (page: Page, name: string) => {
+    await unseed(page)
     await page.goto('/welcome')
     await expect(page.getByTestId('welcome-choice-local')).toBeVisible()
     // The photo fades in over 700 ms once loaded: wait for the end state, not a timer
@@ -420,6 +424,7 @@ test.describe('focus states', () => {
   })
 
   test('focus: primary button', async ({ page }) => {
+    await unseed(page)
     await page.goto('/welcome')
     await page.getByRole('button', { name: 'Jetzt starten' }).click()
     // The local setup is page content now (#43). Park the pointer so the button shows its focus state, not hover
@@ -1133,6 +1138,7 @@ for (const { size, viewport } of CORE_VIEWPORTS) {
     test.use({ viewport })
 
     test('Notion wizard: first step', async ({ page }) => {
+      await unseed(page)
       await page.goto('/welcome')
       await page.getByTestId('welcome-choice-local').click()
       await page.getByTestId('local-source-notion').click()
@@ -1150,6 +1156,7 @@ for (const { size, viewport } of CORE_VIEWPORTS) {
     })
 
     test('Notion wizard: a mapping step', async ({ page }) => {
+      await unseed(page)
       await page.goto('/welcome')
       await page.getByTestId('welcome-choice-local').click()
       await page.getByTestId('local-source-notion').click()
@@ -1172,6 +1179,7 @@ for (const { size, viewport } of CORE_VIEWPORTS) {
     })
 
     test('LocalSetupFlow', async ({ page }) => {
+      await unseed(page)
       await page.goto('/welcome')
       await page.getByTestId('welcome-choice-local').click()
       await expect(page.getByTestId('local-confirm')).toBeVisible()
@@ -1181,6 +1189,7 @@ for (const { size, viewport } of CORE_VIEWPORTS) {
     })
 
     test('SamplesSetupFlow (#236)', async ({ page }) => {
+      await unseed(page)
       await page.goto('/welcome')
       await page.getByTestId('welcome-choice-samples').click()
       await expect(page.getByTestId('samples-confirm')).toBeVisible()
