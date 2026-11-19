@@ -232,6 +232,34 @@ describe('motion (#70)', () => {
   })
 })
 
+describe('the 4 px grid (#591)', () => {
+  it('flags a half-step class other than -0.5 and -1.5, also negative and behind variants', () => {
+    expect(scale('Half.vue', '<template><div class="py-2.5 max-md:-me-3.5 gap-0.5 size-1.5 px-4.5 md:gap-2.5 p-3 gap-(--task-list-gap) w-65" /></template>'))
+      .toEqual(['1: py-2.5', '1: max-md:-me-3.5', '1: px-4.5', '1: md:gap-2.5'])
+  })
+
+  it('flags padding, margin and gap in a style block that are off the grid, passes 2, 6, hairlines, tokens and keywords', () => {
+    expect(scale('Pad.vue', `<template><div /></template>\n${style(
+      'padding-block: 0.625rem;', 'gap: 0.25rem 14px;', 'margin: 0 auto;', 'padding: 0.125rem 0.375rem;', 'margin-top: -1px;',
+      'padding: var(--space-3) calc(var(--x) + 3px);', 'gap: 0.75rem;', 'padding-inline: 0.3rem;', 'inset: 0.625rem;',
+    )}`)).toEqual(['4: padding-block:', '5: gap:', '11: padding-inline:'])
+  })
+
+  it('flags width and height of an icon class (a UIcon tag\'s own class or one named *icon*), not other boxes', () => {
+    expect(scale('Icon.vue', `<template><UIcon name="i-ph-x" class="glyph" /><div class="box" /></template>\n<style>\n.glyph { width: 0.875rem; height: 1rem; }\n.box { width: 0.875rem; }\n.chip__icon { width: 13px; height: 1.25rem; }\n.row__icon--open { width: 100%; }\n</style>`))
+      .toEqual(['3: width:', '5: width:'])
+  })
+
+  it('lets an allowlisted file keep a named value', () => {
+    const dir2 = mkdtempSync(join(tmpdir(), 'grid-'))
+    mkdirSync(join(dir2, 'components/overlay'), { recursive: true })
+    const file = join(dir2, 'components/overlay/NowWindow.vue')
+    writeFileSync(file, '<template><div /></template>\n<style>\n.a { gap: 10px; padding-left: 30px; padding-right: 10px; }\n</style>')
+    expect((checkScaleLiterals(dir2, [file]) as Finding[]).map(f => f.message.split(' ')[0])).toEqual(['padding-right:'])
+    rmSync(dir2, { recursive: true, force: true })
+  })
+})
+
 describe('scale allowlist (#70)', () => {
   it('names a reason for every entry', () => {
     for (const { reason, literals } of Object.values(SCALE_ALLOWLIST)) {

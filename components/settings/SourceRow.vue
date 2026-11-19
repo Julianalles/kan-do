@@ -66,7 +66,7 @@
         color="neutral"
         variant="ghost"
         icon="i-ph-dots-three-bold"
-        class="-me-2 shrink-0 max-md:-me-3.5"
+        class="-me-2 shrink-0 max-md:-me-3"
         :aria-label="t('sources.row.actionsNamed', { source: row.name })"
         :data-testid="`source-actions-${row.id}`"
       />

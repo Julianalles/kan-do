@@ -62,7 +62,7 @@ App-Reset, and on desktop Updates and GitHub-Zugriff).
                 id="focus-switch"
                 :model-value="settingsStore.focusEnabled"
                 aria-describedby="focus-help"
-                :ui="{ base: 'relative max-md:after:absolute max-md:after:-inset-3.5' }"
+                :ui="{ base: 'relative max-md:after:absolute max-md:after:-inset-3' }"
                 data-testid="focus-switch"
                 @update:model-value="settingsStore.setFocusEnabled"
               />
