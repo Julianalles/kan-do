@@ -7,6 +7,19 @@ const column = (page: Page, key: string) => page.locator(`#column-${key}-list`)
 const card = (page: Page, title: string) => page.locator('.task-wrapper', { hasText: title }).first()
 const palette = (page: Page) => page.getByRole('dialog', { name: 'Befehlspalette' })
 
+/**
+ * Opens the palette and returns once a click outside it dismisses it (#557). The dialog is visible one render flush
+ * before reka-ui arms its outside-pointerdown listener (`DismissableLayer` registers it in a `setTimeout(0)`, so a
+ * `pointerdown` that lands in between is ignored); a press the moment `toBeVisible` passes then left the palette
+ * open, 1 run in 20 on a busy machine. A zero-delay timer queued now fires after that one, so awaiting it is the
+ * "armed" signal. A person never clicks that fast: only the test needs the sync.
+ */
+async function openPaletteForBackdropClick(page: Page) {
+  await page.keyboard.press('Control+k')
+  await expect(palette(page)).toBeVisible()
+  await page.evaluate(() => new Promise<void>(resolve => setTimeout(resolve, 0)))
+}
+
 /** Issue #101: Cmd/Ctrl+K command palette (keyboard only, no new single-key bindings). */
 test.describe('Command palette', () => {
   test.beforeEach(async ({ context, page }) => {
@@ -36,8 +49,7 @@ test.describe('Command palette', () => {
   })
 
   test('a click on the backdrop closes it (#432)', async ({ page }) => {
-    await page.keyboard.press('Control+k')
-    await expect(palette(page)).toBeVisible()
+    await openPaletteForBackdropClick(page)
     await page.mouse.click(5, 400)
     await expect(palette(page)).toBeHidden()
   })
@@ -46,8 +58,7 @@ test.describe('Command palette', () => {
     await page.goto('/all')
     await expect(page).toHaveURL(/\/all$/)
     await expect(column(page, 'open').locator('.task-wrapper').first()).toBeVisible()
-    await page.keyboard.press('Control+k')
-    await expect(palette(page)).toBeVisible()
+    await openPaletteForBackdropClick(page)
     await page.mouse.click(5, 400)
     await expect(palette(page)).toBeHidden()
   })
@@ -58,8 +69,7 @@ test.describe('Command palette', () => {
     await expect(page.locator('html')).toHaveAttribute('data-shell', 'desktop')
     await expect(column(page, 'open').locator('.task-wrapper').first()).toBeVisible()
     for (const y of [400, 20]) {
-      await page.keyboard.press('Control+k')
-      await expect(palette(page)).toBeVisible()
+      await openPaletteForBackdropClick(page)
       await page.mouse.click(5, y)
       await expect(palette(page)).toBeHidden()
     }
