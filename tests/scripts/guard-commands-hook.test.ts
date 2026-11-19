@@ -343,14 +343,15 @@ describe('guard-commands hook without jq (kd#2)', () => {
 describe('guard-commands hook: orca computer targets only a sandbox run', () => {
   const orca = (app: string) => `orca computer get-app-state --app ${app} --json`
 
-  // A stand-in for the dev binary: a copy of `sleep` at <tmp>/target/debug/app, started with the given env.
+  // A stand-in for the dev binary: a copy of the node binary at <tmp>/target/debug/app, started with the given env. Not `sleep` (a copy named `app` exits at once
+  // where coreutils is one multicall binary, uutils) and not a script (macOS `ps` hides the environment of /bin/sh).
   const withFakeApp = (env: Record<string, string>, check: (pid: number) => void) => {
     const dir = mkdtempSync(join(tmpdir(), 'kando-orca-'))
     const bin = join(dir, 'target/debug/app')
     spawnSync('mkdir', ['-p', join(dir, 'target/debug')])
-    copyFileSync('/bin/sleep', bin)
+    copyFileSync(process.execPath, bin)
     chmodSync(bin, 0o755)
-    const child = spawn(bin, ['30'], { cwd: dir, env: { ...process.env, ...env }, stdio: 'ignore' })
+    const child = spawn(bin, ['-e', 'setTimeout(() => {}, 30000)'], { cwd: dir, env: { ...process.env, ...env }, stdio: 'ignore' })
     try {
       // Wait until the exec happened, so the allow case cannot pass on a process that is not the fake app yet.
       for (let i = 0; i < 100 && !spawnSync('ps', ['-o', 'command=', '-p', String(child.pid)], { encoding: 'utf8' }).stdout.includes('target/debug/app'); i++) {
