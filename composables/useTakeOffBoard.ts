@@ -15,7 +15,6 @@
  *   (the callers check). Resolve it in a component's setup: it holds the Nuxt-bound move path.
  */
 import { useTasksStore } from '~/store/tasks'
-import { useBoardStore } from '~/store/board'
 import { useTaskOperations } from '~/composables/useTaskOperations'
 import { useTaskSync } from '~/composables/useTaskSync'
 import { resumeTaskTimer, stopTaskTimer } from '~/composables/useTaskTimerDriver'
@@ -33,7 +32,6 @@ export interface TakenOffBoard {
 
 export function useTakeOffBoard() {
   const tasksStore = useTasksStore()
-  const boardStore = useBoardStore()
   const { moveTaskToStatus } = useTaskOperations()
   const { unplanTasks, updateTaskStatuses } = useTaskSync()
 
@@ -64,7 +62,6 @@ export function useTakeOffBoard() {
     // The user's own move: a source that stores planning gets its "not planned" status written (#357)
     const sent = unplanTasks([...group, ...waiting])
     const fromWaiting = waiting.filter(id => sent.includes(id))
-    boardStore.noteFromWaiting(fromWaiting)
     return { group: group.filter(id => sent.includes(id)), sent, fromWaiting }
   }
 

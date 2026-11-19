@@ -890,7 +890,8 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await goToPlace(page, 'Heute')
     await expect(page.locator('#column-waiting .task-wrapper')).toHaveCount(0)
     await expect(page.locator('#column-progress .task-wrapper')).toHaveCount(0)
-    await expect(sentence(page)).toHaveText('3 Aufgaben von gestern liegen unter Alle.')
+    // the sentence counts the panel's cards: Jetzt, both Offen cards and the Wartet card (#515)
+    await expect(sentence(page)).toHaveText('4 Aufgaben von gestern liegen unter Alle.')
     expect(await storedTask(page, 'nd-now-1')).toMatchObject({ status: 0, notPlanned: true, timeSpentSeconds: 1800 })
     expect(await storedTask(page, 'nd-waiting-1')).toMatchObject({ status: 0, notPlanned: true })
 
@@ -1095,8 +1096,20 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await expect(note(page)).toBeVisible()
   })
 
-  test('one task of yesterday: the sentence in an empty Offen is singular', async ({ page, context }) => {
+  test('the sentence in an empty Offen counts the Offen and the Wartet task of yesterday as the panel does (#515)', async ({ page, context }) => {
     await seedNewDayBoard(context)
+    await page.goto('/tasks')
+    await planButton(page).click()
+    await settled(page)
+    await goToPlace(page, 'Heute')
+    await expect(sentence(page)).toHaveText('2 Aufgaben von gestern liegen unter Alle.')
+    await sentence(page).getByRole('link', { name: 'Alle' }).click()
+    await expect(page).toHaveURL(/\/all$/)
+    await expect.poll(() => groupIds(page, 'panel')).toHaveLength(2)
+  })
+
+  test('one task of yesterday: the sentence in an empty Offen is singular', async ({ page, context }) => {
+    await seedNewDayBoard(context, { tasks: newDayTasks().filter(task => task.id !== 'nd-waiting-1') })
     await page.goto('/tasks')
     await planButton(page).click()
     await settled(page)
@@ -1129,6 +1142,24 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await focusOn('Garten')
     await goToPlace(page, 'Heute')
     await expect(sentence(page)).toHaveCount(0)
+  })
+
+  test('the sentence in an empty Offen counts a Wartet task of the group as "Alle" shows it (#515)', async ({ page, context }) => {
+    const topics: Record<string, string> = { 'nd-now-1': 'Keller', 'nd-open-2': 'Keller', 'nd-open-1': 'Büro', 'nd-waiting-1': 'Garten' }
+    const tasks = boardOnly().map(task => ({ ...task, topic: topics[task.id] ?? null }))
+    await seedNewDayBoard(context, { tasks })
+    await page.goto('/tasks')
+    await startButton(page).click()
+    await expect(page).toHaveURL(/\/all$/)
+    await expect.poll(() => groupIds(page, 'panel')).toHaveLength(4)
+    // the focus leaves only the former Wartet task: the sentence says one and "Alle" shows exactly that card
+    await page.getByTestId('focus-trigger').click()
+    await page.getByTestId('focus-chip').filter({ hasText: 'Garten' }).click()
+    await goToPlace(page, 'Heute')
+    await expect(sentence(page)).toHaveText('Eine Aufgabe von gestern liegt unter Alle.')
+    await sentence(page).getByRole('link', { name: 'Alle' }).click()
+    await expect(page).toHaveURL(/\/all$/)
+    await expect.poll(() => groupIds(page, 'panel')).toEqual(['nd-waiting-1'])
   })
 
   /** The page clock runs on (`__shiftMs` moves it): a night passes without a reload. */

@@ -287,22 +287,19 @@ describe('useNewDayRecap', () => {
       expect(syncArchiveStatusForTasks).toHaveBeenCalledTimes(1)
     })
 
-    it('lists only the Wartet tasks this close took off, not the ones an earlier start left in notPlannedFromWaiting (weeks ago)', async () => {
-      const { tasks, board } = setup({ lastShownDay: '2026-10-20' })
-      // a Wartet task of an earlier fresh start: still held, still in the persisted category, not yesterday's
+    it('lists only the Wartet tasks this close took off, not a Wartet task an earlier start left held (weeks ago)', async () => {
+      const { tasks } = setup({ lastShownDay: '2026-10-20' })
+      // a Wartet task of an earlier fresh start: still held, not yesterday's
       tasks.addTask({ ...task('stale', TaskStatus.Open), notPlanned: true })
-      board.noteFromWaiting(['stale'])
       await closeTheDayYesterdayEvening()
-      expect(board.notPlannedFromWaiting).toEqual(['stale', 'w1'])
       const recap = useNewDayRecap()
       recap.check('tasks')
       expect(recap.snapshot.value!.undone.map(t => t.id)).toEqual(['o1', 'w1'])
     })
 
-    it('a stored group without `waiting` (a fresh start, data from before it) adds nothing from notPlannedFromWaiting', () => {
-      const { tasks, board, recap: store } = setup()
+    it('a stored group without `waiting` (a fresh start, data from before it) adds no older held task', () => {
+      const { tasks, recap: store } = setup()
       tasks.addTask({ ...task('stale', TaskStatus.Open), notPlanned: true })
-      board.noteFromWaiting(['stale'])
       store.sentBack = { day: TODAY, ids: [] }
       const recap = useNewDayRecap()
       recap.check('tasks')

@@ -98,8 +98,7 @@ export const useDayRecapStore = defineStore('dayRecap', () => {
    * morning. `sentBack` keeps its meaning, valid for that one day: the day is tomorrow, written tonight. Monotonic like
    * `markNewDay`, but a second close on the same evening adds its ids in front of the earlier ones instead of being
    * refused; a day before the stored marker (a clock set back) writes nothing. `waiting` (the Wartet tasks the close took off, kept
-   * apart from the group) is stored the same way, so the next morning's recap lists only what this evening took off, never an
-   * older fresh start's `notPlannedFromWaiting` entries.
+   * apart from the group) is stored the same way, so the next morning's recap lists only what this evening took off.
    * @returns whether the marker or the group changed
    */
   function markDayClosed(nextDay: string, ids: string[], waiting: string[] = []): boolean {

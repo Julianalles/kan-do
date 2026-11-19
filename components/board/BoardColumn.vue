@@ -105,8 +105,8 @@
         class="open-yesterday-note text-body text-muted"
         data-testid="open-yesterday-note"
       >
-        <i18n-t keypath="board.yesterdayUnderAll" :plural="yesterdayCount" scope="global">
-          <template #n>{{ yesterdayCount }}</template>
+        <i18n-t keypath="board.yesterdayUnderAll" :plural="props.yesterdayCount" scope="global">
+          <template #n>{{ props.yesterdayCount }}</template>
           <template #all>
             <ULink :to="allLocation" class="font-medium text-primary underline" data-testid="open-yesterday-link">{{ t('nav.all') }}</ULink>
           </template>
@@ -200,8 +200,8 @@ const props = defineProps({
     type: String,
     default: undefined,
   },
-  /** Offen only (#356, #387): how many tasks of today's fresh start (from Jetzt and Offen) still wait under "Alle"; 0 for every other column. */
-  yesterdayWaiting: {
+  /** Offen only (#356, #387, #469): how many tasks of today's fresh start (from Jetzt, Offen and Wartet) still wait in the panel under "Alle"; 0 for every other column. */
+  yesterdayCount: {
     type: Number,
     default: 0,
   },
@@ -542,15 +542,13 @@ const computeIsEmpty = (): boolean => props.tasks.length < 1;
 
 const isEmpty = computed(computeIsEmpty);
 
-/** Tasks of today's group "Gestern auf dem Board" that still wait under "Alle" (#356); Board.vue hands it to Offen. */
-const yesterdayCount = computed(() => props.yesterdayWaiting);
 /**
  * The sentence in an empty Offen on Heute: only while the column holds no card (and no deleted-card gap, no draft, no
  * drag) and tasks of today's group are left. On "Alle" the group itself is beside the column, so Offen stays blank.
  */
 const showYesterdayNote = computed(() =>
   isOpenColumn.value && !props.staticMode && !isAll.value && isEmpty.value && !hasGaps.value
-  && !props.isDragging && !(addSlotRef.value?.isDrafting ?? false) && yesterdayCount.value > 0);
+  && !props.isDragging && !(addSlotRef.value?.isDrafting ?? false) && props.yesterdayCount > 0);
 
 /**
  * Navigates to the task detail view
