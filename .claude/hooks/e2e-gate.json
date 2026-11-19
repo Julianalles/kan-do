@@ -258,7 +258,8 @@
         "add-task-source",
         "sources-settings",
         "welcome-setup",
-        "drag-sync"
+        "drag-sync",
+        "server-error-page"
       ]
     },
     {
@@ -441,7 +442,8 @@
         "vercel.json"
       ],
       "specs": [
-        "visual-regression"
+        "visual-regression",
+        "server-error-page"
       ]
     },
     {
