@@ -80,6 +80,7 @@
           <UAlert
             v-if="setup.connectFailed.value"
             class="mt-4"
+            role="alert"
             color="error"
             variant="subtle"
             icon="i-ph-warning"

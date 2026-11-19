@@ -7,7 +7,7 @@
 @avoid Only the second step on the welcome page; Notion is NotionSetupFlow, Apple Reminders is RemindersSetupFlow, the trial board is SamplesSetupFlow.
 @responsibility
 - Explains that tasks stay on this device, local tasks are always possible and services can be connected now or later in Einstellungen
-- Lists Erinnerungen (Apple Reminders, #552) and Notion as checkboxes (`UCheckbox`, neutral) and Todoist as a disabled one with "(kommt später)"; Erinnerungen is enabled only in the Mac app (`useRemindersSupported`), in the web build it is disabled and reads "(nur in der Mac-App)"
+- Lists Erinnerungen (Apple Reminders, #552) and Notion as checkboxes (`UCheckbox`, neutral) and Todoist as a disabled one with "(bald verfügbar)"; Erinnerungen is enabled only in the Mac app (`useRemindersSupported`), in the web build it is disabled and reads "(nur in der Mac-App)"
 - One primary action whose label follows the checkboxes: none checked empties the task store and emits `complete` ("Zum Board"); Notion only emits `connect-notion` ("Mit Notion einrichten"); Erinnerungen emits `connect-reminders` ("Mit Erinnerungen einrichten", with Notion also "Weiter mit Erinnerungen und Notion": the host runs the Reminders setup first, then Notion); the store is left alone for both
 - Back returns to the start view: the shared `BackButton` ("Zurück zur Auswahl")
 - Pattern: first-run setup, diverged from the modal wizard; checkbox list aligned with the feedback dialog's context list
