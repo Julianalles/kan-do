@@ -538,6 +538,18 @@ export const useTasksStore = defineStore("tasks", () => {
     return true;
   }
 
+  /**
+   * A create of the task ended with an unknown outcome (#528: the page may exist): the marker says since when and
+   * under which title, so the next create looks for the page first. The earliest time stays, the title is the last
+   * one sent; a task that already has an `externalId` has none.
+   */
+  function markCreateUncertain(taskId: string, since: number, title: string): void {
+    const target = tasks.value.find((el) => el.id === taskId);
+    if (!target?.pendingSync || target.externalId !== null) return;
+    const held = target.pendingSync.createUncertain;
+    target.pendingSync = { ...target.pendingSync, createUncertain: { since: Math.min(since, held?.since ?? since), title } };
+  }
+
   /** A push of the task failed: counts the attempt and keeps the reason on the marker. */
   function recordPendingSyncFailure(taskId: string, errorMessage: string): void {
     const target = tasks.value.find((el) => el.id === taskId);
@@ -1736,6 +1748,7 @@ export const useTasksStore = defineStore("tasks", () => {
     clearPendingSync,
     recordPendingSyncFailure,
     completeCreate,
+    markCreateUncertain,
     reassignSource,
     restoreMoveOrigin,
     completeMoveCreate,

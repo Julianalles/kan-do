@@ -10,7 +10,7 @@ import { isNetworkError } from '~/lib/errorMessages';
 import { mapHelpers } from '~/utils/mapHelpers';
 import type { PendingTaskDelete } from '~/store/tasks';
 import { isIntegrationSourceId, sourceSyncsTime } from '~/lib/taskSources';
-import { classifySyncFailure, createFailureKind, pushFailureScope } from '~/lib/integrationHealth';
+import { classifySyncFailure, createFailureKind, createOutcomeUnknown, pushFailureScope } from '~/lib/integrationHealth';
 import { useBoardStore } from '~/store/board';
 import type { SourceId } from '~/types/taskSource';
 import { notifyTaskMoveRejected } from '~/lib/taskMoveEvents';
@@ -290,6 +290,7 @@ export const useTaskSync = () => {
     let created: Task;
     let deferredReason: string | null = null;
     let deferredError: unknown = null;
+    let createAttemptedAt = 0;
 
     if (source === 'local') {
       created = await adapterFor('local').create(draft);
@@ -300,6 +301,7 @@ export const useTaskSync = () => {
       deferredReason = 'Offline';
       created = { ...(await adapterFor('local').create(draft)), source };
     } else {
+      createAttemptedAt = Date.now();
       try {
         created = await adapterFor(source).create(draft);
       } catch (error) {
@@ -322,6 +324,10 @@ export const useTaskSync = () => {
     else if (created.status !== undefined) boardStore.updateTaskPosition(created.id, created.status);
     if (deferredReason !== null) {
       tasksStore.markPendingSync(created.id);
+      // The create may have made the page (a timeout, a 5xx, #528): the next push looks for it before it creates
+      if (deferredError !== null && createOutcomeUnknown(deferredError)) {
+        tasksStore.markCreateUncertain(created.id, createAttemptedAt, draft.title || 'Untitled');
+      }
       if (deferredError === null || !isIntegrationSourceId(source)) tasksStore.recordPendingSyncFailure(created.id, deferredReason);
       else if (classifySyncFailure(deferredError) === 'offline') {
         // Plain offline stays quiet: the cloud and the sync button show it
@@ -397,17 +403,23 @@ export const useTaskSync = () => {
   const timeEditFlag = (taskId: string): { timeEdited?: true } =>
     tasksStore.pendingTimeUpdates[taskId]?.absolute === true ? { timeEdited: true } : {};
 
+  /** The pages of `source` the store already holds: a lookup before a create (#528) must never adopt one of them. */
+  const claimedExternalIds = (source: SourceId): ReadonlySet<string> =>
+    new Set(tasksStore.tasks.flatMap((held) => (held.source === source && held.externalId !== null ? [held.externalId] : [])));
+
   /** One write of a non-Local task; never rejects, a failure goes to `reportPushFailure`. */
   const pushTask = async (task: Task, previousStatus?: TaskStatus, operationVersion?: number): Promise<boolean> => {
     const revision = tasksStore.markPendingSync(task.id, previousStatus === undefined ? undefined : previousStatus === TaskStatus.Done);
     const queuedTime = mapHelpers.has(tasksStore.pendingTimeUpdates, task.id);
     if (queuedTime) tasksStore.markPendingUpdateSyncing(task.id);
+    let createAttemptedAt = 0;
 
     try {
       const adapter = adapterFor(task.source);
       if (task.externalId === null) {
         // Made while the source was unreachable: it creates the task now and gives it its id
-        const created = await adapter.create(task);
+        createAttemptedAt = Date.now();
+        const created = await adapter.create(task, { claimedExternalIds: claimedExternalIds(task.source) });
         // Read before `completeCreate`, which drops the revision
         const timeSuperseded = tasksStore.pendingSyncRevision(task.id) !== revision;
         tasksStore.completeCreate(task.id, created, revision);
@@ -429,6 +441,7 @@ export const useTaskSync = () => {
       return true;
     } catch (error) {
       if (queuedTime) tasksStore.markPendingUpdateFailed(task.id, error instanceof Error ? error.message : String(error));
+      if (createAttemptedAt > 0 && createOutcomeUnknown(error)) tasksStore.markCreateUncertain(task.id, createAttemptedAt, task.title || 'Untitled');
       reportPushFailure(task, error, `Failed to sync task ${task.id} to ${task.source}`);
       return false;
     }
@@ -792,9 +805,11 @@ export const useTaskSync = () => {
     const revision = tasksStore.markPendingSync(task.id);
     const adapter = adapterFor(target);
     let created: Task;
+    const createAttemptedAt = Date.now();
     try {
-      created = await adapter.create(task);
+      created = await adapter.create(task, { claimedExternalIds: claimedExternalIds(target) });
     } catch (error) {
+      if (createOutcomeUnknown(error)) tasksStore.markCreateUncertain(task.id, createAttemptedAt, task.title || 'Untitled');
       if (createFailureKind(error) === 'transient') {
         deferMove(task, error);
         return 'queued';

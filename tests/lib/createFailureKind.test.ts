@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { createFailureKind, pushFailureScope } from '~/lib/integrationHealth'
+import { CreateLookupError, createFailureKind, createOutcomeUnknown, pushFailureScope } from '~/lib/integrationHealth'
 import { SourceNotConfiguredError } from '~/integrations/sources/types'
 
 const http = (statusCode: number) => Object.assign(new Error(`HTTP ${statusCode}`), { statusCode })
@@ -36,5 +36,33 @@ describe('createFailureKind (#321)', () => {
     ['an error without a status', new Error('boom')],
   ])('refuses the create: %s', (_name, error) => {
     expect(createFailureKind(error)).toBe('rejected')
+  })
+})
+
+describe('createOutcomeUnknown (#528)', () => {
+  it.each([
+    ['a timeout or network error (status 0)', http(0)],
+    ['a server error (500)', http(500)],
+    ['a gateway error (502)', http(502)],
+    ['a status behind a wrapping error', new Error('Cannot create', { cause: http(503) })],
+  ])('the page may exist: %s', (_name, error) => {
+    expect(createOutcomeUnknown(error)).toBe(true)
+  })
+
+  it.each([
+    ['a rate limit (429)', http(429)],
+    ['no access (403)', http(403)],
+    ['a rejected token (401)', http(401)],
+    ['invalid (400)', http(400)],
+    ['in conflict (409)', http(409)],
+    ['a source that is not set up', new SourceNotConfiguredError('notion', 'not configured')],
+    ['a failed lookup, whatever status its query had', new CreateLookupError(http(502))],
+  ])('the create was refused or never sent: %s', (_name, error) => {
+    expect(createOutcomeUnknown(error)).toBe(false)
+  })
+
+  it('a failed lookup is classified by its cause, as before', () => {
+    expect(createFailureKind(new CreateLookupError(http(502)))).toBe('transient')
+    expect(createFailureKind(new CreateLookupError(http(400)))).toBe('rejected')
   })
 })
