@@ -46,6 +46,24 @@ describe('sheetPlacement', () => {
     expect(box).toEqual({ x: 100, y: 284, w: 720, h: 500 })
   })
 
+  it('keeps the sheet below the app bar when a top inset is given (#518)', () => {
+    const bar = { ...viewport, top: 56 }
+    expect(placeSheet({ x: 0, y: 0, w: 288, h: 132 }, { w: 720, h: 384 }, bar)).toMatchObject({ x: SHEET_MARGIN, y: 56 })
+    // a card low in the window opens where it did without the inset
+    expect(placeSheet(card, { w: 720, h: 384 }, bar)).toEqual(placeSheet(card, { w: 720, h: 384 }, viewport))
+    // the bottom margin still holds
+    expect(placeSheet({ x: 1000, y: 700, w: 288, h: 132 }, { w: 720, h: 384 }, bar).y).toBe(800 - 384 - SHEET_MARGIN)
+    // a grown sheet is moved back below the bar, not above it
+    expect(keepInside({ x: 100, y: 20, w: 720, h: 500 }, bar)).toEqual({ x: 100, y: 56, w: 720, h: 500 })
+  })
+
+  it('leaves the window height minus the top inset and the bottom margin to the sheet (#518)', () => {
+    expect(sheetMaxHeight(800, 56)).toBe(728)
+    expect(sheetMaxHeight(800, 0)).toBe(768)
+    expect(sheetMaxHeight(800)).toBe(768)
+    expect(sheetMaxHeight(40, 56)).toBe(0)
+  })
+
   it('takes a card as the origin only while it has a size and shows in the window', () => {
     expect(isUsableOrigin(card, viewport)).toBe(true)
     expect(isUsableOrigin({ x: 1200, y: 780, w: 288, h: 132 }, viewport)).toBe(true)
