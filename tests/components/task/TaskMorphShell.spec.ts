@@ -33,10 +33,10 @@ const mountShell = async (props: { open: boolean; originId?: string | null }) =>
 }
 
 /** The app bar row, as `app.vue` mounts it: the shell reads its bottom edge (#518). */
-const addBar = (bottom: number) => {
+const addBar = (bottom: number, top = 0) => {
   const bar = document.createElement('nav')
   bar.setAttribute('data-app-nav', '')
-  bar.getBoundingClientRect = () => rect(0, 0, 1280, bottom)
+  bar.getBoundingClientRect = () => rect(0, top, 1280, bottom - top)
   document.body.append(bar)
 }
 
@@ -110,7 +110,21 @@ describe('TaskMorphShell', () => {
     addBar(56)
     vi.stubGlobal('innerHeight', 420)
     await mountShell({ open: true, originId: 'missing' })
-    expect(Number.parseFloat(panel()!.style.top)).toBeGreaterThanOrEqual(56)
+    const top = Number.parseFloat(panel()!.style.top)
+    expect(top).toBeGreaterThanOrEqual(56)
+    // and it is on screen: the height is capped to what is left between the bar and the 16 px bottom margin
+    expect(panel()?.style.maxHeight).toBe('348px')
+  })
+
+  it('ignores a bar fixed at the bottom of a phone-width window (#518)', async () => {
+    // the sheet stays open when the window narrows below 768 px; the phone nav then sits at the bottom
+    vi.stubGlobal('innerWidth', 700)
+    addBar(800, 744)
+    addCard('t1', rect(100, 300, 288, 132))
+    await mountShell({ open: true, originId: 't1' })
+    const [, to] = panelAnimation()!.keyframes
+    expect(to).toMatchObject({ left: '16px', top: '174px', width: '668px' })
+    expect(panel()?.style.maxHeight).toBe('768px')
   })
 
   it('gives a narrow window the full width minus 32 px', async () => {

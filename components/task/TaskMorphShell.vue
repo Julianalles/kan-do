@@ -97,12 +97,16 @@ let resizeObserver: ResizeObserver | undefined;
 /** The panel element; while the dialog is closed the component's root is a comment node, not an element. */
 const panel = (): HTMLElement | null => (panelRef.value?.$el instanceof HTMLElement ? panelRef.value.$el : null);
 const reducedMotion = (): boolean => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-/** The window, plus where the sheet may start: below the app bar row, which the sheet never covers (#518); no bar on the page, no inset. */
-const viewport = () => ({
-  width: window.innerWidth,
-  height: window.innerHeight,
-  top: document.querySelector('[data-app-nav]')?.getBoundingClientRect().bottom ?? 0,
-});
+/**
+ * Where the sheet may start: below the app bar row, which the sheet never covers (#518).
+ * Only a bar in the top half counts: below 768 px the phone nav is fixed at the bottom, and the sheet stays open while the window narrows.
+ */
+const barInset = (height: number): number => {
+  const rect = document.querySelector('[data-app-nav]')?.getBoundingClientRect();
+  return rect && rect.top < height / 2 ? rect.bottom : 0;
+};
+/** The window, plus the top inset; no bar at the top of the page, no inset. */
+const viewport = () => ({ width: window.innerWidth, height: window.innerHeight, top: barInset(window.innerHeight) });
 const px = (box: SheetBox) => ({ left: `${box.x}px`, top: `${box.y}px`, width: `${box.w}px`, height: `${box.h}px` });
 const boxOf = (el: Element): SheetBox => {
   const rect = el.getBoundingClientRect();
