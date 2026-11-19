@@ -120,7 +120,7 @@ describe('useDayCloseAction.finishDay (#480)', () => {
     expect(recap.validSentBack).toEqual({ day: TOMORROW, ids: ['p', 'o1'], waiting: ['w'] })
   })
 
-  it('next morning: no new-day notice, the fresh start moves nothing, the group and the Wartet category are there (marker not overwritten)', () => {
+  it('next morning: no new-day notice, the fresh start moves nothing, the group and the Wartet tasks of `sentBack.waiting` are there (marker not overwritten)', () => {
     const { tasks, recap } = setup()
     tasks.setTasks([makeTask('o1', TaskStatus.Open), makeTask('p', TaskStatus.Progress), makeTask('w', TaskStatus.Waiting)])
     closeDay()

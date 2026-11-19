@@ -172,7 +172,7 @@ describe('useNewDay: the day check and the fresh start (#387)', () => {
 
   describe('the fresh start (the user\'s click)', () => {
     it('takes Jetzt, Offen and Wartet off the board: Jetzt first, then Offen in board order, then Wartet; Erledigt stays', () => {
-      const { tasks, board, recap, newDay } = setup()
+      const { tasks, recap, newDay } = setup()
       expect(startFresh(newDay)).toEqual(['j', 'o1', 'o2', 'w'])
       expect(notPlannedIds()).toEqual(['j', 'o1', 'o2', 'w'])
       expect(tasks.tasksOpen).toEqual([])
