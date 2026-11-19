@@ -18,8 +18,8 @@
       <caption class="sr-only">{{ t('onboarding.flow.reminders.today.tableLabel') }}</caption>
       <tbody class="divide-y divide-default">
         <tr v-for="row in rows" :key="row.key" :data-testid="`reminders-today-row-${row.key}`">
-          <th scope="row" class="px-4 py-2.5 text-left font-normal text-default">{{ t(`onboarding.flow.reminders.today.row${row.label}`) }}</th>
-          <td class="px-4 py-2.5 text-right" :class="row.onBoard ? 'font-medium text-highlighted' : 'text-muted'">
+          <th scope="row" class="px-4 py-3 text-left font-normal text-default">{{ t(`onboarding.flow.reminders.today.row${row.label}`) }}</th>
+          <td class="px-4 py-3 text-right" :class="row.onBoard ? 'font-medium text-highlighted' : 'text-muted'">
             {{ row.onBoard ? t('onboarding.flow.reminders.today.onBoard') : t('onboarding.flow.reminders.today.inMyTasks') }}
           </td>
         </tr>

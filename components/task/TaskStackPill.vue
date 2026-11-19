@@ -114,8 +114,8 @@ const kind = computed<"topic" | "priority" | "plain">(() => {
 }
 
 .task-stack-pill__icon {
-  width: 0.875rem;
-  height: 0.875rem;
+  width: 0.75rem;
+  height: 0.75rem;
 }
 
 /* The priority badge is the segment itself: its own tint, no extra padding, no hairline after it */

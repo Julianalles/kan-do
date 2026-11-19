@@ -18,7 +18,7 @@
         <span class="text-3xl font-semibold text-highlighted tabular-nums">{{ cell.count }}</span>
         <span class="mt-1 text-xs text-toned">{{ t(`dayClose.timebox.${cell.key}`) }}</span>
         <span class="mt-3 flex min-h-5 flex-wrap justify-center gap-1" aria-hidden="true">
-          <span v-for="n in cell.count" :key="n" class="size-2.5 rounded-full" :style="{ backgroundColor: cell.color }" />
+          <span v-for="n in cell.count" :key="n" class="size-2 rounded-full" :style="{ backgroundColor: cell.color }" />
         </span>
       </li>
     </ul>

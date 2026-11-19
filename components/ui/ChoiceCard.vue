@@ -27,7 +27,7 @@
       class="flex size-5 shrink-0 items-center justify-center rounded-full border-[1.5px] border-accented group-data-[state=checked]:border-primary"
       aria-hidden="true"
     >
-      <span class="size-2.5 scale-0 rounded-full bg-primary transition-transform duration-(--duration-fast) group-data-[state=checked]:scale-100 motion-reduce:transition-none" />
+      <span class="size-2 scale-0 rounded-full bg-primary transition-transform duration-(--duration-fast) group-data-[state=checked]:scale-100 motion-reduce:transition-none" />
     </span>
     <UIcon v-else :name="ICONS.goOn" class="size-5 shrink-0 text-muted" aria-hidden="true" />
   </component>

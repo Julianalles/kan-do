@@ -202,8 +202,8 @@ function openTask(taskId: string) {
 
 .yesterday-note__tick {
   flex-shrink: 0;
-  width: 0.875rem;
-  height: 0.875rem;
+  width: 1rem;
+  height: 1rem;
   color: var(--ui-color-success-800);
 }
 

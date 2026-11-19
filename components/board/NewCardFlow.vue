@@ -1135,7 +1135,7 @@ onBeforeUnmount(() => {
 
 .ncf__key {
   display: none;
-  padding: 0.15rem 0.3rem;
+  padding: 0.125rem 0.25rem;
   border-radius: var(--radius-sm);
   background: color-mix(in oklab, currentColor 14%, transparent);
   color: inherit;
