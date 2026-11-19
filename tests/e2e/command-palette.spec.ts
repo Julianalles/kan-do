@@ -338,6 +338,7 @@ test.describe('Command palette off the board (kd#224)', () => {
   })
 
   test('there is no palette on the welcome page (no app bar)', async ({ page }) => {
+    await page.context().addInitScript(() => localStorage.clear()) // a set-up board never shows /welcome (#561)
     await page.goto('/welcome')
     await expect(page.getByTestId('welcome-photo')).toBeAttached()
     await page.keyboard.press('ControlOrMeta+k')

@@ -49,6 +49,7 @@ test.describe('Live copy editor', () => {
   })
 
   test('Alt+Shift+K toggles the mode where there is no command bar: the welcome screen (#337)', async ({ page }) => {
+    await page.context().addInitScript(() => localStorage.clear()) // a set-up board never shows /welcome (#561)
     await page.goto('/welcome')
     const choice = page.getByTestId('welcome-choice-local')
     await expect(choice).toBeVisible()
