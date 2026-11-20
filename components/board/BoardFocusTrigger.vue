@@ -2,12 +2,12 @@
 @component BoardFocusTrigger
 @kind primitive
 @category navigation
-@description The quiet "Fokus" funnel beside the ⋯ pill of the app bar (#161): a round, muted icon that is the only resting trace of the topic focus. Tapping it opens the topic chips (BoardFocusBar); while a focus is on it is primary, and tapping it ends the focus.
+@description The quiet "Thema" funnel beside the ⋯ pill of the app bar (#161): a round, muted icon that is the only resting trace of the topic focus. Tapping it opens the topic chips (BoardFocusBar); while a focus is on it is primary, and tapping it ends the focus.
 @usage Rendered by AppNav next to the ⋯ pill, on the board route only: `<BoardFocusTrigger />`. It owns no state: `useBoardFocus` does, and BoardFocusBar shows the chips and the pill.
-@avoid Not a general filter button and not for another property: the focus is topic-only. Not a place for the pill or the chips, which float with the board.
+@avoid Not a general filter button and not for another property: the focus is topic-only. Not a place for the pill or the chips, which live in the board (in the flow, at the head of the list on a phone, #608).
 @responsibility
-- Absent while no card has a topic and no focus is on (nothing to focus on); never takes room from the pills (placed beside the group, so the bar does not re-centre when it appears)
-- ARIA: `aria-expanded` (with `aria-controls` the chip row) while it opens the chips, `aria-pressed="true"` instead while a focus is on and it ends it; the name says which ("Fokus", "Fokus beenden: <topic>")
+- Absent while no card has a topic and no focus is on (nothing to focus on), and while day close or the new-day recap is open (AppNav, #608: no board filter on a screen without a board); never takes room from the pills (placed beside the group, so the bar does not re-centre when it appears)
+- ARIA: `aria-expanded` (with `aria-controls` the chip row) while it opens the chips, `aria-pressed="true"` instead while a focus is on and it ends it; the name says which ("Thema", "Thema beenden: <topic>")
 - Esc closes the chip row and keeps focus on the funnel
 -->
 <template>

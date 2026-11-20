@@ -471,12 +471,12 @@
   {
     "id": "focus-topic",
     "concept": "Hiding the cards of every other topic on the board so one stretch of work stays in view (#161)",
-    "de": "Fokus",
-    "en": "focus",
-    "avoidDe": [],
-    "avoidEn": [],
+    "de": "Thema",
+    "en": "topic",
+    "avoidDe": ["Fokus"],
+    "avoidEn": ["focus"],
     "status": "proposed",
-    "note": "Funnel \"Fokus\", pill \"Fokus: <Thema>, n ausgeblendet\", ✕ \"Fokus beenden\". The same word already names the Jetzt focus overlay (settings.focus.*, #394): two features, one word. Term question for the user: keep \"Fokus\" for both, or name this one \"Themenfokus\" / \"Filter\"."
+    "note": "Funnel \"Thema\", pill \"Thema: <Name>, n ausgeblendet\", ✕ \"Thema beenden\" (EN \"Topic\", \"Topic: <name>, n hidden\", \"Clear topic\"). Proposed by the #608 build (item 75, D2): \"Fokus\" stays the Jetzt focus overlay (settings.focus.*, #394), so the two features no longer share a word. The user decides."
   },
   {
     "id": "board-day",
