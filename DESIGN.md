@@ -209,6 +209,8 @@ One answer per state, on every control, whoever built it.
 - **Groups of cards** collapse into a stack; no lines, boxes or tints around a group.
 - **Chrome:** one global app bar on every page. The board has no toolbar of its own, and the bar is the way between pages. A step inside a flow (the welcome steps) and a deeper route (a settings sub-page) go back with the back button, not with the bar: see "Step back" under Components.
 
+**The One Stage Rule.** The day close and the recap are one stage: the title anchored under the app bar, one 44 rem column, the footer sheet docked at the foot with the content scrolling above it (the way out soft, the main button solid without an arrow, on top on a phone); the day close enters with the photo coming down over the board and both leave with it lifting (user, 2026-11-20, #612, #580).
+
 ## Components
 
 Nuxt UI components first, themed in `app.config.ts`; a shared primitive in `components/ui/` from three call sites on; custom components for the board domain. One line per user task; how each looks, with every variant and state, is on `/ui`.
