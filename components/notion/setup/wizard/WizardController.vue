@@ -192,6 +192,8 @@ const handleSelectedDataSourceChange = (value: string) => {
 
 // Loading and error states
 const isLoadingDatabases = ref(false);
+/** The schema is read before the mapping step opens (#667): Weiter shows its loading state meanwhile */
+const isLoadingSchema = ref(false);
 const databasesError = ref<string | null>(null);
 
 /**
@@ -285,8 +287,10 @@ const nextStep = async () => {
       step.value = 'database';
       await fetchDatabases();
     } else if (step.value === 'database' && selectedDatabase.value) {
-      step.value = 'mapping';
+      // Read the schema first: the mapping step then mounts with its fields (and their auto-mapping) in place instead of
+      // re-laying once the schema arrives (#667)
       await fetchDatabaseSchema();
+      step.value = 'mapping';
     } else if (step.value === 'mapping' && mappingStep.value) {
       // This will be handled by the save event from the mapping step
       mappingStep.value.save();
@@ -517,6 +521,7 @@ const fetchDatabaseSchema = async () => {
   if (requireDataSourceSelection.value && !selectedDataSource.value) {
     return;
   }
+  isLoadingSchema.value = true;
   try {
     const api = new NotionClientAPI(notionToken.value);
     const resolvedDataSourceId = selectedDataSource.value && selectedDataSource.value.trim().length > 0
@@ -550,6 +555,8 @@ const fetchDatabaseSchema = async () => {
     }
   } catch (error) {
     handleError(error as Error, 'notion_setup');
+  } finally {
+    isLoadingSchema.value = false;
   }
 };
 
@@ -823,6 +830,7 @@ defineExpose({
   cancel, // Added from previous defineExpose
   isValidating,
   isLoadingDatabases,
+  isLoadingSchema,
   statusMappingStep, // Expose statusMappingStep ref for external access
   priorityMappingStep, // Expose priorityMappingStep ref for external access
   propertyMapping, // Expose propertyMapping for conditional step rendering

@@ -630,7 +630,8 @@ watch(
       // Clear unit when timeSpent mapping is removed
       mapping.value.timeSpentUnit = undefined;
     }
-  }
+  },
+  { immediate: true }, // the mapper mounts with the schema (#667): the field is set before this watch exists
 );
 
 // When timeBox is selected for the first time, auto-detect unit based on field type
@@ -653,7 +654,8 @@ watch(
       // Clear unit when timeBox mapping is removed
       mapping.value.timeBoxUnit = undefined;
     }
-  }
+  },
+  { immediate: true },
 );
 
 /**

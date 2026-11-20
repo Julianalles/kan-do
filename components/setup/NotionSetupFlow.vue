@@ -25,7 +25,7 @@
       :next-label="nextLabel"
       next-test-id="wizard-proceed"
       :next-disabled="!inIntro && !wizard?.canProceed"
-      :loading="!inIntro && !!(wizard?.isValidating || wizard?.isLoadingDatabases)"
+      :loading="!inIntro && !!(wizard?.isValidating || wizard?.isLoadingDatabases || wizard?.isLoadingSchema)"
       :done="done"
       :done-title="t('onboarding.flow.notion.connected')"
       :done-hint="t('onboarding.flow.notion.loading')"
