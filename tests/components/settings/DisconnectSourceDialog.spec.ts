@@ -73,11 +73,11 @@ describe('DisconnectSourceDialog', () => {
     expect(wrapper.find('[data-testid="disconnect-default-note"]').exists()).toBe(false)
   })
 
-  it('with queued changes on a reachable source it offers both ways, "Abbrechen" first', () => {
+  it('with queued changes on a reachable source it offers both ways, main on top, "Abbrechen" last (DOM order = visual order, #611)', () => {
     useTasksStore().markPendingSync('n-1')
     const wrapper = mountDialog()
     expect(wrapper.find('[data-testid="disconnect-unsynced"]').text()).toContain('1 Änderung ist noch nicht in Notion gespeichert')
-    expect(buttons(wrapper)).toEqual(['Abbrechen', 'Trotzdem trennen', 'Erst synchronisieren, dann trennen'])
+    expect(buttons(wrapper)).toEqual(['Erst synchronisieren, dann trennen', 'Trotzdem trennen', 'Abbrechen'])
   })
 
   it('with queued changes on an unreachable source only "Trotzdem trennen" or "Abbrechen" remain', () => {
@@ -165,6 +165,6 @@ describe('DisconnectSourceDialog', () => {
     expect(wrapper.text()).toContain('Disconnect Notion?')
     expect(wrapper.text()).toContain('2 tasks leave the board. They stay in Notion.')
     expect(wrapper.text()).toContain('New tasks will be saved locally afterwards.')
-    expect(buttons(wrapper)).toEqual(['Cancel', 'Disconnect anyway', 'Sync first, then disconnect'])
+    expect(buttons(wrapper)).toEqual(['Sync first, then disconnect', 'Disconnect anyway', 'Cancel'])
   })
 })

@@ -53,7 +53,7 @@ afterEach(() => {
 })
 
 describe('TaskTimeboxNudge (#389)', () => {
-  it('asks the question over three buttons, as a non-modal group named by the question', () => {
+  it('asks the question over the shared timebox offers and a custom one, as a non-modal group named by the question', () => {
     const { w } = setup()
     const g = group(w)
     expect(g.exists()).toBe(true)
@@ -61,7 +61,7 @@ describe('TaskTimeboxNudge (#389)', () => {
     expect(g.attributes('aria-modal')).toBeUndefined()
     const labelledBy = g.attributes('aria-labelledby')!
     expect(w.find(`[id="${labelledBy}"]`).text()).toBe('Timebox hinzufügen?')
-    expect(buttons(w).map(b => b.attributes('aria-label') ?? b.text())).toEqual(['15 min', '30 min', 'Eigene Dauer'])
+    expect(buttons(w).map(b => b.attributes('aria-label') ?? b.text())).toEqual(['15 min', '30 min', '60 min', 'Eigene Dauer'])
   })
 
   it('renders nothing for a card that is not the nudged one', () => {
@@ -95,7 +95,7 @@ describe('TaskTimeboxNudge (#389)', () => {
 
   describe('custom duration', () => {
     const openField = async (w: VueWrapper) => {
-      await buttons(w)[2]!.trigger('click')
+      await buttons(w)[3]!.trigger('click')
       await nextTick()
       return w.find<HTMLInputElement>('input')
     }
@@ -147,11 +147,11 @@ describe('TaskTimeboxNudge (#389)', () => {
       await input.trigger('keydown', { key: 'Escape' })
       await nextTick()
       expect(w.find('input').exists()).toBe(false)
-      expect(buttons(w)).toHaveLength(3)
-      expect(document.activeElement).toBe(buttons(w)[2]!.element)
+      expect(buttons(w)).toHaveLength(4)
+      expect(document.activeElement).toBe(buttons(w)[3]!.element)
       expect(board.timeboxNudgeTaskId).toBe('t1')
 
-      await buttons(w)[2]!.trigger('keydown', { key: 'Escape' })
+      await buttons(w)[3]!.trigger('keydown', { key: 'Escape' })
       expect(board.timeboxNudgeTaskId).toBeNull()
     })
   })
@@ -199,7 +199,7 @@ describe('TaskTimeboxNudge (#389)', () => {
     it('keeps its progress while the field is open: the bar stays mounted and paused', async () => {
       const { w } = setup()
       const before = bar(w).element
-      await buttons(w)[2]!.trigger('click')
+      await buttons(w)[3]!.trigger('click')
       expect(bar(w).element).toBe(before)
       expect(bar(w).classes()).toContain('is-paused')
     })

@@ -13,6 +13,7 @@
 @import "./board-focus-overlay.css";
 @import "./transitions.css";
 @import "./sheet.css";
+@import "./footer.css";
 @import "./recap-stage.css";
 
 @theme static {

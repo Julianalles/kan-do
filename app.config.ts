@@ -179,7 +179,7 @@ export default defineAppConfig({
         title: 'font-display text-lg font-medium tracking-display',
         // Standard footer chrome: actions right-aligned. Wizards that need a
         // two-zone layout put a `flex w-full justify-between` div inside.
-        footer: 'flex items-center justify-end gap-2 px-6 py-4',
+        footer: 'footer-actions px-6 py-4',
         // Dialog copy is the body role (reading text, 1.55); Nuxt UI sets `text-sm`
         description: 'text-body',
       },

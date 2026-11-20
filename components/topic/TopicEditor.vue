@@ -118,7 +118,7 @@ immediate: no loading or error state.
 
     <p class="text-body text-muted" data-testid="topic-editor-count">{{ countLine }}</p>
 
-    <div ref="actionsRow" class="flex scroll-mb-4 items-center justify-end gap-2">
+    <div ref="actionsRow" class="footer-actions scroll-mb-4">
       <UButton type="button" color="neutral" variant="soft" :label="t('topic.editor.cancel')" data-testid="topic-cancel" @click="emit('close')" />
       <UButton
         type="submit"
