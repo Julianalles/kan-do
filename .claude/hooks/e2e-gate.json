@@ -692,6 +692,7 @@
         "pages/settings/index.vue",
         "pages/settings/sources.vue",
         "components/settings/SourceRow.vue",
+        "utils/sourceCompound.ts",
         "components/settings/LocalStorageDetails.vue",
         "components/settings/DisconnectSourceDialog.vue",
         "composables/useSourceList.ts"

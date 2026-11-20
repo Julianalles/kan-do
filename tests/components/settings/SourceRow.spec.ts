@@ -47,6 +47,12 @@ describe('SourceRow (#324, menu since #333)', () => {
     expect(w.emitted('repair')).toEqual([['notion']])
   })
 
+  it('a two-word source is coupled with hyphens in the German menu item and repair label (#685)', () => {
+    const w = render(row({ id: 'reminders', name: 'Apple Erinnerungen', canRepair: true }))
+    expect(items(w).map((i) => i.text())).toContain('Apple-Erinnerungen-Einstellungen')
+    expect(w.get('[data-testid="source-repair-reminders"]').attributes('aria-label')).toBe('Apple-Erinnerungen-Verbindung reparieren')
+  })
+
   it('settings and disconnect emit with the id', async () => {
     const w = render(row())
     await pick(w, 'Notion-Einstellungen')

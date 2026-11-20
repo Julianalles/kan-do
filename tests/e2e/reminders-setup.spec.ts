@@ -52,7 +52,7 @@ async function openRemindersSettings(page: Page) {
   await expect(page.locator('#column-open-list').getByText('Milch kaufen')).toBeVisible()
   await openSettings(page, 'sources')
   await page.getByTestId('source-actions-reminders').click()
-  await page.getByRole('menuitem', { name: 'Apple Erinnerungen-Einstellungen' }).click()
+  await page.getByRole('menuitem', { name: 'Apple-Erinnerungen-Einstellungen' }).click()
   await expect(page).toHaveURL(/\/settings\/reminders$/)
 }
 
@@ -306,10 +306,10 @@ test.describe('Erinnerungen-Einstellungen (#552)', () => {
     await page.goto('/tasks')
     await openSettings(page, 'sources')
     await page.getByTestId('source-actions-reminders').click()
-    await page.getByRole('menuitem', { name: 'Apple Erinnerungen-Einstellungen' }).click()
+    await page.getByRole('menuitem', { name: 'Apple-Erinnerungen-Einstellungen' }).click()
 
     await expect(page).toHaveURL(/\/settings\/reminders$/)
-    await expect(page.getByRole('heading', { level: 1, name: 'Apple Erinnerungen-Einstellungen' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'Apple-Erinnerungen-Einstellungen' })).toBeVisible()
     await expect(page.getByText('Hier änderst du jederzeit, was du beim Einrichten gewählt hast.')).toBeVisible()
     await expect(page.getByRole('heading', { level: 2, name: 'Listen' })).toBeVisible()
     await expect(page.getByRole('heading', { level: 2, name: 'Heute' })).toBeVisible()
@@ -375,7 +375,7 @@ test.describe('Erinnerungen-Einstellungen (#552)', () => {
 
     await openSettings(page, 'sources')
     await page.getByTestId('source-actions-reminders').click()
-    await page.getByRole('menuitem', { name: 'Apple Erinnerungen-Einstellungen' }).click()
+    await page.getByRole('menuitem', { name: 'Apple-Erinnerungen-Einstellungen' }).click()
     await roleChoice(page, 'list-private', 'off').click()
     // It has a task now, so it asks: one task, none of it on today's board
     await expect(page.getByTestId('reminders-exclude-confirm')).toContainText('1 Aufgabe verlässt Kan-do, 0 davon stehen heute auf dem Board.')

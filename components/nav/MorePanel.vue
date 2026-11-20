@@ -164,7 +164,7 @@
           :data-testid="`sync-repair-${worstProblem.source}`"
           @click="emit('close')"
         >
-          {{ t('board.sync.repair', { source: integrationLabel(worstProblem.source) }) }}
+          {{ t('board.sync.repair', { source: sourceCompound(integrationLabel(worstProblem.source), locale) }) }}
         </UButton>
       </div>
       <UButton
@@ -207,6 +207,7 @@ import { integrationLabel, repairRouteOf } from '~/lib/taskSources'
 import type { SourceProblem } from '~/lib/integrationHealth'
 import { isTauri } from '~/utils/isTauri'
 import { BREAKPOINT_QUERIES } from '~/lib/breakpoints';
+import { sourceCompound } from '~/utils/sourceCompound'
 
 defineOptions({ name: 'MorePanel' })
 
@@ -219,7 +220,7 @@ const emit = defineEmits<{
   commands: []
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const pageHeadingId = useId()
 const placesHeadingId = useId()
 const props = defineProps<{
