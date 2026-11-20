@@ -91,6 +91,13 @@ screencapture -x -l <window id> "<scratchpad>/window.png"     # -l: this window 
 
 The list is filtered by PID only, not by layer: the `alwaysOnBottom` window sits at layer -1 (tao `BelowNormalWindowLevel`), a `kCGWindowLayer == 0` filter would print nothing. Take the id of the large window (the app's main window, ignore tiny ones).
 
+Capture gotchas (a demo-board shot):
+
+- Write the data folder first (`scripts/sandbox-data.mjs`, see "Reaching a Jetzt task"): with a fresh `HOME` the folder is missing ("Datenordner nicht erreichbar") and `?seed` is ignored. For the demo board seed the webview's `devUrl` with `?seed=demo` after that.
+- The floating Now window loads no `index.html` in `tauri dev` and throws "asset not found" into the Nuxt error overlay: turn it off (`floatingNowEnabled=false` in the settings store).
+- Pass the app `-AppleShowScrollBars WhenScrolling` (append after `--` in the `cargo tauri dev` call), else a mouse shows always-visible scrollbars.
+- The `alwaysOnBottom`/unfocused window gets the small inactive-window shadow, so its capture is smaller (2624x2024 instead of 2752x2168) than a key window's: compare sizes only between captures made the same way.
+
 Never `screencapture` without `-l <id>` (or `-R` for a region you know is yours), and never ask the window to come forward.
 
 ## Stopping only your own process
