@@ -46,7 +46,7 @@ One centred column (max 32rem) on desktop and a phone alike; the page itself nev
         <div class="recap-stage__content recap-stage__content--narrow">
           <div class="text-center">
             <SectionHeader :id="titleId" tag="h2" size="display" data-slot="title">{{ t('dayClose.title') }}</SectionHeader>
-            <p class="mt-2 text-base text-toned" data-testid="day-close-date">{{ date }}</p>
+            <p class="mt-2 text-body text-toned" data-testid="day-close-date">{{ date }}</p>
           </div>
 
           <!-- Sheet 1: how the day went. No list and no choice -->

@@ -12,7 +12,7 @@
 -->
 <template>
   <section v-if="rows.length > 0" :aria-labelledby="headingId" data-testid="day-close-topics">
-    <h4 :id="headingId" class="text-sm font-medium text-highlighted">{{ t('dayClose.topics.heading') }}</h4>
+    <SectionHeader :id="headingId" tag="h4" size="label" class="mb-0">{{ t('dayClose.topics.heading') }}</SectionHeader>
     <div class="mt-3 flex h-3 gap-0.5" aria-hidden="true">
       <span v-for="row in rows" :key="row.key" class="h-full min-w-1 rounded-full" :style="{ flexGrow: row.count, backgroundColor: inkColor(row.step) }" />
     </div>
@@ -29,6 +29,7 @@
 
 <script setup lang="ts">
 import { useId } from 'vue'
+import SectionHeader from '~/components/ui/SectionHeader.vue'
 import { useI18n } from 'vue-i18n'
 import TopicMark from '~/components/topic/TopicMark.vue'
 import { inkColor } from '~/lib/inkRamp'

@@ -101,8 +101,8 @@ export function usePlanToasts() {
         'onUpdate:open': (open: boolean) => { if (!open) planWindow.close(id) },
         actions: [{
           label: translate('common.undo'),
-          color: 'primary',
-          variant: 'solid',
+          color: 'neutral',
+          variant: 'soft',
           // The action's own auto-close would report the toast as closed before Undo ran
           closeOnClick: false,
           onClick: () => { void undoPlan(id, toastId) },
@@ -150,7 +150,7 @@ export function usePlanToasts() {
         actions: [{
           label: translate('task.reminders.restoreDate', { date: readableDate(offer) }),
           color: 'neutral',
-          variant: 'solid',
+          variant: 'soft',
           closeOnClick: false,
           onClick: () => { void restoreOldDate(id, toastId) },
         }],

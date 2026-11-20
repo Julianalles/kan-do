@@ -85,8 +85,8 @@ export function useTaskSwap() {
       actions: [
         {
           label: translate('common.undo'),
-          color: 'primary',
-          variant: 'solid',
+          color: 'neutral',
+          variant: 'soft',
           onClick: () => {
             toast.remove(id)
             undoSwap({ incomingId: incoming.id, outgoingId: outgoing.id, incomingFrom, previousIndex })
