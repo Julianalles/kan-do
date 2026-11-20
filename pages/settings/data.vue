@@ -15,7 +15,7 @@ the portable JSON export/import (#224, ADR 011) and the app reset. The data fold
       <div class="space-y-8">
         <p v-if="desktop" class="-mt-4 text-body text-muted" data-testid="data-folder-moved">
           {{ t('settings.data.movedToConnections') }}
-          <NuxtLink to="/settings?tab=sources" class="underline focus-ring" data-testid="data-folder-moved-link">{{ t('settings.data.movedLink') }}</NuxtLink>
+          <ULink to="/settings?tab=sources" data-testid="data-folder-moved-link">{{ t('settings.data.movedLink') }}</ULink>
         </p>
 
         <DataStorageNotice v-if="desktop" :show-details="false" />

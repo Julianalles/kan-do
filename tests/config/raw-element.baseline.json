@@ -12,7 +12,7 @@
     "reason": "a settings row has no shared element yet; the rows of this page are the largest share of the count (#599 guard 90)"
   },
   "pages/settings/notion.vue": {
-    "count": 2,
+    "count": 1,
     "reason": "keep: a text role, list or figure of this page that has no shared element yet (#599 guard 90)"
   },
   "pages/settings/reminders.vue": {

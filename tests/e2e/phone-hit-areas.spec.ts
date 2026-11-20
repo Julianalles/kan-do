@@ -21,6 +21,10 @@ const EXCEPTIONS: HitAreaException[] = [
     selector: '[data-testid="notion-setup-flow"] a[href="https://www.notion.so/my-integrations"]',
     reason: 'a link inside a sentence ("Öffne … um eine neue Integration zu erstellen"): WCAG 2.5.8 exempts it, padding around an inline box is covered by the field above it, and the copy is not this issue',
   },
+  {
+    selector: '[data-testid="notion-settings-tabs"] [role="tablist"].overflow-x-auto [role="tab"]:last-child',
+    reason: 'the Notion tab row scrolls sideways at 390 px (#625, #603: it is a horizontal row at every width now) and its last tab is cut by the fade at rest: its centre lies under the clip, so the probe cannot reach it; the tab is scrolled into view when chosen',
+  },
 ]
 
 /** Each screen seeds a Local board unless it names its own start (the welcome flow has no board, the Notion pages need the stub). */

@@ -433,6 +433,8 @@
       "inTimebox": "Within timebox?",
       "unplanned": "Unplanned",
       "scrollRegionLabel": "Table of tasks done, scrollable",
+      "showMore": "Show more",
+      "shown": "{shown} of {total} shown",
       "empty": "No tasks in the selected period"
     },
     "question": {
@@ -866,7 +868,7 @@
       "connection": {
         "description": "Token and target",
         "tokenLabel": "Integration token",
-        "manageToken": "Manage token in Notion →",
+        "manageToken": "Manage token in Notion",
         "databaseLabel": "Database",
         "noDatabase": "No database selected",
         "changeDatabase": "Change database",
@@ -1543,9 +1545,6 @@
     "allDone": "All tasks done",
     "timebox": {
       "heading": "Timebox",
-      "under": "well under the timebox",
-      "within": "about within the timebox",
-      "over": "well over the timebox",
       "caption": "Based on {n} done task with a timebox and tracked time. | Based on {n} done tasks with a timebox and tracked time."
     },
     "topics": {

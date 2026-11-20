@@ -37,8 +37,8 @@
     <UButton
       v-if="patterns.length > shownCount"
       color="neutral"
-      variant="link"
-      class="mt-2 min-h-11 px-0"
+      variant="ghost"
+      class="mt-2"
       :label="showAll ? t('statistics.patterns.showFewer') : t('statistics.patterns.showAll', { n: patterns.length })"
       @click="showAll = !showAll"
     />

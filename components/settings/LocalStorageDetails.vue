@@ -28,7 +28,7 @@ so with the few actions that state allows. Moved here from /settings/data so a s
       <p v-if="state.cloudSync?.state === 'error' && state.cloudSync.message" data-selectable class="font-mono text-xs wrap-break-word text-muted">{{ state.cloudSync.message }}</p>
     </div>
     <p v-if="status === 'ok' && conflictCopies.length > 0" class="text-muted" data-testid="data-folder-copies">
-      <NuxtLink to="/settings/data" class="underline focus-ring">{{ t('settings.data.notice.details') }}</NuxtLink>
+      <ULink to="/settings/data">{{ t('settings.data.notice.details') }}</ULink>
     </p>
     <div class="flex flex-wrap gap-2">
       <!-- A problem that already offers "Ordner wählen…" below is the only folder button (no two of the same job) -->

@@ -8,13 +8,13 @@
 @responsibility
 - Render the heading element (`tag`, default `div`; pass `h2` / `h3` for a real heading) with the role's size, face, tracking and line height from the type tokens
 - `id` links the heading with `aria-labelledby`
-- The `label` role keeps its spacing below by tag (4, 3 or 2; none for `label` and `legend`, the form's `space-y-*` owns that gap); the other roles leave spacing to the host
+- The `label` role keeps its spacing below by tag (4, 3 or 2, overridable by a host `mb-*`; none for `label` and `legend`, the form's `space-y-*` owns that gap); the other roles leave spacing to the host
 -->
 <template>
   <component
     :is="tag"
     :id="id"
-    :class="[ROLE[size], size === 'label' ? (LABEL_MARGIN[tag] ?? 'mb-2') : '', tone === 'muted' || size === 'label' ? 'text-muted' : 'text-highlighted']"
+    :class="[ROLE[size], size === 'label' ? (LABEL_MARGIN[tag] ?? '[:where(&)]:mb-2') : '', tone === 'muted' || size === 'label' ? 'text-muted' : 'text-highlighted']"
   >
     <UIcon v-if="icon" :name="icon" class="size-4" />
     <slot>{{ text }}</slot>
@@ -41,6 +41,6 @@ withDefaults(defineProps<{
 }>(), { size: 'headline', tone: 'default', tag: 'div', icon: undefined, text: undefined, id: undefined })
 
 const ROLE = SECTION_ROLE
-// The label role's space below by tag; a `label` or `legend` takes none, the form's own spacing (`space-y-*`) sets the gap to its field
-const LABEL_MARGIN: Record<string, string> = { h1: 'mb-4', h2: 'mb-3', label: '', legend: '' }
+// The label role's space below by tag, at zero specificity (`:where`) so a host `mb-*` of the same utility layer overrides it; a `label` or `legend` takes none, the form's own spacing (`space-y-*`) sets the gap to its field
+const LABEL_MARGIN: Record<string, string> = { h1: '[:where(&)]:mb-4', h2: '[:where(&)]:mb-3', label: '', legend: '' }
 </script>

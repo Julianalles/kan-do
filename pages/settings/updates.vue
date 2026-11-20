@@ -33,7 +33,7 @@ UpdateDialog.
             >
               {{ retryable ? t('settings.updates.retry') : t('settings.updates.check') }}
             </UButton>
-            <UButton variant="link" color="neutral" class="px-0" data-testid="updates-whats-new" @click="whatsNew.openReopen()">
+            <UButton variant="ghost" color="neutral" data-testid="updates-whats-new" @click="whatsNew.openReopen()">
               {{ t('settings.updates.whatsNew') }}
             </UButton>
           </div>

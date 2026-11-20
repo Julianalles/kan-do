@@ -51,9 +51,8 @@ current version, says that data is backed up first and the app restarts, and ins
         <UButton
           v-if="state.installError?.kind === 'data_blocked'"
           to="/settings?tab=sources"
-          variant="link"
+          variant="ghost"
           color="neutral"
-          class="px-0"
           data-testid="update-open-data"
           @click="updater.closeDialog()"
         >
