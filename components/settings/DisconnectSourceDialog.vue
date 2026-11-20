@@ -77,8 +77,8 @@ Notion settings page now and from the "Verbindungen" page (#324).
           @click="isOpen = false"
         />
         <UButton
-          :color="plan && plan.unsyncedCount > 0 ? 'error' : 'primary'"
-          :variant="plan && plan.unsyncedCount > 0 ? 'soft' : 'solid'"
+          color="error"
+          variant="soft"
           :label="plan && plan.unsyncedCount > 0 ? t('sources.disconnect.anyway') : t('sources.disconnect.confirm')"
           :loading="busyAction === 'discard'"
           :disabled="isBusy || !plan"

@@ -23,19 +23,19 @@
     </div>
 
     <fieldset class="flex flex-col gap-1 md:gap-3" data-testid="local-sources">
-      <legend class="mb-3 text-sm font-medium text-highlighted">{{ t('onboarding.flow.local.legend') }}</legend>
+      <SectionHeader tag="legend" size="label" class="mb-3">{{ t('onboarding.flow.local.legend') }}</SectionHeader>
       <UCheckbox
         v-model="reminders"
         :disabled="!remindersSupported"
-        color="neutral"
+       
         :label="remindersSupported || isDesktop ? t('onboarding.flow.local.reminders') : t('onboarding.flow.local.remindersWebOnly')"
         data-testid="local-source-reminders"
       />
-      <UCheckbox v-model="notion" color="neutral" :label="t('onboarding.flow.local.notion')" data-testid="local-source-notion" />
+      <UCheckbox v-model="notion" :label="t('onboarding.flow.local.notion')" data-testid="local-source-notion" />
       <UCheckbox
         :model-value="false"
         disabled
-        color="neutral"
+       
         :label="t('onboarding.flow.local.todoist')"
         data-testid="local-source-todoist"
       />

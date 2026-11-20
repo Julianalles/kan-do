@@ -50,7 +50,7 @@ One centred column (max 44rem) with both decks side by side from 768px, one deck
         <div class="recap-stage__content">
           <div class="text-center">
             <SectionHeader :id="titleId" tag="h2" size="display" data-slot="title">{{ t('recap.title') }}</SectionHeader>
-            <p class="mt-2 text-base text-toned" data-testid="recap-summary">{{ summary }}</p>
+            <p class="mt-2 text-body text-toned" data-testid="recap-summary">{{ summary }}</p>
           </div>
           <div v-if="snapshot">
             <!-- Phones: one deck at a time. Nothing open: only the done deck, no switcher -->

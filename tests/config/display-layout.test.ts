@@ -43,11 +43,6 @@ describe('display and layout (kd#180)', () => {
   const KEPT_HEADINGS: Record<string, { count: number, reason: string }> = {
     'components/board/BoardColumnHeader.vue': { count: 1, reason: 'the column name keeps its own CSS (SectionHeader.vue "avoid")' },
     'components/ui/PageHeader.vue': { count: 1, reason: 'PageHeader is the page title itself' },
-    'components/board/DayCloseTimebox.vue': { count: 1, reason: '14 px group heading, no role of its own yet (ui-sweep items 51, 52)' },
-    'components/board/DayCloseTopics.vue': { count: 1, reason: '14 px group heading, no role of its own yet (ui-sweep items 51, 52)' },
-    'components/feedback/FeedbackDialog.vue': { count: 3, reason: '14 px group headings, no role of its own yet (ui-sweep items 51, 52)' },
-    'components/setup/LocalSetupFlow.vue': { count: 1, reason: '14 px group heading, no role of its own yet (ui-sweep items 51, 52)' },
-    'components/statistics/StatsTiles.vue': { count: 1, reason: '16 px group heading, no role of its own yet (ui-sweep items 51, 52)' },
   }
 
   it('no new heading or legend writes its type by hand: SectionHeader carries it (the listed files only fall)', () => {

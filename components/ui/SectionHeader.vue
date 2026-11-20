@@ -3,7 +3,7 @@
 @kind primitive
 @category layout
 @description The one heading of the app below a page title (kd#180): five roles in a closed list, Fraunces for the first four, with the tag, the spacing below and the optional icon.
-@usage <SectionHeader tag="h2" :text="…" /> (size `headline`, 22 px, the default: a section of a page or a dialog); `sub` (18 px) for a heading inside a section or a dialog; `display` (36 px) and `hero` (48 px, 36 on a phone) for the welcome and verdict lines; `label` (12 px, the sans, muted) for the caption of a field group in the task sheet, a Mehr group and a form (`tag="label"` with `for`, `tag="legend"` in a fieldset). `tone="muted"` for a heading that must stay quiet (the day-close lists).
+@usage <SectionHeader tag="h2" :text="…" /> (size `headline`, 22 px, the default: a section of a page or a dialog); `sub` (18 px) for a heading inside a section or a dialog; `display` (36 px) and `hero` (48 px, 36 on a phone) for the welcome and verdict lines; `label` (12 px, the sans, muted) for the caption of a field group in the task sheet, a Mehr group, a form and any group heading (the day-close lists, the feedback dialog, the statistics panel; no 14 or 16 px role, #605) (`tag="label"` with `for`, `tag="legend"` in a fieldset). `tone="muted"` for a heading that must stay quiet (the day-close lists).
 @avoid A page title is PageHeader (the column names and the wordmark keep their own CSS); a label on one control is `tag="label"` with `for`, not a second element beside it; never write `font-display` and a size class by hand.
 @responsibility
 - Render the heading element (`tag`, default `div`; pass `h2` / `h3` for a real heading) with the role's size, face, tracking and line height from the type tokens

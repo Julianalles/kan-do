@@ -28,16 +28,16 @@ describe('design tokens', () => {
 
   it('tells tailwind-merge every type role of main.css, so a text-<role> class replaces Nuxt UI\'s own size (#70)', async () => {
     // `body` is the one role that is a utility (`@utility text-body`, utilities.css) and not a size token
-    const roles = [...readFileSync(resolve(root, 'assets/css/main.css'), 'utf8').matchAll(/^\s*--text-([a-z]+):/gm)].map(m => m[1]).concat('body').sort()
+    const roles = [...readFileSync(resolve(root, 'assets/css/main.css'), 'utf8').matchAll(/^\s*--text-([a-z]+(?:-[a-z]+)?):/gm)].map(m => m[1]).concat('body').sort()
     const config = readFileSync(resolve(root, 'app.config.ts'), 'utf8')
-    const listed = /text: \[([^\]]*)\]/.exec(config)?.[1]?.match(/[a-z]+/g)?.sort()
+    const listed = /text: \[([^\]]*)\]/.exec(config)?.[1]?.match(/[a-z]+(?:-[a-z]+)?/g)?.sort()
     expect(listed).toEqual(roles)
   })
 
   it('lets text-body replace Nuxt UI\'s text-sm in a theme slot (kd#190)', async () => {
     const { extendTailwindMerge } = await import('tailwind-merge')
     const config = readFileSync(resolve(root, 'app.config.ts'), 'utf8')
-    const roles = /text: \[([^\]]*)\]/.exec(config)?.[1]?.match(/[a-z]+/g) ?? []
+    const roles = /text: \[([^\]]*)\]/.exec(config)?.[1]?.match(/[a-z]+(?:-[a-z]+)?/g) ?? []
     const merge = extendTailwindMerge({ extend: { theme: { text: roles } } })
     expect(merge('mt-1 text-sm text-muted', 'text-body')).toBe('mt-1 text-muted text-body')
     expect(merge('text-sm', 'text-label')).toBe('text-label')
@@ -73,7 +73,7 @@ describe('design tokens', () => {
   })
   it('every size token in use has an explicit line height (no calc default), and the lg select row keeps 36 px (kd#190)', () => {
     const css = readFileSync(join(root, 'assets/css/main.css'), 'utf8')
-    for (const size of ['5xl', 'lg', '2xl', 'base', 'sm', 'xs', 'display', 'headline', 'title', 'label']) {
+    for (const size of ['5xl', 'lg', '2xl', 'base', 'sm', 'xs', 'display', 'headline', 'title', 'label', 'figure', 'figure-lg']) {
       expect(css, `--text-${size}--line-height`).toMatch(new RegExp(`--text-${size}--line-height:`))
     }
     const config = readFileSync(join(root, 'app.config.ts'), 'utf8')

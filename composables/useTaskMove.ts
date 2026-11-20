@@ -86,8 +86,8 @@ export function useTaskMove() {
       actions: [
         {
           label: translate('common.undo'),
-          color: 'primary',
-          variant: 'solid',
+          color: 'neutral',
+          variant: 'soft',
           // The action's own auto-close would report the toast as closed (= commit) before Undo runs.
           closeOnClick: false,
           onClick: () => undoMove(taskId, toastId),
@@ -110,7 +110,7 @@ export function useTaskMove() {
         {
           label: translate('task.move.retry'),
           color: 'neutral',
-          variant: 'solid',
+          variant: 'soft',
           // Retrying repeats the whole move, undo window included
           onClick: () => { moveTaskToSource(rejection.taskId, rejection.toSource) },
         },
