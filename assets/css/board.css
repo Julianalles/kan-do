@@ -6,6 +6,7 @@
  * component roots). Imported by main.css; components layer (#43).
  * Invariant (`.claude/rules/drag-and-drop.md`): .board.dragging { transition: none } on mobile; DragOverlay is outside
  * .board-container.
+ * Layers: rules here sit in `@layer components`; an unlayered rule (scoped component CSS, `!important` included) beats them, so override from the component or in an unlayered block (#593, #609).
  */
 
 @layer components {
