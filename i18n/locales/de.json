@@ -970,7 +970,7 @@
       "pageTitle": "Daten & Speicher",
       "pageDescription": "Sicherungen, Export und Import und das Zurücksetzen der App.",
       "link": "Daten & Speicher",
-      "movedToConnections": "Datenordner und Speicherstatus findest du unter Aufgabenspeicher › Lokal.",
+      "movedToConnections": "Datenordner und Speicherstatus findest du unter Speicherorte › Lokal.",
       "movedLink": "Zum Datenordner",
       "folderHeading": "Datenordner",
       "folderPath": "Datenordner: {path}",
