@@ -43,7 +43,7 @@ export interface FrameReport {
   skipped: number
 }
 
-/** A box that is allowed to jump in this step: `match` against the label, `issue` is the open issue that will fix it (never empty). */
+/** A box that is allowed to jump in this step: `match` against the label, `issue` is the open issue that will fix it (`indicator` for a named progress indicator). */
 export interface AllowedJump {
   match: RegExp
   issue: string
@@ -80,6 +80,14 @@ export async function startFrames(page: Page, selector = 'body *'): Promise<Fram
           tracks.set(el, { x, y, w: r.width, h: r.height, steps: [], el })
           continue
         }
+        if (Number.isNaN(t.x)) {
+          // Back on the page after leaving: a new start, not a move
+          t.x = x
+          t.y = y
+          t.w = r.width
+          t.h = r.height
+          continue
+        }
         if (!dropped) {
           const step = Math.max(Math.abs(x - t.x), Math.abs(y - t.y), Math.abs(r.width - t.w), Math.abs(r.height - t.h))
           t.steps.push(step < 0.5 ? 0 : step)
@@ -90,8 +98,11 @@ export async function startFrames(page: Page, selector = 'body *'): Promise<Fram
         t.h = r.height
       }
       // A box that left the page is finished: its record stays, but it is no longer updated
-      for (const [el, t] of tracks) if (!seen.has(el)) t.x = Number.NaN
-      for (const t of tracks.values()) if (Number.isNaN(t.x)) t.steps.push(0)
+      for (const [el, t] of tracks) {
+        if (seen.has(el) || Number.isNaN(t.x)) continue
+        t.x = Number.NaN
+        t.steps.push(0)
+      }
       if (dropped) skipped++
       else measured++
       requestAnimationFrame(sample)
@@ -108,11 +119,26 @@ export async function startFrames(page: Page, selector = 'body *'): Promise<Fram
         running = false
         const bad = new Map<Element, { step: number, total: number, frames: number }>()
         for (const t of tracks.values()) {
-          const moving = t.steps.filter(s => s > 0)
-          if (!moving.length) continue
-          const step = Math.max(...moving)
-          const total = moving.reduce((a, b) => a + b, 0)
-          if (step > maxStep || (total >= jumpMin && moving.length <= maxJumpFrames && step >= jumpMin)) bad.set(t.el, { step, total, frames: moving.length })
+          // One movement = a run of moving frames (a single still frame inside it does not split it); each run is judged alone,
+          // so a box that also glides elsewhere in the flow cannot hide a snap
+          const runs: number[][] = []
+          let gap = 0
+          for (const s of t.steps) {
+            if (s > 0) {
+              if (!runs.length || gap > 1) runs.push([])
+              runs[runs.length - 1]!.push(s)
+              gap = 0
+            }
+            else gap++
+          }
+          for (const run of runs) {
+            const step = Math.max(...run)
+            const total = run.reduce((a, b) => a + b, 0)
+            if (step > maxStep || (total >= jumpMin && run.length <= maxJumpFrames && step >= jumpMin)) {
+              const prev = bad.get(t.el)
+              if (!prev || step > prev.step) bad.set(t.el, { step, total, frames: run.length })
+            }
+          }
         }
         // A child moves with its jumping parent: list the parent only
         const jumps = [...bad].filter(([el]) => {
@@ -144,7 +170,7 @@ export interface LongAnimation {
 /** Names that stay timed under reduced motion: progress indicators that show elapsed time (DESIGN.md "Motion"). */
 export const REDUCED_MOTION_INDICATORS: AllowedJump[] = [
   { match: /^spin on |animate-spin|\bspinner\b|loading-indicator/, issue: 'indicator', why: 'a spinner shows that work is running' },
-  { match: /task-gap/, issue: 'indicator', why: 'the gap\'s undo drain shows the time left' },
+  { match: /task-gap-drain|task-gap__drain|data-motion-progress/, issue: 'indicator', why: 'the gap\'s undo drain shows the time left' },
   { match: /has-focus|focus-overlay|^opacity on nav\[app-nav\]/, issue: 'indicator', why: 'the focus overlay keeps a 150 ms tint fade, a named exception of the global rule (main.css, #593)' },
   { match: /timebox|nudge/i, issue: 'indicator', why: 'the nudge countdown shows the time left' },
 ]
