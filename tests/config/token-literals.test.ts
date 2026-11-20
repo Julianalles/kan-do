@@ -204,24 +204,66 @@ describe('spacing (#70)', () => {
   })
 })
 
-describe('motion (#70)', () => {
-  it('counts durations and curves in transition and animation, not tokens, custom properties or 0', () => {
+describe('motion (#70, #593)', () => {
+  it('counts durations, curves and easing keywords in transition and animation, not tokens or 0', () => {
     const file = join(dir, 'components', 'Motion.vue')
-    writeFileSync(file, `<template><div class="duration-300 ease-[cubic-bezier(0.1,0,0,1)] duration-(--duration-fast)" /></template>\n${style(
+    writeFileSync(file, `<template><div class="duration-300 ease-[cubic-bezier(0.1,0,0,1)] duration-(--duration-fast) ease-(--ease-standard)" /></template>\n${style(
       'transition: color 150ms ease, opacity var(--duration-base) var(--ease-standard);',
       'animation: pop 0.2s cubic-bezier(0.4, 0, 0.2, 1);',
-      '--local-ease: cubic-bezier(0.2, 0, 0, 1);',
-      '--local-duration: 220ms;',
       'transition-duration: 0ms;',
       'transition: opacity calc(var(--duration-fast) * 2);',
     )}`)
-    expect((checkScaleLiterals(dir, [file]) as Finding[]).map(f => f.message.split(' ').slice(0, 3).join(' '))).toEqual(['5 motion literals'])
+    expect((checkScaleLiterals(dir, [file]) as Finding[]).map(f => f.message.split(' ').slice(0, 3).join(' '))).toEqual(['6 motion literals'])
+  })
+
+  it('counts easing keywords, also beside a token duration, and the Tailwind ease classes (#593)', () => {
+    const file = join(dir, 'components', 'Keywords.vue')
+    writeFileSync(file, `<template><div class="transition ease-out ease-in-out md:ease-linear duration-(--duration-base)" /></template>\n${style(
+      'transition: color var(--duration-fast) ease;',
+      'transition: opacity var(--duration-fast) ease-in, transform var(--duration-fast) ease-out;',
+      'animation: spin var(--duration-slow) linear infinite;',
+      'transition-timing-function: ease-in-out;',
+      'animation-name: ease-in-fade;',
+      'transition: opacity var(--duration-fast) var(--ease-standard);',
+    )}`)
+    expect((checkScaleLiterals(dir, [file]) as Finding[]).map(f => f.message.split(' ').slice(0, 3).join(' '))).toEqual(['8 motion literals'])
+  })
+
+  it('counts a time or a curve stored in a custom property, not a token reference or 0 (#593)', () => {
+    const file = join(dir, 'components', 'Custom.vue')
+    writeFileSync(file, `<template><div class="probe" /></template>\n${style(
+      '--nav-move: 420ms;',
+      '--local-ease: cubic-bezier(0.2, 0, 0, 1);',
+      '--place-ease: ease;',
+      '--tick: 1s linear;',
+      '--spring: linear(0, 0.5, 1);',
+      '--other: 12px;',
+      '--hold: 0ms;',
+      '--alias: var(--duration-base);',
+      '--content: "ease";',
+    )}`)
+    expect((checkScaleLiterals(dir, [file]) as Finding[]).map(f => f.message.split(' ').slice(0, 3).join(' '))).toEqual(['6 motion literals'])
+  })
+
+  it('counts the literal duration and easing of a scripted .animate(), not a named constant or token (#593)', () => {
+    const file = join(dir, 'components', 'Scripted.vue')
+    writeFileSync(file, `<script setup lang="ts">
+const SLIDE_MS = 240
+el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 240, easing: 'ease-in-out' })
+el.animate?.([{ opacity: 0 }, { opacity: 1 }], { duration: 0.3 })
+el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: SLIDE_MS, easing: MOTION.standard })
+el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: toValue(ms), easing: 'cubic-bezier(.3,.8,.3,1)' })
+// el.animate(x, { duration: 99 })
+const toast = { duration: 8000 }
+</script>
+<template><div /></template>`)
+    expect((checkScaleLiterals(dir, [file]) as Finding[]).map(f => f.message.split(' ').slice(0, 3).join(' '))).toEqual(['4 motion literals'])
   })
 
   it('fails above the baseline and reports a baseline above the count', () => {
     mkdirSync(join(dir, 'scripts/lint'), { recursive: true })
     const file = join(dir, 'components', 'Base.vue')
-    writeFileSync(file, style('transition: opacity 150ms ease;', 'transition: color 150ms ease;'))
+    writeFileSync(file, style('transition: opacity 150ms var(--ease-standard);', 'transition: color 150ms var(--ease-standard);'))
     writeFileSync(join(dir, 'scripts/lint/literal-baseline.json'), JSON.stringify({ motion: { 'components/Base.vue': 2, 'components/Gone.vue': 3 } }))
     expect(checkScaleLiterals(dir, [file])).toEqual([])
     writeFileSync(join(dir, 'scripts/lint/literal-baseline.json'), JSON.stringify({ motion: { 'components/Base.vue': 1 } }))
@@ -229,6 +271,34 @@ describe('motion (#70)', () => {
     writeFileSync(join(dir, 'scripts/lint/literal-baseline.json'), JSON.stringify({ motion: { 'components/Base.vue': 5 } }))
     expect((checkBaselineSlack(dir) as Finding[]).map(f => f.message)).toEqual([expect.stringContaining('has 2 motion literals, the baseline says 5')])
     rmSync(join(dir, 'scripts/lint/literal-baseline.json'))
+  })
+})
+
+describe('the 4 px grid (#591)', () => {
+  it('flags a half-step class other than -0.5 and -1.5, also negative and behind variants', () => {
+    expect(scale('Half.vue', '<template><div class="py-2.5 max-md:-me-3.5 gap-0.5 size-1.5 px-4.5 md:gap-2.5 p-3 gap-(--task-list-gap) w-65" /></template>'))
+      .toEqual(['1: py-2.5', '1: max-md:-me-3.5', '1: px-4.5', '1: md:gap-2.5'])
+  })
+
+  it('flags padding, margin and gap in a style block that are off the grid, passes 2, 6, hairlines, tokens and keywords', () => {
+    expect(scale('Pad.vue', `<template><div /></template>\n${style(
+      'padding-block: 0.625rem;', 'gap: 0.25rem 14px;', 'margin: 0 auto;', 'padding: 0.125rem 0.375rem;', 'margin-top: -1px;',
+      'padding: var(--space-3) calc(var(--x) + 3px);', 'gap: 0.75rem;', 'padding-inline: 0.3rem;', 'inset: 0.625rem;',
+    )}`)).toEqual(['4: padding-block:', '5: gap:', '11: padding-inline:'])
+  })
+
+  it('flags width and height of an icon class (a UIcon tag\'s own class or one named *icon*), not other boxes', () => {
+    expect(scale('Icon.vue', `<template><UIcon name="i-ph-x" class="glyph" /><div class="box" /></template>\n<style>\n.glyph { width: 0.875rem; height: 1rem; }\n.box { width: 0.875rem; }\n.chip__icon { width: 13px; height: 1.25rem; }\n.row__icon--open { width: 100%; }\n</style>`))
+      .toEqual(['3: width:', '5: width:'])
+  })
+
+  it('lets an allowlisted file keep a named value', () => {
+    const dir2 = mkdtempSync(join(tmpdir(), 'grid-'))
+    mkdirSync(join(dir2, 'components/overlay'), { recursive: true })
+    const file = join(dir2, 'components/overlay/NowWindow.vue')
+    writeFileSync(file, '<template><div /></template>\n<style>\n.a { gap: 10px; padding-left: 30px; padding-right: 10px; }\n</style>')
+    expect((checkScaleLiterals(dir2, [file]) as Finding[]).map(f => f.message.split(' ')[0])).toEqual(['padding-right:'])
+    rmSync(dir2, { recursive: true, force: true })
   })
 })
 

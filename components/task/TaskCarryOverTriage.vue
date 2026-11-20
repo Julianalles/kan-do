@@ -30,7 +30,7 @@ Standalone so the closing step (#98) can list it under "still open". Renders not
     <!-- Task sheet: one question, two answers (#247); the status region stays in the DOM so the confirmation is announced -->
     <template v-if="!compact">
       <div role="status" data-testid="carry-over-kept-status">
-        <div v-if="kept" class="flex items-start gap-2.5" data-testid="carry-over-kept">
+        <div v-if="kept" class="flex items-start gap-3" data-testid="carry-over-kept">
           <UIcon name="i-ph-check-circle" class="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
           <div>
             <p class="text-body font-medium text-highlighted">{{ t('task.carryOver.kept') }}</p>

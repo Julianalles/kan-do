@@ -24,7 +24,7 @@
           data-testid="stats-all-tasks"
           @toggle="listOpened = true"
         >
-          <summary class="flex min-h-11 cursor-pointer items-center justify-between gap-4 text-default focus-ring">
+          <summary class="-mx-2 flex min-h-11 cursor-pointer items-center justify-between gap-4 rounded-md px-2 text-default hover:bg-muted focus-ring">
             {{ t('statistics.allTasks', { n: records.length }) }}
             <UIcon name="i-ph-caret-down" class="size-4 shrink-0 text-muted group-open:rotate-180" aria-hidden="true" />
           </summary>

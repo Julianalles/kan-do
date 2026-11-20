@@ -106,7 +106,7 @@ const showsPill = computed(() => focusTopic.value !== null)
   height: var(--field-h);
   /* The same block height as the chip row (its 0.125rem padding), so swapping the row for the pill does not move the board */
   margin-block: 0.125rem;
-  padding: 0 0.25rem 0 0.875rem;
+  padding: 0 0.25rem 0 0.75rem;
   border-radius: 9999px;
   background: var(--primary-wash);
   color: var(--ui-primary);
@@ -123,7 +123,7 @@ const showsPill = computed(() => focusTopic.value !== null)
 }
 
 .board-focus-bar__topic {
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .board-focus-bar__end {
@@ -137,7 +137,7 @@ const showsPill = computed(() => focusTopic.value !== null)
   min-width: 1.75rem;
   border-radius: 9999px;
   color: var(--ui-primary);
-  transition: background-color var(--duration-fast) ease;
+  transition: background-color var(--duration-fast) var(--ease-standard);
 }
 
 .board-focus-bar__end:hover {
@@ -175,12 +175,6 @@ const showsPill = computed(() => focusTopic.value !== null)
   .board-focus-bar__end {
     min-width: 2.75rem;
     min-height: 2.75rem;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .board-focus-bar__end {
-    transition: none;
   }
 }
 </style>

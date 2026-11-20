@@ -6,7 +6,7 @@
 @layer components {
 .page-enter-active,
 .page-leave-active {
-  transition: opacity var(--duration-base) ease, transform var(--duration-base) ease;
+  transition: opacity var(--duration-base) var(--ease-standard), transform var(--duration-base) var(--ease-standard);
 }
 
 .page-enter-from {
@@ -30,7 +30,7 @@
    both over --welcome-curtain-duration. A feathered lower edge (mask, --welcome-curtain-feather of the viewport) keeps the
    moving bottom from ever being a hard line. Reduced motion: the layer leaves at once. */
 .welcome-root {
-  --welcome-curtain-duration: 1300ms;
+  --welcome-curtain-duration: var(--duration-stage);
   --welcome-curtain-fade-ease: cubic-bezier(0.4, 0, 1, 1); /* the fade holds back, so the layer is mostly there while it rises */
   --welcome-curtain-feather: 22dvh;
 }
@@ -47,7 +47,7 @@
 /* The flying brand (utils/brandFlight.ts) crosses the sheet's heading while the layer rises: that text steps aside on the flight's clock */
 .welcome-root[data-brand-flying] .welcome-sheet :is(h1, h2, h3) {
   opacity: 0;
-  transition: opacity var(--duration-slow) ease;
+  transition: opacity var(--duration-slow) var(--ease-standard);
 }
 @media (prefers-reduced-motion: reduce) {
   .welcome-root.page-leave-active { transition: none; mask-image: none; -webkit-mask-image: none; }

@@ -21,7 +21,7 @@ immediate: no loading or error state.
 <template>
   <form class="space-y-4" data-testid="topic-editor" data-topic-editor @submit.prevent="onSave" @keydown.esc.stop.prevent="emit('close')">
     <div class="space-y-1.5">
-      <label :for="nameId" class="block text-xs font-medium text-muted">{{ t('topic.editor.name') }}</label>
+      <SectionHeader tag="label" size="label" :for="nameId">{{ t('topic.editor.name') }}</SectionHeader>
       <UInput
         :id="nameId"
         ref="nameInput"
@@ -44,7 +44,7 @@ immediate: no loading or error state.
 
     <template v-if="kind === 'topic'">
       <fieldset class="space-y-1.5">
-        <legend class="mb-1.5 text-xs font-medium text-muted">{{ t('topic.editor.color') }}</legend>
+        <SectionHeader tag="legend" size="label" class="mb-1.5">{{ t('topic.editor.color') }}</SectionHeader>
         <SwatchRadioGroup
           ref="hueGroup"
           :model-value="hue"
@@ -140,6 +140,7 @@ import { useTopicManagement } from '~/composables/useTopicManagement'
 import { useTopicStylesStore } from '~/store/topicStyles'
 import { HUES, TOPIC_SYMBOLS, symbolOf, type TopicHue } from '~/lib/topicStyles'
 import { renameVerdict, trimName, type NameKind } from '~/lib/topicNames'
+import SectionHeader from '~/components/ui/SectionHeader.vue'
 import SwatchRadioGroup from '~/components/ui/SwatchRadioGroup.vue'
 
 defineOptions({ name: 'TopicEditor' })

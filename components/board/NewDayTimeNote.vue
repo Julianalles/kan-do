@@ -6,7 +6,7 @@
 @usage <NewDayTimeNote /> above the board in pages/tasks.vue, next to NewDayNote (the two stack when both apply); it shows on Heute and on "Alle". State and both actions live in `useNewDay` (`timeOffer`, `takeOffTime`, `keepTime`).
 @avoid Not the notice that offers the fresh start (NewDayNote) and not a blocking dialog: unanswered, the time stays as recorded and the question ends with its day. Never asked for a stretch under a minute.
 @responsibility
-- Same pattern as NewDayNote (DataStorageNotice): a subtle neutral UAlert, `role="status"`, no call-site `:ui`, two link actions with the notices' 44 px hit area on touch (`kando-notice-actions`), beside the text on desktop and below it on a phone
+- Same pattern as NewDayNote: a subtle neutral UAlert (boxed, unlike the flat DataStorageNotice), `role="status"`, no call-site `:ui`, two link actions with the notices' 44 px hit area on touch (`kando-notice-actions`), beside the text on desktop and below it on a phone
 - The title carries the duration (whole minutes), the task's title is the first line of the description and is masked in feedback screenshots (`data-private`)
 - "Zeit abziehen" takes the time off the task and out of the Statistik work sessions once, never below zero; "Zeit behalten" leaves everything as recorded; both end the question and say so in one polite line through the board's live region (`usePlanMoves().announcement`)
 - Held back while a card is dragged, so the board never shifts under it

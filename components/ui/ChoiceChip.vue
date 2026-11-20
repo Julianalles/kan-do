@@ -57,6 +57,19 @@ withDefaults(
   white-space: nowrap;
 }
 
+/* Phone: the picked chip sits pressed in at 97 %, which would leave it 43 px high; an invisible 1 px ring keeps the hit area at the 44 px floor (#592) */
+@media (--phone) {
+  .choice-chip {
+    position: relative;
+  }
+
+  .choice-chip::after {
+    content: '';
+    position: absolute;
+    inset: -1px;
+  }
+}
+
 /* An icon alone: square */
 .choice-chip--square {
   width: var(--field-h);

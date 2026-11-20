@@ -23,10 +23,6 @@
     "count": 1,
     "reason": "keep: a link-style button flush left (px-0); a flush link look in the button theme is open"
   },
-  "components/task/TaskDetailMetadata.vue": {
-    "count": 1,
-    "reason": "keep: the metadata row button is flush with the row text and takes no hover fill"
-  },
   "components/task/TaskPriorityBadge.vue": {
     "count": 1,
     "reason": "keep: the priority badge's tone is drawn by the badge itself (a priority class beside it)"

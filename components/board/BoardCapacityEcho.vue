@@ -122,7 +122,7 @@ const sentence = computed(() =>
 .capacity-echo__label {
   flex: none;
   font-size: var(--text-sm);
-  font-weight: 600;
+  font-weight: 500;
   line-height: var(--lh-snug);
   letter-spacing: 0.02em;
 }
@@ -157,12 +157,5 @@ const sentence = computed(() =>
 .capacity-echo-leave-to {
   opacity: 0;
   transform: translateY(0.5rem);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .capacity-echo-enter-active,
-  .capacity-echo-leave-active {
-    transition: none;
-  }
 }
 </style>

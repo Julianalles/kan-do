@@ -282,8 +282,8 @@ async function pick(id: string, event: MouseEvent) {
 .not-planned__hint--over {
   top: 0;
   z-index: 3;
-  /* text-sm's 1.25rem line plus 0.625rem above and below: the heading's 40 px row */
-  padding-block: 0.625rem;
+  /* The heading's 40 px row as one line box (a single truncated line), so no padding sits off the 4 px grid */
+  line-height: 2.5rem;
 }
 
 .not-planned__note {
@@ -385,16 +385,6 @@ async function pick(id: string, event: MouseEvent) {
   .not-planned__body {
     flex: 1 0 auto;
     padding-bottom: 0.75rem;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .not-planned,
-  .not-planned-item-move,
-  .not-planned-item-enter-active,
-  .not-planned-hint-enter-active,
-  .not-planned-hint-leave-active {
-    transition: none;
   }
 }
 </style>

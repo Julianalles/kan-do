@@ -313,8 +313,8 @@ defineExpose({ open, isDrafting });
 }
 
 .add-task-button-icon {
-  width: 1.125rem;
-  height: 1.125rem;
+  width: 1.25rem;
+  height: 1.25rem;
   flex-shrink: 0;
 }
 
@@ -368,16 +368,6 @@ defineExpose({ open, isDrafting });
   .add-task-slot--progress .add-task-button,
   .add-task-slot--progress .add-task-button .add-task-button-surface {
     min-height: var(--task-card-height);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .add-task-button,
-  .add-task-button-icon,
-  .add-task-button-label,
-  .add-task-slot-draft-enter-active,
-  .add-task-slot-draft-leave-active {
-    transition: none !important;
   }
 }
 </style>

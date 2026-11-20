@@ -81,7 +81,8 @@ function kitClassLooks(text) {
   for (const tag of text.matchAll(/<(U[A-Z][A-Za-z]*)\b((?:"[^"]*"|'[^']*'|[^>"'])*)>/g)) {
     if (tag[1] === 'UIcon') continue
     const classes = [...tag[2].matchAll(/(?:^|\s):?class=(?:"([^"]*)"|'([^']*)')/g)].map(m => m[1] ?? m[2]).join(' ')
-    const tokens = classes.split(/[\s'"`,{}[\]]+/).filter(Boolean).map(t => t.replace(/^(?:[^\s:]+:)+/, '').replace(/^!/, ''))
+    // Variant prefixes are skipped bracket-aware: `md:bg-[color:var(--x)]` is a `bg-` class, the colon inside `[…]` is its value
+    const tokens = classes.split(/[\s'"`,{}]+/).filter(Boolean).map(t => t.replace(/^(?:(?:\[[^\]]*\]|[^\s:[\]])+:)+/, '').replace(/^!/, ''))
     if (tokens.some(t => LOOK_CLASS.test(t))) n++
   }
   return n

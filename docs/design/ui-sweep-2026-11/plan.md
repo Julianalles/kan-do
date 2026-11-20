@@ -163,7 +163,7 @@ The user ticked 111 of 117 items (not ticked: 2, 61, 69, 96, 104, 105) and asked
 
 | Issue | Lane | Overview items | Surface |
 |---|---|---|---|
-| #590 | ready | 1, 3, 4, 5, 7 ; guards 93, 94, 95 | type and headings follow the type table, with their guards |
+| #590 | in review | 1, 3, 4, 5, 7 ; guards 93, 94, 95 | type and headings follow the type table, with their guards |
 | #591 | ready | 9 ; guards 99 | spacing and icon sizes on the 4 px grid, with the lint guard |
 | #592 | ready | 12, 14, 27 ; guards 102, 103 | hover answer, disabled look and the 44 px phone floor, with their specs |
 | #593 | ready | 20, 25 ; guards 100 | motion tokens, reduced motion and key-moment durations, with the motion ratchet |

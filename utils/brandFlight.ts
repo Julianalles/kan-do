@@ -1,4 +1,5 @@
 import { BREAKPOINT_QUERIES } from '~/lib/breakpoints'
+import { MOTION } from '~/lib/motionTokens'
 
 /**
  * @module brandFlight
@@ -15,8 +16,8 @@ import { BREAKPOINT_QUERIES } from '~/lib/breakpoints'
 
 /** How long the bar may take to mount its brand after the navigation started */
 export const TARGET_WAIT_MS = 800
-/** The flight's duration: the page's slow beat (`--duration-slow`, 300 ms) */
-const FLIGHT_MS = 420
+/** The flight's duration: a place change, `--duration-place` (400 ms); keep it in step with the token */
+const FLIGHT_MS = MOTION.placeMs
 const TARGET_SELECTOR = '[data-testid="app-nav-brand"] .app-nav-brand-text'
 
 /** The rectangle of an element's text (the element itself may span the whole row) */
@@ -101,7 +102,7 @@ export function flyBrandToBar(from: HTMLElement | null | undefined): void {
     clone
       .animate(
         [{ transform: 'none' }, { transform: `translate(${dx}px, ${dy}px) scale(${scale})` }],
-        { duration: FLIGHT_MS, easing: 'cubic-bezier(.3,.8,.3,1)', fill: 'forwards' },
+        { duration: FLIGHT_MS, easing: MOTION.emphasized, fill: 'forwards' },
       )
       .finished.then(finish, finish)
   })

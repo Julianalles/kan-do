@@ -77,6 +77,7 @@
                 <template #help>
                   <ExternalLink
                     href="https://www.notion.so/my-integrations"
+                    standalone
                     class="text-primary hover:underline"
                   >
                     {{ t('notion.settings.connection.manageToken') }}

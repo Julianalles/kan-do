@@ -63,10 +63,6 @@
     "count": 3,
     "reason": "keep: placement"
   },
-  "pages/settings/index.vue": {
-    "count": 1,
-    "reason": "keep: placement"
-  },
   "pages/settings/notion.vue": {
     "count": 1,
     "reason": "keep: placement"

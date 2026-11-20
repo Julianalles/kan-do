@@ -156,7 +156,7 @@ function onOpen(): void {
 /* The pill's radius is the glass' (CORNER_RADIUS in overlay.rs): keep both in step (tests/config/overlay-contract.test.ts) */
 .now-window {
   --now-radius: 9999px; /* a capsule: 30 px = CORNER_RADIUS in overlay.rs, the fill's round cap is 30 px wide */
-  --now-tick: 1s linear;
+  --now-tick: 1s linear; /* a progress line: one second per tick, linear on purpose, off the tokens (#593) */
   width: 340px;
   height: 60px;
   font-family: system-ui, -apple-system, sans-serif;
@@ -244,7 +244,4 @@ function onOpen(): void {
 .now-btn:active { background-color: color-mix(in srgb, CanvasText 20%, transparent); }
 .is-warning .now-btn { color: var(--now-text); } /* a full amber tint under the glyphs: the muted mix would fall under 3:1 (WCAG 1.4.11) */
 .now-btn :deep(.now-glyph) { width: 20px; height: 20px; }
-@media (prefers-reduced-motion: reduce) {
-  .now-fill.is-gliding { transition: none; }
-}
 </style>

@@ -11,7 +11,7 @@
 - Handles visual states for different statuses (waiting, empty)
 - The marker (#469): the stroke under the title of the one focus column per view, "Jetzt" on "Heute" and Offen's "Heute" on "Alle" (`marker`). It fades on the clock of the place move (`--place-move`, none under reduced motion) and keeps its padding while hidden, so the title does not shift when the stroke fades
 - Offen's title fade (#375, `titleFadeKey`): the column is headed "Heute" on the place "Alle" and "Offen" on "Heute". When the place changes, the old title fades out over the new
-  one, which fades in, for the length and on the curve of the board's sideways move (`--place-move` 420 ms, `--place-ease`, board.css): one clock for strip, app-bar chip and title. A second
+  one, which fades in, for the length and on the curve of the board's sideways move (`--place-move` 400 ms, `--place-ease`, board.css): one clock for strip, app-bar chip and title. A second
   change mid-fade continues from the opacity the titles stand at. The outgoing title is `aria-hidden` and in the DOM only meanwhile. Reduced motion (`--place-move: 0ms`): no fade, the title just changes
 - Offen (`showAdd`, #248, moved left #264; on the place "Alle" "Meine Aufgaben" has it instead, #380: the task it makes lands there): a round soft icon-only add button at the start of the card-width track (the
   cards' left edge), vertically centred on the title line; the title stays centred exactly like the other columns' (the
@@ -227,7 +227,8 @@ const isWaiting = computed(() => props.status === TaskStatus.Waiting);
     color: var(--ui-text);
     transition: opacity var(--duration-fast) var(--ease-standard);
     transform: translateY(0vh);
-    /* The colour follows the Erledigt drop wash (#124, BoardColumn) */
+    /* The colour follows the Erledigt drop wash (#124, BoardColumn). 0.5s and its curve: the header's own lift while a card
+       is dragged, kept off the tokens (#593) */
     transition:
       all 0.5s cubic-bezier(0.16, 1, 0.3, 1),
       color var(--done-wash-duration) var(--ease-standard);
@@ -310,6 +311,9 @@ const isWaiting = computed(() => props.status === TaskStatus.Waiting);
       width: 2.75rem;
       height: 2.75rem;
       min-width: 2.75rem;
+      /* Above the sort control's spacer under the header, which would take the bottom 3 px of the 44 px hit area (#592) */
+      position: relative;
+      z-index: 1;
     }
   }
 

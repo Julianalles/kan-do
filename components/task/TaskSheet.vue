@@ -57,6 +57,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { SHEET_WIDTH } from '~/utils/modalSizes';
+import { SECTION_ROLE } from '~/utils/sectionRoles';
 import { useTaskSheet } from '~/composables/useTaskSheet';
 import { findSavedCardElement } from '~/utils/focusRecovery';
 import { useIsDesktop } from '~/composables/useIsDesktop';
@@ -108,8 +109,8 @@ defineSlots<{
   footer?(): unknown;
 }>();
 
-// The sheet header is the display face at medium weight (DESIGN.md): it labels the add-task sheet. The task's own title is set in TaskDetailContent.
-const titleClass = computed(() => (props.hideTitle ? 'sr-only' : 'font-display text-lg font-medium tracking-display text-highlighted'));
+// The sheet header takes the Subhead role by name (`SECTION_ROLE`, the one `SectionHeader` uses; the overlay's title slot is not a SectionHeader): it labels the add-task sheet. The task's own title is set in TaskDetailContent.
+const titleClass = computed(() => (props.hideTitle ? 'sr-only' : `${SECTION_ROLE.sub} text-highlighted`));
 const bodyClass = computed(() => (props.flushBody ? 'p-0 sm:p-0 min-h-0 overflow-y-auto overscroll-contain' : 'min-h-0 overflow-y-auto overscroll-contain p-4 sm:p-6'));
 
 /** The slideover is the add route's desktop sheet; the detail route's is TaskMorphShell. */

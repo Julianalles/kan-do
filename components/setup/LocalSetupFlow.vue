@@ -22,7 +22,7 @@
       <p class="mt-2 text-body text-default">{{ t('onboarding.flow.local.intro') }}</p>
     </div>
 
-    <fieldset class="flex flex-col gap-3" data-testid="local-sources">
+    <fieldset class="flex flex-col gap-1 md:gap-3" data-testid="local-sources">
       <legend class="mb-3 text-sm font-medium text-highlighted">{{ t('onboarding.flow.local.legend') }}</legend>
       <UCheckbox
         v-model="reminders"

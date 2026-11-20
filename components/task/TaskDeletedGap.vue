@@ -10,16 +10,16 @@ gap is compact (`--task-note-height`, the collapsed Yesterday note's height: 48p
 SortableTaskWrapper (a gap is no dnd-kit sortable: not draggable, not droppable, no sheet).
 @avoid Only the slot of a just-deleted card with undo; never inside a drag list.
 @responsibility
-- Holds a compact slot (`--task-note-height`: 48px, 56px at 390px) for the undo window, for a card and a stack alike; the box glides from the card's measured height (`--gap-from`) to it in 220 ms; the card itself is already out of `tasks`
+- Holds a compact slot (`--task-note-height`: 48px, 56px at 390px) for the undo window, for a card and a stack alike; the box glides from the card's measured height (`--gap-from`) to it in `--duration-base` (200 ms); the card itself is already out of `tasks`
 - D6 transition: a non-interactive picture of the card (TaskCard `readonly`, `inert`) shrinks to 0.92 and fades out towards its
-  own centre in 220 ms (ease-out) while the answer layer fades in over the same time; transform and opacity only
-- Red theme (#581, outline dropped #57): the box carries a muted shape (BoardColumnNotice's `::before`: card radius, 12% `error` wash over the page, no border) that fades in with the answer layer (220 ms, opacity only; it clips away with the closing glide). Label and trash icon are
+  own centre in `--duration-base` (`--ease-emphasized`) while the answer layer fades in over the same time; transform and opacity only
+- Red theme (#581, outline dropped #57): the box carries a muted shape (BoardColumnNotice's `::before`: card radius, 12% `error` wash over the page, no border) that fades in with the answer layer (`--duration-base`, opacity only; it clips away with the closing glide). Label and trash icon are
   `error-700`, the undo button is the notice's action, `color="error" variant="soft"` in the default 12 px radius, no pill (the global compound in `app.config.ts` sets `error-700` text, #594),
   the drain line is `error-500` (a graphic, 3:1 needed)
 - Drain line: 2px, full width at the bottom edge (clipped to the radius), 5 s `scaleX` 1 -> 0 from the left, linear; paused with the window while the pointer or focus is inside the gap (two flags, resumed when both are off; resumed on unmount too, `useDeleteHold`)
-- Window end (`state: 'closing'`): the box glides shut in 280 ms (grid row 1fr -> 0fr, the list gap's negative margin
+- Window end (`state: 'closing'`): the box glides shut in `--duration-slow` (grid row 1fr -> 0fr, the list gap's negative margin
   included) and focus moves to the next card, or the list when it was the last, if it was in or lost with the gap
-- `prefers-reduced-motion`: the picture only crossfades (no scale), the drain line is static, the gap closes without gliding
+- `prefers-reduced-motion`: everything is instant (the global rule, `main.css`); the drain line is a named progress exception of it (`data-motion-progress`) and stays static here, since the window itself is a JS timer
 - Contrast: "Im Papierkorb" and the button text are `error-700` on the 12% wash (earlier figures were measured on 6%; re-measure with the rendered Impeccable scan `npm run design:detect`); the `error-500` drain line is a graphic and needs 3:1
 -->
 <template>
@@ -56,6 +56,7 @@ SortableTaskWrapper (a gap is no dnd-kit sortable: not draggable, not droppable,
         <template #overlay>
           <span
             class="task-gap__drain"
+            data-motion-progress
             :class="{ 'task-gap__drain--paused': gap.paused }"
             aria-hidden="true"
           />
@@ -115,8 +116,8 @@ watch(() => props.gap.state, (state) => {
   max-width: var(--task-card-max-width);
   --gap-h: var(--gap-from, var(--task-card-height));
   transition:
-    grid-template-rows 280ms var(--ease-standard),
-    margin-bottom 280ms var(--ease-standard);
+    grid-template-rows var(--duration-slow) var(--ease-standard),
+    margin-bottom var(--duration-slow) var(--ease-standard);
 }
 
 /* Closing: the box glides to zero height and takes the list's gap (--task-list-gap) with it (nothing jumps afterwards). */
@@ -141,7 +142,7 @@ watch(() => props.gap.state, (state) => {
   --notice-line-wrap: wrap;
   --notice-line-gap: 0.75rem;
   overflow: hidden;
-  animation: task-gap-shrink 220ms cubic-bezier(0, 0, 0.2, 1) backwards;
+  animation: task-gap-shrink var(--duration-base) var(--ease-emphasized) backwards;
 }
 @keyframes task-gap-shrink {
   from { height: var(--gap-h); }
@@ -151,7 +152,7 @@ watch(() => props.gap.state, (state) => {
 /* Red theme (#581): the muted raspberry shape is the notice's wash (`::before`, no z-index, no stacking context: an `isolation`
    there let the Jetzt column's drop zone cover the undo pill); it fades in with the answer layer, opacity only */
 .task-gap__box::before {
-  animation: task-gap-answer-in 220ms cubic-bezier(0, 0, 0.2, 1) both;
+  animation: task-gap-answer-in var(--duration-base) var(--ease-emphasized) both;
 }
 
 /* D6: the picture of the card shrinks and fades towards its own centre; it never takes part in layout */
@@ -164,7 +165,7 @@ watch(() => props.gap.state, (state) => {
   width: 100%;
   max-width: none;
   pointer-events: none;
-  animation: task-gap-picture-out 220ms cubic-bezier(0, 0, 0.2, 1) forwards;
+  animation: task-gap-picture-out var(--duration-base) var(--ease-emphasized) forwards;
 }
 @keyframes task-gap-picture-out {
   from { opacity: 1; transform: scale(1); }
@@ -172,7 +173,7 @@ watch(() => props.gap.state, (state) => {
 }
 
 .task-gap__box :deep(.notice__line) {
-  animation: task-gap-answer-in 220ms cubic-bezier(0, 0, 0.2, 1) both;
+  animation: task-gap-answer-in var(--duration-base) var(--ease-emphasized) both;
 }
 @keyframes task-gap-answer-in {
   from { opacity: 0; }
@@ -180,7 +181,7 @@ watch(() => props.gap.state, (state) => {
 }
 .task-gap--closing .task-gap__box :deep(.notice__line) {
   opacity: 0;
-  transition: opacity 140ms linear;
+  transition: opacity var(--duration-fast) var(--ease-standard);
 }
 
 .task-gap__label {
@@ -211,14 +212,9 @@ watch(() => props.gap.state, (state) => {
   to { transform: scaleX(0); }
 }
 
+/* The one reduced-motion rule of this component: the global rule (main.css) makes the rest instant and leaves the drain line
+   alone (`data-motion-progress`); here it stays full, the window itself is a JS timer. */
 @media (prefers-reduced-motion: reduce) {
-  .task-gap { transition: none; }
-  .task-gap__box { animation: none; }
-  .task-gap__picture { animation: task-gap-picture-fade 220ms linear forwards; }
-  @keyframes task-gap-picture-fade {
-    from { opacity: 1; }
-    to { opacity: 0; }
-  }
   .task-gap__drain { animation: none; }
 }
 </style>

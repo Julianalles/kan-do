@@ -86,6 +86,7 @@
 
 <script setup lang="ts">
 import SectionHeader from '~/components/ui/SectionHeader.vue'
+import { MOTION } from '~/lib/motionTokens'
 import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue';
 import { useI18n } from 'vue-i18n';
 import BackButton from '~/components/ui/BackButton.vue';
@@ -156,7 +157,7 @@ watch(stepIndex, async (next, prev) => {
   if (!reducedMotion()) {
     paneRef.value?.animate(
       [{ opacity: 0, transform: `translateX(${direction * 14}px)` }, { opacity: 1, transform: 'none' }],
-      { duration: 240, easing: 'cubic-bezier(.3,.8,.3,1)' },
+      { duration: MOTION.slowMs, easing: MOTION.emphasized },
     );
   }
   // preventScroll: the sheet must not jump while the pane slides in

@@ -28,7 +28,7 @@
   timer tick of a timebox of 4 minutes or more, is set at once (#275). The ease animates `width`, which is laid out
   again in every frame: eased per tick it kept a resting board at 43 layouts a second for a fill that moved less than
   a tenth of a pixel. A tick inside the 700 ms after a larger change still eases, so it never cuts that ease short
-- Motion is CSS only; `prefers-reduced-motion` shows the end state at once. Never takes pointer events.
+- Motion is CSS only; `prefers-reduced-motion` shows the end state at once (the global rule, `main.css`). Never takes pointer events. Its own choreography, kept off the tokens on purpose (#593): the 600 ms width spring (`--chip-duration`, `--chip-spring`), the 240 ms settle delay (`--chip-settle-delay`, after the card's 200 ms landing) and the 700 ms fill ease (`--chip-fill-duration`); everything else reads the tokens
 - The width spring is the app's one spring: it marks the moment a label becomes the card's live status. It never runs
   on page load; the bar has no shadow, it sits flat on the card's own (#410)
 - Warning accent in the 600 step: the 500 step measured 2.97:1 on the card surface (below the 3:1 non-text floor,
@@ -238,7 +238,7 @@ watch(() => props.isNow, (now) => {
   white-space: nowrap;
   visibility: hidden;
 }
-.chip__sizer-icon { width: 0.8125rem; flex-shrink: 0; }
+.chip__sizer-icon { width: 0.75rem; flex-shrink: 0; }
 .chip__sizer--boxless-now { font-size: var(--text-xs); padding-inline: 0.5rem; }
 
 .chip {
@@ -272,7 +272,7 @@ watch(() => props.isNow, (now) => {
     padding var(--chip-duration) var(--chip-ease),
     font-size var(--chip-duration) var(--chip-ease),
     border-radius var(--chip-duration) var(--chip-ease),
-    background-color 240ms ease-in-out;
+    background-color var(--duration-slow) var(--ease-standard);
 }
 .chip--boxless { width: auto; min-width: 100%; }
 
@@ -299,7 +299,7 @@ watch(() => props.isNow, (now) => {
   background: var(--chip-fill);
   border-radius: inherit;
 }
-.chip-slot--armed .chip__fill { transition: width var(--chip-fill-duration) var(--chip-ease), background-color var(--duration-slow) ease-in-out; }
+.chip-slot--armed .chip__fill { transition: width var(--chip-fill-duration) var(--chip-ease), background-color var(--duration-slow) var(--ease-standard); }
 .chip--boxless .chip__fill { width: 0; }
 /* The timer bar never shrinks below the icon and its padding (#450 design review): the clock always sits on the fill, the
    fill stays a pill instead of a sliver, and the step into the overrun is a step from a pill, not from nothing */
@@ -308,13 +308,13 @@ watch(() => props.isNow, (now) => {
 
 .chip__content { display: inline-flex; align-items: center; gap: 0.25rem; width: 100%; min-width: 0; }
 .chip__icon {
-  width: 0.8125rem;
-  height: 0.8125rem;
+  width: 0.75rem;
+  height: 0.75rem;
   flex-shrink: 0;
   color: var(--chip-accent);
 }
 .chip-slot--armed .chip__icon { transition: width var(--chip-duration) var(--chip-ease), height var(--chip-duration) var(--chip-ease), color var(--duration-slow); }
-.chip--now .chip__icon { width: 1.0625rem; height: 1.0625rem; }
+.chip--now .chip__icon { width: 1rem; height: 1rem; }
 .chip-slot--armed .chip--now .chip__icon { transition-delay: var(--chip-settle-delay); }
 
 /* Spent time slides in before the timebox; the timebox moves to the far end of the bar */
@@ -324,7 +324,7 @@ watch(() => props.isNow, (now) => {
   margin-right: -0.25rem; /* collapsed: the empty column must not add a flex gap */
   opacity: 0;
 }
-.chip-slot--armed .chip__spent { transition: grid-template-columns var(--chip-duration) var(--chip-spring), margin-right var(--chip-duration) var(--chip-spring), opacity var(--duration-base) ease-out; }
+.chip-slot--armed .chip__spent { transition: grid-template-columns var(--chip-duration) var(--chip-spring), margin-right var(--chip-duration) var(--chip-spring), opacity var(--duration-base) var(--ease-emphasized); }
 .chip--now .chip__spent { grid-template-columns: 1fr; margin-right: 0; opacity: 1; }
 .chip-slot--armed .chip--now .chip__spent { transition-delay: var(--chip-settle-delay); }
 .chip__spent-inner { overflow: hidden; min-width: 0; }
@@ -333,22 +333,13 @@ watch(() => props.isNow, (now) => {
 .chip--boxless.chip--now .chip__box { color: var(--ui-text-highlighted); margin-left: 0; }
 
 /* A chip that appears (no timebox: entering Jetzt or first time spent) pops in; leaving it pops back out */
-.chip-pop-enter-active { animation: chip-pop 240ms var(--chip-ease, ease-out) var(--chip-settle-delay, 240ms) both; }
-.chip-pop-leave-active { animation: chip-pop var(--duration-base) ease-in reverse both; }
+.chip-pop-enter-active { animation: chip-pop var(--duration-slow) var(--chip-ease) var(--chip-settle-delay) both; }
+.chip-pop-leave-active { animation: chip-pop var(--duration-base) var(--ease-standard) reverse both; }
 @keyframes chip-pop { from { opacity: 0; transform: scale(0.5); } to { opacity: 1; transform: scale(1); } }
 
 @media (--phone) {
   .chip--now { font-size: var(--text-title); } /* title step */
   .chip--now.chip--boxless,
   .chip__sizer--boxless-now { font-size: var(--text-sm); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .chip-slot--armed .chip,
-  .chip-slot--armed .chip__fill,
-  .chip-slot--armed .chip__spent,
-  .chip-slot--armed .chip__icon { transition: none; }
-  .chip-pop-enter-active,
-  .chip-pop-leave-active { animation: none; }
 }
 </style>

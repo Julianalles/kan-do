@@ -351,11 +351,4 @@ function getCardStyles(index: number): Record<string, string> {
   pointer-events: none;
   visibility: hidden;
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .task-stack__pill-layer::before,
-  .task-stack__cards :deep(.stacked-task--top > *) {
-    transition: none;
-  }
-}
 </style>

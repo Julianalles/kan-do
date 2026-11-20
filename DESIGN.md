@@ -134,6 +134,8 @@ Fraunces 500 (tracking -0.02em) is the display face, Figtree the face for everyt
 
 **The One Height Rule.** Every button has the height of the main one: 36 px, 48 px on a phone, so buttons side by side line up and are as easy to hit as the main one (owner, 2026-11-17, #424). The main button differs by colour only, and a solid green or error button is at least 96 px wide. A button is smaller only where the space is narrow, and each such button is listed with its reason in `tests/config/button-ladder.test.ts`: the alert and toast action (24 px, #377), a link inside running text, and the round icon-only buttons of the board's chrome (32 px on desktop, 44 px on a phone: the Offen header's add button, the plan arrows, centred on a card's edge in the soft primary look drawn by their own rule (#467, D2), the stack header's close button) and the card-corner menu button (a 28 px circle with a 44 px hit area), whose geometry is tied to the 32 px title line and the card corner.
 
+**The Phone Hit Area.** The 44 px floor is measured on what a finger meets, not on the drawn box: a control may be smaller if an invisible hit area brings the tappable box to 44 × 44 (a round button or a swatch: a `::after` pseudo-element; a switch: the theme's `after:-inset-x-1.5 after:-inset-y-4`, 6 px to the sides so it never reaches into the field beside it). A checkbox or a switch row is one target: the checkbox's box takes the whole row (the theme's `checkbox` slots), the row is 44 px high. A link inside a sentence is exempt (WCAG 2.5.8) and is listed with that reason in the guard; a link on a line of its own is a 44 px row (`ExternalLink standalone`). The guard walks the seeded screens at 390 px and probes each control's hit box (`tests/e2e/phone-hit-areas.spec.ts`, #592); its exception list names each exception and its reason.
+
 Sheets share one shape: card, page sheet, task sheet, dialog and menu all take 16 px. No pill-shaped container, with one exception: the app bar's pills.
 
 ### Elevation
@@ -161,7 +163,7 @@ One shadow colour (`--shadow-color`, a warm brown) at three steps.
 | `--ease-standard` | `cubic-bezier(0.4, 0, 0.2, 1)` | things that change in place |
 | `--ease-emphasized` | `cubic-bezier(0.2, 0, 0, 1)` | things that arrive and settle |
 
-Motion explains a state change, the way paper would move. A mechanical change is short; motion is never decorative or looping, and `prefers-reduced-motion` makes it instant. On page load nothing moves except a key moment that opens the session (the new-day recap, the welcome photo). A component with its own choreography (the app bar's indicator, the progress chip, the completion burst) records it in its doc block.
+Motion explains a state change, the way paper would move. A mechanical change is short; motion is never decorative or looping, and `prefers-reduced-motion` makes it instant. On page load nothing moves except a key moment that opens the session (the new-day recap, the welcome photo). A component with its own choreography (the app bar's indicator, the progress chip, the completion burst) records it in its doc block. Reduced motion is one global rule (`assets/css/main.css`, last layer) that zeroes every transition and animation; the exceptions are progress indicators, not movement: the spinner, the delete gap's drain line and the nudge's countdown (`data-motion-progress`), and the focus overlay's 150 ms fade (a `!important` of its own, `board-focus-overlay.css`). Scripted animations (`element.animate`) read `lib/motionTokens.ts`, the script mirror of this table, and check the media query themselves.
 
 **The One Piece Rule.** A view arrives as one piece: incoming content does not rearrange after it is visible, a surface changes size only as a guided motion, and hover never moves a neighbour (user, ten corrections, among them #43, #225, #294).
 
@@ -177,7 +179,7 @@ One answer per state, on every control, whoever built it.
 | Hover | the fill one step darker (a ghost control gains the fill); a text control darkens its text or rule |
 | Press | the control gives 3 % (`scale: 0.97`); a field holds still, a select's trigger included |
 | Focus | Nuxt UI's halo: 3 px at 25 % of the role colour, no offset (`focus-ring`, `--focus-ring-*`); a field keeps its 1 px inner ring. Accepted trade-off (owner, 2026-11-11): below the 3:1 of WCAG 1.4.11 on the page |
-| Disabled | 50 % opacity, `not-allowed`, no hover answer |
+| Disabled | 50 % opacity, `not-allowed`, no hover answer. A group of disabled parts (the segments of `SegmentedChoice`) dims once, as a group, never 50 % of 50 % |
 | Loading | the disabled look plus a spinner; the control is locked |
 | Selected | a fill (chip, switch, checkbox, tab, place); never a shadow |
 | Card | its sheet one step darker (`--task-card-hover-bg`) on hover and while pressed, on touch too; it never moves and its shadow stays (owner, 2026-11-12) |
@@ -243,6 +245,9 @@ What a check already guarantees is not repeated above. `npm run verify` runs the
 | Guarantee | Guard |
 |---|---|
 | Semantic tokens only: no palette classes, hex, arbitrary values, stray z-index, duration or easing | ESLint, `tests/config/token-literals.test.ts`, `scripts/lint/design-tokens.mjs` |
+| No motion literal outside the tokens: a duration, a curve or an easing keyword in a declaration, a custom property, a `duration-N` / `ease-*` class or a scripted `.animate()`; what stays is a component's own choreography, recorded in its doc block and counted in `scripts/lint/literal-baseline.json` | `scripts/lint/design-tokens.mjs` (`npm run lint`), `tests/config/token-literals.test.ts` |
+| The motion tokens of the stylesheet, the script mirror and this table agree; reduced motion is the one global rule | `tests/config/motion-tokens.test.ts` |
+| The 4 px grid, in `.vue` files: no half-step spacing class but `-0.5` and `-1.5` (roots `p`, `m`, `gap`, `space`, `inset`, `top`/`left`/`right`/`bottom`, `size`, `w`, `h`, `min-`/`max-` and `translate` forms; not `start-`, `end-`, `basis-`, `indent-`), no padding, margin or gap off the grid in a style block, no icon-class width or height off 12, 16, 20, 24 px in a style block (Tailwind `size-N` on a `UIcon` and `.css` files are not checked) (a kept exception is on the file's allow list with its reason) | `scripts/lint/design-tokens.mjs` (`checkScaleLiterals`), `tests/config/token-literals.test.ts` |
 | Button vocabulary: the one size, the allowed variants, the phone floor, the 96 px minimum of a solid button, the list of smaller buttons with their reasons | `tests/config/button-ladder.test.ts` |
 | Text and control contrast, the focus halo on the main button, the receding-text exceptions | `tests/e2e/a11y.spec.ts`, `tests/config/button-contrast.test.ts`, `role-contrast.test.ts`, `error-soft-contrast.test.ts` |
 | Warning text steps and notices on `UAlert` | `tests/config/warning-notices.test.ts` |
@@ -251,12 +256,14 @@ What a check already guarantees is not repeated above. `npm run verify` runs the
 | Icons: mapped meanings, bundled collection only | `tests/config/icon-map.test.ts`, `icons-bundled.test.ts`, `nuxt-ui-icons.test.ts` |
 | No new raw `<button>`, no visual identity in a call-site `ui` prop or in a text, font, padding-to-zero, ring or background class on a kit component; raw elements per page, style blocks outside the board, task, kit, overlay and recap, and the style lines of a board or card component may only fall | `tests/config/ratchets.test.ts` (baselines `tests/config/*.baseline.json`, `npm run ratchet:lower`) |
 | No empty `<template>`, `<script>` or `<style>` block | ESLint `vue/no-empty-component-block` |
+| Every pressable on the board, the task sheet, Statistik, the topic editor, the in-card add flow and `/ui` shows the hand and changes under the pointer (a selected one excepted) | `tests/e2e/hover-answer.spec.ts` (#592) |
+| Every visible control on the seeded screens has a 44 × 44 hit area at 390 px, a named exception list | `tests/e2e/phone-hit-areas.spec.ts` (#592) |
 | A Pattern line for every new or changed UI element | `tests/config/pattern-check.test.ts`, `.claude/rules/ui-patterns.md` |
 | The rendered look: computed-style fingerprint of `/ui`, pixel baselines, Impeccable scan | `tests/e2e/` (`visual-regression`, `design-detect`, the `/ui` specs) |
-| Line heights from the size tokens (no `leading-*`, no hand-written line height), the icon size scale, no shadow on a control | `tests/config/design-lock-in.test.ts` |
+| Line heights from the size tokens (no `leading-*`, no `text-<size>/<line height>`, no hand-written line height), weight 600 only in the listed files (key figures, running-text `<strong>`, the picked or current value; a ratchet), the icon size scale, no shadow on a control | `tests/config/design-lock-in.test.ts` |
 | One solid green button per view | `tests/e2e/design-detect.spec.ts` (counted on every scanned surface) |
 | `aria-current="page"` on exactly one control per route | `tests/e2e/app-nav.spec.ts` |
-| The board's display rules: one sheet shape, one heading, one list row, one badge size, the closed radius scale | `tests/config/display-layout.test.ts` |
+| The board's display rules: one sheet shape, one heading (a heading or legend with a text or font class only falls: a ratchet), one list row, one badge size, the closed radius scale | `tests/config/display-layout.test.ts` |
 | One term per concept, both languages, plurals | `docs/copy/terms.json`, `npm run i18n:check`, ESLint `no-raw-text` |
 
 ## App icon

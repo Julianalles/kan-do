@@ -97,6 +97,7 @@ describe('seeded violations (#78)', () => {
         '    <UBadge :class="active ? \'ring ring-accented\' : \'\'" />',
         '    <ULink class="hover:text-default underline" />',
         '    <UCard class="bg-elevated" />',
+        '    <UChip class="md:bg-[color:var(--x)]" />',
         '    <UAlert class="items-center w-full mt-2 flex-wrap" />',
         '    <UIcon name="i-ph-x" class="text-muted size-4" />',
         '    <UButton class="text-center" @click="() => go()">b</UButton>',
@@ -105,9 +106,9 @@ describe('seeded violations (#78)', () => {
         '</template>',
       ].join('\n'),
     })
-    expect(countRatchet(dir, 'ui-class-look')).toEqual({ 'components/Look.vue': 4 })
+    expect(countRatchet(dir, 'ui-class-look')).toEqual({ 'components/Look.vue': 5 })
     const [finding] = checkRatchet(dir, 'ui-class-look')
-    expect(finding).toContain('components/Look.vue has 4 kit component tags with a look class, the baseline allows 0')
+    expect(finding).toContain('components/Look.vue has 5 kit component tags with a look class, the baseline allows 0')
     expect(finding).toContain('app.config.ts theme')
   })
 

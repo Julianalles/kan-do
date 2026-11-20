@@ -59,15 +59,4 @@
   }
 
   /* prefers-reduced-motion: no slide, the sheet simply appears (overlay and content). */
-  @media (prefers-reduced-motion: reduce) {
-    .task-sheet {
-      animation-duration: 1ms !important;
-      transition-duration: 1ms !important;
-    }
-
-    .board .task,
-    .board .task-stack {
-      transition-duration: 0s !important;
-    }
-  }
 }

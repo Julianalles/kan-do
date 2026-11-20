@@ -1,17 +1,18 @@
 import { computed, nextTick, toValue, type MaybeRefOrGetter } from 'vue'
 import type { DropAnimationFunction } from '@dnd-kit/dom'
 import { useBoardDragState, type DraggedStack } from '~/composables/useBoardDragState'
+import { MOTION } from '~/lib/motionTokens'
 
 /**
  * The drag's timings on the JS side (kd#181). dnd-kit takes numbers, not custom properties, so these mirror the
- * tokens in `assets/css/main.css`: `--duration-base` (200 ms) for neighbours making room, the drop glide and the
+ * tokens in `assets/css/main.css` (through `lib/motionTokens.ts`): `--duration-base` (200 ms) for neighbours making room, the drop glide and the
  * set-down, `--ease-emphasized` for all three. Change both places together.
  */
 export const DND_MOTION = {
-  reorderMs: 200,
-  dropMs: 200,
-  setDownMs: 200,
-  easing: 'cubic-bezier(0.2, 0, 0, 1)',
+  reorderMs: MOTION.baseMs,
+  dropMs: MOTION.baseMs,
+  setDownMs: MOTION.baseMs,
+  easing: MOTION.emphasized,
 } as const
 
 /** How long `land` waits for dnd-kit's drop animation before it finishes on its own (a drop without a glide never calls it) */

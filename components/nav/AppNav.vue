@@ -197,7 +197,6 @@ const tooltipText = computed(() => t('nav.moreWithCommands', { commands: t('nav.
 
 // A source that cannot sync stays visible on ⋯ (the dock's sync icon is gone); a healthy sync is silent
 const worstProblem = computed(() => health.problemsOf(boardStore.connectedIntegrations)[0] ?? null)
-// One colour for every failing state, orange (#595, DESIGN.md "Colour": a connection that needs a look); the dot's 700 step is the `chip` theme in app.config.ts
 
 // A route change closes the panel (a row that stays on the same route closes it itself)
 watch(() => route.value.fullPath, () => { open.value = false })
@@ -209,7 +208,7 @@ const indicatorEl = ref<HTMLElement | null>(null)
 const thirdEl = ref<HTMLElement | null>(null)
 
 /** Fallback when the stylesheet is not there (unit tests); app-nav.css owns the value (0ms under reduced motion) */
-const MOVE_MS_FALLBACK = 420
+const MOVE_MS_FALLBACK = 400
 const MOVE_EASE_FALLBACK = 'cubic-bezier(.2,.7,.2,1)'
 const cssVar = (name: string) => (navEl.value ? getComputedStyle(navEl.value).getPropertyValue(name).trim() : '')
 /** Length of one layout move in ms; 0 = reduced motion */
@@ -333,7 +332,7 @@ watch(thirdItem, async (item, previous) => {
   await nextTick()
   const from: ThirdState | null = item ? (wasMounted && before ? before : { width: 0, opacity: 0, margin: -pillGap() }) : before
   // #643: the move waits for the first frame after the route change. That frame lays out and paints the new page; on
-  // a slow main thread (WKWebView, a big board) it takes longer than the 420 ms move, and a timeline that starts
+  // a slow main thread (WKWebView, a big board) it takes longer than the 400 ms move, and a timeline that starts
   // before it is over by the time the frame is on screen: the segment and the pill jump to the end. Until then the
   // segment holds its start state.
   if (animated && from) {

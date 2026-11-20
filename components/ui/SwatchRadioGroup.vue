@@ -8,7 +8,7 @@
 @responsibility
 - Render `role="radiogroup"` with one native `<button role="radio">` per option (`aria-checked`, `aria-label` from the option); roving tabindex: the selected option (else the first) is the one Tab stop
 - Arrow keys move the focus and the selection to the neighbour (wrapping), Home/End to the ends, with `columns` Up/Down by a row (`utils/radioArrowKeys`); no library radio group does a grid, which is why this stays a hand-built role (decision D3 of #72)
-- `swatch` 28 px round (40 px on a phone, the ring marks the selection), `glyph` 40 px cells (the `none` cell in a hairline; hover is a fill, the selection an inset ring); the solid ink focus ring
+- `swatch` 28 px round (40 px on a phone with a 44 px hit area around it, the ring marks the selection and steps up to the accented hairline on hover), `glyph` 40 px cells (the `none` cell in a hairline; hover is a fill, the selection an inset ring); the solid ink focus ring
 - Option content (the dot, the glyph) is the `option` slot; `focusSelected()` is exposed for hosts that move focus in on open
 - `item-testid` names the options `<prefix>-<key|none>`; attributes of the host (the group's `data-testid`) land on the group
 -->
@@ -114,6 +114,11 @@ defineExpose({ focusSelected });
   border-color: var(--ui-text-highlighted);
 }
 
+/* Hover: the ring steps up from nothing to the accented hairline; the picked swatch keeps its ink ring (#592) */
+.swatch-radio--swatch:hover:not([aria-checked='true']) {
+  border-color: var(--ui-border-accented);
+}
+
 .swatch-radio--glyph {
   height: 2.5rem;
   border-radius: var(--ui-radius);
@@ -136,10 +141,19 @@ defineExpose({ focusSelected });
   box-shadow: inset 0 0 0 2px var(--ui-text-highlighted);
 }
 
+/* Phone: the circle is 40 px, the hit area 44 px (an invisible 2 px around its border box, the 44 px floor of DESIGN.md
+   "Space, size and shape"); the 6 px gap of the host's row keeps neighbours from overlapping (#592) */
 @media (--phone) {
   .swatch-radio--swatch {
+    position: relative;
     width: 2.5rem;
     height: 2.5rem;
+  }
+
+  .swatch-radio--swatch::after {
+    content: '';
+    position: absolute;
+    inset: -0.25rem; /* from the padding box: the 2 px border is inside the 40 px */
   }
 }
 </style>

@@ -252,6 +252,7 @@
 
 <script setup lang="ts">
 import { ICONS } from '~/lib/icons'
+import { MOTION } from '~/lib/motionTokens'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useToast } from '#imports';
@@ -425,7 +426,7 @@ let advanceTimer: ReturnType<typeof setTimeout> | undefined;
 /** One short beat on the wash: a pick landed (the cue for Aktivität and Notiz, which a card does not show) */
 function pulse() {
   if (prefersReducedMotion()) return;
-  veilEl.value?.animate?.([{ opacity: 1 }, { opacity: 0.55 }, { opacity: 1 }], { duration: 260, easing: 'ease-in-out' });
+  veilEl.value?.animate?.([{ opacity: 1 }, { opacity: 0.55 }, { opacity: 1 }], { duration: MOTION.slowMs, easing: MOTION.standard });
 }
 
 /** Offset of an element's top inside the card, from layout (a transform on the card, such as its entrance, does not skew it) */
@@ -880,7 +881,7 @@ onBeforeUnmount(() => {
 .ncf__face :deep(.task-topic),
 .ncf__face :deep(.task-title-text),
 .ncf__face :deep(.task-footer) {
-  transition: filter 260ms var(--ncf-ease), opacity 260ms var(--ncf-ease);
+  transition: filter var(--duration-slow) var(--ncf-ease), opacity var(--duration-slow) var(--ncf-ease);
 }
 
 .ncf.is-steps:not(.is-saving) .ncf__face :deep(.task-topic),
@@ -909,7 +910,7 @@ onBeforeUnmount(() => {
   background: var(--ui-bg-elevated);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 260ms var(--ncf-ease);
+  transition: opacity var(--duration-slow) var(--ncf-ease);
 }
 
 .ncf.is-steps .ncf__veil {
@@ -1135,13 +1136,13 @@ onBeforeUnmount(() => {
 
 .ncf__key {
   display: none;
-  padding: 0.15rem 0.3rem;
+  padding: 0.125rem 0.25rem;
   border-radius: var(--radius-sm);
   background: color-mix(in oklab, currentColor 14%, transparent);
   color: inherit;
   font: inherit;
   font-size: var(--text-label);
-  font-weight: 600;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
@@ -1195,11 +1196,24 @@ onBeforeUnmount(() => {
     font-size: var(--text-base);
   }
 
-  /* 32 px (above the 24 px target floor): the head ends 12 px above the answer row of a 128 px card */
+  /* 32 px (above the 24 px target floor): the head ends 12 px above the answer row of a 128 px card. The hit area is
+     44 px: an invisible 6 px ring around the circle (DESIGN.md "Space, size and shape", #592) */
   .ncf__nav {
+    position: relative;
     height: 2rem;
     min-height: 2rem;
     min-width: 2rem;
+  }
+
+  .ncf__nav::after {
+    content: '';
+    position: absolute;
+    inset: -0.375rem;
+  }
+
+  /* The dots icon alone is as wide as the answers are tall */
+  .ncf__row--grid .ncf__pill--more {
+    min-width: var(--ncf-control-h);
   }
 }
 

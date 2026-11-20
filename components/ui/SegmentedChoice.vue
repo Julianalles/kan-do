@@ -9,7 +9,7 @@
 - One reka `RadioGroupRoot` (role `radiogroup`): one Tab stop, arrow keys move and pick, each segment is a `role="radio"` button
 - The picked segment is a lifted fill (page surface, a hairline, medium weight; no shadow: a control inside a sheet never casts one): The One Lamp Rule allows one solid green per view, so no option here is green
 - Segments are `--field-h` high (36 px, 44 px on a phone, the touch target) and keep their words on one line; the group does not grow with its host (`inline-flex`)
-- `disabled` dims the whole group and takes it out of the tab order
+- `disabled` dims the whole group to 50 % with the `not-allowed` cursor (the one disabled look, DESIGN.md "States") and takes it out of the tab order
 - Pattern: pick one of a few words, diverged from ChoiceChip (solid picked fill): five lists would have shown five solid greens (The One Lamp Rule); the look follows UTabs `variant="pill"` (a muted track, the picked option a raised light chip) but is a radio group (arrow keys, one answer per list) and not navigation
 -->
 <template>
@@ -57,8 +57,14 @@ const model = defineModel<T>({ required: true });
   border-radius: 9999px;
   background: var(--ui-bg-muted);
 }
+/* Disabled (DESIGN.md "States"): the whole group at 50 % with the `not-allowed` cursor. The segments are disabled buttons
+   too and the base layer dims each of them to 50 %: they stay at 100 % inside the group, or it would read 25 % (#592) */
 .segmented-choice[data-disabled] {
-  opacity: 0.6;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.segmented-choice[data-disabled] .segmented-choice__item {
+  opacity: 1;
 }
 .segmented-choice__item {
   display: inline-flex;
@@ -90,11 +96,6 @@ const model = defineModel<T>({ required: true });
   }
   .segmented-choice__item {
     flex: 1;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .segmented-choice__item {
-    transition: none;
   }
 }
 </style>
