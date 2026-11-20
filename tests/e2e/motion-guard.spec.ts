@@ -18,8 +18,8 @@ import { expectInstant, expectNoJumps, MAX_FRAME_MS, startAnimationLog, startFra
 
 /** `MOTION_GUARD_THROTTLE=<rate>` slows the page's CPU by that factor (CDP), the load emulation of #672: a plain busy loop beside the run does not drop frames on a many-core Mac, a rate of 20 drops them like the loaded CI runner. Off by default. */
 const THROTTLE = Number(process.env.MOTION_GUARD_THROTTLE ?? 0)
-test.beforeEach(async ({ page }) => {
-  if (THROTTLE > 1) await (await page.context().newCDPSession(page)).send('Emulation.setCPUThrottlingRate', { rate: THROTTLE })
+test.beforeEach(async ({ page, browserName }) => {
+  if (THROTTLE > 1 && browserName === 'chromium') await (await page.context().newCDPSession(page)).send('Emulation.setCPUThrottlingRate', { rate: THROTTLE })
 })
 
 type Flow = { name: string, url: string, seed?: 'board' | 'none', prepare?: (context: BrowserContext) => Promise<void>, before?: (page: Page) => Promise<void>, viewport?: { width: number, height: number }, run: (page: Page) => Promise<void>, jumps?: AllowedJump[], animations?: AllowedJump[] }
@@ -351,9 +351,9 @@ test.describe('the frame sampler', () => {
   })
 
   test('a box without area that moves 400 px in one frame is not reported (#672)', async ({ page }) => {
-    const mk = (id: string, h: number) => `{ const el = document.createElement("div"); el.id = "${id}"; el.setAttribute("data-probe", ""); el.style.cssText = "position:fixed;left:100px;top:500px;width:40px;height:${h}px;background:#888;"; document.body.appendChild(el); setTimeout(() => { el.style.left = "500px" }, 100) }`
+    const mk = (id: string, h: number, w: number) => `{ const el = document.createElement("div"); el.id = "${id}"; el.setAttribute("data-probe", ""); el.style.cssText = "position:fixed;left:100px;top:500px;width:${w}px;height:${h}px;background:#888;"; document.body.appendChild(el); setTimeout(() => { el.style.left = "500px" }, 100) }`
     // The twin with area is the snap probe above: a box with area that moves in one frame is reported
-    const report = await probe(page, mk('probe-empty', 0))
+    const report = await probe(page, `${mk('probe-empty', 0, 40)} ${mk('probe-empty-w', 20, 0)}`)
     expect(labels(report)).not.toContain('probe-empty')
   })
 
@@ -368,7 +368,7 @@ test.describe('the frame sampler', () => {
     // The leap must land in a frame the sampler measures (#672): it shows in frame n+1 and a frame is not judged after a dropped
     // one, so the probe leaps in a frame of normal length and reports whether frames n and n+1 were both normal; on a loaded
     // machine it tries again until one run was clean, and says so when none was (a pass without a clean leap proves nothing).
-    const script = `window.__leap = { clean: false, leapt: false }; const el = document.getElementById("probe-snap"); const t0 = performance.now(); let x = 0, stalled = false, prev = t0, leapFrame = -1, frame = 0; const tick = (now) => { const ft = now - prev; prev = now; frame++; if (leapFrame === frame - 1) { window.__leap.clean = window.__leap.clean && ft <= ${MAX_FRAME_MS}; leapFrame = -2 } const dt = now - t0; if (dt > 60 && !stalled) { stalled = true; const s = performance.now(); while (performance.now() - s < 120) { /* a stall */ } } if (dt > 400 && !window.__leap.leapt && ft <= ${MAX_FRAME_MS} - 10) { window.__leap.leapt = true; window.__leap.clean = true; leapFrame = frame; x += 400 } else x += 5; el.style.left = x + "px"; if (dt < 900 && leapFrame !== -2) requestAnimationFrame(tick) }; requestAnimationFrame(tick);`
+    const script = `window.__leap = { clean: false, leapt: false }; const el = document.getElementById("probe-snap"); const t0 = performance.now(); let x = 0, stalled = false, prev = t0, leapFrame = -1, frame = 0; const tick = (now) => { const ft = now - prev; prev = now; frame++; if (leapFrame === frame - 1) { window.__leap.clean = window.__leap.clean && ft <= ${MAX_FRAME_MS}; leapFrame = -2 } const dt = now - t0; if (dt > 60 && !stalled) { stalled = true; const s = performance.now(); while (performance.now() - s < 120) { /* a stall */ } } if (dt > 400 && dt < 600 && !window.__leap.leapt && ft <= ${MAX_FRAME_MS} - 10) { window.__leap.leapt = true; window.__leap.clean = true; leapFrame = frame; x += 400 } else x += 5; el.style.left = x + "px"; if (dt < 900 && leapFrame !== -2) requestAnimationFrame(tick) }; requestAnimationFrame(tick);`
     let report = await probe(page, script)
     let clean = await page.evaluate(() => (window as unknown as { __leap: { clean: boolean } }).__leap.clean)
     for (let attempt = 1; attempt < 6 && !clean; attempt++) {
