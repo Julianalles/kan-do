@@ -10,7 +10,8 @@ import { MOTION } from '~/lib/motionTokens'
  * - `around(change)` reads the rects of the column items and the heights of the column lists, runs `change`, waits
  *   for the DOM (`nextTick`) and plays a FLIP: an item that exists before and after glides (`transform`), one that
  *   is new fades in, one that is gone is gone at once; a list whose height changed animates its height so everything
- *   below it follows.
+ *   below it follows; a column footer that arrives grows from nothing (height and padding) and fades in, so the board
+ *   and the page above it take its height over the glide and not in one frame (#671).
  * - Only what is on screen before or after the change animates (a long column is not a thousand animations).
  * - A change started while a glide runs reads the rects as they are drawn right now, so it continues from the
  *   current place and nothing jumps; a `pointerdown` or a key press (the start of a drag), or `cancelBoardGlide()`
@@ -23,6 +24,8 @@ import { MOTION } from '~/lib/motionTokens'
 const ITEMS = '.task-list > *, .not-planned__grid > *'
 /** The lists whose height follows their items */
 const LISTS = '.task-list'
+/** A column's footer ("Tag abschließen" under the done cards): it comes and goes with the column's cards, and its box takes its height with it */
+const FOOTERS = '.column-footer'
 
 const running = new Set<Animation>()
 let listening = false
@@ -75,6 +78,19 @@ export async function glideHeight(el: HTMLElement | null, change: () => void): P
   el.animate({ height: [`${was}px`, `${now}px`], minHeight: [`${was}px`, `${now}px`] }, { duration: MOTION.slowMs, easing: MOTION.standard, fill: 'none' })
 }
 
+/** A box that arrives with a state change takes its size from nothing (height, padding) while it fades in: what lies around it gets the room over the glide */
+function growIn(el: HTMLElement, options: KeyframeAnimationOptions): Animation {
+  const box = el.getBoundingClientRect()
+  const style = getComputedStyle(el)
+  return el.animate({
+    height: ['0px', `${box.height}px`],
+    paddingTop: ['0px', style.paddingTop],
+    paddingBottom: ['0px', style.paddingBottom],
+    opacity: [0, 1],
+    overflow: ['hidden', 'hidden'],
+  }, options)
+}
+
 export function useBoardGlide() {
   async function around(change: () => void): Promise<void> {
     if (typeof window === 'undefined' || reducedMotion()) return change()
@@ -90,6 +106,7 @@ export function useBoardGlide() {
     }
     const heights = new Map<Element, number>()
     for (const list of document.querySelectorAll(LISTS)) heights.set(list, list.getBoundingClientRect().height)
+    const footersBefore = new Set(document.querySelectorAll(FOOTERS))
     cancelBoardGlide()
 
     change()
@@ -97,6 +114,11 @@ export function useBoardGlide() {
 
     const animations: Animation[] = []
     const options = { duration: MOTION.slowMs, easing: MOTION.standard, fill: 'none' as const }
+    // First, so the lists below measure the board with the footer at its first keyframe: what stretches with the board follows the footer's growth
+    for (const footer of document.querySelectorAll<HTMLElement>(FOOTERS)) {
+      if (footersBefore.has(footer) || !onScreen(footer.getBoundingClientRect())) continue
+      animations.push(growIn(footer, options))
+    }
     for (const el of document.querySelectorAll<HTMLElement>(ITEMS)) {
       const now = el.getBoundingClientRect()
       const was = before.get(el) ?? (() => { const id = taskIdOf(el); return id ? byTask.get(id) : undefined })()
