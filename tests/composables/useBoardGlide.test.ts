@@ -98,6 +98,30 @@ describe('useBoardGlide.around', () => {
     expect(listGlide.keyframes.flexGrow).toEqual([0, 0])
   })
 
+  it('grows a column footer in from nothing when it arrives, so the board takes its height over the glide (#671)', async () => {
+    column()
+    let footer!: HTMLElement
+    await useBoardGlide().around(() => {
+      footer = node({ class: 'column-footer' })
+      place(footer, 700, 68)
+    })
+    const glide = recorded.find(r => r.target === footer)!
+    expect(glide.keyframes.height).toEqual(['0px', '68px'])
+    expect(glide.keyframes.paddingTop?.[0]).toBe('0px')
+    expect(glide.keyframes.paddingBottom?.[0]).toBe('0px')
+    expect(glide.keyframes.opacity).toEqual([0, 1])
+    expect(glide.options).toMatchObject({ duration: MOTION.slowMs, easing: MOTION.standard })
+    // played before the lists are measured: a list that stretches with the board then starts from the footer's first keyframe
+    expect(recorded.indexOf(glide)).toBe(0)
+  })
+
+  it('leaves a column footer that was there before alone', async () => {
+    const footer = node({ class: 'column-footer' })
+    place(footer, 700, 68)
+    await useBoardGlide().around(() => undefined)
+    expect(recorded.find(r => r.target === footer)).toBeUndefined()
+  })
+
   it('follows a card by its task id when its element was replaced (a card turning into a stack)', async () => {
     const { list, a } = column()
     let stack!: HTMLElement
