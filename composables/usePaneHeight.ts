@@ -1,7 +1,7 @@
 /**
  * @composable usePaneHeight
  * @description The height of a setup pane follows its content as one guided motion (#648, epic #607): `outer` takes the
- * height of `inner` in 300 ms (`MOTION.slowMs`, `MOTION.emphasized`) when a step changes or the content grows or
+ * height of `inner` (measured as `offsetHeight`: layout height, unaffected by a dialog's scale-in transform) in 300 ms (`MOTION.slowMs`, `MOTION.emphasized`) when a step changes or the content grows or
  * shrinks (a list loads, an error appears). Replaces the one-frame jump of the setup steps.
  * @responsibility
  * - `inner` is the content block (height auto, `flow-root` so child margins count), `outer` its wrapper; the composable
@@ -13,7 +13,7 @@
  *   mutation announces (an image, a font, a width change that rewraps the text)
  * - The first measurement and an unchanged height animate nothing; under `prefers-reduced-motion` nothing animates
  * - A change during a running animation starts from the height on screen and cancels the old animation, so the pane never jumps
- * - `outer` clips (`overflow: clip`) only while it animates, so focus rings at its edge are not cut at rest
+ * - `outer` clips vertically (`overflow-y: clip`, x stays visible for the step slide) only while it animates, so focus rings at its edge are not cut at rest
  * - Reusable: `pages/welcome.vue`'s `setup-body` swap may adopt it but keeps its own one-block swap (not changed in #648)
  */
 import { onBeforeUnmount, onMounted, watch, type Ref } from 'vue'
@@ -27,20 +27,26 @@ export function usePaneHeight(outer: Ref<HTMLElement | null>, inner: Ref<HTMLEle
   let lastHeight: number | null = null
   let running: Animation | null = null
 
+  function clearClip(el: HTMLElement) {
+    el.style.overflowX = ''
+    el.style.overflowY = ''
+  }
+
   function stopAnimation() {
     running?.cancel()
     running = null
-    if (outer.value) outer.value.style.overflow = ''
+    if (outer.value) clearClip(outer.value)
   }
 
   function onResize(entries: ResizeObserverEntry[]) {
     const entry = entries[entries.length - 1]
-    if (entry) change(entry.borderBoxSize?.[0]?.blockSize ?? entry.contentRect.height)
+    // offsetHeight, not the entry's size: layout height, unscaled like the other measurements (a modal's scale-in transform skews rects)
+    if (entry) change((entry.target as HTMLElement).offsetHeight)
   }
 
   function onMutation() {
     const el = inner.value
-    if (el) change(el.getBoundingClientRect().height)
+    if (el) change(el.offsetHeight)
   }
 
   /** `next` is the content's new height */
@@ -51,15 +57,15 @@ export function usePaneHeight(outer: Ref<HTMLElement | null>, inner: Ref<HTMLEle
     lastHeight = next
     if (previous === null || reducedMotion()) return
     // A running animation has the height the user sees right now; read it before the old animation is cancelled
-    const from = running ? el.getBoundingClientRect().height : previous
+    const from = running ? el.offsetHeight : previous
     running?.cancel()
-    el.style.overflow = 'clip'
+    el.style.overflowY = 'clip' // x stays visible: the pane's 14 px step slide is not cut
     const animation = el.animate([{ height: `${from}px` }, { height: `${next}px` }], { duration: MOTION.slowMs, easing: MOTION.emphasized })
     running = animation
     const end = () => {
       if (running !== animation) return
       running = null
-      el.style.overflow = ''
+      clearClip(el)
     }
     animation.finished.then(end, end)
   }
@@ -70,7 +76,7 @@ export function usePaneHeight(outer: Ref<HTMLElement | null>, inner: Ref<HTMLEle
     stopAnimation()
     if (!inner.value) return
     // Measure now, so a change before the observers' first report already has a height to start from
-    lastHeight = inner.value.getBoundingClientRect().height
+    lastHeight = inner.value.offsetHeight
     if (typeof ResizeObserver !== 'undefined') {
       observer = new ResizeObserver(onResize)
       observer.observe(inner.value)

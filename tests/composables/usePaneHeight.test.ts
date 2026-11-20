@@ -27,7 +27,11 @@ let animations: FakeAnimation[] = []
 let renderedHeight = 0
 let reduced = false
 
+/** The height `outer` shows right now (an animation drives it); null = follows the content */
+let screenHeight: number | null = null
+
 function stubEnvironment() {
+  screenHeight = null
   observers = []
   disconnected = 0
   animations = []
@@ -41,15 +45,17 @@ function stubEnvironment() {
     animations.push(animation)
     return animation as unknown as Animation
   }
+  // Rects are scaled by a dialog's transform and report a wrong height: the composable must not read them
   HTMLElement.prototype.getBoundingClientRect = function () {
-    return { height: renderedHeight, width: 0, top: 0, left: 0, right: 0, bottom: 0, x: 0, y: 0, toJSON() {} } as DOMRect
+    return { height: renderedHeight * 0.98, width: 0, top: 0, left: 0, right: 0, bottom: 0, x: 0, y: 0, toJSON() {} } as DOMRect
   }
+  Object.defineProperty(HTMLElement.prototype, 'offsetHeight', { configurable: true, get(this: HTMLElement) { return this.hasAttribute('data-outer') && screenHeight !== null ? screenHeight : renderedHeight } })
 }
 
 /** The inner element reported a new content height */
 function resize(height: number) {
   const inner = observers[observers.length - 1]!
-  inner.callback([{ contentRect: { height }, borderBoxSize: [{ blockSize: height, inlineSize: 0 }] } as unknown as ResizeObserverEntry], {} as ResizeObserver)
+  inner.callback([{ target: document.querySelector('[data-inner]'), contentRect: { height }, borderBoxSize: [{ blockSize: height * 0.98, inlineSize: 0 }] } as unknown as ResizeObserverEntry], {} as ResizeObserver)
 }
 
 function mountHarness() {
@@ -114,11 +120,12 @@ describe('usePaneHeight', () => {
     resize(100)
     renderedHeight = 160
     resize(160)
-    expect(outer.style.overflow).toBe('clip')
+    expect(outer.style.overflowY).toBe('clip')
+    expect(outer.style.overflowX).toBe('')
     animations[0]!.finish()
     await animations[0]!.finished
     await nextTick()
-    expect(outer.style.overflow).toBe('')
+    expect(outer.style.overflowY).toBe('')
   })
 
   it('starts a change during a running animation from the height on screen and cancels the old one', async () => {
@@ -128,7 +135,8 @@ describe('usePaneHeight', () => {
     resize(100)
     renderedHeight = 200
     resize(200) // animation 1: 100 -> 200
-    renderedHeight = 150 // the user sees 150 now; the content grows again
+    screenHeight = 150 // the user sees 150 now; the content grows again
+    renderedHeight = 260
     resize(260)
     expect(animations).toHaveLength(2)
     expect(animations[0]!.cancel).toHaveBeenCalled()
@@ -153,7 +161,7 @@ describe('usePaneHeight', () => {
     renderedHeight = 220
     resize(220)
     expect(animations).toHaveLength(0)
-    expect((wrapper.get('[data-outer]').element as HTMLElement).style.overflow).toBe('')
+    expect((wrapper.get('[data-outer]').element as HTMLElement).style.overflowY).toBe('')
   })
 
   it('starts the animation in the microtask after a DOM change, before the next frame (not one frame late, in a ResizeObserver)', async () => {
