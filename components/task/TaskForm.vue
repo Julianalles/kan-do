@@ -8,7 +8,7 @@
 @responsibility
 - Provides the same labelled property rows as TaskDetailContent (#161): one grammar for add and detail
 - Title as a large clean input, properties as label/value rows; Thema/Aktivität are rows with the empty "Auswählen" state
-- Notes section always visible (no reveal button)
+- Notes section always visible (no reveal button): a free value on a faint dotted rule under its heading, the select's fill and radius while focused, growing with its text (#613)
 - Help text lives in the pickers and as accessible descriptions, not in tooltips
 - Handles form submission and validation: an empty or whitespace-only title shows an inline error under the title (role="alert", aria-invalid, focus back on the input; clears once the title has text, #662)
 - Converts between time formats (minutes/seconds)
@@ -29,7 +29,7 @@
         :placeholder="t('task.form.titlePlaceholder')"
         size="xl"
         variant="ghost"
-        class="w-full"
+        class="-ms-3 w-[calc(100%+0.75rem)]"
         required
         :color="titleError ? 'error' : undefined"
         :highlight="titleError"
@@ -123,7 +123,7 @@
           <!-- Presets and the suggestion are plain text actions (One Lamp: no second filled control) -->
           <div class="-ms-2 flex flex-wrap items-center">
             <PropertyValueTrigger
-              v-for="mins in [15, 30, 60]"
+              v-for="mins in TIMEBOX_OFFER_MINUTES"
               :key="mins"
               inset
               :tone="timeboxInMinutes === mins ? 'picked' : 'action'"
@@ -153,15 +153,17 @@
 
       <!-- Notes: always visible, no reveal button -->
       <section data-testid="add-task-notes-section" aria-labelledby="add-notes-heading">
-        <SectionHeader id="add-notes-heading" :text="t('task.field.notes')" tag="h3" size="label" />
+        <SectionHeader id="add-notes-heading" :text="t('task.field.notes')" tag="h3" size="label" class="mb-0" />
         <div @keydown="onNotesKeydown">
-          <UTextarea
+          <!-- A free value in the sheet's own language (#613): placeholder on a faint dotted rule, the select's fill and radius while focused, grows with its text -->
+          <textarea
             v-model="formData.notes"
             data-private
             name="notes"
+            rows="1"
+            :aria-labelledby="'add-notes-heading'"
             :placeholder="t('task.form.notesPlaceholder')"
-            :rows="3"
-            class="w-full"
+            class="note-field -ms-2 w-[calc(100%+0.5rem)] px-2 py-1.5 text-sm placeholder:text-muted focus-ring focus:rounded-md focus:bg-muted"
           />
         </div>
       </section>
@@ -282,6 +284,7 @@
 </template>
 
 <script setup lang="ts">
+import { TIMEBOX_OFFER_MINUTES } from '~/utils/timeboxOffers';
 import MinutesField from '~/components/ui/MinutesField.vue';
 import { ref, computed, watch, onMounted, nextTick, useId } from "vue";
 import { useI18n } from "vue-i18n";

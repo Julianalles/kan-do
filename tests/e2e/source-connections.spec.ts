@@ -103,6 +103,15 @@ test.describe('disconnect Notion (#320)', () => {
     await expect.poll(height('disconnect-cancel')).toBe(36)
     await expect.poll(height('disconnect-anyway')).toBe(36)
 
+    // The footer rule (#611): one cluster at the right edge, "Abbrechen" first and the main action last, side by side
+    const box = async (id: string) => (await page.getByTestId(id).boundingBox())!
+    const cancel = await box('disconnect-cancel')
+    const main = await box('disconnect-anyway')
+    const dlg = (await dialog(page).boundingBox())!
+    expect(cancel.y).toBeCloseTo(main.y, 0)
+    expect(cancel.x + cancel.width).toBeLessThan(main.x)
+    expect(main.x + main.width).toBeGreaterThan(dlg.x + dlg.width - 40)
+
     await page.getByTestId('disconnect-anyway').click() // "Trennen"
     await backToBoard(page)
     for (const title of NOTION_TASKS) await expect(page.locator('.task-wrapper', { hasText: title })).toHaveCount(0)
@@ -133,6 +142,19 @@ test.describe('disconnect Notion (#320)', () => {
     await expect(page.getByTestId('disconnect-unsynced')).toContainText('1 Änderung ist noch nicht in Notion gespeichert')
     await expect(page.getByRole('button', { name: 'Abbrechen' })).toBeVisible()
     await expect(page.getByTestId('disconnect-anyway')).toHaveText('Trotzdem trennen')
+
+    // The stacked footer (#611): full-width column, main on top, "Abbrechen" last, and the keyboard order follows the picture
+    const stack = ['disconnect-sync-first', 'disconnect-anyway', 'disconnect-cancel']
+    const boxes = await Promise.all(stack.map(async (id) => (await page.getByTestId(id).boundingBox())!))
+    expect(boxes[0]!.y).toBeLessThan(boxes[1]!.y)
+    expect(boxes[1]!.y).toBeLessThan(boxes[2]!.y)
+    expect(boxes[0]!.width).toBeCloseTo(boxes[2]!.width, 0)
+    expect(boxes[0]!.x).toBeCloseTo(boxes[2]!.x, 0)
+    await page.getByTestId('disconnect-sync-first').focus()
+    await page.keyboard.press('Tab')
+    await expect(page.getByTestId('disconnect-anyway')).toBeFocused()
+    await page.keyboard.press('Tab')
+    await expect(page.getByTestId('disconnect-cancel')).toBeFocused()
 
     await page.unroute('**/api/notion/update-task') // Notion takes the write now
     const pushed = page.waitForResponse((res) => res.url().includes('/api/notion/update-task') && res.ok())

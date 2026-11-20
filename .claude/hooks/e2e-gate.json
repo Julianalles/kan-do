@@ -650,6 +650,7 @@
         "lib/timeboxChipMemory.ts",
         "lib/timeboxSimilarity.ts",
         "types/timeboxSuggestion.ts",
+        "utils/timeboxOffers.ts",
         "utils/timeboxProgress.ts"
       ],
       "specs": [

@@ -50,6 +50,29 @@
  * can type reads as editable without hovering; hover and focus darken the rule, the same grammar as the inline
  * editables. A value that opens a list is a soft select instead (app.config.ts `selectMenu`), never this rule.
  * ======================================== */
+/* The add sheet's note (#613): a free multi-line value in the same language as the rows' free values: the faint dotted
+   rule at rest (the bottom edge of a box whose other edges are transparent, so the text keeps its place when the box turns
+   into the filled field, as `MinutesField` does), the select's fill and radius while focused. `field-sizing` grows the box
+   with its text, also at 390px. */
+.note-field {
+  display: block;
+  resize: none;
+  field-sizing: content;
+  min-height: var(--field-h);
+  background: transparent;
+  border: 1px solid transparent;
+  border-bottom: 1px dotted var(--ui-border-muted);
+  transition: background-color var(--duration-fast) var(--ease-standard), border-color var(--duration-fast) var(--ease-standard);
+}
+
+.note-field:hover {
+  border-bottom-color: var(--ui-border-accented);
+}
+
+.note-field:focus {
+  border-color: transparent;
+}
+
 .task-property-value {
   text-decoration: underline dotted var(--ui-border-accented) 1px;
   text-underline-offset: 0.3em;

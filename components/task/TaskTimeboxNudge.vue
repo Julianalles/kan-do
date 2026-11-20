@@ -8,7 +8,7 @@
 @responsibility
 - Non-modal layer over the card face: no focus move, no trap; only its controls take pointer events, so the
   card stays draggable and a click on the face still opens the sheet (on touch the layer swallows the tap)
-- One-click presets (15, 30 min) and an inline minutes field (1 to 480); Escape steps back, then dismisses
+- One-click presets (15, 30, 60 min: the list of the add sheet, `utils/timeboxOffers.ts`) and an inline minutes field (1 to 480); Escape steps back, then dismisses
 - Auto-dismisses after TIMEBOX_NUDGE_MS; the hairline countdown pauses while the pointer or focus is on the layer or the field is open
 - Ends itself when the card leaves Jetzt, is deleted, gets a timebox elsewhere or opens its sheet
 - The card dims its own content through the `task--nudged` class (TaskCard); the rules for both live in this file
@@ -104,14 +104,15 @@ import type { Task } from "~/types/task";
 import { useBoardStore, TIMEBOX_NUDGE_MS } from "~/store/board";
 import { useTasksStore } from "~/store/tasks";
 import { useSheetSpotlight } from "~/composables/useSheetSpotlight";
+import { TIMEBOX_OFFER_MINUTES } from "~/utils/timeboxOffers";
 import ChoiceChip from "~/components/ui/ChoiceChip.vue";
 
 defineOptions({ name: "TaskTimeboxNudge" });
 
 const props = defineProps<{ task: Task }>();
 
-/** The one-click answers (TIMEBOX_PRESETS in utils/taskMenuOptions.ts is the menu's longer list and stays as it is) */
-const NUDGE_PRESETS = [15, 30];
+/** The one-click answers: the list the add sheet offers too (#613); TIMEBOX_PRESETS in utils/taskMenuOptions.ts is the menu's longer list and stays as it is */
+const NUDGE_PRESETS = TIMEBOX_OFFER_MINUTES;
 const MIN_MINUTES = 1;
 const MAX_MINUTES = 480;
 const DEFAULT_CUSTOM_MINUTES = 45;
