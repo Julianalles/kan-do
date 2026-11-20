@@ -11,6 +11,7 @@ The row that would navigate to the page the user is already on is left out (`bui
 - Render UCommandPalette inside UModal; Esc closes and focus returns to the card
 - Show the shortcut hints of the commands (`kbds`) and the palette's own keys in the footer
 - The "focus a task with Tab" hint only on the board, the one place a card can have focus
+- One height (#601): the panel is `h-144` (capped by the window) with and without a result, so typing never resizes it; the list scrolls and the empty line shows inside it
 - Empty and loading states; screen-reader result status via role="status"
 - The heading of the card's move group names the card ("Verschieben: {title}"), so it is `data-private` and masked in a feedback screenshot (#254); the app groups' headings are not
 -->
@@ -29,7 +30,7 @@ The row that would navigate to the page the user is already on is left out (`bui
         :placeholder="t('commandPalette.placeholder')"
         :back="false"
         :fuse="fuseOptions"
-        class="max-h-144"
+        class="h-144 max-h-[calc(100dvh-6rem)]"
         @update:open="isOpen = $event"
       >
         <template #empty="{ searchTerm }">

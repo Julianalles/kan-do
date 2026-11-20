@@ -4,25 +4,40 @@
  */
 
 @layer components {
+/* A place change (#601, DESIGN.md "Motion"): one short fade on every pair of places but Heute and Alle, which slide inside the
+   mounted board (lib/boardPlace). The leaving page comes out of the flow, so the entering page is at its final place from the
+   first frame and nothing below the fold has to jump up (motion-1). No rise: the fade is the whole answer. Reduced motion: instant (main.css). */
 .page-enter-active,
 .page-leave-active {
-  transition: opacity var(--duration-base) var(--ease-standard), transform var(--duration-base) var(--ease-standard);
+  transition: opacity var(--duration-base) var(--ease-standard);
 }
 
-.page-enter-from {
-  opacity: 0;
-  transform: translateY(10px);
+.page-leave-active {
+  position: absolute;
+  inset-inline: 0; /* `top` stays auto: the page keeps the place it had in the flow, so it does not step up */
+  pointer-events: none;
 }
 
+.page-enter-from,
 .page-leave-to {
   opacity: 0;
-  transform: translateY(-10px);
 }
 
 .page-enter-to,
 .page-leave-from {
   opacity: 1;
-  transform: translateY(0);
+}
+
+/* Overlay pop (#601): menus, popovers, select lists and tooltips (themed in app.config.ts) arrive from 98 % and leave to 98 %,
+   not Nuxt UI's 95 %: a tall panel (the Mehr panel, 384 px) then moves 8 px at most, so it never reads as a jump to the motion
+   guard (tests/e2e/motion-guard.spec.ts). Reduced motion: instant (main.css). */
+@keyframes menu-in {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes menu-out {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.98); }
 }
 
 /* Welcome -> board (#294, #463): a curtain. The welcome page leaves as a fixed layer, so the board enters beneath it at its

@@ -48,6 +48,19 @@ test.describe('Command palette', () => {
     await expect(card(page, 'Dokumentation lesen')).toBeFocused()
   })
 
+  test('keeps one height while typing, with and without a result (#601)', async ({ page }) => {
+    await page.keyboard.press('Control+k')
+    await expect(palette(page)).toBeVisible()
+    const height = () => palette(page).evaluate(el => el.offsetHeight) // layout height: the open animation scales the box
+    const before = await height()
+    await page.keyboard.type('statis')
+    await expect(palette(page).getByText('Statistik öffnen')).toBeVisible()
+    expect(await height()).toBe(before)
+    await page.keyboard.type('zzzzqq')
+    await expect(palette(page).getByRole('status')).toContainText('Keine Befehle')
+    expect(await height()).toBe(before)
+  })
+
   test('a click on the backdrop closes it (#432)', async ({ page }) => {
     await openPaletteForBackdropClick(page)
     await page.mouse.click(5, 400)

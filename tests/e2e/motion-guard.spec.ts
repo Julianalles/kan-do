@@ -18,9 +18,8 @@ import { expectInstant, expectNoJumps, startAnimationLog, startFrames, type Allo
 
 type Flow = { name: string, url: string, seed?: 'board' | 'none', run: (page: Page) => Promise<void>, jumps?: AllowedJump[], animations?: AllowedJump[] }
 
-/** Allow lists name the boxes seen jumping in a strict run, never every box. The step swap and the setup's height: motion-4 / #607 (setup steps), motion-1 / #601 (page transition), motion-9 / #610 (disclosures). The chip row of #608 never moved in these flows. */
+/** Allow lists name the boxes seen jumping in a strict run, never every box. The step swap and the setup's height: motion-4 / #607 (setup steps), motion-9 / #610 (disclosures). The chip row of #608 never moved in these flows. */
 const SETUP_STEPS: AllowedJump = { match: /^div#__nuxt|^div#teleports|^div$|welcome-root|setup-back|Status\d|Aufgewendete Zeit|Erledigungsdatum/, issue: '#607', why: 'the setup steps still jump in height and place (motion-4)' }
-const PAGE_TRANSITION: AllowedJump = { match: /^div#__nuxt|^div#teleports|^div$|Zurück zu/, issue: '#601', why: 'the page transition stacks the new page below the old one and then jumps (motion-1)' }
 const DISCLOSURES: AllowedJump = { match: /task-metadata/, issue: '#610', why: 'a disclosure opens in one step (motion-9)' }
 
 /** In-app navigation: the sampler lives in one document, so a flow never reloads the page. */
@@ -69,7 +68,6 @@ const FLOWS: Flow[] = [
       await push(page, '/tasks')
       await expect(page).toHaveURL(/\/tasks/)
     },
-    jumps: [PAGE_TRANSITION],
   },
   {
     name: 'task sheet: opened by route, Metadaten open and closed',
@@ -129,3 +127,52 @@ for (const flow of FLOWS) {
     })
   })
 }
+
+/**
+ * One way to change the place (#601, DESIGN.md "Motion"): every pair of places but Heute and Alle (which slide inside the
+ * mounted board) runs the page fade, and the leaving page is out of the flow, so the entering page's first box is at its
+ * final y from the first frame. Desktop-only routes (`/settings/updates`) redirect on the web and are left out.
+ */
+test.describe('place change: one fade on every pair', () => {
+  const PLACES = ['/tasks', '/all', '/statistics', '/settings', '/trash', '/settings/topics']
+  const pairs = PLACES.flatMap(from => PLACES.filter(to => to !== from).map(to => [from, to] as const))
+    .filter(([from, to]) => !(from === '/tasks' && to === '/all') && !(from === '/all' && to === '/tasks'))
+
+  test('every pair fades in 200 ms and nothing is stacked below the fold', async ({ page, context }) => {
+    test.setTimeout(120_000)
+    await seedLocalBoard(context)
+    await page.emulateMedia({ reducedMotion: 'no-preference' })
+    await page.goto('/tasks')
+    await page.locator('main').first().waitFor()
+    const probe = (to: string) => page.evaluate(async (to) => {
+      const router = (window as unknown as { useNuxtApp: () => { $router: { push: (p: string) => Promise<unknown> } } }).useNuxtApp().$router
+      const seen = new Set<string>()
+      const durations = new Set<number>()
+      let leaverInFlow = false
+      let stop = false
+      const tick = () => {
+        for (const a of document.getAnimations()) {
+          const el = (a.effect as KeyframeEffect | null)?.target as HTMLElement | null
+          if (el && /\bpage-(enter|leave)-active\b/.test(el.className)) {
+            seen.add(/page-leave/.test(el.className) ? 'leave' : 'enter')
+            durations.add(a.effect!.getTiming().duration as number)
+            if (/page-leave-active/.test(el.className) && getComputedStyle(el).position !== 'absolute') leaverInFlow = true
+          }
+        }
+        if (!stop) requestAnimationFrame(tick)
+      }
+      requestAnimationFrame(tick)
+      await router.push(to)
+      await new Promise(resolve => setTimeout(resolve, 450))
+      stop = true
+      return { seen: [...seen].sort(), durations: [...durations], leaverInFlow }
+    }, to)
+    const failures: string[] = []
+    for (const [from, to] of pairs) {
+      await probe(from)
+      const r = await probe(to)
+      if (r.seen.join() !== 'enter,leave' || r.durations.some(d => d !== 200) || r.leaverInFlow) failures.push(`${from} -> ${to}: ${JSON.stringify(r)}`)
+    }
+    expect(failures, 'pairs without the 200 ms fade, or with the leaving page in the flow').toEqual([])
+  })
+})

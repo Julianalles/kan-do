@@ -96,7 +96,8 @@ test.describe('Statistics Page', () => {
     // Statistik is a place in the app bar (#470)
     await goToPlace(page, 'Statistik');
     await expect(page).toHaveURL(/\/statistics/);
-    await expect(page.locator('h1')).toContainText('Statistik');
+    // by role: for the 200 ms of the place fade the board's own h1 is still in the page (#601)
+    await expect(page.getByRole('heading', { level: 1, name: 'Statistik' })).toBeAttached();
   });
 
   test('no visible page header: the bar names the page, the title stays as an sr-only h1 (#686)', async ({ page, baseURL }) => {
