@@ -44,6 +44,7 @@ function fullRhythm() {
 }
 
 const stubs = {
+  UCollapsible: { props: ['open'], template: '<div><slot v-if="open" name="content" /></div>' },
   UIcon: true,
   UButton: { props: ['label'], template: '<button type="button">{{ label }}</button>' },
   UTabs: { props: ['modelValue', 'items'], template: '<div role="tablist" />' },
@@ -244,16 +245,21 @@ describe('StatsTiles', () => {
     expect(w.findAll('[aria-expanded="true"]')).toHaveLength(0)
   })
 
-  it('at md+ moves the open tile first in the DOM (tile 4 before 2 and 3) and keeps focus on its toggle', async () => {
+  it('an open tile keeps its cell and the natural order; its detail is a sheet after the tiles, named by aria-controls (#610)', async () => {
     const w = mountIt(StatsTiles, { rhythm: THIN_RHYTHM, review: fullReview() })
     await toggle(w, 4).trigger('click')
     await nextTick()
-    expect(headings(w)).toEqual(['Wofür nehme ich mir Zeit?', 'Wie entwickle ich mich?', 'Wo schätze ich falsch?'])
-    expect(document.activeElement).toBe(toggle(w, 4).element)
+    expect(headings(w)).toEqual(['Wie entwickle ich mich?', 'Wo schätze ich falsch?', 'Wofür nehme ich mir Zeit?'])
+    const detail = w.get('[data-testid="stats-tile-4-detail"]')
+    expect(toggle(w, 4).attributes('aria-controls')).toBe(detail.attributes('id'))
+    // the sheet follows the whole row of tiles in the DOM, so reading and focus order reach the other tiles first
+    const tiles = w.findAll('[data-testid^="stats-tile-"]').map(el => el.attributes('data-testid'))
+    expect(tiles.indexOf('stats-tile-4-detail')).toBeGreaterThan(tiles.indexOf('stats-tile-4'))
+    expect(w.get('[data-testid="stats-tile-4"]').classes()).not.toContain('md:col-span-6')
     await toggle(w, 4).trigger('click')
     await nextTick()
+    expect(w.find('[data-testid="stats-tile-4-detail"]').exists()).toBe(false)
     expect(headings(w)).toEqual(['Wie entwickle ich mich?', 'Wo schätze ich falsch?', 'Wofür nehme ich mir Zeit?'])
-    expect(document.activeElement).toBe(toggle(w, 4).element)
   })
 
   it('below md the order stays natural', async () => {
@@ -352,7 +358,8 @@ describe('StatsTiles work-rhythm tile (#600)', () => {
     expect(w.findAll('section').map(s => s.attributes('data-testid')).at(-1)).toBe('stats-tile-5')
     const tile = w.get('[data-testid="stats-tile-5"]')
     expect(tile.get('h3').text()).toBe('Durchschnittlich pro Stunde, letzte 8 Wochen')
-    expect(tile.find('[data-testid="stats-rhythm-bars"]').exists()).toBe(false)
+    // the summary never changes with the open state: the tile stays put and only the panel below opens (#610)
+    expect(tile.find('[data-testid="stats-rhythm-bars"]').exists()).toBe(true)
     expect(tile.findAll('[data-testid="stats-rhythm-cell"]')).toHaveLength(7 * 16)
     expect(tile.get('[data-testid="stats-rhythm-grid"]').attributes('aria-label')).toContain('Meiste Zeit zwischen 9 und 12 Uhr')
     expect(tile.get('[data-testid="stats-rhythm-rows"]').text()).toContain('Beginn, meist um')

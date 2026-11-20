@@ -8,6 +8,7 @@
 @responsibility
 - A list of rows (`ul`) with hairlines: a colour dot (the list's own colour as Reminders holds it, a mark only and not a status: the one place a data colour appears outside topic hues; quieter when Aus), the name (truncates, `data-private`), the detail line, and the per-list `SegmentedChoice` (one radio group per list, named "<list> zählt als")
 - An Aus list is dimmed: its dot and name go muted and the detail reads "Wird nicht gelesen"
+- Never a scroll area of its own: in the setup the page scrolls (the shell's pane follows the content's height), in the settings it is a section of the sheet
 - Phone: the group takes its own line under the name (44 px targets); desktop: it sits at the end of the row
 - `confirming` opens the in-place question under that row (Ask in place, DESIGN.md "Behaviour": no modal): the counts, "Nicht mehr lesen" and "Abbrechen"; the panel is a labelled group that takes focus when it opens, Cancel returns focus to the row's picked segment; the host decides when to ask and owns the counts
 - Emits the picked role and never writes a store: the setup keeps a draft, the settings page writes `remindersConfig`

@@ -1420,7 +1420,6 @@
           "todayNotion": "Notion is next."
         },
         "access": {
-          "title": "Access to Reminders",
           "intro": "Kan-Do reads your Reminders and shows today's on the board. macOS will ask for your permission first.",
           "previewLabel": "What you'll see next",
           "previewText": "“Kan-Do reads your Reminders, shows today's on the board and sets the date when you plan something for today.”",
@@ -1442,7 +1441,6 @@
           "deniedText": "Allow it in System Settings under Privacy & Security › Reminders. Kan-Do then checks again."
         },
         "lists": {
-          "title": "Your lists",
           "lead": "What does each list mean to you? Topic is the default. Switch off lists you don't need.",
           "groupLabel": "Reminders lists",
           "choiceLabel": "{list} counts as",
@@ -1457,7 +1455,6 @@
           "loading": "Loading lists…"
         },
         "today": {
-          "title": "Today",
           "lead": "The date in Reminders decides what lands on your board today.",
           "tableLabel": "Date and board",
           "rowToday": "Today",

@@ -46,9 +46,9 @@
   --text-label--line-height: var(--lh-snug);
   --text-brand: 1.125rem; /* the app-bar wordmark */
 
-  /* Collapsible animations (keyframes ship with Nuxt UI) — `animate-collapsible-down/up`. */
-  --animate-collapsible-down: collapsible-down 200ms ease-out;
-  --animate-collapsible-up: collapsible-up 200ms ease-out;
+  /* Collapsible animations (keyframes ship with Nuxt UI) — `animate-collapsible-down/up`: the one motion of "a block opens in place", `--duration-slow` (#610). */
+  --animate-collapsible-down: collapsible-down var(--duration-slow) var(--ease-standard);
+  --animate-collapsible-up: collapsible-up var(--duration-slow) var(--ease-standard);
 
   /* === Palette · Primary Forest (frozen 2026-11-11, DESIGN.md "The Frozen Primary Rule") ===
    * Muted forest green, hue 152: the colour of action and of done (`primary` and `success` share the ramp).

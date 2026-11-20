@@ -2,77 +2,85 @@
 @component StatsTiles
 @kind block
 @category display
-@description Q2 to Q4 of the Statistik page: three question tiles in a six-column grid (one column below `md`; tiles hug their content, top aligned; the two tiles left behind an open one span three columns each so the row stays full, #604) that open in place, one at a time, plus the full-width work-rhythm tile "Wann arbeite ich?" (#600) under them, which shares the same open state
+@description Q2 to Q4 of the Statistik page: three question tiles in a three-column row (one column below `md`; tiles hug their content, top aligned) that open one at a time, plus the full-width work-rhythm tile "Wann arbeite ich?" (#600) under them, which shares the same open state
 @usage Under the verdict in pages/statistics.vue
 @avoid Only under the verdict on the Statistik page.
 @responsibility
 - Own the page state `open: 2 | 3 | 4 | 5 | null` (initial value from the `initialOpen` prop, i.e. `?open=`; never written back, never persisted)
-- At `md+` render the open tile first (the list is reordered in the DOM, never with CSS `order`, so reading and focus order match the visual order); below `md` the order stays natural. Tile 5 is full width already and always stays last
+- A tile never changes its column or its place (#610, tile b): the open tile of Q2 to Q4 keeps its three-column cell and the DOM order stays 2, 3, 4; its detail opens as a sheet of its own in a row below the whole row of tiles (under all three on a phone), one `UCollapsible` per question over `--duration-slow`, so switching tiles cross-animates and nothing jumps; the gap below the sheet sits inside the collapsible, where the sheet's shadow is not clipped. The open tile wears a hairline ring, the cue of which tile the sheet belongs to. The tile's toggle `aria-controls` names that sheet. Tile 5 is full width already, stays last and opens its panel inside itself
 - Q2 to Q4 stay hidden on an empty review; tile 5 is always shown (its first-run state explains that recording has started, #600)
 - Tile 5 (work rhythm, #600): in its first-run state it has no toggle and no panel
-- Restore focus to the toggle of the tile that was just toggled (a keyed DOM move can blur it) and scroll its heading into view only if it is off screen
 - Pick each tile's one-line answer; Q3 without any timebox is a plain heading with no toggle
 - Q4 detail (#537): one muted line for the time the completion records do not hold (tasks still open, tasks deleted before completion); no line when both are 0
 - Emit `open-task` when an outlier is chosen
 -->
 <template>
-  <div class="grid gap-4 md:grid-cols-6 md:items-start md:gap-6">
-    <StatsTile
+  <div>
+    <div v-if="questionOrder.length" class="mb-4 grid gap-4 md:mb-6 md:grid-cols-3 md:items-start md:gap-6">
+      <StatsTile
+        v-for="n in questionOrder"
+        :key="n"
+        :n="n"
+        :question="t(`statistics.question.q${n}`)"
+        :line="lines[n]"
+        :open="isOpen(n)"
+        :toggleable="n !== 3 || review.hasTimeboxes"
+        :panel-id="panelId(n)"
+        @toggle="toggle(n)"
+      >
+        <template v-if="n === 2">
+          <StatsTrendBars :weeks="review.weeks" />
+        </template>
+        <template v-else-if="n === 3">
+          <StatsEstimateRing
+            v-if="review.hasTimeboxes && review.estimate.n > 0"
+            :estimate="review.estimate"
+            :size="120"
+            stacked
+          />
+        </template>
+        <template v-else>
+          <StatsTimeSplit
+            v-if="review.split.taskCount > 0"
+            :split="review.split"
+            :by="by"
+            :size="120"
+            :legend-count="3"
+            stacked
+          />
+        </template>
+      </StatsTile>
+    </div>
+
+    <!-- The detail row (tile b of #610): under the whole row of tiles, one collapsible per question so that switching from one tile to another cross-animates and nothing jumps -->
+    <UCollapsible
       v-for="n in questionOrder"
-      :key="n"
-      :ref="(el) => setTileRef(n, el)"
-      :n="n"
-      :question="t(`statistics.question.q${n}`)"
-      :line="lines[n]"
+      :key="`detail-${n}`"
       :open="isOpen(n)"
-      :toggleable="n !== 3 || review.hasTimeboxes"
-      :class="isOpen(n) ? '' : questionOpen ? 'md:col-span-3' : 'md:col-span-2'"
-      @toggle="toggle(n)"
     >
-      <template v-if="n === 2">
-        <StatsTrendBars :weeks="review.weeks" :labelled="isOpen(2)" />
+      <template #content>
+        <PageSheet :id="panelId(n)" class="mb-4 md:mb-6" :data-testid="`stats-tile-${n}-detail`">
+          <StatsWeekTable v-if="n === 2" :weeks="review.weeks" />
+          <div v-else-if="n === 3" class="space-y-8">
+            <StatsPatterns :patterns="review.patterns" :empty-text="lines[3]" />
+            <StatsOutliers :outliers="review.outliers" @open="(id: string) => emit('open-task', id)" />
+          </div>
+          <div v-else-if="review.split.taskCount > 0 || unfinishedLine">
+            <template v-if="review.split.taskCount > 0">
+              <UTabs v-model="by" :items="byItems" :content="false" size="sm" :aria-label="t('statistics.split.by')" />
+              <p class="mt-4 text-body text-default">{{ t('statistics.split.caption', { time: formatDuration(review.split.seconds, 'spaced') }) }}</p>
+              <p v-if="review.split.unplannedShare !== null" class="mt-1 text-body text-default">
+                {{ t('statistics.split.unplanned', { share: Math.round(review.split.unplannedShare) }) }}
+              </p>
+            </template>
+            <p v-if="unfinishedLine" class="text-body text-muted" :class="review.split.taskCount > 0 ? 'mt-1' : ''" data-testid="stats-unfinished">{{ unfinishedLine }}</p>
+            <StatsTimeSplit v-if="review.split.taskCount > 0" class="mt-3" :split="review.split" :by="by" mode="rows" />
+          </div>
+        </PageSheet>
       </template>
-      <template v-else-if="n === 3">
-        <StatsEstimateRing
-          v-if="review.hasTimeboxes && review.estimate.n > 0"
-          :estimate="review.estimate"
-          :size="120"
-          :stacked="!isOpen(3)"
-        />
-      </template>
-      <template v-else>
-        <StatsTimeSplit
-          v-if="review.split.taskCount > 0"
-          :split="review.split"
-          :by="by"
-          :size="isOpen(4) ? 170 : 120"
-          :legend-count="isOpen(4) ? 0 : 3"
-          :stacked="!isOpen(4)"
-        />
-      </template>
-
-      <template #detail>
-        <StatsWeekTable v-if="n === 2" :weeks="review.weeks" />
-        <div v-else-if="n === 3" class="space-y-8">
-          <StatsPatterns :patterns="review.patterns" :empty-text="lines[3]" />
-          <StatsOutliers :outliers="review.outliers" @open="(id: string) => emit('open-task', id)" />
-        </div>
-        <div v-else-if="review.split.taskCount > 0 || unfinishedLine">
-          <template v-if="review.split.taskCount > 0">
-            <UTabs v-model="by" :items="byItems" :content="false" size="sm" :aria-label="t('statistics.split.by')" />
-            <p class="mt-4 text-body text-default">{{ t('statistics.split.caption', { time: formatDuration(review.split.seconds, 'spaced') }) }}</p>
-            <p v-if="review.split.unplannedShare !== null" class="mt-1 text-body text-default">
-              {{ t('statistics.split.unplanned', { share: Math.round(review.split.unplannedShare) }) }}
-            </p>
-          </template>
-          <p v-if="unfinishedLine" class="text-body text-muted" :class="review.split.taskCount > 0 ? 'mt-1' : ''" data-testid="stats-unfinished">{{ unfinishedLine }}</p>
-          <StatsTimeSplit v-if="review.split.taskCount > 0" class="mt-3" :split="review.split" :by="by" mode="rows" />
-        </div>
-      </template>
-    </StatsTile>
+    </UCollapsible>
 
     <StatsTile
-      :ref="(el) => setTileRef(5, el)"
       :n="5"
       :question="t('statistics.question.q5')"
       :line="rhythmLine"
@@ -81,8 +89,7 @@
       wide
       @toggle="toggle(5)"
     >
-      <!-- The open panel's grid replaces the bars -->
-      <StatsRhythmBars v-if="rhythmReady && !isOpen(5)" :hours="rhythm.hourSeconds" :peak="rhythm.peak" />
+      <StatsRhythmBars v-if="rhythmReady" :hours="rhythm.hourSeconds" :peak="rhythm.peak" />
       <StatsRhythmBars v-else-if="!rhythmReady" ghost />
       <template v-if="!rhythmReady" #under-line>
         <p class="mt-2 text-sm text-muted tabular-nums" data-testid="stats-rhythm-days">{{ t('statistics.rhythm.days', { n: rhythm.days, min: RHYTHM.minDays }) }}</p>
@@ -111,9 +118,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { computed, ref } from 'vue'
+import PageSheet from '~/components/ui/PageSheet.vue'
 import SectionHeader from '~/components/ui/SectionHeader.vue'
-import { useIsDesktop } from '~/composables/useIsDesktop'
 import { useI18n } from 'vue-i18n'
 import { useLocaleFormat } from '~/composables/useLocaleFormat'
 import { NO_TOPIC, REVIEW, type Review, type UnfinishedTime } from '~/lib/statisticsReview'
@@ -154,31 +161,12 @@ const rhythmReady = computed(() => props.rhythm.state === 'normal')
 const toggleable = (n: TileNumber): boolean => n === 5 ? rhythmReady.value : n !== 3 || props.review.hasTimeboxes
 const isOpen = (n: TileNumber): boolean => open.value === n && toggleable(n)
 
-/** One of Q2 to Q4 is open: the two others share the row below it (six-column grid, #604). */
-const questionOpen = computed(() => open.value !== null && open.value !== 5 && toggleable(open.value))
-
-const isWide = useIsDesktop()
-/** Open tile first at `md+`; otherwise the natural order. */
-const order = computed<QuestionNumber[]>(() => {
-  const natural: QuestionNumber[] = [2, 3, 4]
-  const current = open.value
-  if (current === null || current === 5 || !isWide.value || !toggleable(current)) return natural
-  return [current, ...natural.filter(n => n !== current)]
-})
 /** Q2 to Q4 are hidden on an empty review (nothing to compare yet). */
-const questionOrder = computed<QuestionNumber[]>(() => (props.review.state === 'empty' ? [] : order.value))
+const questionOrder = computed<QuestionNumber[]>(() => (props.review.state === 'empty' ? [] : [2, 3, 4]))
 
-const tileRefs = new Map<TileNumber, { focus: () => void; $el: HTMLElement } | null>()
-const setTileRef = (n: TileNumber, el: unknown) => {
-  tileRefs.set(n, (el as { focus: () => void; $el: HTMLElement } | null) ?? null)
-}
-
-async function toggle(n: TileNumber) {
+const panelId = (n: TileNumber): string => `stats-panel-${n}`
+function toggle(n: TileNumber) {
   open.value = open.value === n ? null : n
-  await nextTick()
-  const tile = tileRefs.get(n)
-  tile?.focus()
-  if (open.value === n) tile?.$el.scrollIntoView({ block: 'nearest' })
 }
 
 const byItems = computed(() => [

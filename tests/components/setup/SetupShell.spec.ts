@@ -60,10 +60,10 @@ describe('SetupShell (#648)', () => {
     expect(buttons.map((b) => b.attributes('data-testid'))).toEqual(['setup-back', 'setup-next'])
   })
 
-  it('loading puts Weiter in its loading state and marks the pane busy; the content stays', () => {
+  it('loading puts Weiter in its loading state; the pane is never aria-busy (it holds live regions); the content stays', () => {
     const w = make({ loading: true })
     expect(w.get('[data-testid="setup-next"]').attributes('data-loading')).toBe('1')
-    expect(w.get('[data-testid="setup-pane"]').attributes('aria-busy')).toBe('true')
+    expect(w.get('[data-testid="setup-pane"]').attributes('aria-busy')).toBeUndefined()
     expect(w.text()).toContain('Inhalt')
   })
 

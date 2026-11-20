@@ -15,11 +15,11 @@ Standalone so the closing step (#98) can list it under "still open". Renders not
 - Keep: silences the nudge for CARRY_OVER_NUDGE_DAYS further days (store), the dots keep counting
 - Make smaller (compact only, the day-close route to the sheet's smaller-step title edit) / Delete: emitted, the host owns the title field and the sheet lifecycle
 - Sheet Delete ("Nein, löschen") and the compact Delete are not offered for a task whose source cannot be deleted from (`sourceCan(…, 'remove')`); both run the host's one confirmed delete; the compact label names the upstream consequence (Notion, Todoist)
-- The kept confirmation lives in the component (`kept`), so it outlasts `isNudgeDue` turning false while the sheet is open
+- The kept confirmation lives in the component (`kept`), so it outlasts `isNudgeDue` turning false while the sheet is open; `hold` keeps the block drawn while the sheet's collapsible folds it away after a status change (#610)
 -->
 <template>
   <section
-    v-if="isNudgeDue || kept"
+    v-if="isNudgeDue || kept || hold"
     class="carry-over-triage"
     :class="compact ? undefined : 'rounded-lg bg-muted/50 px-4 py-3'"
     :aria-labelledby="compact || kept ? undefined : headingId"
@@ -116,9 +116,11 @@ interface Props {
    * only the three actions in a group named by the nudge sentence.
    */
   compact?: boolean
+  /** Keeps the block rendered although no nudge is due: the host's collapsible closes over it (#610), so it stays readable while it folds */
+  hold?: boolean
 }
 
-const props = withDefaults(defineProps<Props>(), { compact: false })
+const props = withDefaults(defineProps<Props>(), { compact: false, hold: false })
 
 const emit = defineEmits<{
   /** The user chose Keep (nudge silenced). */
