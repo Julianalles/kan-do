@@ -12,6 +12,14 @@
  * frame pair more than `MAX_FRAME_MS` apart is skipped: a loaded machine drops frames, and a dropped frame would turn a glide
  * into a jump. The count of skipped pairs is part of the report so a run that mostly skipped can be seen.
  *
+ * The thresholds are about a frame at 60 Hz, and a loaded CI runner (2 vCPUs, a video recording) has frames of 30 to 40 ms, so
+ * every rule reads the frame's own duration (#666): the step limit is per 17 ms (a frame twice as long may move twice as far),
+ * "within 2 frames" also needs the run to be shorter than `MAX_JUMP_MS` (a 100 ms exit seen in 2 slow frames is not a snap), and
+ * a skipped (dropped) frame in which a box moved makes that movement "uncertain": it was probably a glide whose frames were
+ * lost (a spring, like the nav indicator's, catches up in the frame after a stall, and a transition that began inside the stall
+ * shows its first step there: that frame counts as uncertain too), so the run is not judged at all. A snap or a leap in frames
+ * that were all measured is still caught.
+ *
  * Usage: `const frames = await startFrames(page)`, run the flow, `const report = await frames.stop()`, then
  * `expectNoJumps(report, ALLOW)`. A child that moves with a jumping parent is not listed on its own.
  */
@@ -25,6 +33,10 @@ export const JUMP_MIN = 8
 export const MAX_JUMP_FRAMES = 2
 /** A frame pair further apart than this is a dropped frame on a loaded machine and not measured. */
 export const MAX_FRAME_MS = 40
+/** One frame at 60 Hz: the step limit and the jump window are read per frame of this length. */
+export const FRAME_MS = 17
+/** A jump (see `MAX_JUMP_FRAMES`) also happens in this many ms at most: a 100 ms motion that a slow runner shows in 2 frames lasts longer. */
+export const MAX_JUMP_MS = 45
 
 export interface Jump {
   /** `tag[testid]#id.class` plus a text start, enough to find the box. */
@@ -56,16 +68,19 @@ export interface FrameSampler {
 
 /** Starts sampling boxes every frame. `selector` limits what is measured (default: everything in `body`). Call `stop()` after the flow. */
 export async function startFrames(page: Page, selector = 'body *'): Promise<FrameSampler> {
-  await page.evaluate(([sel, maxFrameMs]) => {
-    type Track = { x: number, y: number, w: number, h: number, steps: number[], el: Element }
+  await page.evaluate(([sel, maxFrameMs, frameMs]) => {
+    // steps[i] = px moved in frame i (0 = still, -1 = moved in a dropped frame: how far and how fast is not known); times[i] = that frame's ms
+    type Track = { x: number, y: number, w: number, h: number, steps: number[], times: number[], el: Element }
     const tracks = new Map<Element, Track>()
     let last = performance.now()
     let measured = 0
     let skipped = 0
+    let afterDrop = false
     let running = true
     const sample = (now: number) => {
       if (!running) return
-      const dropped = now - last > maxFrameMs
+      const frameDt = now - last
+      const dropped = frameDt > maxFrameMs
       last = now
       const seen = new Set<Element>()
       for (const el of Array.from(document.querySelectorAll(sel))) {
@@ -77,7 +92,7 @@ export async function startFrames(page: Page, selector = 'body *'): Promise<Fram
         const y = r.y + window.scrollY
         const t = tracks.get(el)
         if (!t) {
-          tracks.set(el, { x, y, w: r.width, h: r.height, steps: [], el })
+          tracks.set(el, { x, y, w: r.width, h: r.height, steps: [], times: [], el })
           continue
         }
         if (Number.isNaN(t.x)) {
@@ -88,9 +103,15 @@ export async function startFrames(page: Page, selector = 'body *'): Promise<Fram
           t.h = r.height
           continue
         }
-        if (!dropped) {
-          const step = Math.max(Math.abs(x - t.x), Math.abs(y - t.y), Math.abs(r.width - t.w), Math.abs(r.height - t.h))
+        const step = Math.max(Math.abs(x - t.x), Math.abs(y - t.y), Math.abs(r.width - t.w), Math.abs(r.height - t.h))
+        // The frame after a stall shows what the stall held back: a transition that began inside it, a spring that catches up
+        if (!dropped && !afterDrop) {
           t.steps.push(step < 0.5 ? 0 : step)
+          t.times.push(frameDt)
+        }
+        else if (step >= 0.5) {
+          t.steps.push(-1)
+          t.times.push(frameDt)
         }
         t.x = x
         t.y = y
@@ -102,9 +123,11 @@ export async function startFrames(page: Page, selector = 'body *'): Promise<Fram
         if (seen.has(el) || Number.isNaN(t.x)) continue
         t.x = Number.NaN
         t.steps.push(0)
+        t.times.push(0)
       }
       if (dropped) skipped++
       else measured++
+      afterDrop = dropped
       requestAnimationFrame(sample)
     }
     const label = (el: Element) => {
@@ -115,28 +138,39 @@ export async function startFrames(page: Page, selector = 'body *'): Promise<Fram
       return `${el.tagName.toLowerCase()}${tid ? `[${tid}]` : ''}${h.id ? `#${h.id}` : ''}${cls ? `.${cls}` : ''}${text ? ` "${text}"` : ''}`
     }
     ;(window as unknown as { __frameSteps: unknown }).__frameSteps = {
-      stop: (maxStep: number, jumpMin: number, maxJumpFrames: number) => {
+      stop: (maxStep: number, jumpMin: number, maxJumpFrames: number, maxJumpMs: number) => {
         running = false
         const bad = new Map<Element, { step: number, total: number, frames: number }>()
         for (const t of tracks.values()) {
           // One movement = a run of moving frames (a single still frame inside it does not split it); each run is judged alone,
           // so a box that also glides elsewhere in the flow cannot hide a snap
-          const runs: number[][] = []
+          const runs: { steps: number[], times: number[], ms: number }[] = []
           let gap = 0
-          for (const s of t.steps) {
-            if (s > 0) {
-              if (!runs.length || gap > 1) runs.push([])
-              runs[runs.length - 1]!.push(s)
+          t.steps.forEach((s, i) => {
+            if (s !== 0) {
+              if (!runs.length || gap > 1) runs.push({ steps: [], times: [], ms: 0 })
+              const run = runs[runs.length - 1]!
+              run.steps.push(s)
+              run.times.push(t.times[i] ?? frameMs)
+              run.ms += t.times[i] ?? 0
               gap = 0
             }
             else gap++
-          }
+          })
           for (const run of runs) {
-            const step = Math.max(...run)
-            const total = run.reduce((a, b) => a + b, 0)
-            if (step > maxStep || (total >= jumpMin && run.length <= maxJumpFrames && step >= jumpMin)) {
+            const known = run.steps.filter(s => s > 0)
+            if (!known.length) continue
+            const uncertain = run.steps.length > known.length
+            const step = Math.max(...known)
+            const total = known.reduce((a, b) => a + b, 0)
+            // A frame of 34 ms may move twice as far as one of 17 ms
+            const worst = Math.max(...run.steps.map((s, i) => s > 0 ? s / Math.max(1, run.times[i]! / frameMs) : 0))
+            const snap = !uncertain && total >= jumpMin && run.steps.length <= maxJumpFrames && step >= jumpMin && run.ms <= maxJumpMs
+            // A run with a dropped frame in it is not judged by its step either: a script motion (the nav indicator's spring) catches up
+            // in the frame after a stall, by design
+            if ((!uncertain && worst > maxStep) || snap) {
               const prev = bad.get(t.el)
-              if (!prev || step > prev.step) bad.set(t.el, { step, total, frames: run.length })
+              if (!prev || step > prev.step) bad.set(t.el, { step, total, frames: run.steps.length })
             }
           }
         }
@@ -149,9 +183,9 @@ export async function startFrames(page: Page, selector = 'body *'): Promise<Fram
       },
     }
     requestAnimationFrame(sample)
-  }, [selector, MAX_FRAME_MS] as const)
+  }, [selector, MAX_FRAME_MS, FRAME_MS] as const)
   return {
-    stop: () => page.evaluate(([a, b, c]) => (window as unknown as { __frameSteps: { stop: (...n: number[]) => FrameReport } }).__frameSteps.stop(a, b, c), [MAX_STEP, JUMP_MIN, MAX_JUMP_FRAMES] as const),
+    stop: () => page.evaluate(([a, b, c, d]) => (window as unknown as { __frameSteps: { stop: (...n: number[]) => FrameReport } }).__frameSteps.stop(a, b, c, d), [MAX_STEP, JUMP_MIN, MAX_JUMP_FRAMES, MAX_JUMP_MS] as const),
   }
 }
 

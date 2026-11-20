@@ -371,6 +371,9 @@ export default defineAppConfig({
         // The picker's rows keep the `md` item (p-1.5, text-sm) that TaskPropertySelect documents; `lg` would add 2 px.
         // Below `md` a row is at least 44 px, centred (the phone floor, #342)
         item: 'min-h-8 max-md:min-h-11 max-md:items-center p-1.5',
+        // The check of the picked row has its box before the pick (20 px, the icon's size): the trailing slot of a row never grows or
+        // shrinks by the check while the picker closes after a choice (the motion guard read that as a one-frame jump, #666)
+        itemTrailing: 'min-h-5 min-w-5',
         content: `z-(--z-popover) min-w-40 rounded-lg shadow-(--shadow-overlay) ${MENU_MOTION}`
       },
       variants: {
