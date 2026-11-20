@@ -9,7 +9,7 @@
  * a guided motion never exceeded 131 px per frame and came in 9 or more frames; every defect was one or two frames of 22 to
  * 912 px. So a box fails when it (a) moves more than `MAX_STEP` px in one frame, or (b) moves at least `JUMP_MIN` px in total
  * but within `MAX_JUMP_FRAMES` frames. Boxes that appear or disappear are not measured (a new view is not a move), and a
- * frame pair more than `MAX_FRAME_MS` apart is skipped: a loaded machine drops frames, and a dropped frame would turn a glide
+ * box without area (a width or height of 0: an empty toast viewport, #672) is not measured either, and a frame pair more than `MAX_FRAME_MS` apart is skipped: a loaded machine drops frames, and a dropped frame would turn a glide
  * into a jump. The count of skipped pairs is part of the report so a run that mostly skipped can be seen.
  *
  * The thresholds are about a frame at 60 Hz, and a loaded CI runner (2 vCPUs, a video recording) has frames of 30 to 40 ms, so
@@ -86,7 +86,8 @@ export async function startFrames(page: Page, selector = 'body *'): Promise<Fram
       for (const el of Array.from(document.querySelectorAll(sel))) {
         if (el.closest('.nuxt-loading-indicator, [data-frame-ignore]')) continue
         const r = el.getBoundingClientRect()
-        if (r.width === 0 && r.height === 0) continue
+        // A box without area has nothing to see move (#672: the toast viewport is a fixed, empty, 0-high `ol` that shifted 400 px once under load)
+        if (r.width === 0 || r.height === 0) continue
         seen.add(el)
         const x = r.x + window.scrollX
         const y = r.y + window.scrollY
