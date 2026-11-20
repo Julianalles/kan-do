@@ -20,7 +20,7 @@
 -->
 <template>
   <div class="welcome-root px-safe bg-page">
-  <main class="relative flex min-h-dvh flex-col justify-end overflow-hidden bg-page sm:items-center sm:justify-start sm:p-6">
+  <main class="relative flex min-h-dvh flex-col justify-end overflow-clip bg-page sm:items-center sm:justify-start sm:p-6">
     <!-- Atmosphere only (alt=""): fades in once loaded, a failed load leaves the paper colour -->
     <img
       ref="photo"
