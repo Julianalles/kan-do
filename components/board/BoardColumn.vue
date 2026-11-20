@@ -45,7 +45,7 @@
     <div class="relative flex h-10 items-center justify-center">
       <column-sorting-control
         v-if="!isProgressColumn && tasks.length >= 2"
-        :visible="(isHovering || isSortingOpen) && !props.isDragging"
+        :visible="(isHovering || isSortingOpen || isPhone) && !props.isDragging"
         :status="taskStatus"
         :sorting="columnSorting"
         @change="handleSortingChange"
@@ -176,6 +176,7 @@ import {
 import { useTasksStore } from "~/store/tasks";
 import { useBoardStore } from "~/store/board";
 import { useBoardDragState } from "~/composables/useBoardDragState";
+import { useIsPhone } from "~/composables/useIsDesktop";
 import { useStackExpansion } from "~/composables/useStackExpansion";
 import { useStackMotion } from "~/composables/useStackMotion";
 import { useDeletedGaps } from "~/composables/useDeletedGaps";
@@ -192,6 +193,8 @@ const { basePath, isAll, place } = useBoardPlace();
 const allLocation = boardPlaceLocation('all');
 
 const isHovering = ref(false);
+/** A touch has no hover to find the sort control with, and a tap leaves the pointer state to compat mouse events: on the phone layout it is always painted (#602, #624) */
+const isPhone = useIsPhone();
 const isSortingOpen = ref(false);
 
 const props = defineProps({

@@ -449,6 +449,31 @@ export default defineAppConfig({
         { size: 'xs', class: 'max-md:min-h-0' },
         // Icon-only buttons: 44 x 44 on a phone, 36 x 36 on desktop (the one height), the icon centred
         { square: true, class: 'max-md:min-h-11 max-md:min-w-11 max-md:justify-center md:min-w-9' },
+        // The round icon button (#602, source-2): one look for the circle that sits on the paper or a card's edge. A call site
+        // opts in with `data-round` (geometry and the phone rule) and, off the canvas fill, `data-fill`; it keeps only its
+        // placement (position, opacity, z-index). Unlayered host CSS still wins over these utilities, so a host that restates
+        // a size or fill keeps its own: delete the restatement.
+        //   data-round="md"    32 px; 44 px on a phone (the button ladder's floor)       (column add, stack close)
+        //   data-round="sm"    28 px at every width, a 44 px hit area around it           (card menu, focus bar's end)
+        //   data-round="arrow" 32 px, 28 px on a phone, the same 44 px hit area           (the plan arrows of "Alle")
+        //   data-round="bar"   the app bar pill's height (--app-nav-pill-height)          (the funnel)
+        //   data-fill="primary" opaque forest 100 with forest 600 (readable over a card's edge); data-fill="none" no fill at rest, the primary wash on hover; data-fill="quiet" no fill, muted glyph, canvas fill on hover
+        {
+          square: true,
+          class: [
+            'data-[round]:relative data-[round]:p-0 data-[round]:justify-center data-[round]:rounded-full data-[round]:cursor-pointer',
+            'data-[round]:bg-(--fill-on-canvas) data-[round]:text-default data-[round]:hover:not-disabled:bg-(--fill-on-canvas-hover) data-[round]:active:not-disabled:bg-(--fill-on-canvas-hover)',
+            'data-[round=md]:size-8 data-[round=md]:min-w-8 max-md:data-[round=md]:size-11 max-md:data-[round=md]:min-w-11 max-md:data-[round=md]:min-h-11',
+            'data-[round=sm]:size-7 data-[round=sm]:min-w-7 max-md:data-[round=sm]:min-w-7 max-md:data-[round=sm]:min-h-0',
+            'data-[round=arrow]:size-8 data-[round=arrow]:min-w-8 max-md:data-[round=arrow]:size-7 max-md:data-[round=arrow]:min-w-7 max-md:data-[round=arrow]:min-h-0',
+            'data-[round=bar]:size-(--app-nav-pill-height) data-[round=bar]:min-w-(--app-nav-pill-height) max-md:data-[round=bar]:min-w-11',
+            'data-[round=sm]:after:absolute data-[round=sm]:after:-inset-2 data-[round=sm]:after:content-[\'\']',
+            'max-md:data-[round=arrow]:after:absolute max-md:data-[round=arrow]:after:-inset-2 max-md:data-[round=arrow]:after:content-[\'\']',
+            '[&[data-round][data-fill=primary]]:bg-primary-100 [&[data-round][data-fill=primary]]:text-primary-600 [&[data-round][data-fill=primary]]:hover:not-disabled:bg-primary-200 [&[data-round][data-fill=primary]]:active:not-disabled:bg-primary-200',
+            '[&[data-round][data-fill=quiet]]:bg-transparent [&[data-round][data-fill=quiet]]:text-muted [&[data-round][data-fill=quiet]]:hover:not-disabled:text-highlighted',
+            '[&[data-round][data-fill=none]]:bg-transparent [&[data-round][data-fill=none]]:text-primary [&[data-round][data-fill=none]]:hover:not-disabled:bg-(--primary-wash-hover) [&[data-round][data-fill=none]]:active:not-disabled:bg-(--primary-wash-hover)'
+          ].join(' ')
+        },
         {
           color: 'primary',
           variant: 'solid',

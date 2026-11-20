@@ -11,15 +11,17 @@
 - Esc closes the chip row and keeps focus on the funnel
 -->
 <template>
+  <UTooltip v-if="hasFocusJob" :text="triggerLabel" :disabled="isPhone">
   <UButton
-    v-if="hasFocusJob"
     ref="button"
     icon="i-ph-funnel"
     color="neutral"
     variant="ghost"
     class="board-focus-trigger"
+    data-round="bar"
+    data-fill="quiet"
     :class="{ 'is-on': active, 'is-open': chipsOpen && !active }"
-    :aria-label="active ? t('board.focus.endNamed', { topic: focusTopic }) : t('board.focus.trigger')"
+    :aria-label="triggerLabel"
     :aria-expanded="active ? undefined : chipsOpen"
     :aria-controls="active ? undefined : 'board-focus-bar'"
     :aria-pressed="active ? true : undefined"
@@ -27,16 +29,19 @@
     @click="onClick"
     @keydown.esc="closeChips"
   />
+  </UTooltip>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useIsPhone } from '~/composables/useIsDesktop'
 import { useBoardFocus } from '~/composables/useBoardFocus'
 
 defineOptions({ name: 'BoardFocusTrigger' })
 
 const { t } = useI18n()
+const isPhone = useIsPhone()
 const { focusTopic, hasFocusJob, chipsOpen, triggerEl, clearFocus, closeChips } = useBoardFocus()
 const active = computed(() => focusTopic.value !== null)
 
@@ -48,21 +53,12 @@ function onClick() {
   if (active.value) clearFocus()
   else chipsOpen.value = !chipsOpen.value
 }
+/** The funnel's name, also its tooltip: an icon alone was misread as sorting (#470) */
+const triggerLabel = computed(() => active.value ? t('board.focus.endNamed', { topic: focusTopic.value }) : t('board.focus.trigger'))
 </script>
 
 <style scoped>
-.board-focus-trigger {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  width: var(--app-nav-pill-height);
-  height: var(--app-nav-pill-height);
-  border-radius: 9999px;
-  /* Resting: a muted glyph, no surface (the nav pills are the only sheets on the bar) */
-  color: var(--ui-text-muted);
-  transition: color var(--duration-fast) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard);
-}
+/* Shape and the resting look: the button theme's `data-round="bar"`, `data-fill="quiet"` (#602); the states of the focus are here */
 
 .board-focus-trigger:hover,
 .board-focus-trigger.is-open {

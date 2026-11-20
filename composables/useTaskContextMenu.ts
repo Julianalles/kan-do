@@ -297,16 +297,19 @@ export const useTaskContextMenu = (
       },
     ];
 
+    // Three groups (#602): act now, change a value, copy and delete. A divider per entry grouped nothing.
+    const changeGroup: ContextMenuItem[] = [
+      ...detailsGroup,
+      ...unplannedGroup,
+      ...statusGroup,
+      ...priorityGroup,
+      ...timeboxGroup,
+      ...sourceGroup,
+    ];
     return [
       quickGroup,
-      detailsGroup,
-      unplannedGroup,
-      statusGroup,
-      priorityGroup,
-      timeboxGroup,
-      ...(sourceGroup.length ? [sourceGroup] : []),
-      copyGroup,
-      ...(deleteGroup.length ? [deleteGroup] : []),
+      changeGroup,
+      [...copyGroup, ...deleteGroup],
     ];
   });
 

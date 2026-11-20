@@ -41,15 +41,19 @@
       <p class="board-focus-bar__text" role="status" aria-live="polite" data-testid="focus-pill-text">
         {{ t('board.focus.pillLead') }} <span class="board-focus-bar__topic" data-private>{{ focusTopic }}</span>, {{ t('board.focus.hidden', { n: hiddenCount }) }}
       </p>
-      <UButton
-        icon="i-ph-x-bold"
-        color="neutral"
-        variant="ghost"
-        class="board-focus-bar__end"
-        :aria-label="t('board.focus.end')"
-        data-testid="focus-end"
-        @click="clearFocus"
-      />
+      <UTooltip :text="t('board.focus.end')" :disabled="isPhone">
+        <UButton
+          icon="i-ph-x-bold"
+          color="neutral"
+          variant="ghost"
+          class="board-focus-bar__end"
+          data-round="sm"
+          data-fill="none"
+          :aria-label="t('board.focus.end')"
+          data-testid="focus-end"
+          @click="clearFocus"
+        />
+      </UTooltip>
     </div>
   </div>
 </template>
@@ -57,6 +61,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useIsPhone } from '~/composables/useIsDesktop'
 import ChoiceChip from '~/components/ui/ChoiceChip.vue'
 import MiddleEllipsis from '~/components/ui/MiddleEllipsis.vue'
 import { useBoardFocus } from '~/composables/useBoardFocus'
@@ -64,6 +69,7 @@ import { useBoardFocus } from '~/composables/useBoardFocus'
 defineOptions({ name: 'BoardFocusBar' })
 
 const { t } = useI18n()
+const isPhone = useIsPhone()
 const { focusTopic, topicChoices, hiddenCount, chipsOpen, setFocus, clearFocus, closeChips } = useBoardFocus()
 
 const showsRow = computed(() => chipsOpen.value && focusTopic.value === null && topicChoices.value.length > 0)
@@ -126,23 +132,7 @@ const showsPill = computed(() => focusTopic.value !== null)
   font-weight: 500;
 }
 
-.board-focus-bar__end {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  width: 1.75rem;
-  height: 1.75rem;
-  /* The icon-only floor (`md:min-w-9`) would stretch the circle to an oval */
-  min-width: 1.75rem;
-  border-radius: 9999px;
-  color: var(--ui-primary);
-  transition: background-color var(--duration-fast) var(--ease-standard);
-}
-
-.board-focus-bar__end:hover {
-  background: var(--primary-wash-hover);
-}
+/* The round look is the button theme's `data-round="sm"` with `data-fill="none"` (#602) */
 
 /* Phone: over the page's bottom padding, centred above the floating app bar */
 @media (--phone) {
@@ -172,9 +162,5 @@ const showsPill = computed(() => focusTopic.value !== null)
     box-shadow: var(--shadow-nav-pill);
   }
 
-  .board-focus-bar__end {
-    min-width: 2.75rem;
-    min-height: 2.75rem;
-  }
 }
 </style>

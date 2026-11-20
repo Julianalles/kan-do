@@ -58,8 +58,9 @@ describe('useTaskContextMenu: quick actions (#296)', () => {
     // An Offen card can also leave today's board (#354)
     expect(groups[0]!.map(i => i.label)).toEqual(['Jetzt starten', 'Als erledigt markieren', 'Nicht heute'])
     expect(groupsOf(makeTask({ status: TaskStatus.Waiting }))[0]!.map(i => i.label)).toEqual(['Jetzt starten', 'Als erledigt markieren'])
-    expect(groups.at(-1)!.map(i => i.label)).toEqual(['Löschen'])
-    expect(groups.at(-2)!.map(i => i.label)).toEqual(['Titel kopieren', 'Duplizieren'])
+    expect(groups).toHaveLength(3)
+    expect(groups[1]!.map(i => i.label)).toEqual(['Details öffnen', 'Als ungeplante Arbeit markieren', 'Status ändern', 'Priorität ändern', 'Timebox setzen'])
+    expect(groups[2]!.map(i => i.label)).toEqual(['Titel kopieren', 'Duplizieren', 'Löschen'])
   })
 
   it('Start now moves through the swap-aware path; it is disabled when already in Jetzt', () => {

@@ -183,6 +183,18 @@ test.describe('Board Sorting', () => {
     await expect(doneColumn.locator('.task-wrapper').nth(1)).toContainText('Task Done 2');
   });
 
+  test('the sort control is painted while the keyboard has it, with no hover (#602)', async ({ page, baseURL }) => {
+    await openSortingBoard(page, baseURL);
+
+    const openColumn = page.locator('.column[data-status="open"]');
+    const control = openColumn.locator('[data-testid="column-sorting-control"]');
+    await page.mouse.move(0, 0);
+    await expect(control).toHaveClass(/opacity-0/);
+
+    await control.locator('button').focus();
+    await expect(control).toHaveCSS('opacity', '1');
+  });
+
   test('validates sorting control interaction', async ({ page, baseURL }) => {
     await openSortingBoard(page, baseURL);
 

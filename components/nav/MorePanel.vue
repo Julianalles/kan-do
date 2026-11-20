@@ -10,6 +10,7 @@
 - "Auf dieser Seite" exists only while the board is the current place; its "Tag abschließen" is disabled while the new-day recap is open (the two never stand together, #480); "Seiten" and the sync footer on every page
 - The page the pill shows as its third segment (#583: Einstellungen on /settings*, Papierkorb on /trash*) is not listed here; the row returns when the page leaves the pill. App-Update stays on /settings/updates (a different page). The panel closes on every route change, so a row never appears or disappears while it is open, and the rows are frozen (`open` false) while it fades out, so it keeps its shape (#595)
 - App-Update only in the desktop app (`isTauri()`, absent in the web build, never disabled)
+- Phone: the group-by chips keep their room (invisible, inert) while grouping is off, so turning it on moves nothing under the finger (#602)
 - Sync footer: a failing source shows its worst problem (title, hint, "Verbindung reparieren") above "Jetzt synchronisieren" + last sync; silent while every source is healthy
 - While a sync runs (manual or background) the row's second line reads "Wird synchronisiert…" (spinner from the button's `loading`), so the accessible name carries the state, and a sibling `role="status"` announces it (#647)
 - Desktop only, on every page with the bar (#224): "Befehle" with the palette shortcut hint opens the command palette (U7 of kd#17: the hint was tooltip-only; the palette has no phone entry), always the first row. AppNav closes the panel and returns focus to ⋯ first, like `dayClose`
@@ -53,7 +54,16 @@
               <span class="text-xs max-md:text-body">{{ t('board.sync.stackHelp') }}</span>
             </template>
           </UFormField>
-          <div v-if="groupingEnabled" role="group" :aria-label="t('board.sync.groupBy')" class="flex flex-wrap gap-1.5">
+          <!-- On a phone the panel is bottom-anchored and grows upward: the chips' room is held while grouping is off, so the switch stays under the finger (#602). Desktop grows downward and renders them only when on -->
+          <div
+            v-if="groupingEnabled || isPhone"
+            role="group"
+            :aria-label="t('board.sync.groupBy')"
+            :inert="!groupingEnabled"
+            class="flex flex-wrap gap-1.5"
+            :class="{ invisible: !groupingEnabled }"
+            data-testid="more-group-by"
+          >
             <ChoiceChip
               v-for="option in groupingOptions"
               :key="option.value"

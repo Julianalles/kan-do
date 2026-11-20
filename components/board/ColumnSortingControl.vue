@@ -3,7 +3,7 @@
 @kind component
 @category action
 @description Per-column sort menu in the column header: sort field and direction for one column
-@usage Rendered by BoardColumn; fades out while not hovered or focused (`visible`)
+@usage Rendered by BoardColumn; fades out while not hovered or focused (`visible`; always on the phone layout, #602)
 @avoid Sorts one column only; board-wide controls (grouping, day close) live in MorePanel.
 @responsibility
 - List the sort options for the column's status, mark the active one

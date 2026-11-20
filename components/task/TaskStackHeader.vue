@@ -34,6 +34,7 @@
     />
     <u-button
       class="task-stack-header__close"
+      data-round="md"
       color="neutral"
       variant="ghost"
       square
@@ -93,26 +94,13 @@ const caption = useStackCaption(() => props.label, () => props.count);
   pointer-events: none; /* decorative, as on the face: a tap during the rise reaches the card below */
 }
 
-/* Round close at the right edge, outside the pill's width (never squeezes it); soft grey like the pill */
+/* Round close at the right edge, outside the pill's width (never squeezes it). Look, size and the phone 44 px floor: the
+   button theme's `data-round="md"` (#602); only the placement is here */
 .task-stack-header__close {
   position: absolute;
   inset-inline-end: 0;
   top: 50%;
   margin-top: -1rem;
-  width: 2rem;
-  height: 2rem;
-  min-width: 2rem;
-  padding: 0;
-  justify-content: center;
-  border-radius: 9999px;
-  background-color: var(--fill-on-canvas);
-  color: var(--ui-text);
-  cursor: pointer;
-}
-
-/* The same fill as the add slot and the app bar's ⋯, one step deeper on hover (it sits on the canvas, so not `--ui-bg-muted`, which is lighter than the paper) */
-.task-stack-header__close:hover {
-  background-color: var(--fill-on-canvas-hover);
 }
 
 @media (--phone) {
@@ -120,18 +108,8 @@ const caption = useStackCaption(() => props.label, () => props.count);
     min-height: 2.75rem;
   }
 
-  /* the button ladder's 44px floor (the unlayered size above would outrank the theme's `min-h-11`) */
   .task-stack-header__close {
     margin-top: -1.375rem;
-    height: 2.75rem;
-    min-width: 2.75rem;
-    width: 2.75rem;
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .task-stack-header__close {
-    transition: background-color var(--duration-fast) var(--ease-standard);
   }
 }
 </style>
