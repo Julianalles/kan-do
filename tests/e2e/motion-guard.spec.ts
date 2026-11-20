@@ -18,8 +18,15 @@ import { expectInstant, expectNoJumps, startAnimationLog, startFrames, type Allo
 
 type Flow = { name: string, url: string, seed?: 'board' | 'none', prepare?: (context: BrowserContext) => Promise<void>, before?: (page: Page) => Promise<void>, viewport?: { width: number, height: number }, run: (page: Page) => Promise<void>, jumps?: AllowedJump[], animations?: AllowedJump[] }
 
-/** Allow lists name the boxes seen jumping in a strict run, never every box. The step swap and the setup's height: motion-4 / #607 (setup steps). Every place that opens or re-lays in one step has left the list (#610 blocks that open in place, #642 topic focus). */
-const SETUP_STEPS: AllowedJump = { match: /^div#__nuxt|^div#teleports|^div$|welcome-root|setup-back|Status\d|Aufgewendete Zeit|Erledigungsdatum/, issue: '#607', why: 'the setup steps still jump in height and place (motion-4)' }
+/** Allow lists name the boxes seen jumping in a strict run, never every box. The setup steps' broad `#607` entry (motion-4) is gone (#652): both setup flows run on the shell, whose pane eases its height in 300 ms. What a strict run still names is below, each with its own cause. Every place that opens or re-lays in one step has left the list (#610 blocks that open in place, #642 topic focus). */
+/** A person reads a setup step before pressing Weiter: longer than the pane's 300 ms height motion. */
+const READS_A_STEP_MS = 450
+/** The back button's label changes between the first step ("Zurück zu Einstellungen", "Zurück zur Auswahl") and the later ones ("Zurück"): its box changes width in one frame, a label swap and not a move. */
+const SETUP_BACK_LABEL: AllowedJump = { match: /setup-back/, issue: '#652', why: 'the label of the back button changes with the step, so its width does (not a move)' }
+/** The Notion mapping step lays its rows out once the schema has been read and auto-mapped, and the rows below the new ones move 241 px in one frame (inside the pane, whose own height eases). */
+const MAPPER_ROWS: AllowedJump = { match: /Aufgewendete Zeit|Erledigungsdatum/, issue: '#667', why: 'the mapping step\'s rows re-lay in one frame when the auto-mapping fills them in (PropertyMapper)' }
+/** The welcome page ends the flow: the page box changes height by 21 px in one frame at the done beat. */
+const WELCOME_DONE_BEAT: AllowedJump = { match: /^div#__nuxt|^div#teleports|^div$|welcome-root/, issue: '#668', why: 'the done beat changes the welcome page height by 21 px in one frame' }
 const SETUP_PAGE_SCROLL: AllowedJump = { match: /flow-root|brand-flight/, issue: '#649', why: 'the pane has no scroll area of its own now, so a tall step makes the page scroll; when the done beat shortens the page the sampler (page y = rect + scrollY) reads the scroll reset as a jump of the pane block and of the fixed brand flight (both glide on screen)' }
 
 /** The sheet's own opening moves its last line (Metadaten, the actions) 174 px in one frame: found while the #610 allow entry left (#659). The disclosures themselves are guarded strictly in their own flow. */
@@ -49,9 +56,21 @@ const FLOWS: Flow[] = [
       await page.getByRole('button', { name: 'Jetzt starten' }).click()
       await page.getByRole('checkbox', { name: 'Notion' }).click()
       await page.getByRole('button', { name: 'Mit Notion einrichten' }).click()
-      await completeNotionWizard(page)
+      await completeNotionWizard(page, undefined, { pauseMs: READS_A_STEP_MS })
     },
-    jumps: [SETUP_STEPS, SETUP_PAGE_SCROLL],
+    jumps: [SETUP_PAGE_SCROLL, SETUP_BACK_LABEL, MAPPER_ROWS, WELCOME_DONE_BEAT],
+  },
+  {
+    name: 'settings: the Notion setup stage from the sources tab to the connection (#652)',
+    url: '/settings?tab=sources',
+    viewport: { width: 1280, height: 1500 }, // a driver that scrolls its Weiter button into view would be read as a jump of the fixed bar
+    run: async (page) => {
+      await page.getByTestId('source-connect-notion').click()
+      await expect(page.getByTestId('notion-setup-stage')).toBeVisible()
+      await completeNotionWizard(page, undefined, { pauseMs: READS_A_STEP_MS })
+      await expect(page.getByTestId('source-row-notion')).toBeVisible()
+    },
+    jumps: [SETUP_PAGE_SCROLL, SETUP_BACK_LABEL, MAPPER_ROWS],
   },
   {
     name: 'Mehr panel: open and close',

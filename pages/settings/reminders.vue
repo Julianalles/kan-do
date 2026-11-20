@@ -8,7 +8,7 @@
 - A list to Aus asks first when tasks would leave Kan-Do (a list holding only archived tasks switches without a question and drops them silently) (in place, under its row): how many and how many of them are on today's board, counted live from the store; Confirm takes them off the board (`tasksStore.dropSourceTasks`: nothing is written to Reminders, nothing is remembered as deleted), Cancel puts the choice back. Any other change applies at once and fetches the source
 - Access revoked in macOS: the Zugriff section shows how to allow it and "Verbindung reparieren" (rechecks the permission, then fetches); nothing opens by itself (#319)
 - "Trennen" (soft, error tone: the destructive action of the row, #596) opens the existing `DisconnectSourceDialog`; afterwards the page returns to the sources tab. Access that macOS granted stays: the dialog says nothing about revoking it
-- Not connected: `RemindersSetupFlow` (on `SetupShell`, #650) with `first-run` off inside the sheet; the shell brings its own footer; the first step has no Zurück (the layout's "Zurück zu Einstellungen" leads to the sources tab, #596), the subtitle says "Verbinde Apple Erinnerungen mit Kan-Do." (the layout's `sub-page-description-key` state) until something is set up, completion keeps the page and shows the settings
+- Not connected: `RemindersSetupFlow` (on `SetupShell`, #650) with `first-run` off inside the sheet; the shell brings its own footer; the first step has no Zurück (the layout's "Zurück zu Einstellungen" leads to the sources tab, #596), the subtitle says "Verbinde Apple Erinnerungen mit Kan-Do." (the layout's `sub-page-description-key` state) until something is set up, completion keeps the page and shows the settings; the stage widens the sheet to 768 px like the welcome flow (`useSetupStageWidth`, #652), the connected sections keep the 672 px column
 - Pattern: settings page, aligned with the sources tab sheet and SourceRow (hairline sections, quiet buttons)
 -->
 <template>
@@ -90,6 +90,7 @@ import RemindersTodayRules from '~/components/setup/RemindersTodayRules.vue'
 import { useBoardStore } from '~/store/board'
 import { useIntegrationHealthStore } from '~/store/integrationHealth'
 import { useRemindersConfigStore } from '~/store/remindersConfig'
+import { useSetupStageWidth } from '~/composables/useSetupStageWidth'
 import { useTasksStore } from '~/store/tasks'
 import { useIntegrationManager } from '~/composables/useIntegrationManager'
 import { isNotPlanned } from '~/lib/taskPlanning'
@@ -128,6 +129,7 @@ const showSetup = ref(!board.isIntegrationConnected('reminders'))
 const descriptionKey = useState<string | null>('sub-page-description-key', () => null)
 watchEffect(() => { descriptionKey.value = showSetup.value ? 'settings.reminders.pageDescriptionNew' : null })
 onBeforeUnmount(() => { descriptionKey.value = null })
+useSetupStageWidth(showSetup) // the stage is as wide as the welcome sheet (#652)
 const onSetupComplete = () => {
   showSetup.value = false
   void load()

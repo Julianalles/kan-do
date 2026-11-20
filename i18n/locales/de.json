@@ -645,10 +645,6 @@
   "notion": {
     "modal": {
       "next": "Weiter",
-      "finish": "Fertig stellen",
-      "titleSettings": "Notion-Einstellungen",
-      "titleConnect": "Mit Notion verbinden",
-      "titleConfigure": "Notion-Integration einrichten",
       "stepsLabel": "Fortschritt der Einrichtung",
       "stepDone": "(abgeschlossen)",
       "steps": {
@@ -852,10 +848,6 @@
     },
     "settings": {
       "pageTitle": "Notion-Einstellungen",
-      "notConfigured": {
-        "message": "Noch keine Notion-Integration eingerichtet.",
-        "action": "Integration einrichten"
-      },
       "tabs": {
         "connection": "Datenbank",
         "properties": "Eigenschaften",

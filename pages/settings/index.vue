@@ -15,11 +15,11 @@ App-Reset, and on desktop Updates and GitHub-Zugriff).
 - Aufgabenquellen is one sheet (#333: one concern): "Deine Verbindungen" (h2), the lead, the connected rows, then a separator and "Weitere Verbindungen" a level below (h3, the `sub` role); separator and heading drop out when nothing is left to connect
 - List Lokal (always; on desktop its row carries `LocalStorageDetails`: data folder, last saved, storage problems and their actions, #438) and the connected integrations as hairline rows; the default carries the "Standard" badge; a row's name and actions share one line at every width (`SourceRow`: the "…" menu)
 - "Als Standard festlegen" changes the default at once (`boardStore.setDefaultSource`)
-- Repair of a broken Notion (rejected token, missing config) opens the Notion setup at the token step
-  (`force-setup`, so a new token can be entered); a merely degraded one opens it in settings mode.
+- Repair of a broken Notion (rejected token, missing config) opens the Notion setup stage of /settings/notion at the token step
+  (`?setup=repair`, so a new token can be entered); a merely degraded one opens it in settings mode (`?setup=settings`); no dialog (#652).
   "Notion-Einstellungen" goes to /settings/notion, "Trennen" opens the disconnect dialog of #320
   (`useSourceConnections` does the work)
-- "Weitere Verbindungen": Notion with "Verbinden" while disconnected (today's Notion setup, then `connectSource`),
+- "Weitere Verbindungen": Notion with "Verbinden" while disconnected (opens the Notion setup stage of /settings/notion, `?setup=connect`; the stage connects the source when it ends),
   Erinnerungen with "Verbinden" in the Mac app (it opens /settings/reminders, which runs the setup there; the web build reads "nur in der Mac-App", #552),
   Todoist as "bald verfügbar"
 - "Verwaltung": `ListRow` link rows (`to`, kd#179; #683 sizing), every sub-page has one; a tab click `router.replace`s the query, so back from a sub-page returns to the tab it was opened from
@@ -141,7 +141,6 @@ App-Reset, and on desktop Updates and GitHub-Zugriff).
                       color="neutral"
                       variant="soft"
                       :aria-label="t('sources.row.connectNamed', { source: row.name })"
-                      :loading="isConnecting"
                       :data-testid="`source-connect-${row.id}`"
                       @click="onConnect(row.id)"
                     >
@@ -172,9 +171,6 @@ App-Reset, and on desktop Updates and GitHub-Zugriff).
         </section>
       </div>
 
-      <!-- Notion setup, one instance: connect and the repair of a broken connection run it from the first
-           step (force-setup, a broken token lands on the token step); a degraded repair uses settings mode -->
-      <NotionSetupModal v-model:open="isSetupOpen" :force-setup="isSetupForced" @complete="onSetupComplete" />
       <!-- Disconnect (#320): the dialog states what leaves the board and what is discarded -->
       <DisconnectSourceDialog v-model:open="isDisconnectOpen" :source="disconnectTarget" />
     </NuxtLayout>
@@ -191,14 +187,10 @@ import { useRoute, useRouter } from 'vue-router'
 import SourceRow from '~/components/settings/SourceRow.vue'
 import LocalStorageDetails from '~/components/settings/LocalStorageDetails.vue'
 import DisconnectSourceDialog from '~/components/settings/DisconnectSourceDialog.vue'
-import NotionSetupModal from '~/components/notion/setup/NotionSetupModal.vue'
 import { useBoardStore } from '~/store/board'
 import { useSettingsStore } from '~/store/settings'
 import { WORKING_MINUTES } from '~/lib/dayCapacity'
 import { useSourceList } from '~/composables/useSourceList'
-import { useSourceConnections } from '~/composables/useSourceConnections'
-import { useIntegrationManager } from '~/composables/useIntegrationManager'
-import { useErrorHandler } from '~/composables/useErrorHandler'
 import { isTauri } from '~/utils/isTauri'
 import { useDataFolder } from '~/composables/useDataFolder'
 import ListRow from '~/components/ui/ListRow.vue'
@@ -219,9 +211,6 @@ const { t, locale } = useI18n()
 const boardStore = useBoardStore()
 const settingsStore = useSettingsStore()
 const { connected, more } = useSourceList()
-const { connectSource } = useSourceConnections()
-const { fetchSource } = useIntegrationManager()
-const { handleError } = useErrorHandler()
 
 // The Keychain and updater pages exist on desktop only.
 const isDesktop = isTauri()
@@ -279,12 +268,6 @@ onMounted(() => {
   list?.setAttribute('aria-label', t('settings.tabs.label'))
 })
 
-type SetupPurpose = 'connect' | 'repair'
-
-const isSetupOpen = ref(false)
-const isSetupForced = ref(false)
-const setupPurpose = ref<SetupPurpose>('connect')
-const isConnecting = ref(false)
 const isDisconnectOpen = ref(false)
 const disconnectTarget = ref<IntegrationSourceId | null>(null)
 
@@ -300,19 +283,13 @@ const onSetDefault = (id: SourceId) => {
   boardStore.setDefaultSource(id)
 }
 
-const openSetup = (purpose: SetupPurpose, forced: boolean) => {
-  setupPurpose.value = purpose
-  isSetupForced.value = forced
-  isSetupOpen.value = true
-}
-
 // A broken connection needs its credentials again: the token step, never the mapping a dead token cannot serve
 const onRepair = (id: SourceId) => {
   // Reminders has no credentials to enter: its repair is the permission, which the settings page shows (#552)
   if (id === 'reminders') return void navigateTo('/settings/reminders')
   if (id !== 'notion') return
   const row = connected.value.find((r) => r.id === id)
-  openSetup('repair', row?.repairNeedsCredentials ?? false)
+  void navigateTo({ path: '/settings/notion', query: { setup: row?.repairNeedsCredentials ? 'repair' : 'settings' } })
 }
 
 const onOpenSettings = (id: SourceId) => {
@@ -342,31 +319,6 @@ watch(isDisconnectOpen, async (open) => {
 const onConnect = (id: IntegrationSourceId) => {
   // Apple Reminders connects on its own page (the same setup as the welcome flow, #552)
   if (id === 'reminders') return void navigateTo('/settings/reminders')
-  openSetup('connect', true)
-}
-
-const onSetupComplete = () => (setupPurpose.value === 'repair' ? onRepairComplete() : onConnectComplete())
-
-/** The setup saved new credentials or mapping: fetch so the status line reflects the repaired connection. */
-const onRepairComplete = async () => {
-  try {
-    await fetchSource('notion')
-  } catch {
-    // The failure is recorded in the source's health; the row shows "Verbindung prüfen" again
-  }
-}
-
-/** Notion is configured: add it on top of the board (no default change); its first fetch merges per source. */
-const onConnectComplete = async () => {
-  isConnecting.value = true
-  try {
-    // A refused connect (busy, already connected) changes nothing; a failed first fetch keeps the connection
-    // and the row then reads "Verbindung prüfen"
-    await connectSource('notion')
-  } catch (error) {
-    handleError(error as Error, 'notion_setup')
-  } finally {
-    isConnecting.value = false
-  }
+  void navigateTo({ path: '/settings/notion', query: { setup: 'connect' } })
 }
 </script>
