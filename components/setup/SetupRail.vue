@@ -45,14 +45,14 @@
           :data-state="index < current ? 'done' : index === current ? 'active' : 'todo'"
         >
           <span
-            class="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors duration-(--duration-base) motion-reduce:transition-none"
+            class="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-medium transition-colors duration-(--duration-base) motion-reduce:transition-none"
             :class="index <= current ? 'bg-inverted text-inverted' : 'bg-accented text-muted'"
             aria-hidden="true"
           >
             <UIcon v-if="index < current" name="i-ph-check-bold" class="size-3" />
             <template v-else>{{ index + 1 }}</template>
           </span>
-          <span class="text-sm" :class="index === current ? 'font-semibold text-highlighted' : index < current ? 'text-default' : 'text-muted'">
+          <span class="text-sm" :class="index === current ? 'font-medium text-highlighted' : index < current ? 'text-default' : 'text-muted'">
             {{ step.label }}
             <span v-if="index < current" class="sr-only">{{ doneLabel }}</span>
           </span>

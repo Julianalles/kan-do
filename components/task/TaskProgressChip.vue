@@ -238,7 +238,7 @@ watch(() => props.isNow, (now) => {
   white-space: nowrap;
   visibility: hidden;
 }
-.chip__sizer-icon { width: 0.8125rem; flex-shrink: 0; }
+.chip__sizer-icon { width: 0.75rem; flex-shrink: 0; }
 .chip__sizer--boxless-now { font-size: var(--text-xs); padding-inline: 0.5rem; }
 
 .chip {
@@ -308,13 +308,13 @@ watch(() => props.isNow, (now) => {
 
 .chip__content { display: inline-flex; align-items: center; gap: 0.25rem; width: 100%; min-width: 0; }
 .chip__icon {
-  width: 0.8125rem;
-  height: 0.8125rem;
+  width: 0.75rem;
+  height: 0.75rem;
   flex-shrink: 0;
   color: var(--chip-accent);
 }
 .chip-slot--armed .chip__icon { transition: width var(--chip-duration) var(--chip-ease), height var(--chip-duration) var(--chip-ease), color var(--duration-slow); }
-.chip--now .chip__icon { width: 1.0625rem; height: 1.0625rem; }
+.chip--now .chip__icon { width: 1rem; height: 1rem; }
 .chip-slot--armed .chip--now .chip__icon { transition-delay: var(--chip-settle-delay); }
 
 /* Spent time slides in before the timebox; the timebox moves to the far end of the bar */

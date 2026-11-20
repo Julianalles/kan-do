@@ -67,7 +67,7 @@
             reserve-error
             :readonly="!canEditText"
             :required-message="t('task.form.titleRequired')"
-            class="text-2xl/tight"
+            class="text-headline"
             container-class="-ms-2"
             display-class="font-display"
             size="xl"

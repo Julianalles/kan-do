@@ -122,7 +122,7 @@ const sentence = computed(() =>
 .capacity-echo__label {
   flex: none;
   font-size: var(--text-sm);
-  font-weight: 600;
+  font-weight: 500;
   line-height: var(--lh-snug);
   letter-spacing: 0.02em;
 }

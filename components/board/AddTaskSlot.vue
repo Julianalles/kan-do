@@ -313,8 +313,8 @@ defineExpose({ open, isDrafting });
 }
 
 .add-task-button-icon {
-  width: 1.125rem;
-  height: 1.125rem;
+  width: 1.25rem;
+  height: 1.25rem;
   flex-shrink: 0;
 }
 

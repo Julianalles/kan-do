@@ -291,6 +291,12 @@ export function checkTokenLiterals(root, files = styleSources(root)) {
  *   size, unless that exact literal is on `SCALE_ALLOWLIST` for the file;
  * - an arbitrary spacing or size class (`p-[…]`, `gap-[…]`, `w-[…]`, `max-h-[…]`) unless its value is a `calc()` or a
  *   viewport unit, or that exact class is on `SCALE_ALLOWLIST` for the file;
+ * - the 4 px grid (#591): a half-step utility other than the two that `DESIGN.md` "Space, size and shape" allows
+ *   (`-0.5` = 2 px, `-1.5` = 6 px), i.e. `-2.5`, `-3.5`, `-4.5` and up; `padding`, `margin` and `gap` in a style block
+ *   written as a px or rem length that is not a multiple of 4 px, 2 px or 6 px; and `width` / `height` in a style block
+ *   on a class an icon carries (a `UIcon` tag's own class, or a class named `*icon*`, `*tick*`, `*caret*`,
+ *   `*chevron*`) that is not 12, 16, 20 or 24 px. A place that is off the grid on purpose (geometry tied to another
+ *   element) is on `SCALE_ALLOWLIST` for its file as `prop: value` with its reason;
  * - motion (#70, widened in #593): the literal durations (`150ms`, `0.2s`, not `0`), `cubic-bezier()` and `linear()` curves and
  *   easing keywords (`ease`, `ease-in`, `ease-out`, `ease-in-out`, `linear`) in `transition`, `animation` and their
  *   longhands, in a custom property that holds a time or a curve (`--nav-move: 420ms`, `--ncf-ease: ease`), in Tailwind
@@ -304,6 +310,10 @@ export function checkTokenLiterals(root, files = styleSources(root)) {
 export const SCALE_ALLOWLIST = {
   'components/board/BoardColumn.vue': { literals: ['min-h-[150px]'], reason: 'min-h-[150px]: the empty drop target of a column is px on purpose (drag-and-drop hit area, not text)' },
   'components/task/DatePickerField.vue': { literals: ['min-w-[260px]'], reason: 'min-w-[260px]: the calendar popover is px wide so the month grid never reflows with the text size' },
+  'assets/css/app-nav.css': { literals: ['padding: 0.1875rem', 'padding-inline: 0.625rem'], reason: 'the phone nav pill: 3 px pill padding and 10 px a segment are tied to the 390 px layout (the funnel right of ⋯ sits at 388 px, #375) and to the indicator that rides the same inset' },
+  'components/task/TaskCard.vue': { literals: ['padding-right: 1.875rem', 'width: 2.75rem', 'height: 2.75rem', 'width: 1.75rem', 'height: 1.75rem'], reason: 'padding-right 30 px is the card-corner menu button (28 px circle) plus 2 px; the 44 px check and 28 px rocket are the completion mark sized to the confirm message, not UI icons' },
+  'components/task/TaskStackHeader.vue': { literals: ['margin-top: -1.375rem'], reason: 'margin-top -22 px: half of the 44 px close button, centring it on the 32 px header edge' },
+  'components/overlay/NowWindow.vue': { literals: ['padding: 0 14px 0 24px', 'padding-left: 30px', 'gap: 10px'], reason: 'the floating Now window is fixed pixels on purpose, tracked in #587' },
   'app.config.ts': { literals: ['text-[0.5rem]/3'], reason: 'text-[0.5rem]/3: the xs badge, rem so it follows text zoom (#66); no role is that small' },
 }
 
@@ -453,6 +463,79 @@ export function checkBaselineSlack(root) {
     .map(([file, n]) => ({ file: join(root, BASELINE_FILE), line: 1, message: `${file} has ${real[file] ?? 0} motion literals, the baseline says ${n}; lower it (node scripts/lint/design-tokens.mjs --update-baseline)` }))
 }
 
+
+const GRID_PROP_RE = /^(?:padding|margin)(?:-(?:block|inline|top|right|bottom|left)(?:-(?:start|end))?)?$|^(?:row-|column-)?gap$/
+const ICON_SIZES = new Set([12, 16, 20, 24])
+const ICON_CLASS_RE = /(?:^|[_-])(?:icon|tick|caret|chevron)(?:$|[_-])/
+const SPACING_ROOT = '(?:p[xytrblse]?|m[xytrblse]?|gap(?:-[xy])?|space-[xy]|inset(?:-[xy])?|top|left|right|bottom|size|w|h|min-[wh]|max-[wh]|scroll-[mp][xytrblse]?|translate-[xy])'
+/** Tailwind spacing steps with a `.5`: `0.5` (2 px) and `1.5` (6 px) are the grid's only half steps. */
+const HALF_STEP_RE = new RegExp(`(?<![\\w.-])(?:[\\w-]+:)*-?${SPACING_ROOT}-(\\d+)\\.5(?![\\w.])`, 'g')
+
+/**
+ * A plain px or rem length in px (`0.625rem` → 10); anything else (var(), calc(), %, em, auto, keywords) is null.
+ * @param {string} token
+ */
+function lengthPx(token) {
+  const m = /^(-?\d*\.?\d+)(px|rem)$/.exec(token)
+  if (!m) return null
+  return Number(m[1]) * (m[2] === 'rem' ? 16 : 1)
+}
+
+/** Classes a `<UIcon>` / `<Icon>` tag carries in a template (static `class="…"` only). @param {string} text */
+function iconClassesOf(text) {
+  /** @type {Set<string>} */
+  const names = new Set()
+  for (const tag of text.matchAll(/<(?:UIcon|Icon)\b[^>]*?[\s]class="([^"]*)"/g)) for (const c of (tag[1] ?? '').split(/\s+/)) if (c) names.add(c)
+  return names
+}
+
+/** The class names a selector ends in: `.a .b__icon:hover, .c` → `b__icon`, `c`. @param {string} selector */
+function lastClasses(selector) {
+  /** @type {string[]} */
+  const names = []
+  for (const part of selector.trim().split(',')) {
+    const compound = part.trim().split(/[\s>+~]+/).pop() ?? ''
+    for (const m of compound.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)) names.push(m[1] ?? '')
+  }
+  return names
+}
+
+/**
+ * Off-grid findings of one file's CSS: spacing declarations and the size of icon classes.
+ * @param {string} css the file's CSS (`cssOf`)
+ * @param {Set<string>} iconClasses classes a UIcon tag of the file carries
+ * @param {string[]} allowed `prop: value` strings the file may keep
+ * @returns {{ index: number, message: string }[]}
+ */
+function gridFindings(css, iconClasses, allowed) {
+  /** @type {{ index: number, message: string }[]} */
+  const out = []
+  // trimEnd: the blanked template after the last style block is whitespace, and `[^{}]+` would rescan it from every start
+  for (const rule of css.trimEnd().matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    const selector = (rule[1] ?? '').replace(/^[\s;]*/, '')
+    const isIcon = lastClasses(selector).some(c => iconClasses.has(c) || ICON_CLASS_RE.test(c))
+    for (const decl of (rule[2] ?? '').matchAll(/(?:^|;)\s*([\w-]+)\s*:\s*([^;]+)/g)) {
+      const prop = decl[1] ?? ''
+      const value = (decl[2] ?? '').replace(/!important/g, '').trim()
+      if (allowed.includes(`${prop}: ${value}`)) continue
+      const at = (rule.index ?? 0) + (rule[0].indexOf(decl[0]) || 0) + decl[0].indexOf(prop)
+      if (GRID_PROP_RE.test(prop)) {
+        for (const token of value.replace(/var\([^()]*(?:\([^()]*\)[^()]*)*\)|calc\([^()]*(?:\([^()]*\)[^()]*)*\)/g, ' ').split(/\s+/)) {
+          const px = lengthPx(token)
+          if (px === null || px === 0 || Math.abs(px) === 1 || px % 4 === 0 || Math.abs(px) === 2 || Math.abs(px) === 6) continue
+          out.push({ index: at, message: `${prop}: ${value} is off the 4 px grid (${px} px); use a multiple of 4 px, or 2 or 6 px (DESIGN.md "Space, size and shape")` })
+          break
+        }
+      }
+      else if (isIcon && (prop === 'width' || prop === 'height')) {
+        const px = lengthPx(value)
+        if (px !== null && !ICON_SIZES.has(px)) out.push({ index: at, message: `${prop}: ${value} sizes an icon off the icon scale (${px} px); use 12, 16, 20 or 24 px (lib/icons.ts)` })
+      }
+    }
+  }
+  return out
+}
+
 /**
  * @param {string} root checkout root
  * @param {string[]} [files] files to check (default: `scaleSources`)
@@ -481,6 +564,9 @@ export function checkScaleLiterals(root, files = scaleSources(root)) {
         if (step) add(css, at, `font-size: ${value} equals ${step}; use var(${step})`)
       }
     }
+    const iconClasses = file.endsWith('.vue') ? iconClassesOf(readFileSync(file, 'utf8').replace(/<style[^>]*>[\s\S]*?<\/style>/g, '')) : new Set()
+    const allowedDecls = /** @type {Record<string, { literals: string[] }>} */ (SCALE_ALLOWLIST)[rel]?.literals ?? []
+    for (const f of gridFindings(css, iconClasses, allowedDecls)) add(css, f.index, f.message)
     for (const media of css.matchAll(/@(?:media|container)[^{]*\(\s*(?:min|max)-width\s*:\s*[\d.]+(?:px|rem|em)/g)) add(css, media.index ?? 0, `${media[0].trim()} writes a breakpoint as a number; use @media (--phone), (--desktop) or (--sm) (lib/breakpoints.ts)`)
 
     if (file.endsWith('.vue') || file.endsWith('.ts')) {
@@ -491,6 +577,10 @@ export function checkScaleLiterals(root, files = scaleSources(root)) {
         if (Math.abs(Number(m[1] ?? m[2])) > Z_LIMIT) add(body, m.index ?? 0, `${m[0]} is a layer; use z-(--z-<layer>) (assets/css/main.css)`)
       }
       for (const m of body.matchAll(/(?:matchMedia|useMediaQuery)\(\s*(['"`])[^'"`]*(?:min|max)-width[^'"`]*\1/g)) add(body, m.index ?? 0, `${m[0]} writes a breakpoint as a number; use BREAKPOINT_QUERIES (lib/breakpoints.ts)`)
+      for (const m of body.matchAll(HALF_STEP_RE)) {
+        if (m[1] === '0' || m[1] === '1' || allowedLiterals.includes(m[0])) continue
+        add(body, m.index ?? 0, `${m[0]} is a half step off the 4 px grid; use the neighbouring step (only -0.5 and -1.5 are half steps: DESIGN.md "Space, size and shape")`)
+      }
       {
         for (const m of body.matchAll(/(?<![\w-])(?:[\w-]+:)*text-\[[^\]]+\](?:\/[\w.]+)?/g)) if (!allowedLiterals.includes(m[0])) add(body, m.index ?? 0, `${m[0]} is an arbitrary type size; use a role (text-label, text-sm …) or a --text-* token`)
         for (const m of body.matchAll(/(?<![\w-])(?:[\w-]+:)*-?(?:p[xytrblse]?|m[xytrblse]?|gap(?:-[xy])?|space-[xy]|size|w|h|min-[wh]|max-[wh]|inset(?:-[xy])?|top|left|right|bottom)-\[([^\]]+)\]/g)) {
