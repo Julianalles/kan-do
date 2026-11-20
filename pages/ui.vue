@@ -113,7 +113,7 @@ import { filterGroups, groupOfRow, kitGroups, neighbours, parseView, partGroups,
 import { installSampleScrollGuard } from '~/dev-tools/ui-catalog/sampleScrollGuard'
 import { useCatalog } from '~/dev-tools/ui-catalog/useCatalog'
 
-definePageMeta({ appNav: false })
+definePageMeta({ appNav: false, layout: false })
 
 const KIT_INTRO = 'What a screen is built from: the Nuxt UI components in use, the shared primitives under components/ui and every app component with three or more consumers. Look here first.'
 const PARTS_INTRO = 'Compositions that serve one screen or flow, by area. Reuse one only inside its own feature.'

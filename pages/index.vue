@@ -11,7 +11,7 @@
 
 <script setup lang="ts">
 // No app bar here (#470): first run, developer pages and the empty redirect page
-definePageMeta({ appNav: false })
+definePageMeta({ appNav: false, layout: false })
 /**
  * Führt die clientseitige Navigation zu /tasks aus.
  */

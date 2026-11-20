@@ -496,3 +496,18 @@ test.describe('a set-up board requests /welcome (#561)', () => {
     await expect(page.getByTestId('welcome-choice-local')).toBeVisible()
   })
 })
+
+test('the welcome curtain is the page transition: .welcome-root leaves with page-leave-active (#601, #463)', async ({ page, baseURL }) => {
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await page.goto(baseURL! + '/welcome')
+  await page.evaluate(() => {
+    const w = window as unknown as { __leave?: boolean }
+    new MutationObserver(() => {
+      if (document.querySelector('.welcome-root.page-leave-active')) w.__leave = true
+    }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'], childList: true })
+  })
+  await page.getByTestId('welcome-choice-samples').click()
+  await page.getByTestId('samples-confirm').click()
+  await expect(page).toHaveURL(/\/tasks$/)
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __leave?: boolean }).__leave)).toBe(true)
+})

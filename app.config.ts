@@ -90,6 +90,22 @@ const alertFlatCompounds = [
   { color: 'neutral' as const, variant: 'flat' as const, class: { root: 'text-highlighted bg-elevated/50' } }
 ]
 
+// Overlay motion (#601, DESIGN.md "Motion"): Nuxt UI's menus, dialogs and drawers run their keyframes on the library's own
+// 100 and 200 ms and `--ease-out`; these strings put them on the app's tokens, so one clock moves everything. A menu, popover,
+// select list or tooltip takes `--duration-fast`, a dialog (the command palette included) `--duration-base`; a menu pops from 98 % (`menu-in` / `menu-out`,
+// transitions.css) where the library's 95 % moves a tall panel by 19 px, which the motion guard reads as a jump when frames
+// are sparse; menus and dialogs use `--ease-standard` both ways; the scrim and the side sheet arrive on `--ease-emphasized` and leave on `--ease-standard`. Written out in full: Tailwind finds a class only as a whole string.
+const MENU_MOTION = 'data-[state=open]:animate-[menu-in_var(--duration-fast)_var(--ease-standard)] data-[state=closed]:animate-[menu-out_var(--duration-fast)_var(--ease-standard)]'
+const TOOLTIP_MOTION = 'data-[state=delayed-open]:animate-[menu-in_var(--duration-fast)_var(--ease-standard)] data-[state=closed]:animate-[menu-out_var(--duration-fast)_var(--ease-standard)]'
+const SCRIM_MOTION = 'data-[state=open]:animate-[fade-in_var(--duration-base)_var(--ease-emphasized)] data-[state=closed]:animate-[fade-out_var(--duration-base)_var(--ease-standard)]'
+const DIALOG_MOTION = 'data-[state=open]:animate-[scale-in_var(--duration-base)_var(--ease-standard)] data-[state=closed]:animate-[scale-out_var(--duration-base)_var(--ease-standard)]'
+const SIDE_MOTION = {
+  top: 'data-[state=open]:animate-[slide-in-from-top_var(--duration-base)_var(--ease-emphasized)] data-[state=closed]:animate-[slide-out-to-top_var(--duration-base)_var(--ease-standard)]',
+  right: 'data-[state=open]:animate-[slide-in-from-right_var(--duration-base)_var(--ease-emphasized)] data-[state=closed]:animate-[slide-out-to-right_var(--duration-base)_var(--ease-standard)]',
+  bottom: 'data-[state=open]:animate-[slide-in-from-bottom_var(--duration-base)_var(--ease-emphasized)] data-[state=closed]:animate-[slide-out-to-bottom_var(--duration-base)_var(--ease-standard)]',
+  left: 'data-[state=open]:animate-[slide-in-from-left_var(--duration-base)_var(--ease-emphasized)] data-[state=closed]:animate-[slide-out-to-left_var(--duration-base)_var(--ease-standard)]',
+}
+
 export default defineAppConfig({
   ui: {
     // tailwind-merge does not know our `--text-*` type roles (main.css `@theme`, #70): without this `text-label/3` reads as
@@ -189,6 +205,10 @@ export default defineAppConfig({
         overlay: {
           true: { overlay: 'bg-(--overlay-scrim)' },
         },
+        // The keyframes sit in Nuxt UI's `transition` variant, merged after the slots: the tokens go in the same place (#601)
+        transition: {
+          true: { overlay: SCRIM_MOTION, content: DIALOG_MOTION },
+        },
         // Nuxt UI's `fullscreen: false` variant carries `shadow-lg` and is merged after slot overrides,
         // so the modal elevation (#126) has to override it here, not in `slots.content`.
         fullscreen: {
@@ -203,7 +223,13 @@ export default defineAppConfig({
         content: 'z-(--z-overlay) bg-elevated md:shadow-(--shadow-sheet)',
         title: 'font-display text-lg font-medium tracking-display',
         description: 'text-body',
-      }
+      },
+      variants: {
+        transition: {
+          true: { overlay: SCRIM_MOTION },
+        },
+      },
+      compoundVariants: (['top', 'right', 'bottom', 'left'] as const).map(side => ({ transition: true, side, class: { content: SIDE_MOTION[side] } })),
     },
     drawer: {
       slots: {
@@ -217,17 +243,17 @@ export default defineAppConfig({
     // (DESIGN.md "Elevation"). A tooltip is a label, not a sheet: its ring is enough.
     popover: {
       slots: {
-        content: 'z-(--z-popover) rounded-lg shadow-(--shadow-overlay)'
+        content: `z-(--z-popover) rounded-lg shadow-(--shadow-overlay) ${MENU_MOTION}`
       }
     },
     tooltip: {
       slots: {
-        content: 'z-(--z-popover) shadow-none'
+        content: `z-(--z-popover) shadow-none ${TOOLTIP_MOTION}`
       }
     },
     contextMenu: {
       slots: {
-        content: 'rounded-lg shadow-(--shadow-overlay)',
+        content: `rounded-lg shadow-(--shadow-overlay) ${MENU_MOTION}`,
         // 40 px rows, centred (#296), at least 44 px below `md` (the phone floor, DESIGN.md "Space, size and shape", #342); the hand cursor is explicit, the disabled row keeps Nuxt UI's `not-allowed`
         item: 'min-h-10 max-md:min-h-11 items-center cursor-pointer'
       },
@@ -254,7 +280,7 @@ export default defineAppConfig({
         // The chevron answers the pointer: its ink darkens (DESIGN.md "States", Hover: a text control darkens its text; #592)
         trailingIcon: 'group-hover:text-default',
         // About 5 rows, then it scrolls (`--combo-list-room`, assets/css/main.css; NewCardFlow lowers it above the on-screen keyboard)
-        content: 'z-(--z-popover) max-h-(--combo-list-room) rounded-lg shadow-(--shadow-overlay)',
+        content: `z-(--z-popover) max-h-(--combo-list-room) rounded-lg shadow-(--shadow-overlay) ${MENU_MOTION}`,
         // The highlighted row (arrows, the first match while typing) takes the paper tone of a menu row's hover: Nuxt UI's `bg-elevated` is white here, as white as the list (DESIGN.md "Fill on a sheet", like `dropdownMenu` and `contextMenu`)
         item: 'min-h-8 max-md:min-h-11 max-md:items-center p-1.5 cursor-pointer data-highlighted:not-data-disabled:before:bg-muted'
       },
@@ -286,7 +312,7 @@ export default defineAppConfig({
     },
     dropdownMenu: {
       slots: {
-        content: 'z-(--z-popover) min-w-40 rounded-lg shadow-(--shadow-overlay)',
+        content: `z-(--z-popover) min-w-40 rounded-lg shadow-(--shadow-overlay) ${MENU_MOTION}`,
         // A row is 32 px (`min-h-8`) whether or not it carries a 20 px icon: its height is explicit, not the 1.3 text line plus padding (kd#190).
         // Below `md` it is at least 44 px (a floor: description rows reach 48 px), the phone floor of every control (DESIGN.md "Space, size and shape", #336); `max-md:items-center` keeps label, icon and check on the row's middle in the taller row (Nuxt UI's `items-start` leaves them at the top); from `md` up the row is as tall as its content
         item: 'min-h-8 max-md:min-h-11 max-md:items-center text-sm cursor-pointer'
@@ -327,7 +353,7 @@ export default defineAppConfig({
     },
     select: {
       slots: {
-        content: 'rounded-lg shadow-(--shadow-overlay)',
+        content: `rounded-lg shadow-(--shadow-overlay) ${MENU_MOTION}`,
         // The `lg` item (p-2, text-sm) is 16 + 18.2 = 34.2 px at 1.3; `min-h-9` keeps the 36 px row it had before kd#190.
         // Below `md` a row is at least 44 px, centred (the phone floor, #342)
         item: 'min-h-9 max-md:min-h-11 max-md:items-center',
@@ -345,7 +371,7 @@ export default defineAppConfig({
         // The picker's rows keep the `md` item (p-1.5, text-sm) that TaskPropertySelect documents; `lg` would add 2 px.
         // Below `md` a row is at least 44 px, centred (the phone floor, #342)
         item: 'min-h-8 max-md:min-h-11 max-md:items-center p-1.5',
-        content: 'z-(--z-popover) min-w-40 rounded-lg shadow-(--shadow-overlay)'
+        content: `z-(--z-popover) min-w-40 rounded-lg shadow-(--shadow-overlay) ${MENU_MOTION}`
       },
       variants: {
         // `soft` is the select of the task sheet's property rows (#114, DESIGN.md "Components"):
@@ -603,6 +629,7 @@ export default defineAppConfig({
           size: 'md',
           class: {
             root: 'divide-default/40',
+            footer: 'mt-auto', // the keys hint stays at the bottom of the fixed-height panel, whatever the list holds (#601)
             viewport: 'divide-y-0 p-2 mask-b-from-92%',
             group: 'p-0 pb-3',
             label: 'text-xs font-medium text-muted px-3 pt-3 pb-1',

@@ -34,7 +34,7 @@
 import type { ErrorContext } from '~/composables/useErrorHandler'
 
 // No app bar here (#470): first run, developer pages and the empty redirect page
-definePageMeta({ appNav: false })
+definePageMeta({ appNav: false, layout: false })
 type ErrorContextKey = ErrorContext
 
 const { handleError, handleSuccess, handleWarning } = useErrorHandler()

@@ -60,3 +60,15 @@
 
   /* prefers-reduced-motion: no slide, the sheet simply appears (overlay and content). */
 }
+
+/* The phone drawer on the app's clock (#601, DESIGN.md "Motion"): vaul's own style (injected, unlayered) opens and closes the
+   drawer and its scrim in 0.5 s on `cubic-bezier(.32,.72,0,1)`; this unlayered block takes `--duration-slow` and the
+   emphasized curve instead. Only when motion is wanted: under reduced motion main.css zeroes the animation as before.
+   A drag released over the threshold still settles on vaul's inline 0.5 s transition (a gesture, not an open or close). */
+@media (prefers-reduced-motion: no-preference) {
+  html [data-vaul-drawer][data-state],
+  html [data-vaul-overlay][data-state] {
+    animation-duration: var(--duration-slow);
+    animation-timing-function: var(--ease-emphasized);
+  }
+}

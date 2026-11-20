@@ -184,7 +184,9 @@ const handleVisibilityChange = () => {
 
 // "Alle" (`/all`, #354) is a second path of this page: one board, two places, so the way between them is a move of
 // the mounted board and not a page swap (lib/boardPlace). The fixed key keeps the page instance across both paths.
-definePageMeta({ alias: ['/all'], key: 'board' });
+// `layout: false` like every other page (#601): a page with no layout is the layout "default" to Nuxt, which differs from
+// `false`, so each change between the board and another page swapped the layout and skipped the page transition.
+definePageMeta({ alias: ['/all'], key: 'board', layout: false });
 
 /**
  * Initialisiert die Seite, prüft Integration und startet Auto-Refresh.

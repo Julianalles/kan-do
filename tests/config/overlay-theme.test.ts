@@ -52,7 +52,7 @@ describe('dialog titles are the subhead role (kd#179)', () => {
 
 describe('menus, popovers and toasts are 16 px sheets with the warm shadow (kd#179)', () => {
   it.each(['popover', 'dropdownMenu', 'contextMenu', 'inputMenu', 'select', 'selectMenu'])('%s content takes rounded-lg and the overlay shadow', (key) => {
-    const content = themeBlock(key).match(/^\s*content: '([^']+)'/m)?.[1] ?? ''
+    const content = themeBlock(key).match(/^\s*content: ['`]([^'`]+)['`]/m)?.[1] ?? ''
     expect(content.split(' ')).toEqual(expect.arrayContaining(['rounded-lg', 'shadow-(--shadow-overlay)']))
   })
 
