@@ -40,7 +40,7 @@
           <UButton
             ref="addButton"
             class="column-header__add"
-            :class="{ 'opacity-0': addAway }"
+            :class="{ 'opacity-0 disabled:opacity-0': addAway }"
             :inert="addAway || undefined"
             data-round="md"
             color="neutral"

@@ -585,6 +585,8 @@ test.describe('The place "Alle" (#354), desktop', () => {
     await expect(add).toHaveJSProperty('inert', true)
     expect((await add.boundingBox())!.width).toBeGreaterThan(0)
     await page.getByTestId('not-planned-create').click()
+    // The add card is open: the button stays away (disabled must not dim it back to 50 %)
+    await expect(add).toHaveCSS('opacity', '0')
     await saveInCard(page, 'Fenster ausmessen')
     await expect(add).toHaveCSS('opacity', '1')
     await expect(add).toHaveJSProperty('inert', false)
@@ -931,6 +933,26 @@ test.describe('Drag between "Meine Aufgaben" and Offen (#355), desktop', () => {
     await dropSettled(page)
     await expect.poll(async () => (await notPlannedIds(page))[0]).toBe('open-1')
     await expect(item(page, 'open-1')).toBeInViewport()
+    // ... and clear of the app bar and its veil (3.5 rem + 1.75 rem), not under them
+    expect((await item(page, 'open-1').boundingBox())!.y).toBeGreaterThanOrEqual(84)
+  })
+
+  test('"Nicht heute" on a card deep in Offen keeps the page where it is (#609)', async ({ context, page }) => {
+    const many = Array.from({ length: 30 }, (_, i) => open(`deep-${i}`, `Karte ${i}`))
+    await seedLocalBoard(context, [...many, held('np-1', 'Angebot kalkulieren')])
+    await gotoAll(page)
+    await page.mouse.wheel(0, 2500)
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(500)
+    const before = await page.evaluate(() => window.scrollY)
+    const card = openCard(page, 'deep-10')
+    await card.scrollIntoViewIfNeeded()
+    const at = await page.evaluate(() => window.scrollY)
+    await card.locator('.task').click({ button: 'right' })
+    await page.getByRole('menuitem', { name: 'Nicht heute' }).click()
+    await expect.poll(async () => (await notPlannedIds(page))[0]).toBe('deep-10')
+    await settleAnimations(page)
+    expect(Math.abs((await page.evaluate(() => window.scrollY)) - at)).toBeLessThan(2)
+    expect(before).toBeGreaterThan(0)
   })
 
   test('a drop back on its own side, Escape, and a hover over a neighbour change nothing', async ({ context, page }) => {

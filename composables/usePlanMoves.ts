@@ -60,9 +60,10 @@ async function fly(from: DOMRect | null, find: () => HTMLElement | null): Promis
   if (!el || typeof el.animate !== 'function') return
   // A card put back flies into "Meine Aufgaben": that side lifts above Offen meanwhile (board.css).
   const side = el.closest<HTMLElement>('#column-not-planned')
-  // A card put back lands on top of "Meine Aufgaben": with the page scrolled down that is out of view, so it scrolls into view first (#609)
-  if (side) el.scrollIntoView({ block: 'nearest', behavior: 'instant' })
+  // A card put back lands on top of "Meine Aufgaben". With the page scrolled down that is out of view: the page stays where
+  // it is (the user keeps their place in Offen; the toast says what happened) and nothing flies to a place nobody sees (#609)
   const to = el.getBoundingClientRect()
+  if (side && (to.bottom <= 0 || to.top >= window.innerHeight)) return
   const dx = from.left - to.left
   const dy = from.top - to.top
   if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return

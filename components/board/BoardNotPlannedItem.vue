@@ -14,7 +14,7 @@
 <template>
   <li
     ref="element"
-    class="not-planned__item"
+    class="not-planned__item scroll-mt-[calc(var(--app-bar-offset-top)+var(--app-bar-veil-hang)+1rem)]"
     :class="[{ 'kando-dnd-dragged': isDragging }, dropMotionClasses]"
     :data-not-planned-id="task.id"
   >
