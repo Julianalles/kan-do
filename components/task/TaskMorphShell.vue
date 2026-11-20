@@ -8,7 +8,7 @@
 @responsibility
 - Dialog behaviour from reka's DialogRoot/DialogContent: focus trap and return, Escape, an outside press; the dismiss hooks come in through `contentProps` (TaskSheet owns them) and every close is requested through `update:open`
 - Placement (`utils/sheetPlacement.ts`): 720 px wide (the window minus 32 px when narrower), centred on the origin card's centre, 16 px from the left, right and bottom window edge and below the app bar (#518: its top is at least the bottom of `[data-app-nav]`, 56 px, measured at each placement, so the centred group of wordmark, pill and ⋯ stays whole above the sheet at every card; no bar on the page, 16 px); as high as its content, at most the window height minus that top minus 16 px (the columns scroll inside, TaskDetailContent). The shell keeps it inside the window when the content grows (expanded Metadaten, an open topic editor) or the window shrinks
-- Open (about 280 ms, ease-out `cubic-bezier(0.2, 0, 0, 1)`): the panel's box and corner radius run from the card's (16 px) to the sheet's (32 px, twice the card's, `--task-sheet-radius`); a copy of the card's face holds the card's place on screen and fades out after the first beat while the content fades in; the scrim fades in over 160 ms. The grow is the Web Animations API on left/top/width/height, the content keeps its final size meanwhile so it does not reflow
+- Open (about 280 ms, ease-out `cubic-bezier(0.2, 0, 0, 1)`): the panel's box and corner radius run from the card's (16 px) to the sheet's (32 px, twice the card's, `--task-sheet-radius`); a copy of the card's face holds the card's place on screen and fades out after the first beat while the content fades in; the scrim fades in over 160 ms. The grow is the Web Animations API on left/top/width/height, the content keeps its final size meanwhile so it does not reflow (`flex: none`: its `flex-1` basis of 0 would otherwise beat the set height and the last line would follow the panel's height, #659)
 - Close (about 200 ms, `cubic-bezier(0.4, 0, 0.2, 1)`): the sheet folds into the card where it sits now (a status change may have moved it), the content fades out first, the face fades back in, the scrim fades out
 - No origin card (a statistics row, a deep link, a card scrolled out of the window or gone): centred, a 160 ms scale-in from 97 % with a fade; it leaves with a 140 ms fade
 - Direct link (#594): a sheet that is open from the first route of the session (`arrivedFromAnotherPage()` is false) stands at its place at once, no grow, no fade, no scrim fade; "never runs on page load" (DESIGN.md Motion)
@@ -90,6 +90,9 @@ const scrimRef = ref<{ $el: HTMLElement } | null>(null);
 const faceRef = ref<HTMLElement | null>(null);
 const innerRef = ref<HTMLElement | null>(null);
 
+/** The content's `flex-1` has a basis of 0, which beats its `height`: the content would take the panel's height frame by frame (#659). `none` holds the size the content was given. */
+const HELD_SIZE = 'none';
+
 let running: Animation[] = [];
 /** Bumped by every open and close request, so a run that was overtaken stops touching the panel. */
 let generation = 0;
@@ -164,7 +167,7 @@ const settle = () => {
   setFace(null, null);
   const el = panel();
   if (el) Object.assign(el.style, { height: 'auto', visibility: 'visible' });
-  if (innerRef.value) Object.assign(innerRef.value.style, { width: '', height: '', flexShrink: '' });
+  if (innerRef.value) Object.assign(innerRef.value.style, { width: '', height: '', flex: '' });
 };
 
 /**
@@ -191,7 +194,7 @@ async function playOpen(mine: number, atRest: boolean) {
   const maxH = sheetMaxHeight(vp.height, vp.top);
   // Measure the natural height at the final width while the panel is hidden
   Object.assign(el.style, { left: '0px', top: '0px', width: `${w}px`, height: 'auto', maxHeight: `${maxH}px`, visibility: 'hidden', opacity: '', transform: '' });
-  Object.assign(inner.style, { width: `${w}px`, height: '', flexShrink: '' });
+  Object.assign(inner.style, { width: `${w}px`, height: '', flex: '' });
   await nextTick();
   if (mine !== generation) return;
   const h = Math.min(el.getBoundingClientRect().height, maxH);
@@ -200,7 +203,7 @@ async function playOpen(mine: number, atRest: boolean) {
   const to = placeSheet(from, { w, h }, vp);
   Object.assign(el.style, { ...px(to), visibility: 'visible' });
   // The content keeps its final size while the panel grows: it is clipped, not re-laid-out every frame
-  Object.assign(inner.style, { width: `${to.w}px`, height: `${to.h}px`, flexShrink: '0' });
+  Object.assign(inner.style, { width: `${to.w}px`, height: `${to.h}px`, flex: HELD_SIZE });
 
   const reduced = reducedMotion();
   const fade: Keyframe[] = [{ opacity: 0 }, { opacity: 1 }];
@@ -257,7 +260,7 @@ async function playClose(mine: number) {
     const cardLook = lookOf(card);
     // Freeze the box and the content at their current size, then fold the panel into the card
     Object.assign(el.style, { ...px(current), height: `${current.h}px`, maxHeight: 'none' });
-    Object.assign(inner.style, { width: `${current.w}px`, height: `${current.h}px`, flexShrink: '0' });
+    Object.assign(inner.style, { width: `${current.w}px`, height: `${current.h}px`, flex: HELD_SIZE });
     setFace(card, to);
     void run(inner, [{ opacity: 1 }, { opacity: 0, offset: 0.5 }, { opacity: 0 }], { duration: closeMs, easing: 'linear' });
     void run(faceRef.value, [{ transform: `translate(${to.x - current.x}px, ${to.y - current.y}px)` }, { transform: 'translate(0px, 0px)' }], { duration: closeMs, easing: easeClose });
