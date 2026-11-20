@@ -15,7 +15,7 @@ import {
 // checked-in rules in step with the tree.
 
 const root = resolve(__dirname, '../..')
-interface Config { smoke: string[], design?: { paths: string[], specs: string[] }, catalog?: { paths: string[], components: string, specs: string[] }, map: { paths: string[], specs: string[] }[] }
+interface Config { smoke: string[], design?: { paths: string[], specs: string[] }, catalog?: { paths: string[], components: string, specs: string[] }, visual?: { paths: string[], specs: string[] }, map: { paths: string[], specs: string[], risk?: boolean, fast?: string[] }[] }
 const config = JSON.parse(readFileSync(resolve(root, '.claude/hooks/e2e-gate.json'), 'utf8')) as Config
 const existingSpecs = listSpecs(root)
 /** One file per glob of the former `full` list (#446): none of them selects the whole suite any more. */
@@ -34,6 +34,8 @@ const FORMER_FULL_FILES = [
 const BUTTON_HEIGHT_SPECS = ['source-connections', 'day-close', 'ui-catalog', 'add-task-slot', 'add-task-visible', 'sources-settings', 'archive-feature', 'new-day-recap', 'app-nav']
 
 const e2eSources = readE2eSources(root)
+/** The screenshot spec a style change on a UI path, or a changed baseline, adds (`visual` in e2e-gate.json, #684). */
+const VISUAL = config.visual!.specs
 /** The rendered design scan a file adds (`design` in e2e-gate.json). */
 const designFor = (file: string) => (config.design?.paths ?? []).some(glob => matchesGlob(file, glob)) ? config.design!.specs : []
 
@@ -272,17 +274,34 @@ describe('selectE2e', () => {
   describe('style tier (#375)', () => {
     it('runs only the design scan when every file is a stylesheet, a snapshot or docs, even in a risk area', () => {
       const result = select({ files: ['assets/css/dnd.css', 'components/task/TaskStack.css', 'tests/e2e/snapshots/visual-regression.spec.ts/board.png', 'docs/design/backlog.md'] })
-      expect(result).toMatchObject({ tier: 'targeted', reason: 'style-only + design scan', specs: config.design!.specs.toSorted() })
+      expect(result).toMatchObject({ tier: 'targeted', reason: 'style-only + design scan + visual baselines + baseline specs', specs: [...config.design!.specs, ...VISUAL].toSorted() })
     })
 
-    it('runs only the design scan for a .vue file whose changed lines all lie in <style>, even in a risk area', () => {
+    it('runs the design scan and the screenshots for a .vue file whose changed lines all lie in <style>, even in a risk area', () => {
       const result = select({ files: ['components/task/TaskStack.vue', 'docs/a.md'], styleOnlyVue: ['components/task/TaskStack.vue'] })
-      expect(result).toMatchObject({ tier: 'targeted', specs: config.design!.specs.toSorted() })
+      expect(result).toMatchObject({ tier: 'targeted', specs: [...config.design!.specs, ...VISUAL].toSorted() })
     })
 
-    it('skips E2E when the style-only files lie outside the design paths (snapshots, docs)', () => {
-      const result = select({ files: ['tests/e2e/snapshots/visual-regression.spec.ts/board.png', 'docs/design/backlog.md'] })
-      expect(result).toMatchObject({ tier: 'style', specs: [] })
+    it('runs the screenshots for a PR that only re-records baselines (#684: PR 683 ran no E2E), and the owning spec of any other baseline', () => {
+      expect(select({ files: ['tests/e2e/snapshots/visual-regression.spec.ts/board.png', 'docs/design/backlog.md'] })).toMatchObject({ tier: 'targeted', specs: VISUAL })
+      expect(select({ files: ['tests/e2e/snapshots/state-structure.spec.ts/x.aria.yml'] })).toMatchObject({ tier: 'targeted', specs: ['state-structure'] })
+      expect(select({ files: ['tests/e2e/snapshots/ui-catalog/Board.json'] })).toMatchObject({ tier: 'style', specs: [] }) // a folder that names no spec
+      expect(select({ files: ['tests/e2e/snapshots/gone.spec.ts/x.png'] })).toMatchObject({ tier: 'style', specs: [] }) // a spec that no longer exists is never run
+    })
+
+    it('selects the owning spec of a baseline that comes with code, in every tier', () => {
+      expect(select({ files: ['store/tasks.ts', 'tests/e2e/snapshots/state-structure.spec.ts/x.aria.yml'] }).specs).toContain('state-structure')
+    })
+
+    it('keeps tier style for a stylesheet outside the UI paths', () => {
+      expect(select({ files: ['scripts/report.css', 'docs/a.md'] })).toMatchObject({ tier: 'style', specs: [] })
+    })
+
+    it('adds the specs of the E2E-specs line to the style tier and reports an unknown name (#684)', () => {
+      const result = select({ files: ['tests/e2e/snapshots/ui-catalog/Board.json'], body: 'E2E-specs: a11y no-such-spec' })
+      expect(result).toMatchObject({ tier: 'targeted', specs: ['a11y'], unknown: ['no-such-spec'], reason: 'style-only + E2E-specs line' })
+      expect(select({ files: ['tests/e2e/snapshots/ui-catalog/Board.json'], body: 'E2E-specs: none, the baselines are checked by hand' })).toMatchObject({ tier: 'style', specs: [] })
+      expect(select({ files: ['tests/e2e/snapshots/ui-catalog/Board.json'], body: 'E2E-specs: nope' })).toMatchObject({ tier: 'style', specs: [], unknown: ['nope'] })
     })
 
     it('keeps a .vue file with a <template> or <script> change in its tier', () => {
@@ -295,9 +314,10 @@ describe('selectE2e', () => {
       expect(select({ files: ['components/ui/tokens.css', 'utils/middleEllipsis.ts'] }).tier).toBe('targeted')
     })
 
-    it('runs only the touched specs when the PR also changes tests/e2e specs, not the smoke set', () => {
+    it('runs the touched specs and the named ones when the PR also changes tests/e2e specs, not the smoke set', () => {
       const result = select({ files: ['assets/css/dnd.css', 'tests/e2e/a11y.spec.ts', 'tests/e2e/gone-spec.spec.ts', 'tests/e2e/snapshots/a11y.spec.ts/x.png'], body: 'E2E-specs: timebox-presets' })
-      expect(result).toMatchObject({ tier: 'targeted', specs: ['a11y', ...config.design!.specs].toSorted() })
+      // the E2E-specs line counts in the style tier too (#684)
+      expect(result).toMatchObject({ tier: 'targeted', specs: ['a11y', 'timebox-presets', ...config.design!.specs, ...VISUAL].toSorted() })
     })
 
     it('leaves a docs plus spec PR in the targeted tier with its smoke set', () => {
@@ -467,24 +487,24 @@ describe('selectE2e in fast testing mode (#693)', () => {
     })
 
     it('adds it for a token sheet or the theme config, and for a style-only PR that the gate used to skip', () => {
-      expect(fast({ files: ['assets/css/main.css'] })).toMatchObject({ tier: 'targeted', reason: 'style-only + style fingerprint', specs: fingerprint })
+      expect(fast({ files: ['assets/css/main.css'] })).toMatchObject({ tier: 'targeted', reason: 'style-only + style fingerprint + visual baselines', specs: [...fingerprint, ...VISUAL].sort() })
       expect(fast({ files: ['app.config.ts'] }).specs).toContain('ui-catalog')
       expect(fast({ files: ['assets/img/desk.svg'] }).specs).not.toContain('ui-catalog')
-      expect(fast({ files: ['components/task/TaskCard.vue'], styleOnlyVue: ['components/task/TaskCard.vue'] })).toMatchObject({ tier: 'targeted', specs: fingerprint })
+      expect(fast({ files: ['components/task/TaskCard.vue'], styleOnlyVue: ['components/task/TaskCard.vue'] })).toMatchObject({ tier: 'targeted', specs: [...fingerprint, ...VISUAL].sort() })
       // a changed spec still runs next to it
-      expect(fast({ files: ['assets/css/dnd.css', 'tests/e2e/a11y.spec.ts'] }).specs).toEqual(['a11y', ...fingerprint].sort())
+      expect(fast({ files: ['assets/css/dnd.css', 'tests/e2e/a11y.spec.ts'] }).specs).toEqual(['a11y', ...fingerprint, ...VISUAL].sort())
     })
 
     it('does not add it for a component without a catalog entry, a composable, a lib file or docs', () => {
       expect(listCataloguedComponents(root).has('Board')).toBe(true)
       expect(listCataloguedComponents(root).has('NoSuchComponent')).toBe(false)
-      expect(fast({ files: ['components/a/NoSuchComponent.vue'], styleOnlyVue: ['components/a/NoSuchComponent.vue'] }).tier).toBe('style')
+      expect(fast({ files: ['components/a/NoSuchComponent.vue'], styleOnlyVue: ['components/a/NoSuchComponent.vue'] })).toMatchObject({ tier: 'targeted', specs: VISUAL }) // no fingerprint, the screenshots only
       expect(fast({ files: ['composables/useFeedback.ts', 'lib/taskDates.ts'] }).specs).not.toContain('ui-catalog')
       expect(fast({ files: ['docs/design/backlog.md'] }).tier).toBe('skip')
     })
 
     it('leaves quality mode as it was: the design set carries the fingerprint', () => {
-      expect(fast({ files: ['assets/css/main.css'], mode: 'quality' })).toMatchObject({ reason: 'style-only + design scan', specs: config.design!.specs.toSorted() })
+      expect(fast({ files: ['assets/css/main.css'], mode: 'quality' })).toMatchObject({ reason: 'style-only + design scan + visual baselines', specs: [...config.design!.specs, ...VISUAL].toSorted() })
     })
   })
 
@@ -521,11 +541,36 @@ describe('selectE2e in fast testing mode (#693)', () => {
     expect(fast({ files: ['utils/middleEllipsis.ts'] }).unmapped).toEqual(select({ files: ['utils/middleEllipsis.ts'] }).unmapped)
   })
 
-  it('runs no E2E for a style-only PR outside the style fingerprint, not even the design scan', () => {
-    expect(fast({ files: ['assets/css/dnd.css'] }).specs).toEqual(['ui-catalog']) // the fingerprint, kd#230; nothing else
-    expect(fast({ files: ['components/a/B.vue'], styleOnlyVue: ['components/a/B.vue'] })).toMatchObject({ tier: 'style', specs: [] })
-    expect(fast({ files: ['tests/e2e/snapshots/visual-regression.spec.ts/board.png'] })).toMatchObject({ tier: 'style', specs: [] })
-    expect(fast({ files: ['components/a/B.vue', 'tests/e2e/a11y.spec.ts'], styleOnlyVue: ['components/a/B.vue'] }).specs).toEqual(['a11y'])
+  it('runs the fingerprint and the screenshots for a style-only PR, not the design scan (kd#230, #684)', () => {
+    expect(fast({ files: ['assets/css/dnd.css'] }).specs).toEqual(['ui-catalog', ...VISUAL].sort())
+    expect(fast({ files: ['components/a/B.vue'], styleOnlyVue: ['components/a/B.vue'] })).toMatchObject({ tier: 'targeted', specs: VISUAL })
+    expect(fast({ files: ['tests/e2e/snapshots/visual-regression.spec.ts/board.png'] })).toMatchObject({ tier: 'targeted', specs: VISUAL })
+    expect(fast({ files: ['components/a/B.vue', 'tests/e2e/a11y.spec.ts'], styleOnlyVue: ['components/a/B.vue'] }).specs).toEqual(['a11y', ...VISUAL].sort())
+    expect(fast({ files: ['scripts/report.css'] })).toMatchObject({ tier: 'style', specs: [] })
+    expect(fast({ files: ['tests/e2e/snapshots/ui-catalog/Board.json'], body: 'E2E-specs: a11y' })).toMatchObject({ tier: 'targeted', specs: ['a11y'] })
+  })
+
+  // #684: the fast tier dropped every non-risk rule, so board and task UI merged with stale baselines (#676, #682)
+  describe('the screenshots in fast mode (#684)', () => {
+    it('keeps visual-regression, and nothing else of a non-risk rule, for board, task, ui, layout, timer and css files', () => {
+      for (const file of ['components/board/BoardColumn.vue', 'components/task/TaskCard.vue', 'components/ui/ResponsiveOverlay.vue', 'layouts/default.vue', 'pages/tasks.vue', 'lib/taskTimers.ts', 'app.vue', 'components/AppShell.vue', 'composables/useBoardPages.ts']) {
+        const result = fast({ files: [file, 'tests/store/x.test.ts'] })
+        expect(result.specs, file).toContain('visual-regression')
+        expect(result.specs, file).not.toContain('done-drop') // the rest of the rule stays dropped
+      }
+      expect(fast({ files: ['utils/middleEllipsis.ts'] }).specs).not.toContain('visual-regression')
+    })
+
+    it('has the screenshots in the quality tier of the same files, as before', () => {
+      expect(fast({ files: ['components/board/BoardColumn.vue'], mode: 'quality' }).specs).toContain('visual-regression')
+    })
+
+    it('flags every non-risk map rule that lists visual-regression with fast, so a new rule cannot drop it again', () => {
+      const rules = config.map.filter(rule => rule.specs.includes('visual-regression') && !rule.risk)
+      expect(rules.length).toBeGreaterThan(0)
+      for (const rule of rules) expect(rule.fast, rule.paths.join(' ')).toContain('visual-regression')
+      for (const rule of config.map) for (const name of rule.fast ?? []) expect(rule.specs, rule.paths.join(' ')).toContain(name)
+    })
   })
 
   it('keeps docs-only skip, E2E_GATE=full and the unresolved-list fallback', () => {
@@ -790,16 +835,17 @@ describe('gate CLI', () => {
     expect(full.specs).toEqual(existingSpecs)
   })
 
-  it('runs only the design scan for a stylesheet-only PR, whatever the risk area says', () => {
+  it('runs only the design scan and the screenshots for a stylesheet-only PR, whatever the risk area says', () => {
+    const specs = [...config.design!.specs, ...VISUAL].toSorted()
     const result = run({ files: [{ path: 'assets/css/dnd.css' }], body: '' })
-    expect(result).toMatchObject({ tier: 'targeted', specs: config.design!.specs.toSorted() })
-    expect(result.args.filter(arg => arg.endsWith('.spec.ts'))).toEqual(config.design!.specs.toSorted().map(name => `tests/e2e/${name}.spec.ts`))
+    expect(result).toMatchObject({ tier: 'targeted', specs })
+    expect(result.args.filter(arg => arg.endsWith('.spec.ts'))).toEqual(specs.map(name => `tests/e2e/${name}.spec.ts`))
   })
 
   it('runs only the touched specs for css plus a spec', () => {
     const result = run({ files: [{ path: 'assets/css/dnd.css' }, { path: 'tests/e2e/a11y.spec.ts' }], body: '' })
     expect(result.tier).toBe('targeted')
-    expect(result.args.filter(arg => arg.endsWith('.spec.ts'))).toEqual(['a11y', ...config.design!.specs].toSorted().map(name => `tests/e2e/${name}.spec.ts`))
+    expect(result.args.filter(arg => arg.endsWith('.spec.ts'))).toEqual(['a11y', ...config.design!.specs, ...VISUAL].toSorted().map(name => `tests/e2e/${name}.spec.ts`))
   })
 
   it('falls back to the full suite when gh gave nothing usable', () => {
