@@ -158,11 +158,4 @@ const sentence = computed(() =>
   opacity: 0;
   transform: translateY(0.5rem);
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .capacity-echo-enter-active,
-  .capacity-echo-leave-active {
-    transition: none;
-  }
-}
 </style>

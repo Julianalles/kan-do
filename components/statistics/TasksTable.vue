@@ -184,6 +184,6 @@ const tableColumns = computed<TableColumn<TaskCompletionRecord>[]>(() => {
 <style scoped>
 :deep(tbody tr) {
   cursor: pointer;
-  transition: background-color var(--duration-fast) ease;
+  transition: background-color var(--duration-fast) var(--ease-standard);
 }
 </style>

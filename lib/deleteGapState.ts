@@ -8,8 +8,8 @@ import { reactive } from 'vue'
 import type { PendingTaskDelete } from '~/store/tasks'
 import { mapHelpers } from '~/utils/mapHelpers'
 
-/** How long a closing gap glides shut (ms); the gap component's CSS uses the same value. */
-export const GAP_CLOSE_MS = 280
+/** How long a closing gap glides shut (ms): the gap component's CSS glides for `--duration-slow` (`MOTION.slowMs`), the same value. */
+export const GAP_CLOSE_MS = 300
 /** How long a card that came back from an undo keeps its return class (ms): a little over the longest animation, the 200 ms room glide (`--duration-base`), so it never ends mid-glide (#595). */
 export const UNDO_RETURN_MS = 240
 

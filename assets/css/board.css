@@ -99,8 +99,8 @@
   /* The move between the places (#354, #334 D8): the app bar's own time and curve (--nav-move, --nav-ease in
      app-nav.css), so the chip in the bar and the board arrive together. Read by Board.vue; 0ms = no motion. */
   .board-container {
-    --place-move: 420ms;
-    --place-ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+    --place-move: var(--duration-place);
+    --place-ease: cubic-bezier(0.2, 0.7, 0.2, 1); /* the place curve, shared with the app bar's --nav-ease; a key-moment curve (#593), kept off --ease-* */
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -111,12 +111,12 @@
 
   /* The two paces worth watching (#433), set by Board.vue through `html[data-place-pace]` (lib/boardPlace.ts) and
      never under reduced motion: the first move to Heute after the day's fresh start glides, the recap's "Tag neu planen"
-     lifts. The app bar (app-nav.css) takes 1.2 s / 1.4 s, so its chip travels with the curtain. Under `lift` the board
+     lifts. The app bar (app-nav.css) takes `--duration-stage` (1.3 s), so its chip travels with the curtain. Under `lift` the board
      itself does not move (#490): the curtain lifts onto "Alle", which is already in place beneath it, so there is no Heute
      and no second slide. */
   @media (prefers-reduced-motion: no-preference) {
     html[data-place-pace='glide'] .board-container {
-      --place-move: 1200ms;
+      --place-move: var(--duration-stage);
       --place-ease: cubic-bezier(0.45, 0, 0.15, 1);
     }
 
@@ -166,7 +166,7 @@
       margin-left: 0;         /* the desktop strip offset; here the transform places the strip */
       overflow: visible;      /* clipping is handled by .board-container */
       min-height: 100svh;
-      /* Smooth column-switch animation driven by the Vue-managed transform */
+      /* Smooth column-switch animation driven by the Vue-managed transform; 320 ms is the swipe's settle (the page dots use it too), kept off the tokens (#593) */
       transition: transform 320ms var(--ease-standard);
     }
 

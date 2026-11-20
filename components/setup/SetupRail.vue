@@ -28,7 +28,7 @@
         :aria-valuenow="current + 1"
       >
         <div
-          class="h-full rounded-full bg-inverted transition-[width] duration-(--duration-slow) ease-out motion-reduce:transition-none"
+          class="h-full rounded-full bg-inverted transition-[width] duration-(--duration-slow) ease-(--ease-emphasized) motion-reduce:transition-none"
           :style="{ width: `${((current + 1) / steps.length) * 100}%` }"
         />
       </div>
@@ -90,10 +90,5 @@ defineProps<{
 }
 .setup-rail-item[data-state='done']:not(:last-child)::after {
   background: var(--ui-bg-inverted);
-}
-@media (prefers-reduced-motion: reduce) {
-  .setup-rail-item::after {
-    transition: none;
-  }
 }
 </style>

@@ -92,9 +92,4 @@ const model = defineModel<T>({ required: true });
     flex: 1;
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .segmented-choice__item {
-    transition: none;
-  }
-}
 </style>

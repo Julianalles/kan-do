@@ -249,6 +249,11 @@
     --duration-fast: 150ms; /* colour, background and scale changes of a control (opacity only where a component declares it) */
     --duration-base: 200ms; /* fades and state washes */
     --duration-slow: 300ms; /* a surface changing size or position */
+    /* Key-moment tier (DESIGN.md "Motion", The Key Moment Rule, #593): the once-a-day moments (welcome to board, recap,
+     * planning to "Heute", day close) and the place change are slower than a mechanical change. */
+    --duration-place: 400ms; /* a place change: the board and the app bar's indicator moving between places */
+    --duration-curtain: 700ms; /* a key moment's curtain lifting or closing */
+    --duration-stage: 1300ms; /* a key moment's stage arriving or leaving, and the place change inside it */
     --ease-standard: cubic-bezier(0.4, 0, 0.2, 1); /* things that move or change in place (equals Tailwind's ease-in-out) */
     --ease-emphasized: cubic-bezier(0.2, 0, 0, 1); /* things that arrive: a quick start that settles */
 
@@ -353,12 +358,6 @@
     opacity: 0.5;
     cursor: not-allowed;
   }
-  @media (prefers-reduced-motion: reduce) {
-    :is(button, [role='button'], [role='tab'], a[href]) {
-      transition-duration: 0s;
-    }
-  }
-
   html,
   body {
     font-family: var(--font-sans);
@@ -395,5 +394,26 @@
 @layer components {
   .kando-dnd-preview {
     --shadow-task-drag-elevated: 0 0 0 1px rgb(var(--shadow-color) / 0.07), 0 calc(26px * var(--dnd-lift)) calc(48px * var(--dnd-lift)) -12px rgb(var(--shadow-color) / calc(0.38 * var(--dnd-lift)));
+  }
+}
+
+/* Reduced motion (DESIGN.md "Motion", #593): instant, everywhere, in one rule. A transition or animation that still runs
+ * is a bug in the rule's reach, not a component to patch: the per-component rules that only said `transition: none` are gone.
+ * Last layer, so a `!important` of an earlier layer is a named exception to it (the focus overlay keeps a 150 ms fade of its
+ * tint, `board-focus-overlay.css`); a component whose style block is unlayered opts out with `data-motion-progress`.
+ * Exceptions are progress indicators, not movement: the spinner (`animate-spin`), the delete gap's drain line and the
+ * nudge's countdown (it ends on its `animationend`). Scripted animations (`element.animate`) check the media query themselves.
+ * 0.01 ms, not 0: an animation of 0 s never fires `animationend`, a listener would wait for ever. */
+@layer utilities {
+  @media (prefers-reduced-motion: reduce) {
+    :where(*:not(.animate-spin, [data-motion-progress])),
+    :where(*:not(.animate-spin, [data-motion-progress]))::before,
+    :where(*:not(.animate-spin, [data-motion-progress]))::after {
+      transition-duration: 0s !important;
+      transition-delay: 0s !important;
+      animation-duration: 0.01ms !important;
+      animation-delay: 0s !important;
+      animation-iteration-count: 1 !important;
+    }
   }
 }

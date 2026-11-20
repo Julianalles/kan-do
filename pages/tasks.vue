@@ -301,7 +301,7 @@ onBeforeUnmount(resetSyncValidation);
 <style scoped>
 .modal-enter-active,
 .modal-leave-active {
-  transition: opacity var(--duration-base) ease;
+  transition: opacity var(--duration-base) var(--ease-standard);
 }
 
 .modal-enter-from,

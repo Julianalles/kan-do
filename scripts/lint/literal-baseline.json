@@ -1,19 +1,21 @@
 {
   "motion": {
-    "assets/css/board-focus-overlay.css": 1,
-    "assets/css/board.css": 1,
+    "assets/css/app-nav.css": 3,
+    "assets/css/board-focus-overlay.css": 3,
+    "assets/css/board.css": 3,
     "assets/css/mobile-nav.css": 1,
-    "assets/css/sheet.css": 2,
+    "assets/css/transitions.css": 1,
     "components/board/BoardColumnHeader.vue": 2,
-    "components/board/BoardColumnYesterdayNote.vue": 3,
     "components/board/BoardPageDots.vue": 2,
-    "components/board/NewCardFlow.vue": 3,
-    "components/recap/RecapDeck.vue": 6,
+    "components/nav/AppNav.vue": 1,
+    "components/overlay/NowWindow.vue": 2,
+    "components/recap/RecapDeck.vue": 4,
     "components/task/TaskCard.vue": 3,
     "components/task/TaskCompletionBurst.vue": 2,
-    "components/task/TaskDeletedGap.vue": 12,
-    "components/task/TaskProgressChip.vue": 2,
-    "components/task/TaskTimeboxNudge.vue": 4,
-    "pages/welcome.vue": 7
+    "components/task/TaskDeletedGap.vue": 1,
+    "components/task/TaskProgressChip.vue": 4,
+    "components/task/TaskTimeboxNudge.vue": 1,
+    "composables/usePlanMoves.ts": 1,
+    "composables/useStackMotion.ts": 4
   }
 }
