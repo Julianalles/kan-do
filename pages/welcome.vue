@@ -127,7 +127,7 @@ import { useFirstRunSources } from '~/composables/useFirstRunSources';
 import { useErrorHandler } from '~/composables/useErrorHandler';
 
 // No app bar here (#470): first run, developer pages and the empty redirect page
-definePageMeta({ appNav: false, middleware: 'welcome-guard' })
+definePageMeta({ appNav: false, layout: false, middleware: 'welcome-guard' })
 
 const { t } = useI18n();
 const { fetchTasks } = useIntegrationManager();
