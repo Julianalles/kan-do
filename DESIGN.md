@@ -1,5 +1,5 @@
 ---
-name: Kan-Do
+name: Kan-do
 description: The focused today board: white sheets on a warm paper desk, for the work already chosen.
 colors:
   primary: "oklch(0.47 0.092 152)"
@@ -63,13 +63,13 @@ rounded:
   pill: "9999px"
 ---
 
-# Design System: Kan-Do
+# Design System: Kan-do
 
 This file states the direction, the foundations, the rules and the recurring patterns. A value or trade-off of one component lives in that component's doc block; what a test or lint rule guarantees is named once under "Guards" and not repeated as prose. Product truth is in `PRODUCT.md`, the wording rules in `docs/copy/voice.md`.
 
 ## Direction
 
-**Paper Desk.** A warm paper desk with white sheets on it. Everything you enter, edit or operate, and the hard data, lies on a sheet; a page's intro and a side note lie flat on the desk, which otherwise stays empty and calm. Kan-Do is a working tool that is glanced at many times a day, so the columns, the cards and the one running task have to stand clearly apart, and nothing asks for attention it has not earned.
+**Paper Desk.** A warm paper desk with white sheets on it. Everything you enter, edit or operate, and the hard data, lies on a sheet; a page's intro and a side note lie flat on the desk, which otherwise stays empty and calm. Kan-do is a working tool that is glanced at many times a day, so the columns, the cards and the one running task have to stand clearly apart, and nothing asks for attention it has not earned.
 
 Airbnb is the positive reference (calm, generous layouts, friendly warmth, flows that happen in place, small polished motion). Trello (rainbow labels, gamified clutter), Notion (dense, technical) and Slack (a saturated block of brand colour as chrome, a dense sidebar, many interactive elements at once) are the anti-references.
 

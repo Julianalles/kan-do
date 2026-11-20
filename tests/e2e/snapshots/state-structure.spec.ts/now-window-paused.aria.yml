@@ -1,4 +1,4 @@
 - group "Aufgabe in Jetzt":
-  - button "Kan-Do öffnen": /Release notes schreiben noch \d+:\d+ pausiert/
+  - button "Kan-do öffnen": /Release notes schreiben noch \d+:\d+ pausiert/
   - button "Fortsetzen"
   - button "Als erledigt markieren"

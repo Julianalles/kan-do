@@ -50,7 +50,7 @@ describe('isNotPlanned: the single reader of the marker (#353)', () => {
 describe('several tasks at once (#356)', () => {
   beforeEach(() => setActivePinia(createPinia()))
 
-  it('unplanTasks takes Open tasks off the board in the order given, on top of "Meine Aufgaben", with one reconcile', () => {
+  it('unplanTasks takes Open tasks off the board in the order given, on top of "Alle Aufgaben", with one reconcile', () => {
     const store = useTasksStore()
     const board = useBoardStore()
     store.setTasks([makeTask('a'), makeTask('b'), makeTask('c'), makeTask('old', { notPlanned: true }), makeTask('w', { status: TaskStatus.Waiting })])
@@ -372,7 +372,7 @@ describe('tasks store: a task that is not planned for today (#353)', () => {
     })
   })
 
-  describe('the order of "Meine Aufgaben" (#354)', () => {
+  describe('the order of "Alle Aufgaben" (#354)', () => {
     const notPlanned = () => store.tasksNotPlanned.map(t => t.id)
 
     it('a task put back goes to the top, newest first; tasks that never were on the board follow in stored order', () => {
@@ -402,7 +402,7 @@ describe('tasks store: a task that is not planned for today (#353)', () => {
       expect(notPlanned()).toEqual(['z', 'x'])
     })
 
-    it('forgets a task that left "Meine Aufgaben" another way (moved on by status, removed)', () => {
+    it('forgets a task that left "Alle Aufgaben" another way (moved on by status, removed)', () => {
       store.setTasks([makeTask('a'), makeTask('b'), makeTask('c')])
       store.unplanTask('a')
       store.unplanTask('b')

@@ -8,7 +8,7 @@ import {
   type SeedTask,
 } from './helpers/seed'
 
-/** Issue #385: "Kurzer Rückblick" on the first start of a new day. Local tasks unless a test says otherwise. */
+/** Issue #385: "Tagesrückblick" on the first start of a new day. Local tasks unless a test says otherwise. */
 
 const recap = (page: Page) => page.getByTestId('new-day-recap')
 const summary = (page: Page) => page.getByTestId('recap-summary')
@@ -44,7 +44,7 @@ const frontTitle = (page: Page, kind: 'done' | 'undone') => deck(page, kind).loc
 async function layoutSnapshot(page: Page) {
   const box = async (locator: ReturnType<Page['locator']>) => (await locator.boundingBox())
   const parts = {
-    headline: recap(page).getByRole('heading', { name: 'Kurzer Rückblick' }),
+    headline: recap(page).getByRole('heading', { name: 'Tagesrückblick' }),
     summary: summary(page),
     headingUndone: page.getByTestId('recap-deck-label').first(),
     headingDone: page.getByTestId('recap-deck-label').last(),
@@ -85,7 +85,7 @@ test.describe('New-day recap (#385)', () => {
     await expect(recap(page)).toBeVisible()
     // A stage, not a dialog (#245): a named region on the welcome photo, the board is not visible behind it
     await expect(recap(page)).toHaveAttribute('role', 'region')
-    await expect(page.getByRole('region', { name: 'Kurzer Rückblick' })).toBeVisible()
+    await expect(page.getByRole('region', { name: 'Tagesrückblick' })).toBeVisible()
     await expect(page.getByRole('dialog')).toHaveCount(0)
     await expect(page.getByTestId('recap-photo')).toBeVisible()
     await expect(summary(page)).toHaveText('Du hast gestern 4 von 6 Aufgaben erledigt.')
@@ -673,7 +673,7 @@ test.describe('New-day recap (#385)', () => {
     await expectContrast(page, page.getByTestId('app-nav-place-recap'), 4.5)
     await expectContrast(page, page.getByTestId('app-nav-place-statistics'), 4.5)
     // The headline, the summary and the deck labels lie on the photo, no sheet behind them (#428)
-    await expectContrast(page, recap(page).getByRole('heading', { name: 'Kurzer Rückblick' }), 4.5)
+    await expectContrast(page, recap(page).getByRole('heading', { name: 'Tagesrückblick' }), 4.5)
     await expectContrast(page, summary(page), 4.5)
     await expectContrast(page, page.getByTestId('recap-deck-label').first(), 4.5)
     await expectContrast(page, page.getByTestId('recap-deck-label').last(), 4.5)
@@ -844,13 +844,13 @@ test.describe('New-day recap (#385)', () => {
 /**
  * #387 (it replaces the automatic pass of #356, epic #334): a new day starts fresh only on the user's click. "Tag
  * planen" in the recap, or the same button of the notice on the board, takes what was planned and not finished
- * (Jetzt, Offen, Wartet) off the board, onto "Meine Aufgaben"; "Direkt zum Board" and a day without a recap keep
+ * (Jetzt, Offen, Wartet) off the board, onto "Alle Aufgaben"; "Direkt zum Board" and a day without a recap keep
  * yesterday's board and show the notice. `seedNewDayBoard` stores the last fresh start on the day of the recap's
  * marker, so today is a day the user has not planned yet; without done tasks no recap is due.
  */
 test.describe('A new day starts fresh on the user\'s click (#387)', () => {
   const side = (page: Page) => page.getByTestId('not-planned')
-  /** The cards of the panel "Gestern auf dem Board" (Jetzt and Offen of yesterday first, then Wartet) or of "Weitere Aufgaben" (#469) */
+  /** The cards of the panel "Zuletzt geplant und nicht erledigt" (Jetzt and Offen of yesterday first, then Wartet) or of "Weitere Aufgaben" (#469) */
   const groupIds = (page: Page, group: 'panel' | 'others') =>
     page.getByTestId(`not-planned-list-${group}`).locator('[data-not-planned-id]').evaluateAll(els => els.map(el => el.getAttribute('data-not-planned-id')))
   const columnIds = (page: Page, column: 'open' | 'progress' | 'waiting') =>
@@ -897,8 +897,8 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     // #428: coming from the recap the pill is the normal one, Rückblick has turned into Alle + Heute and Alle is current
     await expect(appNav(page).locator('.app-nav-place')).toHaveText(['Alle', 'Heute', 'Statistik'])
     await expect(page.getByTestId('app-nav-continue')).toHaveCount(0)
-    await expect(page.getByRole('heading', { level: 3, name: 'Gestern auf dem Board 4' })).toBeVisible()
-    await expect(page.getByRole('group', { name: 'Gestern auf dem Board 4' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 3, name: 'Zuletzt geplant und nicht erledigt 4' })).toBeVisible()
+    await expect(page.getByRole('group', { name: 'Zuletzt geplant und nicht erledigt 4' })).toBeVisible()
     await expect(page.getByRole('heading', { level: 3, name: 'Weitere Aufgaben 1' })).toBeVisible()
     // one panel: board order, Jetzt first, then what was waiting (#469); what was held before follows plain
     await expect.poll(() => groupIds(page, 'panel')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1', 'nd-waiting-1'])
@@ -914,7 +914,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
         const [left, right, below] = [await box('nd-now-1'), await box('nd-open-2'), await box('nd-open-1')]
         return [Math.round(right.x - (left.x + left.width)), Math.round(below.y - (left.y + left.height))]
       }, { message: `the columns are one card gap apart at ${width}px` }).toEqual([12, 12])
-      for (const [name, firstId] of [['Gestern auf dem Board 4', 'nd-now-1'], ['Weitere Aufgaben 1', 'nd-held-1']] as const) {
+      for (const [name, firstId] of [['Zuletzt geplant und nicht erledigt 4', 'nd-now-1'], ['Weitere Aufgaben 1', 'nd-held-1']] as const) {
         await expect.poll(async () => Math.abs((await page.getByRole('heading', { level: 3, name }).boundingBox())!.x - (await box(firstId)).x), { message: `${name} sits over its first card at ${width}px` }).toBeLessThanOrEqual(1)
       }
       // the surface is a layer of the group (::before): it reaches 12 px past the pair on both sides
@@ -957,9 +957,9 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await page.goto('/tasks')
     await planButton(page).click()
     await settled(page)
-    await expect(page.getByRole('heading', { level: 3, name: 'Gestern auf dem Board 4' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 3, name: 'Zuletzt geplant und nicht erledigt 4' })).toBeVisible()
     await side(page).locator('[data-not-planned-id="nd-open-2"]').getByTestId('not-planned-pick').click()
-    await expect(page.getByRole('heading', { level: 3, name: 'Gestern auf dem Board 3' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 3, name: 'Zuletzt geplant und nicht erledigt 3' })).toBeVisible()
     for (const id of ['nd-now-1', 'nd-open-1', 'nd-waiting-1']) await side(page).locator(`[data-not-planned-id="${id}"]`).getByTestId('not-planned-pick').click()
     await expect(page.getByTestId('not-planned-panel')).toBeHidden()
     await expect(page.getByRole('heading', { level: 3 })).toHaveCount(0)
@@ -976,7 +976,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await expect.poll(() => groupIds(page, 'panel')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1'])
     expect(await storedTask(page, 'nd-waiting-1')).toMatchObject({ status: 0 })
     expect(await storedTask(page, 'nd-waiting-1')).not.toHaveProperty('notPlanned')
-    // "Nicht heute" later puts it back as a task that came from Offen: not into the category
+    // "Nicht für heute planen" later puts it back as a task that came from Offen: not into the category
     await page.reload()
     await expect(board(page)).toBeVisible()
     await expect.poll(() => groupIds(page, 'panel')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1'])
@@ -996,7 +996,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await expect(note(page)).toBeVisible()
     await expect(note(page)).toHaveAttribute('role', 'status')
     await expect(note(page)).toContainText('Auf dem Board liegt noch der Plan von gestern.')
-    await expect(note(page)).toContainText('„Tag neu planen“ legt alles, was nicht erledigt ist, zurück nach „Meine Aufgaben“.')
+    await expect(note(page)).toContainText('„Tag neu planen“ legt alles, was nicht erledigt ist, zurück nach „Alle Aufgaben“.')
     await expect(startButton(page)).toHaveText('Tag neu planen')
 
     // a reload keeps the board and the notice; no recap again
@@ -1017,7 +1017,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await expect(page.getByTestId('app-nav-place-all')).toHaveAttribute('aria-current', 'page')
     await expect.poll(() => groupIds(page, 'panel')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1', 'nd-waiting-1'])
     await expect.poll(() => groupIds(page, 'others')).toEqual(['nd-held-1'])
-    await expect(page.getByTestId('plan-announcement')).toHaveText('4 Aufgaben liegen jetzt unter „Meine Aufgaben“.')
+    await expect(page.getByTestId('plan-announcement')).toHaveText('4 Aufgaben liegen jetzt unter „Alle Aufgaben“.')
     // the notice left with its answer: focus is on the page, never on <body>
     await expect.poll(() => page.evaluate(() => document.activeElement !== null && document.activeElement !== document.body)).toBe(true)
     expect(await storedTask(page, 'nd-now-1')).toMatchObject({ status: 0, notPlanned: true })

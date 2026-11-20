@@ -13,7 +13,7 @@
     "macOSPrivateApi": true,
     "windows": [
       {
-        "title": "Kan-Do - Today's Tasks",
+        "title": "Kan-do - Today's Tasks",
         "width": 1200,
         "height": 800,
         "minWidth": 800,

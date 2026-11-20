@@ -84,7 +84,7 @@ test.describe('Apple Reminders source (#551)', () => {
 
     await page.reload()
     await expect(column(page, 'done').getByText('Pflanzen gießen')).toHaveCount(1)
-    // The next occurrence is dated a week ahead: the date is the plan (#553), so it waits in "Meine Aufgaben", not in Offen
+    // The next occurrence is dated a week ahead: the date is the plan (#553), so it waits in "Alle Aufgaben", not in Offen
     await expect(column(page, 'open').getByText('Pflanzen gießen')).toHaveCount(0)
     await expect.poll(async () => (await storedTasks(page)).filter(task => task.title === 'Pflanzen gießen')).toHaveLength(2)
     const plants = (await storedTasks(page)).filter(task => task.title === 'Pflanzen gießen')
@@ -168,7 +168,7 @@ test.describe('Apple Reminders source (#551)', () => {
 
     const icon = card(page, 'Milch kaufen').getByTestId('task-source-icon')
     await expect(icon).toHaveAttribute('data-source', 'reminders')
-    await expect(icon).toHaveAttribute('aria-label', 'Erinnerungen')
+    await expect(icon).toHaveAttribute('aria-label', 'Apple Erinnerungen')
     const box = await icon.boundingBox()
     expect(Math.round(box!.width)).toBe(16)
     expect(Math.round(box!.height)).toBe(16)

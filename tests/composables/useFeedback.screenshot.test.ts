@@ -344,7 +344,7 @@ describe('useFeedback screenshot', () => {
     expect(url.searchParams.get('body')).toContain('Screenshot: paste it here (copied to the clipboard).')
     expect(requests).toEqual([])
     // The dialog is gone: the board says what to do on GitHub
-    expect(toastAddMock.mock.calls.map(c => c[0].title)).toEqual(['GitHub ist im Browser geöffnet. Füge den Screenshot mit ⌘V ein und sende das Issue ab.'])
+    expect(toastAddMock.mock.calls.map(c => c[0].title)).toEqual(['GitHub ist im Browser geöffnet. Füge den Screenshot mit ⌘V ein und sende das Feedback ab.'])
   })
 
   it('a rejected token takes the same fallback; a clipboard failure shows inline and the URL still opens', async () => {

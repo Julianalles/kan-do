@@ -1,6 +1,6 @@
 - paragraph: Was bedeutet jede Liste für dich? Standard ist Thema. Listen, die du nicht brauchst, stellst du auf Aus.
-- paragraph: "Thema: worum es geht, etwa Steuer oder Wohnung. Aktivität: wie du arbeitest, etwa Anrufe. Aus: Kan-Do liest die Liste nicht, in Erinnerungen bleibt sie, wie sie ist."
-- list "Erinnerungen-Listen":
+- paragraph: "Thema: worum es geht, etwa Steuer oder Wohnung. Aktivität: wie du arbeitest, etwa Anrufe. Aus: Kan-do liest die Liste nicht, in Apple Erinnerungen bleibt sie, wie sie ist."
+- list "Listen aus Apple Erinnerungen":
   - listitem:
     - text: Zuhause 2 offen
     - radiogroup "Zuhause zählt als":

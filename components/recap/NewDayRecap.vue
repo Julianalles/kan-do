@@ -2,7 +2,7 @@
 @component NewDayRecap
 @kind block
 @category overlay
-@description "Kurzer Rückblick" (#385, #451, #44, #245, #428): the recap on the first start of a new day, shown as a stage on the welcome photo, behind the app bar, instead of a dialog over the board. The headline, the summary and the two decks (still open, done: Offen → Erledigt like the board) lie directly on the photo; only the controls sit on a sheet, docked at the foot of the stage: "Tag neu planen" (primary: the fresh start, which takes yesterday's unfinished cards off the board and archives the done ones, and the way to "Alle") and "Überspringen und Board anzeigen" (leads to the board and keeps it as it is, archives nothing).
+@description "Tagesrückblick" (#385, #451, #44, #245, #428): the recap on the first start of a new day, shown as a stage on the welcome photo, behind the app bar, instead of a dialog over the board. The headline, the summary and the two decks (still open, done: Offen → Erledigt like the board) lie directly on the photo; only the controls sit on a sheet, docked at the foot of the stage: "Tag neu planen" (primary: the fresh start, which takes yesterday's unfinished cards off the board and archives the done ones, and the way to "Alle") and "Überspringen und Board anzeigen" (leads to the board and keeps it as it is, archives nothing).
 @usage Mounted once in pages/tasks.vue next to DayCloseStage; opened by useNewDayRecap().check() on mount.
 One shell with the day close (#612): the title anchored under the app bar, one 44 rem column with both decks side by side from 768px (one deck with a switcher below), the controls sheet docked at the foot as a sibling of the scroller. The page itself never scrolls; only the stage's scroll area may, on very short windows.
 @avoid Only the first start of a new day; closing the day is DayCloseStage.
@@ -228,7 +228,7 @@ function finishCurtain() {
  * "Tag neu planen" (#356, #387, #428, #490): the board goes to "Alle" first, at once and without a move (the stage covers it, the
  * board's `lift` pace snaps), so the curtain lifts straight onto the planning view: no Heute frame, no second slide. Only then the
  * recap is left with yesterday's done tasks archived and the day starts fresh: yesterday's unfinished cards leave the board for
- * "Meine Aufgaben". The recap's own decks are a snapshot and do not change under the curtain.
+ * "Alle Aufgaben". The recap's own decks are a snapshot and do not change under the curtain.
  */
 async function leaveToPlan() {
   if (closing.value || planning.value || !isOpen.value) return

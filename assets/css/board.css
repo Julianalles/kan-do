@@ -58,7 +58,7 @@
       overflow-x: clip;
     }
 
-    /* One strip for both places (#354): "Meine Aufgaben" (two tracks), Offen, Jetzt + Wartet, Erledigt, with three
+    /* One strip for both places (#354): "Alle Aufgaben" (two tracks), Offen, Jetzt + Wartet, Erledigt, with three
        tracks in view: "Alle" shows the first three, "Heute" the last three, so Offen is the same column in both.
        Heute at rest keeps the three-track grid above, pixel for pixel; the strip is laid out only while "Alle" shows
        or the board travels (`data-place-moving`, Board.vue). A track is what a column is on Heute (capped at
@@ -70,7 +70,7 @@
       --strip-inset: calc((100% - 3 * var(--strip-track)) / 2);
       grid-template-columns: repeat(5, var(--strip-track));
       justify-content: start;
-      /* Heute while it travels: "Meine Aufgaben" lies two tracks off to the left */
+      /* Heute while it travels: "Alle Aufgaben" lies two tracks off to the left */
       margin-left: calc(var(--strip-inset) - 2 * var(--strip-track));
       /* The strip is wider than its own box and moves: the container clips it instead (below) */
       overflow-x: visible;
@@ -85,7 +85,7 @@
     :where(.board):is([data-place='all'], [data-place-moving]) > #column-done { grid-column: 5; }
 
     /* The strip (#354) is clipped at the page edge by the container, since its own box cannot be the clip edge.
-       `clip` makes no scroll container, so the sticky footers and the sticky "Meine Aufgaben" side keep the window as
+       `clip` makes no scroll container, so the sticky footers and the sticky "Alle Aufgaben" side keep the window as
        their port. Heute at rest keeps the board's own clip above. */
     .board-container {
       overflow-x: clip;
@@ -130,11 +130,11 @@
 
   /* ── Mobile: transform-based single-column navigation ── */
   /*
-   * The board is three container widths wide (Offen, Jetzt + Wartet, Erledigt), and the "Meine Aufgaben" page of the
+   * The board is three container widths wide (Offen, Jetzt + Wartet, Erledigt), and the "Alle Aufgaben" page of the
    * place "Alle" (#354) hangs one container width left of it, outside the board's box, so Heute's pages and their
    * transforms are what they were. .board-container clips it to its own width with
    * overflow: clip. Vue drives translateX(n * -100% / 3) to show the
-   * active column (n = -1 for "Meine Aufgaben") — no scroll container / scrollTo() needed at all.
+   * active column (n = -1 for "Alle Aufgaben") — no scroll container / scrollTo() needed at all.
    * Widths are percentages of the layout, never 100vw (#269): 100vw includes the 15 px a classic
    * scroll bar's gutter takes from the layout (html.kando-classic-scrollbar), so a 100vw board overflowed the
    * document sideways and a focus or click scrolled the whole page by the bar's width.
@@ -165,7 +165,7 @@
       display: flex;
       flex-direction: row;
       justify-content: flex-start; /* undo the desktop centring (#122) */
-      width: 300%;            /* 3 column-pages side-by-side; "Meine Aufgaben" hangs left of them (below) */
+      width: 300%;            /* 3 column-pages side-by-side; "Alle Aufgaben" hangs left of them (below) */
       margin-left: 0;         /* the desktop strip offset; here the transform places the strip */
       overflow: visible;      /* clipping is handled by .board-container */
       min-height: 100svh;
@@ -212,7 +212,7 @@
       scrollbar-gutter: stable;
     }
 
-    /* "Meine Aufgaben" (#354): one page left of Offen, out of the flex row (its right edge on the board's left edge) */
+    /* "Alle Aufgaben" (#354): one page left of Offen, out of the flex row (its right edge on the board's left edge) */
     :where(.board) > #column-not-planned {
       position: absolute;
       top: 0;
@@ -322,10 +322,10 @@
 
   :where(.board.dragging) h2 { opacity: 0.5; }
   :where(.board.dragging) :where(.dragover) h2 { opacity: 1; }
-  /* "Meine Aufgaben" as the drop target (#355) names itself like a hovered column */
+  /* "Alle Aufgaben" as the drop target (#355) names itself like a hovered column */
   :where(.board.dragging) :where(.not-planned.is-drop-target) h2 { opacity: 1; }
 
-  /* The "Meine Aufgaben" add button (#380) cannot be used mid-drag: it steps out, its place stays. On a phone the
+  /* The "Alle Aufgaben" add button (#380) cannot be used mid-drag: it steps out, its place stays. On a phone the
      left edge arrow of a drag sits right where it is */
   :where(.board.dragging) :where(.not-planned) .column-header__add { visibility: hidden; }
 
@@ -399,8 +399,8 @@
 }
 
 /**
- * The two arrows of the place "Alle" (#354): "Für heute einplanen" beside a "Meine Aufgaben" card (BoardNotPlanned) and
- * "Nicht heute" beside an Offen card (SortableTaskWrapper). Sit centred on the card's edge (#467), in the soft primary
+ * The two arrows of the place "Alle" (#354): "Für heute einplanen" beside a "Alle Aufgaben" card (BoardNotPlanned) and
+ * "Nicht für heute planen" beside an Offen card (SortableTaskWrapper). Sit centred on the card's edge (#467), in the soft primary
  * look of the button theme (`data-round="arrow"`, `data-fill="primary"`, #602; the call sites stay icon-only ghost, the ladder's rule): the primary wash (forest 100, opaque, so the
  * card edge does not show through the half on the card) with the green arrow (forest 600, 4.5:1 on the wash), one step
  * deeper on hover. Not the solid button: The One Lamp Rule allows one per view (decision D2 of #467). Only the stacking and the
@@ -437,7 +437,7 @@
   z-index: var(--z-focus-overlay);
 }
 
-/* "Meine Aufgaben" takes a card that flies in from Offen: its side lies above Offen's */
+/* "Alle Aufgaben" takes a card that flies in from Offen: its side lies above Offen's */
 #column-not-planned.is-receiving {
   z-index: 2;
 }

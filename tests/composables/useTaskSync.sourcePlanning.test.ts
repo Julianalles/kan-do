@@ -134,7 +134,7 @@ describe('plan and put-back are written to a source that stores planning (#357)'
 
   // Review of PR 384: the value outlived the status move, the put-back read it as "Notion already holds it so",
   // wrote nothing, and the next sync put the card back into Offen
-  it('a status move ends what Notion held: from its second "not planned" status to Jetzt, to Offen, then "Nicht heute" writes the first mapped status', async () => {
+  it('a status move ends what Notion held: from its second "not planned" status to Jetzt, to Offen, then "Nicht für heute planen" writes the first mapped status', async () => {
     const store = useTasksStore()
     store.setTasks([task('n4', 'notion', { notPlanned: true, sourceNotPlanned: 'Irgendwann' })])
     const sync = useTaskSync()

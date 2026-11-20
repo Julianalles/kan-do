@@ -35,7 +35,7 @@ describe('plain messages render exactly as written', () => {
   }
 
   it('statistics.headTitle keeps its literal pipe', () => {
-    expect(createTestI18n('de').global.t('statistics.headTitle')).toBe('Statistik | Kan-Do')
-    expect(createTestI18n('en').global.t('statistics.headTitle')).toBe('Statistics | Kan-Do')
+    expect(createTestI18n('de').global.t('statistics.headTitle')).toBe('Statistik | Kan-do')
+    expect(createTestI18n('en').global.t('statistics.headTitle')).toBe('Statistics | Kan-do')
   })
 })

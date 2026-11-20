@@ -10,7 +10,7 @@
  *   that stores planning gets its "not planned" status written now). Nothing is deleted; time, notes and the board day count
  *   stay (the cards were on the board today: `takeBackCarryOver` stays the fresh start's);
  * - the next local day is marked as started with the group (`dayRecap.markDayClosed`), so the next morning has no notice and no
- *   second fresh start and shows the first half of the panel "Gestern auf dem Board" that one day.
+ *   second fresh start and shows the first half of the panel "Zuletzt geplant und nicht erledigt" that one day.
  * A second call finds the stage closed and does nothing; while the data file blocks writes (ADR 011) it does nothing either.
  * Resolve it in a component's setup: it holds the Nuxt-bound move path.
  */

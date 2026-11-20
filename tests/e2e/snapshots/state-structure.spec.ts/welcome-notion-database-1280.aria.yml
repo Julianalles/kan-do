@@ -10,7 +10,7 @@
   - group "Datenbank":
     - text: Notion-Datenbank auswählen
     - combobox "Notion-Datenbank auswählen": Demo Aufgaben
-    - paragraph: Kan-Do geht von einer bestehenden Aufgaben-Datenbank aus. Noch keine? Lege sie zuerst in Notion an und komm dann zurück.
+    - paragraph: Kan-do geht von einer bestehenden Aufgaben-Datenbank aus. Noch keine? Lege sie zuerst in Notion an und komm dann zurück.
     - text: Nötig
     - list "Nötig":
       - listitem: Titel

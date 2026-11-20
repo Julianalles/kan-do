@@ -419,7 +419,7 @@ describe('useNewDay: the day check and the fresh start (#387)', () => {
     })
   })
 
-  describe('the Wartet tasks of the panel "Gestern auf dem Board" (#469: the panel ends with its day)', () => {
+  describe('the Wartet tasks of the panel "Zuletzt geplant und nicht erledigt" (#469: the panel ends with its day)', () => {
     it('lists the Wartet tasks of today\'s fresh start; the next day, without another fresh start, they are plain "Weitere Aufgaben" tasks', () => {
       const { tasks, newDay } = setup({ tasks: [task('o1', TaskStatus.Open), task('w1', TaskStatus.Waiting), task('w2', TaskStatus.Waiting)] })
       startFresh(newDay)

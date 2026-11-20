@@ -180,7 +180,7 @@ test.describe('Statistics Page', () => {
       await page.goto(`${baseURL}/statistics`);
       const tile = page.getByTestId('stats-tile-5');
       await expect(tile.getByRole('heading', { level: 2, name: 'Wann arbeite ich?' })).toBeVisible();
-      await expect(tile).toContainText('Noch zu wenig Daten. Kan-Do merkt sich ab jetzt, wann der Timer läuft.');
+      await expect(tile).toContainText('Noch zu wenig Daten. Kan-do merkt sich ab jetzt, wann der Timer läuft.');
       await expect(page.getByTestId('stats-rhythm-days')).toHaveText('0 von 5 Tagen');
       await expect(tile.getByRole('button')).toHaveCount(0);
       await expect(tile.locator('[data-testid="stats-rhythm-ghost"]')).toHaveAttribute('aria-hidden', 'true');

@@ -314,7 +314,7 @@ export const SETUP_ERROR_CONTEXTS: Record<IntegrationSourceId, ErrorContext> = {
 
 /**
  * Where the user repairs a source's connection (the "Verbindung reparieren" entry of the sync popover, #319):
- * the Einstellungen page's Aufgabenquellen tab (`/settings?tab=sources`, #324, #394, #691), whose source row offers the repair; null for a source without one.
+ * the Einstellungen page's Speicherorte tab (`/settings?tab=sources`, #324, #394, #691), whose source row offers the repair; null for a source without one.
  */
 export function repairRouteOf(source: IntegrationSourceId): string | null {
   return source === 'notion' ? '/settings?tab=sources' : null

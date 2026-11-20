@@ -235,7 +235,7 @@ test.describe('mobile 390px board pages', () => {
 })
 
 // ---------------------------------------------------------------------------
-// The place "Alle" (#354): "Meine Aufgaben" beside Offen
+// The place "Alle" (#354): "Alle Aufgaben" beside Offen
 // ---------------------------------------------------------------------------
 
 test.describe('the place "Alle" (#354)', () => {
@@ -260,7 +260,7 @@ test.describe('the place "Alle" (#354)', () => {
     await expect(page).toHaveScreenshot('alle-1280.png', { animations: 'disabled' })
   })
 
-  test('desktop 1280: empty "Meine Aufgaben"', async ({ context, page }) => {
+  test('desktop 1280: empty "Alle Aufgaben"', async ({ context, page }) => {
     await gotoAll(page, context, [])
     await expect(page).toHaveScreenshot('alle-empty-1280.png', { animations: 'disabled' })
   })
@@ -268,7 +268,7 @@ test.describe('the place "Alle" (#354)', () => {
   test.describe('mobile 390px', () => {
     test.use({ viewport: { width: 390, height: 844 } })
 
-    test('the "Meine Aufgaben" page with the bar above the app bar', async ({ context, page }) => {
+    test('the "Alle Aufgaben" page with the bar above the app bar', async ({ context, page }) => {
       await gotoAll(page, context, HELD)
       await expect(page).toHaveScreenshot('alle-390.png', { animations: 'disabled' })
     })

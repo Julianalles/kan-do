@@ -3,26 +3,26 @@
 @description "Einstellungen" (/settings, #394, #691): three groups behind a tab strip (`UTabs` `variant="link"`: an underline, lighter than the app bar's toggle, #308; rule candidate #318;
 sized up to read as the page's navigation, #333: `size="xl"`, which the theme draws with 16 px labels, 44 px high at every width and a 2 px indicator; the other tab strips keep `md`),
 one shown at a time, the active one in the URL as `?tab=board|sources|manage` (default board, unknown value = board):
-Board (the Fokus option and the working hours of the capacity divider, #306), Aufgabenquellen (the former "Aufgaben-Quellen" page, #324: every source with its health, the default
-for new tasks, repair / configure / connect / disconnect) and Verwaltung (hairline rows to Themen und Aktivitäten, Backup und
+Board (the Fokus option and the working hours of the capacity divider, #306), Speicherorte (the former "Aufgaben-Quellen" page, #324: every source with its health, the default
+for new tasks, repair / configure / connect / disconnect) and System (hairline rows to Themen und Aktivitäten, Backup und
 App-Reset, and on desktop Updates and GitHub-Zugriff).
 `/settings/sources` redirects here.
 @usage Board gear, command palette "Einstellungen", the sync popover's "Verbindung reparieren"
 @responsibility
-- Board and Verwaltung sheets carry a `SectionHeader` h2 ("Fokus und Arbeitszeit", "Verwaltung"), like the Aufgabenspeicher sheet (#596); the tab strip keeps its normal padded tabs, so the first tab label sits 16 px inside the sheet edge by design (#596 item 10)
+- Board and System sheets carry a `SectionHeader` h2 ("Fokus und Arbeitszeit", "System"), like the Speicherorte sheet (#596); the tab strip keeps its normal padded tabs, so the first tab label sits 16 px inside the sheet edge by design (#596 item 10)
 - "Fokus": one switch row, "Jetzt-Karte im Fokus" (`settingsStore.focusEnabled`); takes effect on the board at once; on phone the 36×20 switch has a 44 px hit area (an invisible `::after`, kd#27)
-- "Schwebendes Jetzt-Fenster" (#383): a switch row below "Fokus", desktop only (`settingsStore.floatingNowEnabled`, default on); the main window pushes the setting to Rust at once, which hides or destroys the window
-- Aufgabenquellen is one sheet (#333: one concern): "Deine Verbindungen" (h2), the lead, the connected rows, then a separator and "Weitere Verbindungen" a level below (h3, the `sub` role); separator and heading drop out when nothing is left to connect
+- "Schwebender Fokus-Timer" (#383): a switch row below "Fokus", desktop only (`settingsStore.floatingNowEnabled`, default on); the main window pushes the setting to Rust at once, which hides or destroys the window
+- Speicherorte is one sheet (#333: one concern): "Deine Speicherorte" (h2), the lead, the connected rows, then a separator and "Eine App verbinden" a level below (h3, the `sub` role); separator and heading drop out when nothing is left to connect
 - List Lokal (always; on desktop its row carries `LocalStorageDetails`: data folder, last saved, storage problems and their actions, #438) and the connected integrations as hairline rows; the default carries the "Standard" badge; a row's name and actions share one line at every width (`SourceRow`: the "…" menu)
 - "Als Standard festlegen" changes the default at once (`boardStore.setDefaultSource`)
 - Repair of a broken Notion (rejected token, missing config) opens the Notion setup stage of /settings/notion at the token step
   (`?setup=repair`, so a new token can be entered); a merely degraded one opens it in settings mode (`?setup=settings`); no dialog (#652).
   "Notion-Einstellungen" goes to /settings/notion, "Trennen" opens the disconnect dialog of #320
   (`useSourceConnections` does the work)
-- "Weitere Verbindungen": Notion with "Verbinden" while disconnected (opens the Notion setup stage of /settings/notion, `?setup=connect`; the stage connects the source when it ends),
+- "Eine App verbinden": Notion with "Verbinden" while disconnected (opens the Notion setup stage of /settings/notion, `?setup=connect`; the stage connects the source when it ends),
   Erinnerungen with "Verbinden" in the Mac app (it opens /settings/reminders, which runs the setup there; the web build reads "nur in der Mac-App", #552),
   Todoist as "bald verfügbar"
-- "Verwaltung": `ListRow` link rows (`to`, kd#179; #683 sizing), every sub-page has one; a tab click `router.replace`s the query, so back from a sub-page returns to the tab it was opened from
+- "System": `ListRow` link rows (`to`, kd#179; #683 sizing), every sub-page has one; a tab click `router.replace`s the query, so back from a sub-page returns to the tab it was opened from
 - "Arbeitszeit pro Tag" (#306): a `USelect` under the Fokus row in the same sheet, hairline between the rows; "Automatisch" (the default: the day length is learned from tracked work) or 1-12 h in 30 min steps (`settingsStore.workingHoursMinutes`, minutes, null = automatic); the divider moves at once. Phone: label and help above, the select full width. Pattern: aligned with the Fokus switch row (label, help, control on the right)
 - Known trade-off: the Board tab holds two rows only, Fokus and Arbeitszeit (accepted by the UX decision)
 - No visible page header (#670): the app bar's third segment reads "Einstellungen"; the layout keeps the title as an sr-only h1

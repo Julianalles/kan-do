@@ -10,11 +10,11 @@ Shipped as a browser app (static Nuxt build, mobile web down to ~390px) and as a
 
 ## Users
 
-Primary: a solo knowledge worker managing their own day — currently the author, open to others with the same workflow. They open Kan-Do in the morning, pull a small set of tasks from their source of truth into Today, and use it as a quiet command centre throughout the day. Sessions are short and frequent: glance, move a card, check a timer, close.
+Primary: a solo knowledge worker managing their own day — currently the author, open to others with the same workflow. They open Kan-do in the morning, pull a small set of tasks from their source of truth into Today, and use it as a quiet command centre throughout the day. Sessions are short and frequent: glance, move a card, check a timer, close.
 
 ## Product Purpose
 
-Kan-Do narrows attention to the work already chosen for today. It provides a frictionless flow for updating state, tracking time, and celebrating wins without duplicating upstream task management tooling. Success: the user ends the day with fewer things in flight, better estimates, and a sense of calm satisfaction.
+Kan-do narrows attention to the work already chosen for today. It provides a frictionless flow for updating state, tracking time, and celebrating wins without duplicating upstream task management tooling. Success: the user ends the day with fewer things in flight, better estimates, and a sense of calm satisfaction.
 
 ## Positioning
 
@@ -48,14 +48,14 @@ Emotional side of every job: calm, focused, satisfied ("Brand Commitments"). Inf
 - Four fixed columns in fixed order: Offen, Jetzt, Wartet, Erledigt. "Jetzt" accepts at most one task.
 - Sources: Notion (via server API) and local tasks, side by side on one board if wanted (mixed board). Todoist is planned: the adapter exists, the UI does not offer it yet. Integration setup, sync status and settings are infrastructure, not the product.
 - Time tracking per task, timebox presets and auto-suggestion, an in-card nudge to add a timebox, statistics page.
-- Day rhythm: an optional "Tag abschließen" at the end of the day, a short recap ("Kurzer Rückblick") on the first start of a new day, yesterday's finished tasks acknowledged before they leave the board.
+- Day rhythm: an optional "Tag abschließen" at the end of the day, a short recap ("Tagesrückblick") on the first start of a new day, yesterday's finished tasks acknowledged before they leave the board.
 - Desktop-only exceptions to web/desktop parity (the rest is identical): data folder with backups and conflict safety (ADR 008, 011), self-updater (ADR 009), "What's new" after an update (`release-notes/README.md`), the redacted screenshot and log tail of in-app feedback (the feedback itself works on web too, ADR 010, 014), API tokens in the macOS Keychain (ADR 007), Todoist OAuth is web only (ADR 007), and a restrictive Content Security Policy that applies to the Tauri bundle only (ADR 012).
 - UI copy is German by default, English supported; all copy via i18n keys.
 - Non-goals: full backlog manager, CRM, document store; replacing integration dashboards; project/epic hierarchy. Data stays flat and bite-sized.
 
 ## Brand Commitments
 
-- Name: Kan-Do.
+- Name: Kan-do.
 - Personality: **Natural · Helpful · Assistive** — a quiet tool, like a well-made notebook or a good desk lamp: present when needed, invisible when not.
 - Emotional goal: calm, focused, satisfied. Never urgent, cluttered, or overwhelming.
 - Positive reference: Airbnb (calm, generous layouts; friendly, rounded warmth; in-place, low-friction flows; polished micro-motion).
@@ -74,7 +74,7 @@ Emotional side of every job: calm, focused, satisfied ("Brand Commitments"). Inf
 4. **Quiet confirmation, earned celebration** — everyday actions feel resolved, not celebrated: positive reinforcement is a whisper, not a fanfare. Completing a task is an achievement and earns a short, contained reward (DESIGN.md "Behaviour", #692).
 5. **Invisible infrastructure** — hide integration complexity behind calm, guided flows. If a user sees a technical detail, the design has failed.
 6. **Ask in place** — a question that belongs to a card or a row is asked right there, not in a dialog. Dialogs are for flows that need the whole stage.
-7. **Nothing plans itself** — a task is on today's board only because the user put it there, and the app never takes a card off the board or changes anything in a connection by itself. A new day starts fresh on the user's click ("Tag neu planen"): what was planned and not finished then goes back to the tasks that are not planned, marked as planned yesterday (what was waiting is part of the same one-day panel "Gestern auf dem Board", not a category of its own), and is picked again or left. Yesterday's tasks stay on the board only because the user chose to skip planning (owner, #352 and #387, 2026-11-16). The carried-over count follows: every further day an unfinished card is on the board counts as another day.
+7. **Nothing plans itself** — a task is on today's board only because the user put it there, and the app never takes a card off the board or changes anything in a connection by itself. A new day starts fresh on the user's click ("Tag neu planen"): what was planned and not finished then goes back to the tasks that are not planned, marked as planned yesterday (what was waiting is part of the same one-day panel "Zuletzt geplant und nicht erledigt", not a category of its own), and is picked again or left. Yesterday's tasks stay on the board only because the user chose to skip planning (owner, #352 and #387, 2026-11-16). The carried-over count follows: every further day an unfinished card is on the board counts as another day.
 
 ## Accessibility & Inclusion
 

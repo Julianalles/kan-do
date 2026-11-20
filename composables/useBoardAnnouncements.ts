@@ -34,9 +34,9 @@ const COLUMN_KEYS: Partial<Record<TaskStatus, string>> = {
  *   dragging at once for a mouse, and a plain click must still expand
  * - a single card over a Jetzt that holds one task announces the swap (#162): the drop switches them and
  *   the running task moves to Wartet; the drop then names both
- * - the place "Alle" (#355): "Meine Aufgaben" is named like a column; an Offen card over that side hears what the
+ * - the place "Alle" (#355): "Alle Aufgaben" is named like a column; an Offen card over that side hears what the
  *   drop does, and the drop says the result once ("… ist für heute geplant." / "… ist nicht mehr für heute geplant.",
- *   the lines of the arrows), by the rule the drop handler uses (`resolvePlanDrop`). A "Meine Aufgaben" card's handle
+ *   the lines of the arrows), by the rule the drop handler uses (`resolvePlanDrop`). A "Alle Aufgaben" card's handle
  *   needs the same drag threshold as a stack's control: a plain click opens its sheet
  * Announcements are pure reads; store updates stay in `useBoardDndKit().onDragEnd`.
  */
@@ -162,7 +162,7 @@ type Sensors = Extract<NonNullable<DragDropManagerInput['sensors']>, (...args: n
               typeof defaultConstraints === 'function' ? defaultConstraints(e, source) : defaultConstraints
             const constraints = defaultsFor(event)
             // dnd-kit starts a mouse drag on a handle without any constraint: not on a stack's
-            // control, where a click expands, nor on a "Meine Aufgaben" card, where it opens the sheet (#355). The drag then needs what a drag off the handle needs
+            // control, where a click expands, nor on a "Alle Aufgaben" card, where it opens the sheet (#355). The drag then needs what a drag off the handle needs
             // (read from the defaults with an event that is not on the handle, so the values follow
             // dnd-kit), whichever pointer type came without a constraint.
             const data = source.data as { stack?: unknown, notPlannedCard?: unknown } | undefined

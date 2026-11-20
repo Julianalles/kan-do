@@ -17,7 +17,7 @@
  *   timebox), one yesterday
  *
  * `options.backlog` (opt-in, `?seed=demo&backlog=1`, README screenshots) adds {@link DEMO_BACKLOG} as Open tasks with `notPlanned`,
- * so the place "Alle" has "My tasks" something to plan from; the default board is unchanged.
+ * so the place "Alle" has "All tasks" something to plan from; the default board is unchanged.
  *
  * Statistics: the backfill skips demo ids ({@link isDemoTaskId} in `lib/demoIds.ts`), so only `?seed=demo` has statistics data.
  * Dates are relative to `now`, so the board reads the same on any day. The data is pure: it touches no store.
@@ -91,7 +91,7 @@ interface DemoTaskInput {
   /** Done yesterday evening */
   doneYesterday?: boolean
   isUnplanned?: boolean
-  /** Backlog task: Open, not on today's board, listed under "My tasks" in "Alle" */
+  /** Backlog task: Open, not on today's board, listed under "All tasks" in "Alle" */
   notPlanned?: boolean
 }
 

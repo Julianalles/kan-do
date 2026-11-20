@@ -5,7 +5,7 @@ import { contrastRatio, type Rgb } from './helpers/contrast'
 import { closeMore, goToPlace, moreButton, morePanel, openMore, openSettings, resync, sourceAction } from './helpers/appNav'
 
 /**
- * The "Verbindungen" page (#324, epic #264 section 6) on the Notion stub: the list with its states, the
+ * The "Speicherorte" page (#324, epic #264 section 6) on the Notion stub: the list with its states, the
  * default in the rows, repair / settings / disconnect / connect, and the ways onto the page. Sequences, not
  * single calls: set the default, then disconnect the default; connect, then make the new source the default.
  */
@@ -18,7 +18,7 @@ const sourcesFromStorage = (page: Page) =>
 async function openFromBoard(page: Page, baseURL: string | undefined) {
   await page.goto(`${baseURL}/tasks`)
   await openSettings(page, 'sources')
-  await expect(page.getByRole('heading', { level: 2, name: 'Deine Verbindungen' })).toBeVisible()
+  await expect(page.getByRole('heading', { level: 2, name: 'Deine Speicherorte' })).toBeVisible()
 }
 
 test.describe('Local only', () => {
@@ -56,7 +56,7 @@ test.describe('Local only', () => {
     await expect(page.locator('header.page-header h1')).toHaveText('Themen und Aktivitäten')
   })
 
-  test('the Verwaltung rows share the connection rows\' title size and icon column (#683, #691)', async ({ page, baseURL }) => {
+  test('the System rows share the connection rows\' title size and icon column (#683, #691)', async ({ page, baseURL }) => {
     await openFromBoard(page, baseURL)
     const sizeOf = (el: import('@playwright/test').Locator) => el.evaluate(node => getComputedStyle(node).fontSize)
     const iconX = (el: import('@playwright/test').Locator) => el.evaluate(node => node.getBoundingClientRect().x)
@@ -96,7 +96,7 @@ test.describe('Local only', () => {
 
     await expect(page.getByRole('heading', { level: 1, name: 'Einstellungen' })).toBeVisible()
     await expect(page.getByTestId('sources-lead')).toHaveText(
-      'Beim Hinzufügen kannst du eine andere Verbindung wählen und du kannst Aufgaben jederzeit verschieben.',
+      'Beim Hinzufügen kannst du einen anderen Speicherort wählen und du kannst Aufgaben jederzeit verschieben.',
     )
     await expect(page.getByText('Neue Aufgaben speichern in')).toHaveCount(0)
 
@@ -180,7 +180,7 @@ test.describe('Local and Notion connected', () => {
     await sourceAction(page, 'notion', 'Notion-Einstellungen')
     await expect(page).toHaveURL(/\/settings\/notion$/)
     await expect(page.getByRole('heading', { name: 'Notion-Einstellungen' })).toBeVisible()
-    await expect(page.getByTestId('notion-disconnect')).toHaveCount(0) // disconnecting lives on the Verbindungen page
+    await expect(page.getByTestId('notion-disconnect')).toHaveCount(0) // disconnecting lives on the Speicherorte page
   })
 
   test('set Notion as the default, then disconnect it: the dialog names the fallback, Lokal takes the badge, Notion is offered again', async ({ context, page, baseURL }) => {
@@ -230,7 +230,7 @@ test.describe('Local and Notion connected', () => {
     await expect(page).toHaveURL(/\/settings$/)
     await expect(page.getByRole('tab', { name: 'Board' })).toHaveAttribute('aria-selected', 'true')
     await openSettings(page, 'sources')
-    await expect(page.getByRole('heading', { level: 2, name: 'Deine Verbindungen' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 2, name: 'Deine Speicherorte' })).toBeVisible()
   })
 })
 
@@ -324,7 +324,7 @@ test.describe('Notion that is merely offline', () => {
     await morePanel(page).getByTestId('sync-repair-notion').click()
 
     await expect(page).toHaveURL(/\/settings(\?tab=sources)?$/)
-    await expect(page.getByRole('heading', { level: 2, name: 'Deine Verbindungen' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 2, name: 'Deine Speicherorte' })).toBeVisible()
     await expect(page.getByTestId('source-status-notion')).toHaveText(/^Synchronisiert/) // last-sync line, no warning
     await expect(page.getByRole('button', { name: 'Notion-Verbindung reparieren' })).toHaveCount(0)
     await expect(page.getByRole('dialog')).toHaveCount(0)

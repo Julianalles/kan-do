@@ -9,7 +9,7 @@ import { expectContrast } from './helpers/contrast'
 /**
  * Automated accessibility checks (axe-core) for the main surfaces:
  * board (desktop + mobile, light only), board with the Jetzt focus overlay on and off,
- * task detail modal, the Einstellungen page (focus option and Verbindungen) and statistics page.
+ * task detail modal, the Einstellungen page (focus option and Speicherorte) and statistics page.
  *
  * Only `serious` and `critical` violations fail the test. Known larger issues
  * are excluded narrowly per test and marked with `// a11y-backlog: <reason>`.
@@ -269,7 +269,7 @@ test.describe('Accessibility (axe)', () => {
       }
     })
 
-    test('Einstellungen page: Fokus option and Verbindungen (desktop and 390px)', async ({ page }) => {
+    test('Einstellungen page: Fokus option and Speicherorte (desktop and 390px)', async ({ page }) => {
       await gotoBoard(page)
       await openSettings(page)
       await expect(page.getByTestId('focus-switch')).toBeVisible()
@@ -285,7 +285,7 @@ test.describe('Accessibility (axe)', () => {
       await expectNoSeriousA11yViolations(page)
     })
 
-    test('Verbindungen page with a Notion row that needs attention (warning status, all actions)', async ({ context, page }) => {
+    test('Speicherorte page with a Notion row that needs attention (warning status, all actions)', async ({ context, page }) => {
       // Registered after the describe's Local seed, so this one wins on every load
       await seedMixedBoard(context, undefined, { defaultSource: 'local', notionConfig: { token: `notion_test_stub:fail=401:${crypto.randomUUID()}` } })
       await page.goto('/tasks')

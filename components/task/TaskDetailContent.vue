@@ -17,7 +17,7 @@
   picker's footer ("Bearbeiten" / "Fertig") lists one button row per option, and a row closes the picker and opens the shared
   TopicEditorHost under the property row (#430, #431, #443); topics also get a "Themen verwalten" row
 - Host the carried-over triage block and line (#99); a status change that ends the nudge closes the block and opens the line in place over `--duration-slow`, and the done-day row opens the same way (#610)
-- Status row (#359): five choices in the order of the places, "Nicht geplant" (the state of a task in the column "Meine Aufgaben", #375) first, then Offen, Jetzt, Wartet, Erledigt. A task
+- Status row (#359): five choices in the order of the places, "Nicht geplant" (the state of a task in the column "Alle Aufgaben", #375) first, then Offen, Jetzt, Wartet, Erledigt. A task
   that is not planned reads "Nicht geplant" (never "Offen", the name of the other column on "Alle"); picking a column plans it,
   picking "Nicht geplant" takes a task off today's board from any column (`useTaskStatusActions.chooseStatus`)
 - Guard against drift (#161, kd#4): at most six always-visible standard rows (Status, Priorität, Thema, Aktivität, Timebox,
@@ -28,7 +28,7 @@
   without Löschen, limited to the days from the task's creation to today; picking a day goes through
   `useTaskSync.setCompletedDay` (statistics and the board's today / before-today split follow at once). The row is
   conditional, so the six-row guard above still counts the always-visible rows. A task whose connection holds no
-  completion date says "Gilt nur in Kan-Do." beside the value
+  completion date says "Gilt nur in Kan-do." beside the value
 - Close clearance (kd#201): on desktop the shell's close button sits at the top end corner (`top-4 end-4`, 32 px), so the title and a triage block end 56 px (`pe-14`/`me-14`) from the sheet's edge and never run under the control; change both together
 - Property rows (moved from DESIGN.md, kd#176): a quiet label column and the value as its own control, a soft select with a chevron when it opens a list (`TaskPropertySelect`), an editable label on a faint dotted rule when it is free input (`InlineEditable`, `PropertyValueTrigger`). Every row keeps its place whether set or not ("Auswählen…", "+ hinzufügen"); six standard rows, the last one "Aufgewendete Zeit" (a source that owns the text, Reminders #551, shows Thema and Aktivität as plain values and leaves an empty one out); no per-row icons, dividers or chips, and no separate time block or progress ring on the sheet
 -->
@@ -443,7 +443,7 @@ const { targets: moveTargets, move: moveToSource } = useTaskMoveTargets(() => (p
 // Follows the sheet's frozen variant, not the live query, so a resize while open cannot disagree with the layout the sheet actually shows (#199).
 const twoColumn = useOverlayIsDesktop();
 
-// Five choices in the order of the places (#359): "Nicht geplant" (the state of a task under "Meine Aufgaben") first, as on "Alle", then the four columns
+// Five choices in the order of the places (#359): "Nicht geplant" (the state of a task under "Alle Aufgaben") first, as on "Alle", then the four columns
 const statusItems = computed<{ label: string; value: StatusChoice; icon: string }[]>(() => [
   { label: t(NOT_PLANNED_CONFIG.labelKey), value: NOT_PLANNED_CHOICE, icon: NOT_PLANNED_CONFIG.icon },
   ...Object.entries(TASK_STATUS_CONFIG)

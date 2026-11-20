@@ -2,9 +2,9 @@
 @component NewCardFlow
 @kind block
 @category input
-@description Guided in-card adding of a task in Offen (#649) and, on the place "Alle", under "Meine Aufgaben" (#567, the task is made not planned, #367): the add slot's box becomes a card that takes the title, then asks Thema and Aktivität (a combobox each), Timebox (pills) and Notiz one after another and saves at the end. No sheet, no route change.
+@description Guided in-card adding of a task in Offen (#649) and, on the place "Alle", under "Alle Aufgaben" (#567, the task is made not planned, #367): the add slot's box becomes a card that takes the title, then asks Thema and Aktivität (a combobox each), Timebox (pills) and Notiz one after another and saves at the end. No sheet, no route change.
 @usage Mounted by AddTaskSlot (Offen; on "Alle" the slot at the top of BoardNotPlanned) in place of the sheet; emits `saved` with the new task's id, or `cancel`
-@avoid Only in-card adding to Offen or "Meine Aufgaben"; add-and-start in Jetzt, editing and source fields use the sheet's TaskForm.
+@avoid Only in-card adding to Offen or "Alle Aufgaben"; add-and-start in Jetzt, editing and source fields use the sheet's TaskForm.
 @responsibility
 - Local state only (title, topic, activity, timebox, notes, step): it does not use `useTaskDraft`, which belongs to the sheet (draft card, spotlight, /tasks/add); saves through `useTaskSync().createTask` in the default source (`useAddTarget`), steps follow that source's fields (`fieldsForSource`); a step with nothing to offer is skipped
 - The face is the real TaskCard (`draft`), so the saved card and the cue behind the wash match by construction; the topic row exists only once a topic is picked (the title steps down then, as on a card)
@@ -13,7 +13,7 @@
 - The card is taller in its steps than in its title phase: going from the title to the first question and back glides its height over `--duration-slow` (`glideHeight`, #610), so the cards below move with it and nothing jumps
 - A pick pulses the veil once (a cue on Notiz); saving lifts the veil and the face becomes the saved card
 - Keys: Enter skips (saves on Notiz), Esc goes back from anywhere, also with the combobox's list open (cancels on the title step; with a typed title the slot offers "Rückgängig" in a toast, #665), Cmd/Ctrl+Enter saves now with what is entered, from any step once there is a title (#665; announced by `aria-keyshortcuts` and the check's title). Timebox: 1/2/3 pick, 4 opens the list (the dots icon). Thema and Aktivität have no number keys (digits are text in the field), and Backspace/Delete only edit text (#434). Key cues sit inside the buttons (generated content, so the accessible name stays the label), fine pointers only. Tab order is the DOM order; every step change moves focus to the step (the combobox's field, Notiz: its input)
-- A press outside cancels only while the title is blank (a press on a card, in Offen or under "Meine Aufgaben", waits for its release, a drag keeps the card); a save error keeps the card where it was (Notiz after Enter) with everything entered; the toast after a save is one row (title and Details, #665) so it stays clear of the saved card at 390 px
+- A press outside cancels only while the title is blank (a press on a card, in Offen or under "Alle Aufgaben", waits for its release, a drag keeps the card); a save error keeps the card where it was (Notiz after Enter) with everything entered; the toast after a save is one row (title and Details, #665) so it stays clear of the saved card at 390 px
 - Thema and Aktivität (#434): a combobox on the step's whole ranked list (`UInputMenu`: type to filter, the list opens below the field on focus and closes on pick, Esc-back and blur, 5 rows, then it scrolls; the cap follows the visual viewport, so the on-screen keyboard never covers it; app.config.ts `inputMenu` holds the field height, the rows (44 px on a phone) and the sheet look). The field shows the step's value; deleting the text or the clear button takes the value away. Enter takes an entry the user walked to with the arrows (the list highlights its first entry by itself, which is no choice); on an empty field it continues without a value; typed text with a match takes an exact match (any case), else the first match, else a "Neu: „text“" row creates it where the source allows free values (`fieldsForSource(...).newValues`: Local any text, Notion without commas and at most 100 characters, so the row shows what is created; Todoist none, then the field only filters). A step with no values at all is still skipped; the sheet creates a first topic. The new value is just a pick: Local derives topics from tasks, Notion creates the select option on the write (`NotionIntegration` writes the property's own type)
 - The dots icon's list (Timebox only): popover from 768 px, drawer below (`NewCardOptionList`); ↑/↓ (wrapping) walk the options, Home/End jump, Enter/Space pick, Esc closes (kd#15; plain buttons with one shared handler, not UDropdownMenu: the drawer has no menu primitive and the key-4 focus flow (#685) stays). Motion is instant under prefers-reduced-motion
 - Accepted: unsaved input is lost when the page is left (the card saves only at the end, as the story asks); activity and note have no place on a card, so only the field and the pulse show them; the combobox's list is a popover over the card below it (a transient overlay, #434)
@@ -742,7 +742,7 @@ async function save() {
         notes: notes.value.trim() || null,
         timeBoxSeconds: fields.value.timebox && minutes.value ? minutes.value * 60 : null,
         isUnplanned: false,
-        // On the place "Alle" the saved card goes to "Meine Aufgaben" (#367)
+        // On the place "Alle" the saved card goes to "Alle Aufgaben" (#367)
         ...(newTaskStartsNotPlanned() ? { notPlanned: true as const } : {}),
       },
       defaultSource.value,

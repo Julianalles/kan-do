@@ -17,7 +17,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Changed by the user on 2026-11-20 (before: de \"Verbindung\", en \"connection\"); the text after this sentence is the older reasoning and may name the old form. User answer (#473 calibration, applied in #474): the sources page and its group names say \"Verbindung\"/\"connection\", also for Local although Local is not an integration. Before: de \"Quelle\" 10 values vs \"Verbindung\" 22; en \"source\" 51 vs \"connection\" 18. \"Datenquelle\"/\"data source\" names the Notion database data source in notion.database.* (the Notion API term): a different concept, not an avoid form. Code identifiers and the {source} placeholder keep their name. Pitfall: a bare \"source\" in avoidEn would hit every {source} placeholder."
+    "note": "Earlier form: \"Verbindung\" / \"connection\". Names where a task lives, Local included: the sources page, the add target, the command palette group. A source that is an integration (Notion, Todoist, Apple Reminders) is also a Verbindung (term integration); Local is a Speicherort, never a Verbindung. A network problem stays \"Keine Verbindung\" / \"No connection\", and a source with a problem is \"Verbindung prüfen\" (term needs-attention). \"Datenquelle\"/\"data source\" names the Notion database data source in notion.database.* (the Notion API term): a different concept, not an avoid form. Code identifiers and the {source} placeholder keep their name. Pitfall: a bare \"source\" in avoidEn would hit every {source} placeholder."
   },
   {
     "id": "default-source",
@@ -37,7 +37,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Changed by the user on 2026-11-20 (before: de \"Integration\", en \"integration\"); the text after this sentence is the older reasoning and may name the old form. de and en both 13 values. Local is a source, not an integration."
+    "note": "Earlier form: \"Integration\" / \"integration\". A task source outside the app, such as Notion or Todoist: de \"Verbindung\", en \"connection\". Local is a source (term task-source), not an integration. Notion's own words stay where the text points at Notion's screens (the path \"Notion › Einstellungen › Integrationen\", \"Notion-Integrationstoken\") and GitHub's permission names stay as GitHub writes them."
   },
   {
     "id": "connect",
@@ -47,7 +47,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "en \"connect\" is consistent. de also uses \"Verbindung\" (22 values) as a noun for the state; see task-source. en \"link\" (the noun, 5 values for URLs) is not an avoid form: it cannot be told from the verb under word-prefix matching, so \"linked\" and \"link up\" stand in for it."
+    "note": "en \"connect\" is consistent. de \"Verbindung\" is the noun for an integration (term integration); where a task lives is a \"Speicherort\" (term task-source). en \"link\" (the noun, 5 values for URLs) is not an avoid form: it cannot be told from the verb under word-prefix matching, so \"linked\" and \"link up\" stand in for it."
   },
   {
     "id": "disconnect",
@@ -277,7 +277,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Changed by the user on 2026-11-20 (before: de \"Kurzer Rückblick\", en \"Quick look back\"); the text after this sentence is the older reasoning and may name the old form. recap.title. de \"Rückblick\" 2 values; dayClose.description also says \"Rückblick auf heute\". The English values at seeding are \"Quick look back\" (recap) and \"A look back at today\" (day close). Narrowed: bare \"Zusammenfassung\"/\"summary\" hit the day summary export (\"Copy summary\", \"Summary copied\", 8 values) and \"review\" hits the feedback dialog (\"Review and send\"), other concepts."
+    "note": "Earlier form: \"Kurzer Rückblick\" / \"Quick look back\". recap.title and README/PRODUCT prose. The app bar segment while the recap is open is the shorter nav-recap (\"Rückblick\" / \"Look back\"). Narrowed: bare \"Zusammenfassung\"/\"summary\" hit the day summary export (\"Copy summary\", \"Summary copied\", 8 values) and \"review\" hits the feedback dialog (\"Review and send\"), other concepts."
   },
   {
     "id": "sync",
@@ -336,7 +336,7 @@
       "Kando",
       "Kan Do"
     ],
-    "note": "Changed by the user on 2026-11-20 (before: de \"Kan-Do\", en \"Kan-Do\"); the text after this sentence is the older reasoning and may name the old form. PRODUCT.md \"Name: Kan-do\". The wordmark text `nav.brand` stays lowercase on purpose (DESIGN.md Navigation: the brand `kan-do` in the app bar pill) and is allowed.",
+    "note": "\"Kan-do\" in German and English running text. PRODUCT.md \"Name: Kan-do\". The wordmark text `nav.brand` stays lowercase on purpose (DESIGN.md Navigation: the brand `kan-do` in the app bar pill) and is allowed. `productName`, the bundle identifier, the data folder and the updater and Keychain keys are not copy and keep their spelling.",
     "status": "proposed",
     "caseSensitive": true,
     "enforce": "hard"
@@ -389,7 +389,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Changed by the user on 2026-11-20 (before: de \"Verwaltung\", en \"Manage\"); the text after this sentence is the older reasoning and may name the old form. Named by the user in the #691 design round: user-data maintenance, not board behaviour, so Themen und Aktivitäten lives here too. The tab strip reads Board, Aufgabenquellen, Verwaltung (en: Board, Connections, Manage; en avoids \"task source\" because of the task-source term). Not \"Mehr\" / \"More\" as a catch-all tab name; the words moved out of the avoid lists in kd#16, where \"Mehr\" names the new-card flow's fourth cell (quick-add-more-values) and the registry test forbids one term's avoid form being another's preferred form."
+    "note": "Earlier form: \"Verwaltung\" / \"Manage\". The tab and the sheet heading of the third settings tab. Named by the user in the #691 design round: user-data maintenance, not board behaviour, so Themen und Aktivitäten lives here too. The tab strip reads Board, Speicherorte, System. Not \"Mehr\" / \"More\" as a catch-all tab name; \"Mehr\" names the new-card flow's fourth cell (quick-add-more-values) and the registry test forbids one term's avoid form being another's preferred form."
   },
   {
     "id": "request-limit",
@@ -408,7 +408,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Changed by the user on 2026-11-20 (before: de \"Issue\", en \"issue\"); the text after this sentence is the older reasoning and may name the old form. GitHub's own word, as the feedback dialog already used it (\"Als Issue senden\"). German keeps the English noun (das Issue). Since the repository is public the dialog says \"öffentliches Issue\" / \"public issue\"."
+    "note": "Earlier form: \"Issue\" / \"issue\". What a feedback report becomes on GitHub: the dialog says \"Feedback\" (\"Als Feedback senden\", \"öffentliches Feedback\", \"Feedback-Text\"). GitHub's own permission names stay as GitHub writes them (\"Issues + Inhalte: schreiben\"), and an issue number is written \"#{number}\"."
   },
   {
     "id": "github-account",
@@ -438,7 +438,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Changed by the user on 2026-11-20 (before: de \"wechseln\", en \"switch\"); the text after this sentence is the older reasoning and may name the old form. Toast \"Aufgabe gewechselt\" / \"Task switched\" and the keyboard live region. The code and the issue say swap; the UI does not (de \"tauschen\" would read as exchanging data). Not the Jetzt focus overlay."
+    "note": "Earlier form: \"wechseln\" / \"switch\". Toast \"Aufgabe getauscht\" / \"Task swapped\" and the drop announcement (\"Beim Ablegen tauschen beide\"). The code and the issue say swap. Other \"wechseln\" / \"switch\" in the UI (the data folder, the arrow-key deck) are different concepts. Not the Jetzt focus overlay."
   },
   {
     "id": "reset-app",
@@ -478,7 +478,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Changed by the user on 2026-11-20 (before: de \"Kan-Do-Team\", en \"Kan-Do team\"); the text after this sentence is the older reasoning and may name the old form. The relay path files reports privately; the dialog must name a recipient without \"wir\" / \"we\" (voice: the app has no speaker). Chosen over \"Entwickler\" / \"developer\" to stay neutral; the project has one maintainer today."
+    "note": "Earlier form: \"Kan-Do-Team\" / \"Kan-Do team\". The relay path files reports privately; the dialog names a recipient without \"wir\" / \"we\" (voice: the app has no speaker): \"die Kan-do-Entwickler\" / \"the Kan-do developers\". Chosen over \"Entwickler\" / \"developer\" to stay neutral; the project has one maintainer today."
   },
   {
     "id": "capacity",
@@ -488,7 +488,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Changed by the user on 2026-11-20 (before: de \"Kapazität\", en \"Capacity\"); the text after this sentence is the older reasoning and may name the old form. Label of the divider. Not \"Limit\" (the WIP limit of Jetzt is a rule, this one only informs) and not \"Warnung\" (principle: calm, no alarm). Chosen in the design round of #132 (the user's own wording from decision D1)."
+    "note": "Earlier form: \"Kapazität\" / \"Capacity\". Label of the divider: \"Deine Kapazität\" / \"Your capacity\"; a compound or sentence may use the bare noun (\"Kapazitätshinweis\"). Not \"Limit\" (the WIP limit of Jetzt is a rule, this one only informs) and not \"Warnung\" (principle: calm, no alarm). Chosen in the design round of #132 (the user's own wording from decision D1)."
   },
   {
     "id": "working-hours",
@@ -518,7 +518,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "User, 2026-11-20: the column's headline shows the short form \"Alle\" / \"All\" (design answer on #609); \"Alle Aufgaben\" / \"All tasks\" is the form for sentences and the region name. Changed by the user on 2026-11-20 (before: de \"Meine Aufgaben\", en \"My tasks\"); the text after this sentence is the older reasoning and may name the old form. Renamed by the user on 2026-11-16 (#375): \"Meine Aufgaben\" / \"My tasks\", before \"Nicht geplant\" / \"Not planned\" (that wording was approved by the user on 2026-11-16, #367, and never made decided). The user's `npm run terms:approve` makes it decided. Names the column only (headline, region name, sentences that say where a task goes); the state of a task there is the term not-planned-state. \"Nicht geplant\" is not an avoid form: it is that state's term."
+    "note": "User, 2026-11-20: the column's headline shows the short form \"Alle\" / \"All\" (design answer on #609); \"Alle Aufgaben\" / \"All tasks\" is the form for sentences and the region name (earlier forms: \"Meine Aufgaben\" / \"My tasks\", and before that \"Nicht geplant\" / \"Not planned\"). The user's `npm run terms:approve` makes it decided. Names the column only (headline, region name, sentences that say where a task goes); the state of a task there is the term not-planned-state. \"Nicht geplant\" is not an avoid form: it is that state's term."
   },
   {
     "id": "not-planned-state",
@@ -528,7 +528,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Split from not-planned in #375, when the column became \"Meine Aufgaben\"; the wording itself was approved by the user on 2026-11-16 (#367). A state, like \"Offen\": \"Status: Nicht geplant\", \"… ist nicht mehr für heute geplant.\". Not \"ungeplant\" / \"unplanned\": that is ad-hoc work (task.isUnplanned, \"Ungeplant\"). Whether \"chosen for today\" is a marker separate from the status is #374."
+    "note": "Split from not-planned in #375, when the column became \"Alle Aufgaben\"; the wording itself was approved by the user on 2026-11-16 (#367). A state, like \"Offen\": \"Status: Nicht geplant\", \"… ist nicht mehr für heute geplant.\". Not \"ungeplant\" / \"unplanned\": that is ad-hoc work (task.isUnplanned, \"Ungeplant\"). Whether \"chosen for today\" is a marker separate from the status is #374."
   },
   {
     "id": "planning-today",
@@ -548,7 +548,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Approved by the user on 2026-11-16 (#367); the user's `npm run terms:approve` makes it decided. Name of the arrow button beside a card in \"Meine Aufgaben\". Proposed in the design of #334 (D4)."
+    "note": "Approved by the user on 2026-11-16 (#367); the user's `npm run terms:approve` makes it decided. Name of the arrow button beside a card in \"Alle Aufgaben\". Proposed in the design of #334 (D4)."
   },
   {
     "id": "not-today",
@@ -558,7 +558,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Changed by the user on 2026-11-20 (before: de \"Nicht heute\", en \"Not today\"); the text after this sentence is the older reasoning and may name the old form. Approved by the user on 2026-11-16 (#367); the user's `npm run terms:approve` makes it decided. Card menu entry and name of the mirrored arrow. Proposed in the design of #334 (D4)."
+    "note": "Earlier form: \"Nicht heute\" / \"Not today\". Card menu entry and name of the mirrored arrow. Approved by the user on 2026-11-16 (#367); the user's `npm run terms:approve` makes it decided. Proposed in the design of #334 (D4)."
   },
   {
     "id": "continue-to-board",
@@ -618,7 +618,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "nav.recap. The short form of the recap's headline (entry recap: \"Kurzer Rückblick\" / \"Quick look back\"); the user's mockup of 2026-11-17 (#428) shows \"Rückblick\". English \"Look back\" because the recap entry avoids \"recap\"."
+    "note": "nav.recap. The short form of the recap's headline (entry recap: \"Tagesrückblick\" / \"Daily recap\"); the user's mockup of 2026-11-17 (#428) shows \"Rückblick\". English \"Look back\" because the recap entry avoids \"recap\"."
   },
   {
     "id": "not-planned-yesterday",
@@ -628,11 +628,11 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Changed by the user on 2026-11-20 (before: de \"Gestern auf dem Board\", en \"On the board yesterday\"); the text after this sentence is the older reasoning and may name the old form. Proposed in the design of #469 (user answer D1: one panel, Wartet included). Replaces \"Gestern geplant, noch offen\" (planned-yesterday, approved 2026-11-16 in #367, never made decided) and \"Zuletzt in Wartet\" (was-waiting): \"noch offen\" is dropped because everything in \"Meine Aufgaben\" is open. \"Gestern\" also when the last board day was longer ago: the panel names the last board, not a date."
+    "note": "Earlier form: \"Gestern auf dem Board\" / \"On the board yesterday\". Proposed in the design of #469 (user answer D1: one panel, Wartet included). Replaces \"Gestern geplant, noch offen\" (planned-yesterday, approved 2026-11-16 in #367, never made decided) and \"Zuletzt in Wartet\" (was-waiting). The panel names the last board, not a date, so it reads the same when that board was longer ago."
   },
   {
     "id": "more-tasks",
-    "concept": "The last group of \"Alle Aufgaben\" while the panel \"Gestern auf dem Board\" shows above it: every other task that is not planned (#356, #387)",
+    "concept": "The last group of \"Alle Aufgaben\" while the panel \"Zuletzt geplant und nicht erledigt\" shows above it: every other task that is not planned (#356, #387)",
     "de": "Weitere Aufgaben",
     "en": "More tasks",
     "avoidDe": [],
@@ -642,7 +642,7 @@
   },
   {
     "id": "take-off-time",
-    "concept": "The question on the app's start or return after a night in which the Jetzt timer ran on while Kan-Do was not in focus: take that time off the task again, or keep it (#356, the user's decision of 2026-11-16)",
+    "concept": "The question on the app's start or return after a night in which the Jetzt timer ran on while Kan-do was not in focus: take that time off the task again, or keep it (#356, the user's decision of 2026-11-16)",
     "de": "Zeit abziehen / Zeit behalten",
     "en": "Subtract time / Keep time",
     "avoidDe": [],
@@ -672,13 +672,13 @@
   },
   {
     "id": "floating-now-window",
-    "concept": "The small always-on-top window that shows the Jetzt task and its time over other apps while Kan-Do is not in front (#383, ADR 020)",
+    "concept": "The small always-on-top window that shows the Jetzt task and its time over other apps while Kan-do is not in front (#383, ADR 020)",
     "de": "Schwebender Fokus-Timer",
     "en": "Floating focus timer",
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Changed by the user on 2026-11-20 (before: de \"Schwebendes Jetzt-Fenster\", en \"Floating Now window\"); the text after this sentence is the older reasoning and may name the old form. The user's own wording from the issue (#383). Not \"Fokus\": the board's dusk overlay (settings.focus, \"Jetzt-Karte im Fokus\") is a different feature. The window's buttons are \"Pausieren\" / \"Fortsetzen\" (EN Pause / Resume), \"Als erledigt markieren\" and \"Kan-Do öffnen\" (the pill's aria-labels; the pill shows icons only)."
+    "note": "Earlier form: \"Schwebendes Jetzt-Fenster\" / \"Floating Now window\". The setting's label and the feature's name in prose; code, the route `/overlay` and ADR 020 keep \"overlay\". Not \"Fokus\": the board's dusk overlay (settings.focus, \"Jetzt-Karte im Fokus\") is a different feature. The window's buttons are \"Pausieren\" / \"Fortsetzen\" (EN Pause / Resume), \"Als erledigt markieren\" and \"Kan-do öffnen\" (the pill's aria-labels; the pill shows icons only)."
   },
   {
     "id": "notion-setup-preparation",
@@ -708,6 +708,6 @@
       "Reminders app"
     ],
     "status": "proposed",
-    "note": "Changed by the user on 2026-11-20 (before: de \"Erinnerungen\", en \"Reminders\"); the text after this sentence is the older reasoning and may name the old form. Proposed by #551 (the source name key `source.name.reminders`). The macOS app is called \"Erinnerungen\" in German and \"Reminders\" in English; \"reminder\" as a single entry stays a task on the board (term `task`). Needs the user's `npm run terms:approve`."
+    "note": "Earlier form: \"Erinnerungen\" / \"Reminders\". The Apple Reminders task source (#551, epic #481): the app on the Mac and the source name `source.name.reminders`. Where the text names the macOS permission or its Settings path (\"Systemeinstellungen › Datenschutz & Sicherheit › Erinnerungen\") the system's own word stays, and \"your reminders\" as the items in the app are tasks of that source. Needs the user's `npm run terms:approve`."
   }
 ]

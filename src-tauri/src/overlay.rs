@@ -1,4 +1,4 @@
-//! Floating Now window (#383, ADR 020): a small always-on-top pill of system glass that shows the Jetzt task and its
+//! Floating focus timer (#383, ADR 020): a small always-on-top pill of system glass that shows the Jetzt task and its
 //! timer over every other window, kan-do's own included (#436).
 //!
 //! Rust owns the window and decides when it shows. The main window publishes one snapshot of the Jetzt task

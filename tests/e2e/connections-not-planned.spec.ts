@@ -5,7 +5,7 @@ import { goToPlace } from './helpers/appNav'
 
 /**
  * #357: what a connection brings in as "not planned".
- * - Todoist: a task kan-do sees for the first time starts under "Meine Aufgaben". The cards an existing board
+ * - Todoist: a task kan-do sees for the first time starts under "Alle Aufgaben". The cards an existing board
  *   already holds stay where they are (#387: the app moves no card by itself). Todoist is mocked at its API (no stub server).
  * - Notion (stub): with a "not planned" status mapped, a put-back writes that status and a plan writes "today";
  *   the settings' Status tab holds the mapping.
@@ -17,7 +17,7 @@ const column = (page: Page, key: string) => page.locator(`#column-${key}-list`)
 const notPlanned = (page: Page) => page.locator('#column-not-planned')
 const menuOf = async (page: Page, title: string) => page.locator('.task-wrapper', { hasText: title }).first().click({ button: 'right' })
 
-test.describe('Todoist: a task seen for the first time starts under "Meine Aufgaben" (#357)', () => {
+test.describe('Todoist: a task seen for the first time starts under "Alle Aufgaben" (#357)', () => {
   const todoistTask = (id: string, title: string, status: 0 | 1 | 2 | 3): SeedTask => ({
     id, title, status, source: 'todoist', externalId: id, priority: 2, timeSpentSeconds: 0, timeBoxSeconds: null, topic: null,
     custom: {}, createdAt: NOW, updatedAt: NOW,
@@ -76,7 +76,7 @@ test.describe('Todoist: a task seen for the first time starts under "Meine Aufga
     { id: 't-new', content: 'Neu aus Todoist' },
   ]
 
-  test('existing board: every card stays where it is, only the new task starts under "Meine Aufgaben"; a plan survives the next sync and nothing is written', async ({ context, page }) => {
+  test('existing board: every card stays where it is, only the new task starts under "Alle Aufgaben"; a plan survives the next sync and nothing is written', async ({ context, page }) => {
     await seedTodoistBoard(context, BEFORE)
     const requests = await mockTodoist(page, UPSTREAM)
     await page.goto('/tasks')
@@ -106,7 +106,7 @@ test.describe('Todoist: a task seen for the first time starts under "Meine Aufga
     expect(requests.filter((request) => !request.startsWith('GET '))).toEqual([])
   })
 
-  test('a new connection: every task starts under "Meine Aufgaben"', async ({ context, page }) => {
+  test('a new connection: every task starts under "Alle Aufgaben"', async ({ context, page }) => {
     await seedTodoistBoard(context, [])
     await mockTodoist(page, UPSTREAM)
     await page.goto('/all')
@@ -122,18 +122,18 @@ test.describe('Notion: statuses that mean "not planned" (#357)', () => {
     request.url().includes('/api/notion/update-task') && request.method() === 'PATCH')
   const writtenStatus = (request: Request) => (request.postDataJSON() as { properties: { Status: { select: { name: string } } } }).properties.Status.select.name
 
-  test('"Nicht heute" writes the first mapped status, the arrow writes "today"; both survive a reload', async ({ context, page }) => {
+  test('"Nicht für heute planen" writes the first mapped status, the arrow writes "today"; both survive a reload', async ({ context, page }) => {
     await seedNotionBoard(context, undefined, withMapping)
     await page.goto('/tasks')
     await expect(column(page, 'open').getByText(TITLE)).toBeVisible()
 
     const back = statusWrite(page)
     await menuOf(page, TITLE)
-    await page.getByRole('menuitem', { name: 'Nicht heute' }).click()
+    await page.getByRole('menuitem', { name: 'Nicht für heute planen' }).click()
     expect(writtenStatus(await back)).toBe('Backlog')
     await expect(column(page, 'open').getByText(TITLE)).toHaveCount(0)
 
-    // Notion now holds the page as Backlog: the next sync keeps it under "Meine Aufgaben"
+    // Notion now holds the page as Backlog: the next sync keeps it under "Alle Aufgaben"
     await page.goto('/all')
     await expect(notPlanned(page).getByText(TITLE)).toBeVisible()
     await page.reload()
@@ -149,7 +149,7 @@ test.describe('Notion: statuses that mean "not planned" (#357)', () => {
     await expect(notPlanned(page).getByText(TITLE)).toHaveCount(0)
   })
 
-  test('without the mapping "Nicht heute" writes nothing to Notion', async ({ context, page }) => {
+  test('without the mapping "Nicht für heute planen" writes nothing to Notion', async ({ context, page }) => {
     await seedNotionBoard(context)
     await page.goto('/tasks')
     await expect(column(page, 'open').getByText(TITLE)).toBeVisible()
@@ -158,7 +158,7 @@ test.describe('Notion: statuses that mean "not planned" (#357)', () => {
       if (request.url().includes('/api/notion/') && request.method() !== 'GET' && !request.url().includes('query-data-source')) writes.push(request.url())
     })
     await menuOf(page, TITLE)
-    await page.getByRole('menuitem', { name: 'Nicht heute' }).click()
+    await page.getByRole('menuitem', { name: 'Nicht für heute planen' }).click()
     await expect(column(page, 'open').getByText(TITLE)).toHaveCount(0)
     // without a reload: the seed would put the card back, and Notion still holds it as "Today"
     await page.getByRole('link', { name: 'Alle', exact: true }).click()

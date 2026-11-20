@@ -380,7 +380,7 @@ test.describe('Task Detail View', () => {
     await expect.soft(page.getByText('Dies sind Testnotizen'), 'shows notes section with content: text').toBeVisible();
 
     // Task 1 is planned (isUnplanned: false)
-    // In the sheet: the board page also holds the headline "Meine Aufgaben" of the place "Alle" (#354), not shown on Heute
+    // In the sheet: the board page also holds the headline "Alle Aufgaben" of the place "Alle" (#354), not shown on Heute
     await expect.soft(page.getByRole('dialog').getByText('Geplant').first(), 'shows planned status for planned task').toBeVisible();
     // Task 1 has topic "Development"
     await expect.soft(page.getByText('Development').first(), 'shows topic badge when topic is set').toBeVisible();

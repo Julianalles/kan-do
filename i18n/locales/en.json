@@ -33,7 +33,7 @@
       "stackRoleDescription": "Draggable stack",
       "stackInstructions": "Press Enter to open the stack. Press Space to pick up the whole stack, arrow keys to move it, Space to drop, Escape to cancel.",
       "pickedUpStack": "Picked up stack “{title}” in column {column}, position {position}. It moves with all its tasks.",
-      "swapOver": "“{title}” over “{running}” in Now. Dropping switches them: “{running}” moves to Waiting.",
+      "swapOver": "“{title}” over “{running}” in Now. Dropping swaps them: “{running}” moves to Waiting.",
       "swapped": "“{title}” dropped in Now. “{running}” moved to Waiting."
     },
     "quickAdd": {
@@ -85,10 +85,10 @@
       "ackLabel": "Seen, put {n} done task away | Seen, put {n} done tasks away"
     },
     "capacity": {
-      "label": "Capacity",
+      "label": "Your capacity",
       "help": "This is probably how much you'll get done today. Plan important tasks above it.",
       "infoLabel": "How is this estimated?",
-      "info": "Kan-Do learns and adapts: the more often you use the board, the more accurate this estimate gets.",
+      "info": "Kan-do learns and adapts: the more often you use the board, the more accurate this estimate gets.",
       "infoSet": "This estimate is based on the working hours you set in Settings. Work tracked today is subtracted.",
       "infoEstimates": "A task without a timebox counts as long as similar done tasks took. With too few similar tasks, it counts as 30 minutes."
     },
@@ -130,7 +130,7 @@
       "refusedReason": "Now holds at most one task. Move the current one to Waiting or Done first."
     },
     "swap": {
-      "title": "Task switched",
+      "title": "Task swapped",
       "description": "“{running}” is running, “{waiting}” is waiting"
     },
     "focus": {
@@ -143,12 +143,12 @@
       "end": "Clear topic"
     },
     "notPlanned": {
-      "title": "My tasks",
+      "title": "All tasks",
       "heading": "All",
       "plan": "Plan for today",
       "planNamed": "{title}: plan for today",
-      "notToday": "Not today",
-      "notTodayNamed": "{title}: not today",
+      "notToday": "Don't plan for today",
+      "notTodayNamed": "{title}: don't plan for today",
       "empty": "No more tasks.",
       "create": "Create task",
       "noMatch": "No tasks found.",
@@ -156,24 +156,24 @@
       "planned": "{title} is planned for today.",
       "unplanned": "{title} is no longer planned for today.",
       "unplannedStack": "Stack “{title}” is no longer planned for today.",
-      "dragOver": "“{title}” over My tasks. Dropping takes the task off today.",
-      "dragBack": "“{title}” stays in My tasks.",
+      "dragOver": "“{title}” over “All tasks”. Dropping takes the task off today.",
+      "dragBack": "“{title}” stays in “All tasks”.",
       "capacityFull": "With this your day is probably full.",
       "capacityBelow": "Your day is probably full. One task is below the line. | Your day is probably full. {n} tasks are below the line.",
-      "groupBoardYesterday": "On the board yesterday",
+      "groupBoardYesterday": "Last planned and not done",
       "groupOthers": "More tasks"
     },
     "yesterdayUnderAll": "One task from yesterday is under {all}. | {n} tasks from yesterday are under {all}.",
     "newDayNote": {
       "title": "The board still shows yesterday's plan.",
-      "description": "“Replan the day” puts everything that isn't done back under “My tasks”.",
+      "description": "“Replan the day” puts everything that isn't done back under “All tasks”.",
       "start": "Replan the day",
       "close": "Close",
-      "started": "One task is now under “My tasks”. | {n} tasks are now under “My tasks”."
+      "started": "One task is now under “All tasks”. | {n} tasks are now under “All tasks”."
     },
     "newDayTimeNote": {
       "title": "Timer ran on for {duration} after midnight",
-      "description": "Kan-Do wasn't in focus. The time is still on the task.",
+      "description": "Kan-do wasn't in focus. The time is still on the task.",
       "takeOff": "Subtract time",
       "keep": "Keep time",
       "tookOff": "{duration} subtracted from the task.",
@@ -202,15 +202,15 @@
     "all": "All"
   },
   "menu": {
-    "app": "Kan-Do",
-    "about": "About Kan-Do",
+    "app": "Kan-do",
+    "about": "About Kan-do",
     "checkUpdates": "Check for updates…",
     "settings": "Settings…",
     "services": "Services",
-    "hide": "Hide Kan-Do",
+    "hide": "Hide Kan-do",
     "hideOthers": "Hide others",
     "showAll": "Show all",
-    "quit": "Quit Kan-Do",
+    "quit": "Quit Kan-do",
     "file": "File",
     "newTask": "New task",
     "dayClose": "Close the day…",
@@ -293,7 +293,7 @@
       "set": "+ Set date"
     },
     "doneDay": {
-      "localOnly": "Applies only in Kan-Do."
+      "localOnly": "Applies only in Kan-do."
     },
     "detail": {
       "notesEmpty": "Add a note…",
@@ -347,7 +347,7 @@
         "waiting": "Waiting",
         "done": "Done"
       },
-      "notToday": "Not today"
+      "notToday": "Don't plan for today"
     },
     "carryOver": {
       "label": "Planned on {n} days",
@@ -367,16 +367,16 @@
       "suggest": "Suggestion {n} min"
     },
     "reminders": {
-      "planned": "{title} is planned for today. In Reminders now today instead of {date}.",
-      "plannedNoTime": "{title} is planned for today. In Reminders now today instead of {date}, without a time.",
-      "plannedNoDate": "{title} is planned for today. In Reminders now today.",
-      "plannedNoDateNoTime": "{title} is planned for today. In Reminders now today, without a time.",
+      "planned": "{title} is planned for today. In Apple Reminders now today instead of {date}.",
+      "plannedNoTime": "{title} is planned for today. In Apple Reminders now today instead of {date}, without a time.",
+      "plannedNoDate": "{title} is planned for today. In Apple Reminders now today.",
+      "plannedNoDateNoTime": "{title} is planned for today. In Apple Reminders now today, without a time.",
       "plannedRecurring": "{title} is planned for today. The date stays, the task repeats.",
-      "putBack": "{title} is no longer planned for today. In Reminders it still says today.",
+      "putBack": "{title} is no longer planned for today. In Apple Reminders it still says today.",
       "restoreDate": "Restore old date: {date}",
       "hint": {
-        "putBack": "Due today in Reminders, put back here",
-        "planned": "You chose it for today in Reminders",
+        "putBack": "Due today in Apple Reminders, put back here",
+        "planned": "You chose it for today in Apple Reminders",
         "repeats": "Repeats {rule}"
       },
       "rule": {
@@ -396,13 +396,13 @@
       "local": "Local",
       "notion": "Notion",
       "todoist": "Todoist",
-      "reminders": "Reminders"
+      "reminders": "Apple Reminders"
     }
   },
   "statistics": {
     "taskCount": "{n} task | {n} tasks",
     "pageTitle": "Statistics",
-    "headTitle": "Statistics {'|'} Kan-Do",
+    "headTitle": "Statistics {'|'} Kan-do",
     "backfillAdded": "{n} archived task added to statistics. | {n} archived tasks added to statistics.",
     "notAvailable": "N/A",
     "noTopic": "No topic",
@@ -548,7 +548,7 @@
       "lineOutside": "{share}% of your time falls before {first}:00 or after {last}:00.",
       "lineStartWorkdays": "On weekdays you usually start at {time}.",
       "lineStart": "You usually start at {time}.",
-      "thin": "Not enough data yet. Kan-Do now keeps track of when the timer runs. After five days with tracked time, your rhythm shows up here.",
+      "thin": "Not enough data yet. Kan-do now keeps track of when the timer runs. After five days with tracked time, your rhythm shows up here.",
       "days": "{n} of {min} days",
       "heading": "Average per hour, last 8 weeks",
       "less": "less",
@@ -602,8 +602,8 @@
       "warning": "Warning"
     },
     "configuration": "The settings are invalid. Check them.",
-    "integrationSetupMissing": "No integration set up yet. Set one up in the settings.",
-    "integrationNotSupported": "Integration not supported.",
+    "integrationSetupMissing": "No connection set up yet. Set one up in the settings.",
+    "integrationNotSupported": "Connection not supported.",
     "notionNotConfigured": "Notion isn't set up. Set up Notion in the settings.",
     "notionTokenInvalid": "Notion token is invalid. Check your token.",
     "notionDatabaseNotFound": "Notion database not found. Choose a valid database.",
@@ -637,10 +637,10 @@
     "externalLinkFailed": "The link couldn't be opened.",
     "feedbackFailed": "The feedback couldn't be sent. Your draft is kept.",
     "taskRestoreFailed": "The task couldn't be restored and stays in the trash.",
-    "remindersAccessDenied": "Kan-Do isn't allowed to read Reminders. Allow access in the macOS system settings.",
-    "remindersSyncFailed": "The sync with Reminders couldn't be completed.",
-    "remindersWriteFailed": "The old date couldn't be restored. Change the date in Reminders.",
-    "remindersWriteChanged": "The old date couldn't be restored. Reminders holds a different date now. Change it there if needed."
+    "remindersAccessDenied": "Kan-do isn't allowed to read Apple Reminders. Allow access in the macOS system settings.",
+    "remindersSyncFailed": "The sync with Apple Reminders couldn't be completed.",
+    "remindersWriteFailed": "The old date couldn't be restored. Change the date in Apple Reminders.",
+    "remindersWriteChanged": "The old date couldn't be restored. Apple Reminders holds a different date now. Change it there if needed."
   },
   "notion": {
     "modal": {
@@ -680,7 +680,7 @@
       "allDataSourcesUsed": "All data sources of this database are included automatically.",
       "unnamedDataSource": "Unnamed data source",
       "note": {
-        "description": "Kan-Do expects an existing task database. None yet? Create it in Notion first, then come back.",
+        "description": "Kan-do expects an existing task database. None yet? Create it in Notion first, then come back.",
         "required": "Required",
         "optional": "Optional",
         "title": "Title",
@@ -693,7 +693,7 @@
       }
     },
     "customProps": {
-      "intro": "Select additional fields from your Notion database for Kan-Do to import (read-only).",
+      "intro": "Select additional fields from your Notion database for Kan-do to import (read-only).",
       "keyLabel": "Key: {key}",
       "labelPlaceholder": "Label (optional)",
       "empty": "No additional fields found. You've already mapped the most important properties."
@@ -712,7 +712,7 @@
       }
     },
     "statusMap": {
-      "intro": "Map the Kan-Do status values to the matching options of your Notion status field.",
+      "intro": "Map the Kan-do status values to the matching options of your Notion status field.",
       "today": {
         "label": "Today",
         "help": "Tasks that should be done today.",
@@ -735,18 +735,18 @@
       },
       "archive": {
         "label": "Archived",
-        "help": "Optional status Kan-Do sets in Notion when you put done tasks away with “Seen”.",
+        "help": "Optional status Kan-do sets in Notion when you put done tasks away with “Seen”.",
         "placeholder": "Select status for archived tasks"
       },
       "notPlanned": {
         "label": "Not planned",
-        "help": "Notion statuses that mean “not planned”. These tasks are under “All”, in “My tasks”. When you put a task back, Kan-Do sets the status you chose first. The {n} most recently edited are loaded.",
+        "help": "Notion statuses that mean “not planned”. These tasks are under “All”. When you put a task back, Kan-do sets the status you chose first. The {n} most recently edited are loaded.",
         "placeholder": "Select statuses"
       },
       "duplicates": "The following status values are mapped more than once: {values}"
     },
     "priorityMap": {
-      "intro": "Map the three Kan-Do priorities to the matching options of your Notion priority field. Several options can share one priority; Kan-Do writes the first one back.",
+      "intro": "Map the three Kan-do priorities to the matching options of your Notion priority field. Several options can share one priority; Kan-do writes the first one back.",
       "high": {
         "label": "High",
         "help": "Important tasks. Options like 'Urgent' belong here too.",
@@ -871,17 +871,17 @@
         "failed": "Invalid token or connection failed"
       },
       "properties": {
-        "description": "Mapping of Notion fields to Kan-Do task properties"
+        "description": "Mapping of Notion fields to Kan-do task properties"
       },
       "custom": {
-        "description": "Additional Notion properties to show in Kan-Do"
+        "description": "Additional Notion properties to show in Kan-do"
       },
       "priority": {
-        "description": "Mapping of priority values between Notion and Kan-Do"
+        "description": "Mapping of priority values between Notion and Kan-do"
       },
       "status": {
         "title": "Status mapping",
-        "description": "Mapping of status values between Notion and Kan-Do"
+        "description": "Mapping of status values between Notion and Kan-do"
       }
     }
   },
@@ -892,7 +892,7 @@
     "tabs": {
       "label": "Groups",
       "board": "Board",
-      "sources": "Task storage",
+      "sources": "Storage locations",
       "manage": "System",
       "lead": {
         "board": "Choose how your board behaves.",
@@ -902,7 +902,7 @@
       },
       "heading": {
         "board": "Focus and working hours",
-        "manage": "Management"
+        "manage": "System"
       }
     },
     "focus": {
@@ -926,7 +926,7 @@
       },
       "feedback": {
         "title": "Feedback",
-        "purpose": "Lets you send feedback as a GitHub issue.",
+        "purpose": "Lets you send feedback through GitHub.",
         "access": "Issues + Contents: write, this repository only.",
         "permission": "Issues"
       },
@@ -970,7 +970,7 @@
       "pageTitle": "Data & storage",
       "pageDescription": "Backups, export and import, and resetting the app.",
       "link": "Data & storage",
-      "movedToConnections": "Find the data folder and its status under Task storage › Local.",
+      "movedToConnections": "Find the data folder and its status under Storage locations › Local.",
       "movedLink": "Go to the data folder",
       "folderHeading": "Data folder",
       "folderPath": "Data folder: {path}",
@@ -1130,7 +1130,7 @@
         "importConfirm": "Import",
         "importFailed": "The import couldn't be completed. Details: {error}",
         "invalid": "This isn't a valid JSON file.",
-        "notKando": "This isn't a Kan-Do export file.",
+        "notKando": "This isn't a Kan-do export file.",
         "newerSchema": "This file comes from a newer app version. Update the app.",
         "unreadable": "The file couldn't be read.",
         "webConfirm": "Replace data",
@@ -1171,7 +1171,7 @@
       "link": "Version & updates",
       "whatsNew": "What's new",
       "versionHeading": "Version",
-      "versionLine": "Kan-Do {version}",
+      "versionLine": "Kan-do {version}",
       "check": "Check for updates",
       "retry": "Try again",
       "details": "Install update…",
@@ -1227,7 +1227,7 @@
       "tabTopics": "Topics",
       "tabActivities": "Activities",
       "tabsLabel": "Kind",
-      "introTopics": "The name, color and symbol of a topic change for all tasks. Color and symbol apply only in Kan-Do. Names from Notion are changed in Notion.",
+      "introTopics": "The name, color and symbol of a topic change for all tasks. Color and symbol apply only in Kan-do. Names from Notion are changed in Notion.",
       "introActivities": "The name of an activity changes for all tasks. Names from Notion are changed in Notion.",
       "taskCount": "{n} task | {n} tasks",
       "fromNotion": "from Notion",
@@ -1239,27 +1239,27 @@
       "editRow": "Edit {name}"
     },
     "floatingNow": {
-      "label": "Floating timer",
+      "label": "Floating focus timer",
       "help": "Shows your task in “Now” together with a timer in its own small window that's always visible."
     },
     "reminders": {
-      "pageTitle": "Reminders settings",
+      "pageTitle": "Apple Reminders settings",
       "pageDescription": "Change what you chose during setup any time.",
-      "pageDescriptionNew": "Connect Apple Reminders to Kan-Do.",
+      "pageDescriptionNew": "Connect Apple Reminders to Kan-do.",
       "lists": "Lists",
       "today": "Today",
       "access": "Access",
-      "accessGranted": "Kan-Do can access Reminders.",
+      "accessGranted": "Kan-do can access Apple Reminders.",
       "openSettings": "Open System Settings",
       "disconnect": "Disconnect",
       "repair": "Repair connection",
       "listsLoading": "Loading lists…",
       "listsFailed": "The lists could not be loaded. Check the access.",
-      "listsNoAccess": "Without access, Kan-Do can't see your lists. Allow it below under Access.",
+      "listsNoAccess": "Without access, Kan-do can't see your lists. Allow it below under Access.",
       "excludeTitle": "Stop reading {list}?",
-      "excludeLeaving": "{n} task leaves Kan-Do | {n} tasks leave Kan-Do",
+      "excludeLeaving": "{n} task leaves Kan-do | {n} tasks leave Kan-do",
       "excludeOnBoard": "{m} of them is on today's board. | {m} of them are on today's board.",
-      "excludeStays": "Everything in Reminders stays as it is.",
+      "excludeStays": "Everything in Apple Reminders stays as it is.",
       "excludeConfirm": "Stop reading",
       "excludeCancel": "Cancel"
     }
@@ -1283,10 +1283,10 @@
       "syncFirst": "Sync first, then disconnect"
     },
     "page": {
-      "title": "Connections",
+      "title": "Storage locations",
       "description": "Where your tasks live and where new tasks go.",
-      "connectedHeading": "Your connections",
-      "help": "When adding a task, you can choose another connection, and you can move tasks at any time.",
+      "connectedHeading": "Your storage locations",
+      "help": "When adding a task, you can choose another storage location, and you can move tasks at any time.",
       "moreHeading": "Connect an app",
       "soon": "coming soon",
       "macOnly": "Mac app only"
@@ -1350,16 +1350,16 @@
       "local": {
         "label": "Start locally",
         "title": "Connect an app?",
-        "intro": "Now or later, you can connect the apps where you organize your tasks. You can also use Kan-Do with only the local storage on your device.",
+        "intro": "Now or later, you can connect the apps where you organize your tasks. You can also use Kan-do with only the local storage on your device.",
         "confirm": "Go to the board",
         "legend": "You can connect one or more",
         "notion": "Notion",
         "todoist": "Todoist",
         "confirmNotion": "Set up Notion",
-        "reminders": "Reminders",
+        "reminders": "Apple Reminders",
         "remindersWebOnly": "Mac app only",
-        "confirmReminders": "Set up with Reminders",
-        "confirmRemindersNotion": "Continue with Reminders and Notion",
+        "confirmReminders": "Set up with Apple Reminders",
+        "confirmRemindersNotion": "Continue with Apple Reminders and Notion",
         "notionHint": "Tasks from a database",
         "remindersHint": "Tasks from your lists",
         "todoistSoon": "Coming soon"
@@ -1367,7 +1367,7 @@
       "samples": {
         "label": "Start with sample tasks",
         "title": "Sample tasks",
-        "intro": "The board is filled with sample data, so you can see and try out much of what Kan-Do does right away.",
+        "intro": "The board is filled with sample data, so you can see and try out much of what Kan-do does right away.",
         "resetNote": "You can reset the app in the settings at any time to start with your own tasks and your own statistics.",
         "confirm": "View board"
       },
@@ -1379,8 +1379,8 @@
         "start": "Continue",
         "intro": {
           "diagramNotion": "Notion",
-          "diagramKanDo": "Kan-Do",
-          "sentence": "Your tasks stay in Notion. Kan-Do shows them as a board and saves changes back there.",
+          "diagramKanDo": "Kan-do",
+          "sentence": "Your tasks stay in Notion. Kan-do shows them as a board and saves changes back there.",
           "needs": "What you need",
           "account": "Notion account",
           "database": "Task database",
@@ -1397,8 +1397,8 @@
         "status-mapping": "Last: which Notion status belongs to which column. Then you're set."
       },
       "reminders": {
-        "label": "Connect with Reminders",
-        "connected": "Reminders is connected",
+        "label": "Connect with Apple Reminders",
+        "connected": "Apple Reminders is connected",
         "loadingBoard": "Your board loads today's tasks.",
         "connect": "Connect",
         "toNotion": "Continue to Notion",
@@ -1409,18 +1409,18 @@
           "today": "Today"
         },
         "help": {
-          "access": "macOS asks only once. Kan-Do changes nothing until you plan something.",
+          "access": "macOS asks only once. Kan-do changes nothing until you plan something.",
           "lists": "You can change this later in Settings.",
-          "today": "How Kan-Do uses the date.",
+          "today": "How Kan-do uses the date.",
           "todayNotion": "Notion is next."
         },
         "access": {
-          "intro": "Kan-Do reads your Reminders and shows today's on the board. macOS will ask for your permission first.",
+          "intro": "Kan-do reads your Reminders and shows today's on the board. macOS will ask for your permission first.",
           "previewLabel": "What you'll see next",
-          "previewText": "“Kan-Do reads your Reminders, shows today's on the board and sets the date when you plan something for today.”",
+          "previewText": "“Kan-do reads your Reminders, shows today's on the board and sets the date when you plan something for today.”",
           "whyTitle": "Why full access?",
-          "whyText": "macOS offers only all or nothing for Reminders. Kan-Do reads your tasks, sets the date when you plan something for today, and ticks off what you finish.",
-          "neverTitle": "What Kan-Do never does",
+          "whyText": "macOS offers only all or nothing for Reminders. Kan-do reads your tasks, sets the date when you plan something for today, and ticks off what you finish.",
+          "neverTitle": "What Kan-do never does",
           "neverText": "Change titles or notes, create or delete tasks, change lists, or send anything to a server. It does not read lists you switch off.",
           "laterTitle": "Change it later",
           "laterText": "System Settings › Privacy & Security › Reminders.",
@@ -1428,37 +1428,37 @@
           "recheck": "Check again",
           "retry": "Try again",
           "listsFailedTitle": "The lists couldn't be read.",
-          "listsFailedText": "Access is granted, but Reminders didn't return any lists. Try again.",
+          "listsFailedText": "Access is granted, but Apple Reminders didn't return any lists. Try again.",
           "openSettings": "Open System Settings",
           "waiting": "macOS is asking. Answer in the macOS window.",
-          "granted": "Access granted. Kan-Do sees {n} list. | Access granted. Kan-Do sees {n} lists.",
-          "deniedTitle": "Kan-Do has no access.",
-          "deniedText": "Allow it in System Settings under Privacy & Security › Reminders. Kan-Do then checks again."
+          "granted": "Access granted. Kan-do sees {n} list. | Access granted. Kan-do sees {n} lists.",
+          "deniedTitle": "Kan-do has no access.",
+          "deniedText": "Allow it in System Settings under Privacy & Security › Reminders. Kan-do then checks again."
         },
         "lists": {
           "lead": "What does each list mean to you? Topic is the default. Switch off lists you don't need.",
-          "groupLabel": "Reminders lists",
+          "groupLabel": "Apple Reminders lists",
           "choiceLabel": "{list} counts as",
           "topic": "Topic",
           "activity": "Activity",
           "off": "Off",
           "open": "{n} open",
           "notRead": "Not read",
-          "help": "Topic: what it is about, such as taxes or housing. Activity: how you work, such as calls. Off: Kan-Do doesn't read the list, and it stays as it is in Reminders.",
+          "help": "Topic: what it is about, such as taxes or housing. Activity: how you work, such as calls. Off: Kan-do doesn't read the list, and it stays as it is in Apple Reminders.",
           "empty": "All lists are off. Set at least one to Topic or Activity.",
-          "none": "Reminders has no list yet. Create one there, then check again.",
+          "none": "Apple Reminders has no list yet. Create one there, then check again.",
           "loading": "Loading lists…"
         },
         "today": {
-          "lead": "The date in Reminders decides what lands on your board today.",
+          "lead": "The date in Apple Reminders decides what lands on your board today.",
           "tableLabel": "Date and board",
           "rowToday": "Today",
           "rowEarlier": "Yesterday or earlier",
           "rowLater": "Tomorrow or later",
           "rowNone": "No date",
           "onBoard": "On the board",
-          "inMyTasks": "In My tasks",
-          "writes": "When you plan a task for today in Kan-Do, Kan-Do sets its date to today. Time and alerts stay. Undo in the notice restores the old date."
+          "inMyTasks": "In “All tasks”",
+          "writes": "When you plan a task for today in Kan-do, Kan-do sets its date to today. Time and alerts stay. Undo in the notice restores the old date."
         }
       }
     }
@@ -1477,7 +1477,7 @@
     "groupApp": "App",
     "groupCard": "Task",
     "groupMove": "Move: {title}",
-    "groupSource": "Connection",
+    "groupSource": "Storage location",
     "moveTo": "Move to {column}",
     "moveToSource": "Move to {source}",
     "progressFull": "Now taken",
@@ -1501,7 +1501,7 @@
     "openAll": "Open All"
   },
   "recap": {
-    "title": "Quick look back",
+    "title": "Daily recap",
     "summary": {
       "partial": "You got {n} of {m} tasks done {when}.",
       "all": "You got all tasks done {when}."
@@ -1569,10 +1569,10 @@
     "dialog": {
       "title": "Version {version} is available",
       "titleFallback": "Update",
-      "description": "Install the update and restart Kan-Do.",
+      "description": "Install the update and restart Kan-do.",
       "current": "You're on {version}.",
       "sinceVersion": "New since your version ({version}):",
-      "backupNote": "Before installing, Kan-Do backs up your data. Then the app restarts.",
+      "backupNote": "Before installing, Kan-do backs up your data. Then the app restarts.",
       "later": "Later",
       "install": "Install and restart",
       "retry": "Try again",
@@ -1606,7 +1606,7 @@
     "discardDraft": "Delete draft",
     "review": {
       "title": "Review and send",
-      "intro": "This goes exactly like this as a public issue to {repo}. Nothing leaves the app before that.",
+      "intro": "This goes exactly like this as public feedback to {repo}. Nothing leaves the app before that.",
       "contextHeading": "What's sent along",
       "itemElement": "Element: {name}",
       "itemEnvironment": "Route, window, language",
@@ -1614,31 +1614,31 @@
       "itemLog": "Log (last lines)",
       "itemTaskTitle": "Insert task title",
       "itemTaskTitleHint": "Only the task id is sent by default.",
-      "previewHeading": "Issue text",
-      "send": "Send as issue",
-      "sending": "Creating issue…",
+      "previewHeading": "Feedback text",
+      "send": "Send as feedback",
+      "sending": "Creating feedback…",
       "retry": "Try again",
       "openInBrowser": "Open in browser",
       "openOnGithub": "Open on GitHub",
-      "introBrowser": "Kan-Do opens GitHub in your browser with this text. There you send it yourself as a public issue to {repo}, signed in with your GitHub account. Nothing leaves the app before that.",
+      "introBrowser": "Kan-do opens GitHub in your browser with this text. There you send it yourself as public feedback to {repo}, signed in with your GitHub account. Nothing leaves the app before that.",
       "itemScreenshot": "Screenshot",
       "delivery": {
-        "upload": "Uploaded with the issue.",
-        "clipboardIssue": "The token may not store files: the image goes to the clipboard and the issue is created without it.",
-        "clipboardUrl": "The image goes to the clipboard. Paste it into the issue on GitHub with ⌘V.",
+        "upload": "Uploaded with the feedback.",
+        "clipboardIssue": "The token may not store files: the image goes to the clipboard and the feedback is created without it.",
+        "clipboardUrl": "The image goes to the clipboard. Paste it into the feedback on GitHub with ⌘V.",
         "relay": "Sent with the feedback."
       },
       "uploading": "Uploading image…",
-      "creating": "Creating issue…",
+      "creating": "Creating feedback…",
       "sendWithoutImage": "Send without image",
-      "introRelay": "This goes to the Kan-Do team exactly as shown and isn't published. Nothing leaves the app before that.",
+      "introRelay": "This goes to the Kan-do developers exactly as shown and isn't published. Nothing leaves the app before that.",
       "previewHeadingRelay": "Feedback text",
       "sendRelay": "Send feedback",
       "sendingRelay": "Sending feedback…"
     },
     "fallback": {
-      "rejected": "GitHub rejected the feedback token. Kan-Do opens the issue on GitHub in your browser instead.",
-      "rejectedCli": "GitHub rejected the token of the GitHub CLI. Kan-Do opens the issue on GitHub in your browser instead. Sign in again with “gh auth login” and restart Kan-Do.",
+      "rejected": "GitHub rejected the feedback token. Kan-do opens the feedback on GitHub in your browser instead.",
+      "rejectedCli": "GitHub rejected the token of the GitHub CLI. Kan-do opens the feedback on GitHub in your browser instead. Sign in again with “gh auth login” and restart Kan-do.",
       "accessLink": "GitHub access",
       "trimmed": "Shortened to fit the link: {parts}.",
       "trimmedLog": "log excerpt",
@@ -1649,8 +1649,8 @@
       "offline": "No connection. Your draft is kept.",
       "blocked": "GitHub declined the request (limit or permissions). Try again later. Your draft is kept.",
       "server": "GitHub is having trouble right now. Try again in a moment. Your draft is kept.",
-      "unexpected": "The issue couldn't be created. Your draft is kept.",
-      "uploadDenied": "The image couldn't be uploaded. It goes to the clipboard and the issue is created without it. Your draft is kept.",
+      "unexpected": "The feedback couldn't be created. Your draft is kept.",
+      "uploadDenied": "The image couldn't be uploaded. It goes to the clipboard and the feedback is created without it. Your draft is kept.",
       "clipboardFailed": "The image couldn't be copied to the clipboard. You can take it again in the browser.",
       "relayBlocked": "Too much feedback is arriving right now. Try again later. Your draft is kept.",
       "relayServer": "The feedback couldn't be sent right now. Try again in a moment. Your draft is kept.",
@@ -1658,7 +1658,7 @@
       "relayDown": "Sending directly isn't possible right now. Open the feedback on GitHub instead. Your draft is kept.",
       "relayImageTooLarge": "The screenshot is too large to send. Clear its checkbox above and send again. Your draft is kept."
     },
-    "sentToast": "Thanks, your feedback is now issue #{number}.",
+    "sentToast": "Thanks, your feedback is saved as #{number}.",
     "picker": {
       "region": "Element picker",
       "hint": "Click an element. ↑ larger, ↓ smaller, Esc cancels",
@@ -1675,7 +1675,7 @@
       "tooLarge": "The screenshot is too large. The rest of the report still works.",
       "preview": "Screenshot preview, {n} mark | Screenshot preview, {n} marks",
       "previewFinal": "Screenshot, ready to send",
-      "branchReadme": "Screenshots from the in-app feedback of Kan-Do. This branch isn't cleaned up.",
+      "branchReadme": "Screenshots from the in-app feedback of Kan-do. This branch isn't cleaned up.",
       "clipboardFailedToast": "The image couldn't be copied to the clipboard."
     },
     "annotate": {
@@ -1692,11 +1692,11 @@
       "done": "Done",
       "back": "Back"
     },
-    "public": "Your feedback becomes a public issue on GitHub.",
+    "public": "Your feedback becomes publicly visible on GitHub.",
     "publicAccount": "Sending it needs a GitHub account.",
-    "openedToast": "GitHub is open in your browser. Send the issue there.",
-    "openedToastImage": "GitHub is open in your browser. Paste the screenshot with ⌘V, then send the issue.",
-    "private": "Your feedback goes straight to the Kan-Do team. It isn't published.",
+    "openedToast": "GitHub is open in your browser. Send the feedback there.",
+    "openedToastImage": "GitHub is open in your browser. Paste the screenshot with ⌘V, then send the feedback.",
+    "private": "Your feedback goes straight to the Kan-do developers. It isn't published.",
     "sentRelayToast": "Thanks, your feedback has arrived."
   },
   "trash": {
@@ -1773,14 +1773,14 @@
       "titleTopic": "Edit topic",
       "titleActivity": "Edit activity",
       "name": "Name",
-      "nameGate": "The name comes from Notion. Rename it in Notion, Kan-Do picks it up on the next sync.",
+      "nameGate": "The name comes from Notion. Rename it in Notion, Kan-do picks it up on the next sync.",
       "mergeTopic": "“{name}” already exists. Both are merged, the color and symbol of “{name}” stay.",
       "mergeActivity": "“{name}” already exists. Both are merged.",
       "color": "Color",
       "colorNone": "No color",
-      "colorInherited": "Without a choice of your own, Kan-Do shows the color from Notion ({hue}).",
-      "colorInheritedFromTasks": "Without a choice of your own, Kan-Do shows the color of the tasks ({hue}).",
-      "colorLocalOnly": "Applies only in Kan-Do, Notion keeps {hue}.",
+      "colorInherited": "Without a choice of your own, Kan-do shows the color from Notion ({hue}).",
+      "colorInheritedFromTasks": "Without a choice of your own, Kan-do shows the color of the tasks ({hue}).",
+      "colorLocalOnly": "Applies only in Kan-do, Notion keeps {hue}.",
       "symbol": "Symbol",
       "symbolNone": "No symbol",
       "symbolButton": "Symbol: {value}",
@@ -1788,7 +1788,7 @@
       "unusedActivity": "No task uses this activity yet.",
       "appliesTo": "Applies to {n} task | Applies to {n} tasks",
       "appliesToAll": "Applies to {n} task, done and archived ones too | Applies to {n} tasks, done and archived ones too",
-      "stayLocal": "Color and symbol stay in Kan-Do.",
+      "stayLocal": "Color and symbol stay in Kan-do.",
       "save": "Save",
       "merge": "Merge",
       "cancel": "Cancel"
@@ -1802,7 +1802,7 @@
   },
   "nowWindow": {
     "region": "Task in Now",
-    "open": "Open Kan-Do",
+    "open": "Open Kan-do",
     "pause": "Pause",
     "resume": "Resume",
     "done": "Mark as done",

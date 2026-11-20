@@ -56,7 +56,7 @@ Format and rules: `release-notes/README.md` (parser `lib/releaseNotesFormat.mjs`
 
 - **Highlights**: 1 to 5 bullets per language, same count in `### de` and `### en`, `- **Titel.** Ein Satz.`,
   only significant user-visible features and UX changes, merged where they belong together, no ticket
-  numbers. German first, in the app's voice and terms (Offen, Jetzt, Wartet, Erledigt, Verbindungen; look
+  numbers. German first, in the app's voice and terms (Offen, Jetzt, Wartet, Erledigt, Speicherorte; look
   up the UI wording in `i18n/locales/de.json`). Fix-only release: `None.`
 - Write the Highlights with the `release-copywriting` skill.
 - **Fixes**: one short English line per user-noticeable fix or smaller improvement, with `(#n)`.

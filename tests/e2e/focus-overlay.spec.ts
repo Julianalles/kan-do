@@ -496,8 +496,8 @@ test.describe('setting on /settings', () => {
     await page.goto('/settings')
     await expect(page.getByTestId('focus-switch')).toBeVisible()
     await expect(page.getByTestId('sources-connected')).toHaveCount(0)
-    await page.getByRole('tab', { name: 'Aufgabenspeicher' }).click()
-    await expect(page.getByRole('heading', { level: 2, name: 'Deine Verbindungen' })).toBeVisible()
+    await page.getByRole('tab', { name: 'Speicherorte' }).click()
+    await expect(page.getByRole('heading', { level: 2, name: 'Deine Speicherorte' })).toBeVisible()
   })
 })
 

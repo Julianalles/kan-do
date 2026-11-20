@@ -1,7 +1,7 @@
 /**
  * #553: the toasts of a task that is planned by its date (Apple Reminders). The plan toast comes after the write answered and
  * names the old date; "Rückgängig" restores it and puts the task back; a recurring plan says the date stays; the put-back
- * toast says Reminders still holds today and offers the old date once, only when kan-do wrote it and Reminders still says
+ * toast says Apple Reminders still holds today and offers the old date once, only when kan-do wrote it and Reminders still says
  * today. The adapter is a fake with compare-and-set semantics on the date.
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
@@ -94,22 +94,22 @@ describe('usePlanToasts (#553)', () => {
 
   it('after the write answered the toast names the old date and offers Rückgängig', async () => {
     await plan(reminder('a', '2026-11-25', '09:00'))
-    expect(lastToast().title).toBe('Reminder a ist für heute geplant. In Erinnerungen jetzt heute statt 25.11.2026.')
+    expect(lastToast().title).toBe('Reminder a ist für heute geplant. In Apple Erinnerungen jetzt heute statt 25.11.2026.')
     expect(lastToast().actions?.[0]?.label).toBe('Rückgängig')
     expect(lastToast().actions?.[0]?.closeOnClick).toBe(false)
   })
 
-  it('no old date: "In Erinnerungen jetzt heute, ohne Uhrzeit."; a date without a time: "…, ohne Uhrzeit"', async () => {
+  it('no old date: "In Apple Erinnerungen jetzt heute, ohne Uhrzeit."; a date without a time: "…, ohne Uhrzeit"', async () => {
     await plan(reminder('a', null, null))
-    expect(lastToast().title).toBe('Reminder a ist für heute geplant. In Erinnerungen jetzt heute, ohne Uhrzeit.')
+    expect(lastToast().title).toBe('Reminder a ist für heute geplant. In Apple Erinnerungen jetzt heute, ohne Uhrzeit.')
     await plan(reminder('b', '2026-11-25', null))
-    expect(lastToast().title).toBe('Reminder b ist für heute geplant. In Erinnerungen jetzt heute statt 25.11.2026, ohne Uhrzeit.')
+    expect(lastToast().title).toBe('Reminder b ist für heute geplant. In Apple Erinnerungen jetzt heute statt 25.11.2026, ohne Uhrzeit.')
   })
 
   it('the English copy reads from the same keys', async () => {
     setTestLocale('en')
     await plan(reminder('a', '2026-11-25', '09:00'))
-    expect(lastToast().title).toContain('is planned for today. In Reminders now today instead of')
+    expect(lastToast().title).toContain('is planned for today. In Apple Reminders now today instead of')
     expect(lastToast().actions?.[0]?.label).toBe('Undo')
   })
 
@@ -166,18 +166,18 @@ describe('usePlanToasts (#553)', () => {
       return ctx
     }
 
-    it('writes nothing; the toast says Reminders still holds today and offers the old date', async () => {
+    it('writes nothing; the toast says Apple Reminders still holds today and offers the old date', async () => {
       const { sync, toasts } = await planned('2026-11-25')
       const writes = vi.mocked(adapter.update).mock.calls.length
       expect(sync.unplanTask('a')).toBe(true)
       await toasts.afterPutBack('a')
-      expect(lastToast().title).toBe('Reminder a ist nicht mehr für heute geplant. In Erinnerungen steht sie weiter auf heute.')
+      expect(lastToast().title).toBe('Reminder a ist nicht mehr für heute geplant. In Apple Erinnerungen steht sie weiter auf heute.')
       expect(lastToast().actions?.[0]?.label).toBe('Altes Datum zurück: 25.11.2026')
       expect(bridge.date).toBe(TODAY)
       expect(vi.mocked(adapter.update).mock.calls.length).toBe(writes)
     })
 
-    it('a put-back while the plan\'s date write is in flight waits for it: Reminders ends up today, so the toast offers the old date', async () => {
+    it('a put-back while the plan\'s date write is in flight waits for it: Apple Reminders ends up today, so the toast offers the old date', async () => {
       bridge.date = '2026-11-25'
       bridge.time = '09:00'
       const store = useTasksStore()
@@ -200,12 +200,12 @@ describe('usePlanToasts (#553)', () => {
       release()
       await done
       expect(bridge.date).toBe(TODAY)
-      expect(lastToast().title).toBe('Reminder a ist nicht mehr für heute geplant. In Erinnerungen steht sie weiter auf heute.')
+      expect(lastToast().title).toBe('Reminder a ist nicht mehr für heute geplant. In Apple Erinnerungen steht sie weiter auf heute.')
       expect(lastToast().actions?.[0]?.label).toBe('Altes Datum zurück: 25.11.2026')
       expect(toastAddMock.mock.calls.filter(call => (call[0] as ToastArgs).id === 'plan-a')).toEqual([])
     })
 
-    it('tapping the offer writes the old date and leaves the task in "Meine Aufgaben"', async () => {
+    it('tapping the offer writes the old date and leaves the task in "Alle Aufgaben"', async () => {
       const { store, sync, toasts } = await planned('2026-11-25')
       sync.unplanTask('a')
       await toasts.afterPutBack('a')
@@ -240,13 +240,13 @@ describe('usePlanToasts (#553)', () => {
       expect(toastAddMock).not.toHaveBeenCalled()
     })
 
-    it('a put-back of a task Kan-Do never wrote: the message without an offer', async () => {
+    it('a put-back of a task Kan-do never wrote: the message without an offer', async () => {
       const store = useTasksStore()
       store.setTasks([reminder('b', TODAY, '09:00', { notPlanned: undefined, sourceNotPlanned: undefined })])
       const toasts = usePlanToasts()
       useTaskSync().unplanTask('b')
       await toasts.afterPutBack('b')
-      expect(lastToast().title).toContain('In Erinnerungen steht sie weiter auf heute.')
+      expect(lastToast().title).toContain('In Apple Erinnerungen steht sie weiter auf heute.')
       expect(lastToast().actions).toBeUndefined()
     })
   })

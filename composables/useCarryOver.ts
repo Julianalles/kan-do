@@ -57,7 +57,7 @@ export function useTaskCarryOver(task: MaybeRefOrGetter<Task | null | undefined>
 
   /**
    * Nudge only for Offen/Jetzt: waiting on someone else is legitimate. Never for a task that is not planned
-   * (#354): "Meine Aufgaben" is where the user put it to take it off the day, so the sheet must not ask whether a
+   * (#354): "Alle Aufgaben" is where the user put it to take it off the day, so the sheet must not ask whether a
    * task that has been "planned for n days" should be deleted. The count itself is kept and shown (#334 D9).
    */
   const isNudgeDue = computed(() => {

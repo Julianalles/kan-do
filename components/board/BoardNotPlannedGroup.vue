@@ -2,13 +2,13 @@
 @component BoardNotPlannedGroup
 @kind component
 @category layout
-@description One group of "Meine Aufgaben" on the place "Alle" (#469): the pair of card columns with an optional heading (icon, title, count) above it, and, as a panel, the tinted surface that sets the group off from the plain list
+@description One group of "Alle Aufgaben" on the place "Alle" (#469): the pair of card columns with an optional heading (icon, title, count) above it, and, as a panel, the tinted surface that sets the group off from the plain list
 @usage Rendered by BoardNotPlanned, with the list of cards (a TransitionGroup of BoardNotPlannedItem) in the default slot. `panel` for the group of yesterday's tasks, left off for "Weitere Aufgaben". Without `title` there is no heading (the plain list of a day without a panel).
 @avoid Not a board column (BoardColumn) and not a page section (PageSheet, SectionHeader alone). Not for a list that folds or sorts: the group only contains.
 @responsibility
 - Width: the pair of columns is as wide as two cards plus one `--task-list-gap`, centred in the side (a phone: one column, the page's width). Heading and cards share the left edge of the pair
 - Panel (#469, D1): a flat `--fill-on-canvas` surface with the card radius plus 4 px, no border and no shadow so it never reads as a card, reaching 0.75rem beyond the cards (a phone: 0.25rem inset from the page). The heading row is the 40 px row every column has under its title, so the first card sits level with Offen's first card
-- Heading: SectionHeader `sub` (h3) with a decorative icon, the title and the count as a UBadge; a labelled group: the panel is `role="group"` named by its heading, so assistive tech reads heading and count
+- Heading: SectionHeader `sub` (h3) with a decorative icon, the title (it may wrap to two lines on a phone, #654: 8 px above and 6 px below keep the first line on the panel, one line still fits the 40 px row) and the count as a UBadge; a labelled group: the panel is `role="group"` named by its heading, so assistive tech reads heading and count
 - Accepted trade-off (#469): cards inside a surface can read as "nested cards" (user's choice of panels, D1); the surface stays flat (no border, no shadow) so it never competes with a card, and the rendered Impeccable scan (`design-detect.spec.ts`, surface "alle with yesterday's panel") reports nothing for it
 -->
 <template>
@@ -125,7 +125,7 @@ defineProps<{
   }
 
   .nps-group__heading {
-    padding-inline: max(0.75rem, calc((100% - var(--task-card-max-width)) / 2));
+    padding: 0.5rem max(0.75rem, calc((100% - var(--task-card-max-width)) / 2)) 0.375rem;
   }
 }
 </style>

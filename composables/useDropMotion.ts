@@ -84,7 +84,7 @@ export function useDropMotion() {
     // Vue renders the drop first, so the slot measured is the one the card ends in
     await nextTick()
     const id = CSS.escape(taskId)
-    // A card put back on "Meine Aufgaben" (#355) lands on that side's item; one that is leaving the side (it was just
+    // A card put back on "Alle Aufgaben" (#355) lands on that side's item; one that is leaving the side (it was just
     // planned, TransitionGroup still holds its node for a frame) is not where the card ends
     const target = document.querySelector(
       `.board :is(.task-wrapper, .task-stack)[data-task-id="${id}"], .board .not-planned__item[data-not-planned-id="${id}"]:not(.not-planned-item-leave-active)`,

@@ -31,7 +31,7 @@ const SHOTS = [
   { key: 'start', title: 'First start', text: 'pick where your tasks live, or try a sample board', url: `/welcome?seed=clear${q}`, ready: 'h1, h2' },
   {
     key: 'recap', title: 'Morning', text: 'a quick look back at yesterday before the day starts',
-    url: `/tasks?seed=demo${q}`, init: markYesterday, ready: 'text=Quick look back',
+    url: `/tasks?seed=demo${q}`, init: markYesterday, ready: 'text=Daily recap',
   },
   { key: 'plan', title: 'Plan the day', text: 'choose from your tasks what belongs on today’s board', url: `/tasks?seed=demo&backlog=1${q}`, goto: `/all?lang=en`, ready: '[data-not-planned-id]' },
   { key: 'board', title: 'During the day', text: 'today’s tasks, with one at a time in Now', url: `/tasks?seed=demo${q}`, ready: '[data-task-id]' },

@@ -2,9 +2,9 @@
 @component NowWindow
 @kind block
 @category display
-@description The floating Now window (#383, #436, #565): a pill of system glass with the Jetzt task's title, its time and the pause and done buttons on one centre line, and a tint behind them that drains to the left with the time left; it floats over every other window, Kan-Do's own included
+@description The floating Now window (#383, #436, #565): a pill of system glass with the Jetzt task's title, its time and the pause and done buttons on one centre line, and a tint behind them that drains to the left with the time left; it floats over every other window, Kan-do's own included
 @usage Only inside the pill window's own route (`pages/overlay.vue`, a second Tauri window); never on the board
-@avoid Not a control surface of the board: it shows one task and offers pause/resume, done and "open Kan-Do", nothing else
+@avoid Not a control surface of the board: it shows one task and offers pause/resume, done and "open Kan-do", nothing else
 @responsibility
 - The glass is the window's own (`src-tauri/src/overlay.rs`: Liquid Glass on macOS 26 and later, vibrancy before, a capsule, 30 px, as `--now-radius`, clipped by one circular mask on the window's content view); this component draws no glass of its own, only a faint scrim, the tint and the bevel rim, so the pill reads over a plain page (screenshots, the E2E stub; how they sit on the real glass is a manual check)
 - Shows the title (cut with an ellipsis, `data-private`) and the time of the Jetzt task: the time left, `+m:ss` over the timebox, or without a timebox the time passed, counting up; title, time and buttons share the pill's middle line
@@ -12,7 +12,7 @@
 - The time is counted from the snapshot by the wall clock (`lib/nowWindow.ts`), so it runs on while the main window is throttled
 - Paused (#405: the task sits in Wartet after the pill's pause, Jetzt is empty) fades the tint and sets the time in the regular weight; the button then resumes. No sound
 - Pause/resume and done are always visible (no hover reveal: the slide-in cut the check off at the capsule edge), ghost buttons of the ladder's default 32 px with `NowGlyph` (pause.fill, play.fill, checkmark in one weight, #565); the window is not focusable, so a keyboard never reaches it: keyboard users act in the main window (ADR 020, D7)
-- A click on the body asks Rust to bring Kan-Do forward; a press that travels 3 px drags the window (`startDragging`): `data-tauri-drag-region` would swallow the click
+- A click on the body asks Rust to bring Kan-do forward; a press that travels 3 px drags the window (`startDragging`): `data-tauri-drag-region` would swallow the click
 - Reads no store and calls no data command: it gets props only, emits what the user asked for
 - Follows the system's light or dark appearance (`color-scheme: light dark` on the page), because it sits on whatever is behind it; label colours are `CanvasText`, the tint the app's primary and warning steps (the one place colours are not Nuxt UI semantic tokens: they are not themed for dark)
 - The window is exactly the pill (340 x 60 pt, no margin): the shadow is the system's, and the bevel rim (light edge top left, dark edge bottom right, a faint inner glow) is drawn inside the box, above the tint, so a half-pixel offset cannot clip it

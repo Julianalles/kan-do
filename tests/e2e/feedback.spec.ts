@@ -54,13 +54,13 @@ test.describe('Feedback (web)', () => {
   test('sends through the relay: private note, exact body, no screenshot offer, quiet toast (#268)', async ({ page }) => {
     const reports = await mockFeedbackRelay(page)
     await openFeedback(page)
-    await expect(page.getByTestId('feedback-private-note')).toHaveText('Dein Feedback geht direkt an das Kan-Do-Team. Es wird nicht veröffentlicht.')
+    await expect(page.getByTestId('feedback-private-note')).toHaveText('Dein Feedback geht direkt an die Kan-do-Entwickler. Es wird nicht veröffentlicht.')
     await expect(page.getByTestId('feedback-public-note')).toHaveCount(0)
     // The native capture is desktop only
     await expect(page.getByTestId('feedback-screenshot')).toHaveCount(0)
     await pickCard(page, 'seed-open-1')
     await toReview(page)
-    await expect(page.getByTestId('feedback-review-intro')).toContainText('an das Kan-Do-Team und wird nicht veröffentlicht')
+    await expect(page.getByTestId('feedback-review-intro')).toContainText('an die Kan-do-Entwickler und wird nicht veröffentlicht')
     await expect(page.getByTestId('feedback-include-log')).toHaveCount(0)
     const shown = await page.getByTestId('feedback-body-preview').textContent()
     expect(shown).toContain('| Version |')
@@ -116,7 +116,7 @@ test.describe('Feedback (web)', () => {
     await toReview(page, 'Ohne Relay')
     await failOverToBrowserPath(page)
     await expect(page.getByTestId('feedback-problem')).toContainText('Direktes Senden ist gerade nicht möglich.')
-    await expect(page.getByTestId('feedback-review-intro')).toContainText('öffentliches Issue an jaylouiz/kan-do')
+    await expect(page.getByTestId('feedback-review-intro')).toContainText('öffentliches Feedback an jaylouiz/kan-do')
     await context.route('https://github.com/**', route => route.fulfill({ status: 200, contentType: 'text/html', body: '<title>stub</title>' }))
     const [popup] = await Promise.all([context.waitForEvent('page'), page.getByTestId('feedback-open-browser').click()])
     const url = new URL(popup.url())
@@ -165,11 +165,11 @@ test.describe('Feedback (desktop)', () => {
   test('review: names the target repo, moves focus to the step, and the picker chip names what is outlined', async ({ page }) => {
     await openFeedback(page)
     // With a token the app sends itself: no word about an account
-    await expect(page.getByTestId('feedback-public-note')).toHaveText('Dein Feedback wird ein öffentliches Issue auf GitHub.')
+    await expect(page.getByTestId('feedback-public-note')).toHaveText('Dein Feedback wird auf GitHub öffentlich sichtbar.')
     await pickCard(page, 'seed-open-1')
     await page.getByTestId('feedback-title').fill('Fokus')
     await page.getByTestId('feedback-next').click()
-    await expect(page.getByTestId('feedback-review-intro')).toContainText('als öffentliches Issue an jaylouiz/kan-do')
+    await expect(page.getByTestId('feedback-review-intro')).toContainText('als öffentliches Feedback an jaylouiz/kan-do')
     await expect(page.getByTestId('feedback-review-intro')).toBeFocused()
     await page.getByTestId('feedback-back').click()
     await expect(page.getByTestId('feedback-title')).toBeFocused()
@@ -287,7 +287,7 @@ test.describe('Feedback (desktop)', () => {
 
     const body = (await preview.textContent())!
     await page.getByTestId('feedback-send').click()
-    await expect(page.getByText('Danke, das Feedback ist als Issue #4711 angelegt.').first()).toBeVisible()
+    await expect(page.getByText('Danke, dein Feedback ist angelegt: #4711.').first()).toBeVisible()
     await expect(dialog(page)).toBeHidden()
 
     const calls = await githubCalls(page)
@@ -323,7 +323,7 @@ test.describe('Feedback (desktop)', () => {
 
     await setGithubMode(page, 'ok')
     await page.getByRole('button', { name: 'Erneut versuchen' }).click()
-    await expect(page.getByText('Danke, das Feedback ist als Issue #4711 angelegt.').first()).toBeVisible()
+    await expect(page.getByText('Danke, dein Feedback ist angelegt: #4711.').first()).toBeVisible()
   })
 
   test('a rate-limit answer is shown inline and keeps the draft', async ({ page }) => {
@@ -449,15 +449,15 @@ test.describe('Feedback without a token (desktop)', () => {
     await failOverToBrowserPath(page)
     // Back on the form the public repository and the GitHub account are named, as before the relay existed
     await page.getByTestId('feedback-back').click()
-    await expect(page.getByTestId('feedback-public-note')).toHaveText('Dein Feedback wird ein öffentliches Issue auf GitHub. Zum Absenden brauchst du ein GitHub-Konto.')
+    await expect(page.getByTestId('feedback-public-note')).toHaveText('Dein Feedback wird auf GitHub öffentlich sichtbar. Zum Absenden brauchst du ein GitHub-Konto.')
     await page.getByTestId('feedback-next').click()
-    await expect(page.getByTestId('feedback-review-intro')).toContainText('öffentliches Issue an jaylouiz/kan-do, angemeldet mit deinem GitHub-Konto')
+    await expect(page.getByTestId('feedback-review-intro')).toContainText('öffentliches Feedback an jaylouiz/kan-do, angemeldet mit deinem GitHub-Konto')
     await expect(page.getByTestId('feedback-fallback-note')).toHaveCount(0)
     await expect(page.getByTestId('feedback-send')).toHaveCount(0)
 
     await page.getByTestId('feedback-open-browser').click()
     await expect(dialog(page)).toBeHidden()
-    await expect(page.getByText('GitHub ist im Browser geöffnet. Sende das Issue dort ab.', { exact: true })).toBeVisible()
+    await expect(page.getByText('GitHub ist im Browser geöffnet. Sende das Feedback dort ab.', { exact: true })).toBeVisible()
     const state = await stubState(page)
     expect(state.openedUrls).toHaveLength(1)
     const url = new URL(state.openedUrls[0]!)

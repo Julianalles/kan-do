@@ -1,6 +1,6 @@
 /**
  * @composable useNewDayRecap
- * @description The "Kurzer Rückblick" on the first start of a new day (#385): decides whether the recap is due,
+ * @description The "Tagesrückblick" on the first start of a new day (#385): decides whether the recap is due,
  * owns its open state and the snapshot it shows, and runs the one action when the user leaves it. State is
  * module-level so the page, the overlay and the board share it.
  * @responsibility

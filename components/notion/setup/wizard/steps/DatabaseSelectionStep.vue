@@ -9,7 +9,7 @@
 - Displays available Notion databases for selection
 - Manages the selected database state
 - Communicates selection changes to parent component
-- Under the selection it says that Kan-Do expects an existing task database and shows the minimum schema as two badge lines (Nötig, Optional) plus the hint that Notion's field names may differ (#441); shown in the setup page and in the dialog alike, it does not depend on the load state
+- Under the selection it says that Kan-do expects an existing task database and shows the minimum schema as two badge lines (Nötig, Optional) plus the hint that Notion's field names may differ (#441); shown in the setup page and in the dialog alike, it does not depend on the load state
 -->
 <template>
   <div class="space-y-4">
@@ -131,7 +131,7 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-/** The minimum schema (#441): what a task database needs, and what Kan-Do can use besides */
+/** The minimum schema (#441): what a task database needs, and what Kan-do can use besides */
 const requiredFields = computed(() => [
   { label: t('notion.database.note.title'), icon: 'i-ph-text-aa' },
   { label: t('notion.database.note.status'), icon: 'i-ph-circle-half' },

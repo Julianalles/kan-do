@@ -1,6 +1,6 @@
 /**
  * @module lib/boardPlace
- * @description The two places of the board (#354, epic #334): "Alle" (`/all`, planning: "Meine Aufgaben" beside
+ * @description The two places of the board (#354, epic #334): "Alle" (`/all`, planning: "Alle Aufgaben" beside
  * Offen) and "Heute" (`/tasks`, the board). Both are paths of one page (`pages/tasks.vue`, `alias: ['/all']`), so
  * the board stays mounted and Offen is the same column in both. Path helpers plus the current path as module state:
  * `plugins/board-place.client.ts` mirrors the live router route into it (sync, so it changes in the same tick as the

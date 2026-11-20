@@ -37,7 +37,7 @@ describe('mergeTasks of a source that plans by date (#553)', () => {
     expect(store.task('a')!.pendingSync).toBeUndefined()
   })
 
-  it('a new task dated today waits in "Meine Aufgaben" while the day has not begun, and joins at the first fetch after it', () => {
+  it('a new task dated today waits in "Alle Aufgaben" while the day has not begun, and joins at the first fetch after it', () => {
     const store = useTasksStore()
     store.mergeTasks('reminders', [delivered('a', TODAY, { begun: false })], BY_DATE)
     expect(isNotPlanned(store.task('a')!)).toBe(true)
@@ -48,14 +48,14 @@ describe('mergeTasks of a source that plans by date (#553)', () => {
     expect(store.tasksOpen.map(t => t.id)).toEqual(['a'])
   })
 
-  it('a new task dated in the past, the future or not at all lands in "Meine Aufgaben"', () => {
+  it('a new task dated in the past, the future or not at all lands in "Alle Aufgaben"', () => {
     const store = useTasksStore()
     store.mergeTasks('reminders', [delivered('past', '2026-11-18'), delivered('future', '2026-11-25'), delivered('none', null)], BY_DATE)
     expect(['past', 'future', 'none'].map(id => isNotPlanned(store.task(id)!))).toEqual([true, true, true])
     expect(store.tasksOpen).toEqual([])
   })
 
-  it('a task in "Meine Aufgaben" whose date becomes today is planned, nothing written', () => {
+  it('a task in "Alle Aufgaben" whose date becomes today is planned, nothing written', () => {
     const store = useTasksStore()
     store.mergeTasks('reminders', [delivered('a', '2026-11-25')], BY_DATE)
     store.mergeTasks('reminders', [delivered('a', TODAY)], BY_DATE)
@@ -64,7 +64,7 @@ describe('mergeTasks of a source that plans by date (#553)', () => {
     expect(store.task('a')!.pendingSync).toBeUndefined()
   })
 
-  it('a task the user put back while Reminders still says today stays in "Meine Aufgaben" through every sync', () => {
+  it('a task the user put back while Reminders still says today stays in "Alle Aufgaben" through every sync', () => {
     const store = useTasksStore()
     store.mergeTasks('reminders', [delivered('a', TODAY)], BY_DATE)
     expect(store.unplanTask('a')).toBe(true)
@@ -149,7 +149,7 @@ describe('mergeTasks of a source that plans by date (#553)', () => {
     expect(isNotPlanned(store.task('a')!)).toBe(true)
   })
 
-  it('without the option a source behaves as before: a planned card goes to "Meine Aufgaben" when the source says so', () => {
+  it('without the option a source behaves as before: a planned card goes to "Alle Aufgaben" when the source says so', () => {
     const store = useTasksStore()
     store.mergeTasks('reminders', [delivered('a', TODAY)], { holdsOnlyOpenDone: true, keepsKanDoFields: true })
     store.mergeTasks('reminders', [delivered('a', '2026-12-01')], { holdsOnlyOpenDone: true, keepsKanDoFields: true })

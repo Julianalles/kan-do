@@ -3,12 +3,12 @@ import { seedLocalBoard, seedNotionBoard } from './helpers/seed'
 import { installTauriStub } from './helpers/tauriStub'
 import { openSettings } from './helpers/appNav'
 
-/** #242, #324: the "GitHub-Zugriff" link row on the Verbindungen page (desktop only); /settings/notion has none (#429). */
+/** #242, #324: the "GitHub-Zugriff" link row on the Speicherorte page (desktop only); /settings/notion has none (#429). */
 
 const link = (page: import('@playwright/test').Page) => page.getByRole('link', { name: /GitHub-Zugriff/ })
 
 test.describe('GitHub-Zugriff entry point', () => {
-  test('web: neither the Verwaltung tab nor /settings/notion shows the link', async ({ context, page }) => {
+  test('web: neither the System tab nor /settings/notion shows the link', async ({ context, page }) => {
     await seedLocalBoard(context)
     await page.goto('/tasks')
     await openSettings(page, 'manage')
@@ -16,7 +16,7 @@ test.describe('GitHub-Zugriff entry point', () => {
     await expect(link(page)).toHaveCount(0)
   })
 
-  test('desktop, local mode: the Verwaltung tab ends with the link to /settings/github', async ({ context, page }) => {
+  test('desktop, local mode: the System tab ends with the link to /settings/github', async ({ context, page }) => {
     await seedLocalBoard(context)
     await installTauriStub(context)
     await page.goto('/tasks')
@@ -27,7 +27,7 @@ test.describe('GitHub-Zugriff entry point', () => {
     await expect(page.getByRole('heading', { name: 'GitHub-Zugriff' })).toBeVisible()
   })
 
-  test('desktop: the Verwaltung rows are hairline-divided like the connection rows (#683)', async ({ context, page }) => {
+  test('desktop: the System rows are hairline-divided like the connection rows (#683)', async ({ context, page }) => {
     await seedLocalBoard(context)
     await installTauriStub(context)
     await page.goto('/tasks')

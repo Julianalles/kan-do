@@ -1,4 +1,4 @@
-/** #324: the rows of the Verbindungen page, derived from the sources config and the per-source health. */
+/** #324: the rows of the Speicherorte page, derived from the sources config and the per-source health. */
 import { describe, it, expect, beforeEach } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useSourceList, minutesSince } from '~/composables/useSourceList'
@@ -44,7 +44,7 @@ describe('useSourceList (#324)', () => {
 
   it('Reminders is listed as "nur in der Mac-App" where the bridge is not there (the web build, #552)', () => {
     useBoardStore().setSingleSource('local')
-    expect(useSourceList().more.value.find((row) => row.id === 'reminders')).toMatchObject({ name: 'Erinnerungen', state: 'macOnly' })
+    expect(useSourceList().more.value.find((row) => row.id === 'reminders')).toMatchObject({ name: 'Apple Erinnerungen', state: 'macOnly' })
   })
 
   it('a connected Reminders source offers no "Als Standard festlegen"', () => {

@@ -2,10 +2,10 @@
 @component SourceRow
 @kind component
 @category display
-@description One connected task source on the "Verbindungen" page (#324): icon, name with the quiet
+@description One connected task source on the "Speicherorte" page (#324): icon, name with the quiet
 "Standard" badge, a status line and the actions that source offers. A hairline-divided list item, no card.
 @usage <SourceRow v-for="row in connected" :key="row.id" :row="row" @set-default="..." @repair="..." @open-settings="..." @disconnect="..." />
-@avoid Only a connected source on the Verbindungen page.
+@avoid Only a connected source on the Speicherorte page.
 @responsibility
 - `#details` slot: extra content for one row (Lokal: `LocalStorageDetails`) on its own full-width line below, aligned with the name
 - Show the badge as text on the default row, "Als Standard festlegen" on every other row

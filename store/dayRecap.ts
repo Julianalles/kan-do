@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import { isValidDayKey } from '~/utils/recapDay'
 import { sanitizeAfterMidnight, type AfterMidnightCount } from '~/store/tasks'
 
-/** What a fresh start took off the board as the first half of the panel "Gestern auf dem Board" (#356, #387): the local day it ran on and the ids of the Jetzt and Offen tasks, in board order. */
+/** What a fresh start took off the board as the first half of the panel "Zuletzt geplant und nicht erledigt" (#356, #387): the local day it ran on and the ids of the Jetzt and Offen tasks, in board order. */
 export interface SentBack {
   day: string
   ids: string[]
@@ -26,7 +26,7 @@ export function sanitizeSentBack(raw: unknown): SentBack | null {
  *
  * It also holds the new day's own state (#356, #387): the day the user last started fresh (`lastNewDay`: the fresh
  * start takes the unfinished cards off the board; since #387 only on the user's click, never by itself), what it
- * took from Jetzt and Offen (`sentBack`, the first half of the panel "Gestern auf dem Board" of that one day), the day the
+ * took from Jetzt and Offen (`sentBack`, the first half of the panel "Zuletzt geplant und nicht erledigt" of that one day), the day the
  * notice that offers the fresh start was closed (`noticeClosedDay`), and the open question about the time a Jetzt
  * timer ran on after midnight while the user was away (`timeOffer`, the user's decision of 2026-11-16: nothing is
  * removed silently). All additive: data stored before them has none and reads as "no start yet, no group, no
@@ -78,7 +78,7 @@ export const useDayRecapStore = defineStore('dayRecap', () => {
   /**
    * The day `day` is started: by the user's fresh start, which took `ids` (Jetzt first, then Offen) off the board and
    * `waiting` out of Wartet (kept apart, like the day close's), or without one (none: the baseline, or a day whose board
-   * had nothing unfinished). Both lists are that one day's: the panel "Gestern auf dem Board" reads them for `day` only
+   * had nothing unfinished). Both lists are that one day's: the panel "Zuletzt geplant und nicht erledigt" reads them for `day` only
    * (#469). No `waiting` field is written when none was taken. Monotonic like `markShown`: a day
    * that is not after the stored one is ignored, so a second click the same day and a clock set back never repeat it.
    * @returns whether the marker moved
@@ -94,7 +94,7 @@ export const useDayRecapStore = defineStore('dayRecap', () => {
 
   /**
    * The user closed the day (#480): the close took the unfinished cards off the board itself, so `nextDay` (the next local
-   * day) counts as started and its group "Gestern auf dem Board" (`ids`, Jetzt first, then Offen) shows that
+   * day) counts as started and its group "Zuletzt geplant und nicht erledigt" (`ids`, Jetzt first, then Offen) shows that
    * morning. `sentBack` keeps its meaning, valid for that one day: the day is tomorrow, written tonight. Monotonic like
    * `markNewDay`, but a second close on the same evening adds its ids in front of the earlier ones instead of being
    * refused; a day before the stored marker (a clock set back) writes nothing. `waiting` (the Wartet tasks the close took off, kept

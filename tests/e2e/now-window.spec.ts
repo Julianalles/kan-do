@@ -105,7 +105,7 @@ test.describe('the pill window (/overlay)', () => {
     await emitTauriEvent(page, NOW_EVENT, snap({ taskId: 'seed-2', title: 'Rechnung schreiben', at: Date.now() }))
     await expect(page.getByTestId('now-title')).toHaveText('Rechnung schreiben')
     await emitTauriEvent(page, NOW_EVENT, snap({ locale: 'en', at: Date.now() }))
-    await expect(page.getByTestId('now-open')).toHaveAccessibleName('Open Kan-Do')
+    await expect(page.getByTestId('now-open')).toHaveAccessibleName('Open Kan-do')
     await emitTauriEvent(page, NOW_EVENT, null)
     await expect(pill(page)).toHaveCount(0)
     await emitTauriEvent(page, NOW_EVENT, { not: 'a snapshot' })
@@ -137,7 +137,7 @@ test.describe('the pill window (/overlay)', () => {
     for (const call of await calls(page, 'overlay_action')) expect(call.taskId).toBe('seed-1')
   })
 
-  test('a press that travels drags the window and does not open Kan-Do; a plain click opens it', async ({ context, page }) => {
+  test('a press that travels drags the window and does not open Kan-do; a plain click opens it', async ({ context, page }) => {
     await openPill(context, page, snap({ running: true }))
     const box = (await page.getByTestId('now-title').boundingBox())!
     const x = box.x + 20, y = box.y + box.height / 2
@@ -268,7 +268,7 @@ test.describe('the main window side', () => {
     await emitTauriEvent(page, ACTION_EVENT, { kind: 'toggle-pause', taskId: 'jetzt-1' })
     await expect(firstWaiting(page)).toHaveAttribute('data-task-id', 'jetzt-1')
     await expect(page.getByTestId('task-pause-arrival')).toHaveCount(0)
-    // the window losing and regaining the focus (a pause from the pill happens with Kan-Do in the background) shows nothing either
+    // the window losing and regaining the focus (a pause from the pill happens with Kan-do in the background) shows nothing either
     await page.evaluate(() => { window.dispatchEvent(new Event('blur')); window.dispatchEvent(new Event('focus')); document.dispatchEvent(new Event('visibilitychange')) })
     await page.waitForTimeout(400)
     await expect(page.getByTestId('task-pause-arrival')).toHaveCount(0)
@@ -291,7 +291,7 @@ test.describe('the main window side', () => {
     await expect.poll(async () => (await syncs(page)).at(-1)?.snapshot?.taskId).toBe('jetzt-1')
     await openSettings(page)
     const toggle = page.getByTestId('floating-now-switch')
-    await expect(page.getByText('Schwebender Timer')).toBeVisible()
+    await expect(page.getByText('Schwebender Fokus-Timer')).toBeVisible()
     await expect(toggle).toBeChecked()
     await toggle.click()
     await expect.poll(async () => (await syncs(page)).at(-1)).toEqual({ enabled: false, snapshot: null })

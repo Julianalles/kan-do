@@ -163,7 +163,7 @@ export const useTaskContextMenu = (
       },
     ];
 
-    // "Nicht heute" (#354): an Offen card can leave today's board for "Meine Aufgaben" (on both places: Offen is the
+    // "Nicht für heute planen" (#354): an Offen card can leave today's board for "Alle Aufgaben" (on both places: Offen is the
     // same column). Nothing is deleted and nothing is written to the task's source.
     if (currentTask.status === TaskStatus.Open) {
       quickGroup.push({ label: t('task.contextMenu.notToday'), onSelect: () => void notToday(currentTask.id) });

@@ -13,7 +13,7 @@
   (the task sheet keeps its own)
 - Shows the carried-over dots (#99) for not-done cards, with the numeral only past the dot cap (#584)
 - Shows the quiet footer icon of a Reminders task whose place the date explains (#553: put back while Reminders says today, planned by Reminders' date, a series held here), its sentence as the label
-- Shows the source icon at the far left of the footer (#471) on a board with tasks from 2+ sources (#323), one rule for every card, "Meine Aufgaben" included (#609), the cloud "save pending" icon next to it while the task's source cannot sync (#319)
+- Shows the source icon at the far left of the footer (#471) on a board with tasks from 2+ sources (#323), one rule for every card, "Alle Aufgaben" included (#609), the cloud "save pending" icon next to it while the task's source cannot sync (#319)
 - Manages task timer functionality (for Progress status)
 - Handles visual states for different task statuses
 - Done (#124): regular sheet, struck toned title, green corner check, and the
@@ -346,7 +346,7 @@ const { isSavePending } = useSavePending();
 const savePending = computed(() => isSavePending(props.task));
 // Source icon (#323): the board decides, so every card of a mixed board has one (Erledigt too), the draft none
 const tasksStore = useTasksStore();
-// One rule for every card, "Meine Aufgaben" too (#609): a card names its source only where the board has two or more
+// One rule for every card, "Alle Aufgaben" too (#609): a card names its source only where the board has two or more
 const showSourceIcon = computed(() => tasksStore.hasMultipleSources && !props.draft);
 // Reminders plans by date (#553): the footer says why a task is where it is, in the cases the user cannot see
 const remindersHint = props.draft ? computed(() => null) : useRemindersHint(() => props.task);

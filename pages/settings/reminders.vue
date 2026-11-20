@@ -5,10 +5,10 @@
 @responsibility
 - Mac app only: on the web the route redirects to the sources tab (`/settings?tab=sources`); the sub-page layout leads back to that tab
 - Connected: one `PageSheet` with three sections (hairlines, `SectionHeader` h2): Listen (`RemindersListChoices`, the live lists of Reminders with the role from `remindersConfig`), Heute (`RemindersTodayRules`) and Zugriff (the permission as macOS holds it now, "Systemeinstellungen öffnen", "Trennen")
-- A list to Aus asks first when tasks would leave Kan-Do (a list holding only archived tasks switches without a question and drops them silently) (in place, under its row): how many and how many of them are on today's board, counted live from the store; Confirm takes them off the board (`tasksStore.dropSourceTasks`: nothing is written to Reminders, nothing is remembered as deleted), Cancel puts the choice back. Any other change applies at once and fetches the source
+- A list to Aus asks first when tasks would leave Kan-do (a list holding only archived tasks switches without a question and drops them silently) (in place, under its row): how many and how many of them are on today's board, counted live from the store; Confirm takes them off the board (`tasksStore.dropSourceTasks`: nothing is written to Reminders, nothing is remembered as deleted), Cancel puts the choice back. Any other change applies at once and fetches the source
 - Access revoked in macOS: the Zugriff section shows how to allow it and "Verbindung reparieren" (rechecks the permission, then fetches); nothing opens by itself (#319)
 - "Trennen" (soft, error tone: the destructive action of the row, #596) opens the existing `DisconnectSourceDialog`; afterwards the page returns to the sources tab. Access that macOS granted stays: the dialog says nothing about revoking it
-- Not connected: `RemindersSetupFlow` (on `SetupShell`, #650) with `first-run` off inside the sheet; the shell brings its own footer; the first step has no Zurück (the layout's "Zurück zu Einstellungen" leads to the sources tab, #596), the subtitle says "Verbinde Apple Erinnerungen mit Kan-Do." (the layout's `sub-page-description-key` state) until something is set up, completion keeps the page and shows the settings; the stage widens the sheet to 768 px like the welcome flow (`useSetupStageWidth`, #652), the connected sections keep the 672 px column
+- Not connected: `RemindersSetupFlow` (on `SetupShell`, #650) with `first-run` off inside the sheet; the shell brings its own footer; the first step has no Zurück (the layout's "Zurück zu Einstellungen" leads to the sources tab, #596), the subtitle says "Verbinde Apple Erinnerungen mit Kan-do." (the layout's `sub-page-description-key` state) until something is set up, completion keeps the page and shows the settings; the stage widens the sheet to 768 px like the welcome flow (`useSetupStageWidth`, #652), the connected sections keep the 672 px column
 - Pattern: settings page, aligned with the sources tab sheet and SourceRow (hairline sections, quiet buttons)
 -->
 <template>
@@ -184,7 +184,7 @@ function onConfirmOff() {
   if (!listId) return
   pendingOff.value = null
   config.setList(listId, { role: 'off', title: titleOf(listId) })
-  // The tasks leave Kan-Do only: Reminders is not written, and nothing is remembered as deleted (switching the list on brings them back)
+  // The tasks leave Kan-do only: Reminders is not written, and nothing is remembered as deleted (switching the list on brings them back)
   dropListTasks(listId)
 }
 

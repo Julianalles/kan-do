@@ -58,12 +58,12 @@ describe('Reminders usage strings (#550, ADR 022)', () => {
   const KEYS = ['NSRemindersFullAccessUsageString', 'NSRemindersUsageDescription']
 
   it('holds the English text under the macOS 14 key and the legacy key, and lists both languages', () => {
-    for (const key of KEYS) expect(infoPlist).toMatch(new RegExp(`<key>${key}</key>\\s*<string>Kan-Do reads your Reminders[^<]+</string>`))
+    for (const key of KEYS) expect(infoPlist).toMatch(new RegExp(`<key>${key}</key>\\s*<string>Kan-do reads your Reminders[^<]+</string>`))
     expect(infoPlist).toMatch(/<key>CFBundleLocalizations<\/key>\s*<array>\s*<string>en<\/string>\s*<string>de<\/string>/)
   })
 
   it('ships the German text as de.lproj/InfoPlist.strings through bundle.macOS.files', () => {
-    for (const key of KEYS) expect(german).toMatch(new RegExp(`"${key}" = "Kan-Do liest deine Erinnerungen[^"]+";`))
+    for (const key of KEYS) expect(german).toMatch(new RegExp(`"${key}" = "Kan-do liest deine Erinnerungen[^"]+";`))
     const source = conf.bundle.macOS.files?.['Resources/de.lproj/InfoPlist.strings']
     expect(source).toBeTruthy()
     expect(existsSync(resolve(root, 'src-tauri', source!))).toBe(true)

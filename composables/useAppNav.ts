@@ -47,7 +47,7 @@ export interface ThirdItem {
 export function thirdItemOfPath(path: string): ThirdItem | null {
   if (isUnder(path, '/trash')) return { to: '/trash', labelKey: 'nav.trash' }
   if (path === '/settings' || path === '/settings/') return { to: '/settings', labelKey: 'nav.settings' }
-  // Leaving a sub-page through the bar restores the tab that holds it (#691): the Notion and Erinnerungen pages sit under Aufgabenquellen, the rest under Verwaltung
+  // Leaving a sub-page through the bar restores the tab that holds it (#691): the Notion and Erinnerungen pages sit under Speicherorte, the rest under Verwaltung
   if (isUnder(path, '/settings')) {
     return { to: isUnder(path, '/settings/notion') || isUnder(path, '/settings/reminders') ? '/settings?tab=sources' : '/settings?tab=manage', labelKey: 'nav.settings' }
   }

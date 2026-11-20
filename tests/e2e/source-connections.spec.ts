@@ -4,7 +4,7 @@ import { goToPlace, openSettings, sourceAction } from './helpers/appNav'
 
 /**
  * Connect and disconnect task sources (#320, epic #264 section 1) on the Notion stub. Disconnect is the "Trennen"
- * button of the "Verbindungen" page (#324, its UI spec is `sources-settings.spec.ts`); connect is driven here
+ * button of the "Speicherorte" page (#324, its UI spec is `sources-settings.spec.ts`); connect is driven here
  * through the composable the page calls, so the board sequences stay independent of the setup wizard.
  *
  * The mixed seed holds four Notion tasks (the stub's pages, `page-2` in Jetzt) and three Local ones, Notion is
@@ -31,7 +31,7 @@ const storedTaskIds = (page: Page) => stored(page, 'tasks-store', (raw) => ((raw
 const notionConfigStored = (page: Page) => stored(page, 'notionConfig', (raw) => raw.config ?? null)
 
 /**
- * Connects Notion through the composable the Verbindungen page calls. A spec cannot import it from the Vite dev
+ * Connects Notion through the composable the Speicherorte page calls. A spec cannot import it from the Vite dev
  * server's source URL: that exists only under `nuxt dev`, not in a production build (#540). The e2e-seed plugin hands
  * it out as `window.__kandoE2E` (stub builds only).
  */
@@ -56,14 +56,14 @@ async function parkJetzt(page: Page) {
   await expect.poll(async () => stored(page, 'tasks-store', (raw) => ((raw.tasks as Array<{ id: string; pendingSync?: unknown }>) ?? []).find((t) => t.id === 'page-2')?.pendingSync === undefined)).toBe(true)
 }
 
-/** From the board to the Verbindungen page by the gear (client-side, so a running timer keeps ticking). */
+/** From the board to the Speicherorte page by the gear (client-side, so a running timer keeps ticking). */
 async function openDisconnectDialog(page: Page) {
   await openSettings(page, 'sources')
   await sourceAction(page, 'notion', 'Trennen')
   await expect(dialog(page)).toBeVisible()
 }
 
-/** The disconnect leaves the user on the Verbindungen page; the board is one back link away. */
+/** The disconnect leaves the user on the Speicherorte page; the board is one back link away. */
 async function backToBoard(page: Page) {
   await expect(page).toHaveURL(/\/settings(\?tab=sources)?$/)
   await goToPlace(page, 'Heute')

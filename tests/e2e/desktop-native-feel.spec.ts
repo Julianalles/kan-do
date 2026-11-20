@@ -64,7 +64,7 @@ test.describe('Native feel (desktop)', () => {
   test('a double click on a control label selects nothing, content on a page stays selectable', async ({ page }) => {
     await page.goto('/settings?tab=sources')
     await expect(page.locator('html')).toHaveAttribute('data-shell', 'desktop')
-    const heading = page.getByRole('heading', { name: 'Deine Verbindungen', level: 2 })
+    const heading = page.getByRole('heading', { name: 'Deine Speicherorte', level: 2 })
     await expect(heading).toBeVisible()
 
     const button = page.getByTestId('data-folder-change')

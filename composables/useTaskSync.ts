@@ -360,7 +360,7 @@ export const useTaskSync = () => {
    * task's marker, and the first failure that is not plain offline is reported once. A rejected create (400, 409,
    * 404, any other 4xx: the source refuses this task) throws, the caller keeps the form open and reports it.
    * A draft with `notPlanned: true` and the status Open makes a task that is not planned (#367: one made while the
-   * place "Alle" shows): it goes on top of "Meine Aufgaben" instead of into Offen. The marker is set here, after the
+   * place "Alle" shows): it goes on top of "Alle Aufgaben" instead of into Offen. The marker is set here, after the
    * adapter returned the task. A source that stores planning (#357, `notPlannedHold`: Notion with a "not planned"
    * status mapped) creates the task as not planned there too; for every other source nothing about it is written.
    * @returns the task as it was added to the store
@@ -1014,7 +1014,7 @@ export const useTaskSync = () => {
     tasksStore.guardRestoredTask(taskId);
     const back = tasksStore.task(taskId);
     if (back && isNotPlanned(back)) {
-      // A task that was not planned returns to "Meine Aufgaben", on top: it has no place in Offen's order (#354)
+      // A task that was not planned returns to "Alle Aufgaben", on top: it has no place in Offen's order (#354)
       boardStore.noteNotPlanned(taskId);
     } else {
       // The column's order still names the task where it stood: take it out there, then it goes to the end
@@ -1309,7 +1309,7 @@ export const useTaskSync = () => {
   const planTask = (taskId: string): boolean => planTasks([taskId]).length > 0;
 
   /**
-   * "Not today" (#353): takes an Offen task off today's board; it stays held with everything it has (time
+   * "Don't plan for today" (#353): takes an Offen task off today's board; it stays held with everything it has (time
    * spent, notes, topic, priority, timebox, its connection, the carried-over count). Refused (`false`) for a task
    * in any other column. A source that stores planning gets its "not planned" status written, as in `planTask`.
    */
