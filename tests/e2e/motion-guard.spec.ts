@@ -29,13 +29,11 @@ const MAPPER_ROWS: AllowedJump = { match: /Aufgewendete Zeit|Erledigungsdatum/, 
 const WELCOME_DONE_BEAT: AllowedJump = { match: /^div#__nuxt|^div#teleports|^div$|welcome-root/, issue: '#668', why: 'the done beat changes the welcome page height by 21 px in one frame' }
 const SETUP_PAGE_SCROLL: AllowedJump = { match: /flow-root|brand-flight/, issue: '#649', why: 'the pane has no scroll area of its own now, so a tall step makes the page scroll; when the done beat shortens the page the sampler (page y = rect + scrollY) reads the scroll reset as a jump of the pane block and of the fixed brand flight (both glide on screen)' }
 
-/** The sheet's own opening moves its last line (Metadaten, the actions) 174 px in one frame: found while the #610 allow entry left (#659). The disclosures themselves are guarded strictly in their own flow. */
-const SHEET_OPENS: AllowedJump = { match: /task-metadata/, issue: '#659', why: 'the sheet\'s last line arrives in one step when the sheet opens (not the disclosure)' }
 /** The "Wartet" heading changes its width by 18 px in one frame when its column empties (`.waiting-header.empty`): found in the #642 flow (#660). */
 const WARTET_HEADING: AllowedJump = { match: /^h2\.font-display "Wartet"/, issue: '#660', why: 'the heading of an emptied Wartet column changes width in one frame (`.waiting-header.empty`)' }
 
-/** A status change in the open sheet moves the task's card to another column behind the sheet in one frame (page boxes change height): found in the #610 flow (#661). The sheet's own rows are guarded. */
-const CARD_MOVES_BEHIND_SHEET: AllowedJump = { match: /^div#__nuxt|^div#teleports|^div "Erledigt|dnd-kit-announcement/, issue: '#661', why: 'the board behind the sheet re-lays when the card changes column' }
+/** The completion toast's viewport (the Nuxt UI toaster, `ol.fixed`) changes height by 122 px in one frame when the toast arrives; the toast itself slides in. Found while #661 left the list; filed as an inbox issue from the #659/#661 PR. */
+const TOAST_VIEWPORT: AllowedJump = { match: /^ol\.fixed\.flex\.flex-col/, issue: 'inbox (toast viewport)', why: 'the toaster viewport box grows with its toast in one frame' }
 
 /** In-app navigation: the sampler lives in one document, so a flow never reloads the page. */
 const push = (page: Page, path: string) => page.evaluate(path => (window as unknown as { useNuxtApp: () => { $router: { push: (p: string) => Promise<unknown> } } }).useNuxtApp().$router.push(path), path)
@@ -104,7 +102,6 @@ const FLOWS: Flow[] = [
       await expect(page.getByRole('button', { name: /Metadaten/i })).toBeVisible()
       await page.waitForTimeout(600)
     },
-    jumps: [SHEET_OPENS],
   },
   {
     name: 'task sheet: Metadaten open and closed (#610)',
@@ -245,7 +242,7 @@ const FLOWS: Flow[] = [
       await status.click()
       await page.getByRole('option', { name: 'Offen', exact: true }).click()
     },
-    jumps: [CARD_MOVES_BEHIND_SHEET],
+    jumps: [TOAST_VIEWPORT],
   },
   {
     name: 'Karten stapeln on, another group-by, off (#610)',

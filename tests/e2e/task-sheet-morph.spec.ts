@@ -61,6 +61,31 @@ test.describe('card to sheet morph (desktop)', () => {
     expect(frames.at(-1)!.w).toBeCloseTo(720, 0)
   })
 
+  test('the content holds its final size while the sheet grows: its last line stays in its place in the panel (#659)', async ({ page }) => {
+    await page.goto('/tasks')
+    const origin = card(page, 'seed-open-1')
+    await expect(origin).toBeVisible()
+    await page.evaluate(() => {
+      const win = window as unknown as { __lines: number[] }
+      win.__lines = []
+      const tick = () => {
+        const panel = document.querySelector('[role="dialog"]')
+        const line = document.querySelector('[data-testid="task-detail-footer"]')
+        if (panel && line) win.__lines.push(Math.round(line.getBoundingClientRect().y - panel.getBoundingClientRect().y))
+        requestAnimationFrame(tick)
+      }
+      requestAnimationFrame(tick)
+    })
+    await origin.click()
+    await expect(page.getByRole('dialog')).toBeVisible()
+    await settleAnimations(page)
+    const lines = await page.evaluate(() => (window as unknown as { __lines: number[] }).__lines)
+    expect(lines.length).toBeGreaterThan(5)
+    // Clipped by the growing panel, never re-laid out inside it (it used to follow the panel's height: 172 px of travel in a few frames).
+    // What is left is the few px between the height measured while the panel was hidden and the settled one.
+    expect(Math.max(...lines) - Math.min(...lines), `offsets ${lines.join(',')}`).toBeLessThan(16)
+  })
+
   test('a card at the window edge gives a sheet that keeps 16 px to the edges', async ({ page }) => {
     await page.goto('/tasks')
     await expect(card(page, 'seed-done-1')).toBeVisible()
