@@ -109,8 +109,9 @@ export async function startFrames(page: Page, selector = 'body *'): Promise<Fram
           t.steps.push(step < 0.5 ? 0 : step)
           t.times.push(frameDt)
         }
-        else if (step >= 0.5) {
-          t.steps.push(-1)
+        else {
+          // A still box counts as a gap too, so two movements around a stall stay two runs
+          t.steps.push(step >= 0.5 ? -1 : 0)
           t.times.push(frameDt)
         }
         t.x = x
@@ -166,9 +167,9 @@ export async function startFrames(page: Page, selector = 'body *'): Promise<Fram
             // A frame of 34 ms may move twice as far as one of 17 ms
             const worst = Math.max(...run.steps.map((s, i) => s > 0 ? s / Math.max(1, run.times[i]! / frameMs) : 0))
             const snap = !uncertain && total >= jumpMin && run.steps.length <= maxJumpFrames && step >= jumpMin && run.ms <= maxJumpMs
-            // A run with a dropped frame in it is not judged by its step either: a script motion (the nav indicator's spring) catches up
-            // in the frame after a stall, by design
-            if ((!uncertain && worst > maxStep) || snap) {
+            // The unknown frames are already left out of `worst` (a spring catches up in the frame after a stall, by design);
+            // a leap in a measured frame of the same run still counts
+            if (worst > maxStep || snap) {
               const prev = bad.get(t.el)
               if (!prev || step > prev.step) bad.set(t.el, { step, total, frames: run.steps.length })
             }

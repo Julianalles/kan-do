@@ -356,6 +356,14 @@ test.describe('the frame sampler', () => {
     expect(report.skipped, 'the stall was seen as dropped frames').toBeGreaterThan(0)
     expect(labels(report)).not.toContain('probe-glide-stalled')
   })
+
+  test('a leap in a measured frame is reported although a stall touched the same movement', async ({ page }) => {
+    // 5 px per frame, a stall of 120 ms in the middle, then one frame of 200 px: the run is uncertain, the leap is not
+    const script = 'const el = document.getElementById("probe-snap"); const t0 = performance.now(); let x = 0, leapt = false, stalled = false; const tick = () => { const dt = performance.now() - t0; if (dt > 60 && !stalled) { stalled = true; const s = performance.now(); while (performance.now() - s < 120) { /* a stall */ } } if (dt > 400 && !leapt) { leapt = true; x += 200 } else x += 5; el.style.left = x + "px"; if (dt < 600) requestAnimationFrame(tick) }; requestAnimationFrame(tick);'
+    const report = await probe(page, script)
+    expect(report.skipped, 'the stall was seen as dropped frames').toBeGreaterThan(0)
+    expect(labels(report)).toContain('probe-snap')
+  })
 })
 
 /**
