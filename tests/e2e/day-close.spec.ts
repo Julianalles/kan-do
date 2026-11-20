@@ -330,13 +330,45 @@ test.describe('Day close stage (#480)', () => {
       await expect(doneButton(page)).toHaveCSS('background-color', /^(?!rgba\(0, 0, 0, 0\)|rgba\(.*, 0\))/)
       await expect(cancelButton(page)).not.toHaveCSS('background-color', await doneButton(page).evaluate(el => getComputedStyle(el).backgroundColor))
       if (phone) {
-        // Stacked, the primary last
+        // Stacked, the primary on top (#612: the recap's order)
         const cancel = (await cancelButton(page).boundingBox())!
         const done = (await doneButton(page).boundingBox())!
-        expect(done.y).toBeGreaterThan(cancel.y)
+        expect(done.y).toBeLessThan(cancel.y)
+        expect(done.width).toBeGreaterThan(300)
+      }
+      else {
+        // A right-aligned row: the way out left of the main button, no arrow on it
+        const cancel = (await cancelButton(page).boundingBox())!
+        const done = (await doneButton(page).boundingBox())!
+        expect(cancel.x + cancel.width).toBeLessThanOrEqual(done.x)
+        expect(Math.abs(cancel.y - done.y)).toBeLessThan(2)
+        await expect(doneButton(page).locator('svg')).toHaveCount(0)
       }
     })
   }
+
+  test('enters with the photo coming down over the board, the content fading in as it lands; Escape mid-drop leaves cleanly (#580, #612)', async ({ page }) => {
+    await page.goto('/tasks')
+    await openDayClose(page)
+    await expect(stage(page)).toBeVisible()
+    const photo = page.getByTestId('day-close-stage').locator('.recap-stage__photo')
+    const column = page.getByTestId('day-close-stage').locator('.recap-stage__column')
+    const top = () => photo.evaluate(el => el.getBoundingClientRect().top)
+    // early in the drop: the photo is above its place, the column not yet there
+    await expect.poll(top, { timeout: 1000 }).toBeLessThan(0)
+    expect(Number(await column.evaluate(el => getComputedStyle(el).opacity))).toBeLessThan(0.5)
+    // at rest (1.3 s): the photo at the top, the column opaque
+    await expect.poll(top, { timeout: 4000 }).toBe(0)
+    await expect(column).toHaveCSS('opacity', '1', { timeout: 2000 })
+    // a second open, left in the middle of the drop: no full photo flashes, the stage goes
+    await cancelButton(page).click()
+    await expect(stage(page)).toBeHidden()
+    await openDayClose(page)
+    await expect(stage(page)).toBeVisible()
+    await page.waitForTimeout(250)
+    await page.keyboard.press('Escape')
+    await expect(stage(page)).toBeHidden({ timeout: 3000 })
+  })
 
   test('axe: no serious or critical violations with the stage open (desktop)', async ({ page }) => {
     await page.goto('/tasks')
