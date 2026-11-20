@@ -19,6 +19,8 @@ import { forceClassicScrollbar, tagElements, boxes, moved, documentScrollbar } f
 
 test.use({ launchOptions: { ignoreDefaultArgs: ['--hide-scrollbars'] } })
 
+// Day close hides the topic focus funnel (#608); on a phone the app bar's group shares its centre with the funnel (#381), so it
+// re-centres when the funnel goes (on the nav timeline): by design, like the task sheet's slide (#290). The bar's own box stays checked.
 // The task sheet re-centres the app bar's group in the space left of it (#290, a slide over `--sheet-fade-duration`): that
 // shift is the design, not a scrollbar shift, and whether it has started when the dialog shows is a race. The bar's own
 // box (`.app-nav`, `.titlebar`) stays checked, which is where a scrollbar shift shows.
@@ -40,6 +42,7 @@ const openers: Array<{ name: string, ignore?: string, open: (page: Page) => Prom
   },
   {
     name: 'day-close stage',
+    ignore: '.app-nav-group',
     open: async (page) => {
       await openDayClose(page)
       await expect(page.getByRole('region', { name: 'Tag abschließen' })).toBeVisible()
