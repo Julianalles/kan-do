@@ -19,6 +19,7 @@ Ghost placeholder visibility:
   cards remain there, so they leave no gap, #393). The DOM answer is re-read whenever
   the list's children change during a drag (dnd-kit moves the node after the zone became the target)
 - A refused drop (the WIP limit for a card from Erledigt, or any stack into Jetzt, #150) shows no ghost: the slot would promise a landing. A single card from Offen or Wartet over a full Jetzt is not refused (#162): it swaps with the running card, which shows the swap state itself, so the zone shows no ghost there either
+Its box is whatever the list leaves over, so it changes size whenever the list's size does (the board's glide, #610, holds the list at its old size while the cards move); it is invisible, so the motion guard's sampler skips it (`data-frame-ignore`).
 @usage Rendered once per BoardColumn so an empty column still accepts a drop
 @avoid Invisible; never a visible drop target and never outside a board column (the sortable cards are the visible targets).
 -->
@@ -106,6 +107,7 @@ onBeforeUnmount(() => publishGhost(false))
     ref="element"
     class="column-drop-zone"
     :data-drop-zone-status="taskStatus"
+    data-frame-ignore
     aria-hidden="true"
   >
     <div v-if="showGhost" class="column-drop-zone__ghost" />

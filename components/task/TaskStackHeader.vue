@@ -31,6 +31,7 @@
       :label="label"
       :count="count"
       :first-task="firstTask"
+      :open="caretOpen"
     />
     <u-button
       class="task-stack-header__close"
@@ -46,6 +47,7 @@
 </template>
 
 <script setup lang="ts">
+import { onMounted, ref } from "vue";
 import { ICONS } from '~/lib/icons'
 import { useI18n } from "vue-i18n";
 import TaskStackPill from "~/components/task/TaskStackPill.vue";
@@ -71,6 +73,9 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+/** The chevron starts pointing down and turns up with the pill's rise (#610): it is mounted open, so the turn waits one frame */
+const caretOpen = ref(false);
+onMounted(() => requestAnimationFrame(() => { caretOpen.value = true; }));
 /** The group's name for assistive tech: the same text the old caption showed */
 const caption = useStackCaption(() => props.label, () => props.count);
 </script>

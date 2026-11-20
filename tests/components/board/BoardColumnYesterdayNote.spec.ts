@@ -24,6 +24,7 @@ const stubs = {
     template: '<button type="button" v-bind="$attrs"><slot /></button>',
   },
   UIcon: { template: '<span />' },
+  UCollapsible: { props: ['open'], template: '<div><slot v-if="open" name="content" /></div>' },
 }
 
 const mountNote = (tasks: Task[]) => mount(BoardColumnYesterdayNote, { props: { tasks }, global: { stubs } })

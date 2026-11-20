@@ -16,7 +16,7 @@
 - Topic and activity pickers (TopicPropertyPicker): the topic mark before each option, no control inside an option; an edit mode in the
   picker's footer ("Bearbeiten" / "Fertig") lists one button row per option, and a row closes the picker and opens the shared
   TopicEditorHost under the property row (#430, #431, #443); topics also get a "Themen verwalten" row
-- Host the carried-over triage block and line (#99)
+- Host the carried-over triage block and line (#99); a status change that ends the nudge closes the block and opens the line in place over `--duration-slow`, and the done-day row opens the same way (#610)
 - Status row (#359): five choices in the order of the places, "Nicht geplant" (the state of a task in the column "Meine Aufgaben", #375) first, then Offen, Jetzt, Wartet, Erledigt. A task
   that is not planned reads "Nicht geplant" (never "Offen", the name of the other column on "Alle"); picking a column plans it,
   picking "Nicht geplant" takes a task off today's board from any column (`useTaskStatusActions.chooseStatus`)
@@ -45,14 +45,18 @@
     <div :class="twoColumn ? 'flex min-h-0 flex-1 flex-col' : 'flex flex-col'" :data-testid="twoColumn ? 'task-detail-sheet' : 'task-detail-scroll'">
 
     <!-- Carried-over triage (#99): only for Offen/Jetzt cards past the threshold; full width above the title, clear of the close button -->
-    <TaskCarryOverTriage
-      v-if="!isPreview"
-      :task-id="task.id"
-      class="mt-4 mb-2"
-      :class="twoColumn ? 'ms-6 me-14' : 'mx-6'"
-      @kept="focusTitle"
-      @delete="emit('delete')"
-    />
+    <UCollapsible v-if="!isPreview" :open="triageOpen">
+      <template #content>
+        <TaskCarryOverTriage
+          :task-id="task.id"
+          :hold="!triageOpen"
+          class="mt-4 mb-2"
+          :class="twoColumn ? 'ms-6 me-14' : 'mx-6'"
+          @kept="onTriageKept"
+          @delete="emit('delete')"
+        />
+      </template>
+    </UCollapsible>
 
     <!-- Title: the sheet's one display line; on desktop it runs clear of the close button (kd#201: `top-4 end-4`, 32 px) -->
     <div class="shrink-0 pb-4" :class="twoColumn ? 'ps-6 pe-14 pt-5' : 'px-6 pt-2'" data-testid="task-detail-header">
@@ -82,14 +86,18 @@
             <UIcon :name="remindersHint.icon" class="size-4 shrink-0" aria-hidden="true" />
             {{ remindersHint.text }}
           </p>
-          <p
-            v-else-if="isCarryOverVisible && !isCarryOverNudgeDue"
-            class="mt-1 flex items-center gap-2 text-sm text-muted"
-            data-testid="carry-over-line"
-          >
-            <TaskCarryOverDots :day="carryOverDay" decorative />
-            {{ t('task.carryOver.label', { n: carryOverDay }) }}
-          </p>
+          <!-- The line opens in place when a status change ends the triage block (#610) -->
+          <UCollapsible :open="!isSmallerStep && !remindersHint && isCarryOverVisible && !isCarryOverNudgeDue">
+            <template #content>
+              <p
+                class="mt-1 flex items-center gap-2 text-sm text-muted"
+                data-testid="carry-over-line"
+              >
+                <TaskCarryOverDots :day="carryOverDay" decorative />
+                {{ t('task.carryOver.label', { n: carryOverDay }) }}
+              </p>
+            </template>
+          </UCollapsible>
         </div>
       </div>
     </div>
@@ -254,18 +262,25 @@
         </TaskPropertyRow>
 
         <!-- Done day (kd#131): only on a done task; corrects the day of a task marked done late -->
-        <TaskPropertyRow v-if="doneDay" :label="t('task.field.doneDay')" data-done-day-row>
-          <DatePickerField
-            :model-value="{ start: doneDay }"
-            :label="t('task.field.doneDay')"
-            :min-day="doneDayLimits.min"
-            :max-day="doneDayLimits.max"
-            :clearable="false"
-            :disabled="isPreview"
-            @update:model-value="(val) => updateDoneDay(val?.start)"
-          />
-          <span v-if="doneDayLocalOnly" class="text-sm text-muted" data-testid="done-day-local-only">{{ t('task.doneDay.localOnly') }}</span>
-        </TaskPropertyRow>
+        <!-- It opens in place over `--duration-slow` (#610); the row's 6 px gap sits inside, the root takes it back while closed -->
+        <UCollapsible :open="!!doneDay" class="-mt-1.5">
+          <template #content>
+            <div class="pt-1.5">
+              <TaskPropertyRow :label="t('task.field.doneDay')" data-done-day-row>
+                <DatePickerField
+                  :model-value="shownDoneDay ? { start: shownDoneDay } : null"
+                  :label="t('task.field.doneDay')"
+                  :min-day="doneDayLimits.min"
+                  :max-day="doneDayLimits.max"
+                  :clearable="false"
+                  :disabled="isPreview"
+                  @update:model-value="(val) => updateDoneDay(val?.start)"
+                />
+                <span v-if="doneDayLocalOnly" class="text-sm text-muted" data-testid="done-day-local-only">{{ t('task.doneDay.localOnly') }}</span>
+              </TaskPropertyRow>
+            </div>
+          </template>
+        </UCollapsible>
       </div>
 
       <!-- 3. Custom (Notion) properties: one quiet heading, rows in the same grammar; in the sheet they follow the six rows in the left column -->
@@ -303,7 +318,7 @@
     <div :class="twoColumn ? 'flex shrink-0 items-start justify-between gap-4 px-6 pb-6' : 'flex flex-col gap-6 px-6 pb-6'" data-testid="task-detail-footer">
       <TaskDetailMetadata
         v-model:open="isMetadataOpen"
-        :class="{ 'min-w-0': twoColumn }"
+        :class="{ 'min-w-0 flex-1': twoColumn }"
         :source="taskSource"
         :created-at="formatDate(task.createdAt)"
         :task-id="task.id"
@@ -489,6 +504,9 @@ const doneDay = computed(() => {
   const at = new Date(current.completedAt);
   return Number.isNaN(at.getTime()) ? null : dayKey(at);
 });
+/** The day the row shows while it folds away after a status change: `doneDay` is already null then, and "—" in its place would change the field's width mid-motion (#610) */
+const shownDoneDay = ref<string | null>(doneDay.value);
+watch(doneDay, (day) => { if (day) shownDoneDay.value = day; });
 const doneDayLimits = computed(() => doneDayBounds(task.value ?? {}, today.value));
 
 function updateDoneDay(day: string | undefined) {
@@ -505,6 +523,14 @@ const {
 } = useTaskCarryOver(task);
 const titleEditable = ref<InstanceType<typeof InlineEditable> | null>(null);
 const isSmallerStep = ref(false);
+/** The triage block stays open after "Ja, behalten" (it shows the confirmation), like the component's own `kept`; a status change that ends the nudge closes it over `--duration-slow` (#610) */
+const triageKept = ref(false);
+const triageOpen = computed(() => isCarryOverNudgeDue.value || triageKept.value);
+watch(() => task.value?.id, () => { triageKept.value = false; });
+function onTriageKept() {
+  triageKept.value = true;
+  focusTitle();
+}
 const smallerHintId = useId();
 
 // Leaving the title editor without a change (blur, Escape) ends the smaller-step hint as well.
