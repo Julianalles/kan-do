@@ -21,6 +21,7 @@ type Flow = { name: string, url: string, seed?: 'board' | 'none', run: (page: Pa
 /** Allow lists name the boxes seen jumping in a strict run, never every box. The step swap and the setup's height: motion-4 / #607 (setup steps), motion-9 / #610 (disclosures). The chip row of #608 never moved in these flows. */
 const SETUP_STEPS: AllowedJump = { match: /^div#__nuxt|^div#teleports|^div$|welcome-root|setup-back|Status\d|Aufgewendete Zeit|Erledigungsdatum/, issue: '#607', why: 'the setup steps still jump in height and place (motion-4)' }
 const DISCLOSURES: AllowedJump = { match: /task-metadata/, issue: '#610', why: 'a disclosure opens in one step (motion-9)' }
+const FOCUS_CARDS: AllowedJump = { match: /^div#column-(open|done)-list|column-drop-zone|"Wartet"|^nav\[app-nav\]|^ol\.fixed|dnd-kit-announcement/, issue: 'inbox: topic focus cards (PR of #608)', why: 'picking or ending a topic hides or shows the other topics\' cards in one frame; the chip row and the pill themselves glide (#608). The fixed app bar and toast list are page-scroll artefacts of the sampler (page y = rect + scrollY) when the page height changes' }
 
 /** In-app navigation: the sampler lives in one document, so a flow never reloads the page. */
 const push = (page: Page, path: string) => page.evaluate(path => (window as unknown as { useNuxtApp: () => { $router: { push: (p: string) => Promise<unknown> } } }).useNuxtApp().$router.push(path), path)
@@ -80,6 +81,21 @@ const FLOWS: Flow[] = [
       await meta.click()
     },
     jumps: [DISCLOSURES],
+  },
+  {
+    name: 'topic focus: open the chip row, pick a topic, end the focus (#608)',
+    url: '/tasks',
+    run: async (page) => {
+      await page.getByTestId('focus-trigger').click()
+      await expect(page.getByTestId('focus-chips')).toBeVisible()
+      await page.waitForTimeout(300) // a person picks after the row has grown, not mid-growth
+      await page.getByTestId('focus-chip').first().click()
+      await expect(page.getByTestId('focus-pill')).toBeVisible()
+      await page.waitForTimeout(300)
+      await page.getByTestId('focus-end').click()
+      await expect(page.getByTestId('focus-bar')).toHaveCount(0)
+    },
+    jumps: [FOCUS_CARDS],
   },
   {
     name: 'delete from the board and undo',

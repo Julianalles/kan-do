@@ -15,7 +15,7 @@
 - A failing source puts a status dot on ⋯ (orange for every failing state, #595) and the accessible name says so; the panel explains it
 - Tag abschließen: closes the panel, returns focus to ⋯, then opens the dialog, so the dialog's return target is ⋯ and not a removed row
 - Phone: fades out and ignores pointers while a card is dragged (no drop target is covered); the pills and the veil fade (the veil also steps back while the new-day recap stage is mounted, #262: the photo runs behind the bar)
-- The topic focus funnel (#161, BoardFocusTrigger) sits right of ⋯ on the board page only (Heute and Alle), outside the group's flow (`.app-nav-focus`), so the pills do not re-centre when it appears. Phone (#381): out of the flow it was cut off at the right edge of a 360px screen, so while it shows (`has-focus`) the group shifts left by half of funnel and gap, on the nav timeline: group and funnel are centred together and the funnel lies inside the bar's side room. Desktop keeps the centre
+- The topic focus funnel (#161, BoardFocusTrigger) sits right of ⋯ on the board page only (Heute and Alle), and not while day close or the new-day recap is open (#608: no board filter on a screen without a board), outside the group's flow (`.app-nav-focus`), so the pills do not re-centre when it appears. Phone (#381): out of the flow it was cut off at the right edge of a 360px screen, so while it shows (`has-focus`) the group shifts left by half of funnel and gap, on the nav timeline: group and funnel are centred together and the funnel lies inside the bar's side room. Desktop keeps the centre
 - Rückblick (#428): while the new-day recap is open (`useNewDayRecap().recapOpen`, on every route) the pill is `Rückblick | Statistik` (plus the third segment) instead of Alle and Heute: the user is in the recap or free to visit the board's two places. Rückblick is current on the board page the recap covers and links to Heute's path; on Statistik it is not current. Leaving the recap (both buttons, Escape) turns Rückblick into Alle + Heute: Rückblick shrinks away while the pair grows in, on the one `--nav-move` timeline (`moveSegment`, the third segment's machinery); the pill opens in its recap shape at once, never animated; reduced motion: instant. Neither recap button marks "planning from the recap" any more
 - Desktop ⋯ tooltip "Mehr, Befehle ⌘K" on every page (the palette is mounted once in app.vue, #224); no tooltip on touch
 -->
@@ -136,7 +136,7 @@
       </UPopover>
 
       <!-- The topic focus funnel (#161): beside the group, so the pills stay centred whether it shows or not -->
-      <div v-if="onBoard" class="app-nav-focus">
+      <div v-if="funnelAllowed" class="app-nav-focus">
         <BoardFocusTrigger />
       </div>
     </div>
@@ -167,10 +167,14 @@ const { t } = useI18n()
 const route = useLiveRoute()
 const { showsBar, selectedPlace, recapShown, onBoard, thirdItem } = useAppNav()
 const { dragState } = useBoardDragState()
-const { hasFocusJob } = useBoardFocus()
+const { hasFocusJob, chipsOpen } = useBoardFocus()
 /** The topic focus funnel (BoardFocusTrigger) is on screen: on a phone the group makes room for it (#381) */
-const showsFocus = computed(() => onBoard.value && hasFocusJob.value)
-const { open: openDayClose } = useDayClose()
+const { open: openDayClose, isOpen: dayCloseOpen } = useDayClose()
+/** No board filter on a screen without a board (#608): day close and the recap hide the funnel, and it returns when the stage closes */
+const funnelAllowed = computed(() => onBoard.value && !dayCloseOpen.value && !recapShown.value)
+const showsFocus = computed(() => funnelAllowed.value && hasFocusJob.value)
+// An open chip row would outlive its funnel (nothing to close it with): it closes with it. Not `closeChips()`: that puts focus back on the funnel
+watch(funnelAllowed, (allowed) => { if (!allowed) chipsOpen.value = false })
 const boardStore = useBoardStore()
 const health = useIntegrationHealthStore()
 

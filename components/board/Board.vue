@@ -41,7 +41,7 @@
     <!-- Phone page indicator (kd#26): fixed to the viewport above the sliding pages, never interactive -->
     <BoardPageDots :page="placePage" :count="placePageCount" :offset-px="swipeOffsetPx" :live="isSwiping" />
 
-    <BoardFocusBar />
+    <BoardFocusBar v-if="!isMobile" />
 
     <div
       ref="boardEl"
@@ -67,7 +67,9 @@
       />
       <!-- "Meine Aufgaben" (#354): two tracks left of Offen (phone: a page left of Offen); its cards are in the DOM
            only while "Alle" shows or the strip travels -->
-      <BoardNotPlanned :active="isAll" :rendered="isAll || placeMoving" />
+      <BoardNotPlanned :active="isAll" :rendered="isAll || placeMoving">
+        <template v-if="isMobile" #head><BoardFocusBar phone :active="stripPage === NOT_PLANNED_PAGE" /></template>
+      </BoardNotPlanned>
       <BoardColumn
         :tasks="tasksOpen"
         :task-status="TaskStatus.Open"
@@ -77,6 +79,7 @@
         :grouping-enabled="groupingEnabled"
         :grouping-key="groupingKey"
       >
+        <template v-if="isMobile" #head><BoardFocusBar phone :active="stripPage === 0" /></template>
         <!-- The capacity echo at the foot of Offen on "Alle" (desktop), where Erledigt has "Tag abschließen" -->
         <template v-if="isAll && !isMobile" #footer>
           <BoardCapacityDock />
@@ -84,6 +87,7 @@
       </BoardColumn>
       <!-- Progress + Waiting share one scroll-page on mobile -->
       <div class="column-group-mid" :inert="isAll || undefined">
+        <BoardFocusBar v-if="isMobile" phone :active="stripPage === 1" />
         <BoardColumn
           :tasks="tasksProgress"
           :task-status="TaskStatus.Progress"
@@ -111,6 +115,7 @@
         :inert="isAll || undefined"
         @archive="handleArchiveTasks"
       >
+        <template v-if="isMobile" #head><BoardFocusBar phone :active="stripPage === 2" /></template>
         <!-- "Tag abschließen" under the last card (#470); hidden while nothing is done today (the Mehr panel row stays). Desktop: the
              column's sticky footer, natural width. Phone (#297): the end of the list (not sticky), the cards' box: the footer's px-3 is
              the list's own inset and the width is capped like a card -->

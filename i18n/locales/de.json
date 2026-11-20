@@ -134,13 +134,13 @@
       "description": "„{running}“ läuft, „{waiting}“ wartet"
     },
     "focus": {
-      "trigger": "Fokus",
-      "endNamed": "Fokus beenden: {topic}",
-      "chips": "Fokus nach Thema",
+      "trigger": "Thema",
+      "endNamed": "Thema beenden: {topic}",
+      "chips": "Nach Thema",
       "chip": "{topic}, {n} Aufgabe | {topic}, {n} Aufgaben",
-      "pillLead": "Fokus:",
+      "pillLead": "Thema:",
       "hidden": "{n} ausgeblendet",
-      "end": "Fokus beenden"
+      "end": "Thema beenden"
     },
     "notPlanned": {
       "title": "Meine Aufgaben",
