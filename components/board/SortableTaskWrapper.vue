@@ -146,6 +146,8 @@ function deleteFocusedCard(event: KeyboardEvent) {
     <UTooltip v-if="showNotToday" :text="t('board.notPlanned.notToday')">
       <UButton
         class="plan-arrow task-wrapper__not-today"
+        data-round="arrow"
+        data-fill="primary"
         color="neutral"
         variant="ghost"
         square

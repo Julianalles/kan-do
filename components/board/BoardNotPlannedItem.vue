@@ -32,6 +32,8 @@
     <UTooltip :text="t('board.notPlanned.plan')" :disabled="isPhone">
       <UButton
         class="plan-arrow not-planned__pick"
+        data-round="arrow"
+        data-fill="primary"
         color="neutral"
         variant="ghost"
         square

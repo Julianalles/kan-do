@@ -49,17 +49,16 @@ describe('useTaskContextMenu: move to another source (#322)', () => {
     useBoardStore().setSources({ connected: [], default: 'local' })
     const groups = groupsOf(makeTask())
     expect(groups.flat().some(i => i.label === 'Verschieben nach …')).toBe(false)
-    expect(groups).toHaveLength(8)
+    expect(groups).toHaveLength(3)
   })
 
-  it('its own group sits after "Timebox setzen" and, past the copy group, before "Löschen"', () => {
+  it('its entry sits after "Timebox setzen" in the change group, before the copy and delete group (#602)', () => {
     useBoardStore().setSources({ connected: ['notion'], default: 'local' })
     const groups = groupsOf(makeTask())
-    const labels = groups.map(g => g[0]!.label)
+    const labels = groups[1]!.map(i => i.label)
     expect(labels.indexOf('Verschieben nach …')).toBe(labels.indexOf('Timebox setzen') + 1)
-    expect(labels.indexOf('Titel kopieren')).toBe(labels.indexOf('Verschieben nach …') + 1)
-    expect(labels.indexOf('Löschen')).toBe(labels.indexOf('Titel kopieren') + 1)
-    expect(groups.find(g => g[0]!.label === 'Verschieben nach …')).toHaveLength(1)
+    expect(groups[2]![0]!.label).toBe('Titel kopieren')
+    expect(groups.at(-1)!.at(-1)!.label).toBe('Löschen')
   })
 
   it('has no leading icon on any item, at any depth (#338)', () => {

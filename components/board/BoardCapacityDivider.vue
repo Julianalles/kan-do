@@ -86,15 +86,17 @@
         {{ t('board.capacity.help') }}
       </p>
       <UPopover :content="{ side: 'bottom', align: 'end', sideOffset: 6, collisionPadding: 8 }">
-        <UButton
-          color="neutral"
-          variant="ghost"
-          square
-          icon="i-ph-info"
-          class="capacity-divider__info"
-          data-testid="capacity-info"
-          :aria-label="t('board.capacity.infoLabel')"
-        />
+        <UTooltip :text="t('board.capacity.infoLabel')" :disabled="isPhone">
+          <UButton
+            color="neutral"
+            variant="ghost"
+            square
+            icon="i-ph-info"
+            class="capacity-divider__info"
+            data-testid="capacity-info"
+            :aria-label="t('board.capacity.infoLabel')"
+          />
+        </UTooltip>
         <template #content>
           <div class="capacity-divider__pop">
             <p
@@ -115,11 +117,13 @@
 <script setup lang="ts">
 import { computed, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useIsPhone } from '~/composables/useIsDesktop'
 import { useSettingsStore } from '~/store/settings'
 
 defineOptions({ name: 'BoardCapacityDivider' })
 
 const { t } = useI18n()
+const isPhone = useIsPhone()
 // The day length the user set in Einstellungen (#306) instead of the learned one: the info text says which
 const isSet = computed(() => useSettingsStore().workingHoursMinutes !== null)
 const patternId = `capacity-wave-${useId()}`

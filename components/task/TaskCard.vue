@@ -69,6 +69,7 @@
     <UButton
       v-if="openCardMenu"
       class="task-menu-btn"
+      data-round="sm"
       color="neutral"
       variant="ghost"
       square
@@ -462,30 +463,15 @@ const openDetails = (event: MouseEvent) => {
    edges, its 44 px target a pseudo-element around it. Phone width and touch-only devices (no right-click, and the hold
    belongs to the drag); a mouse desktop never shows it. A `ghost` button by the ladder (an icon-only button is ghost,
    kd#177) that wears the neutral soft fill (`--fill-on-canvas`, the owner's soft style); no main action stands beside it.
-   The 28 px is outside the 32/36 button ladder on purpose (the owner's call); the target is what keeps it usable. */
+   The 28 px is outside the 32/36 button ladder on purpose (the owner's call); the target is what keeps it usable. Look, size and
+   target: the button theme's `data-round="sm"` (#602); only placement and the muted glyph are here. */
 .task-menu-btn {
   display: none;
   position: absolute;
   top: 0.375rem;
   right: 0.375rem;
   z-index: 10;
-  width: 1.75rem;
-  height: 1.75rem;
-  min-width: 0;
-  min-height: 0;
-  padding: 0;
-  border-radius: 9999px;
   color: var(--ui-text-muted);
-  background-color: var(--fill-on-canvas);
-}
-.task-menu-btn:hover,
-.task-menu-btn:active {
-  background-color: var(--fill-on-canvas-hover);
-}
-.task-menu-btn::after {
-  content: "";
-  position: absolute;
-  inset: -0.5rem;
 }
 
 @media (--phone), (hover: none) {

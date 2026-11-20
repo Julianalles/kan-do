@@ -50,15 +50,19 @@
             {{ t('common.cancel') }}
           </UButton>
         </template>
-        <UButton
-          v-else-if="forever"
-          ref="removeBtn"
-          :icon="ICONS.delete"
-          color="error"
-          variant="soft"
-          :aria-label="t('trash.removeForeverNamed', { title: entry.task.title })"
-          @click="openConfirm"
-        />
+        <UTooltip v-else-if="forever" :disabled="isPhone">
+          <template #content>
+            <span data-private>{{ t('trash.removeForeverNamed', { title: entry.task.title }) }}</span>
+          </template>
+          <UButton
+            ref="removeBtn"
+            :icon="ICONS.delete"
+            color="error"
+            variant="soft"
+            :aria-label="t('trash.removeForeverNamed', { title: entry.task.title })"
+            @click="openConfirm"
+          />
+        </UTooltip>
       </div>
     </div>
   </div>
@@ -68,6 +72,7 @@
 import { ICONS } from '~/lib/icons'
 import { computed, nextTick, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useIsPhone } from '~/composables/useIsDesktop'
 import TaskCard from '~/components/task/TaskCard.vue'
 import { useTrash } from '~/composables/useTrash'
 import { trashAgo } from '~/lib/trash'
@@ -88,6 +93,7 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+const isPhone = useIsPhone()
 const { isRestoring } = useTrash()
 
 // Remove-forever asks in place (kd#21): focus to "Abbrechen", Esc / Abbrechen put it back on the ✕

@@ -62,28 +62,32 @@ changes size, so nothing on the page moves while it is looked at.
     </div>
 
     <div class="recap-deck__bar">
-      <UButton
-        color="neutral"
-        variant="ghost"
-        :icon="ICONS.back"
-        :aria-label="t('recap.deck.previous')"
-        :disabled="!deck.canMove.value"
-        :data-testid="`recap-prev-${kind}`"
-        @click="deck.prev()"
-      />
+      <UTooltip :text="t('recap.deck.previous')" :disabled="isPhone">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          :icon="ICONS.back"
+          :aria-label="t('recap.deck.previous')"
+          :disabled="!deck.canMove.value"
+          :data-testid="`recap-prev-${kind}`"
+          @click="deck.prev()"
+        />
+      </UTooltip>
       <span class="recap-deck__counter text-sm text-muted tabular-nums" aria-hidden="true" data-testid="recap-deck-counter">
         {{ t('recap.deck.counter', { position: deck.position.value, total: tasks.length }) }}
       </span>
       <span class="sr-only" aria-live="polite" data-testid="recap-deck-live">{{ announcement }}</span>
-      <UButton
-        color="neutral"
-        variant="ghost"
-        :icon="ICONS.forward"
-        :aria-label="t('recap.deck.next')"
-        :disabled="!deck.canMove.value"
-        :data-testid="`recap-next-${kind}`"
-        @click="deck.next()"
-      />
+      <UTooltip :text="t('recap.deck.next')" :disabled="isPhone">
+        <UButton
+          color="neutral"
+          variant="ghost"
+          :icon="ICONS.forward"
+          :aria-label="t('recap.deck.next')"
+          :disabled="!deck.canMove.value"
+          :data-testid="`recap-next-${kind}`"
+          @click="deck.next()"
+        />
+      </UTooltip>
     </div>
   </section>
 </template>
@@ -93,6 +97,7 @@ import SectionHeader from '~/components/ui/SectionHeader.vue'
 import { ICONS } from '~/lib/icons'
 import { computed, ref, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useIsPhone } from '~/composables/useIsDesktop'
 import TaskCard from '~/components/task/TaskCard.vue'
 import { useSwipeDeck } from '~/composables/useSwipeDeck'
 import type { Task } from '~/types/task'
@@ -107,6 +112,7 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+const isPhone = useIsPhone()
 const headingId = `recap-group-${useId()}`
 const label = computed(() => t(props.kind === 'done' ? 'recap.deck.done' : 'recap.deck.undone', { n: props.tasks.length }))
 

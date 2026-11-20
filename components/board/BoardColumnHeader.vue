@@ -39,6 +39,7 @@
           <UButton
             ref="addButton"
             class="column-header__add"
+            data-round="md"
             color="neutral"
             variant="ghost"
             square
@@ -275,28 +276,15 @@ const isWaiting = computed(() => props.status === TaskStatus.Waiting);
     height: calc(var(--text-display) * var(--lh-tight)); /* the h2's line box: the button centres on the title line */
   }
 
-  /* The stack header's close button look (TaskStackHeader): round, soft grey on the canvas, one step deeper on hover */
+  /* Round look, size and the phone 44 px floor: the button theme's `data-round="md"` (#602); only placement stays here */
   .column-header__add {
     pointer-events: auto;
     flex: none;
-    width: 2rem;
-    height: 2rem;
-    min-width: 2rem;
-    padding: 0;
-    justify-content: center;
-    border-radius: 9999px;
-    background-color: var(--fill-on-canvas);
-    color: var(--ui-text);
-    cursor: pointer;
   }
 
   /* Disabled while a draft is open (DESIGN.md "Disabled"): the dimmed look, no hover answer, and the cursor says so */
   .column-header__add:disabled {
     cursor: not-allowed;
-  }
-
-  .column-header__add:hover:not(:disabled) {
-    background-color: var(--fill-on-canvas-hover);
   }
 
   @media (--desktop) {
@@ -306,11 +294,7 @@ const isWaiting = computed(() => props.status === TaskStatus.Waiting);
   }
 
   @media (--phone) {
-    /* the button ladder's 44px floor (the unlayered size above would outrank the theme's `min-h-11`) */
     .column-header__add {
-      width: 2.75rem;
-      height: 2.75rem;
-      min-width: 2.75rem;
       /* Above the sort control's spacer under the header, which would take the bottom 3 px of the 44 px hit area (#592) */
       position: relative;
       z-index: 1;

@@ -45,7 +45,7 @@
     <span
       v-if="visible"
       class="chip-slot"
-      :class="{ 'chip-slot--now': expanded, 'chip-slot--armed': armed }"
+      :class="{ 'chip-slot--now': expanded, 'chip-slot--armed': armed, 'chip-slot--still': !morphing }"
       :style="{ '--chip-p': `${fillShare}%`, '--chip-fill-duration': fillSteps ? '0ms' : undefined }"
     >
       <span class="chip__sizer" :class="{ 'chip__sizer--boxless-now': !hasBox && expanded }" aria-hidden="true">
@@ -73,7 +73,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useLocaleFormat } from '~/composables/useLocaleFormat'
 import { getTimeboxRingColor, getTimerBarShare } from '~/utils/timeboxProgress'
@@ -165,6 +165,19 @@ watch(() => [fillShare.value, timerBar.value?.over === true] as const, ([now, ov
 /** Transitions are on only after the first frames: the footer width is measured after the mount, and a page load
  *  must not play the bar's width from the unmeasured fallback to the footer width */
 const armed = ref(false)
+/** The chip's shape (width, height, padding, type) moves only while it changes state: the card enters or leaves
+ *  Jetzt (#602). A remount of a card already in Jetzt, or the footer being measured late (the board page returning
+ *  into view), must not replay the entrance, so geometry transitions are off outside this window. Sync, so the render
+ *  that flips `expanded` already carries the class. Kept past the spring: 240 ms settle delay + 600 ms duration. */
+const MORPH_WINDOW_MS = 1000
+const morphing = ref(false)
+let morphTimer: ReturnType<typeof setTimeout> | undefined
+watch(expanded, () => {
+  morphing.value = true
+  clearTimeout(morphTimer)
+  morphTimer = setTimeout(() => { morphing.value = false }, MORPH_WINDOW_MS)
+}, { flush: 'sync' })
+onBeforeUnmount(() => clearTimeout(morphTimer))
 /** Two frames on: the first style pass has seen the DOM as it is now, so a class flip in `run` has a before-change style to ease from */
 const afterTwoFrames = (run: () => void) => requestAnimationFrame(() => requestAnimationFrame(run))
 onMounted(() => {
@@ -275,7 +288,7 @@ watch(() => props.isNow, (now) => {
     background-color var(--duration-slow) var(--ease-standard);
 }
 .chip--boxless { width: auto; min-width: 100%; }
-
+.chip-slot.chip-slot--still :is(.chip, .chip__icon, .chip__spent) { transition: color var(--duration-slow), background-color var(--duration-slow) var(--ease-standard); } /* #602: no state change, no geometry motion; the tone change still fades */
 /* Colour coding in Jetzt only */
 .chip--primary { --chip-fill: var(--ui-color-primary-200); --chip-accent: var(--ui-color-primary-600); }
 .chip--warning { --chip-fill: var(--ui-color-warning-200); --chip-accent: var(--ui-color-warning-600); }

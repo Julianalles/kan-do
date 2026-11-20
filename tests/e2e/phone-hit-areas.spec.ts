@@ -178,3 +178,27 @@ for (const screen of SCREENS) {
     else expect(small).toEqual([])
   })
 }
+
+// #624: the draft card of the in-card add flow covered the lower part of the Offen sort control (145 x 38 of 145 x 48 px).
+// The flow's own open menu is a popover over the card below it, so the sweep above cannot measure this page whole: probe the control's box.
+test('phone floor: the Offen sort control stays tappable while the add flow is open (#624)', async ({ context, page }) => {
+  await seedLocalBoard(context, SEED_TASKS)
+  await page.goto('/tasks')
+  await expect(page.locator('.board .task').first()).toBeVisible()
+  await showColumnPage(page, 0)
+  await page.getByRole('button', { name: 'Aufgabe hinzufügen' }).first().click()
+  await page.getByTestId('new-card-title').fill('Phone check')
+  await page.keyboard.press('Enter')
+  await expect(page.getByTestId('new-card-step')).toBeVisible()
+  const control = page.locator('.column[data-status="open"]').getByTestId('column-sorting-control')
+  await expect(control).toHaveCSS('opacity', '1')
+  const box = (await control.boundingBox())!
+  expect(box.height).toBeGreaterThanOrEqual(44)
+  const covered = await control.evaluate((el, b) => {
+    const inside = (x: number, y: number) => el.contains(document.elementFromPoint(x, y))
+    // the four corners, 2 px in, and the middle of the lower edge: the part the draft card covered
+    return [[2, 2], [b.width - 2, 2], [2, b.height - 2], [b.width - 2, b.height - 2], [b.width / 2, b.height - 2]]
+      .filter(([dx, dy]) => !inside(b.x + dx!, b.y + dy!))
+  }, box)
+  expect(covered, 'points of the sort control that another element covers').toEqual([])
+})

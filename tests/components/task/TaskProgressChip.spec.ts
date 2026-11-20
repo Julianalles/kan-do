@@ -233,6 +233,23 @@ describe('TaskProgressChip (#388)', () => {
       expect(bar(landed).classes()).not.toContain('chip--now')
     })
 
+    it('a card remounted while already in Jetzt snaps its shape: no entrance replays (#602)', async () => {
+      rememberInJetzt('t1', true)
+      const w = render({ isNow: true })
+      expect(w.find('.chip-slot').classes()).toContain('chip-slot--still')
+      await vi.advanceTimersByTimeAsync(2000)
+      expect(w.find('.chip-slot').classes()).toContain('chip-slot--still')
+    })
+
+    it('a card that enters Jetzt morphs, then is still again after the spring (#602)', async () => {
+      rememberInJetzt('t1', false)
+      const w = render({ isNow: true })
+      await vi.advanceTimersByTimeAsync(50)
+      expect(w.find('.chip-slot').classes()).not.toContain('chip-slot--still')
+      await vi.advanceTimersByTimeAsync(1200)
+      expect(w.find('.chip-slot').classes()).toContain('chip-slot--still')
+    })
+
     it('remembers per task: another task is not affected', () => {
       rememberInJetzt('t1', true)
       expect(bar(render({ taskId: 'other', isNow: false })).classes()).not.toContain('chip--now')

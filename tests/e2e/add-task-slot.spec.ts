@@ -68,7 +68,8 @@ test.describe('Add slot, desktop', () => {
       const card = await box(offen(page).locator('.task-wrapper .task').first());
       expect(Math.round(button.width)).toBe(32);
       expect(Math.round(button.height)).toBe(32);
-      await expect(add).toHaveCSS('border-top-left-radius', '9999px');
+      // Round: the theme's `rounded-full` computes to a huge radius (calc(infinity * 1px)), not a literal 9999px
+      expect(await add.evaluate((el) => parseFloat(getComputedStyle(el).borderTopLeftRadius))).toBeGreaterThanOrEqual(9999);
       await expect(add).not.toHaveCSS('background-color', TRANSPARENT);
       // The cards' left edge (#264), and the centre of the title line
       expect(Math.abs(button.x - card.x)).toBeLessThanOrEqual(1);
