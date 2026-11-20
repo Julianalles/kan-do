@@ -320,6 +320,15 @@ test.describe('The place "Alle" (#354), desktop', () => {
     await expect(item(page, 'np-2').getByTestId('not-planned-pick')).toBeFocused()
   })
 
+  test('planning the last held card by keyboard hands focus to "Aufgabe erstellen", not to the void (#658)', async ({ context, page }) => {
+    await seedLocalBoard(context, BOARD.filter(t => !t.notPlanned || t.id === 'np-1'))
+    await gotoAll(page)
+    expect(await notPlannedIds(page)).toEqual(['np-1'])
+    await item(page, 'np-1').getByTestId('not-planned-pick').focus()
+    await page.keyboard.press('Enter')
+    await expect(page.getByTestId('not-planned-create')).toBeFocused()
+  })
+
   test('the topic focus is one state for both places and filters "Meine Aufgaben" and Offen', async ({ context, page }) => {
     await seedLocalBoard(context, BOARD)
     await gotoAll(page)

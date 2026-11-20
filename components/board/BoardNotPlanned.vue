@@ -244,7 +244,8 @@ async function pick(id: string, event: MouseEvent) {
   if (!(await planForToday(id)) || !hadFocus) return
   await nextTick()
   const next = neighbour ? bodyEl.value?.querySelector<HTMLElement>(`[data-not-planned-id="${CSS.escape(neighbour)}"] .not-planned__pick`) : null
-  ;(next ?? document.querySelector<HTMLElement>('#column-open [data-testid="add-task-header-button"]'))?.focus({ preventScroll: true })
+  // The last card: "Aufgabe erstellen" of the now empty note (Offen has no add button on "Alle", #658)
+  ;(next ?? focusFallback())?.focus({ preventScroll: true })
 }
 </script>
 

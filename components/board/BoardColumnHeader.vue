@@ -20,6 +20,7 @@
   disabled, so the header never shifts. `addButtonEl()` lets the column return focus after a cancel. Same look as the
   stack header's close button (ghost UButton, `--fill-on-canvas` fill by CSS, 32px, 44px on touch)
 - `addAway` (#609): the button fades out for `--duration-base` (200 ms) and (`opacity-0`, the transition is the button's own) and is `inert` (out of the tab order, the pointer and the reader's tree), keeping its box, so the title never shifts and the fade back in is the same. "Meine Aufgaben" sets it while its empty note offers "Aufgabe erstellen"; none under reduced motion
+- `titleSuffix` (#660): Wartet's "?" while the column is empty. A zero-width inline-block after the word, so the title box and its centring never change when it comes or goes; the heading's `aria-label` keeps the name "Wartet?"
 -->
 <template>
   <div
@@ -28,9 +29,10 @@
   >
     <h2
       class="font-display"
+      :aria-label="titleSuffix ? title + titleSuffix : undefined"
       :class="{ 'column-header__marked': marker !== undefined, 'column-header__marked--hidden': marker === 'hidden', 'column-header__fading': outgoingTitle !== null }"
     >
-      <span ref="titleEl">{{ title }}</span>
+      <span ref="titleEl">{{ title }}<span v-if="titleSuffix" class="inline-block w-0" aria-hidden="true">{{ titleSuffix }}</span></span>
       <!-- The title of the place just left, fading out over the new one (#375); never read: the heading has one name -->
       <span v-if="outgoingTitle !== null" ref="outgoingEl" class="column-header__outgoing" aria-hidden="true">{{ outgoingTitle }}</span>
     </h2>
@@ -84,6 +86,8 @@ defineOptions({ name: "BoardColumnHeader" });
 const props = defineProps<{
   /** Title text to display in the column header */
   title: string;
+  /** Hangs after the title out of the flow, so the title box and its centring never change when it comes or goes (#660: Wartet's "?") */
+  titleSuffix?: string;
   /** Task status associated with this column */
   status: TaskStatus;
   /** Number of tasks in this column */

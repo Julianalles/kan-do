@@ -29,9 +29,6 @@ const MAPPER_ROWS: AllowedJump = { match: /Aufgewendete Zeit|Erledigungsdatum/, 
 const WELCOME_DONE_BEAT: AllowedJump = { match: /^div#__nuxt|^div#teleports|^div$|welcome-root/, issue: '#668', why: 'the done beat changes the welcome page height by 21 px in one frame' }
 const SETUP_PAGE_SCROLL: AllowedJump = { match: /flow-root|brand-flight/, issue: '#649', why: 'the pane has no scroll area of its own now, so a tall step makes the page scroll; when the done beat shortens the page the sampler (page y = rect + scrollY) reads the scroll reset as a jump of the pane block and of the fixed brand flight (both glide on screen)' }
 
-/** The "Wartet" heading changes its width by 18 px in one frame when its column empties (`.waiting-header.empty`): found in the #642 flow (#660). */
-const WARTET_HEADING: AllowedJump = { match: /^h2\.font-display "Wartet"/, issue: '#660', why: 'the heading of an emptied Wartet column changes width in one frame (`.waiting-header.empty`)' }
-
 /** The completion toast's viewport (the Nuxt UI toaster, `ol.fixed`) changes height by 122 px in one frame when the toast arrives; the toast itself slides in. Found while #661 left the list; #675. */
 const TOAST_VIEWPORT: AllowedJump = { match: /^ol\.fixed\.flex\.flex-col/, issue: '#675', why: 'the toaster viewport box grows with its toast in one frame' }
 
@@ -131,7 +128,6 @@ const FLOWS: Flow[] = [
       await page.getByTestId('focus-end').click()
       await expect(page.getByTestId('focus-bar')).toHaveCount(0)
     },
-    jumps: [WARTET_HEADING],
   },
   {
     name: 'Gestern erledigt: open and close the list (#610)',
