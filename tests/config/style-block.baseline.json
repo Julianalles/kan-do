@@ -1,0 +1,50 @@
+{
+  "components/AppShell.vue": {
+    "count": 1,
+    "reason": "keep: the desktop title bar strip (fixed, drag region), a selector no utility says"
+  },
+  "components/setup/NotionSetupFlow.vue": {
+    "count": 1,
+    "reason": "keep: hides a child component's heading through :deep"
+  },
+  "components/setup/SetupRail.vue": {
+    "count": 1,
+    "reason": "keep: the line between two dots is a pseudo-element"
+  },
+  "components/statistics/TasksTable.vue": {
+    "count": 1,
+    "reason": "keep: row cursor and hover through :deep on the table body"
+  },
+  "components/topic/TopicEditor.vue": {
+    "count": 1,
+    "reason": "keep: swatch dot geometry and the symbol grid"
+  },
+  "components/topic/TopicEditorHost.vue": {
+    "count": 1,
+    "reason": "keep: the drawer's height cap through a named class"
+  },
+  "components/topic/TopicMark.vue": {
+    "count": 1,
+    "reason": "keep: the topic mark is drawn in CSS (a dot or glyph in a tone token)"
+  },
+  "components/trash/TrashEntryRow.vue": {
+    "count": 1,
+    "reason": "keep: wrap breakpoint of the entry row, a container-style rule"
+  },
+  "pages/overlay.vue": {
+    "count": 1,
+    "reason": "keep: the transparent window page (html and body)"
+  },
+  "pages/trash.vue": {
+    "count": 1,
+    "reason": "keep: the auto-fill grid of the entries"
+  },
+  "pages/welcome.vue": {
+    "count": 1,
+    "reason": "keep: the photo crop is proportioned by viewport units"
+  },
+  "layouts/sub-page.vue": {
+    "count": 1,
+    "reason": "keep: fills the viewport below the app bar (dvh with a vh fallback)"
+  }
+}

@@ -40,7 +40,7 @@ const stubs = {
     template: '<div><div @click="$emit(\'update:open\', !open)"><slot /></div><slot v-if="open" name="content" /></div>',
   },
   UTooltip: { props: ['text', 'kbds', 'disabled'], template: '<div :data-tooltip="disabled ? undefined : text" :data-kbds="kbds?.join(\'+\')"><slot /></div>' },
-  UChip: { props: ['show', 'ui'], template: '<span :data-dot="show ? ui.base : undefined"><slot /></span>' },
+  UChip: { props: ['show', 'color'], template: '<span :data-dot="show ? color : undefined"><slot /></span>' },
   UIcon: true,
   NuxtLink: {
     props: ['to'],
@@ -295,11 +295,11 @@ describe('AppNav: the global app bar (#470)', () => {
     health.markBroken('notion', 'Unauthorized')
     await nextTick()
     expect(more(w).attributes('aria-label')).toBe('Mehr, Verbindungsproblem')
-    expect(w.find('[data-dot]').attributes('data-dot')).toBe('bg-warning-700')
+    expect(w.find('[data-dot]').attributes('data-dot')).toBe('warning')
 
     health.markOffline('notion', 'Network')
     await nextTick()
-    expect(w.find('[data-dot]').attributes('data-dot')).toBe('bg-warning-700')
+    expect(w.find('[data-dot]').attributes('data-dot')).toBe('warning')
 
     health.recordSuccessfulSync('notion')
     await nextTick()

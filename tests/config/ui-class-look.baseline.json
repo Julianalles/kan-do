@@ -1,0 +1,46 @@
+{
+  "components/board/BoardColumn.vue": {
+    "count": 1,
+    "reason": "keep: a link inside a sentence; one text-link look as the ULink theme is open (sweep source-9)"
+  },
+  "components/board/BoardColumnYesterdayNote.vue": {
+    "count": 1,
+    "reason": "keep: the ghost button's label one step quieter than the ghost default (toned)"
+  },
+  "components/board/BoardNotPlannedGroup.vue": {
+    "count": 1,
+    "reason": "keep: the count badge in the body font inside a display-role group heading"
+  },
+  "components/feedback/FeedbackAnnotator.vue": {
+    "count": 1,
+    "reason": "keep: the pressed tool's ring in a toggle group; the theme has no pressed ghost look"
+  },
+  "components/feedback/FeedbackDialog.vue": {
+    "count": 1,
+    "reason": "keep: a link-style button flush with its sentence (p-0); a flush link look in the button theme is open"
+  },
+  "components/statistics/StatsPatterns.vue": {
+    "count": 1,
+    "reason": "keep: a link-style button flush left (px-0); a flush link look in the button theme is open"
+  },
+  "components/task/TaskPriorityBadge.vue": {
+    "count": 1,
+    "reason": "keep: the priority badge's tone is drawn by the badge itself (a priority class beside it)"
+  },
+  "components/trash/TrashEntryRow.vue": {
+    "count": 1,
+    "reason": "keep: a link-style button flush left (px-0); a flush link look in the button theme is open"
+  },
+  "components/updates/UpdateDialog.vue": {
+    "count": 1,
+    "reason": "keep: a link-style button flush left (px-0); a flush link look in the button theme is open"
+  },
+  "pages/settings/notion.vue": {
+    "count": 1,
+    "reason": "keep: a link-style button flush left (px-0); a flush link look in the button theme is open"
+  },
+  "pages/settings/updates.vue": {
+    "count": 1,
+    "reason": "keep: a link-style button flush left (px-0); a flush link look in the button theme is open"
+  }
+}

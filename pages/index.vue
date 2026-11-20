@@ -22,5 +22,3 @@ async function initializeIndexRedirect() {
 
 onMounted(initializeIndexRedirect);
 </script>
-
-<style scoped lang="css"></style>

@@ -81,7 +81,6 @@ immediate: no loading or error state.
           variant="soft"
           :label="symbolLabel"
           trailing-icon="i-ph-caret-down"
-          :ui="{ trailingIcon: pickerOpen ? 'rotate-180 transition-transform duration-(--duration-base)' : 'transition-transform duration-(--duration-base)' }"
           :aria-label="t('topic.editor.symbolButton', { value: symbolLabel })"
           :aria-expanded="pickerOpen"
           :aria-controls="pickerOpen ? gridId : undefined"

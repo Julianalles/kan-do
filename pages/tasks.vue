@@ -297,17 +297,3 @@ watch(() => dayHasBegun(), (begun) => {
 // A warning still waiting would hold its fetch (and a manual refresh awaiting it) until the next one
 onBeforeUnmount(resetSyncValidation);
 </script>
-
-<style scoped>
-.modal-enter-active,
-.modal-leave-active {
-  transition: opacity var(--duration-base) var(--ease-standard);
-}
-
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
-}
-</style>
-
-<style></style>

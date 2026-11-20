@@ -26,9 +26,9 @@
           <UAlert
             v-else
             color="neutral"
-            variant="subtle"
+            variant="flat"
             icon="i-ph-info"
-            class="items-center py-3 ring-0"
+            class="items-center"
             data-testid="trash-note"
             @keydown.esc.stop="confirming && cancelEmpty()"
           >

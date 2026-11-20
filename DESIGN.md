@@ -83,6 +83,7 @@ Token values live in `assets/css/main.css` and `app.config.ts`; these tables nam
 | Sheet | `--ui-bg`, `--ui-bg-elevated` (white) | every lifted surface: card, page sheet, task sheet, dialog, menu, toast |
 | Fill on a sheet | `--ui-bg-muted`, `--ui-bg-accented` | a light paper tone: selects, badges, the hover of a row |
 | Fill on the canvas | `--fill-on-canvas` (the shadow colour at 7 %, 13 % on hover) | a step darker than whatever lies below: soft buttons, the tab track, the Offen header's add button |
+| Wash of the primary | `--primary-wash` (the primary at 10 %), `--primary-wash-hover` (18 %) | the answer chip and the focus pill that reads as its state, with primary text |
 | Rule line | `--ui-border` | hairlines inside a sheet |
 | Ink, graphite | `--ui-text`, `--ui-text-muted` | near-black warm text; secondary text |
 | Forest green | `primary` and `success` (ramp `custom-forest`, hue 152) | action and done: the solid button, links, selected options, the focus ring, the running timebox, the done check and washes |
@@ -199,7 +200,7 @@ One answer per state, on every control, whoever built it.
 
 ## Components
 
-Nuxt UI components first, themed in `app.config.ts`; a shared primitive in `components/ui/` from three call sites on; custom components for the board domain. One line per user job; how each looks, with every variant and state, is on `/ui`.
+Nuxt UI components first, themed in `app.config.ts`; a shared primitive in `components/ui/` from three call sites on; custom components for the board domain. One line per user task; how each looks, with every variant and state, is on `/ui`.
 
 - **Trigger an action:** `UButton`. Solid green for the one main action of a surface (36 px). Soft for a neutral action that stands on its own and for the main action of a row; a row of two actions may show both soft, from three on one is soft and the others are ghost (owner, 2026-11-12). Ghost for further actions inside a row, card, menu or toolbar and for an icon-only button, except the destructive one of such a pair, which is soft in the error tone so it is told apart at a glance. Link inside running text. One height, 36 px (48 on a phone), and a solid green or error button is at least 96 px wide, so "Weiter" keeps the wide rectangle (#424); no `outline`, `subtle`, `xs` or `xl`, except the one `xs` Nuxt UI sets on the actions of an alert or toast: 24 px high on desktop, 44 px on a phone, at the 14 px text step of the notice beside it (#377). Dialog footers: neutral cancel first, main action last.
 - **Pick one of a few:** `ChoiceChip`, one chip shape at one height (36 px), with an icon alone where the options are symbols. Larger options with a description are the one choice card. A toggle that stays on beside others is the chip too.
@@ -213,7 +214,7 @@ Nuxt UI components first, themed in `app.config.ts`; a shared primitive in `comp
 - **The task sheet:** details and the add form are one sheet, opened the same way from the board and from statistics. A task's detail on desktop is a card-sized sheet that grows out of its card and folds back into it (720 px wide, 32 px corners, title across the top, the rows left and the notes right, Metadaten and Löschen on the last line; `TaskMorphShell`, #468); the add form on desktop is a side sheet; on a phone both are a bottom drawer.
 - **Ask in a dialog:** `AppDialog` in three widths; `ResponsiveOverlay` when it becomes a drawer on a phone. For a question or a short task the user returns from, never for a process ("A process is a page"); one overlay at a time.
 - **Ask about one card:** on the card (`TaskTimeboxNudge`, the new-card flow): non-modal, self-dismissing, ignoring it loses nothing.
-- **Tell the user something:** an undo toast after a reversible action or for news; `UAlert` subtle for a state inside a flow; the `UFormField` error for a field; one quiet line above the content for a state the user cannot fix now. A healthy sync is silent.
+- **Tell the user something:** an undo toast after a reversible action or for news; `UAlert` subtle for a state inside a flow; the `UFormField` error for a field; one quiet line above the content for a state the user cannot fix now (`UAlert` `variant="flat"`: the subtle alert without its ring). A healthy sync is silent.
 - **Show an empty place:** `EmptyState` for a page or tab whose main content is a list that fills with use, `EmptyNote` (one muted sentence) everywhere else; empty columns stay blank.
 - **Switch a view in a page:** `UTabs` `variant="link"`: labels on a line, the selected one marked by an underline indicator, no track (#318, #308). It reads lighter than the app bar's nav pill, so it never passes for place navigation.
 - **Choose an option in a page:** `UTabs` as the segmented track (`variant="pill"`, the default look in `app.config.ts`): a track on the canvas, the selected option a white chip. For picking an option (a split, a kind, a range), never for moving between views.
@@ -253,7 +254,8 @@ What a check already guarantees is not repeated above. `npm run verify` runs the
 | Topic hues keep 3:1 on the sheet | `tests/config/topic-tokens.test.ts` |
 | No bare `UModal`, no hand-rolled tabs, no uppercase | `tests/config/design-patterns.test.ts` |
 | Icons: mapped meanings, bundled collection only | `tests/config/icon-map.test.ts`, `icons-bundled.test.ts`, `nuxt-ui-icons.test.ts` |
-| No new raw `<button>`, no visual identity in a call-site `ui` prop | `tests/config/ratchets.test.ts` |
+| No new raw `<button>`, no visual identity in a call-site `ui` prop or in a text, font, padding-to-zero, ring or background class on a kit component; raw elements per page, style blocks outside the board, task, kit, overlay and recap, and the style lines of a board or card component may only fall | `tests/config/ratchets.test.ts` (baselines `tests/config/*.baseline.json`, `npm run ratchet:lower`) |
+| No empty `<template>`, `<script>` or `<style>` block | ESLint `vue/no-empty-component-block` |
 | Every pressable on the board, the task sheet, Statistik, the topic editor, the in-card add flow and `/ui` shows the hand and changes under the pointer (a selected one excepted) | `tests/e2e/hover-answer.spec.ts` (#592) |
 | Every visible control on the seeded screens has a 44 × 44 hit area at 390 px, a named exception list | `tests/e2e/phone-hit-areas.spec.ts` (#592) |
 | A Pattern line for every new or changed UI element | `tests/config/pattern-check.test.ts`, `.claude/rules/ui-patterns.md` |

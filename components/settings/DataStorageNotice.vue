@@ -22,13 +22,13 @@ once when a conflict appears.
     v-if="notice"
     v-bind="$attrs"
     role="status"
-    variant="subtle"
+    variant="flat"
     orientation="horizontal"
     :color="notice.color"
     :icon="notice.icon"
     :title="notice.text"
     :actions="actions"
-    :ui="{ title: 'text-sm font-medium text-default', root: 'py-3 ring-0', actions: 'kando-notice-actions flex-wrap' }"
+    class="kando-notice-actions"
     data-testid="data-storage-notice"
   />
   <!-- Loaded on first use: most sessions never see a conflict, and the modal's module graph is not cheap. -->

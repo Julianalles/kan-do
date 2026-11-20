@@ -28,7 +28,6 @@ The row that would navigate to the page the user is already on is left out (`bui
         :loading="tasksStore.isLoading"
         :placeholder="t('commandPalette.placeholder')"
         :back="false"
-        :ui="paletteUi"
         :fuse="fuseOptions"
         class="max-h-144"
         @update:open="isOpen = $event"
@@ -83,32 +82,16 @@ const { isOpen, groups, hasCard, restoreFocus } = useCommandPalette()
 
 // Cmd/Ctrl+K is registered in app.vue: this component loads on first open (#288).
 
+// Placement only: the palette's look (Variant B "Quiet Desk": group headings, rows, highlight) is the `commandPalette` theme in app.config.ts.
 const modalUi = {
   // A click on the scrim in the desktop bar row must dismiss it, not start a window drag (#432, lib/windowDrag.ts)
   overlay: 'window-drag-exempt',
   content: 'sm:top-20 sm:translate-y-0 sm:max-w-xl overflow-hidden',
 }
-// Variant B "Quiet Desk" (chosen over stock A and dense C, see PR): group labels in the sans at 500 (The One Role Rule), no
-// hard dividers between groups, suffix in Graphite (text-muted) for AA contrast.
 // Replaces Nuxt UI's defaults wholesale, so repeat them (strict threshold keeps "erledigt" off the Wartet row).
 const fuseOptions = {
   fuseOptions: { ignoreLocation: true, threshold: 0.1, keys: ['label', 'description', 'suffix'] },
   resultLimit: 30,
   matchAllWhenSearchEmpty: true,
-}
-
-const paletteUi = {
-  root: 'divide-default/40',
-  viewport: 'divide-y-0 p-2 mask-b-from-92%',
-  group: 'p-0 pb-3',
-  label: 'text-base font-medium text-muted px-3 pt-3 pb-1',
-  // The stock highlight (bg-elevated/50) is invisible on the bg-elevated (white) modal, and so is bg-muted (~1.07:1); use the
-  // canvas fill's hover step, the same warm tint as every other state fill (main.css `--fill-on-canvas-hover`).
-  // Disabled rows keep full opacity so the reason suffix stays AA; only the label is dimmed.
-  // 36 px from md up, at least 44 px below it (DESIGN.md "Control height", #345), content on the row's middle there.
-  item: 'min-h-9 max-md:min-h-11 max-md:items-center px-3 py-2 text-sm before:rounded-lg data-disabled:opacity-100 data-highlighted:not-data-disabled:before:bg-(--fill-on-canvas-hover)',
-  itemLabelBase: 'group-data-disabled:text-dimmed',
-  itemLeadingIcon: 'group-data-disabled:text-dimmed',
-  itemLabelSuffix: 'text-muted',
 }
 </script>

@@ -49,7 +49,7 @@ withDefaults(
   padding: 0 0.75rem;
   border-radius: 9999px; /* the stack pill's radius (TaskStackPill) */
   /* The primary wash with primary text: an answer reads as an option, not as a disabled grey pill (#114); `bg-primary/10` of StatsVerdict */
-  background: color-mix(in oklab, var(--ui-primary) 10%, transparent);
+  background: var(--primary-wash);
   color: var(--ui-primary);
   font-size: var(--text-sm);
   font-weight: 500;
@@ -78,7 +78,7 @@ withDefaults(
 
 /* Hover: the wash one step darker (DESIGN.md "States"); the answer given is the solid primary and sits pressed in */
 .choice-chip:hover:not(:disabled) {
-  background: color-mix(in oklab, var(--ui-primary) 18%, transparent);
+  background: var(--primary-wash-hover);
 }
 
 .choice-chip.is-picked,

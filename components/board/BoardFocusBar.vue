@@ -108,7 +108,7 @@ const showsPill = computed(() => focusTopic.value !== null)
   margin-block: 0.125rem;
   padding: 0 0.25rem 0 0.75rem;
   border-radius: 9999px;
-  background: color-mix(in oklab, var(--ui-primary) 10%, transparent);
+  background: var(--primary-wash);
   color: var(--ui-primary);
   font-size: var(--text-sm);
   line-height: var(--lh-snug);
@@ -141,7 +141,7 @@ const showsPill = computed(() => focusTopic.value !== null)
 }
 
 .board-focus-bar__end:hover {
-  background: color-mix(in oklab, var(--ui-primary) 18%, transparent);
+  background: var(--primary-wash-hover);
 }
 
 /* Phone: over the page's bottom padding, centred above the floating app bar */
@@ -167,7 +167,8 @@ const showsPill = computed(() => focusTopic.value !== null)
   }
 
   .board-focus-bar__pill {
-    background: color-mix(in oklab, var(--ui-primary) 10%, var(--ui-bg));
+    /* The same wash on the solid page colour: the pill floats over the board and must not show it through */
+    background: linear-gradient(var(--primary-wash), var(--primary-wash)), var(--ui-bg);
     box-shadow: var(--shadow-nav-pill);
   }
 

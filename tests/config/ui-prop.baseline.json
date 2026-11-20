@@ -1,75 +1,59 @@
 {
   "components/CommandPalette.vue": {
-    "count": 2,
-    "reason": "moves into the app.config.ts theme or a token with its category slice (epic #58 D1)"
+    "count": 1,
+    "reason": "keep: placement"
   },
   "components/board/ColumnSortingControl.vue": {
     "count": 1,
-    "reason": "moves into the app.config.ts theme or a token with its category slice (epic #58 D1)"
+    "reason": "keep: placement"
   },
   "components/board/NewCardFlow.vue": {
     "count": 1,
-    "reason": "moves into the app.config.ts theme or a token with its category slice (epic #58 D1)"
+    "reason": "keep: placement"
   },
   "components/feedback/FeedbackDialog.vue": {
     "count": 1,
-    "reason": "moves into the app.config.ts theme or a token with its category slice (epic #58 D1)"
-  },
-  "components/nav/AppNav.vue": {
-    "count": 1,
-    "reason": "moves into the app.config.ts theme or a token with its category slice (epic #58 D1)"
+    "reason": "keep: placement"
   },
   "components/notion/setup/NotionSetupModal.vue": {
     "count": 1,
-    "reason": "moves into the app.config.ts theme or a token with its category slice (epic #58 D1)"
-  },
-  "components/settings/DataFolderChangeModal.vue": {
-    "count": 1,
-    "reason": "moves into the app.config.ts theme or a token with its category slice (epic #58 D1)"
-  },
-  "components/settings/DataStorageNotice.vue": {
-    "count": 1,
-    "reason": "moves into the app.config.ts theme or a token with its category slice (epic #58 D1)"
+    "reason": "keep: placement"
   },
   "components/settings/GithubTokenRow.vue": {
     "count": 1,
-    "reason": "moves into the app.config.ts theme or a token with its category slice (epic #58 D1)"
+    "reason": "keep: placement"
   },
   "components/statistics/TasksTable.vue": {
     "count": 1,
-    "reason": "moves into the app.config.ts theme or a token with its category slice (epic #58 D1)"
+    "reason": "keep: placement"
   },
   "components/task/AddTargetSwitch.vue": {
     "count": 1,
-    "reason": "forwarding *-ui props into a :ui; moves into the app.config.ts theme or a token with its category slice (epic #58 D1)"
+    "reason": "keep: placement; forwards `*-ui` call-site classes into a `:ui` (width, hidden parts), no look"
   },
   "components/task/TaskCard.vue": {
     "count": 1,
-    "reason": "moves into the app.config.ts theme or a token with its category slice (epic #58 D1)"
+    "reason": "keep: placement"
   },
   "components/task/TaskCardContextMenu.vue": {
     "count": 1,
-    "reason": "moves into the app.config.ts theme or a token with its category slice (epic #58 D1)"
+    "reason": "keep: placement"
   },
   "components/task/TaskPropertySelect.vue": {
     "count": 1,
-    "reason": "moves into the app.config.ts theme or a token with its category slice (epic #58 D1)"
+    "reason": "keep: placement"
   },
   "components/task/TaskSheet.vue": {
     "count": 2,
-    "reason": "forwarding *-ui props into a :ui; moves into the app.config.ts theme or a token with its category slice (epic #58 D1)"
+    "reason": "keep: placement; forwards `*-ui` call-site classes into a `:ui` (width, hidden parts), no look"
   },
   "components/task/TopicPropertyPicker.vue": {
     "count": 1,
-    "reason": "forwarding *-ui props into a :ui; moves into the app.config.ts theme or a token with its category slice (epic #58 D1)"
-  },
-  "components/topic/TopicEditor.vue": {
-    "count": 1,
-    "reason": "moves into the app.config.ts theme or a token with its category slice (epic #58 D1)"
+    "reason": "keep: placement; forwards `*-ui` call-site classes into a `:ui` (width, hidden parts), no look"
   },
   "components/topic/TopicEditorHost.vue": {
     "count": 1,
-    "reason": "moves into the app.config.ts theme or a token with its category slice (epic #58 D1)"
+    "reason": "keep: placement"
   },
   "components/ui/AppDialog.vue": {
     "count": 1,
@@ -77,14 +61,14 @@
   },
   "components/ui/ResponsiveOverlay.vue": {
     "count": 3,
-    "reason": "moves into the app.config.ts theme or a token with its category slice (epic #58 D1)"
+    "reason": "keep: placement"
   },
   "pages/settings/notion.vue": {
     "count": 1,
-    "reason": "moves into the app.config.ts theme or a token with its category slice (epic #58 D1)"
+    "reason": "keep: placement"
   },
   "pages/settings/topics.vue": {
     "count": 1,
-    "reason": "moves into the app.config.ts theme or a token with its category slice (epic #58 D1)"
+    "reason": "keep: placement"
   }
 }

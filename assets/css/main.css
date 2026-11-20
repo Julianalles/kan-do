@@ -168,6 +168,9 @@
        track, the empty add slot. A translucent tint, so the same value reads on both. */
     --fill-on-canvas: rgb(var(--shadow-color) / 0.07);
     --fill-on-canvas-hover: rgb(var(--shadow-color) / 0.13);
+    /* The primary wash and its hover step (DESIGN.md "States"): the answer chip and the focus pill that reads as its state. Primary text on it. */
+    --primary-wash: color-mix(in oklab, var(--ui-primary) 10%, transparent);
+    --primary-wash-hover: color-mix(in oklab, var(--ui-primary) 18%, transparent);
     /* The yellow text marker (DESIGN.md "The Marker Rule"): one stroke per view at most; today the Jetzt headline. */
     --marker: oklch(0.91 0.145 97);
 
