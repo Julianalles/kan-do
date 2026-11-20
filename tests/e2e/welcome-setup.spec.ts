@@ -100,7 +100,7 @@ test('welcome has no horizontal overflow at 390px, the headline stays within two
   expect((await page.locator('.welcome-sheet').boundingBox())!.height).toBeLessThan(844 * 0.6)
 })
 
-test('"Jetzt starten" opens step 2: local always, Notion as a checkbox, Todoist disabled "(bald verfügbar)"; the button follows the checkbox (#294)', async ({ page, baseURL }) => {
+test('"Jetzt starten" opens step 2: local always, Notion first as a choice card, Todoist disabled "Bald verfügbar"; the button follows the checkbox (#294)', async ({ page, baseURL }) => {
   await page.goto(baseURL! + '/welcome')
   await page.getByRole('button', { name: 'Jetzt starten' }).click()
 
@@ -108,13 +108,53 @@ test('"Jetzt starten" opens step 2: local always, Notion as a checkbox, Todoist 
   await expect(flow).toBeVisible()
   await expect(flow.getByRole('heading', { name: 'Eine App verbinden?' })).toBeFocused()
   const notion = flow.getByRole('checkbox', { name: 'Notion' })
-  const todoist = flow.getByRole('checkbox', { name: 'Todoist (bald verfügbar)' })
+  const todoist = flow.getByRole('checkbox', { name: 'Todoist' })
   await expect(notion).not.toBeChecked()
   await expect(todoist).toBeDisabled()
   await expect(flow.getByRole('button', { name: 'Zum Board' })).toBeVisible()
   await notion.click()
   await expect(flow.getByRole('button', { name: 'Mit Notion einrichten' })).toBeVisible()
   expect(await storedSources(page)).toBeNull() // nothing is stored before the confirmation
+})
+
+test('step 2 apps are choice cards (#651): Notion first, one tab stop per card, Space toggles, disabled cards state their reason, 64 px high with no inner scroll at 1280 and 390', async ({ page, baseURL }) => {
+  for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(viewport)
+    await page.goto(baseURL! + '/welcome')
+    await page.getByRole('button', { name: 'Jetzt starten' }).click()
+    const flow = page.getByTestId('local-setup-flow')
+    const cards = flow.getByRole('checkbox')
+    await expect(cards).toHaveCount(3)
+    // Order: Notion, Erinnerungen, Todoist; the group has a legend as its name
+    await expect(cards.nth(0)).toHaveAttribute('data-testid', 'local-source-notion')
+    await expect(cards.nth(1)).toHaveAttribute('data-testid', 'local-source-reminders')
+    await expect(cards.nth(2)).toHaveAttribute('data-testid', 'local-source-todoist')
+    await expect(flow.getByRole('group', { name: 'Du kannst eine oder mehrere verbinden' })).toBeVisible()
+    // Disabled cards: reason on the card and in the accessible name, not an option the keyboard reaches
+    await expect(flow.getByRole('checkbox', { name: 'Erinnerungen Nur in der Mac-App' })).toBeDisabled()
+    await expect(flow.getByRole('checkbox', { name: 'Todoist Bald verfügbar' })).toBeDisabled()
+    // Geometry: at least 64 px high, filling the row, nothing scrolls inside
+    for (const id of ['notion', 'reminders', 'todoist']) {
+      const box = (await page.getByTestId(`local-source-${id}`).boundingBox())!
+      expect(box.height).toBeGreaterThanOrEqual(64)
+    }
+    const fieldset = (await page.getByTestId('local-sources').boundingBox())!
+    expect((await cards.nth(0).boundingBox())!.width).toBeGreaterThan(fieldset.width - 2)
+    expect(await flow.evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true)
+    // Keyboard: one tab stop for Notion, Space toggles it, the next stop is the confirm button
+    await cards.nth(0).focus()
+    await expect(cards.nth(0)).toBeFocused()
+    await page.keyboard.press('Space')
+    await expect(cards.nth(0)).toHaveAttribute('aria-checked', 'true')
+    await expect(cards.nth(0)).toHaveAttribute('data-state', 'checked')
+    await expect(page.getByTestId('local-confirm')).toHaveText('Mit Notion einrichten')
+    await page.keyboard.press('Tab')
+    await expect(page.getByTestId('local-confirm')).toBeFocused()
+    await page.keyboard.press('Shift+Tab')
+    await page.keyboard.press('Space')
+    await expect(cards.nth(0)).toHaveAttribute('aria-checked', 'false')
+    await expect(page.getByTestId('local-confirm')).toHaveText('Zum Board')
+  }
 })
 
 test('Notion ticked in step 2 shows the setup on the page (no dialog); Back returns to step 2 with the tick kept (#43, #294)', async ({ page, baseURL }) => {

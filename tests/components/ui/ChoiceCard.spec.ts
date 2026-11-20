@@ -46,4 +46,44 @@ describe('ChoiceCard (kd#178)', () => {
     expect(classes).toContain('data-[state=checked]:bg-primary/10')
     expect(classes.some((name) => name.includes('border-inverted'))).toBe(false)
   })
+
+  it('with a v-model it is a checkbox card: role checkbox, aria-checked, a square mark with a check, never the radio dot (#651)', async () => {
+    const wrapper = mount(ChoiceCard, {
+      props: { icon: 'i-simple-icons-notion', modelValue: false, 'onUpdate:modelValue': (v: boolean | undefined) => wrapper.setProps({ modelValue: v }) },
+      attrs: { 'data-testid': 'card' },
+      slots: { default: 'Notion', hint: 'Aufgaben aus einer Notion-Datenbank' },
+    })
+    const box = wrapper.find('[role="checkbox"]')
+    expect(box.exists()).toBe(true)
+    expect(box.attributes('aria-checked')).toBe('false')
+    expect(box.attributes('data-testid')).toBe('card')
+    expect(box.attributes('type')).toBe('button')
+    expect(wrapper.find('[class*="rounded-full"]').exists()).toBe(false)
+    expect(wrapper.find('[class*="rounded-sm"]').exists()).toBe(true)
+    await box.trigger('click')
+    expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([true])
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[role="checkbox"]').attributes('aria-checked')).toBe('true')
+    expect(wrapper.find('[role="checkbox"]').attributes('data-state')).toBe('checked')
+    await wrapper.find('[role="checkbox"]').trigger('click')
+    expect(wrapper.emitted('update:modelValue')?.at(-1)).toEqual([false])
+  })
+
+  it('a disabled checkbox card cannot be ticked and keeps its reason in the text', async () => {
+    const wrapper = mount(ChoiceCard, {
+      props: { icon: 'i-simple-icons-todoist', modelValue: false },
+      attrs: { disabled: true },
+      slots: { default: 'Todoist', hint: 'Bald verfügbar' },
+    })
+    const box = wrapper.find('[role="checkbox"]')
+    expect(box.attributes('disabled')).toBeDefined()
+    expect(box.text()).toContain('Bald verfügbar')
+    await box.trigger('click')
+    expect(wrapper.emitted('update:modelValue')).toBeUndefined()
+  })
+
+  it('without a v-model it is not a checkbox card', () => {
+    const wrapper = mount(ChoiceCard, { props: { icon: 'i-ph-desktop' } })
+    expect(wrapper.find('[role="checkbox"]').exists()).toBe(false)
+  })
 })

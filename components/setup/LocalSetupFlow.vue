@@ -2,15 +2,15 @@
 @component LocalSetupFlow
 @kind block
 @category input
-@description Step 2 of the welcome sheet (#294): says that tasks live on this device by default and offers further services as a checkbox list, then starts the board or the Reminders or Notion setup
+@description Step 2 of the welcome sheet (#294): says that tasks live on this device by default and offers further apps as choice cards, then starts the board or the Reminders or Notion setup
 @usage <LocalSetupFlow v-model:notion="wantNotion" v-model:reminders="wantReminders" @back="flow = null" @connect-reminders="openReminders" @connect-notion="openNotion" @complete="onLocalDone" /> inside pages/welcome.vue
 @avoid Only the second step on the welcome page; Notion is NotionSetupFlow, Apple Reminders is RemindersSetupFlow, the trial board is SamplesSetupFlow.
 @responsibility
 - Explains that tasks stay on this device, local tasks are always possible and services can be connected now or later in Einstellungen
-- Lists Erinnerungen (Apple Reminders, #552) and Notion as checkboxes (`UCheckbox`, neutral) and Todoist as a disabled one with "(bald verfügbar)"; Erinnerungen is enabled only in the Mac app (`useRemindersSupported`), in the web build it is disabled and reads "(nur in der Mac-App)"
+- Lists Notion, Erinnerungen (Apple Reminders, #552) and Todoist as checkbox cards (`ChoiceCard` with `v-model`, #651): the service icon, the name and a one-line description; Erinnerungen has no official icon in the bundled sets, so a list glyph stands in (known trade-off until an asset exists); Todoist is disabled with "Bald verfügbar"; Erinnerungen is enabled only in the Mac app (`useRemindersSupported`), in the web build it is disabled and its line reads "Nur in der Mac-App"
 - One primary action whose label follows the checkboxes: none checked empties the task store and emits `complete` ("Zum Board"); Notion only emits `connect-notion` ("Mit Notion einrichten"); Erinnerungen emits `connect-reminders` ("Mit Erinnerungen einrichten", with Notion also "Weiter mit Erinnerungen und Notion": the host runs the Reminders setup first, then Notion); the store is left alone for both
 - Back returns to the start view: the shared `BackButton` ("Zurück zur Auswahl")
-- Pattern: first-run setup, diverged from the modal wizard; checkbox list aligned with the feedback dialog's context list
+- Pattern: first-run setup, diverged from the modal wizard; the apps are choice cards, diverged from the circle checkboxes (the UX decision of #607)
 -->
 <template>
   <section class="flex flex-col gap-6" data-testid="local-setup-flow" :aria-label="t('onboarding.flow.local.label')">
@@ -22,21 +22,20 @@
       <p class="mt-2 text-body text-default">{{ t('onboarding.flow.local.intro') }}</p>
     </div>
 
-    <fieldset class="flex flex-col gap-1 md:gap-3" data-testid="local-sources">
+    <fieldset class="flex flex-col gap-3" data-testid="local-sources">
       <SectionHeader tag="legend" size="label" class="mb-3">{{ t('onboarding.flow.local.legend') }}</SectionHeader>
-      <UCheckbox
-        v-model="reminders"
-        :disabled="!remindersSupported"
-        :label="remindersSupported || isDesktop ? t('onboarding.flow.local.reminders') : t('onboarding.flow.local.remindersWebOnly')"
-        data-testid="local-source-reminders"
-      />
-      <UCheckbox v-model="notion" :label="t('onboarding.flow.local.notion')" data-testid="local-source-notion" />
-      <UCheckbox
-        :model-value="false"
-        disabled
-        :label="t('onboarding.flow.local.todoist')"
-        data-testid="local-source-todoist"
-      />
+      <ChoiceCard v-model="notion" icon="i-simple-icons-notion" data-testid="local-source-notion">
+        {{ t('onboarding.flow.local.notion') }}
+        <template #hint>{{ t('onboarding.flow.local.notionHint') }}</template>
+      </ChoiceCard>
+      <ChoiceCard v-model="reminders" icon="i-ph-list-checks" :disabled="!remindersSupported" data-testid="local-source-reminders">
+        {{ t('onboarding.flow.local.reminders') }}
+        <template #hint>{{ remindersSupported || isDesktop ? t('onboarding.flow.local.remindersHint') : t('onboarding.flow.local.remindersWebOnly') }}</template>
+      </ChoiceCard>
+      <ChoiceCard :model-value="false" icon="i-simple-icons-todoist" disabled data-testid="local-source-todoist">
+        {{ t('onboarding.flow.local.todoist') }}
+        <template #hint>{{ t('onboarding.flow.local.todoistSoon') }}</template>
+      </ChoiceCard>
     </fieldset>
 
     <UButton color="primary" block aria-live="polite" data-testid="local-confirm" @click="confirm">
@@ -51,6 +50,7 @@ import { computed, ref } from 'vue';
 import { isTauri } from '~/utils/isTauri';
 import { useRemindersSupported } from '~/composables/useRemindersSupported';
 import BackButton from '~/components/ui/BackButton.vue';
+import ChoiceCard from '~/components/ui/ChoiceCard.vue';
 import { useI18n } from 'vue-i18n';
 import { useTasksStore } from '~/store/tasks';
 
