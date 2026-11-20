@@ -236,12 +236,29 @@ describe('deriveReview patterns', () => {
   })
 
   it('computes the estimate shares from timeboxed tasks of the last 56 days', () => {
-    const records = [boxed(1, 120), boxed(2, 111), boxed(3, 100), boxed(4, 90), boxed(5, 89), rec(6)]
+    // 30 min box: "as planned" = within 6 min (20 %), the day close's rule (#634)
+    const records = [boxed(1, 130), boxed(2, 121), boxed(3, 100), boxed(4, 80), boxed(5, 79), rec(6)]
     const { estimate } = deriveReview(records, NOW)
     expect(estimate.n).toBe(5)
-    expect(estimate.longer).toBe(40) // 120, 111
-    expect(estimate.shorter).toBe(20) // 89
-    expect(estimate.onTarget).toBe(40) // 100, 90
+    expect(estimate.longer).toBe(40) // 130, 121
+    expect(estimate.shorter).toBe(20) // 79
+    expect(estimate.onTarget).toBe(40) // 100, 80
+  })
+
+  it('classifies like the day close: 70 of 60 min is as planned, 3 of 10 min is shorter (#634)', () => {
+    const r = (spent: number, box: number) => rec(1, { timeBoxSeconds: box * 60, actualTimeSpentSeconds: spent * 60, estimationAccuracy: (spent / box) * 100 })
+    const { estimate } = deriveReview([r(70, 60), r(3, 10), r(16, 10)], NOW)
+    expect(estimate.onTarget).toBeCloseTo(100 / 3) // 70/60 is 117 %, within 20 %
+    expect(estimate.longer).toBeCloseTo(100 / 3) // 16 of 10 min: 6 min over the 5 min floor
+    expect(estimate.shorter).toBeCloseTo(100 / 3) // 3 of 10 min: 7 min under
+  })
+
+  it('leaves a boxed task with no tracked time out, like the day close (#634)', () => {
+    const untracked = rec(1, { timeBoxSeconds: 1800, actualTimeSpentSeconds: 0, estimationAccuracy: 0 })
+    const { estimate } = deriveReview([untracked, boxed(2, 100)], NOW)
+    expect(estimate.n).toBe(1)
+    expect(estimate.shorter).toBe(0)
+    expect(estimate.onTarget).toBe(100)
   })
 })
 

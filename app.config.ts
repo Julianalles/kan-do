@@ -416,7 +416,8 @@ export default defineAppConfig({
       slots: {
         // The state language (DESIGN.md "States"): the one disabled look here; the hand cursor, the press and the
         // fast transition come from the base layer (assets/css/main.css) for every pressable element.
-        base: 'group/btn max-md:min-h-11 disabled:opacity-50 aria-disabled:opacity-50',
+        // `data-heading-toggle` (#630): the toggle inside a section heading reads as the heading's 12 px label, not as a button label
+        base: 'group/btn max-md:min-h-11 disabled:opacity-50 aria-disabled:opacity-50 data-[heading-toggle]:text-xs data-[heading-toggle]:font-medium data-[heading-toggle]:text-muted data-[heading-toggle]:hover:text-muted',
         // A trailing caret turns while the button controls an open popup (`aria-expanded`), the way the select's caret does; the
         // button names its own group, so a button inside another group is not read by that one
         trailingIcon: 'transition-transform duration-(--duration-base) group-aria-expanded/btn:rotate-180'
