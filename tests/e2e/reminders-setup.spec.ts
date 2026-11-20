@@ -54,11 +54,12 @@ async function grantAndContinue(page: Page) {
 }
 
 test.describe('welcome step 2 and the setup (#552)', () => {
-  test('on the web Erinnerungen is disabled with "(nur in der Mac-App)", the sources tab says so too, and /settings/reminders returns to the sources tab', async ({ page }) => {
+  test('on the web Erinnerungen is disabled with "Nur in der Mac-App" on its card, the sources tab says so too, and /settings/reminders returns to the sources tab', async ({ page }) => {
     await page.goto('/welcome')
     await page.getByRole('button', { name: 'Jetzt starten' }).click()
-    const box = page.getByRole('checkbox', { name: 'Erinnerungen (nur in der Mac-App)' })
+    const box = page.getByRole('checkbox', { name: 'Erinnerungen' })
     await expect(box).toBeDisabled()
+    await expect(box).toContainText('Nur in der Mac-App') // the reason is on the card and part of its name
     // The button is not about Reminders
     await expect(page.getByTestId('local-confirm')).toHaveText('Zum Board')
 

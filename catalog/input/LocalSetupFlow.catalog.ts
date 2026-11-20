@@ -7,6 +7,6 @@ export default {
   alternatives: ['ChoiceCard', 'URadioGroup'],
   host: 'board',
   screen: '/welcome',
-  variants: [{ id: 'flow', label: 'source checklist' }],
+  variants: [{ id: 'flow', label: 'app choice cards' }],
   states: [],
 } satisfies CatalogEntry
