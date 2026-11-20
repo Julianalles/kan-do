@@ -22,6 +22,7 @@ type Entry = {
   note?: string
   allow?: string[]
   caseSensitive?: boolean
+  enforce?: 'hard'
 }
 type Result = { errors: string[], warnings: string[] }
 type Lock = Record<string, string>
@@ -102,7 +103,7 @@ describe('terminology: avoid-form matching', () => {
   })
 
   it('flags "GitHub-Zugänge" as an avoid form of a decided token term (#492)', () => {
-    const token: Entry = { id: 'token', concept: 'The secret', de: 'Token', en: 'token', avoidDe: ['Zugang', 'Zugangsdaten'], avoidEn: [], status: 'decided' }
+    const token: Entry = { id: 'token', concept: 'The secret', de: 'Token', en: 'token', avoidDe: ['Zugang', 'Zugangsdaten'], avoidEn: [], status: 'decided', enforce: 'hard' }
     const locales: Locales = { de: { 'settings.github.pageTitle': 'GitHub-Zugänge', 'settings.github.ok': 'GitHub-Zugriff' }, en: {} }
     const lock = { token: hash(token) }
     expect(check({ terms: [token], lock, locales }).errors).toEqual([
@@ -261,14 +262,29 @@ describe('terminology: avoid forms in locale values (fixtures)', () => {
     return { terms, lock: approve({ terms }).lock }
   }
 
-  it('fails for a decided term, in de and in en', () => {
-    const { terms, lock } = decided()
+  it('fails for a decided term marked enforce "hard", in de and in en', () => {
+    const { terms, lock } = decided({ enforce: 'hard' })
     const { errors, warnings } = check({ terms, lock, locales: withAvoid })
     expect(errors).toEqual([
       'de a.one: avoid form "Zeitbox" of term timebox',
       'en a.one: avoid form "time limit" of term timebox',
     ])
     expect(warnings).toEqual([])
+  })
+
+  it('only warns for a decided term without enforce: the registry is guidance (user, 2026-11-20)', () => {
+    const { terms, lock } = decided()
+    const { errors, warnings } = check({ terms, lock, locales: withAvoid })
+    expect(errors).toEqual([])
+    expect(warnings).toEqual([
+      'de a.one: avoid form "Zeitbox" of term timebox',
+      'en a.one: avoid form "time limit" of term timebox',
+    ])
+  })
+
+  it('rejects an enforce value other than "hard"', () => {
+    expect(check({ terms: [{ ...entry, enforce: 'soft' as 'hard' }], lock: {}, locales: withAvoid }).errors)
+      .toEqual(['term timebox: "enforce" must be "hard" (leave it out for guidance)'])
   })
 
   it('only warns for a proposed term', () => {
@@ -426,7 +442,7 @@ describe('terminology: approve CLI in a scratch copy', () => {
       for (const sub of ['scripts', 'docs/copy', 'i18n/locales']) mkdirSync(join(dir, sub), { recursive: true })
       copyFileSync(resolve(root, 'scripts/copy-terms.mjs'), join(dir, 'scripts/copy-terms.mjs'))
       const write = (path: string, value: unknown) => writeFileSync(join(dir, path), JSON.stringify(value))
-      const term = (id: string, de: string): Entry => ({ id, concept: id, de, en: id, avoidDe: ['Zeitbox'], avoidEn: [], status: 'proposed' })
+      const term = (id: string, de: string): Entry => ({ id, concept: id, de, en: id, avoidDe: ['Zeitbox'], avoidEn: [], status: 'proposed', enforce: 'hard' })
       write('i18n/locales/de.json', { a: { b: 'Keine Zeitbox', c: 'Timebox' } })
       write('i18n/locales/en.json', { a: { b: 'none' } })
       write('docs/copy/terms.json', [term('timebox', 'Timebox'), term('topic', 'Thema')])
@@ -439,7 +455,7 @@ describe('terminology: approve CLI in a scratch copy', () => {
       expect(first.stdout).toContain('1 decided term(s) locked, promoted: timebox')
       expect(first.stdout).toContain('newly locked: timebox')
       expect(first.stdout).toContain('changed: none')
-      expect(first.stdout).toContain('timebox: 1 avoid hit(s) in the current locales are now build errors')
+      expect(first.stdout).toContain('timebox: 1 avoid hit(s) in the current locales (build errors when the term sets enforce "hard"')
       expect(first.stdout).toContain('would now report 1 error(s)')
       expect(Object.keys(lock())).toEqual(['timebox'])
 

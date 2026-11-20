@@ -7,9 +7,12 @@
  * pinned by the SHA-256 of its canonical JSON in `docs/copy/terms.lock.json`; only `approve` writes that lock.
  *
  * `checkTerms` is pure: given the registry, the lock and the flattened locale messages it returns `{ errors, warnings }`.
- *   - schema: array of `{ id, concept, de, en, avoidDe, avoidEn, status, note?, allow?, caseSensitive? }`, unique ids, non-empty de/en
- *   - decided entry: no avoid form in any locale value (case-insensitive unless the entry sets `caseSensitive: true`,
- *     matched as word prefix so inflections hit, keys in `allow` exempt), and its hash equals the lock entry; the lock has no entry without a decided term
+ *   - schema: array of `{ id, concept, de, en, avoidDe, avoidEn, status, note?, allow?, caseSensitive?, enforce? }`, unique ids, non-empty de/en
+ *   - the registry is guidance for UI copy (user decision 2026-11-20): an avoid form in a locale value (case-insensitive
+ *     unless the entry sets `caseSensitive: true`, matched as word prefix so inflections hit, keys in `allow` exempt) is a
+ *     warning, so a writer may adapt a term to its place (case, inflection, a compound). Only a decided entry with
+ *     `enforce: "hard"` (the brand name) turns its avoid hits into errors
+ *   - decided entry: its hash equals the lock entry; the lock has no entry without a decided term
  *   - proposed entry: never an error; an avoid form in a locale value is only listed as a warning
  *   - registry self-consistency: a term's own preferred `de`/`en` must not hit another term's avoid form (or its own);
  *     an error when both terms are decided, a warning otherwise (no copy could satisfy both)
@@ -32,7 +35,7 @@ const LOCALES_DIR = join(ROOT, 'i18n/locales')
 
 export const STATUSES = ['proposed', 'decided']
 const REQUIRED_KEYS = ['id', 'concept', 'de', 'en', 'avoidDe', 'avoidEn', 'status']
-const OPTIONAL_KEYS = ['note', 'allow', 'caseSensitive']
+const OPTIONAL_KEYS = ['note', 'allow', 'caseSensitive', 'enforce']
 const APPROVE_HINT = 'needs the user (`npm run terms:approve`)'
 
 /** JSON with object keys sorted at every level, so the hash does not depend on key order. */
@@ -82,6 +85,7 @@ export function validateRegistry(terms) {
     if ('note' in entry && !isNonEmptyString(entry.note)) errors.push(`term ${name}: "note" must be a non-empty string`)
     if ('allow' in entry && !isStringList(entry.allow)) errors.push(`term ${name}: "allow" must be a list of locale keys`)
     if ('caseSensitive' in entry && typeof entry.caseSensitive !== 'boolean') errors.push(`term ${name}: "caseSensitive" must be true or false`)
+    if ('enforce' in entry && entry.enforce !== 'hard') errors.push(`term ${name}: "enforce" must be "hard" (leave it out for guidance)`)
   })
   return errors
 }
@@ -157,7 +161,7 @@ export function checkTerms({ terms, lock, locales }) {
     const describe = hit => `${hit.locale} ${hit.key}: avoid form "${hit.form}" of term ${entry.id}`
     if (entry.status === 'decided') {
       decided.set(entry.id, entry)
-      for (const hit of hits) errors.push(describe(hit))
+      for (const hit of hits) (entry.enforce === 'hard' ? errors : warnings).push(describe(hit))
     } else {
       for (const hit of hits) warnings.push(describe(hit))
     }
@@ -241,7 +245,7 @@ function main(args) {
   console.log(`  changed: ${list(report.changed)}`)
   console.log(`  dropped: ${list(report.dropped)}`)
   for (const [id, count] of Object.entries(report.avoidHits)) {
-    if (count > 0) console.log(`  ${id}: ${count} avoid hit(s) in the current locales are now build errors (fix the copy or allow the keys)`)
+    if (count > 0) console.log(`  ${id}: ${count} avoid hit(s) in the current locales (build errors when the term sets enforce "hard", warnings otherwise)`)
   }
   const { errors } = checkTerms({ terms, lock, locales })
   if (errors.length > 0) console.log(`  npm run i18n:check would now report ${errors.length} error(s)`)
