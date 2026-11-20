@@ -1,7 +1,7 @@
 <!--
 @component NotionSettingsPage
 @description Dedicated settings page for Notion integration configuration
-@usage Accessed via /settings/notion for users with an existing Notion integration
+@usage Accessed via /settings/notion: connects Notion (setup stage), repairs or edits a connected one (tabs)
 @responsibility
 - Provides tabbed navigation (`UTabs` `variant="link"`, the light underline of an in-page view switch, #318, #368) to different configuration sections
 - One tab form with `/settings/topics` (#603): horizontal underline tabs without icons above a full-width panel, in the 672 px column of every settings sibling (it was a vertical icon list in 992 px). The list scrolls sideways inside itself when the tabs do not fit and keeps the active tab in view
@@ -271,6 +271,9 @@ import type {
   NotionDatabaseSummary 
 } from '~/types/notion';
 
+import { useBoardStore } from '~/store/board';
+import { notionStageOnArrival, type NotionSetupStage } from '~/lib/notionSetupStage';
+
 defineOptions({ name: 'NotionSettingsPage' });
 
 definePageMeta({
@@ -290,24 +293,20 @@ const featureFlags = useFeatureFlags();
 const propertyOptionsStore = usePropertyOptionsStore();
 const route = useRoute();
 const router = useRouter();
+const boardStore = useBoardStore();
 const { connectSource } = useSourceConnections();
 const { fetchSource } = useIntegrationManager();
 
 // ---- Setup stage (#652) ----
 
-type SetupStage = { purpose: 'connect' | 'repair'; mode: 'setup' | 'settings'; intro: boolean };
 const SOURCES_TAB = '/settings?tab=sources';
 
-/** Not connected, or asked for by `?setup=`: the setup shows instead of the tabs. Decided once, so the config the flow saves does not swap the page mid-beat. */
-function stageOnArrival(): SetupStage | null {
+/** Not connected, or asked for by `?setup=`: the setup shows instead of the tabs. Decided once, so the config the flow saves does not swap the page mid-beat. A broken connection needs its credentials again: the token step, never the mapping a dead token cannot serve. */
+function stageOnArrival(): NotionSetupStage | null {
   const asked = Array.isArray(route.query.setup) ? route.query.setup[0] : route.query.setup;
-  if (!notionConfig.isConfigured || asked === 'connect') return { purpose: 'connect', mode: 'setup', intro: true };
-  // A broken connection needs its credentials again: the token step, never the mapping a dead token cannot serve
-  if (asked === 'repair') return { purpose: 'repair', mode: 'setup', intro: false };
-  if (asked === 'settings') return { purpose: 'repair', mode: 'settings', intro: false };
-  return null;
+  return notionStageOnArrival(asked, boardStore.isIntegrationConnected('notion'));
 }
-const stage = ref<SetupStage | null>(stageOnArrival());
+const stage = ref<NotionSetupStage | null>(stageOnArrival());
 const isStage = computed(() => stage.value !== null);
 useSetupStageWidth(isStage);
 
