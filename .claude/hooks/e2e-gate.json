@@ -650,6 +650,8 @@
       "paths": [
         "components/task/TaskCarryOverDots.vue",
         "composables/useTimeboxSuggestion*",
+        "composables/useBoardGlide.ts",
+        "composables/useTaskOperations.ts",
         "lib/timeboxChipMemory.ts",
         "lib/timeboxSimilarity.ts",
         "types/timeboxSuggestion.ts",
