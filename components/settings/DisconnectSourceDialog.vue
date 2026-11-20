@@ -12,6 +12,8 @@ Notion settings page now and from the "Verbindungen" page (#324).
 - Reads the plan from `useSourceConnections().disconnectPlan` (live) and calls `disconnectSource`
 - Offers "Erst synchronisieren, dann trennen" only while the source can be reached; "Trotzdem trennen" and
   "Abbrechen" always
+- Footer (#611): the pair is the one footer cluster (cancel first, main last); with the sync offer the three stack full
+  width, main on top and cancel last, so the keyboard order follows the picture
 - Stays open and says why when the disconnect did not happen (changes left unsynced, Keychain refused)
 -->
 <template>
@@ -65,36 +67,44 @@ Notion settings page now and from the "Verbindungen" page (#324).
     </template>
 
     <template #footer>
-      <!-- Three choices do not fit the sm dialog in a row: they stack, the safe one on top -->
-      <div class="flex w-full flex-col-reverse gap-2" :class="canSync ? '' : 'sm:flex-row sm:items-center sm:justify-end'">
-        <UButton
-          color="neutral"
-          variant="soft"
-          :label="t('common.cancel')"
-          :disabled="isBusy"
-          :class="buttonClass"
-          data-testid="disconnect-cancel"
-          @click="isOpen = false"
-        />
-        <UButton
-          :color="plan && plan.unsyncedCount > 0 ? 'error' : 'primary'"
-          :variant="plan && plan.unsyncedCount > 0 ? 'soft' : 'solid'"
-          :label="plan && plan.unsyncedCount > 0 ? t('sources.disconnect.anyway') : t('sources.disconnect.confirm')"
-          :loading="busyAction === 'discard'"
-          :disabled="isBusy || !plan"
-          :class="buttonClass"
-          data-testid="disconnect-anyway"
-          @click="run(false)"
-        />
+      <!-- With a sync to offer there are three choices: they stack full width, the main one on top and Abbrechen last, in DOM order too (#611). Otherwise the pair is the one footer cluster: cancel first, main last -->
+      <div class="footer-actions w-full" :class="{ 'footer-actions--stacked': canSync }">
         <UButton
           v-if="canSync"
           color="primary"
           :label="t('sources.disconnect.syncFirst')"
           :loading="busyAction === 'sync'"
           :disabled="isBusy"
-          :class="buttonClass"
           data-testid="disconnect-sync-first"
           @click="run(true)"
+        />
+        <UButton
+          v-if="canSync"
+          :color="plan && plan.unsyncedCount > 0 ? 'error' : 'primary'"
+          :variant="plan && plan.unsyncedCount > 0 ? 'soft' : 'solid'"
+          :label="plan && plan.unsyncedCount > 0 ? t('sources.disconnect.anyway') : t('sources.disconnect.confirm')"
+          :loading="busyAction === 'discard'"
+          :disabled="isBusy || !plan"
+          data-testid="disconnect-anyway"
+          @click="run(false)"
+        />
+        <UButton
+          color="neutral"
+          variant="soft"
+          :label="t('common.cancel')"
+          :disabled="isBusy"
+          data-testid="disconnect-cancel"
+          @click="isOpen = false"
+        />
+        <UButton
+          v-if="!canSync"
+          :color="plan && plan.unsyncedCount > 0 ? 'error' : 'primary'"
+          :variant="plan && plan.unsyncedCount > 0 ? 'soft' : 'solid'"
+          :label="plan && plan.unsyncedCount > 0 ? t('sources.disconnect.anyway') : t('sources.disconnect.confirm')"
+          :loading="busyAction === 'discard'"
+          :disabled="isBusy || !plan"
+          data-testid="disconnect-anyway"
+          @click="run(false)"
         />
       </div>
     </template>
@@ -132,9 +142,6 @@ const sourceName = computed(() => (props.source ? integrationLabel(props.source)
 const plan = computed(() => (props.source ? disconnectPlan(props.source) : null))
 /** "Erst synchronisieren" needs a reachable source and something to push. */
 const canSync = computed(() => !!plan.value && plan.value.reachable && plan.value.unsyncedCount > 0)
-
-/** Full-width rows on a phone and whenever the three choices stack; a pair of buttons keeps its natural width from `sm` up. */
-const buttonClass = computed(() => (canSync.value ? 'w-full justify-center' : 'w-full justify-center sm:w-auto'))
 
 /** The running timer of a task of this source, named because it stops with the disconnect. */
 const timerTaskTitle = computed(() =>

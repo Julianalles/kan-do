@@ -37,11 +37,11 @@
               <div v-if="confirming" class="flex flex-wrap items-center gap-x-4 gap-y-2">
                 <p class="text-default" role="alert">{{ t('trash.emptyConfirm', { n: count }, count) }}</p>
                 <span class="flex flex-wrap items-center gap-2">
+                  <UButton ref="cancelEl" color="neutral" variant="soft" data-testid="trash-empty-cancel" @click="cancelEmpty">
+                    {{ t('common.cancel') }}
+                  </UButton>
                   <UButton color="error" variant="soft" data-testid="trash-empty-confirm" @click="confirmEmpty">
                     {{ t('trash.emptyConfirmYes') }}
-                  </UButton>
-                  <UButton ref="cancelEl" color="neutral" variant="ghost" data-testid="trash-empty-cancel" @click="cancelEmpty">
-                    {{ t('common.cancel') }}
                   </UButton>
                 </span>
               </div>

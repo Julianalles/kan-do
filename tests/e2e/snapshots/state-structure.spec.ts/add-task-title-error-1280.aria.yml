@@ -17,6 +17,6 @@
   - button /\d+ min/
   - region "Notiz":
     - heading "Notiz" [level=3]
-    - textbox "Weitere Details oder Kontext…"
+    - textbox "Notiz"
   - button "Abbrechen"
   - button "Aufgabe erstellen"
