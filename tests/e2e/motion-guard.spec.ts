@@ -1,7 +1,7 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type BrowserContext, type Page } from '@playwright/test'
 import { completeNotionWizard } from './helpers/notionWizard'
 import { closeMore, openMore, openSettings } from './helpers/appNav'
-import { seedLocalBoard } from './helpers/seed'
+import { atDaysAgo, SEED_TASKS, seedLocalBoard } from './helpers/seed'
 import { expectInstant, expectNoJumps, startAnimationLog, startFrames, type AllowedJump } from './helpers/frameSteps'
 
 /**
@@ -16,12 +16,18 @@ import { expectInstant, expectNoJumps, startAnimationLog, startFrames, type Allo
  * Trial status: see the PR of kd#600; whether this gates in CI or only reports is decided by `--repeat-each=20 --retries=0`.
  */
 
-type Flow = { name: string, url: string, seed?: 'board' | 'none', run: (page: Page) => Promise<void>, jumps?: AllowedJump[], animations?: AllowedJump[] }
+type Flow = { name: string, url: string, seed?: 'board' | 'none', prepare?: (context: BrowserContext) => Promise<void>, before?: (page: Page) => Promise<void>, viewport?: { width: number, height: number }, run: (page: Page) => Promise<void>, jumps?: AllowedJump[], animations?: AllowedJump[] }
 
-/** Allow lists name the boxes seen jumping in a strict run, never every box. The step swap and the setup's height: motion-4 / #607 (setup steps), motion-9 / #610 (disclosures). The chip row of #608 never moved in these flows. */
+/** Allow lists name the boxes seen jumping in a strict run, never every box. The step swap and the setup's height: motion-4 / #607 (setup steps). Every place that opens or re-lays in one step has left the list (#610 blocks that open in place, #642 topic focus). */
 const SETUP_STEPS: AllowedJump = { match: /^div#__nuxt|^div#teleports|^div$|welcome-root|setup-back|Status\d|Aufgewendete Zeit|Erledigungsdatum/, issue: '#607', why: 'the setup steps still jump in height and place (motion-4)' }
-const DISCLOSURES: AllowedJump = { match: /task-metadata/, issue: '#610', why: 'a disclosure opens in one step (motion-9)' }
-const FOCUS_CARDS: AllowedJump = { match: /^div#column-(open|done)-list|column-drop-zone|"Wartet"|^nav\[app-nav\]|^ol\.fixed|dnd-kit-announcement/, issue: 'inbox: topic focus cards (PR of #608)', why: 'picking or ending a topic hides or shows the other topics\' cards in one frame; the chip row and the pill themselves glide (#608). The fixed app bar and toast list are page-scroll artefacts of the sampler (page y = rect + scrollY) when the page height changes' }
+
+/** The sheet's own opening moves its last line (Metadaten, the actions) 174 px in one frame: found while the #610 allow entry left (#659). The disclosures themselves are guarded strictly in their own flow. */
+const SHEET_OPENS: AllowedJump = { match: /task-metadata/, issue: '#659', why: 'the sheet\'s last line arrives in one step when the sheet opens (not the disclosure)' }
+/** The "Wartet" heading changes its width by 18 px in one frame when its column empties (`.waiting-header.empty`): found in the #642 flow (#660). */
+const WARTET_HEADING: AllowedJump = { match: /^h2\.font-display "Wartet"/, issue: '#660', why: 'the heading of an emptied Wartet column changes width in one frame (`.waiting-header.empty`)' }
+
+/** A status change in the open sheet moves the task's card to another column behind the sheet in one frame (page boxes change height): found in the #610 flow (#661). The sheet's own rows are guarded. */
+const CARD_MOVES_BEHIND_SHEET: AllowedJump = { match: /^div#__nuxt|^div#teleports|^div "Erledigt|dnd-kit-announcement/, issue: '#661', why: 'the board behind the sheet re-lays when the card changes column' }
 
 /** In-app navigation: the sampler lives in one document, so a flow never reloads the page. */
 const push = (page: Page, path: string) => page.evaluate(path => (window as unknown as { useNuxtApp: () => { $router: { push: (p: string) => Promise<unknown> } } }).useNuxtApp().$router.push(path), path)
@@ -71,19 +77,32 @@ const FLOWS: Flow[] = [
     },
   },
   {
-    name: 'task sheet: opened by route, Metadaten open and closed',
+    name: 'task sheet: opened by route',
     url: '/tasks',
     run: async (page) => {
       await push(page, '/tasks/seed-open-1')
-      const meta = page.getByRole('button', { name: /Metadaten/i })
-      await expect(meta).toBeVisible()
-      await meta.click()
-      await meta.click()
+      await expect(page.getByRole('button', { name: /Metadaten/i })).toBeVisible()
+      await page.waitForTimeout(600)
     },
-    jumps: [DISCLOSURES],
+    jumps: [SHEET_OPENS],
   },
   {
-    name: 'topic focus: open the chip row, pick a topic, end the focus (#608)',
+    name: 'task sheet: Metadaten open and closed (#610)',
+    url: '/tasks',
+    before: async (page) => {
+      await push(page, '/tasks/seed-open-1')
+      await expect(page.getByRole('button', { name: /Metadaten/i })).toBeVisible()
+      await page.waitForTimeout(1200) // a person opens a fold after the sheet has arrived
+    },
+    run: async (page) => {
+      const meta = page.getByRole('button', { name: /Metadaten/i })
+      await meta.click()
+      await page.waitForTimeout(450)
+      await meta.click()
+    },
+  },
+  {
+    name: 'topic focus: open the chip row, pick a topic, end the focus (#608, #642)',
     url: '/tasks',
     run: async (page) => {
       await page.getByTestId('focus-trigger').click()
@@ -95,7 +114,132 @@ const FLOWS: Flow[] = [
       await page.getByTestId('focus-end').click()
       await expect(page.getByTestId('focus-bar')).toHaveCount(0)
     },
-    jumps: [FOCUS_CARDS],
+    jumps: [WARTET_HEADING],
+  },
+  {
+    name: 'Gestern erledigt: open and close the list (#610)',
+    seed: 'none',
+    url: '/tasks',
+    prepare: ctx => seedLocalBoard(ctx, [...SEED_TASKS, { id: 'done-yesterday', title: 'Rechnung ablegen', status: 3, priority: 2, timeSpentSeconds: 600, timeBoxSeconds: null, custom: {}, completedAt: atDaysAgo(1, 10) }]),
+    run: async (page) => {
+      const toggle = page.getByTestId('yesterday-toggle')
+      await expect(toggle).toBeVisible()
+      await toggle.click()
+      await expect(toggle).toHaveAttribute('aria-expanded', 'true')
+      await page.waitForTimeout(350)
+      await toggle.click()
+      await expect(toggle).toHaveAttribute('aria-expanded', 'false')
+    },
+  },
+  {
+    name: 'Statistik: open a tile, switch to another, open the rhythm tile, close (#610)',
+    seed: 'none',
+    viewport: { width: 1280, height: 1500 }, // a driver that scrolls its target into view would be read as a jump of the fixed bar
+    url: '/statistics',
+    prepare: async (ctx) => {
+      await seedLocalBoard(ctx)
+      await ctx.addInitScript(() => {
+        const at = (ago: number, h: number, m: number) => new Date(new Date().getFullYear(), new Date().getMonth(), new Date().getDate() - ago, h, m)
+        const completionRecords = Array.from({ length: 24 }, (_, i) => ({
+          taskId: `rec-${i}`,
+          title: `Aufgabe ${i}`,
+          completedAt: at(1 + (i % 26), 10, i % 50).toISOString(),
+          timeBoxSeconds: 1800,
+          actualTimeSpentSeconds: i % 2 ? 2700 : 1800,
+          estimationAccuracy: i % 2 ? 150 : 100,
+          topic: i % 3 ? 'Haus' : 'Garten',
+          topicColorCode: null,
+          activity: null,
+          isUnplanned: false,
+        }))
+        const workSessions = Array.from({ length: 10 }, (_, i) => ({ start: at(1 + i, 9, 0).getTime(), end: at(1 + i, 12, 0).getTime() }))
+        localStorage.setItem('taskStatistics', JSON.stringify({ completionRecords, workSessions }))
+      })
+    },
+    run: async (page) => {
+      const toggle = (n: number) => page.getByTestId(`stats-tile-${n}-toggle`)
+      await toggle(2).click()
+      await expect(page.getByTestId('stats-tile-2-detail')).toBeVisible()
+      await page.waitForTimeout(350)
+      await toggle(3).click()
+      await expect(page.getByTestId('stats-tile-3-detail')).toBeVisible()
+      await page.waitForTimeout(350)
+      await toggle(3).click()
+      await page.waitForTimeout(350)
+      await toggle(5).click()
+      await page.waitForTimeout(350)
+      await toggle(5).click()
+    },
+  },
+  {
+    name: 'topic editor: open a row, switch to another, close (#610)',
+    url: '/settings/topics',
+    viewport: { width: 1280, height: 1500 },
+    run: async (page) => {
+      const rows = page.getByTestId('topics-row-button')
+      await expect(rows.first()).toBeVisible()
+      await rows.first().click()
+      await expect(rows.first()).toHaveAttribute('aria-expanded', 'true')
+      await page.waitForTimeout(350)
+      await rows.nth(1).click()
+      await page.waitForTimeout(350)
+      await rows.nth(1).click()
+    },
+  },
+  {
+    name: 'new card: the title step to the question steps and back (#610)',
+    url: '/tasks',
+    before: async (page) => {
+      await page.locator('#column-open').getByRole('button', { name: 'Aufgabe hinzufügen' }).click()
+      const title = page.getByTestId('new-card-title')
+      await expect(title).toBeFocused()
+      await title.fill('Rechnung schreiben')
+      await page.waitForTimeout(500) // the slot opens first (the add slot's own motion)
+    },
+    run: async (page) => {
+      await page.keyboard.press('Enter')
+      const step = page.getByTestId('new-card-step')
+      await expect(step).toBeVisible()
+      await page.waitForTimeout(450)
+      await page.keyboard.press('Escape')
+      await expect(page.getByTestId('new-card-title')).toBeVisible()
+      await page.waitForTimeout(450)
+    },
+  },
+  {
+    name: 'task sheet: change the status while it is open (#610)',
+    url: '/tasks',
+    before: async (page) => {
+      await push(page, '/tasks/seed-open-1')
+      await expect(page.getByTestId('task-status-select')).toBeVisible()
+      await page.waitForTimeout(1200) // the sheet's own opening first
+    },
+    run: async (page) => {
+      const status = page.getByTestId('task-status-select')
+      await status.click()
+      await page.getByRole('option', { name: 'Wartet', exact: true }).click()
+      await page.waitForTimeout(450)
+      await status.click()
+      await page.getByRole('option', { name: 'Erledigt', exact: true }).click()
+      await page.waitForTimeout(450)
+      await status.click()
+      await page.getByRole('option', { name: 'Offen', exact: true }).click()
+    },
+    jumps: [CARD_MOVES_BEHIND_SHEET],
+  },
+  {
+    name: 'Karten stapeln on, another group-by, off (#610)',
+    url: '/tasks',
+    run: async (page) => {
+      const panel = await openMore(page)
+      await panel.getByTestId('more-stack').click()
+      await page.waitForTimeout(400)
+      await panel.getByTestId('more-group-by').getByRole('button').nth(1).click()
+      await page.waitForTimeout(400)
+      await panel.getByTestId('more-stack').click()
+      await page.waitForTimeout(400)
+      await closeMore(page)
+    },
   },
   {
     name: 'delete from the board and undo',
@@ -117,12 +261,15 @@ for (const flow of FLOWS) {
   test.describe(flow.name, () => {
     test.beforeEach(async ({ context }) => {
       if (flow.seed !== 'none') await seedLocalBoard(context)
+      await flow.prepare?.(context)
     })
 
     test('nothing jumps (motion on)', async ({ page }) => {
+      if (flow.viewport) await page.setViewportSize(flow.viewport)
       await page.emulateMedia({ reducedMotion: 'no-preference' })
       await page.goto(flow.url)
       await page.locator('main, .setup-body').first().waitFor()
+      await flow.before?.(page)
       const frames = await startFrames(page)
       await flow.run(page)
       await page.waitForTimeout(400) // the motion under test lasts up to 300 ms: let it end inside the sample
@@ -132,9 +279,11 @@ for (const flow of FLOWS) {
     })
 
     test('reduced motion is instant', async ({ page }) => {
+      if (flow.viewport) await page.setViewportSize(flow.viewport)
       await page.emulateMedia({ reducedMotion: 'reduce' })
       await page.goto(flow.url)
       await page.locator('main, .setup-body').first().waitFor()
+      await flow.before?.(page)
       const log = await startAnimationLog(page)
       await flow.run(page)
       await page.waitForTimeout(400)
@@ -190,5 +339,51 @@ test.describe('place change: one fade on every pair', () => {
       if (r.seen.join() !== 'enter,leave' || r.durations.some(d => d !== 200) || r.leaverInFlow) failures.push(`${from} -> ${to}: ${JSON.stringify(r)}`)
     }
     expect(failures, 'pairs without the 200 ms fade, or with the leaving page in the flow').toEqual([])
+  })
+})
+
+/**
+ * The glide of the board (#610, #642) is script motion: a press (the start of a drag) ends it at its final state, so dnd-kit never
+ * measures a card that is still travelling; a re-lay glides every card by 300 ms and not at all under reduced motion.
+ */
+test.describe('the board glide', () => {
+  const travelling = (page: Page) => page.evaluate(() => document.getAnimations().filter((a) => {
+    const frames = (a.effect as KeyframeEffect | null)?.getKeyframes() ?? []
+    return frames.some(f => String((f as { transform?: string }).transform ?? '').startsWith('translate('))
+  }).length)
+
+  test.beforeEach(async ({ context }) => {
+    await seedLocalBoard(context)
+  })
+
+  test('turning stacking on glides the cards, and a pointerdown ends the glide at once', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'no-preference' })
+    await page.goto('/tasks')
+    const panel = await openMore(page)
+    await page.waitForTimeout(400)
+    const counts = await page.evaluate(async () => {
+      const count = () => document.getAnimations().filter((a) => {
+        const frames = (a.effect as KeyframeEffect | null)?.getKeyframes() ?? []
+        return frames.some(f => String((f as { transform?: string }).transform ?? '').startsWith('translate('))
+      }).length
+      ;(document.querySelector('[data-testid="more-stack"]') as HTMLElement).click()
+      await new Promise(resolve => setTimeout(resolve, 30))
+      const during = count()
+      window.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))
+      return { during, after: count() }
+    })
+    expect(counts.during, 'cards travel to their stacks').toBeGreaterThan(0)
+    expect(counts.after, 'a press ends the glide').toBe(0)
+    await expect(panel.getByTestId('more-stack')).toBeVisible()
+  })
+
+  test('reduced motion: nothing travels', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await page.goto('/tasks')
+    const panel = await openMore(page)
+    await page.waitForTimeout(400)
+    await panel.getByTestId('more-stack').click()
+    await expect(page.locator('.task-stack').first()).toBeVisible()
+    expect(await travelling(page)).toBe(0)
   })
 })

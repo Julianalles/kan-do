@@ -10,7 +10,7 @@
 - The chevron sits right beside the label, open or closed: the trigger is as wide as its label, so opening moves nothing (#594); a ghost button that answers the pointer with the neutral fill (DESIGN.md "States", Hover; #592), pulled 8 px left (`-ms-2 px-2`) so the label keeps the content edge
 - The heading is the parent of the toggle button (`h3` > button, #630), so heading navigation reaches the section; the button carries `aria-expanded` and `aria-controls`
 - The host places it: with the action row on the sheet's last line (no hairline, no band), in the flow on mobile (#244)
-- The open state is a v-model owned by the parent; an expanded one grows the sheet downwards
+- The open state is a v-model owned by the parent; an expanded one grows the sheet downwards over `--duration-slow` (`UCollapsible`, the one motion of "open a block in place", #610), the chevron (`DisclosureCaret`) turns with it
 -->
 <template>
   <section class="task-detail-section" data-testid="task-metadata">
@@ -29,11 +29,7 @@
         >
           {{ t('task.detail.metadata') }}
           <template #trailing>
-            <UIcon
-              name="i-ph-caret-down"
-              class="size-4  text-muted transition-transform duration-(--duration-base)"
-              :class="{ 'rotate-180': open }"
-            />
+            <DisclosureCaret :open="open" />
           </template>
         </UButton>
       </SectionHeader>
@@ -52,6 +48,7 @@
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
+import DisclosureCaret from '~/components/ui/DisclosureCaret.vue';
 import SectionHeader from '~/components/ui/SectionHeader.vue';
 
 defineOptions({ name: 'TaskDetailMetadata' });

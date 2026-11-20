@@ -44,12 +44,16 @@ shared TopicEditor: an inline panel under the row at >=768px, a bottom drawer at
                       <MiddleEllipsis class="text-default" :text="name" data-private />
                       <span class="block text-sm text-muted" data-testid="topics-row-meta">{{ metaOf(name) }}</span>
                     </span>
-                    <UIcon :name="open === name ? 'i-ph-caret-up' : 'i-ph-pencil-simple'" class="size-4 shrink-0 text-muted" aria-hidden="true" />
+                    <DisclosureCaret :open="open === name" />
                   </span>
                   <template #after>
-                    <div v-if="open === name" class="mb-3 ml-9 max-md:ml-0">
-                      <TopicEditorHost :key="`${kind}:${name}`" :topic="name" :kind="kind" @close="close" @saved="onSaved" />
-                    </div>
+                    <UCollapsible :open="open === name">
+                      <template #content>
+                        <div class="mb-3 ml-9 max-md:ml-0">
+                          <TopicEditorHost :key="`${kind}:${name}`" :topic="name" :kind="kind" @close="close" @saved="onSaved" />
+                        </div>
+                      </template>
+                    </UCollapsible>
                   </template>
                 </ListRow>
               </ul>
@@ -74,6 +78,7 @@ import PageSheet from '~/components/ui/PageSheet.vue'
 import { computed, nextTick, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import TopicMark from '~/components/topic/TopicMark.vue'
+import DisclosureCaret from '~/components/ui/DisclosureCaret.vue'
 import EmptyState from '~/components/ui/EmptyState.vue'
 import ListRow from '~/components/ui/ListRow.vue'
 import MiddleEllipsis from '~/components/ui/MiddleEllipsis.vue'

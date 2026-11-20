@@ -341,6 +341,7 @@ A change that involves a choice. Ordered by confidence, then by how visible the 
   - Confidence: high for the switch, medium for the regrouping, which happens behind the open panel
   - Needs a design round: no for the panel, yes for the regrouping
   - Ref: motion-7
+  - Result: the regrouping glides in #610 (`useBoardGlide`, regroup a); the panel part is built as a collapsible row of the Mehr panel.
 
 - [x] **44. "Alle" scrolls two ways, and its phone heading is a size the type table does not have**
   - Where: `/all` at 1280: "Meine Aufgaben" is its own scroll area while the "Heute" column grows the page. On a phone the heading "Meine Aufgaben" is 27 px, every other column heading 36 px (`components/board/BoardNotPlanned.vue:382`).
@@ -368,6 +369,7 @@ A change that involves a choice. Ordered by confidence, then by how visible the 
   - Confidence: high for the measurements, medium for the statistics tile
   - Needs a design round: yes (the affordance and the statistics tile)
   - Ref: baseline-6, motion-9
+  - Result: built in #610 (caret a, motion a 300 ms, tile b), see `DESIGN.md` "Open a block in place".
 
 - [x] **47. The buttons at the foot of a dialog or flow have five layouts**
   - Where: add sheet (cancel at the left edge, main at the right), Notion setup dialog (cancel left, back and next together right), topic editor and trash confirmations (both together), disconnect dialog (three full-width buttons stacked, main on top), welcome steps (one full-width button, or one 96 px button at the right).

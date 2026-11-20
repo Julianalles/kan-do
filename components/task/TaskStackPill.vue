@@ -9,7 +9,7 @@
 - Left segment names the grouping property the way a card shows it: topic = TopicMark + neutral name (hue only on
   the mark); priority 1-3 = the real TaskPriorityBadge as the segment itself (no hairline after it); activity,
   custom/Notion value and the empty group = the plain name
-- Right segment is the stack icon (`i-ph-stack`) and the count; it never shrinks, a large count widens it only
+- Right segment is the stack icon (`i-ph-stack`), the count and the trailing `DisclosureCaret` (#610: a stack is a block that opens, the chevron points down on the face and up on the header's pill, `open`); it never shrinks, a large count widens it only
 - The property segment is capped at 10rem and is cut in the middle (`MiddleEllipsis`, kd#119: stacks of "Karriere: Bewerbung" and
   "Karriere: Weiterbildung" stay apart; the cap is a look decision, tune here); the full
   name stays in the stack control's accessible name, so there is no tooltip. The pill is decorative: the
@@ -30,6 +30,8 @@
     <span class="task-stack-pill__count">
       <u-icon name="i-ph-stack" class="task-stack-pill__icon" />
       <span data-private>{{ count }}</span>
+      <!-- The chevron turns with the stack's own motion, not the 300 ms of a block that opens (#610) -->
+      <DisclosureCaret :open="open" class="task-stack-pill__caret [--disclosure-caret-duration:var(--stack-transition-duration)]" />
     </span>
   </span>
 </template>
@@ -38,6 +40,7 @@
 import { computed } from "vue";
 import TopicMark from "~/components/topic/TopicMark.vue";
 import MiddleEllipsis from "~/components/ui/MiddleEllipsis.vue";
+import DisclosureCaret from "~/components/ui/DisclosureCaret.vue";
 import TaskPriorityBadge from "~/components/task/TaskPriorityBadge.vue";
 import { useBoardGrouping } from "~/composables/useBoardGrouping";
 import { PRIORITY_LABEL_KEYS } from "~/utils/taskStatusMappings";
@@ -46,7 +49,7 @@ import type { Task } from "~/types/task";
 
 defineOptions({ name: "TaskStackPill" });
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   /** Group key of the stack (priority level, topic name, ...) */
   groupKey: string;
   /** Readable group name (the plain-name fallback and the topic's name) */
@@ -55,7 +58,9 @@ const props = defineProps<{
   count: number;
   /** The stack's front task: the topic mark reads its topic and source */
   firstTask?: Task | undefined;
-}>();
+  /** The stack is expanded (the header's pill): the chevron points up */
+  open?: boolean;
+}>(), { open: false });
 
 const { effectiveGroupKey } = useBoardGrouping();
 
@@ -113,7 +118,7 @@ const kind = computed<"topic" | "priority" | "plain">(() => {
   font-variant-numeric: tabular-nums;
 }
 
-.task-stack-pill__icon {
+.task-stack-pill__icon, .task-stack-pill__caret {
   width: 0.75rem;
   height: 0.75rem;
 }
