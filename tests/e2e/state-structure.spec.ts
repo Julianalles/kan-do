@@ -347,7 +347,7 @@ test.describe('Apple Reminders setup and settings (#552)', () => {
     await page.getByTestId('welcome-choice-local').click()
     await page.getByTestId('local-source-reminders').click()
     await page.getByTestId('local-confirm').click()
-    await expect(page.getByTestId('reminders-step-title')).toBeFocused()
+    await expect(page.getByTestId('setup-pane')).toBeFocused()
   }
 
   test('access step before the prompt: announcement, preview and facts (1280)', async ({ context, page }) => {

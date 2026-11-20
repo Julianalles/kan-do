@@ -174,14 +174,14 @@ function onEnter(el: Element, done: () => void) {
   anim.finished.then(done, done);
 }
 /**
- * Focus follows the swap: into the setup's heading, or back onto the row the user came from. It runs when the height
+ * Focus follows the swap: into the setup's heading or, on the shell (no heading, the rail names the step), its pane, or back onto the row the user came from. It runs when the height
  * animation ends (300 ms, later on a slow machine), so only while focus is still lost (the removed block's button left
  * it on the body): a user who already tabbed or clicked into the new block keeps their place (#100).
  */
 function onAfterEnter(el: Element) {
   const active = document.activeElement;
   if (active && active !== document.body) return;
-  if (flow.value) el.querySelector<HTMLElement>('h2')?.focus({ preventScroll: true });
+  if (flow.value) (el.querySelector<HTMLElement>('h2') ?? el.querySelector<HTMLElement>('[data-testid="setup-pane"]'))?.focus({ preventScroll: true });
   else el.querySelector<HTMLElement>(`[data-testid="welcome-choice-${lastFlow.value}"]`)?.focus({ preventScroll: true });
 }
 function openFlow(key: FlowKey) {
