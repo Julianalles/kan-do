@@ -8,7 +8,7 @@ One shell with the recap (#612): the title anchored under the app bar, one 44 re
 @avoid Not for a plain confirmation (UModal) and not the first start of a new day (NewDayRecap); no lists of tasks and no per-task choice here.
 @responsibility
 - Shell only: title (the page title, SectionHeader `display`), the date as subline, sheet 1 (DayCloseSummary, DayCloseTimebox, DayCloseTopics), sheet 2, the docked footer (the consequence line and the buttons: way out soft, main solid without an arrow, main on top on a phone); the stage reuses the recap's photo, CSS and closing curtain (assets/css/recap-stage.css)
-- Enter (#580): the opposite curtain. The photo comes down over the board (`--duration-stage`, 1.3 s) and the column fades in over `--duration-slow` as it lands (`recap-stage--curtain-down`, transitions on `data-entered`, set two frames after the mount); a leave mid-drop retargets from where the photo is; reduced motion: instant. The leave is the recap's: the photo up over `--duration-curtain`
+- Enter (#580): the opposite curtain. The photo comes down over the board (`--duration-stage`, 1.3 s) and the column fades in over `--duration-slow` as it lands (`recap-stage--curtain-down`, transitions on `data-entered`, set two frames after the mount); the column takes no pointer until it has faded in (`data-landed`), so the invisible buttons cannot be hit; a leave mid-drop retargets from where the photo is; reduced motion: instant. The leave is the recap's: the photo up over `--duration-curtain`
 - The halo of the focused button waits for the first key or press (`data-quiet-focus`, #612)
 - Not modal, like the recap: teleported to `#recap-stage-host`, a `role="region"` named by the title, no scrim, no focus trap; the app bar stays usable above it and the board is `inert` behind it (pages/tasks.vue); leaving the page closes it without a change
 - Esc and "Abbrechen, nichts ändert sich" (a regular secondary button) only dismiss: nothing is archived, moved or stored
@@ -26,6 +26,7 @@ One shell with the recap (#612): the title anchored under the app bar, one 44 re
       :aria-labelledby="titleId"
       :data-closing="closing || undefined"
       :data-entered="entered || undefined"
+      :data-landed="landed || undefined"
       :data-quiet-focus="quiet || undefined"
       :inert="closing || undefined"
       data-testid="day-close-stage"
@@ -126,10 +127,19 @@ const shown = computed(() => isOpen.value || closing.value)
 const entered = ref(false)
 /** The halo of the focused button waits for the first key or press (#612, recap-stage.css). */
 const quiet = ref(true)
+/** The column has faded in: until then it is invisible and takes no pointer (recap-stage.css), so a second click cannot hit an unseen button. */
+const landed = ref(false)
+let landTimer: ReturnType<typeof setTimeout> | undefined
 function enter() {
   entered.value = false
+  landed.value = false
+  clearTimeout(landTimer)
   requestAnimationFrame(() => requestAnimationFrame(() => {
-    if (shown.value) entered.value = true
+    if (!shown.value) return
+    entered.value = true
+    const root = getComputedStyle(document.documentElement)
+    const wait = cssTimeMs(root.getPropertyValue('--duration-stage')) - cssTimeMs(root.getPropertyValue('--duration-slow'))
+    landTimer = setTimeout(() => { landed.value = true }, Math.max(0, wait))
   }))
 }
 /** Desktop only: the data file is in conflict or unavailable, nothing may move. */
@@ -154,7 +164,11 @@ const markStage = (on: boolean) => {
 }
 watch(shown, markStage, { immediate: true, flush: 'post' })
 watch(shown, (on) => {
-  if (!on) entered.value = false
+  if (!on) {
+    entered.value = false
+    landed.value = false
+    clearTimeout(landTimer)
+  }
 })
 let curtainTimer: ReturnType<typeof setTimeout> | undefined
 
@@ -220,6 +234,7 @@ watch(isOpen, async (open) => {
 
 onBeforeUnmount(() => {
   clearTimeout(curtainTimer)
+  clearTimeout(landTimer)
   // Leaving the page while the stage is open dismisses it: nothing changes (its state is module-level)
   if (isOpen.value) close()
   markStage(false)

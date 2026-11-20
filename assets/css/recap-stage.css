@@ -122,6 +122,11 @@
     transition: opacity var(--duration-slow) var(--ease-emphasized) calc(var(--duration-stage) - var(--duration-slow));
   }
 
+  /* Invisible means not clickable: the column takes no pointer until it has faded in (`data-landed`) */
+  .recap-stage--curtain-down:not([data-landed]) .recap-stage__column {
+    pointer-events: none;
+  }
+
   .recap-stage--curtain-down:not([data-entered]) .recap-stage__photo {
     transform: translateY(-100%);
   }
