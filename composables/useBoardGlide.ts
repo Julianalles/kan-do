@@ -48,8 +48,10 @@ function startListening(): void {
   listening = true
 }
 
+/** No glide without Web Animations (jsdom) or when the user asks for reduced motion (scripted animations are not covered by the global CSS rule) */
 const reducedMotion = (): boolean =>
-  typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  typeof Element.prototype.animate !== 'function'
+  || (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
 
 const taskIdOf = (el: Element): string | null => el.getAttribute('data-task-id') ?? el.querySelector('[data-task-id]')?.getAttribute('data-task-id') ?? null
 

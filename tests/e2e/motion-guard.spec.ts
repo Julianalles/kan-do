@@ -383,7 +383,7 @@ test.describe('the board glide', () => {
     const panel = await openMore(page)
     await page.waitForTimeout(400)
     await panel.getByTestId('more-stack').click()
-    await expect(page.locator('.task-stack').first()).toBeVisible()
+    await expect(panel.getByTestId('more-group-by')).toBeVisible()
     expect(await travelling(page)).toBe(0)
   })
 })
