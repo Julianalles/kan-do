@@ -8,6 +8,7 @@
  *   recap and the WIP rule keep seeing every task
  * - Chip counts and the hidden number leave Jetzt out, so they count what the focus can keep or hide
  * - One state for both places of the board (#354): on "Alle" it filters and counts "Meine Aufgaben" and Offen
+ * - Picking or ending a focus runs through `useBoardGlide`: the remaining cards glide over `--duration-slow` instead of the columns re-laying in one frame (#642)
  * @responsibility Filter, counts and the chip row's open state; never mutates tasks
  */
 import { computed, ref } from 'vue'
@@ -16,6 +17,7 @@ import { useTasksStore } from '~/store/tasks'
 import type { Task } from '~/types/task'
 import { TaskStatus } from '~/types/taskStatus'
 import { useBoardPlace } from '~/composables/useBoardPlace'
+import { useBoardGlide } from '~/composables/useBoardGlide'
 
 /** The chip row (the funnel's open state): transient, shared by the funnel in the app bar and the row on the board */
 const chipsOpen = ref(false)
@@ -36,6 +38,7 @@ export interface TopicChoice {
 export function useBoardFocus() {
   const boardStore = useBoardStore()
   const tasksStore = useTasksStore()
+  const { around } = useBoardGlide()
 
   const focusTopic = computed(() => boardStore.activeFocusTopic ?? null)
 
@@ -73,13 +76,14 @@ export function useBoardFocus() {
     return applyTopicFocus(tasks, focusTopic.value)
   }
 
+  /** Picking or ending a focus re-lays the columns: the cards glide to their new places (#642) */
   function setFocus(topic: string) {
-    boardStore.setFocus(topic)
+    void around(() => boardStore.setFocus(topic))
     chipsOpen.value = false
   }
 
   function clearFocus() {
-    boardStore.clearFocus()
+    void around(() => boardStore.clearFocus())
     chipsOpen.value = false
   }
 

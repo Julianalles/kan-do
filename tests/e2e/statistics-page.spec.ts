@@ -272,9 +272,9 @@ test.describe('Statistics Page', () => {
       await expect(toggle(4)).toBeFocused();
       await expect(page.getByTestId('stats-split-rows')).toBeVisible();
 
-      // the open tile 4 is first in reading order, before 2 and 3 (no CSS order)
+      // the open tile keeps its place in reading order (#610: tile b), its detail follows the row of tiles
       await expect(page.getByRole('heading', { level: 2 })).toHaveText([
-        /Es läuft/, /Wofür nehme ich mir Zeit\?/, /Wie entwickle ich mich\?/, /Wo schätze ich falsch\?/, /Wann arbeite ich\?/,
+        /Es läuft/, /Wie entwickle ich mich\?/, /Wo schätze ich falsch\?/, /Wofür nehme ich mir Zeit\?/, /Wann arbeite ich\?/,
       ]);
 
       // opening another closes the first; focus follows the toggle that was used
@@ -285,7 +285,7 @@ test.describe('Statistics Page', () => {
       await expect(toggle(2)).toBeFocused();
       await expect(page.getByTestId('stats-week-list')).toBeVisible();
 
-      // Esc closes the open tile and the order returns to the natural one
+      // Esc closes the open tile
       await page.keyboard.press('Escape');
       await expect(toggle(2)).toHaveAttribute('aria-expanded', 'false');
       await expect(toggle(2)).toBeFocused();
@@ -329,7 +329,7 @@ test.describe('Statistics Page', () => {
       await expect(page.getByTestId('stats-table-shown')).toHaveText('26 von 26 angezeigt');
     });
 
-    test('closed tiles hug their content and an open tile leaves a full row (#604)', async ({ page, baseURL }) => {
+    test('closed tiles hug their content; an open tile stays in its cell and opens its detail below the row (#604, #610)', async ({ page, baseURL }) => {
       await page.setViewportSize({ width: 1280, height: 900 });
       await page.goto(`${baseURL}/statistics`);
       const box = async (n: number) => (await page.getByTestId(`stats-tile-${n}`).boundingBox())!;
@@ -343,16 +343,21 @@ test.describe('Statistics Page', () => {
         return tile.scrollHeight - tile.clientHeight;
       }));
       expect(heights.every(h => h <= 1)).toBe(true);
-      // one open: it is full width, the other two share the next row and reach both edges of the grid
+      // one open (#610, tile b): every tile keeps its cell in the row and its detail is a sheet of its own below the whole row
       await page.getByTestId('stats-tile-3-toggle').click();
       await expect(page.getByTestId('stats-tile-3-toggle')).toHaveAttribute('aria-expanded', 'true');
-      const open = await box(3);
-      const [left, right] = [await box(2), await box(4)];
-      expect(Math.abs(left.y - right.y)).toBeLessThan(1);
-      expect(left.y).toBeGreaterThan(open.y + open.height - 1);
-      expect(Math.abs(left.x - open.x)).toBeLessThan(1);
-      expect(Math.abs(right.x + right.width - (open.x + open.width))).toBeLessThan(1);
-      expect(Math.abs(left.width - right.width)).toBeLessThan(2);
+      const detail = page.getByTestId('stats-tile-3-detail');
+      await expect(detail).toBeVisible();
+      for (const [n, before] of [[2, a], [3, b], [4, c]] as const) {
+        const after = await box(n);
+        expect(Math.abs(after.x - before.x), `tile ${n} stays in its column`).toBeLessThan(1);
+        expect(Math.abs(after.y - before.y), `tile ${n} stays in its row`).toBeLessThan(1);
+        expect(Math.abs(after.width - before.width), `tile ${n} keeps its span`).toBeLessThan(1);
+      }
+      await expect.poll(async () => (await detail.boundingBox())!.y).toBeGreaterThan(b.y + b.height - 1);
+      const sheet = (await detail.boundingBox())!;
+      expect(Math.abs(sheet.x - a.x)).toBeLessThan(1);
+      expect(Math.abs(sheet.x + sheet.width - (c.x + c.width))).toBeLessThan(1);
     });
 
     test('all completed tasks sit behind one disclosure and keep the drill-down', async ({ page, baseURL }) => {

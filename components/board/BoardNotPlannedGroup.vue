@@ -3,7 +3,7 @@
 @kind component
 @category layout
 @description One group of "Meine Aufgaben" on the place "Alle" (#469): the pair of card columns with an optional heading (icon, title, count) above it, and, as a panel, the tinted surface that sets the group off from the plain list
-@usage Rendered by BoardNotPlanned, with the list of cards (a TransitionGroup of BoardNotPlannedItem) in the default slot. `panel` for the group of yesterday's tasks, left off for "Weitere Aufgaben". Without `title` there is no heading (the plain list of a day without a panel). `heading-hidden` hides the heading while the drop hint takes its row.
+@usage Rendered by BoardNotPlanned, with the list of cards (a TransitionGroup of BoardNotPlannedItem) in the default slot. `panel` for the group of yesterday's tasks, left off for "Weitere Aufgaben". Without `title` there is no heading (the plain list of a day without a panel).
 @avoid Not a board column (BoardColumn) and not a page section (PageSheet, SectionHeader alone). Not for a list that folds or sorts: the group only contains.
 @responsibility
 - Width: the pair of columns is as wide as two cards plus one `--task-list-gap`, centred in the side (a phone: one column, the page's width). Heading and cards share the left edge of the pair
@@ -24,7 +24,6 @@
       tag="h3"
       size="sub"
       class="nps-group__heading"
-      :class="{ 'invisible': headingHidden }"
     >
       <UIcon v-if="icon" :name="icon" class="nps-group__icon size-4 shrink-0" aria-hidden="true" />
       <span class="nps-group__title">{{ title }}</span>
@@ -50,8 +49,6 @@ defineProps<{
   icon?: string
   /** The tinted surface under the heading and the cards */
   panel?: boolean
-  /** Hides the heading while keeping its row (the drop hint takes it) */
-  headingHidden?: boolean
 }>()
 </script>
 

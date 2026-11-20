@@ -32,7 +32,7 @@
     "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
   },
   "components/board/BoardColumnYesterdayNote.vue": {
-    "count": 132,
+    "count": 121,
     "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
   },
   "components/board/BoardFocusBar.vue": {
@@ -44,7 +44,7 @@
     "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
   },
   "components/board/BoardNotPlanned.vue": {
-    "count": 132,
+    "count": 82,
     "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
   },
   "components/board/BoardNotPlannedGroup.vue": {

@@ -427,8 +427,12 @@ export function useStackMotion(options: StackMotionOptions) {
         const to = boxOf(facePill)
         const dx = to.left + to.width / 2 - (group.pill.box.left + group.pill.box.width / 2)
         const dy = to.top + to.height / 2 - (group.pill.box.top + group.pill.box.height / 2)
+        // The pill's chevron (#610) points up in the header and down on the face: the clone turns it back while it sinks
+        const caret = group.pill.clone.querySelector<HTMLElement>('.disclosure-caret--open')
+        caret?.classList.remove('disclosure-caret--open')
         addClone(group.pill.clone, group.pill.box, PILL_Z)
         travel(group.pill.clone, [{ transform: 'none' }, { transform: `translate(${round(dx)}px, ${round(dy)}px)` }])
+        if (caret) starts.push(() => caret.animate([{ transform: 'rotate(180deg)' }, { transform: 'rotate(0deg)' }], { duration, easing, fill: 'none' }))
         // The whole layer (wash and pill) is covered by the wash clone and the travelling pill until they land
         if (pillLayer) starts.push(() => pillLayer.animate([{ opacity: 0 }, { opacity: 0 }], { duration, fill: 'none' }))
         // The folding clones are opaque and sit above the real face, so its wash would only show once they go (a pop):

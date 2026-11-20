@@ -93,6 +93,8 @@
     /* The capacity echo keeps its place at the foot of Offen, like "Tag abschließen" at the foot of Erledigt */
     #column-open > .column-footer {
       margin-top: auto;
+      /* Offen's footer holds only the capacity echo (#573): no space below it, it reaches the window's foot and hides what scrolls under it */
+      --column-footer-pad-bottom: 0;
     }
   }
 
@@ -434,7 +436,7 @@
   z-index: var(--z-focus-overlay);
 }
 
-/* "Meine Aufgaben" takes a card that flies in from Offen: its side lies above Offen's and its scroll box does not clip */
+/* "Meine Aufgaben" takes a card that flies in from Offen: its side lies above Offen's */
 #column-not-planned.is-receiving {
   z-index: 2;
 }

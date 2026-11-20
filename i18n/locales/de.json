@@ -144,6 +144,7 @@
     },
     "notPlanned": {
       "title": "Meine Aufgaben",
+      "heading": "Alle",
       "plan": "Für heute einplanen",
       "planNamed": "{title}: für heute einplanen",
       "notToday": "Nicht heute",
@@ -155,7 +156,6 @@
       "planned": "{title} ist für heute geplant.",
       "unplanned": "{title} ist nicht mehr für heute geplant.",
       "unplannedStack": "Stapel „{title}“ ist nicht mehr für heute geplant.",
-      "dropHere": "Hier ablegen: nicht heute",
       "dragOver": "„{title}“ über Meine Aufgaben. Beim Ablegen ist die Aufgabe nicht mehr für heute geplant.",
       "dragBack": "„{title}“ bleibt in Meine Aufgaben.",
       "capacityFull": "Damit ist dein Tag vermutlich voll.",

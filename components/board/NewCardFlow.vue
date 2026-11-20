@@ -10,6 +10,7 @@
 - The face is the real TaskCard (`draft`), so the saved card and the cue behind the wash match by construction; the topic row exists only once a topic is picked (the title steps down then, as on a card)
 - Title step (no wash): the field is a textarea that grows with the title (#665; Enter confirms, line breaks become spaces, at most as tall as the face's title, which is what the card shows of it (a long title is clamped there), then it scrolls) and stands where the face's title stands: on the card body padding, or below the topic row once a topic is picked (measured from the face, #668: going back with a topic must not overlap it). The face's own title is hidden there, so the field is the only text; it keeps the field's right padding so both wrap alike. The confirm check is centred vertically on the card, on the line where the answer rows of the later steps stand, so the button controls keep one height; the field keeps the check's width clear (accepted: a short title wraps a few characters earlier)
 - Steps (one question at a time, over the card): the card is plain and solid (#434: the veil is `--ui-bg-elevated`, the face's text and topic mark are hidden behind it, the face only sizes the card and is what the save hands over to). Head on the card padding: back left (soft icon button, Esc chip), the question, forward right (soft icon-only button, Enter chip; none on Notiz); the answers under it. Thema and Aktivität are one combobox (`UInputMenu`, #434, below); Timebox keeps its 2×2 grid, `[1] [2] / [3] [··· 4]` (kd#119: 15, 30 and 60 min without a history suggestion; `timeboxStep`), the chips (`ChoiceChip`, the field height, which is also the control height of the whole flow, `--ncf-control-h`) carrying the name and the key cue only. The steps stay as tall as before (kd#178): the face's min-height is derived from the head, two control rows and the room under them (`--ncf-control-h`, `--ncf-grid-top`, `--ncf-grid-bottom`), so the one-row combobox does not make the card jump. Notiz is an input plus a check on the vertical centre; Enter saves. The step slides sideways (140 ms) into the next
+- The card is taller in its steps than in its title phase: going from the title to the first question and back glides its height over `--duration-slow` (`glideHeight`, #610), so the cards below move with it and nothing jumps
 - A pick pulses the veil once (a cue on Notiz); saving lifts the veil and the face becomes the saved card
 - Keys: Enter skips (saves on Notiz), Esc goes back from anywhere, also with the combobox's list open (cancels on the title step; with a typed title the slot offers "Rückgängig" in a toast, #665), Cmd/Ctrl+Enter saves now with what is entered, from any step once there is a title (#665; announced by `aria-keyshortcuts` and the check's title). Timebox: 1/2/3 pick, 4 opens the list (the dots icon). Thema and Aktivität have no number keys (digits are text in the field), and Backspace/Delete only edit text (#434). Key cues sit inside the buttons (generated content, so the accessible name stays the label), fine pointers only. Tab order is the DOM order; every step change moves focus to the step (the combobox's field, Notiz: its input)
 - A press outside cancels only while the title is blank (a press on a card, in Offen or under "Meine Aufgaben", waits for its release, a drag keeps the card); a save error keeps the card where it was (Notiz after Enter) with everything entered; the toast after a save is one row (title and Details, #665) so it stays clear of the saved card at 390 px
@@ -265,6 +266,7 @@ import ChoiceChip from '~/components/ui/ChoiceChip.vue';
 import TopicMark from '~/components/topic/TopicMark.vue';
 import MiddleEllipsis from '~/components/ui/MiddleEllipsis.vue';
 import { useAddTarget } from '~/composables/useAddTarget';
+import { glideHeight } from '~/composables/useBoardGlide';
 import { useErrorHandler } from '~/composables/useErrorHandler';
 import { isPhoneNow, useIsDesktop } from '~/composables/useIsDesktop';
 import { usePropertyOptionsSync } from '~/composables/usePropertyOptionsSync';
@@ -323,6 +325,8 @@ const titleEl = ref<HTMLInputElement | null>(null);
 const panelEl = ref<HTMLElement | null>(null);
 const veilEl = ref<HTMLElement | null>(null);
 const faceEl = ref<HTMLElement | null>(null);
+/** The card inside the face: the box whose `min-height` makes the steps taller than the title phase */
+const faceCard = () => (faceEl.value?.firstElementChild as HTMLElement | null) ?? null;
 /** Where the face's title stands inside the card (below the topic row, once there is one): the title field stands on it (#668) */
 const titleTop = ref<string | undefined>(undefined);
 
@@ -518,10 +522,12 @@ function onMoreCloseAutoFocus(event: Event) {
 
 async function confirmTitle() {
   if (!title.value.trim()) return;
-  direction.value = 'fwd';
-  step.value = steps.value[0]!;
-  phase.value = 'steps';
-  await nextTick();
+  // The card is taller in its steps than in its title phase (kd#178): its height glides, the cards below follow (#610)
+  await glideHeight(faceCard(), () => {
+    direction.value = 'fwd';
+    step.value = steps.value[0]!;
+    phase.value = 'steps';
+  });
   focusStep();
 }
 
@@ -664,7 +670,7 @@ async function goBack() {
   direction.value = 'back';
   const index = steps.value.indexOf(step.value);
   if (index <= 0) {
-    phase.value = 'title';
+    await glideHeight(faceCard(), () => { phase.value = 'title'; });
     await showTitleField();
     return;
   }

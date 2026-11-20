@@ -181,7 +181,6 @@
         v-else-if="draggingTask"
         :task="draggingTask"
         :muted="false"
-        :source-icon="previewFromNotPlanned"
         :corner-room="previewFromNotPlanned"
         preview
         class="kando-dnd-preview"

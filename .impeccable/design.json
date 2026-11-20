@@ -151,7 +151,7 @@
       {
         "name": "duration-slow",
         "value": "300ms",
-        "purpose": "A surface changing size or position."
+        "purpose": "A surface changing size or position, a block opening in place, the board re-laying its cards."
       },
       {
         "name": "duration-place",

@@ -26,6 +26,7 @@ const stubs = {
     template: '<component :is="to ? \'a\' : \'button\'" :data-icon="icon" :href="typeof to === \'string\' ? to : to?.path" :disabled="disabled || undefined" :data-variant="variant" v-bind="$attrs"><slot /></component>',
   },
   USwitch: { props: ['modelValue', 'label'], emits: ['update:modelValue'], template: '<button role="switch" :aria-checked="modelValue" v-bind="$attrs" @click="$emit(\'update:modelValue\', !modelValue)">{{ label }}</button>' },
+  UCollapsible: { props: ['open'], template: '<div><slot v-if="open" name="content" /></div>' },
   UFormField: { template: '<div><slot /></div>' },
   USeparator: true,
   UKbd: { props: ['value'], template: '<kbd>{{ value }}</kbd>' },

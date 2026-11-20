@@ -41,7 +41,7 @@
     <template v-if="onBoard">
       <section :aria-labelledby="pageHeadingId">
         <SectionHeader :id="pageHeadingId" tag="h2" size="label" class="px-2 pt-2">{{ t('nav.groupPage') }}</SectionHeader>
-        <div class="space-y-3 p-2">
+        <div class="p-2">
           <UFormField :help="t('board.sync.stackHelp')">
             <USwitch
               :model-value="groupingEnabled"
@@ -54,26 +54,29 @@
               <span class="text-xs max-md:text-body">{{ t('board.sync.stackHelp') }}</span>
             </template>
           </UFormField>
-          <!-- On a phone the panel is bottom-anchored and grows upward: the chips' room is held while grouping is off, so the switch stays under the finger (#602). Desktop grows downward and renders them only when on -->
-          <div
-            v-if="groupingEnabled || isPhone"
-            role="group"
-            :aria-label="t('board.sync.groupBy')"
-            :inert="!groupingEnabled"
-            class="flex flex-wrap gap-1.5"
-            :class="{ invisible: !groupingEnabled }"
-            data-testid="more-group-by"
-          >
-            <ChoiceChip
-              v-for="option in groupingOptions"
-              :key="option.value"
-              :picked="effectiveGroupKey === option.value"
-              :aria-pressed="effectiveGroupKey === option.value"
-              @click="setGroupingKey(option.value)"
-            >
-              {{ option.label }}
-            </ChoiceChip>
-          </div>
+          <!-- On a phone the panel is bottom-anchored and grows upward: the chips' room is held while grouping is off, so the switch stays under the finger (#602). Desktop grows downward: the row opens in place over `--duration-slow` (#610) -->
+          <UCollapsible :open="groupingEnabled || isPhone">
+            <template #content>
+              <div
+                role="group"
+                :aria-label="t('board.sync.groupBy')"
+                :inert="!groupingEnabled"
+                class="flex flex-wrap gap-1.5 pt-3"
+                :class="{ invisible: !groupingEnabled }"
+                data-testid="more-group-by"
+              >
+                <ChoiceChip
+                  v-for="option in groupingOptions"
+                  :key="option.value"
+                  :picked="effectiveGroupKey === option.value"
+                  :aria-pressed="effectiveGroupKey === option.value"
+                  @click="setGroupingKey(option.value)"
+                >
+                  {{ option.label }}
+                </ChoiceChip>
+              </div>
+            </template>
+          </UCollapsible>
         </div>
         <UButton
           icon="i-ph-sun-horizon"
