@@ -41,6 +41,16 @@ typography:
     fontSize: "0.875rem"
     fontWeight: 400
     lineHeight: 1.55
+  figure-lg:
+    fontFamily: "Figtree, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "2.25rem"
+    fontWeight: 600
+    lineHeight: 1.15
+  figure:
+    fontFamily: "Figtree, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "1.5rem"
+    fontWeight: 600
+    lineHeight: 1.15
   label:
     fontFamily: "Figtree, ui-sans-serif, system-ui, sans-serif"
     fontSize: "0.75rem"
@@ -92,9 +102,9 @@ Token values live in `assets/css/main.css` and `app.config.ts`; these tables nam
 | Marker yellow | `--marker` | the marker stroke (The Marker Rule) |
 | Topic hues | `--topic-<hue>`, nine | a topic's mark only (The Topic Mark Rule) |
 
-**The One Lamp Rule.** One solid green button per view. Marks, selected options, links and the focus ring are green without being a fill.
+**The One Lamp Rule.** One solid green button per view. A selected option (a chip, a switch, a checkbox, the funnel while a topic focus is on) may be a green fill and does not count; marks, links and the focus ring are green without being a fill. The action of a toast is soft, so a toast never adds a second lamp (user, 2026-11-20, #606).
 
-**The Status Is Not Decoration Rule.** Green means action or done, orange attention, red destructive or failed. None of them appears for emphasis, branding or variety (the completion burst is the one recorded exception, see "Earned celebration"); integration brand colours do not appear at all.
+**The Status Is Not Decoration Rule.** Green means action or done, orange attention, red destructive or failed. None of them appears for emphasis, branding or variety (the completion burst is the one recorded exception, see "Earned celebration"); integration brand colours do not appear at all. The confirming button of a destructive dialog ("Trennen") is soft red, also when nothing is lost, like every other destructive confirm (user, 2026-11-20, #606).
 
 **The Topic Mark Rule.** A topic carries its hue and symbol on its mark only: a small dot or glyph before the name. Never a coloured chip, card, column or surface, never a hue on a name, and no topic hue in a chart (charts use the ink ramp).
 
@@ -115,11 +125,12 @@ Fraunces 500 (tracking -0.02em) is the display face, Figtree the face for everyt
 | Hero | 48 px | 1.15 | Fraunces | the statistics verdict, the welcome headline |
 | Display | 36 px | 1.15 | Fraunces | column names, page titles |
 | Headline | 22 px | 1.15 | Fraunces | section headings on a sheet and in a dialog, the title of a task in its sheet |
+| Key figure | 36 px, 24 px | 1.15 | Figtree 600, tabular figures | the figure that is the content of its place: 36 px for the one figure of a stage or a large ring (the statistics verdict, a donut opened at 170 px), 24 px for a count in a row or tile and the figure of a small ring (the day-close Timebox, the 120 px rings of the statistics tiles: 24 px "160:00" is 82 px wide in the 92 px clear centre) |
 | Subhead | 18 px | 1.3 | Fraunces | dialog titles, sub-headings, the wordmark |
 | Title | 15 px (16 on a phone) | 1.3 | Figtree 400 | card titles |
 | Body | 14 px (15 on a phone) | 1.55 | Figtree 400 | notes, descriptions, dialog and settings copy |
 | Interface | 14 px (15 on a phone) | 1.3 | Figtree 400 to 500 | buttons, fields, rows, tabs, card meta |
-| Label | 12 px | 1.3 | Figtree 500 | badges, chips, counts, property labels, hints |
+| Label | 12 px | 1.3 | Figtree 500 | badges, chips, counts, property labels, hints, group headings (a field group, a list or a section inside a dialog, `SectionHeader size="label"`) |
 
 **The One Role Rule.** The display face is for headings only. Numerals, labels, tab names, prompts and sentences stay in the sans, at 400 to 500 (600 for a key figure).
 
@@ -129,14 +140,14 @@ Fraunces 500 (tracking -0.02em) is the display face, Figtree the face for everyt
 |---|---|
 | Spacing | the 4 px grid; 2 and 6 px are the only half steps |
 | Control height | 36 px for buttons (one height, see The One Height Rule), fields, selects, value rows and choice chips; 32 px for tabs and nav; 44 px floor for every control on a phone (48 for a labelled button), the rows of dropdown, select, context and command-palette menus included (32, 36, 40 and 36 px from `md` up; the palette has no tap entry on a phone, its floor applies when Cmd/Ctrl+K opens it in a window narrower than `md` and covers a later phone entry). Fields, value rows and chips take their height from the `--field-h` token (36 px, 44 px on a phone), explicit, never from the text line plus padding |
-| Radius | 8 px (badges, small controls), 12 px (buttons, fields), 16 px (every sheet), pill, circle |
+| Radius | 8 px (badges, small controls), 12 px (buttons, fields), 16 px (every sheet), pill, circle; 32 px for the task sheet alone (a recorded exception, below) |
 | Icon size | 12, 16, 20, 24 px (`lib/icons.ts`) |
 
 **The One Height Rule.** Every button has the height of the main one: 36 px, 48 px on a phone, so buttons side by side line up and are as easy to hit as the main one (owner, 2026-11-17, #424). The main button differs by colour only, and a solid green or error button is at least 96 px wide. A button is smaller only where the space is narrow, and each such button is listed with its reason in `tests/config/button-ladder.test.ts`: the alert and toast action (24 px, #377), a link inside running text, and the round icon-only buttons of the board's chrome (32 px on desktop, 44 px on a phone: the Offen header's add button, the plan arrows, centred on a card's edge in the soft primary look drawn by their own rule (#467, D2), the stack header's close button) and the card-corner menu button (a 28 px circle with a 44 px hit area), whose geometry is tied to the 32 px title line and the card corner.
 
 **The Phone Hit Area.** The 44 px floor is measured on what a finger meets, not on the drawn box: a control may be smaller if an invisible hit area brings the tappable box to 44 × 44 (a round button or a swatch: a `::after` pseudo-element; a switch: the theme's `after:-inset-x-1.5 after:-inset-y-4`, 6 px to the sides so it never reaches into the field beside it). A checkbox or a switch row is one target: the checkbox's box takes the whole row (the theme's `checkbox` slots), the row is 44 px high. A link inside a sentence is exempt (WCAG 2.5.8) and is listed with that reason in the guard; a link on a line of its own is a 44 px row (`ExternalLink standalone`). The guard walks the seeded screens at 390 px and probes each control's hit box (`tests/e2e/phone-hit-areas.spec.ts`, #592); its exception list names each exception and its reason.
 
-Sheets share one shape: card, page sheet, task sheet, dialog and menu all take 16 px. No pill-shaped container, with one exception: the app bar's pills.
+Sheets share one shape: card, page sheet, dialog and menu take 16 px. The task sheet's 32 px corners are the one recorded exception of the radius scale: the sheet grows out of its card and folds back into it, and its opening motion ends in that radius (`TaskMorphShell`, #468; user, 2026-11-20, #606). No pill-shaped container, with these exceptions: the app bar's pills, the in-card question language (the note and number fields of the in-card add flow and the segmented choice's track, #72, #434) and the phone focus bar (user, 2026-11-20, #606).
 
 ### Elevation
 
@@ -181,7 +192,7 @@ One answer per state, on every control, whoever built it.
 | Focus | Nuxt UI's halo: 3 px at 25 % of the role colour, no offset (`focus-ring`, `--focus-ring-*`); a field keeps its 1 px inner ring. Accepted trade-off (owner, 2026-11-11): below the 3:1 of WCAG 1.4.11 on the page |
 | Disabled | 50 % opacity, `not-allowed`, no hover answer. A group of disabled parts (the segments of `SegmentedChoice`) dims once, as a group, never 50 % of 50 % |
 | Loading | the disabled look plus a spinner; the control is locked |
-| Selected | a fill (chip, switch, checkbox, tab, place); never a shadow |
+| Selected | a fill (chip, switch, checkbox, tab, place); never a shadow. A ticked checkbox is the primary fill, set once in `app.config.ts`: no call site sets a colour |
 | Card | its sheet one step darker (`--task-card-hover-bg`) on hover and while pressed, on touch too; it never moves and its shadow stays (owner, 2026-11-12) |
 | Drag | the card rises out of its resting pose (2 % larger, the 2 degree tilt, the in-hand shadow, 150 ms), neighbours make room in 200 ms, the drop glides 200 ms and the card is set down in 200 ms |
 
@@ -202,9 +213,9 @@ One answer per state, on every control, whoever built it.
 
 Nuxt UI components first, themed in `app.config.ts`; a shared primitive in `components/ui/` from three call sites on; custom components for the board domain. One line per user task; how each looks, with every variant and state, is on `/ui`.
 
-- **Trigger an action:** `UButton`. Solid green for the one main action of a surface (36 px). Soft for a neutral action that stands on its own and for the main action of a row; a row of two actions may show both soft, from three on one is soft and the others are ghost (owner, 2026-11-12). Ghost for further actions inside a row, card, menu or toolbar and for an icon-only button, except the destructive one of such a pair, which is soft in the error tone so it is told apart at a glance. Link inside running text. One height, 36 px (48 on a phone), and a solid green or error button is at least 96 px wide, so "Weiter" keeps the wide rectangle (#424); no `outline`, `subtle`, `xs` or `xl`, except the one `xs` Nuxt UI sets on the actions of an alert or toast: 24 px high on desktop, 44 px on a phone, at the 14 px text step of the notice beside it (#377). Dialog footers: neutral cancel first, main action last.
+- **Trigger an action:** `UButton`. Solid green for the one main action of a surface (36 px). Soft for a neutral action that stands on its own and for the main action of a row; a row of two actions may show both soft, from three on one is soft and the others are ghost (owner, 2026-11-12). Ghost for further actions inside a row, card, menu or toolbar and for an icon-only button, except the destructive one of such a pair, which is soft in the error tone so it is told apart at a glance. Link inside running text. One height, 36 px (48 on a phone), and a solid green or error button is at least 96 px wide, so "Weiter" keeps the wide rectangle (#424); no `outline`, `subtle`, `xs` or `xl`, except the one `xs` Nuxt UI sets on the actions of an alert or toast: 24 px high on desktop, 44 px on a phone, at the 14 px text step of the notice beside it (#377). Footers of a dialog, a side sheet and a flow step: one cluster at the right edge, the neutral cancel (or Back) soft first, the main action solid last; on a phone the two share the row; a lone main button sits at the right, never full width on desktop; with three or more choices or labels that do not fit, the footer stacks full width with the main action on top and cancel last, on desktop and phone alike (#611). `footer-actions` (`assets/css/footer.css`) is that footer. The action of a toast is soft.
 - **Pick one of a few:** `ChoiceChip`, one chip shape at one height (36 px), with an icon alone where the options are symbols. Larger options with a description are the one choice card. A toggle that stays on beside others is the chip too.
-- **Edit a value in a label/value row** (task sheet): a select with a chevron when the value opens a list, text on a dotted rule when it is free input, which turns into a field with the select's fill and radius while it is edited. Both are 36 px high and share hover, focus and disabled. A value never wears a chip.
+- **Edit a value in a label/value row** (task sheet): a select with a chevron when the value opens a list, text on a dotted rule when it is free input, which turns into a field with the select's fill and radius while it is edited (the add sheet's note too: it grows with its text, #613). Both are 36 px high and share hover, focus and disabled. A value never wears a chip.
 - **Type into a field:** `UInput`, `USelect`, `UTextarea` at 36 px. Inline editing is the default for task properties; an empty value shows a muted placeholder in place.
 - **Show a list row:** `ListRow`, one density (cozy, 44 px at least), a muted tint on hover; trailing actions follow the button rule.
 - **Show a status or count:** a neutral `UBadge` in the label role, one size; priority "Hoch" is the one tinted badge on a card. A topic is muted text with its mark, never a chip.

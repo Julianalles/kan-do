@@ -84,6 +84,10 @@
         "displayName": "Headline",
         "purpose": "Section headings on a sheet and in a dialog, the title of a task in its sheet; Fraunces 500, 22 px."
       },
+      "figure": {
+        "displayName": "Key figure",
+        "purpose": "The figure that is the content of its place; Figtree 600, tabular figures: 36 px for the one figure of a stage or a large ring, 24 px for a count in a row or tile and a small ring."
+      },
       "subhead": {
         "displayName": "Subhead",
         "purpose": "Dialog titles, sub-headings, the wordmark; Fraunces 500, 18 px."
@@ -98,7 +102,7 @@
       },
       "label": {
         "displayName": "Label",
-        "purpose": "Badges, chips, counts, property labels, hints; Figtree 500, 12 px."
+        "purpose": "Badges, chips, counts, property labels, hints, group headings; Figtree 500, 12 px."
       }
     },
     "shadows": [
@@ -253,12 +257,12 @@
     "rules": [
       {
         "name": "The One Lamp Rule",
-        "body": "One solid green button per view. Marks, selected options, links and the focus ring are green without being a fill.",
+        "body": "One solid green button per view. A selected option (a chip, a switch, a checkbox, the funnel while a topic focus is on) may be a green fill and does not count; marks, links and the focus ring are green without being a fill. The action of a toast is soft, so a toast never adds a second lamp (user, 2026-11-20, #606).",
         "section": "colors"
       },
       {
         "name": "The Status Is Not Decoration Rule",
-        "body": "Green means action or done, orange attention, red destructive or failed. None of them appears for emphasis, branding or variety (the completion burst is the one recorded exception, see \"Earned celebration\"); integration brand colours do not appear at all.",
+        "body": "Green means action or done, orange attention, red destructive or failed. None of them appears for emphasis, branding or variety (the completion burst is the one recorded exception, see \"Earned celebration\"); integration brand colours do not appear at all. The confirming button of a destructive dialog (\"Trennen\") is soft red, also when nothing is lost, like every other destructive confirm (user, 2026-11-20, #606).",
         "section": "colors"
       },
       {

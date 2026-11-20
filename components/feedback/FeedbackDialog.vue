@@ -158,12 +158,11 @@ optional element, optional screenshot, automatic context line), the annotate ste
         <p ref="introRef" tabindex="-1" class="text-body text-toned outline-none" data-testid="feedback-review-intro">{{ t(introKey, { repo: FEEDBACK_REPO }) }}</p>
 
         <fieldset class="flex flex-col gap-2">
-          <legend class="mb-1 text-sm font-medium">{{ t('feedback.review.contextHeading') }}</legend>
+          <SectionHeader tag="legend" size="label" class="mb-1">{{ t('feedback.review.contextHeading') }}</SectionHeader>
           <UCheckbox
             v-if="draft.element"
             v-model="draft.include.element"
             :label="t('feedback.review.itemElement', { name: elementName })"
-            color="neutral"
           />
           <UCheckbox
             v-if="draft.element?.taskId && draft.include.element"
@@ -171,35 +170,33 @@ optional element, optional screenshot, automatic context line), the annotate ste
             :label="t('feedback.review.itemTaskTitle')"
             :description="t('feedback.review.itemTaskTitleHint')"
             class="ml-6"
-            color="neutral"
             data-testid="feedback-include-task-title"
           />
           <UCheckbox
-v-model="draft.include.environment" :label="t('feedback.review.itemEnvironment')" color="neutral"
+v-model="draft.include.environment" :label="t('feedback.review.itemEnvironment')"
             />
           <UCheckbox
-v-model="draft.include.version" :label="t('feedback.review.itemVersion')" color="neutral"
+v-model="draft.include.version" :label="t('feedback.review.itemVersion')"
             data-testid="feedback-include-version" />
           <UCheckbox
-v-if="logTail" v-model="draft.include.log" :label="t('feedback.review.itemLog')" color="neutral"
+v-if="logTail" v-model="draft.include.log" :label="t('feedback.review.itemLog')"
             data-testid="feedback-include-log" />
           <UCheckbox
             v-if="flat"
             v-model="draft.include.screenshot"
             :label="t('feedback.review.itemScreenshot')"
-            color="neutral"
             data-testid="feedback-include-screenshot"
           />
         </fieldset>
 
         <section v-if="flat && draft.include.screenshot" class="flex flex-col gap-2" data-testid="feedback-review-image">
-          <h3 class="text-sm font-medium">{{ t('feedback.screenshot.label') }}</h3>
+          <SectionHeader tag="h3" size="label" class="mb-0">{{ t('feedback.screenshot.label') }}</SectionHeader>
           <FeedbackImage :bitmap="flat.bitmap" :label="t('feedback.screenshot.previewFinal')" max-height-class="max-h-72" />
           <p class="text-body text-toned" data-testid="feedback-delivery">{{ deliveryText }}</p>
         </section>
 
         <section>
-          <h3 class="mb-1 text-sm font-medium">{{ previewHeading }}</h3>
+          <SectionHeader tag="h3" size="label" class="mb-1">{{ previewHeading }}</SectionHeader>
           <p class="mb-2 text-body text-toned">{{ draft.title.trim() }}</p>
           <!-- tabindex: a scrollable region must be reachable by keyboard -->
           <pre
@@ -283,6 +280,7 @@ v-if="logTail" v-model="draft.include.log" :label="t('feedback.review.itemLog')"
 
 <script setup lang="ts">
 import AppDialog from '~/components/ui/AppDialog.vue'
+import SectionHeader from '~/components/ui/SectionHeader.vue'
 import { ICONS } from '~/lib/icons'
 import { computed, nextTick, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'

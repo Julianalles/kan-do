@@ -13,6 +13,7 @@
 @import "./board-focus-overlay.css";
 @import "./transitions.css";
 @import "./sheet.css";
+@import "./footer.css";
 @import "./recap-stage.css";
 
 @theme static {
@@ -31,7 +32,11 @@
   --text-headline: 1.375rem; /* section headings */
   --text-headline--line-height: var(--lh-tight);
   --text-lg--line-height: var(--lh-snug); /* subhead: dialog titles, sub-headings */
-  --text-2xl--line-height: var(--lh-tight); /* not a role: the figures in the statistics rings */
+  --text-2xl--line-height: var(--lh-tight); /* not a role: only the dev pages (pages/ui.vue, error-test.vue) write text-2xl; the shipped UI is guarded (design-lock-in.test.ts) */
+  --text-figure: 1.5rem; /* key figure: a count in a row, tile or small ring (DESIGN.md "Type"); the weight 600 is a listed class (design-lock-in.test.ts) */
+  --text-figure--line-height: var(--lh-tight);
+  --text-figure-lg: 2.25rem; /* key figure: the one figure of a stage or a large ring */
+  --text-figure-lg--line-height: var(--lh-tight);
   --text-title: 0.9375rem; /* card title */
   --text-title--line-height: var(--lh-snug);
   --text-base--line-height: 1.5; /* explicit, same as Tailwind's calc default: no pixel moves */

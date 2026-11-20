@@ -13,10 +13,10 @@
 -->
 <template>
   <section v-if="groups.total > 0" :aria-labelledby="headingId" data-testid="day-close-timebox">
-    <h4 :id="headingId" class="text-sm font-medium text-highlighted">{{ t('dayClose.timebox.heading') }}</h4>
+    <SectionHeader :id="headingId" tag="h4" size="label" class="mb-0">{{ t('dayClose.timebox.heading') }}</SectionHeader>
     <ul class="mt-3 grid grid-cols-3 divide-x divide-default border-y border-default">
       <li v-for="cell in cells" :key="cell.key" class="flex min-w-0 flex-col items-center px-2 py-3 text-center" :data-testid="`day-close-timebox-${cell.key}`">
-        <span class="text-3xl font-semibold text-highlighted tabular-nums">{{ cell.count }}</span>
+        <span class="text-figure font-semibold text-highlighted tabular-nums">{{ cell.count }}</span>
         <span class="mt-1 text-xs text-toned">{{ t(`statistics.estimate.${cell.label}`) }}</span>
         <span class="mt-3 flex min-h-5 flex-wrap justify-center gap-1" aria-hidden="true">
           <span v-for="n in cell.count" :key="n" class="size-2 rounded-full" :style="{ backgroundColor: cell.color }" />
@@ -29,6 +29,7 @@
 
 <script setup lang="ts">
 import { computed, useId } from 'vue'
+import SectionHeader from '~/components/ui/SectionHeader.vue'
 import { useI18n } from 'vue-i18n'
 import { ESTIMATE_GROUPS, inkColor } from '~/lib/inkRamp'
 import type { TimeBoxGroups } from '~/utils/dayClose'

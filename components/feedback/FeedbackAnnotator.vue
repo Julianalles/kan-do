@@ -74,7 +74,6 @@ three tools (Rechteck, Pfeil, Schwärzen), undo last, clear all, and the toggle 
         :model-value="maskPrivate"
         :label="t('feedback.annotate.mask')"
         :description="t('feedback.annotate.maskHint')"
-        color="neutral"
         data-testid="annotate-mask"
         @update:model-value="(value) => setMaskPrivate(value === true)"
       />

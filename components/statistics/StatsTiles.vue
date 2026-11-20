@@ -36,7 +36,7 @@
         <StatsEstimateRing
           v-if="review.hasTimeboxes && review.estimate.n > 0"
           :estimate="review.estimate"
-          :size="isOpen(3) ? 120 : 110"
+          :size="120"
           :stacked="!isOpen(3)"
         />
       </template>
@@ -45,7 +45,7 @@
           v-if="review.split.taskCount > 0"
           :split="review.split"
           :by="by"
-          :size="isOpen(4) ? 170 : 110"
+          :size="isOpen(4) ? 170 : 120"
           :legend-count="isOpen(4) ? 0 : 3"
           :stacked="!isOpen(4)"
         />
@@ -89,7 +89,7 @@
       </template>
 
       <template #detail>
-        <h3 class="m-0 text-base font-medium text-highlighted">{{ t('statistics.rhythm.heading') }}</h3>
+        <SectionHeader tag="h3" size="label" class="mb-0">{{ t('statistics.rhythm.heading') }}</SectionHeader>
         <StatsRhythmGrid class="mt-4" :rhythm="rhythm" :weekday-labels="weekdayShort" :longest-name="longestName" />
         <dl class="mt-6 divide-y divide-default border-y border-default text-sm" data-testid="stats-rhythm-rows">
           <div v-if="rhythm.start" class="flex min-h-11 items-center justify-between gap-4 py-2">
@@ -112,6 +112,7 @@
 
 <script setup lang="ts">
 import { computed, nextTick, ref } from 'vue'
+import SectionHeader from '~/components/ui/SectionHeader.vue'
 import { useIsDesktop } from '~/composables/useIsDesktop'
 import { useI18n } from 'vue-i18n'
 import { useLocaleFormat } from '~/composables/useLocaleFormat'

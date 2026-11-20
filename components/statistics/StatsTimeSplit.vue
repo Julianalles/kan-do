@@ -13,7 +13,8 @@
 <template>
   <div v-if="mode === 'chart'" class="flex items-center gap-5" :class="stacked ? 'md:flex-col md:items-start' : ''">
     <StatsRing :segments="segments" :label="ringLabel" :size="size" :thickness="14">
-      <span class="leading-(--lh-tight) font-semibold text-highlighted tabular-nums" :class="size >= 150 ? 'text-2xl' : 'text-base'">{{ formatDuration(seconds, 'clockShort') }}</span>
+      <span class="font-semibold text-highlighted tabular-nums" :class="size >= 150 ? 'text-figure-lg' : 'text-figure'">{{ time.value }}</span>
+      <span class="text-xs text-toned">{{ time.unit }}</span>
     </StatsRing>
     <ul v-if="legendRows.length" class="min-w-0 space-y-1.5 text-sm">
       <li v-for="(row, index) in legendRows" :key="row.key" class="flex items-center gap-2 text-default">
@@ -59,12 +60,13 @@ const props = withDefaults(defineProps<{
 }>(), { mode: 'chart', size: 110, legendCount: 3, stacked: false })
 
 const { t } = useI18n()
-const { formatDuration, formatPercent } = useLocaleFormat()
+const { formatDuration, formatDurationParts, formatPercent } = useLocaleFormat()
 
 const slices = computed<Slice[]>(() => (props.by === 'topic' ? props.split.byTopic : props.split.byActivity))
 const folded = computed(() => foldSlices(slices.value))
 const legendRows = computed(() => folded.value.slice(0, props.legendCount))
-const seconds = computed(() => props.split.seconds)
+/** The figure and its unit apart, like the estimate ring's number and caption: a 24 px "78:33 h" is wider than the small ring's centre. */
+const time = computed(() => formatDurationParts(props.split.seconds, 'clockShort'))
 
 /** The rest slice always takes the lightest step; the others go darkest first. */
 const stepOf = (row: Slice, index: number): number => (row.key === OTHER_SLICE ? INK_STEPS.length - 1 : index)

@@ -1,0 +1,36 @@
+/**
+ * Footer of a dialog, a side sheet and a flow step (#611, DESIGN.md "Trigger an action"): one cluster at the right
+ * edge, the neutral cancel (or Back) first, the main action last. On a phone the buttons share the row equally and a
+ * lone button is full width; `footer-actions--stacked` (three or more choices, or labels that do not fit) is a
+ * full-width column on every width. In the stacked case the main action comes FIRST in the DOM and cancel last, so the
+ * keyboard order follows the visual order. Imported by main.css; components layer.
+ */
+
+@layer components {
+  .footer-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+
+  @media (--phone) {
+    /* An element anchored to the start edge (`mr-auto`: a link, a "discard draft" button) keeps its own width. */
+    .footer-actions > :not(.mr-auto) {
+      flex: 1 1 0;
+      min-width: 0;
+      justify-content: center;
+    }
+  }
+
+  .footer-actions--stacked {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .footer-actions--stacked > * {
+    flex: none;
+    width: 100%;
+    justify-content: center;
+  }
+}

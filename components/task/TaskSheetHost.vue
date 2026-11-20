@@ -9,7 +9,7 @@
 - Open while a nested route is active and the sheet is not dismissed; every close goes through `useTaskSheet` (the sheet animates out first, then the route returns to the host page)
 - Origin: the detail route's task id, so the desktop sheet grows from that task's card (TaskMorphShell, #468)
 - Title: the add route's title (visible), else the task's title (screen-reader only on the detail route, where the body holds the editable title)
-- Render the footer actions a route registered through `useModalFooter` (the add form's secondary, tertiary and primary buttons and its `lead` line)
+- Render the footer actions a route registered through `useModalFooter` (the add form's secondary, tertiary and primary buttons as one cluster at the right edge, cancel first, and its `lead` line, #611)
 - Re-arm the sheet when the route changes (`resetTaskSheet`)
 -->
 
@@ -29,49 +29,44 @@
       <div class="flex w-full flex-col gap-3">
         <!-- Quiet line above the button row, registered by the route (the add form's "Speichern in", #321) -->
         <component :is="modalFooter.footerConfig.value.lead" v-if="modalFooter.footerConfig.value.lead" />
-        <div class="flex w-full items-center justify-between">
-          <!-- Secondary actions (left-aligned, e.g., cancel) -->
-          <div class="flex items-center gap-2">
-            <UButton
-              v-for="action in modalFooter.footerConfig.value.secondary"
-              :key="action.key"
-              :color="action.color ?? 'neutral'"
-              :variant="action.variant ?? 'soft'"
-              :icon="action.icon"
-              :loading="action.loading"
-              :disabled="action.disabled"
-              @click="action.onClick"
-            >
-              {{ action.label }}
-            </UButton>
-          </div>
-          <!-- Tertiary + Primary actions (right-aligned) -->
-          <div class="flex items-center gap-2">
-            <UButton
-              v-for="action in modalFooter.footerConfig.value.tertiary"
-              :key="action.key"
-              :color="action.color ?? 'error'"
-              :variant="action.variant ?? 'soft'"
-              :icon="action.icon"
-              :loading="action.loading"
-              :disabled="action.disabled"
-              @click="action.onClick"
-            >
-              {{ action.label }}
-            </UButton>
-            <UButton
-              v-for="action in modalFooter.footerConfig.value.primary"
-              :key="action.key"
-              :color="action.color ?? 'primary'"
-              :variant="action.variant ?? 'solid'"
-              :icon="action.icon"
-              :loading="action.loading"
-              :disabled="action.disabled"
-              @click="action.onClick"
-            >
-              {{ action.label }}
-            </UButton>
-          </div>
+        <!-- One cluster at the right edge, cancel first and the main action last; on a phone the buttons share the row (#611, DESIGN.md "Trigger an action") -->
+        <div class="footer-actions w-full">
+          <UButton
+            v-for="action in modalFooter.footerConfig.value.secondary"
+            :key="action.key"
+            :color="action.color ?? 'neutral'"
+            :variant="action.variant ?? 'soft'"
+            :icon="action.icon"
+            :loading="action.loading"
+            :disabled="action.disabled"
+            @click="action.onClick"
+          >
+            {{ action.label }}
+          </UButton>
+          <UButton
+            v-for="action in modalFooter.footerConfig.value.tertiary"
+            :key="action.key"
+            :color="action.color ?? 'error'"
+            :variant="action.variant ?? 'soft'"
+            :icon="action.icon"
+            :loading="action.loading"
+            :disabled="action.disabled"
+            @click="action.onClick"
+          >
+            {{ action.label }}
+          </UButton>
+          <UButton
+            v-for="action in modalFooter.footerConfig.value.primary"
+            :key="action.key"
+            :color="action.color ?? 'primary'"
+            :variant="action.variant ?? 'solid'"
+            :icon="action.icon"
+            :loading="action.loading"
+            :disabled="action.disabled"
+            @click="action.onClick"
+          >
+            {{ action.label }}
+          </UButton>
         </div>
       </div>
     </template>
