@@ -1174,6 +1174,11 @@ for (const { size, viewport } of CORE_VIEWPORTS) {
       }
       await expect(proceed).toBeEnabled()
       await page.mouse.move(0, 0)
+      // The welcome photo is wider than `main` (overflow-hidden), so a focus move can scroll `main` sideways about 1 run in 8 (#626): never record from a scrolled page
+      await page.evaluate(() => {
+        window.scrollTo(0, 0)
+        document.querySelectorAll('main').forEach((el) => { el.scrollLeft = 0 })
+      })
       await settle(page)
       await expect(page).toHaveScreenshot(`notion-wizard-mapping-${size}.png`, { animations: 'disabled' })
     })

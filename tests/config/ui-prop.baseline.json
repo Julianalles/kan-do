@@ -79,10 +79,6 @@
     "count": 3,
     "reason": "moves into the app.config.ts theme or a token with its category slice (epic #58 D1)"
   },
-  "pages/settings/index.vue": {
-    "count": 1,
-    "reason": "moves into the app.config.ts theme or a token with its category slice (epic #58 D1)"
-  },
   "pages/settings/notion.vue": {
     "count": 1,
     "reason": "moves into the app.config.ts theme or a token with its category slice (epic #58 D1)"

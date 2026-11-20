@@ -133,6 +133,8 @@ Fraunces 500 (tracking -0.02em) is the display face, Figtree the face for everyt
 
 **The One Height Rule.** Every button has the height of the main one: 36 px, 48 px on a phone, so buttons side by side line up and are as easy to hit as the main one (owner, 2026-11-17, #424). The main button differs by colour only, and a solid green or error button is at least 96 px wide. A button is smaller only where the space is narrow, and each such button is listed with its reason in `tests/config/button-ladder.test.ts`: the alert and toast action (24 px, #377), a link inside running text, and the round icon-only buttons of the board's chrome (32 px on desktop, 44 px on a phone: the Offen header's add button, the plan arrows, centred on a card's edge in the soft primary look drawn by their own rule (#467, D2), the stack header's close button) and the card-corner menu button (a 28 px circle with a 44 px hit area), whose geometry is tied to the 32 px title line and the card corner.
 
+**The Phone Hit Area.** The 44 px floor is measured on what a finger meets, not on the drawn box: a control may be smaller if an invisible hit area brings the tappable box to 44 × 44 (a round button or a swatch: a `::after` pseudo-element; a switch: the theme's `after:-inset-x-1.5 after:-inset-y-4`, 6 px to the sides so it never reaches into the field beside it). A checkbox or a switch row is one target: the checkbox's box takes the whole row (the theme's `checkbox` slots), the row is 44 px high. A link inside a sentence is exempt (WCAG 2.5.8) and is listed with that reason in the guard; a link on a line of its own is a 44 px row (`ExternalLink standalone`). The guard walks the seeded screens at 390 px and probes each control's hit box (`tests/e2e/phone-hit-areas.spec.ts`, #592); its exception list names each exception and its reason.
+
 Sheets share one shape: card, page sheet, task sheet, dialog and menu all take 16 px. No pill-shaped container, with one exception: the app bar's pills.
 
 ### Elevation
@@ -176,7 +178,7 @@ One answer per state, on every control, whoever built it.
 | Hover | the fill one step darker (a ghost control gains the fill); a text control darkens its text or rule |
 | Press | the control gives 3 % (`scale: 0.97`); a field holds still, a select's trigger included |
 | Focus | Nuxt UI's halo: 3 px at 25 % of the role colour, no offset (`focus-ring`, `--focus-ring-*`); a field keeps its 1 px inner ring. Accepted trade-off (owner, 2026-11-11): below the 3:1 of WCAG 1.4.11 on the page |
-| Disabled | 50 % opacity, `not-allowed`, no hover answer |
+| Disabled | 50 % opacity, `not-allowed`, no hover answer. A group of disabled parts (the segments of `SegmentedChoice`) dims once, as a group, never 50 % of 50 % |
 | Loading | the disabled look plus a spinner; the control is locked |
 | Selected | a fill (chip, switch, checkbox, tab, place); never a shadow |
 | Card | its sheet one step darker (`--task-card-hover-bg`) on hover and while pressed, on touch too; it never moves and its shadow stays (owner, 2026-11-12) |
@@ -252,6 +254,8 @@ What a check already guarantees is not repeated above. `npm run verify` runs the
 | No bare `UModal`, no hand-rolled tabs, no uppercase | `tests/config/design-patterns.test.ts` |
 | Icons: mapped meanings, bundled collection only | `tests/config/icon-map.test.ts`, `icons-bundled.test.ts`, `nuxt-ui-icons.test.ts` |
 | No new raw `<button>`, no visual identity in a call-site `ui` prop | `tests/config/ratchets.test.ts` |
+| Every pressable on the board, the task sheet, Statistik, the topic editor, the in-card add flow and `/ui` shows the hand and changes under the pointer (a selected one excepted) | `tests/e2e/hover-answer.spec.ts` (#592) |
+| Every visible control on the seeded screens has a 44 × 44 hit area at 390 px, a named exception list | `tests/e2e/phone-hit-areas.spec.ts` (#592) |
 | A Pattern line for every new or changed UI element | `tests/config/pattern-check.test.ts`, `.claude/rules/ui-patterns.md` |
 | The rendered look: computed-style fingerprint of `/ui`, pixel baselines, Impeccable scan | `tests/e2e/` (`visual-regression`, `design-detect`, the `/ui` specs) |
 | Line heights from the size tokens (no `leading-*`, no `text-<size>/<line height>`, no hand-written line height), weight 600 only in the listed files (key figures, running-text `<strong>`, the picked or current value; a ratchet), the icon size scale, no shadow on a control | `tests/config/design-lock-in.test.ts` |

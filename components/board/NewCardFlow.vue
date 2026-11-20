@@ -1196,11 +1196,24 @@ onBeforeUnmount(() => {
     font-size: var(--text-base);
   }
 
-  /* 32 px (above the 24 px target floor): the head ends 12 px above the answer row of a 128 px card */
+  /* 32 px (above the 24 px target floor): the head ends 12 px above the answer row of a 128 px card. The hit area is
+     44 px: an invisible 6 px ring around the circle (DESIGN.md "Space, size and shape", #592) */
   .ncf__nav {
+    position: relative;
     height: 2rem;
     min-height: 2rem;
     min-width: 2rem;
+  }
+
+  .ncf__nav::after {
+    content: '';
+    position: absolute;
+    inset: -0.375rem;
+  }
+
+  /* The dots icon alone is as wide as the answers are tall */
+  .ncf__row--grid .ncf__pill--more {
+    min-width: var(--ncf-control-h);
   }
 }
 

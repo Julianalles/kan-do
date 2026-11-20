@@ -180,6 +180,9 @@ onUnmounted(() => {
 
 <style>
 .titlebar {
+  /* The strip is the desktop window's grab area only (below). Elsewhere it is an empty 40 px layer over the top of the
+     page, which took the top of a control there (the back link at 24 px) out of reach of a tap (#592) */
+  pointer-events: none;
   /* Full width, minus the scrollbar an overlay lock removes (#580, assets/css/utilities.css) */
   width: calc(100% - var(--scrollbar-width, 0px));
 }
@@ -190,6 +193,7 @@ onUnmounted(() => {
    (z-40) so the pills stay clickable, also on routes without the bar (welcome, whose notice therefore starts below the row). Full-screen layers cover it (overlay scrims, custom layers with `data-window-drag-layer`):
    `plugins/desktop-shell.client.ts` starts the drag from a press in the row (lib/windowDrag.ts). */
 html[data-shell="desktop"] .titlebar {
+  pointer-events: auto;
   position: fixed;
   top: 0;
   left: 0;

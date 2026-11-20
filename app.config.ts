@@ -233,7 +233,12 @@ export default defineAppConfig({
     // rows 32 px (`min-h-8`), at least 44 px below `md` and centred (the phone floor, #342). The list holds about 5 rows, then scrolls.
     inputMenu: {
       slots: {
-        base: 'h-(--field-h) disabled:cursor-not-allowed disabled:opacity-50',
+        // `max-md:pe-11`: the text stops before the 44 px chevron (the `lg` field's `pe-10` is 40 px)
+        base: 'h-(--field-h) max-md:pe-11 disabled:cursor-not-allowed disabled:opacity-50',
+        // The chevron button at the end is at least 44 px wide on a phone (it is `--field-h` high), its icon centred in it (#592)
+        trailing: 'max-md:min-w-11 max-md:justify-center',
+        // The chevron answers the pointer: its ink darkens (DESIGN.md "States", Hover: a text control darkens its text; #592)
+        trailingIcon: 'group-hover:text-default',
         // About 5 rows, then it scrolls (`--combo-list-room`, assets/css/main.css; NewCardFlow lowers it above the on-screen keyboard)
         content: 'z-(--z-popover) max-h-(--combo-list-room) rounded-lg shadow-(--shadow-overlay)',
         // The highlighted row (arrows, the first match while typing) takes the paper tone of a menu row's hover: Nuxt UI's `bg-elevated` is white here, as white as the list (DESIGN.md "Fill on a sheet", like `dropdownMenu` and `contextMenu`)
@@ -293,7 +298,8 @@ export default defineAppConfig({
         ]
       },
       compoundVariants: [
-        { size: 'xl', class: { base: 'h-auto' } }
+        // The task sheet's title keeps its own taller line (`h-auto`), never below the field height: on a phone that is the 44 px floor (#592)
+        { size: 'xl', class: { base: 'h-auto min-h-(--field-h)' } }
       ],
       defaultVariants: {
         size: 'lg'
@@ -539,11 +545,20 @@ export default defineAppConfig({
         ...badgeRoleCompounds
       ]
     },
+    // Phone: the whole row of a checkbox is the target (#592). The box is 16 px, so its row is 44 px high and an invisible layer
+    // over the row (the box's `::after`, positioned against the row) takes the tap, label and gap included.
+    checkbox: {
+      slots: {
+        root: 'max-md:min-h-11 max-md:items-center',
+        base: 'max-md:after:absolute max-md:after:inset-0'
+      }
+    },
     // Off state of a switch (#683): the stock soft-grey track (neutral-200) is 1.1:1 on the page wash, under the 3:1 of WCAG 1.4.11.
     // An outlined white track with a muted-ink thumb (--ui-text-muted, 5.5:1 on the page wash) reads as off; on stays the filled primary track.
     switch: {
       slots: {
-        base: 'data-[state=unchecked]:bg-default data-[state=unchecked]:border-(--ui-text-muted)',
+        // On a phone the 32.8 x 16.8 track gets an invisible 44 px hit area (6 px to the sides, inside the 12 px gap a field leaves; 16 px above and below): every switch, no call site repeats it (#592)
+        base: 'relative max-md:after:absolute max-md:after:-inset-x-1.5 max-md:after:-inset-y-4 data-[state=unchecked]:bg-default data-[state=unchecked]:border-(--ui-text-muted)',
         thumb: 'shadow-none data-[state=unchecked]:bg-(--ui-text-muted)'
       }
     },
