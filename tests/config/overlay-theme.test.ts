@@ -89,7 +89,7 @@ describe('command palette rows keep the phone floor (#345)', () => {
 describe('the app bar problem dot takes the 700 step (#599, WCAG 1.4.11)', () => {
   it('the chip theme fills with the same role steps as the solid badge, not the 500 step', () => {
     const src = readFileSync(join(root, 'app.config.ts'), 'utf8')
-    expect(src).toMatch(/chip: \{\s*variants: \{ color: ROLE_FILL \}/)
+    expect(src).toMatch(/chip: \{\s*variants: \{ color: \{ \.\.\.ROLE_FILL, error: 'bg-error-700' \} \}/)
     expect(src).toMatch(/const ROLE_FILL = \{[^}]*warning: 'bg-warning-700'/)
   })
 })
