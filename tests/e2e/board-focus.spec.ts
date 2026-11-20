@@ -193,6 +193,19 @@ test.describe('topic focus placement (#608)', () => {
     await expect.poll(async () => (await pill.boundingBox())!.y).toBeLessThan(top - 100)
   })
 
+  test('phone: the funnel on a scrolled page brings the chip row into view; a page change leaves no bar on the other pages exposed', async ({ context, page }) => {
+    await seedLocalBoard(context, [...TASKS.filter(t => t.id !== 'run'), ...Array.from({ length: 14 }, (_, i) => task({ id: `f${i}`, title: `Füller ${i}`, status: 0, topic: 'Baustelle' }))], {}, undefined, { once: true })
+    await page.setViewportSize({ width: 390, height: 780 })
+    await page.goto('/tasks')
+    await expect(card(page, 'a1')).toBeVisible()
+    await page.locator('#column-open').evaluate(el => el.scrollBy(0, 400))
+    await trigger(page).click()
+    await expect.poll(async () => page.locator('#column-open').evaluate(el => el.scrollTop)).toBe(0)
+    await expect(page.getByTestId('focus-chips')).toBeInViewport()
+    // One exposed bar only: the other pages' bars carry no test id
+    await expect(page.getByTestId('focus-bar')).toHaveCount(1)
+  })
+
   test('day close hides the funnel and brings it back; a chip row left open is closed', async ({ context, page }) => {
     await seedLocalBoard(context, TASKS, {}, undefined, { once: true })
     for (const size of [{ width: 1280, height: 800 }, { width: 390, height: 780 }]) {

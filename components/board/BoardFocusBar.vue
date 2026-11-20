@@ -7,7 +7,7 @@
 @avoid Not a filter toolbar: one property (topic), one row, shown only on demand. The pill is a status, not a control bar; its ✕ is the only control.
 @responsibility
 - Desktop: a centred row at the top of the board in the flow; its height grows 0 → full over `--duration-base` (200 ms, rule 82: the columns move with it, no one-frame jump; reduced motion: instant) and back when the row or pill goes
-- Phone (#608, rule 85: only the app bar is fixed over a list): the bar is the first item of the active page's scroll container (`phone`), so it scrolls away with the list; nothing floats over the cards. It is mounted per page, so a row or pill that is open when the page changes appears on the new page without growing again
+- Phone (#608, rule 85: only the app bar is fixed over a list): the bar is the first item of the active page's scroll container (`phone`), so it scrolls away with the list; nothing floats over the cards. Every page carries a bar (only the `active` one is exposed, the rest are inert and aria-hidden), so a page change mounts nothing mid-slide and the lists never jump; a bar opening on a scrolled page scrolls the list back to the top
 - The chip row scrolls sideways when the topics do not fit; a chip is a ChoiceChip, the topic shortened in the middle (MiddleEllipsis); Esc closes it (focus stays on the funnel, BoardFocusTrigger)
 - The pill is a polite status region, so the hidden number is read out when it changes; ✕ is named "Thema beenden"
 - Task text (the topic name) is private: `data-private`
@@ -15,32 +15,35 @@
 <template>
   <div
     v-if="mounted"
-    id="board-focus-bar"
+    :id="active ? 'board-focus-bar' : undefined"
+    ref="rootEl"
     class="board-focus-bar"
     :class="{ 'is-open': grown, 'is-phone': phone }"
-    data-testid="focus-bar"
+    :data-testid="active ? 'focus-bar' : undefined"
+    :inert="active ? undefined : true"
+    :aria-hidden="active ? undefined : 'true'"
   ><div class="board-focus-bar__inner"><div class="board-focus-bar__body">
     <div
       v-if="kind === 'row'"
       class="board-focus-bar__row"
       role="group"
       :aria-label="t('board.focus.chips')"
-      data-testid="focus-chips"
+      :data-testid="active ? 'focus-chips' : undefined"
       @keydown.esc="closeChips"
     >
       <ChoiceChip
         v-for="choice in shownChoices"
         :key="choice.topic"
         :aria-label="t('board.focus.chip', { topic: choice.topic, n: choice.count }, choice.count)"
-        data-testid="focus-chip"
+        :data-testid="active ? 'focus-chip' : undefined"
         @click="setFocus(choice.topic)"
       >
         <MiddleEllipsis :text="choice.topic" data-private />
         <span class="board-focus-bar__count" aria-hidden="true">{{ choice.count }}</span>
       </ChoiceChip>
     </div>
-    <div v-else-if="kind === 'pill'" class="board-focus-bar__pill" data-testid="focus-pill">
-      <p class="board-focus-bar__text" role="status" aria-live="polite" data-testid="focus-pill-text">
+    <div v-else-if="kind === 'pill'" class="board-focus-bar__pill" :data-testid="active ? 'focus-pill' : undefined">
+      <p class="board-focus-bar__text" role="status" aria-live="polite" :data-testid="active ? 'focus-pill-text' : undefined">
         {{ t('board.focus.pillLead') }} <span class="board-focus-bar__topic" data-private>{{ shownTopic }}</span>, {{ t('board.focus.hidden', { n: shownHidden }) }}
       </p>
       <UTooltip :text="t('board.focus.end')" :disabled="isPhone">
@@ -52,7 +55,7 @@
           data-round="sm"
           data-fill="none"
           :aria-label="t('board.focus.end')"
-          data-testid="focus-end"
+          :data-testid="active ? 'focus-end' : undefined"
           @click="clearFocus"
         />
       </UTooltip>
@@ -73,8 +76,12 @@ defineOptions({ name: 'BoardFocusBar' })
 /** Mirrors `--duration-base` (DESIGN.md "Motion") */
 const BAR_MS = 200
 
-/** Phone: rendered inside the page's scroll container, in the flow (#608) */
-defineProps<{ phone?: boolean }>()
+/**
+ * Phone: rendered inside the page's scroll container, in the flow (#608). Every page carries a bar so a page change mounts
+ * nothing mid-slide (rule 82); only the `active` page's is exposed (ids, test ids, a11y tree), the others are inert and hidden.
+ */
+const props = withDefaults(defineProps<{ phone?: boolean, active?: boolean }>(), { active: true })
+const rootEl = ref<HTMLElement | null>(null)
 
 const { t } = useI18n()
 const isPhone = useIsPhone()
@@ -110,14 +117,29 @@ watch(wanted, async (open) => {
     mounted.value = true
     await nextTick()
     // Force a frame at height 0 before growing: the browser needs the closed style once
-    if (import.meta.client) void document.getElementById('board-focus-bar')?.offsetHeight
+    if (import.meta.client) void rootEl.value?.offsetHeight
     grown.value = true
+    revealOnPhone()
     return
   }
   grown.value = false
   const still = import.meta.client && window.matchMedia('(prefers-reduced-motion: reduce)').matches
   hideTimer = setTimeout(() => { mounted.value = false }, still ? 0 : BAR_MS)
 })
+/** Phone: a bar that opens above the fold of a scrolled page is brought into view, else the tap seems to do nothing (#608) */
+function revealOnPhone() {
+  if (!props.phone || !props.active || !import.meta.client) return
+  let node = rootEl.value?.parentElement ?? null
+  while (node && node !== document.body) {
+    const oy = getComputedStyle(node).overflowY
+    if ((oy === 'auto' || oy === 'scroll') && node.scrollTop > 0) {
+      const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      node.scrollTo({ top: 0, behavior: still ? 'auto' : 'smooth' })
+      return
+    }
+    node = node.parentElement
+  }
+}
 onBeforeUnmount(() => clearTimeout(hideTimer))
 </script>
 
