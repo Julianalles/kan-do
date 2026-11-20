@@ -3,7 +3,7 @@ import { MOTION } from '~/lib/motionTokens'
 
 /**
  * The glide of the board (#610, #642): when a state change re-lays the board (turning "Karten stapeln" or the group-by
- * property on or off, picking or ending a topic focus), every card moves from its old place to its new one over
+ * property on or off, picking or ending a topic focus, a card that changes column through `moveOrSwapToStatus`: the sheet, the context menu, the palette, #661), every card moves from its old place to its new one over
  * `MOTION.slowMs` instead of jumping in one frame (DESIGN.md "The One Piece Rule"). Purely visual: the change is
  * instant and final, nothing waits for the glide.
  *

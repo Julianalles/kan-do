@@ -33,6 +33,7 @@
     <board-column-header
       ref="headerRef"
       :title="computedHeadline"
+      :title-suffix="headlineSuffix"
       :title-fade-key="taskStatus === TaskStatus.Open ? place : undefined"
       :marker="headerMarker"
       :status="taskStatus"
@@ -508,16 +509,16 @@ const handleFocusIn = () => {};
 const handleFocusOut = () => {};
 
 /**
- * Computes the displayed headline, adding a question mark for empty Waiting columns.
+ * Computes the displayed headline (the empty-Wartet question mark is `headlineSuffix`).
  */
 const computeHeadline = (): string => {
-  const base = props.headline ?? defaultHeadline();
-  if (props.taskStatus === TaskStatus.Waiting && props.tasks.length < 1 && !hasGaps.value) {
-    return base + t("board.emptyWaitingSuffix");
-  } else {
-    return base;
-  }
+  return props.headline ?? defaultHeadline();
 };
+
+/** The "?" of an empty Wartet: the header hangs it out of the flow so the title box keeps its width (#660) */
+const headlineSuffix = computed(() =>
+  props.taskStatus === TaskStatus.Waiting && props.tasks.length < 1 && !hasGaps.value ? t("board.emptyWaitingSuffix") : undefined,
+);
 
 /**
  * Localized column title for the current status.

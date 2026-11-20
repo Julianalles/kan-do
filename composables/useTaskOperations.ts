@@ -12,6 +12,7 @@ import { useTaskSwap } from '~/composables/useTaskSwap';
 import { stopTaskTimer } from '~/composables/useTaskTimerDriver';
 import { withResumeEntry } from '~/lib/taskTimers';
 import { checkWipMove, type WipVerdict } from '~/utils/wipGuard';
+import { useBoardGlide } from '~/composables/useBoardGlide';
 import { useToast } from '#imports';
 
 /**
@@ -27,6 +28,7 @@ export const useTaskOperations = () => {
   const { deleteTaskWithUndo } = useTaskDeletion();
   const { swapIntoProgress, swapPartnerOf } = useTaskSwap();
   const toast = useToast();
+  const { around } = useBoardGlide();
 
   /**
    * Stops the running timer of a task and flushes its queued time once. The timer itself is started and
@@ -152,8 +154,14 @@ export const useTaskOperations = () => {
    * Returns false when nothing moved.
    */
   const moveOrSwapToStatus = async (taskId: string, newStatus: TaskStatus): Promise<boolean> => {
-    if (newStatus === TaskStatus.Progress && swapPartnerOf(taskId) !== null && swapIntoProgress(taskId)) return true;
-    return moveTaskToStatus(taskId, newStatus);
+    // The card changes column in the same frame the store changes: the board glides to its new layout (#661),
+    // also behind an open sheet. Both moves write the store before their first await, so `around` sees the change.
+    let moved: Promise<boolean> = Promise.resolve(false);
+    await around(() => {
+      if (newStatus === TaskStatus.Progress && swapPartnerOf(taskId) !== null && swapIntoProgress(taskId)) moved = Promise.resolve(true);
+      else moved = moveTaskToStatus(taskId, newStatus);
+    });
+    return moved;
   };
 
   /**
