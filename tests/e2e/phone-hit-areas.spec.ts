@@ -107,6 +107,8 @@ const SCREENS: Array<{ name: string, seed?: (context: BrowserContext) => Promise
     name: 'Einstellungen, each tab',
     run: async (page) => {
       await openSettings(page)
+      // The board of the page left behind is still mounted while it fades out under the settings page (#646): measure once it is gone
+      await expect(page.locator('.board')).toHaveCount(0)
       for (const tab of ['board', 'sources', 'manage'] as const) {
         await openSettings(page, tab)
         const small = await undersizedControls(page, { exceptions: EXCEPTIONS })

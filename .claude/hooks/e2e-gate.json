@@ -1193,9 +1193,14 @@
         "components/task/TaskDetailMetadata.vue",
         "pages/statistics.vue",
         "pages/settings/**",
+        "pages/tasks.vue",
         "components/nav/**",
         "components/notion/**",
-        "assets/css/app-nav.css"
+        "components/board/Board.vue",
+        "components/board/BoardColumn.vue",
+        "assets/css/app-nav.css",
+        "assets/css/transitions.css",
+        "assets/css/sheet.css"
       ],
       "specs": [
         "hover-answer",
