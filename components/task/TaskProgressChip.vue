@@ -288,9 +288,7 @@ watch(() => props.isNow, (now) => {
     background-color var(--duration-slow) var(--ease-standard);
 }
 .chip--boxless { width: auto; min-width: 100%; }
-.chip-slot.chip-slot--still :is(.chip, .chip__icon, .chip__spent) { transition: none; } /* #602: no state change, no geometry motion */
-.chip-slot.chip-slot--still .chip { transition: background-color var(--duration-slow) var(--ease-standard); } /* the tone change still fades */
-.chip-slot.chip-slot--still .chip__icon { transition: color var(--duration-slow); }
+.chip-slot.chip-slot--still :is(.chip, .chip__icon, .chip__spent) { transition: color var(--duration-slow), background-color var(--duration-slow) var(--ease-standard); } /* #602: no state change, no geometry motion; the tone change still fades */
 /* Colour coding in Jetzt only */
 .chip--primary { --chip-fill: var(--ui-color-primary-200); --chip-accent: var(--ui-color-primary-600); }
 .chip--warning { --chip-fill: var(--ui-color-warning-200); --chip-accent: var(--ui-color-warning-600); }
