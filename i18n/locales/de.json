@@ -1364,12 +1364,15 @@
         "confirm": "Zum Board",
         "legend": "Du kannst eine oder mehrere verbinden",
         "notion": "Notion",
-        "todoist": "Todoist (bald verfügbar)",
+        "todoist": "Todoist",
         "confirmNotion": "Mit Notion einrichten",
         "reminders": "Erinnerungen",
-        "remindersWebOnly": "Erinnerungen (nur in der Mac-App)",
+        "remindersWebOnly": "Nur in der Mac-App",
         "confirmReminders": "Mit Erinnerungen einrichten",
-        "confirmRemindersNotion": "Weiter mit Erinnerungen und Notion"
+        "confirmRemindersNotion": "Weiter mit Erinnerungen und Notion",
+        "notionHint": "Aufgaben aus einer Datenbank",
+        "remindersHint": "Aufgaben aus deinen Listen",
+        "todoistSoon": "Bald verfügbar"
       },
       "samples": {
         "label": "Mit Beispielaufgaben starten",

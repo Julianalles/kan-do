@@ -1364,12 +1364,15 @@
         "confirm": "Go to the board",
         "legend": "You can connect one or more",
         "notion": "Notion",
-        "todoist": "Todoist (coming soon)",
+        "todoist": "Todoist",
         "confirmNotion": "Set up Notion",
         "reminders": "Reminders",
-        "remindersWebOnly": "Reminders (Mac app only)",
+        "remindersWebOnly": "Mac app only",
         "confirmReminders": "Set up with Reminders",
-        "confirmRemindersNotion": "Continue with Reminders and Notion"
+        "confirmRemindersNotion": "Continue with Reminders and Notion",
+        "notionHint": "Tasks from a database",
+        "remindersHint": "Tasks from your lists",
+        "todoistSoon": "Coming soon"
       },
       "samples": {
         "label": "Start with sample tasks",
