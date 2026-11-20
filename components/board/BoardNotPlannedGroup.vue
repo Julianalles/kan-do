@@ -8,7 +8,7 @@
 @responsibility
 - Width: the pair of columns is as wide as two cards plus one `--task-list-gap`, centred in the side (a phone: one column, the page's width). Heading and cards share the left edge of the pair
 - Panel (#469, D1): a flat `--fill-on-canvas` surface with the card radius plus 4 px, no border and no shadow so it never reads as a card, reaching 0.75rem beyond the cards (a phone: 0.25rem inset from the page). The heading row is the 40 px row every column has under its title, so the first card sits level with Offen's first card
-- Heading: SectionHeader `sub` (h3) with a decorative icon, the title (it may wrap to two lines on a phone, #654) and the count as a UBadge; a labelled group: the panel is `role="group"` named by its heading, so assistive tech reads heading and count
+- Heading: SectionHeader `sub` (h3) with a decorative icon, the title (it may wrap to two lines on a phone, #654: 8 px above and 6 px below keep the first line on the panel, one line still fits the 40 px row) and the count as a UBadge; a labelled group: the panel is `role="group"` named by its heading, so assistive tech reads heading and count
 - Accepted trade-off (#469): cards inside a surface can read as "nested cards" (user's choice of panels, D1); the surface stays flat (no border, no shadow) so it never competes with a card, and the rendered Impeccable scan (`design-detect.spec.ts`, surface "alle with yesterday's panel") reports nothing for it
 -->
 <template>
@@ -125,10 +125,7 @@ defineProps<{
   }
 
   .nps-group__heading {
-    padding-inline: max(0.75rem, calc((100% - var(--task-card-max-width)) / 2));
-    /* "Zuletzt geplant und nicht erledigt" wraps to two lines here (#654): the room above keeps the first line on the panel,
-       and one line still fits the 40 px row, so nothing moves for a short title */
-    padding-block: 0.5rem 0.375rem;
+    padding: 0.5rem max(0.75rem, calc((100% - var(--task-card-max-width)) / 2)) 0.375rem;
   }
 }
 </style>
