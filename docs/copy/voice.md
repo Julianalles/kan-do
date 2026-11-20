@@ -1,6 +1,6 @@
 # Voice and wording
 
-The wording rules of the Kan-Do UI. The registry `docs/copy/terms.json` is the vocabulary (one preferred German and English form per concept); the `copy-writer` skill applies both, and the live copy editor hands the list under "Rules" (only that list) to its translation agent (`server/copy-editor/translate.ts`). No term is locked right now (owner decision 2026-11-18, fast-changing phase): the registry has no avoid forms and no `decided` entries until a later issue locks the few terms that must not change without approval.
+The wording rules of the Kan-Do UI. The registry `docs/copy/terms.json` is the vocabulary (one preferred German and English form per concept); the `copy-writer` skill applies both, and the live copy editor hands the list under "Rules" (only that list) to its translation agent (`server/copy-editor/translate.ts`). No term is locked right now (owner decision 2026-11-18, fast-changing phase): the registry has no avoid forms and no `decided` entries until a later issue locks the few terms that must not change without approval. The registry guides, it does not dictate (user, 2026-11-20): a writer may adapt a term to its place (case, inflection, a compound, a shorter form where the full one does not fit) as long as the concept keeps its word. The few terms that must be written exactly, such as the product name, carry `enforce: "hard"` and fail the check.
 
 Voice: relatable, encouraging and inclusive, said calmly. Write for one person, in short plain sentences, and tell them what they can do.
 
@@ -28,7 +28,7 @@ Voice: relatable, encouraging and inclusive, said calmly. Write for one person, 
 - **Settings, token, time.** "Einstellungen" for the place and what can be changed, "einrichten" for the first guided setup, no "Konfiguration"; "Token" is the secret and "Zugriff" what it permits; "Aufgewendete Zeit" / "Time spent" (the running timer on a card keeps "Bisher gearbeitet").
 - **English.** American spelling (color, canceled, gray, realize); contractions by default (you'll, it's, don't).
 - **Voice.** The app has no speaker: no "wir" / "we"; passive, or "the app" as subject.
-- **Names and full stops.** "Kan-Do" in running text (the lowercase `kan-do` is only the wordmark in the app bar, `nav.brand`); German compounds with a brand name take a hyphen ("Notion-Datenbank"). A description or hint that is a sentence ends with a full stop; a noun phrase or list does not.
+- **Names and full stops.** "Kan-do" in running text (the lowercase `kan-do` is only the wordmark in the app bar, `nav.brand`); German compounds with a brand name take a hyphen ("Notion-Datenbank"). A description or hint that is a sentence ends with a full stop; a noun phrase or list does not.
 - **Characters.** One ellipsis character `…` (not three dots) for loading and truncated actions. Quotes are „…“ in de and “…” in en. `{named}` placeholders only, never string concatenation of translated fragments.
 - **No middle dots.** The middle dot `·` is never used in UI copy: not as a separator between facts ("Synchronisiert · vor 2 Min."), not in a caption, tooltip or aria text, not as a decorative separator element in a template, and not in images made for users (README screenshots and their captions). Write a sentence, use a comma, or give each fact its own element (owner rule, 2026-11-16).
 - **Plurals.** vue-i18n pipe syntax, one branch per form (`{n} Aufgabe | {n} Aufgaben`); a literal pipe is written `{'|'}`. Never "(s)" or "Aufgabe(n)".
@@ -40,7 +40,7 @@ What a check guarantees. The rules above say when a term or form is right; these
 
 | Guaranteed | By |
 |---|---|
-| The registry is valid; once terms are locked again, no form to avoid appears in a locale and a `decided` term is unchanged since the user approved it (no avoid forms and an empty lock right now) | `docs/copy/terms.json` and its lock, checked by `tests/i18n/terminology.test.ts` (`npm run i18n:check`) |
+| The registry is valid and a `decided` term is unchanged since the user approved it. A form to avoid in a locale is a warning, since the registry is guidance; it is an error only for a decided term with `enforce: "hard"` (the product name) | `docs/copy/terms.json` and its lock, checked by `tests/i18n/terminology.test.ts` (`npm run i18n:check`) |
 | No abbreviation from "Plain words" and no emoji in a locale value; `%` has a space in German and none in English | `tests/i18n/copy-mechanics.test.ts` |
 | No uppercase class in components or pages | `tests/config/design-patterns.test.ts` |
 | Every key is in `de.json` and `en.json` with the same placeholders and the same number of plural branches | `npm run i18n:check` |
