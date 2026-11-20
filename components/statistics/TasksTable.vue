@@ -10,17 +10,18 @@
 - Handle row clicks to open task detail modal
 - Show empty state when no data available
 - Keep the horizontal scroll region keyboard-focusable and named
+- Page the rows (#604): the first 25, "Mehr anzeigen" adds 25 until all are shown; no button at 25 rows or fewer. The count line is a polite live region, focus stays on the button (it goes when the last page is shown, then focus moves to the table region)
 -->
 
 <template>
-  <div>
+  <div ref="tableWrap">
     <EmptyNote v-if="tasks.length === 0" class="py-6">
       {{ emptyStateText ?? t('statistics.table.empty') }}
     </EmptyNote>
 
     <UTable
       v-else
-      :data="tasks"
+      :data="visibleTasks"
       :columns="tableColumns"
       role="region"
       tabindex="0"
@@ -28,6 +29,11 @@
       :ui="{ th: 'whitespace-nowrap' }"
       @select="handleRowSelect"
     />
+
+    <div v-if="tasks.length > PAGE_SIZE" class="mt-3 flex min-h-11 items-center justify-between gap-4">
+      <p class="text-sm text-muted tabular-nums" role="status" data-testid="stats-table-shown">{{ t('statistics.table.shown', { shown: visibleTasks.length, total: tasks.length }) }}</p>
+      <UButton v-if="hasMore" color="neutral" variant="soft" data-testid="stats-table-more" @click="showMore">{{ t('statistics.table.showMore') }}</UButton>
+    </div>
   </div>
 </template>
 
@@ -36,7 +42,7 @@ import { useI18n } from 'vue-i18n';
 import EmptyNote from '~/components/ui/EmptyNote.vue';
 import { useLocaleFormat } from "~/composables/useLocaleFormat";
 import { getAccuracyTier, getAccuracyVerdict, getVerdictColor } from "~/utils/statisticsAccuracy";
-import { computed, h } from 'vue';
+import { computed, h, nextTick, ref } from 'vue';
 import type { TableColumn, TableRow } from '@nuxt/ui';
 import type { TaskCompletionRecord } from '@/store/taskStatistics';
 
@@ -58,6 +64,22 @@ const emit = defineEmits<{
   /** Emitted when a row is clicked */
   (e: 'rowClick', record: TaskCompletionRecord): void;
 }>();
+
+/** Rows per page (#604): a 144-row table made the page 11,289 px long. */
+const PAGE_SIZE = 25;
+const shownCount = ref(PAGE_SIZE);
+const visibleTasks = computed(() => props.tasks.slice(0, shownCount.value));
+const hasMore = computed(() => shownCount.value < props.tasks.length);
+const tableWrap = ref<HTMLElement | null>(null);
+
+async function showMore() {
+  shownCount.value += PAGE_SIZE;
+  if (!hasMore.value) {
+    // The button leaves with the last page: keep focus in the table
+    await nextTick();
+    tableWrap.value?.querySelector<HTMLElement>('[role="region"]')?.focus({ preventScroll: true });
+  }
+}
 
 /**
  * Handle row selection: UTable's `select` event (a click or Enter on the row); it has no `row-click` event, so the

@@ -5,9 +5,9 @@
   - region "Timebox":
     - heading "Timebox" [level=4]
     - list:
-      - listitem: 1 deutlich unter der Timebox
-      - listitem: 0 etwa in der Timebox
-      - listitem: 1 deutlich über der Timebox
+      - listitem: 1 Länger als geplant
+      - listitem: 0 Wie geplant
+      - listitem: 1 Kürzer als geplant
     - paragraph: "Basis: 2 erledigte Aufgaben mit Timebox und erfasster Zeit."
   - region "Themen":
     - heading "Themen" [level=4]

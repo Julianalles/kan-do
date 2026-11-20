@@ -6,7 +6,7 @@
 @usage Summary of the Q3 tile
 @avoid Only the Q3 estimate chart; a generic ring is StatsRing.
 @responsibility
-- Ink ramp only: longer = darkest, as planned = 32 %, shorter = 10 %; no status colour
+- Ink ramp only, steps and order from `ESTIMATE_GROUPS` (`lib/inkRamp.ts`, shared with the day-close Timebox, #604): longer = darkest, as planned = 32 %, shorter = 10 %; no status colour
 - The aria-label and the legend carry the same numbers
 -->
 <template>
@@ -29,7 +29,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useLocaleFormat } from '~/composables/useLocaleFormat'
-import { inkColor } from '~/lib/inkRamp'
+import { ESTIMATE_GROUPS, inkColor } from '~/lib/inkRamp'
 import type { Review } from '~/lib/statisticsReview'
 import StatsRing from '~/components/statistics/StatsRing.vue'
 
@@ -39,11 +39,9 @@ const props = withDefaults(defineProps<{ estimate: Review['estimate']; size?: nu
 const { t } = useI18n()
 const { formatPercent } = useLocaleFormat()
 
-const legend = computed(() => [
-  { key: 'longer', step: 0, value: props.estimate.longer, label: t('statistics.estimate.longer') },
-  { key: 'onTarget', step: 3, value: props.estimate.onTarget, label: t('statistics.estimate.onTarget') },
-  { key: 'shorter', step: 5, value: props.estimate.shorter, label: t('statistics.estimate.shorter') },
-])
+const legend = computed(() => ESTIMATE_GROUPS.map(g => ({
+  key: g.key, step: g.step, value: props.estimate[g.key], label: t(`statistics.estimate.${g.key}`),
+})))
 const segments = computed(() => legend.value.map(l => ({ value: l.value, step: l.step })))
 const label = computed(() => t('statistics.estimate.label', {
   longer: Math.round(props.estimate.longer),
