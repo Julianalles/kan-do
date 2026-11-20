@@ -155,10 +155,12 @@ describe('BoardColumn', () => {
       global: { stubs },
     })
     const title = (w: ReturnType<typeof mountWaiting>) => w.find('board-column-header-stub').attributes('title')
+    const suffix = (w: ReturnType<typeof mountWaiting>) => w.find('board-column-header-stub').attributes('title-suffix')
 
-    expect(title(mountWaiting())).toBe('Wartet?')
+    expect(title(mountWaiting())).toBe('Wartet')
+    expect(suffix(mountWaiting())).toBe('?')
     setTestLocale('en')
-    expect(title(mountWaiting())).toBe('Waiting?')
+    expect(title(mountWaiting())).toBe('Waiting')
   })
 
   describe('add slot (#125)', () => {
