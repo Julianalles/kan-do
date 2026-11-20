@@ -2,7 +2,7 @@
 @component StatsTiles
 @kind block
 @category display
-@description Q2 to Q4 of the Statistik page: three question tiles in a grid (one column below `md`) that open in place, one at a time, plus the full-width work-rhythm tile "Wann arbeite ich?" (#600) under them, which shares the same open state
+@description Q2 to Q4 of the Statistik page: three question tiles in a six-column grid (one column below `md`; tiles hug their content, top aligned; the two tiles left behind an open one span three columns each so the row stays full, #604) that open in place, one at a time, plus the full-width work-rhythm tile "Wann arbeite ich?" (#600) under them, which shares the same open state
 @usage Under the verdict in pages/statistics.vue
 @avoid Only under the verdict on the Statistik page.
 @responsibility
@@ -16,7 +16,7 @@
 - Emit `open-task` when an outlier is chosen
 -->
 <template>
-  <div class="grid gap-4 md:grid-cols-3 md:gap-6">
+  <div class="grid gap-4 md:grid-cols-6 md:items-start md:gap-6">
     <StatsTile
       v-for="n in questionOrder"
       :key="n"
@@ -26,6 +26,7 @@
       :line="lines[n]"
       :open="isOpen(n)"
       :toggleable="n !== 3 || review.hasTimeboxes"
+      :class="isOpen(n) ? '' : questionOpen ? 'md:col-span-3' : 'md:col-span-2'"
       @toggle="toggle(n)"
     >
       <template v-if="n === 2">
@@ -151,6 +152,9 @@ const by = ref<'topic' | 'activity'>('topic')
 const rhythmReady = computed(() => props.rhythm.state === 'normal')
 const toggleable = (n: TileNumber): boolean => n === 5 ? rhythmReady.value : n !== 3 || props.review.hasTimeboxes
 const isOpen = (n: TileNumber): boolean => open.value === n && toggleable(n)
+
+/** One of Q2 to Q4 is open: the two others share the row below it (six-column grid, #604). */
+const questionOpen = computed(() => open.value !== null && open.value !== 5 && toggleable(open.value))
 
 const isWide = useIsDesktop()
 /** Open tile first at `md+`; otherwise the natural order. */

@@ -7,7 +7,7 @@
 @avoid Only the disclosure tiles of the Statistik page; a one-question verdict that stays open is StatsVerdict.
 @responsibility
 - Heading `<h2>` holding one toggle `<button aria-expanded aria-controls>`; Enter / Space toggles, Esc closes an open tile
-- A `PageSheet` (kd#180: the one sheet shape, 16 px radius and the resting shadow; no tones), full width of the grid when open; a `wide` tile is always full width and, closed at `md+`, puts its line left and its chart right (about 20rem, #600)
+- A `PageSheet` (kd#180: the one sheet shape, 16 px radius and the resting shadow; no tones), full width of the grid when open; (the grid has six columns, #604: the parent gives the closed tiles `md:col-span-2`, or `md:col-span-3` each while a sibling is open so the row stays full); a `wide` tile is always full width and, closed at `md+`, puts its line left and its chart right (about 20rem, #600)
 - Summary slot is always shown, the `detail` slot only while open (`v-if`, so a closed tile has no tab stops in its panel)
 - Without `toggleable` (no timeboxes at all) the heading is plain text and there is no panel
 - Expose `focus()` so the grid can restore focus after it reorders the tiles in the DOM
@@ -17,7 +17,7 @@
   <PageSheet
     tag="section"
     :aria-labelledby="headingId"
-    :class="open || wide ? 'md:col-span-3' : ''"
+    :class="open || wide ? 'md:col-span-6' : ''"
     :data-testid="`stats-tile-${n}`"
   >
     <h2 :id="headingId" class="m-0">

@@ -143,6 +143,32 @@ test.describe('Apple Reminders: the hint on a card (#553)', () => {
   })
 })
 
+test.describe('Statistik task table pager (#604)', () => {
+  test('30 done tasks: the first 25 rows, the count line and "Mehr anzeigen" (1280)', async ({ context, page }) => {
+    await seedLocalBoard(context)
+    await context.addInitScript(() => {
+      const records = Array.from({ length: 30 }, (_, i) => ({
+        taskId: `pg-${i}`,
+        title: `Aufgabe ${String(i).padStart(2, '0')}`,
+        completedAt: new Date(2026, 10, 1 + (i % 15), 10, i).toISOString(),
+        timeBoxSeconds: 1800,
+        actualTimeSpentSeconds: 1800,
+        estimationAccuracy: 100,
+        topic: 'Büro',
+        topicColorCode: null,
+        activity: 'Büro',
+        isUnplanned: false,
+      }))
+      localStorage.setItem('taskStatistics', JSON.stringify({ completionRecords: records }))
+    })
+    await page.goto('/statistics')
+    const list = page.getByTestId('stats-all-tasks')
+    await list.getByText(/Alle erledigten Aufgaben/).click()
+    await expect(page.getByTestId('stats-table-more')).toBeVisible()
+    await expect(page.getByTestId('stats-table-shown').locator('..')).toMatchAriaSnapshot({ name: 'statistics-table-pager-1280.aria.yml' })
+  })
+})
+
 test.describe('Offen add button (#248)', () => {
   test('the header button at rest and while a draft is open: named, then disabled in place (1280)', async ({ context, page }) => {
     await seedLocalBoard(context)
