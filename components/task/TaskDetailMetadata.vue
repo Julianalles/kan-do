@@ -21,7 +21,8 @@
         <UButton
           variant="ghost"
           color="neutral"
-          class="group/meta -ms-2 justify-start gap-1.5 px-2 text-xs/5 font-medium text-muted hover:text-muted"
+          class="group/meta -ms-2 justify-start gap-1.5 px-2"
+          data-heading-toggle
           :aria-expanded="open"
           :aria-controls="contentId"
           @click="open = !open"
