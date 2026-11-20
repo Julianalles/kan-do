@@ -246,7 +246,7 @@ test.describe('The place "Alle" (#354), desktop', () => {
 
     // The mirrored arrow beside an Offen card shows under the pointer
     await openCard(page, 'open-1').hover()
-    await openCard(page, 'open-1').getByRole('button', { name: 'Rechnung schicken: nicht heute' }).click()
+    await openCard(page, 'open-1').getByRole('button', { name: 'Rechnung schicken: nicht für heute planen' }).click()
     await expect.poll(() => notPlannedIds(page)).toEqual(['open-1', 'np-2'])
     await expect(page.getByTestId('plan-announcement')).toHaveText('Rechnung schicken ist nicht mehr für heute geplant.')
 

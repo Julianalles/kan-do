@@ -200,7 +200,7 @@ test.describe('welcome step 2 and the setup (#552)', () => {
     await expectStep(page, 'Heute')
     await expect(page.getByRole('table', { name: 'Datum und Board' })).toBeVisible()
     await expect(page.getByTestId('reminders-today-row-today')).toContainText('Auf dem Board')
-    for (const key of ['earlier', 'later', 'none']) await expect(page.getByTestId(`reminders-today-row-${key}`)).toContainText('In Alle Aufgaben')
+    for (const key of ['earlier', 'later', 'none']) await expect(page.getByTestId(`reminders-today-row-${key}`)).toContainText('In „Alle Aufgaben“')
     await expect(page.getByTestId('reminders-today-writes')).toContainText('setzt Kan-do ihr Datum auf heute')
     await expect(proceed(page)).toHaveText('Verbinden')
     // Still nothing written
