@@ -2,7 +2,7 @@ import { test, expect, type BrowserContext, type Page } from '@playwright/test'
 import { completeNotionWizard } from './helpers/notionWizard'
 import { closeMore, openMore, openSettings } from './helpers/appNav'
 import { atDaysAgo, SEED_TASKS, seedLocalBoard } from './helpers/seed'
-import { expectInstant, expectNoJumps, startAnimationLog, startFrames, type AllowedJump } from './helpers/frameSteps'
+import { expectInstant, expectNoJumps, MAX_FRAME_MS, startAnimationLog, startFrames, type AllowedJump } from './helpers/frameSteps'
 
 /**
  * Guard (kd#600, motion-17): nothing jumps during a transition, and reduced motion is instant.
@@ -15,6 +15,12 @@ import { expectInstant, expectNoJumps, startAnimationLog, startFrames, type Allo
  *
  * Trial status: see the PR of kd#600; whether this gates in CI or only reports is decided by `--repeat-each=20 --retries=0`.
  */
+
+/** `MOTION_GUARD_THROTTLE=<rate>` slows the page's CPU by that factor (CDP), the load emulation of #672: a plain busy loop beside the run does not drop frames on a many-core Mac, a rate of 20 drops them like the loaded CI runner. Off by default. */
+const THROTTLE = Number(process.env.MOTION_GUARD_THROTTLE ?? 0)
+test.beforeEach(async ({ page, browserName }) => {
+  if (THROTTLE > 1 && browserName === 'chromium') await (await page.context().newCDPSession(page)).send('Emulation.setCPUThrottlingRate', { rate: THROTTLE })
+})
 
 type Flow = { name: string, url: string, seed?: 'board' | 'none', prepare?: (context: BrowserContext) => Promise<void>, before?: (page: Page) => Promise<void>, viewport?: { width: number, height: number }, run: (page: Page) => Promise<void>, jumps?: AllowedJump[], animations?: AllowedJump[] }
 
@@ -335,13 +341,20 @@ test.describe('the frame sampler', () => {
   const stalledGlide = 'document.getElementById("probe-glide-stalled").animate({ transform: ["translateX(0)", "translateX(300px)"] }, { duration: 300, easing: "ease-out", fill: "forwards" }); setTimeout(() => { const t = performance.now(); while (performance.now() - t < 120) { /* a stall */ } }, 90);'
 
   test('a box that moves 40 px in one frame is reported, a glide is not', async ({ page }) => {
-    // A frame lost around the snap makes its movement "uncertain" (never judged): a loaded runner gets a few more tries
+    // A frame lost around the snap makes its movement "uncertain" (never judged): a loaded runner gets more tries (8: 1 run in 30 failed after 4 at 8x CPU slowdown, #672)
     let report = await probe(page, `setTimeout(() => { document.getElementById("probe-snap").style.left = "40px" }, 100); ${glide}`)
-    for (let attempt = 1; attempt < 4 && report.skipped > 0 && !labels(report).includes('probe-snap'); attempt++) {
+    for (let attempt = 1; attempt < 8 && report.skipped > 0 && !labels(report).includes('probe-snap'); attempt++) {
       report = await probe(page, `setTimeout(() => { document.getElementById("probe-snap").style.left = "40px" }, 100); ${glide}`)
     }
     expect(labels(report)).toContain('probe-snap')
     expect(labels(report)).not.toContain('probe-glide')
+  })
+
+  test('a box without area that moves 400 px in one frame is not reported (#672)', async ({ page }) => {
+    const mk = (id: string, h: number, w: number) => `{ const el = document.createElement("div"); el.id = "${id}"; el.setAttribute("data-probe", ""); el.style.cssText = "position:fixed;left:100px;top:500px;width:${w}px;height:${h}px;background:#888;"; document.body.appendChild(el); setTimeout(() => { el.style.left = "500px" }, 100) }`
+    // The twin with area is the snap probe above: a box with area that moves in one frame is reported
+    const report = await probe(page, `${mk('probe-empty', 0, 40)} ${mk('probe-empty-w', 20, 0)}`)
+    expect(labels(report)).not.toContain('probe-empty')
   })
 
   test('a glide with a stall in the middle is not reported', async ({ page }) => {
@@ -351,9 +364,18 @@ test.describe('the frame sampler', () => {
   })
 
   test('a leap in a measured frame is reported although a stall touched the same movement', async ({ page }) => {
-    // 5 px per frame, a stall of 120 ms in the middle, then one frame of 200 px: the run is uncertain, the leap is not
-    const script = 'const el = document.getElementById("probe-snap"); const t0 = performance.now(); let x = 0, leapt = false, stalled = false; const tick = () => { const dt = performance.now() - t0; if (dt > 60 && !stalled) { stalled = true; const s = performance.now(); while (performance.now() - s < 120) { /* a stall */ } } if (dt > 400 && !leapt) { leapt = true; x += 200 } else x += 5; el.style.left = x + "px"; if (dt < 600) requestAnimationFrame(tick) }; requestAnimationFrame(tick);'
-    const report = await probe(page, script)
+    // 5 px per frame, a stall of 120 ms in the middle, then one frame of 400 px: the run is uncertain, the leap is not. (400 px, not 200: a step counts per 17 ms of its frame, and 200 px in a 40 ms frame is 85 px per 17 ms, under the 140 px limit.)
+    // The leap must land in a frame the sampler measures (#672): it shows in frame n+1 and a frame is not judged after a dropped
+    // one, so the probe leaps in a frame of normal length and reports whether frames n and n+1 were both normal; on a loaded
+    // machine it tries again until one run was clean, and says so when none was (a pass without a clean leap proves nothing).
+    const script = `window.__leap = { clean: false, leapt: false }; const el = document.getElementById("probe-snap"); const t0 = performance.now(); let x = 0, stalled = false, prev = t0, leapFrame = -1, frame = 0; const tick = (now) => { const ft = now - prev; prev = now; frame++; if (leapFrame === frame - 1) { window.__leap.clean = window.__leap.clean && ft <= ${MAX_FRAME_MS}; leapFrame = -2 } const dt = now - t0; if (dt > 60 && !stalled) { stalled = true; const s = performance.now(); while (performance.now() - s < 120) { /* a stall */ } } if (dt > 400 && dt < 600 && !window.__leap.leapt && ft <= ${MAX_FRAME_MS} - 10) { window.__leap.leapt = true; window.__leap.clean = true; leapFrame = frame; x += 400 } else x += 5; el.style.left = x + "px"; if (dt < 900 && leapFrame !== -2) requestAnimationFrame(tick) }; requestAnimationFrame(tick);`
+    let report = await probe(page, script)
+    let clean = await page.evaluate(() => (window as unknown as { __leap: { clean: boolean } }).__leap.clean)
+    for (let attempt = 1; attempt < 6 && !clean; attempt++) {
+      report = await probe(page, script)
+      clean = await page.evaluate(() => (window as unknown as { __leap: { clean: boolean } }).__leap.clean)
+    }
+    expect(clean, 'no run had a measured frame before and after the leap: the machine is too loaded to test it').toBe(true)
     expect(report.skipped, 'the stall was seen as dropped frames').toBeGreaterThan(0)
     expect(labels(report)).toContain('probe-snap')
   })
