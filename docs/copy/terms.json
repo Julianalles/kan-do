@@ -123,11 +123,11 @@
     "id": "timebox",
     "concept": "The planned time for a task",
     "de": "Timebox",
-    "en": "time box",
+    "en": "timebox",
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Changed by the user on 2026-11-20 (before: de \"Timebox\", en \"timebox\"); the text after this sentence is the older reasoning and may name the old form. User answer (#473): \"Timebox\". de \"Timebox\" 25 values, en \"timebox\" 24; no \"Zeitbox\"/\"Zeitvorgabe\" left. en \"estimate\" (14 values) is not an avoid form: estimation accuracy (\"Estimated accurately\", \"your estimates\") is a different concept from the planned box."
+    "note": "User answer (#473): \"Timebox\". de \"Timebox\" 25 values, en \"timebox\" 24; no \"Zeitbox\"/\"Zeitvorgabe\" left. en \"estimate\" (14 values) is not an avoid form: estimation accuracy (\"Estimated accurately\", \"your estimates\") is a different concept from the planned box."
   },
   {
     "id": "topic",
@@ -323,7 +323,7 @@
     "id": "product-name",
     "concept": "The product name in running text",
     "de": "Kan-do",
-    "en": "kan-do",
+    "en": "Kan-do",
     "avoidDe": [
       "Kan-Do",
       "KanDo",
@@ -518,7 +518,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Changed by the user on 2026-11-20 (before: de \"Meine Aufgaben\", en \"My tasks\"); the text after this sentence is the older reasoning and may name the old form. Renamed by the user on 2026-11-16 (#375): \"Meine Aufgaben\" / \"My tasks\", before \"Nicht geplant\" / \"Not planned\" (that wording was approved by the user on 2026-11-16, #367, and never made decided). The user's `npm run terms:approve` makes it decided. Names the column only (headline, region name, sentences that say where a task goes); the state of a task there is the term not-planned-state. \"Nicht geplant\" is not an avoid form: it is that state's term."
+    "note": "User, 2026-11-20: the column's headline shows the short form \"Alle\" / \"All\" (design answer on #609); \"Alle Aufgaben\" / \"All tasks\" is the form for sentences and the region name. Changed by the user on 2026-11-20 (before: de \"Meine Aufgaben\", en \"My tasks\"); the text after this sentence is the older reasoning and may name the old form. Renamed by the user on 2026-11-16 (#375): \"Meine Aufgaben\" / \"My tasks\", before \"Nicht geplant\" / \"Not planned\" (that wording was approved by the user on 2026-11-16, #367, and never made decided). The user's `npm run terms:approve` makes it decided. Names the column only (headline, region name, sentences that say where a task goes); the state of a task there is the term not-planned-state. \"Nicht geplant\" is not an avoid form: it is that state's term."
   },
   {
     "id": "not-planned-state",

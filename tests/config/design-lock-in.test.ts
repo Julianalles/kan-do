@@ -105,6 +105,7 @@ describe('icon sizes are 12, 16, 20 or 24 px (DESIGN.md "Icons")', () => {
     const exceptions: Record<string, string> = {
       'components/ui/EmptyState.vue: size-10': 'the empty state\'s illustration, not an icon beside text',
       'components/setup/NotionSetupFlow.vue: size-8': 'the success mark of the finished setup, an illustration',
+      'components/setup/SetupShell.vue: size-8': 'the success mark of the done beat, the same illustration as the setup flows\' (#648)',
       'components/setup/RemindersSetupFlow.vue: size-8': 'the success mark of the finished setup, the same illustration as the Notion setup\'s',
     }
     expect(Object.keys(exceptions).filter(e => !sizes.includes(e)), 'exceptions that no longer occur: remove them').toEqual([])
