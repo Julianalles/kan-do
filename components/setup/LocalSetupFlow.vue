@@ -27,7 +27,6 @@
       <UCheckbox
         v-model="reminders"
         :disabled="!remindersSupported"
-       
         :label="remindersSupported || isDesktop ? t('onboarding.flow.local.reminders') : t('onboarding.flow.local.remindersWebOnly')"
         data-testid="local-source-reminders"
       />
@@ -35,7 +34,6 @@
       <UCheckbox
         :model-value="false"
         disabled
-       
         :label="t('onboarding.flow.local.todoist')"
         data-testid="local-source-todoist"
       />
