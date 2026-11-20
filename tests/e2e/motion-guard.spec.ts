@@ -154,7 +154,7 @@ const FLOWS: Flow[] = [
   {
     name: 'Statistik: open a tile, switch to another, open the rhythm tile, close (#610)',
     seed: 'none',
-    viewport: { width: 1280, height: 1500 }, // a driver that scrolls its target into view would be read as a jump of the fixed bar
+    viewport: { width: 1280, height: 2000 }, // a driver that scrolls its target into view would be read as a jump of the fixed bar; taller than the page with every tile open (1808 px), so the root's height never clamps to the viewport (a glide's last 17 px would read as a 2-frame jump of the root, #666)
     url: '/statistics',
     prepare: async (ctx) => {
       await seedLocalBoard(ctx)
@@ -312,6 +312,59 @@ for (const flow of FLOWS) {
     })
   })
 }
+
+/**
+ * The sampler itself (#666): on a loaded CI runner frames are 30 to 40 ms and some are lost, and the guard failed on glides that the
+ * runner showed in two frames. A snap in one frame must still be reported; a glide must not be, also when a stall eats the
+ * frames in the middle of it (a main-thread block of 120 ms, as a loaded runner has).
+ */
+test.describe('the frame sampler', () => {
+  const probe = async (page: Page, script: string) => {
+    await page.goto('/tasks')
+    await page.locator('main').first().waitFor()
+    await page.evaluate(() => {
+      for (const id of ['probe-snap', 'probe-glide', 'probe-glide-stalled']) {
+        const el = document.createElement('div')
+        el.id = id
+        el.setAttribute('data-probe', '')
+        el.style.cssText = 'position:fixed;left:0;width:40px;height:20px;background:#888;'
+        el.style.top = `${{ 'probe-snap': 300, 'probe-glide': 340, 'probe-glide-stalled': 380 }[id]}px`
+        document.body.appendChild(el)
+      }
+    })
+    const frames = await startFrames(page, '[data-probe]')
+    await page.evaluate(script)
+    await page.waitForTimeout(700)
+    return frames.stop()
+  }
+  const labels = (r: Awaited<ReturnType<typeof probe>>) => r.jumps.map(j => j.label).join(' | ')
+  const glide = 'document.getElementById("probe-glide").animate({ transform: ["translateX(0)", "translateX(300px)"] }, { duration: 300, easing: "ease-out", fill: "forwards" });'
+  const stalledGlide = 'document.getElementById("probe-glide-stalled").animate({ transform: ["translateX(0)", "translateX(300px)"] }, { duration: 300, easing: "ease-out", fill: "forwards" }); setTimeout(() => { const t = performance.now(); while (performance.now() - t < 120) { /* a stall */ } }, 90);'
+
+  test('a box that moves 40 px in one frame is reported, a glide is not', async ({ page }) => {
+    // A frame lost around the snap makes its movement "uncertain" (never judged): a loaded runner gets a few more tries
+    let report = await probe(page, `setTimeout(() => { document.getElementById("probe-snap").style.left = "40px" }, 100); ${glide}`)
+    for (let attempt = 1; attempt < 4 && report.skipped > 0 && !labels(report).includes('probe-snap'); attempt++) {
+      report = await probe(page, `setTimeout(() => { document.getElementById("probe-snap").style.left = "40px" }, 100); ${glide}`)
+    }
+    expect(labels(report)).toContain('probe-snap')
+    expect(labels(report)).not.toContain('probe-glide')
+  })
+
+  test('a glide with a stall in the middle is not reported', async ({ page }) => {
+    const report = await probe(page, stalledGlide)
+    expect(report.skipped, 'the stall was seen as dropped frames').toBeGreaterThan(0)
+    expect(labels(report)).not.toContain('probe-glide-stalled')
+  })
+
+  test('a leap in a measured frame is reported although a stall touched the same movement', async ({ page }) => {
+    // 5 px per frame, a stall of 120 ms in the middle, then one frame of 200 px: the run is uncertain, the leap is not
+    const script = 'const el = document.getElementById("probe-snap"); const t0 = performance.now(); let x = 0, leapt = false, stalled = false; const tick = () => { const dt = performance.now() - t0; if (dt > 60 && !stalled) { stalled = true; const s = performance.now(); while (performance.now() - s < 120) { /* a stall */ } } if (dt > 400 && !leapt) { leapt = true; x += 200 } else x += 5; el.style.left = x + "px"; if (dt < 600) requestAnimationFrame(tick) }; requestAnimationFrame(tick);'
+    const report = await probe(page, script)
+    expect(report.skipped, 'the stall was seen as dropped frames').toBeGreaterThan(0)
+    expect(labels(report)).toContain('probe-snap')
+  })
+})
 
 /**
  * One way to change the place (#601, DESIGN.md "Motion"): every pair of places but Heute and Alle (which slide inside the
