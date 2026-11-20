@@ -19,6 +19,7 @@
   phone layout like AppNav's: no hover there, and a tap focuses the button). Click, Enter or Space emits `add`; while a draft is open (`addDisabled`) the button stays in place but is
   disabled, so the header never shifts. `addButtonEl()` lets the column return focus after a cancel. Same look as the
   stack header's close button (ghost UButton, `--fill-on-canvas` fill by CSS, 32px, 44px on touch)
+- `addAway` (#609): the button fades out for `--duration-base` (200 ms) and (`opacity-0`, the transition is the button's own) and is `inert` (out of the tab order, the pointer and the reader's tree), keeping its box, so the title never shifts and the fade back in is the same. "Meine Aufgaben" sets it while its empty note offers "Aufgabe erstellen"; none under reduced motion
 -->
 <template>
   <div
@@ -39,6 +40,8 @@
           <UButton
             ref="addButton"
             class="column-header__add"
+            :class="{ 'opacity-0 disabled:opacity-0': addAway }"
+            :inert="addAway || undefined"
             data-round="md"
             color="neutral"
             variant="ghost"
@@ -91,6 +94,8 @@ const props = defineProps<{
   showAdd?: boolean;
   /** A draft is open: the button stays in place but does nothing */
   addDisabled?: boolean;
+  /** The button fades out and leaves the tab order and the reader's tree, its place kept (#609: "Meine Aufgaben" while its empty note offers the same add) */
+  addAway?: boolean;
   /** Test id of the add button; "Meine Aufgaben" sets its own, so the two headers of "Alle" never share one (#380) */
   addTestId?: string;
   /** Offen only (#375): the place that shows. A title that changes together with it fades; any other title change (a locale, Wartet's "?") is plain */
@@ -303,7 +308,7 @@ const isWaiting = computed(() => props.status === TaskStatus.Waiting);
 
   @media (prefers-reduced-motion: no-preference) {
     .column-header__add {
-      transition: background-color var(--duration-fast) var(--ease-standard);
+      transition: background-color var(--duration-fast) var(--ease-standard), opacity var(--duration-base) var(--ease-standard);
     }
   }
   

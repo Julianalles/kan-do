@@ -144,6 +144,7 @@
     },
     "notPlanned": {
       "title": "My tasks",
+      "heading": "All",
       "plan": "Plan for today",
       "planNamed": "{title}: plan for today",
       "notToday": "Not today",
@@ -155,7 +156,6 @@
       "planned": "{title} is planned for today.",
       "unplanned": "{title} is no longer planned for today.",
       "unplannedStack": "Stack “{title}” is no longer planned for today.",
-      "dropHere": "Drop here: not today",
       "dragOver": "“{title}” over My tasks. Dropping takes the task off today.",
       "dragBack": "“{title}” stays in My tasks.",
       "capacityFull": "With this your day is probably full.",

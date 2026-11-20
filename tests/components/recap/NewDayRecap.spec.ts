@@ -43,7 +43,7 @@ const stubs = {
   },
   UButton: {
     props: ['color', 'variant', 'size', 'icon', 'trailingIcon'],
-    template: '<button type="button" v-bind="$attrs"><slot /></button>',
+    template: '<button type="button" :data-variant="variant" :data-trailing-icon="trailingIcon" v-bind="$attrs"><slot /></button>',
   },
 }
 
@@ -103,6 +103,26 @@ describe('NewDayRecap', () => {
     expect(q('[data-testid="recap-photo"]').getAttribute('alt')).toBe('')
     expect(stage.parentElement).toBe(document.getElementById('recap-stage-host'))
     expect(stage.hasAttribute('data-window-drag-layer')).toBe(true)
+  })
+
+  it('shares the day close\'s stage shell: one column with the scroller and the docked footer, the way out soft, the main button without an arrow (#612)', async () => {
+    await open([doneAt(1, 'a'), task('o', TaskStatus.Open)])
+    const column = q('.recap-stage__column')
+    expect([...column.children].map(el => el.className)).toEqual(['recap-stage__scroll', 'recap-stage__footer'])
+    expect(q('.recap-stage__scroll').contains(q('[data-slot="title"]'))).toBe(true)
+    expect(q('.recap-stage__footer').contains(q('[data-testid="recap-controls"]'))).toBe(true)
+    expect(q('[data-testid="recap-controls"]').contains(q('[data-testid="recap-plan"]'))).toBe(true)
+    expect(q('[data-testid="recap-controls"] .recap-stage__actions')).toBeTruthy()
+    expect(q('[data-testid="recap-continue"]').getAttribute('data-variant')).toBe('soft')
+    expect(q('[data-testid="recap-plan"]').hasAttribute('data-trailing-icon')).toBe(false)
+  })
+
+  it('withholds the halo of the focused button until the first key or press (#612)', async () => {
+    await open([doneAt(1, 'a'), task('o', TaskStatus.Open)])
+    expect(page()!.hasAttribute('data-quiet-focus')).toBe(true)
+    q('[data-testid="recap-plan"]').dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }))
+    await nextTick()
+    expect(page()!.hasAttribute('data-quiet-focus')).toBe(false)
   })
 
   it('reads "alle Aufgaben" and shows only the Erledigt deck when nothing is open', async () => {
