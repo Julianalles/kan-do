@@ -2,11 +2,11 @@ import { test, expect } from '@playwright/test'
 import { seedLocalBoard, seedNotionBoard } from './helpers/seed'
 import { goToPlace, moreButton, openSettings } from './helpers/appNav'
 
-// E2E: From /tasks ⋯ -> Einstellungen opens the "Verbindungen" page (#324), with one label for every board; the way back is the bar (#470)
+// E2E: From /tasks ⋯ -> Einstellungen opens the "Speicherorte" page (#324), with one label for every board; the way back is the bar (#470)
 
 const SETUP_TITLE = /Notion-Einstellungen|Mit Notion verbinden|Notion-Integration einrichten/
 
-test('Local board: ⋯ -> Einstellungen opens the Verbindungen page and Heute returns to the board', async ({ context, page, baseURL }) => {
+test('Local board: ⋯ -> Einstellungen opens the Speicherorte page and Heute returns to the board', async ({ context, page, baseURL }) => {
   await seedLocalBoard(context, undefined, {}, undefined, { once: true })
   await page.goto(baseURL! + '/tasks')
 

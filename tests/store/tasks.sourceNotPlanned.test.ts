@@ -129,7 +129,7 @@ describe('mergeTasks follows a source only when its planning state changes (#357
   })
 
   // #387 (the user, 2026-11-16): the app never moves cards by itself. The cards an existing Todoist user has on the
-  // board at the update stay there; only a task kan-do sees for the first time starts under "Meine Aufgaben"
+  // board at the update stay there; only a task kan-do sees for the first time starts under "Alle Aufgaben"
   it('existing Todoist board, first fetch after the update: every card stays where it is, only the task seen for the first time starts not planned', () => {
     const store = useTasksStore()
     store.setTasks([

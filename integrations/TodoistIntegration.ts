@@ -99,7 +99,7 @@ export class TodoistIntegration {
 
   /**
    * Retrieves the tasks kan-do holds for Todoist: every open task of the account, whatever its due date (#357:
-   * one kan-do sees for the first time starts under "Meine Aufgaben", `TodoistSource.startsNotPlanned`), and the
+   * one kan-do sees for the first time starts under "Alle Aufgaben", `TodoistSource.startsNotPlanned`), and the
    * tasks completed today.
    * Completed tasks from previous days are not included.
    *

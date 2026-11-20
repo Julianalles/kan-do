@@ -49,13 +49,13 @@ test.describe('the place "Alle" (#354)', () => {
     await settleAnimations(page)
   }
 
-  test('empty "Meine Aufgaben": everything is planned, and how a task gets here (1280)', async ({ context, page }) => {
+  test('empty "Alle Aufgaben": everything is planned, and how a task gets here (1280)', async ({ context, page }) => {
     await seedLocalBoard(context)
     await gotoAll(page)
     await expect(page.getByTestId('not-planned')).toMatchAriaSnapshot({ name: 'not-planned-empty-1280.aria.yml' })
   })
 
-  test('"Meine Aufgaben" with tasks: each card a named group with its pick button (390)', async ({ context, page }) => {
+  test('"Alle Aufgaben" with tasks: each card a named group with its pick button (390)', async ({ context, page }) => {
     await page.setViewportSize(MOBILE)
     const held: SeedTask[] = SEED_TASKS.filter(task => task.status === 0).map(task => ({ ...task, notPlanned: true as const }))
     await seedLocalBoard(context, [...held, ...SEED_TASKS.filter(task => task.status !== 0)])
@@ -63,7 +63,7 @@ test.describe('the place "Alle" (#354)', () => {
     await expect(page.getByTestId('not-planned')).toMatchAriaSnapshot({ name: 'not-planned-tasks-390.aria.yml' })
   })
 
-  test('"Meine Aufgaben" with the add card open (#567): the add button is off, the card is a group above the cards (1280)', async ({ context, page }) => {
+  test('"Alle Aufgaben" with the add card open (#567): the add button is off, the card is a group above the cards (1280)', async ({ context, page }) => {
     const held: SeedTask[] = SEED_TASKS.filter(task => task.status === 0).slice(0, 2).map(task => ({ ...task, notPlanned: true as const }))
     await seedLocalBoard(context, [...held, ...SEED_TASKS.filter(task => task.status !== 0)])
     await gotoAll(page)
@@ -84,14 +84,14 @@ test.describe('a new day (#356, #387)', () => {
     await settleAnimations(page)
   }
 
-  test('"Meine Aufgaben" after the fresh start: the panel "Gestern auf dem Board" (a labelled group) and "Weitere Aufgaben", each a heading with its list (1280)', async ({ context, page }) => {
+  test('"Alle Aufgaben" after the fresh start: the panel "Zuletzt geplant und nicht erledigt" (a labelled group) and "Weitere Aufgaben", each a heading with its list (1280)', async ({ context, page }) => {
     await seedNewDayBoard(context, { tasks: board() })
     await page.goto('/all')
     await startFresh(page)
     await expect(page.getByTestId('not-planned')).toMatchAriaSnapshot({ name: 'not-planned-new-day-groups-1280.aria.yml' })
   })
 
-  test('"Meine Aufgaben" after the fresh start: the panel is one named group on a phone (390)', async ({ context, page }) => {
+  test('"Alle Aufgaben" after the fresh start: the panel is one named group on a phone (390)', async ({ context, page }) => {
     await page.setViewportSize(MOBILE)
     await seedNewDayBoard(context, { tasks: board() })
     await gotoBoard(page)
@@ -244,7 +244,7 @@ test.describe('swap on the running card (#162)', () => {
     await page.keyboard.press('Space')
     await page.keyboard.press('ArrowRight')
     const live = page.locator('body > [aria-live]')
-    await expect(live).toContainText('Beim Ablegen wechseln beide')
+    await expect(live).toContainText('Beim Ablegen tauschen beide')
     await expect(live).toMatchAriaSnapshot({ name: 'swap-announcement-1280.aria.yml' })
     await page.keyboard.press('Escape')
   })
@@ -415,7 +415,7 @@ test.describe('Apple Reminders setup and settings (#552)', () => {
     await expect(page.locator('#column-open-list').getByText('Milch kaufen')).toBeVisible()
     await openSettings(page, 'sources')
     await page.getByTestId('source-actions-reminders').click()
-    await page.getByRole('menuitem', { name: 'Erinnerungen-Einstellungen' }).click()
+    await page.getByRole('menuitem', { name: 'Apple Erinnerungen-Einstellungen' }).click()
     await page.getByTestId('reminders-role-list-home-off').click()
     await expect(page.getByTestId('reminders-exclude-confirm')).toBeVisible()
     await settleAnimations(page)

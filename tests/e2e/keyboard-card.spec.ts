@@ -46,7 +46,7 @@ test.describe('Keyboard: board cards', () => {
 
     await page.keyboard.press('ArrowRight');
     // The seeded Jetzt holds a task, so the card is over it: the swap announcement (#162) names both cards
-    await expect(live).toContainText('Beim Ablegen wechseln beide', { timeout: 5000 });
+    await expect(live).toContainText('Beim Ablegen tauschen beide', { timeout: 5000 });
     await expect(live).toContainText('in Jetzt');
 
     await page.keyboard.press('Space');
@@ -162,7 +162,7 @@ test.describe('Keyboard: delete the focused card (#579)', () => {
       const items = menu(page).getByRole('menuitem');
       await expect(items.first()).toBeFocused(); // opened by key: the first item (Jetzt starten, #296) takes focus
       await page.keyboard.press('ArrowDown'); // Als erledigt markieren
-      await page.keyboard.press('ArrowDown'); // Nicht heute (an Offen card, #354)
+      await page.keyboard.press('ArrowDown'); // Nicht für heute planen (an Offen card, #354)
       await page.keyboard.press('ArrowDown');
       const details = menu(page).getByRole('menuitem', { name: 'Details öffnen' });
       await expect(details).toBeFocused();

@@ -67,7 +67,7 @@ test.describe('Updates page (desktop)', () => {
 
   test('shows the version, "not checked yet" and the log folder before any check', async ({ page }) => {
     await openUpdatesPage(page, { appVersion: '0.1.0' })
-    await expect(page.getByTestId('updates-version')).toHaveText('Kan-Do 0.1.0')
+    await expect(page.getByTestId('updates-version')).toHaveText('Kan-do 0.1.0')
     await expect(page.getByTestId('updates-last-checked')).toHaveText('Noch nicht geprüft.')
     await expect(page.getByTestId('updates-status')).toHaveCount(0)
     await expect(page.getByTestId('updates-log-path')).toHaveText('/Users/test/Library/Logs/io.github.jaylouiz.kan-do')
@@ -122,7 +122,7 @@ test.describe('Updates page (desktop)', () => {
     await checkButton(page).click()
     await expect(updateDialog(page)).toBeVisible()
     await expect(updateDialog(page).getByTestId('update-current')).toHaveText('Du nutzt 0.1.0.')
-    await expect(updateDialog(page)).toContainText('Vor der Installation sichert Kan-Do deine Daten. Danach startet die App neu.')
+    await expect(updateDialog(page)).toContainText('Vor der Installation sichert Kan-do deine Daten. Danach startet die App neu.')
     // Unparseable notes (not the Highlights format) give null: no empty section, and the raw body is not shown.
     await expect(updateDialog(page).getByTestId('update-notes')).toHaveCount(0)
     await expect(updateDialog(page)).not.toContainText('Raw release body')
@@ -197,7 +197,7 @@ test.describe('Update dialog (desktop)', () => {
     { reason: 'unreadable', text: 'Die Datendatei ist nicht lesbar. Löse das zuerst; es wurde nichts geändert.' },
   ]) {
     test(`refuses with "${blocked.reason}" before touching anything`, async ({ context, page }) => {
-      await seedLocalBoard(context) // the Verbindungen page, where the dialog's link lands, needs a configured board
+      await seedLocalBoard(context) // the Speicherorte page, where the dialog's link lands, needs a configured board
       await openDialog(page, { installFailure: { kind: 'data_blocked', reason: blocked.reason } })
       await updateDialog(page).getByTestId('update-install').click()
       await expect(updateDialog(page).getByTestId('update-error')).toHaveText(blocked.text)

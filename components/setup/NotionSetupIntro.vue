@@ -2,11 +2,11 @@
 @component NotionSetupIntro
 @kind block
 @category display
-@description The first pane of the Notion setup on the welcome page (#441): a picture of Notion and Kan-Do exchanging tasks, one sentence, and what the user needs at hand as three badges. It says; it asks for nothing.
+@description The first pane of the Notion setup on the welcome page (#441): a picture of Notion and Kan-do exchanging tasks, one sentence, and what the user needs at hand as three badges. It says; it asks for nothing.
 @usage <NotionSetupIntro /> inside NotionSetupFlow while its "Vorbereitung" step is current.
 @avoid Only the first step of the welcome page's Notion setup; the settings dialog has no intro. No heading (the stepper names the step; the flow keeps a visually hidden one for focus) and no folded details.
 @responsibility
-- Shows the Notion ⇄ Kan-Do diagram (decorative), the sentence "Deine Aufgaben bleiben in Notion …" and "Das brauchst du" with the neutral badges Notion-Konto, Aufgaben-Datenbank and Token
+- Shows the Notion ⇄ Kan-do diagram (decorative), the sentence "Deine Aufgaben bleiben in Notion …" and "Das brauchst du" with the neutral badges Notion-Konto, Aufgaben-Datenbank and Token
 - Writes, saves and validates nothing; it is shown on every Notion setup run (no "seen" flag)
 - Pattern: step content of the guided setup (SetupRail); facts via SetupFactList
 -->

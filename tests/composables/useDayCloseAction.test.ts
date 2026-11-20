@@ -1,6 +1,6 @@
 /**
  * #480: "Tag abschließen" does the fresh start's work on the user's click: done tasks are archived, every unfinished task
- * leaves today's board for "Alle", nothing is deleted, and tomorrow is marked as started with the panel "Gestern auf dem Board".
+ * leaves today's board for "Alle", nothing is deleted, and tomorrow is marked as started with the panel "Zuletzt geplant und nicht erledigt".
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'

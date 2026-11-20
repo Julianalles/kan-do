@@ -5,7 +5,7 @@
 @description Where the "Lokal" source keeps its tasks (#438, desktop only): the data folder, last-saved time, the iCloud
 upload line, "Ordner ändern…" and "Im Finder zeigen", and, when the data file is not healthy, the one sentence that says
 so with the few actions that state allows. Moved here from /settings/data so a storage notice sits next to the Lokal row it is about.
-@usage Inside the Lokal row of the Verbindungen tab (`SourceRow` `#details` slot), only when `isTauri()`.
+@usage Inside the Lokal row of the Speicherorte tab (`SourceRow` `#details` slot), only when `isTauri()`.
 @avoid Not on the web (no folder there); backups, export/import and reset stay on /settings/data.
 @responsibility
 - Show the folder (middle-ellipsised, full path in the tooltip), last-saved time and schema version; for an iCloud folder one muted line with the upload state (#271)

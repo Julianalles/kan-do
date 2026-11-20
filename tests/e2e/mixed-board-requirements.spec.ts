@@ -63,7 +63,7 @@ test('requirements sections 1-10 hold on one mixed board', async ({ context, pag
   await expect(page.getByRole('heading', { name: 'Eigenschaften', level: 3 })).toHaveCount(0)
   await page.goto('/tasks')
 
-  // 7. Verbindungen: the default sits in the rows; make Local the default
+  // 7. Speicherorte: the default sits in the rows; make Local the default
   await openSettings(page, 'sources')
   await expect(page).toHaveURL(/\/settings(\?tab=sources)?$/)
   await expect(page.getByTestId('source-default-notion')).toBeVisible()

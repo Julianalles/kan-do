@@ -103,7 +103,7 @@ export interface TaskSourceAdapter {
   timeWritable?(): Promise<boolean>
 
   /**
-   * What the source holds a task as that the user puts back to "Meine Aufgaben" (#357): the Notion status a
+   * What the source holds a task as that the user puts back to "Alle Aufgaben" (#357): the Notion status a
    * put-back is written as (the first mapped "not planned" status). `null` or absent: the source stores no
    * planning, so plan and put-back stay in kan-do (Local, Todoist, Notion without such a status). `useTaskSync`
    * writes a plan or a put-back upstream only when this answers a value.
@@ -128,7 +128,7 @@ export interface TaskSourceAdapter {
   /**
    * `true` for a source without a planning state of its own whose tasks start not planned (#357, the user's
    * decision of 2026-11-16: Todoist, whatever the due date): an Open task kan-do sees for the first time starts
-   * under "Meine Aufgaben". A task kan-do already holds is never moved by a fetch (#387: the app moves no card by
+   * under "Alle Aufgaben". A task kan-do already holds is never moved by a fetch (#387: the app moves no card by
    * itself), so the cards an existing board had before the rule stay where they are.
    */
   readonly startsNotPlanned?: boolean

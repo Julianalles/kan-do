@@ -55,7 +55,7 @@ export async function waitForNavIdle(page: Page): Promise<void> {
 
 /** The three groups of Einstellungen (#691): `?tab=board|sources|manage`, board by default. */
 export type SettingsTab = 'board' | 'sources' | 'manage'
-export const SETTINGS_TAB_NAMES: Record<SettingsTab, string> = { board: 'Board', sources: 'Aufgabenspeicher', manage: 'System' }
+export const SETTINGS_TAB_NAMES: Record<SettingsTab, string> = { board: 'Board', sources: 'Speicherorte', manage: 'System' }
 
 /** ⋯ -> Einstellungen: lands on `/settings`. Already on `/settings*`: the page is in the bar, nothing to do. */
 export async function openSettings(page: Page, tab?: SettingsTab): Promise<void> {
@@ -70,7 +70,7 @@ export async function openSettings(page: Page, tab?: SettingsTab): Promise<void>
   }
 }
 
-/** The actions of a connected source on Einstellungen › Aufgabenquellen sit behind the row's "…" menu (#333). */
+/** The actions of a connected source on Einstellungen › Speicherorte sit behind the row's "…" menu (#333). */
 export type SourceActionName = 'Als Standard festlegen' | 'Notion-Einstellungen' | 'Trennen'
 export const sourceActionsButton = (page: Page, id: string): Locator => page.getByTestId(`source-actions-${id}`)
 

@@ -104,7 +104,7 @@ describe('useTaskSync: restoring from the trash (#422)', () => {
     expect(calls).toEqual([`restore:local:null:${TaskStatus.Waiting}`])
   })
 
-  it('a not-planned task returns to "Meine Aufgaben", on top, and takes no place in Offen\'s order (#354)', async () => {
+  it('a not-planned task returns to "Alle Aufgaben", on top, and takes no place in Offen\'s order (#354)', async () => {
     const off = makeTask({ id: 'off', notPlanned: true })
     tasksStore.setTasks([off, makeTask({ id: 'held', notPlanned: true }), makeTask({ id: 'open' })])
     useBoardStore().reconcileColumnsWithTasks(tasksStore.tasks)

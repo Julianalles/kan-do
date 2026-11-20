@@ -46,7 +46,7 @@ export interface UseTaskDetailReturn {
   priorityLabel: ComputedRef<string>;
   /** Task source (Notion/Todoist/null) */
   taskSource: ComputedRef<string | null>;
-  /** A done day set here stays in Kan-Do: the task's source holds no completion date (kd#131) */
+  /** A done day set here stays in Kan-do: the task's source holds no completion date (kd#131) */
   doneDayLocalOnly: ComputedRef<boolean>;
   /** Time spent summary (e.g., "45 min von 1 h") */
   timeSpentSummary: ComputedRef<string>;

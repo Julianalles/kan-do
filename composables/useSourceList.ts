@@ -1,6 +1,6 @@
 /**
  * @composable useSourceList
- * @description The rows of the "Verbindungen" page (#324, epic #264 section 6): derived from the sources
+ * @description The rows of the "Speicherorte" page (#324, epic #264 section 6): derived from the sources
  * config (#326) and the per-source health (#318). The page only renders it.
  * @responsibility
  * - `connected`: Lokal always, then every connected integration, each with default flag, status line and the

@@ -5,7 +5,7 @@
  * - `changeStatus`: the guarded, swap-aware move into a column
  * - `statusChoice` / `chooseStatus` (#359): the task sheet's picker has a fifth choice, "Nicht geplant". It is not a
  *   `TaskStatus`: a not-planned task is an Open task with the marker (`lib/taskPlanning.ts`), so the choice is mapped
- *   here to the moves that exist ("Für heute einplanen", "Nicht heute", a move into a column)
+ *   here to the moves that exist ("Für heute einplanen", "Nicht für heute planen", a move into a column)
  */
 import { computed } from 'vue';
 import type { Ref } from 'vue';
@@ -50,7 +50,7 @@ export function useTaskStatusActions(task: Ref<Task | null>) {
    * The picker's choice (#359).
    * - A column: a not-planned task picked into Offen is planned as by "Für heute einplanen" (end of Offen); every
    *   other pick is `changeStatus` (leaving Open drops the marker, so Jetzt, Wartet and Erledigt plan it too).
-   * - "Nicht geplant": an Offen task goes back as by "Nicht heute". From Jetzt, Wartet or Erledigt it first goes to
+   * - "Nicht geplant": an Offen task goes back as by "Nicht für heute planen". From Jetzt, Wartet or Erledigt it first goes to
    *   Offen by the normal move (the timer stops and keeps its time, a done task is reopened), then back. The move
    *   sets the status before its upstream write, so the task does not wait in Offen for a slow connection.
    */

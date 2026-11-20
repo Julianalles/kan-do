@@ -2,12 +2,12 @@
 @component RemindersTodayRules
 @kind component
 @category display
-@description What the date in Apple Reminders does on the board (#552, today rule a of epic #481): the four-row examples table (which date counts as today) and the line about what Kan-Do writes. Explains only; the rules themselves are slice 4.
+@description What the date in Apple Reminders does on the board (#552, today rule a of epic #481): the four-row examples table (which date counts as today) and the line about what Kan-do writes. Explains only; the rules themselves are slice 4.
 @usage <RemindersTodayRules show-lead /> as the Heute step of the setup (with the lead) and under "Heute" in the Erinnerungen-Einstellungen (without it)
 @avoid Not a control and not a place to change the rule: there is nothing to choose here in v1.
 @responsibility
-- A real `<table>` (a visually hidden caption, row headers): Heute is the one row that puts a task on the board and is set in the highlight ink, the other three read "In Meine Aufgaben"
-- The write line states the one thing Kan-Do changes (the date, only when the user plans a task for today) and that Undo restores it
+- A real `<table>` (a visually hidden caption, row headers): Heute is the one row that puts a task on the board and is set in the highlight ink, the other three read "In Alle Aufgaben"
+- The write line states the one thing Kan-do changes (the date, only when the user plans a task for today) and that Undo restores it
 - Pattern: reference table, new (no existing pattern shows a rule as rows; searched: table, rule, explain)
 -->
 <template>

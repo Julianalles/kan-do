@@ -41,7 +41,7 @@ export class TodoistSource implements TaskSourceAdapter {
   readonly syncsTime = false
   /** Todoist knows open and completed only: Jetzt and Wartet are kan-do's (#357). */
   readonly holdsOnlyOpenDone = true
-  /** A Todoist task kan-do sees for the first time starts under "Meine Aufgaben" (#357); a card it already holds stays where it is (#387). */
+  /** A Todoist task kan-do sees for the first time starts under "Alle Aufgaben" (#357); a card it already holds stays where it is (#387). */
   readonly startsNotPlanned = true
 
   constructor(private readonly deps: TodoistSourceDeps) {}

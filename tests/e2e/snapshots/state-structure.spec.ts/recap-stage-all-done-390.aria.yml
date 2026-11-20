@@ -1,5 +1,5 @@
-- region "Kurzer Rückblick":
-  - heading "Kurzer Rückblick" [level=2]
+- region "Tagesrückblick":
+  - heading "Tagesrückblick" [level=2]
   - paragraph: Du hast gestern alle Aufgaben erledigt.
   - region "4 erledigt":
     - heading "4 erledigt" [level=3]

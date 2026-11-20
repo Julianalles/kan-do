@@ -31,7 +31,7 @@ function extraFieldsFor(source: SourceId, mapping: NotionPropertyMapping | null 
   }
 }
 
-/** Whether `source` holds a task's completion date itself (kd#131: a corrected done day is otherwise kept in Kan-Do only). */
+/** Whether `source` holds a task's completion date itself (kd#131: a corrected done day is otherwise kept in Kan-do only). */
 export function sourceStoresCompletedDate(source: SourceId, mapping: NotionPropertyMapping | null | undefined): boolean {
   return extraFieldsFor(source, mapping).completedDate
 }

@@ -40,7 +40,7 @@ Ordered by visibility in the core loop (glance → move → timer → close). De
 | ~~C10 (#46)~~ - done 2026-10-20 | ~~83 `i-heroicons-*` icons in 20 files; rule is Phosphor (`i-ph-*`). Swap + lint guard~~ | ~~e.g. `Board.vue:460`, `pages/statistics.vue:30`~~ | audit F13 |
 | ~~C11 (#47)~~ - done 2026-10-20 | ~~Dead/dev files: `TaskDetailContent.new.vue`, `pages/dnd-sample.vue` (ships, 7 detector findings)~~ | `components/task`, `pages` | audit F14 |
 | ~~C12 (#48)~~ - done 2026-10-20 | ~~Modal title fonts inconsistent: task detail title Figtree, settings title serif (DESIGN.md: `font-display`)~~ | `TaskDetailContent.vue`, `app.config.ts` modal | critique |
-| C13 (#49) | ~~Copy: welcome "persoennliches" / "lasse dir", brand spelled kan-do/Kan-do/Kan-Do; archive button singular vs toast plural; column "Jetzt" vs "In Arbeit" in docs/E2E~~ - done 2026-10-20 (copy fixed; "Jetzt" kept as documented column name, see PR) | `i18n/locales/de.json:656` et al. | critique |
+| C13 (#49) | ~~Copy: welcome "persoennliches" / "lasse dir", brand spelled kan-do/Kan-do/Kan-do; archive button singular vs toast plural; column "Jetzt" vs "In Arbeit" in docs/E2E~~ - done 2026-10-20 (copy fixed; "Jetzt" kept as documented column name, see PR) | `i18n/locales/de.json:656` et al. | critique |
 
 ## Accessibility (WCAG 2.2 AA, all `color-contrast`, serious)
 

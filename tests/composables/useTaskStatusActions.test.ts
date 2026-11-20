@@ -175,20 +175,20 @@ describe('useTaskStatusActions', () => {
       expect(stored({ status: TaskStatus.Waiting, notPlanned: true }).statusChoice.value).toBe(TaskStatus.Waiting)
     })
 
-    it('Offen → Nicht geplant is "Nicht heute", without a status write', async () => {
+    it('Offen → Nicht geplant is "Nicht für heute planen", without a status write', async () => {
       await stored({}).chooseStatus(NOT_PLANNED_CHOICE)
       expect(notTodayMock).toHaveBeenCalledWith('abc')
       expect(updateTaskStatusMock).not.toHaveBeenCalled()
     })
 
-    it.each([TaskStatus.Progress, TaskStatus.Waiting, TaskStatus.Done])('status %s → Nicht geplant: to Offen by the normal move, then "Nicht heute"', async (status) => {
+    it.each([TaskStatus.Progress, TaskStatus.Waiting, TaskStatus.Done])('status %s → Nicht geplant: to Offen by the normal move, then "Nicht für heute planen"', async (status) => {
       await stored({ status }).chooseStatus(NOT_PLANNED_CHOICE)
       expect(updateTaskStatusMock).toHaveBeenCalledWith('abc', TaskStatus.Open)
       expect(notTodayMock).toHaveBeenCalledWith('abc')
       expect(updateTaskStatusMock.mock.invocationCallOrder[0]!).toBeLessThan(notTodayMock.mock.invocationCallOrder[0]!)
     })
 
-    it('a refused move to Offen leaves the task where it is: no "Nicht heute"', async () => {
+    it('a refused move to Offen leaves the task where it is: no "Nicht für heute planen"', async () => {
       const actions = stored({ status: TaskStatus.Waiting })
       updateTaskStatusMock.mockImplementation(async () => false)
       await actions.chooseStatus(NOT_PLANNED_CHOICE)

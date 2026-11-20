@@ -6,7 +6,7 @@
 
 ## Context
 
-The Kan-Do board used `@formkit/drag-and-drop` for Kanban drag-and-drop functionality. This library relied on native HTML5 drag events which caused issues with:
+The Kan-do board used `@formkit/drag-and-drop` for Kanban drag-and-drop functionality. This library relied on native HTML5 drag events which caused issues with:
 
 - Pointer event handling in specific column layouts (Progress column overflow)
 - Inconsistent visual placeholder positioning

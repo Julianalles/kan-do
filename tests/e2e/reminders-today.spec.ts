@@ -42,7 +42,7 @@ test.describe('Apple Reminders: today sync (#553)', () => {
     await seedRemindersBoard(context, { reminders })
   })
 
-  test('a reminder dated today is planned, every other date waits in "Meine Aufgaben"; nothing is written', async ({ page }) => {
+  test('a reminder dated today is planned, every other date waits in "Alle Aufgaben"; nothing is written', async ({ page }) => {
     await page.goto('/all')
     await expect(openList(page).getByText('Heute fällig')).toBeVisible()
     for (const title of ['Später fällig', 'Längst fällig', 'Ohne Datum', 'Jede Woche']) {
@@ -107,11 +107,11 @@ test.describe('Apple Reminders: today sync (#553)', () => {
     await expect.poll(async () => (await storedTask(page, 'Später fällig'))?.notPlanned).toBe(true)
     await page.reload()
     await expect(heldCard(page, 'Später fällig')).toBeVisible()
-    await expect(heldCard(page, 'Später fällig').getByTestId('task-reminders-hint')).toHaveAttribute('title', 'Heute in Erinnerungen fällig, hier zurückgelegt')
+    await expect(heldCard(page, 'Später fällig').getByTestId('task-reminders-hint')).toHaveAttribute('title', 'Heute in Apple Erinnerungen fällig, hier zurückgelegt')
     expect(await stubDue(page, 'r-future')).toEqual({ date: TODAY, time: '09:30' })
   })
 
-  test('the offer on the put-back toast writes the old date and the task stays in "Meine Aufgaben"', async ({ page }) => {
+  test('the offer on the put-back toast writes the old date and the task stays in "Alle Aufgaben"', async ({ page }) => {
     await page.goto('/all')
     await heldCard(page, 'Später fällig').getByTestId('not-planned-pick').click()
     await expect.poll(() => stubDue(page, 'r-future')).toEqual({ date: TODAY, time: '09:30' })

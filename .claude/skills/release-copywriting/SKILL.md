@@ -1,6 +1,6 @@
 ---
 name: release-copywriting
-description: Writes user-facing "what's new" prose for Kan-Do - release highlights in release-notes/<version>.md, the update toast, announcements and changelog text aimed at users rather than developers. Use when drafting or editing Highlights, or when a design or build task needs to explain a change to users. Not for UI strings (use copy-writer).
+description: Writes user-facing "what's new" prose for Kan-do - release highlights in release-notes/<version>.md, the update toast, announcements and changelog text aimed at users rather than developers. Use when drafting or editing Highlights, or when a design or build task needs to explain a change to users. Not for UI strings (use copy-writer).
 ---
 
 # Release copywriting

@@ -194,7 +194,7 @@ test.describe('Move a task between sources (#322)', () => {
     await expect(palette(page)).toBeVisible()
     // Typed keys go to whatever holds focus: wait for the modal to hand it to the search field
     await expect(palette(page).getByPlaceholder('Befehl suchen…')).toBeFocused()
-    await expect(palette(page).getByText('Verbindung', { exact: true })).toBeVisible()
+    await expect(palette(page).getByText('Speicherort', { exact: true })).toBeVisible()
     await expect(palette(page).getByRole('option', { name: /Verschieben nach Lokal/ })).toHaveCount(0)
     await page.keyboard.type('Verschieben nach Notion')
     // Enter runs the highlighted row: wait until the filter has settled on the Notion move

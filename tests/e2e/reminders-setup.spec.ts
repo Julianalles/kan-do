@@ -26,9 +26,9 @@ const storedRoles = async (page: Page) => ((await persistedStores(page)).reminde
 async function openReminders(page: Page, withNotion = false) {
   await page.goto('/welcome')
   await page.getByRole('button', { name: 'Jetzt starten' }).click()
-  await page.getByRole('checkbox', { name: 'Erinnerungen' }).click()
+  await page.getByRole('checkbox', { name: 'Apple Erinnerungen' }).click()
   if (withNotion) await page.getByRole('checkbox', { name: 'Notion' }).click()
-  await page.getByRole('button', { name: withNotion ? 'Weiter mit Erinnerungen und Notion' : 'Mit Erinnerungen einrichten' }).click()
+  await page.getByRole('button', { name: withNotion ? 'Weiter mit Apple Erinnerungen und Notion' : 'Mit Apple Erinnerungen einrichten' }).click()
   await expect(page.getByTestId('reminders-setup-flow')).toBeVisible()
 }
 
@@ -52,7 +52,7 @@ async function openRemindersSettings(page: Page) {
   await expect(page.locator('#column-open-list').getByText('Milch kaufen')).toBeVisible()
   await openSettings(page, 'sources')
   await page.getByTestId('source-actions-reminders').click()
-  await page.getByRole('menuitem', { name: 'Erinnerungen-Einstellungen' }).click()
+  await page.getByRole('menuitem', { name: 'Apple Erinnerungen-Einstellungen' }).click()
   await expect(page).toHaveURL(/\/settings\/reminders$/)
 }
 
@@ -67,7 +67,7 @@ test.describe('welcome step 2 and the setup (#552)', () => {
   test('on the web Erinnerungen is disabled with "Nur in der Mac-App" on its card, the sources tab says so too, and /settings/reminders returns to the sources tab', async ({ page }) => {
     await page.goto('/welcome')
     await page.getByRole('button', { name: 'Jetzt starten' }).click()
-    const box = page.getByRole('checkbox', { name: 'Erinnerungen' })
+    const box = page.getByRole('checkbox', { name: 'Apple Erinnerungen' })
     await expect(box).toBeDisabled()
     await expect(box).toContainText('Nur in der Mac-App') // the reason is on the card and part of its name
     // The button is not about Reminders
@@ -86,13 +86,13 @@ test.describe('welcome step 2 and the setup (#552)', () => {
     await firstRun(context)
     await page.goto('/welcome')
     await page.getByRole('button', { name: 'Jetzt starten' }).click()
-    const reminders = page.getByRole('checkbox', { name: 'Erinnerungen' })
+    const reminders = page.getByRole('checkbox', { name: 'Apple Erinnerungen' })
     await expect(reminders).toBeEnabled()
     await reminders.click()
-    await expect(page.getByTestId('local-confirm')).toHaveText('Mit Erinnerungen einrichten')
+    await expect(page.getByTestId('local-confirm')).toHaveText('Mit Apple Erinnerungen einrichten')
     await page.getByRole('checkbox', { name: 'Notion' }).click()
-    await expect(page.getByTestId('local-confirm')).toHaveText('Weiter mit Erinnerungen und Notion')
-    await page.getByRole('checkbox', { name: 'Erinnerungen' }).click()
+    await expect(page.getByTestId('local-confirm')).toHaveText('Weiter mit Apple Erinnerungen und Notion')
+    await page.getByRole('checkbox', { name: 'Apple Erinnerungen' }).click()
     await expect(page.getByTestId('local-confirm')).toHaveText('Mit Notion einrichten')
   })
 
@@ -103,14 +103,14 @@ test.describe('welcome step 2 and the setup (#552)', () => {
     await expectStep(page, 'Zugriff')
     await expect(page.getByTestId('reminders-prompt-preview')).toContainText('Das siehst du gleich')
     await expect(page.getByText('Warum Vollzugriff?')).toBeVisible()
-    await expect(page.getByText('Was Kan-Do nie tut')).toBeVisible()
+    await expect(page.getByText('Was Kan-do nie tut')).toBeVisible()
     await expect(page.getByText('Systemeinstellungen › Datenschutz & Sicherheit › Erinnerungen.')).toBeVisible()
     await expect(proceed(page)).toHaveText('Zugriff erlauben')
     expect(await prompts(page)).toBe(0)
     expect(await calls(page, 'reminders_request_access')).toHaveLength(0)
 
     await proceed(page).click()
-    await expect(page.getByTestId('reminders-granted')).toHaveText('Zugriff erteilt. Kan-Do sieht 3 Listen.')
+    await expect(page.getByTestId('reminders-granted')).toHaveText('Zugriff erteilt. Kan-do sieht 3 Listen.')
     expect(await prompts(page)).toBe(1)
     await expect(proceed(page)).toHaveText('Weiter')
     // Nothing connected yet: access is macOS's, not a connection
@@ -130,7 +130,7 @@ test.describe('welcome step 2 and the setup (#552)', () => {
 
     await setRemindersListsFailing(page, false)
     await proceed(page).click()
-    await expect(page.getByTestId('reminders-granted')).toHaveText('Zugriff erteilt. Kan-Do sieht 3 Listen.')
+    await expect(page.getByTestId('reminders-granted')).toHaveText('Zugriff erteilt. Kan-do sieht 3 Listen.')
     await expect(proceed(page)).toHaveText('Weiter')
   })
 
@@ -140,8 +140,8 @@ test.describe('welcome step 2 and the setup (#552)', () => {
 
     await proceed(page).click()
     const denied = page.getByTestId('reminders-denied')
-    await expect(denied).toContainText('Kan-Do hat keinen Zugriff.')
-    await expect(denied).toContainText('Danach prüft Kan-Do es noch einmal.')
+    await expect(denied).toContainText('Kan-do hat keinen Zugriff.')
+    await expect(denied).toContainText('Danach prüft Kan-do es noch einmal.')
     await expect(proceed(page)).toHaveText('Erneut prüfen')
 
     await page.getByTestId('reminders-open-settings').click()
@@ -200,14 +200,14 @@ test.describe('welcome step 2 and the setup (#552)', () => {
     await expectStep(page, 'Heute')
     await expect(page.getByRole('table', { name: 'Datum und Board' })).toBeVisible()
     await expect(page.getByTestId('reminders-today-row-today')).toContainText('Auf dem Board')
-    for (const key of ['earlier', 'later', 'none']) await expect(page.getByTestId(`reminders-today-row-${key}`)).toContainText('In Meine Aufgaben')
-    await expect(page.getByTestId('reminders-today-writes')).toContainText('setzt Kan-Do ihr Datum auf heute')
+    for (const key of ['earlier', 'later', 'none']) await expect(page.getByTestId(`reminders-today-row-${key}`)).toContainText('In Alle Aufgaben')
+    await expect(page.getByTestId('reminders-today-writes')).toContainText('setzt Kan-do ihr Datum auf heute')
     await expect(proceed(page)).toHaveText('Verbinden')
     // Still nothing written
     expect(await storedSources(page)).toBeNull()
 
     await proceed(page).click()
-    await expect(page.getByTestId('setup-done')).toContainText('Erinnerungen ist verbunden')
+    await expect(page.getByTestId('setup-done')).toContainText('Apple Erinnerungen ist verbunden')
     await expect(page).toHaveURL(/\/tasks$/)
     await expect(page.locator('#column-open-list').getByText('Milch kaufen')).toBeVisible()
 
@@ -236,7 +236,7 @@ test.describe('welcome step 2 and the setup (#552)', () => {
     await page.getByTestId('setup-back').click()
 
     await expect(page.getByTestId('local-setup-flow')).toBeVisible()
-    await expect(page.getByRole('checkbox', { name: 'Erinnerungen' })).toBeChecked()
+    await expect(page.getByRole('checkbox', { name: 'Apple Erinnerungen' })).toBeChecked()
     // Let a debounced write land, if there were one
     await page.waitForTimeout(600)
     expect(await storedSources(page)).toBeNull()
@@ -279,7 +279,7 @@ test.describe('welcome step 2 and the setup (#552)', () => {
     // Back from the Notion setup lands on step 2 with both ticks kept
     await page.getByTestId('setup-back').click()
     await expect(page.getByTestId('local-setup-flow')).toBeVisible()
-    await expect(page.getByRole('checkbox', { name: 'Erinnerungen' })).toBeChecked()
+    await expect(page.getByRole('checkbox', { name: 'Apple Erinnerungen' })).toBeChecked()
     await expect(page.getByRole('checkbox', { name: 'Notion' })).toBeChecked()
   })
 
@@ -306,10 +306,10 @@ test.describe('Erinnerungen-Einstellungen (#552)', () => {
     await page.goto('/tasks')
     await openSettings(page, 'sources')
     await page.getByTestId('source-actions-reminders').click()
-    await page.getByRole('menuitem', { name: 'Erinnerungen-Einstellungen' }).click()
+    await page.getByRole('menuitem', { name: 'Apple Erinnerungen-Einstellungen' }).click()
 
     await expect(page).toHaveURL(/\/settings\/reminders$/)
-    await expect(page.getByRole('heading', { level: 1, name: 'Erinnerungen-Einstellungen' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'Apple Erinnerungen-Einstellungen' })).toBeVisible()
     await expect(page.getByText('Hier änderst du jederzeit, was du beim Einrichten gewählt hast.')).toBeVisible()
     await expect(page.getByRole('heading', { level: 2, name: 'Listen' })).toBeVisible()
     await expect(page.getByRole('heading', { level: 2, name: 'Heute' })).toBeVisible()
@@ -318,7 +318,7 @@ test.describe('Erinnerungen-Einstellungen (#552)', () => {
     await expect(roleChoice(page, 'list-work', 'activity')).toBeChecked()
     await expect(roleChoice(page, 'list-private', 'off')).toBeChecked()
     await expect(page.getByTestId('reminders-today-row-today')).toContainText('Auf dem Board')
-    await expect(page.getByTestId('reminders-access-granted')).toHaveText('Kan-Do darf auf Erinnerungen zugreifen.')
+    await expect(page.getByTestId('reminders-access-granted')).toHaveText('Kan-do darf auf Apple Erinnerungen zugreifen.')
 
     await page.getByTestId('reminders-open-settings').click()
     await expect.poll(async () => (await stubState(page)).openedUrls.at(-1)).toContain('Privacy_Reminders')
@@ -336,8 +336,8 @@ test.describe('Erinnerungen-Einstellungen (#552)', () => {
     const question = page.getByTestId('reminders-exclude-confirm')
     // Zuhause holds Milch kaufen, Pflanzen gießen and the ticked Müll rausgebracht
     await expect(question).toContainText('Zuhause nicht mehr lesen?')
-    await expect(question).toContainText('3 Aufgaben verlassen Kan-Do, 3 davon stehen heute auf dem Board.')
-    await expect(question).toContainText('In Erinnerungen bleibt alles, wie es ist.')
+    await expect(question).toContainText('3 Aufgaben verlassen Kan-do, 3 davon stehen heute auf dem Board.')
+    await expect(question).toContainText('In Apple Erinnerungen bleibt alles, wie es ist.')
     await expect(roleChoice(page, 'list-home', 'off')).toBeChecked()
 
     await page.getByTestId('reminders-exclude-confirm-cancel').click()
@@ -375,10 +375,10 @@ test.describe('Erinnerungen-Einstellungen (#552)', () => {
 
     await openSettings(page, 'sources')
     await page.getByTestId('source-actions-reminders').click()
-    await page.getByRole('menuitem', { name: 'Erinnerungen-Einstellungen' }).click()
+    await page.getByRole('menuitem', { name: 'Apple Erinnerungen-Einstellungen' }).click()
     await roleChoice(page, 'list-private', 'off').click()
     // It has a task now, so it asks: one task, none of it on today's board
-    await expect(page.getByTestId('reminders-exclude-confirm')).toContainText('1 Aufgabe verlässt Kan-Do, 0 davon stehen heute auf dem Board.')
+    await expect(page.getByTestId('reminders-exclude-confirm')).toContainText('1 Aufgabe verlässt Kan-do, 0 davon stehen heute auf dem Board.')
   })
 
   test('access revoked in macOS: "Verbindung reparieren" in the sources tab and on the page, no dialog opens by itself; repair after allowing it', async ({ context, page }) => {
@@ -394,11 +394,11 @@ test.describe('Erinnerungen-Einstellungen (#552)', () => {
     await page.getByTestId('source-repair-reminders').click()
 
     await expect(page).toHaveURL(/\/settings\/reminders$/)
-    await expect(page.getByTestId('reminders-access-denied')).toContainText('Kan-Do hat keinen Zugriff.')
+    await expect(page.getByTestId('reminders-access-denied')).toContainText('Kan-do hat keinen Zugriff.')
     await expect(page.getByTestId('reminders-repair')).toBeVisible()
     await expect(page.getByRole('dialog')).toHaveCount(0)
     // The Listen section does not claim there is no list (it cannot read them), and says what to do instead
-    await expect(page.getByTestId('reminders-lists-no-access')).toContainText('Ohne Zugriff sieht Kan-Do deine Listen nicht.')
+    await expect(page.getByTestId('reminders-lists-no-access')).toContainText('Ohne Zugriff sieht Kan-do deine Listen nicht.')
     await expect(page.getByTestId('reminders-lists-none')).toHaveCount(0)
 
     await setRemindersStatus(page, 'granted')
@@ -413,8 +413,8 @@ test.describe('Erinnerungen-Einstellungen (#552)', () => {
     await page.getByTestId('reminders-disconnect').click()
 
     const dialog = page.getByRole('dialog')
-    await expect(dialog).toContainText('Erinnerungen trennen?')
-    await expect(page.getByTestId('disconnect-dialog')).toContainText('Sie bleiben in Erinnerungen.')
+    await expect(dialog).toContainText('Apple Erinnerungen trennen?')
+    await expect(page.getByTestId('disconnect-dialog')).toContainText('Sie bleiben in Apple Erinnerungen.')
     await expect(dialog).not.toContainText(/Zugriff|macOS/)
     await page.getByRole('button', { name: 'Trennen' }).last().click()
 
@@ -434,7 +434,7 @@ test.describe('Erinnerungen-Einstellungen (#552)', () => {
     await openSettings(page, 'sources')
     await page.getByTestId('source-connect-reminders').click()
     await expect(page).toHaveURL(/\/settings\/reminders$/)
-    await expect(page.getByText('Verbinde Apple Erinnerungen mit Kan-Do.')).toBeVisible()
+    await expect(page.getByText('Verbinde Apple Erinnerungen mit Kan-do.')).toBeVisible()
     await expect(page.getByTestId('reminders-setup-flow')).toBeVisible()
     await expect(page.getByTestId('reminders-granted')).toBeVisible()
 

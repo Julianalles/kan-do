@@ -229,7 +229,7 @@ describe('buildCommandGroups', () => {
     expect(withKbds).toEqual([])
   })
 
-  describe('"Verbindung" group (#322)', () => {
+  describe('"Speicherort" group (#322)', () => {
     const notion: MoveTarget = { source: 'notion', name: 'Notion', icon: 'i-simple-icons-notion', hint: '2 Felder gehen verloren', disabled: false }
     const local: MoveTarget = { source: 'local', name: 'Lokal', icon: 'i-ph-desktop', hint: '', disabled: false }
 

@@ -1,9 +1,9 @@
 - text: Jetzt-Karte im Fokus
 - paragraph: Alles außer deine Aufgabe in „Jetzt“ wird weich ausgeblendet. Eine Mausbewegung oder ein Tippen blendet alles wieder ein.
 - switch "Jetzt-Karte im Fokus"
-- text: Schwebender Timer
+- text: Schwebender Fokus-Timer
 - paragraph: Zeigt deine Aufgabe in „Jetzt“ zusammen mit einem Timer als eigenes kleines Fenster, das immer sichtbar ist.
-- switch "Schwebender Timer" [checked]
+- switch "Schwebender Fokus-Timer" [checked]
 - text: Arbeitszeit pro Tag
 - paragraph: Der Kapazitätshinweis für heute geplante Aufgaben richtet sich hiernach. „Automatisch“ nutzt deine bisher erfasste Arbeitszeit.
 - combobox "Arbeitszeit pro Tag": Automatisch

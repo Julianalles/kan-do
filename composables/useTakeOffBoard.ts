@@ -22,7 +22,7 @@ import { isDemoTaskId } from '~/lib/demoIds'
 import { TaskStatus } from '~/types/taskStatus'
 
 export interface TakenOffBoard {
-  /** The Jetzt and Offen tasks taken off, Jetzt first, in board order: the first half of the panel "Gestern auf dem Board". */
+  /** The Jetzt and Offen tasks taken off, Jetzt first, in board order: the first half of the panel "Zuletzt geplant und nicht erledigt". */
   group: string[]
   /** Every task taken off the board, the Wartet ones included (they are not in `group`). */
   sent: string[]

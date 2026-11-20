@@ -3,7 +3,7 @@ import { seedLocalBoard } from './helpers/seed'
 import { installTauriStub } from './helpers/tauriStub'
 import { openSettings } from './helpers/appNav'
 
-/** #691: Einstellungen is a tab strip of three groups (Board, Aufgabenquellen, Verwaltung); the tab lives in `?tab=`. */
+/** #691: Einstellungen is a tab strip of three groups (Board, Speicherorte, System); the tab lives in `?tab=`. */
 
 const tab = (page: Page, name: string) => page.getByRole('tab', { name })
 const tabNames = (page: Page) => page.getByRole('tab').allTextContents()
@@ -16,7 +16,7 @@ test.describe('Einstellungen tabs (#691)', () => {
   test('three tabs in order, Board active by default and holding only Fokus', async ({ page }) => {
     await page.goto('/tasks')
     await openSettings(page)
-    expect((await tabNames(page)).map(n => n.trim())).toEqual(['Board', 'Aufgabenspeicher', 'System'])
+    expect((await tabNames(page)).map(n => n.trim())).toEqual(['Board', 'Speicherorte', 'System'])
     await expect(tab(page, 'Board')).toHaveAttribute('aria-selected', 'true')
     await expect(page.getByTestId('focus-switch')).toBeVisible()
     await expect(page.getByTestId('sources-connected')).toHaveCount(0)
@@ -82,7 +82,7 @@ test.describe('Einstellungen tabs (#691)', () => {
   test('a tab click adds no history entry', async ({ page }) => {
     await page.goto('/settings')
     const before = await page.evaluate(() => history.length)
-    await tab(page, 'Aufgabenspeicher').click()
+    await tab(page, 'Speicherorte').click()
     await tab(page, 'System').click()
     expect(await page.evaluate(() => history.length)).toBe(before)
   })
@@ -91,7 +91,7 @@ test.describe('Einstellungen tabs (#691)', () => {
     await page.goto('/settings')
     await tab(page, 'Board').focus()
     await page.keyboard.press('ArrowRight')
-    await expect(tab(page, 'Aufgabenspeicher')).toBeFocused()
+    await expect(tab(page, 'Speicherorte')).toBeFocused()
     await page.keyboard.press('ArrowRight')
     await page.keyboard.press('Enter')
     await expect(page).toHaveURL(/tab=manage$/)
@@ -102,14 +102,14 @@ test.describe('Einstellungen tabs (#691)', () => {
 
     test('all three labels are visible without horizontal scroll', async ({ page }) => {
       await page.goto('/settings')
-      for (const name of ['Board', 'Aufgabenspeicher', 'System']) await expect(tab(page, name)).toBeInViewport({ ratio: 1 })
+      for (const name of ['Board', 'Speicherorte', 'System']) await expect(tab(page, name)).toBeInViewport({ ratio: 1 })
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
     })
   })
 })
 
 test.describe('Einstellungen tabs, desktop app (#691)', () => {
-  test('Verwaltung also holds Updates and GitHub-Zugriff, each opening its page', async ({ context, page }) => {
+  test('System also holds Updates and GitHub-Zugriff, each opening its page', async ({ context, page }) => {
     await seedLocalBoard(context)
     await installTauriStub(context)
     await page.goto('/settings?tab=manage')

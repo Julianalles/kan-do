@@ -1,16 +1,16 @@
-- region "Mit Erinnerungen verbinden":
+- region "Mit Apple Erinnerungen verbinden":
   - list "Fortschritt der Einrichtung":
     - listitem: Zugriff
     - listitem: Listen
     - listitem: Heute
-  - paragraph: macOS fragt nur einmal. Kan-Do ändert nichts, solange du nichts planst.
+  - paragraph: macOS fragt nur einmal. Kan-do ändert nichts, solange du nichts planst.
   - group "Zugriff":
-    - paragraph: Kan-Do liest deine Erinnerungen und zeigt die von heute auf dem Board. Dafür fragt macOS gleich nach deiner Erlaubnis.
+    - paragraph: Kan-do liest deine Erinnerungen und zeigt die von heute auf dem Board. Dafür fragt macOS gleich nach deiner Erlaubnis.
     - paragraph: Das siehst du gleich
-    - paragraph: „Kan-Do liest deine Erinnerungen, zeigt die von heute auf dem Board und setzt das Datum, wenn du etwas für heute einplanst.“
+    - paragraph: „Kan-do liest deine Erinnerungen, zeigt die von heute auf dem Board und setzt das Datum, wenn du etwas für heute einplanst.“
     - term: Warum Vollzugriff?
-    - definition: macOS kennt für Erinnerungen nur alles oder nichts. Kan-Do liest deine Aufgaben, setzt das Datum, wenn du etwas für heute einplanst, und hakt Erledigtes ab.
-    - term: Was Kan-Do nie tut
+    - definition: macOS kennt für Erinnerungen nur alles oder nichts. Kan-do liest deine Aufgaben, setzt das Datum, wenn du etwas für heute einplanst, und hakt Erledigtes ab.
+    - term: Was Kan-do nie tut
     - definition: Titel oder Notizen ändern, Aufgaben anlegen oder löschen, Listen ändern oder etwas an einen Server schicken. Listen, die du auf Aus stellst, liest es nicht.
     - term: Später ändern
     - definition: Systemeinstellungen › Datenschutz & Sicherheit › Erinnerungen.

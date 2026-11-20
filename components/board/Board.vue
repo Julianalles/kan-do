@@ -16,12 +16,12 @@
   strip's own transform on that timing. `data-place-moving` is set meanwhile; the side out of view is `inert`, and once the move is over it is out of layout (desktop) or hidden (phone), so
   neither pointer, keyboard, reader nor a drag reaches it. The Jetzt focus overlay never shows on "Alle" nor during the move
 - One-off (owner, #351, 2026-11-16): "Alle" and "Heute" show Offen with the same look and vertical position, so the way between them reads as one sideways move of the board; no general rule for other places
-- "Alle", drag (#355): a card is carried between "Meine Aufgaben" and Offen with the board's own drag (useBoardDndKit); `data-over-not-planned` on `.board` while that side is the drop
+- "Alle", drag (#355): a card is carried between "Alle Aufgaben" and Offen with the board's own drag (useBoardDndKit); `data-over-not-planned` on `.board` while that side is the drop
   target (dnd.css takes the placeholder out of Offen's layout). Phone: the edge scroll and its arrows work on the two pages of "Alle" as on Heute's three
-- "Alle": BoardCapacityDock (the capacity echo) in Offen's footer on desktop only, so the capacity element shows with the Today column and never over "Meine Aufgaben" (#566; on a phone Offen's own line is in its list); the two planning moves are announced politely (usePlanMoves)
-- Phone: column pages moved by swipe and drag edge-scroll only (no tabs, #470), per place: "Alle" has two ("Meine Aufgaben", Offen), "Heute" three (Offen, Jetzt + Wartet, Erledigt); a swipe, the
+- "Alle": BoardCapacityDock (the capacity echo) in Offen's footer on desktop only, so the capacity element shows with the Today column and never over "Alle Aufgaben" (#566; on a phone Offen's own line is in its list); the two planning moves are announced politely (usePlanMoves)
+- Phone: column pages moved by swipe and drag edge-scroll only (no tabs, #470), per place: "Alle" has two ("Alle Aufgaben", Offen), "Heute" three (Offen, Jetzt + Wartet, Erledigt); a swipe, the
   edge-scroll and focus never leave the place. The active page within the place is `data-mobile-page`. Heute opens on Jetzt while a task sits there, else on Offen (kd#191), and on Offen when
-  coming from "Alle"; "Alle" opens on "Meine Aufgaben". Focus entering an off-screen page of the place makes it active (the keyboard / screen-reader path the tabs were)
+  coming from "Alle"; "Alle" opens on "Alle Aufgaben". Focus entering an off-screen page of the place makes it active (the keyboard / screen-reader path the tabs were)
 - Phone: BoardPageDots, a non-interactive page indicator above the column title (kd#26), one dot per page of the place
 - Erledigt footer: the "Tag abschließen" CTA while something is done today
 -->
@@ -36,7 +36,7 @@
   >
     <!-- Stacks opening and closing (TaskStack), read out politely -->
     <div class="sr-only" role="status" aria-live="polite" aria-atomic="true">{{ stackAnnouncement }}</div>
-    <!-- "Für heute einplanen" and "Nicht heute" (#354): the card leaves the list the reader is in, so the move is said -->
+    <!-- "Für heute einplanen" and "Nicht für heute planen" (#354): the card leaves the list the reader is in, so the move is said -->
     <div class="sr-only" role="status" aria-live="polite" aria-atomic="true" data-testid="plan-announcement">{{ planAnnouncement }}</div>
     <!-- Phone page indicator (kd#26): fixed to the viewport above the sliding pages, never interactive -->
     <BoardPageDots :page="placePage" :count="placePageCount" :offset-px="swipeOffsetPx" :live="isSwiping" />
@@ -65,7 +65,7 @@
         :touch="focusPointerKind === 'touch'"
         :swallow-tap="focusSwallowTap"
       />
-      <!-- "Meine Aufgaben" (#354): two tracks left of Offen (phone: a page left of Offen); its cards are in the DOM
+      <!-- "Alle Aufgaben" (#354): two tracks left of Offen (phone: a page left of Offen); its cards are in the DOM
            only while "Alle" shows or the strip travels -->
       <BoardNotPlanned :active="isAll" :rendered="isAll || placeMoving">
         <template v-if="isMobile" #head><BoardFocusBar phone :active="stripPage === NOT_PLANNED_PAGE" /></template>
@@ -254,7 +254,7 @@ const { plugins: dndPlugins, sensors: dndSensors } = useBoardAnnouncements();
 // The end of a drag as motion (kd#181): the preview outlives the drag by its glide to the slot, then the card is
 // set down. `handleDragEnd` reads the dragged ids before `onDragEnd` clears them; visuals only.
 const { land, reset: resetDropMotion, dropAnimation } = useDropMotion();
-/** The held card came from "Meine Aufgaben" (#355): the preview keeps that side's face (source icon) until the next drag, the glide included */
+/** The held card came from "Alle Aufgaben" (#355): the preview keeps that side's face (source icon) until the next drag, the glide included */
 const previewFromNotPlanned = ref(false);
 function handleDragStart(event: Parameters<typeof onDragStart>[0]) {
   resetDropMotion();
@@ -317,8 +317,8 @@ const tasksWaiting = computed(() => applyFocus(tasksStore.tasksWaiting));
 const tasksDone = computed(() => applyFocus(tasksStore.tasksDoneToday));
 
 // ── The two places (#354) and the phone's column pages (transform-based) ─────────
-// One strip holds both places: "Meine Aufgaben" (-1), Offen (0), Jetzt + Wartet (1), Erledigt (2). "Alle" shows -1 and
-// 0, "Heute" 0 to 2; Offen is the page both share. On mobile the board is 300% of its container wide, "Meine Aufgaben" hangs one
+// One strip holds both places: "Alle Aufgaben" (-1), Offen (0), Jetzt + Wartet (1), Erledigt (2). "Alle" shows -1 and
+// 0, "Heute" 0 to 2; Offen is the page both share. On mobile the board is 300% of its container wide, "Alle Aufgaben" hangs one
 // page left of it (board.css), and
 // .board-container clips it to its own width (never 100vw, #269); `stripPage` drives translateX so no scroll container
 // is needed. No tabs (#470): a swipe, the drag edge-scroll and focus entering a page move it inside the place; only
@@ -333,7 +333,7 @@ const yesterdayCount = computed(() =>
   applyFocus([...yesterdayIds.value, ...yesterdayWaitingIds.value].flatMap(id => tasksStore.task(id) ?? [])).length);
 const { announcement: planAnnouncement } = usePlanMoves();
 
-/** Strip index of the "Meine Aufgaben" page */
+/** Strip index of the "Alle Aufgaben" page */
 const NOT_PLANNED_PAGE = -1;
 /** Strip index of the last page (Erledigt) */
 const LAST_STRIP_PAGE = 2;
@@ -342,7 +342,7 @@ const LAST_STRIP_PAGE = 2;
 const isMobile = useIsPhone();
 
 /**
- * The strip page a phone shows (-1 "Meine Aufgaben", 0 Offen, 1 Jetzt + Wartet, 2 Erledigt). "Alle" opens on "Nicht
+ * The strip page a phone shows (-1 "Alle Aufgaben", 0 Offen, 1 Jetzt + Wartet, 2 Erledigt). "Alle" opens on "Nicht
  * geplant". Heute opens on the Jetzt page while a task sits in Jetzt, so the running task and its timebox are there
  * at a glance (kd#191); with an empty Jetzt it opens on Offen, where the next task is picked. Read once at setup (the
  * app is client-rendered: the stores and the media query are there), so the first paint is already that page and
@@ -404,7 +404,7 @@ watch(place, async (to) => {
   const token = ++placeMoveToken;
   clearTimeout(placeMoveTimer);
 
-  // "Alle" opens on "Meine Aufgaben"; Heute on Offen when coming from "Alle". Kept on desktop too, where no page
+  // "Alle" opens on "Alle Aufgaben"; Heute on Offen when coming from "Alle". Kept on desktop too, where no page
   // shows it: a window narrowed to phone width afterwards stands on a page of the place that shows.
   const target = to === 'all' ? NOT_PLANNED_PAGE : Math.max(stripPage.value, 0);
 
@@ -458,7 +458,7 @@ onBeforeUnmount(() => {
   placeFades.forEach((fade) => fade.cancel());
 });
 
-/** Strip page of a column element: "Meine Aufgaben", Offen, the Jetzt/Wartet group, Erledigt */
+/** Strip page of a column element: "Alle Aufgaben", Offen, the Jetzt/Wartet group, Erledigt */
 const pageOf = (el: Element): number | null => {
   if (el.closest('#column-not-planned')) return NOT_PLANNED_PAGE;
   if (el.closest('#column-open')) return 0;
@@ -593,7 +593,7 @@ const clearEdgeTimer = () => {
 };
 
 const fireEdgeScroll = (direction: 'left' | 'right') => {
-  // The pages of the place that shows: on "Alle" a card is carried between "Meine Aufgaben" and Offen this way (#355)
+  // The pages of the place that shows: on "Alle" a card is carried between "Alle Aufgaben" and Offen this way (#355)
   if (edgeScrollCooldown) return;
   const target = direction === 'right'
     ? Math.min(stripPage.value + 1, lastPage.value)

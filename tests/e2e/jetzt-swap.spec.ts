@@ -40,7 +40,7 @@ const ids = (page: Page, column: 'open' | 'progress' | 'waiting' | 'done') =>
 const swapTarget = (page: Page) => page.locator('.task.task--swap-target')
 /** The toast card (includeHidden buttons: an open sheet aria-hides everything outside it, as in completion-undo.spec.ts) */
 const toast = (page: Page) =>
-  page.getByText('Aufgabe gewechselt', { exact: true }).locator('xpath=ancestor::*[.//button[normalize-space()="Rückgängig"]][1]').last()
+  page.getByText('Aufgabe getauscht', { exact: true }).locator('xpath=ancestor::*[.//button[normalize-space()="Rückgängig"]][1]').last()
 const undoButton = (page: Page) => toast(page).getByRole('button', { name: 'Rückgängig', includeHidden: true })
 
 async function gotoBoard(page: Page, tasks: SeedTask[] = [RUNNING, ...OFFEN, ...WARTET, DONE]) {
@@ -150,7 +150,7 @@ test.describe('swap by keyboard and the task sheet (#162)', () => {
     await card(page, 'open-1').focus()
     await page.keyboard.press('Space')
     await page.keyboard.press('ArrowRight')
-    await expect(live).toContainText('Beim Ablegen wechseln beide', { timeout: 5000 })
+    await expect(live).toContainText('Beim Ablegen tauschen beide', { timeout: 5000 })
     await expect(live).toContainText('„Review schreiben“ geht nach Wartet')
     await page.keyboard.press('Escape')
     await expect(live).toContainText('abgebrochen')
@@ -163,7 +163,7 @@ test.describe('swap by keyboard and the task sheet (#162)', () => {
     await page.keyboard.press('Space')
     await expect(live).toContainText('aufgenommen')
     await page.keyboard.press('ArrowRight')
-    await expect(live).toContainText('Beim Ablegen wechseln beide', { timeout: 5000 })
+    await expect(live).toContainText('Beim Ablegen tauschen beide', { timeout: 5000 })
     await page.keyboard.press('Space')
     await expect(live).toContainText('in Jetzt abgelegt')
     await expect(live).toContainText('„Review schreiben“ ist nach Wartet verschoben')

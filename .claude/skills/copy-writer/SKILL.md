@@ -1,6 +1,6 @@
 ---
 name: copy-writer
-description: Writes and reviews user-visible copy for Kan-Do against the wording rules in docs/copy/voice.md and the term registry. Use when adding or changing UI strings, i18n keys in de.json/en.json, button labels, errors, empty states, tooltips, toasts, confirmations or renaming a UI term, and for the copy pass that turns a design's copy inventory into final copy. Keeps one term per concept.
+description: Writes and reviews user-visible copy for Kan-do against the wording rules in docs/copy/voice.md and the term registry. Use when adding or changing UI strings, i18n keys in de.json/en.json, button labels, errors, empty states, tooltips, toasts, confirmations or renaming a UI term, and for the copy pass that turns a design's copy inventory into final copy. Keeps one term per concept.
 paths:
   - i18n/locales/*.json
   - components/**/*.vue
@@ -10,7 +10,7 @@ paths:
 
 # Copy writer
 
-Kan-Do's UI wording has two sources of truth: the rules in `docs/copy/voice.md` and the term registry
+Kan-do's UI wording has two sources of truth: the rules in `docs/copy/voice.md` and the term registry
 `docs/copy/terms.json` (one preferred German and English form per concept). This skill makes you use both.
 Locale mechanics (keys, i18n, German default) are in `CLAUDE.md` "Language Policy"; do not repeat them here.
 

@@ -1,13 +1,13 @@
 /**
  * @composable usePlanMoves
  * @description The two moves of the place "Alle" (#354, epic #334) as the user sees them: "Für heute einplanen"
- * (a "Meine Aufgaben" card lands at the end of Offen) and "Nicht heute" (an Offen card goes back to the top of
- * "Meine Aufgaben"). The state change is `useTaskSync.planTask` / `unplanTask`; this adds the motion and the
+ * (a "Alle Aufgaben" card lands at the end of Offen) and "Nicht für heute planen" (an Offen card goes back to the top of
+ * "Alle Aufgaben"). The state change is `useTaskSync.planTask` / `unplanTask`; this adds the motion and the
  * screen-reader line.
  * @responsibility
  * - Desktop: the card travels from where it was to where it now is (FLIP on the card, 360 ms on the bar's curve)
  * - Phone: the other column is on another page, so the card slides out towards it first (a pick to the right,
- *   "Nicht heute" to the left, 200 ms on the standard curve, #334 D8), then the state changes and the list closes the gap
+ *   "Nicht für heute planen" to the left, 200 ms on the standard curve, #334 D8), then the state changes and the list closes the gap
  * - Reduced motion: no motion, the state changes at once
  * - `announcement`: one polite line per move, rendered by Board.vue's live region
  * - A second request for a card that is still leaving is ignored (a double click plans once)
@@ -58,9 +58,9 @@ async function fly(from: DOMRect | null, find: () => HTMLElement | null): Promis
   await nextTick()
   const el = find()
   if (!el || typeof el.animate !== 'function') return
-  // A card put back flies into "Meine Aufgaben": that side lifts above Offen meanwhile (board.css).
+  // A card put back flies into "Alle Aufgaben": that side lifts above Offen meanwhile (board.css).
   const side = el.closest<HTMLElement>('#column-not-planned')
-  // A card put back lands on top of "Meine Aufgaben". With the page scrolled down that is out of view: the page stays where
+  // A card put back lands on top of "Alle Aufgaben". With the page scrolled down that is out of view: the page stays where
   // it is (the user keeps their place in Offen; the toast says what happened) and nothing flies to a place nobody sees (#609)
   const to = el.getBoundingClientRect()
   if (side && (to.bottom <= 0 || to.top >= window.innerHeight)) return
@@ -114,7 +114,7 @@ export function usePlanMoves() {
 
   /** "Für heute einplanen": the task lands at the end of Offen. */
   const planForToday = (id: string) => move(id, 'plan')
-  /** "Nicht heute": the Offen task goes to the top of "Meine Aufgaben". */
+  /** "Nicht für heute planen": the Offen task goes to the top of "Alle Aufgaben". */
   const notToday = (id: string) => move(id, 'unplan')
 
   return { planForToday, notToday, announcement }

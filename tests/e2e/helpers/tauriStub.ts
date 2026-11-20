@@ -564,7 +564,7 @@ export async function installTauriStub(context: BrowserContext, options: TauriSt
       if (cmd === 'log_reveal') return null
       // Native menu bar (#614): the labels the app sent stay in `calls`.
       if (cmd === 'menu_install') return null
-      // Floating Now window (#383): `overlay_sync` and `overlay_action` answer nothing, their arguments stay in `calls`;
+      // Floating focus timer (#383): `overlay_sync` and `overlay_action` answer nothing, their arguments stay in `calls`;
       // `overlay_ready` answers the snapshot a test put on `window.__overlaySnapshot` (what Rust holds for the pill).
       if (cmd === 'overlay_sync' || cmd === 'overlay_action') return null
       if (cmd === 'overlay_ready') return (window as unknown as { __overlaySnapshot?: unknown }).__overlaySnapshot ?? null

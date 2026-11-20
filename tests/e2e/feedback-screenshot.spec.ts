@@ -140,7 +140,7 @@ test.describe('Feedback screenshot (desktop, token with Contents)', () => {
   test('review shows the image, the exact body and one line on what happens to it; unticking removes both', async ({ page }) => {
     await toReviewWithShot(page)
     await expect(page.getByTestId('feedback-review-image').locator('canvas')).toHaveAccessibleName('Screenshot, bereit zum Senden')
-    await expect(page.getByTestId('feedback-delivery')).toHaveText('Wird mit dem Issue hochgeladen.')
+    await expect(page.getByTestId('feedback-delivery')).toHaveText('Wird mit dem Feedback hochgeladen.')
     const preview = page.getByTestId('feedback-body-preview')
     await expect(preview).toContainText('![Screenshot](https://github.com/jaylouiz/kan-do/blob/feedback-assets/feedback/')
     await expect(preview).toContainText('gh api repos/jaylouiz/kan-do/contents/feedback/')
@@ -152,7 +152,7 @@ test.describe('Feedback screenshot (desktop, token with Contents)', () => {
   test('send uploads first, then creates the issue; the body names the uploaded path', async ({ page }) => {
     await toReviewWithShot(page)
     await page.getByTestId('feedback-send').click()
-    await expect(page.getByText('Danke, das Feedback ist als Issue #4711 angelegt.').first()).toBeVisible()
+    await expect(page.getByText('Danke, dein Feedback ist angelegt: #4711.').first()).toBeVisible()
 
     expect(await methods(page)).toEqual(['GET /git/ref/heads/feedback-assets', expect.stringMatching(/^PUT \/contents\/feedback\/\d{4}\/\d{2}\/[0-9a-f-]{36}\.png$/), 'POST /issues'])
     const [put] = await githubCalls(page, { method: 'PUT' })
@@ -174,7 +174,7 @@ test.describe('Feedback screenshot (desktop, token with Contents)', () => {
     await page.evaluate(() => { (window as unknown as { __tauriStub: { assetsBranch: boolean } }).__tauriStub.assetsBranch = false })
     await toReviewWithShot(page)
     await page.getByTestId('feedback-send').click()
-    await expect(page.getByText('Danke, das Feedback ist als Issue #4711 angelegt.').first()).toBeVisible()
+    await expect(page.getByText('Danke, dein Feedback ist angelegt: #4711.').first()).toBeVisible()
     expect((await methods(page)).slice(0, 5)).toEqual([
       'GET /git/ref/heads/feedback-assets', 'POST /git/blobs', 'POST /git/trees', 'POST /git/commits', 'POST /git/refs',
     ])
@@ -189,7 +189,7 @@ test.describe('Feedback screenshot (desktop, token with Contents)', () => {
     await expect(page.getByTestId('feedback-problem')).toContainText('GitHub hat gerade Probleme')
     await setGithubMode(page, 'ok')
     await page.getByRole('button', { name: 'Erneut versuchen' }).click()
-    await expect(page.getByText('Danke, das Feedback ist als Issue #4711 angelegt.').first()).toBeVisible()
+    await expect(page.getByText('Danke, dein Feedback ist angelegt: #4711.').first()).toBeVisible()
     const all = await methods(page)
     expect(all.filter(m => m.startsWith('PUT '))).toHaveLength(1)
     expect(all.filter(m => m === 'POST /issues')).toHaveLength(2)
@@ -207,7 +207,7 @@ test.describe('Feedback screenshot (desktop, token with Contents)', () => {
     expect((await stubState(page)).clipboard).toEqual([]) // nothing leaves without the click
 
     await page.getByTestId('feedback-send').click()
-    await expect(page.getByText('Danke, das Feedback ist als Issue #4711 angelegt.').first()).toBeVisible()
+    await expect(page.getByText('Danke, dein Feedback ist angelegt: #4711.').first()).toBeVisible()
     const state = await stubState(page)
     expect(state.clipboard).toEqual([{ type: 'image/png', size: expect.any(Number) }])
     expect(state.clipboard[0]!.size).toBeGreaterThan(1000)
@@ -226,7 +226,7 @@ test.describe('Feedback screenshot (desktop, token with Contents)', () => {
     await expect(page.getByTestId('feedback-review')).toBeVisible()
     await expect(page.getByTestId('feedback-body-preview')).not.toContainText('Screenshot')
     await page.getByTestId('feedback-send').click()
-    await expect(page.getByText('Danke, das Feedback ist als Issue #4711 angelegt.').first()).toBeVisible()
+    await expect(page.getByText('Danke, dein Feedback ist angelegt: #4711.').first()).toBeVisible()
     expect(await methods(page)).toEqual(['POST /issues'])
     void context
   })
@@ -296,7 +296,7 @@ test.describe('Feedback screenshot (desktop, no token)', () => {
     await mockFeedbackRelay(page, 503)
     await toReviewWithShot(page)
     await failOverToBrowserPath(page)
-    await expect(page.getByTestId('feedback-delivery')).toContainText('Füge es auf GitHub mit ⌘V in das Issue ein.')
+    await expect(page.getByTestId('feedback-delivery')).toContainText('Füge es auf GitHub mit ⌘V in das Feedback ein.')
     await page.getByTestId('feedback-open-browser').click()
     await expect(dialog(page)).toBeHidden()
     const state = await stubState(page)

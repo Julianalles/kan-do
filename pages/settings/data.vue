@@ -3,9 +3,9 @@
 @description Sub-page /settings/data (web: only the export/import section, #238), listed as "Backup und App-Reset": its backups, cloud conflict copies,
 the portable JSON export/import (#224, ADR 011) and the app reset. The data folder, last-saved time and every storage problem moved to the Lokal row on
 /settings?tab=sources (#438); on desktop this page opens with one line pointing there.
-@usage The "Verwaltung" list, the sync conflict notice's "Details" link, command palette "Daten exportieren/importieren" and "App zurücksetzen"
+@usage The "System" list, the sync conflict notice's "Details" link, command palette "Daten exportieren/importieren" and "App zurücksetzen"
 @responsibility
-- Desktop: the persistent storage notice (it hosts the conflict modal that restore and import depend on), then one muted line with a link to Verbindungen › Lokal for the folder and its status
+- Desktop: the persistent storage notice (it hosts the conflict modal that restore and import depend on), then one muted line with a link to Speicherorte › Lokal for the folder and its status
 - Backups and conflict copies (hidden while the folder is unreachable), export/import
 - Hosts the one confirmation modal for restore (backup or conflict copy) and import; ends with the "App zurücksetzen" section (kd#227, asks in place)
 -->

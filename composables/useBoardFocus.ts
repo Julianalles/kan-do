@@ -7,7 +7,7 @@
  * - Only the board's column lists and the drag order are filtered; the store's getters, statistics, day close, the
  *   recap and the WIP rule keep seeing every task
  * - Chip counts and the hidden number leave Jetzt out, so they count what the focus can keep or hide
- * - One state for both places of the board (#354): on "Alle" it filters and counts "Meine Aufgaben" and Offen
+ * - One state for both places of the board (#354): on "Alle" it filters and counts "Alle Aufgaben" and Offen
  * - Picking or ending a focus runs through `useBoardGlide`: the remaining cards glide over `--duration-slow` instead of the columns re-laying in one frame (#642)
  * @responsibility Filter, counts and the chip row's open state; never mutates tasks
  */
@@ -44,7 +44,7 @@ export function useBoardFocus() {
 
   /**
    * The cards the focus can keep or hide, which are the cards the place shows: on Heute Offen, Wartet and today's
-   * Erledigt (Jetzt is never hidden), on "Alle" (#354) "Meine Aufgaben" and Offen
+   * Erledigt (Jetzt is never hidden), on "Alle" (#354) "Alle Aufgaben" and Offen
    */
   const { isAll } = useBoardPlace()
   const filterable = computed(() => (isAll.value

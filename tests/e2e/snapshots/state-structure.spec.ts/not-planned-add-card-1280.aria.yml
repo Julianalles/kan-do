@@ -1,4 +1,4 @@
-- region "Meine Aufgaben":
+- region "Alle Aufgaben":
   - heading "Alle" [level=2]
   - button "Aufgabe hinzufügen" [disabled]
   - group "Neue Aufgabe":

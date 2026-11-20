@@ -10,7 +10,7 @@ It is built for one person managing their own day: short, frequent sessions wher
 
 Want to help build kan-do? See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-![A day with kan-do in five screenshots: the welcome page on first start, the morning look back at yesterday, planning the day with My tasks beside Today, the board with Open, Now, Waiting and Done during the day, and closing the day in the evening](docs/images/readme-day.png)
+![A day with kan-do in five screenshots: the welcome page on first start, the morning look back at yesterday, planning the day with All tasks beside Today, the board with Open, Now, Waiting and Done during the day, and closing the day in the evening](docs/images/readme-day.png)
 
 ![The statistics page: how the last 7 days went compared with the weeks before, how estimates develop, where you misjudge, what you spend time on and when you work](docs/images/readme-statistics.png)
 
@@ -21,7 +21,7 @@ Want to help build kan-do? See [CONTRIBUTING.md](CONTRIBUTING.md).
 - **A board for today only.** Four columns in a fixed order: **Open**, **Now**, **Waiting**, **Done**. Drag a card, or move it by keyboard.
 - **One task in Now.** The Now column accepts a single task, so the thing you are doing right now is unambiguous.
 - **Timeboxes and time tracking.** Set a timebox on a task (presets, with an automatic suggestion), run its timer while it is in Now, and see the time spent.
-- **A rhythm for the day.** An optional "Close the day" at the end of the day, and a short recap ("Quick look back") the first time you open the app on a new day. Yesterday's finished tasks are acknowledged before they leave the board.
+- **A rhythm for the day.** An optional "Close the day" at the end of the day, and a short recap ("Daily recap") the first time you open the app on a new day. Yesterday's finished tasks are acknowledged before they leave the board.
 - **Statistics.** A statistics page shows how your days went, so you can plan better ones.
 - **Your tasks, your source.** Connect a Notion database or use local tasks, or both side by side on one board. Todoist support is planned and not offered in the app yet.
 - **Works offline.** The local copy is authoritative while you have no connection and reconciles when you are back online.

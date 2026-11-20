@@ -6,6 +6,6 @@ export default {
   source: 'app',
   alternatives: ['DataStorageNotice'],
   screen: '/settings?tab=sources',
-  sampleNote: 'reads the data-folder composable (folder, status, cloud state), desktop only; shown in the Lokal row of the Verbindungen tab.',
+  sampleNote: 'reads the data-folder composable (folder, status, cloud state), desktop only; shown in the Lokal row of the Speicherorte tab.',
   states: [],
 } satisfies CatalogEntry

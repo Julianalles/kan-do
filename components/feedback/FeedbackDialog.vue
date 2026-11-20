@@ -14,7 +14,7 @@ optional element, optional screenshot, automatic context line), the annotate ste
 - Three send routes (useFeedback `sendRoute`): a feedback token whose user may write to the repo sends "Als Issue
   senden" (owner); everyone else sends through the relay, "Feedback senden" (#268: private, no GitHub account, the
   screenshot goes with it); only when there is no relay: "Auf GitHub öffnen" with a prefilled link
-- The relay route says the report goes to the Kan-Do team and is not published; the lines about a public issue
+- The relay route says the report goes to the Kan-do developers and is not published; the lines about a public issue
   and a GitHub account below belong to the other two routes
 - The repository is public: the form says the report becomes a public GitHub issue, and on the browser path (no
   token) that sending needs the user's own GitHub account; the review intro repeats both. After the link opens, a

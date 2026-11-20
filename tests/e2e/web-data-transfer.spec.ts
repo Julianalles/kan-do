@@ -53,7 +53,7 @@ test.describe('Web data export/import (#238)', () => {
     await pickFile(page, 'x.json', 'not json')
     await expect(page.getByTestId('data-transfer-error')).toHaveText('Das ist keine gültige JSON-Datei.')
     await pickFile(page, 'x.json', '{"hello":1}')
-    await expect(page.getByTestId('data-transfer-error')).toHaveText('Das ist keine Kan-Do-Exportdatei.')
+    await expect(page.getByTestId('data-transfer-error')).toHaveText('Das ist keine Kan-do-Exportdatei.')
     await pickFile(page, 'x.json', JSON.stringify({ schemaVersion: 999, writtenAt: '', writtenBy: '', appVersion: '', stores: { 'tasks-store': {} } }))
     await expect(page.getByTestId('data-transfer-error')).toContainText('neueren App-Version')
     expect(await page.evaluate(() => localStorage.getItem('tasks-store'))).toContain('seed-open-1')

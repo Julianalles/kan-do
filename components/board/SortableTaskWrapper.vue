@@ -19,7 +19,7 @@ is wrapped in this component so it can be dragged and sorted within/across colum
   wired by aria-describedby (#154). The accessible name stays the task title.
 - Mark a member of an expanded stack with data-from-stack="<group key>" (#147): a click on it is not
   an outside click for the column's expanded stacks
-- "Nicht heute" (#354): on the place "Alle" an Offen card carries a round arrow button centred on its left edge, soft primary (#467; desktop
+- "Nicht für heute planen" (#354): on the place "Alle" an Offen card carries a round arrow button centred on its left edge, soft primary (#467; desktop
   only, shown on hover and keyboard focus, named with the task's title); it takes the card off today's board through
   `usePlanMoves().notToday`. Its click and keys stay out of the card's own handlers and the drag
 -->
@@ -93,7 +93,7 @@ function openDetails(event: KeyboardEvent) {
 
 const { deleteTaskWithUndo } = useTaskDeletion()
 
-// "Nicht heute" (#354): only an Offen card on the place "Alle", and never on a phone (no paper beside the card there)
+// "Nicht für heute planen" (#354): only an Offen card on the place "Alle", and never on a phone (no paper beside the card there)
 const { isAll } = useBoardPlace()
 const { notToday } = usePlanMoves()
 const isPhone = useIsPhone()
@@ -141,7 +141,7 @@ function deleteFocusedCard(event: KeyboardEvent) {
     @keydown.delete.self="deleteFocusedCard"
   >
     <slot />
-    <!-- "Nicht heute" (#354): on "Alle" an Offen card has the mirrored arrow on the paper left of it, towards "Nicht
+    <!-- "Nicht für heute planen" (#354): on "Alle" an Offen card has the mirrored arrow on the paper left of it, towards "Nicht
          geplant". Desktop only; on a phone the card menu does it -->
     <UTooltip v-if="showNotToday" :text="t('board.notPlanned.notToday')">
       <UButton
@@ -164,7 +164,7 @@ function deleteFocusedCard(event: KeyboardEvent) {
 </template>
 
 <style scoped>
-/* "Nicht heute" (#354): centred on the card's left edge (#467), towards "Meine Aufgaben"; the wrapper spans the list's width and
+/* "Nicht für heute planen" (#354): centred on the card's left edge (#467), towards "Alle Aufgaben"; the wrapper spans the list's width and
    the card is centred in it. Shown under the pointer and on keyboard focus (the pick arrow on the other side is the
    one a first-time user must find; Offen stays as calm as on Heute). */
 /* Only while the arrow is there: a positioned wrapper on every card changes how the board is layered, which moved
@@ -188,7 +188,7 @@ function deleteFocusedCard(event: KeyboardEvent) {
 }
 
 /* A touch-only device at desktop width has no hover to reveal the arrow, and an invisible target that takes a card off
-   the day must not exist: there the card's menu button (TaskCard, shown under the same query) carries "Nicht heute" */
+   the day must not exist: there the card's menu button (TaskCard, shown under the same query) carries "Nicht für heute planen" */
 @media (hover: none) {
   .task-wrapper__not-today {
     display: none;

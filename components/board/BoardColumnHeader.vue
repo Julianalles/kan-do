@@ -13,13 +13,13 @@
 - Offen's title fade (#375, `titleFadeKey`): the column is headed "Heute" on the place "Alle" and "Offen" on "Heute". When the place changes, the old title fades out over the new
   one, which fades in, for the length and on the curve of the board's sideways move (`--place-move` 400 ms, `--place-ease`, board.css): one clock for strip, app-bar chip and title. A second
   change mid-fade continues from the opacity the titles stand at. The outgoing title is `aria-hidden` and in the DOM only meanwhile. Reduced motion (`--place-move: 0ms`): no fade, the title just changes
-- Offen (`showAdd`, #248, moved left #264; on the place "Alle" "Meine Aufgaben" has it instead, #380: the task it makes lands there): a round soft icon-only add button at the start of the card-width track (the
+- Offen (`showAdd`, #248, moved left #264; on the place "Alle" "Alle Aufgaben" has it instead, #380: the task it makes lands there): a round soft icon-only add button at the start of the card-width track (the
   cards' left edge), vertically centred on the title line; the title stays centred exactly like the other columns' (the
   button is out of the flow, so it never moves the title). A tooltip names it on hover and focus (UTooltip, off on the
   phone layout like AppNav's: no hover there, and a tap focuses the button). Click, Enter or Space emits `add`; while a draft is open (`addDisabled`) the button stays in place but is
   disabled, so the header never shifts. `addButtonEl()` lets the column return focus after a cancel. Same look as the
   stack header's close button (ghost UButton, `--fill-on-canvas` fill by CSS, 32px, 44px on touch)
-- `addAway` (#609): the button fades out for `--duration-base` (200 ms) and (`opacity-0`, the transition is the button's own) and is `inert` (out of the tab order, the pointer and the reader's tree), keeping its box, so the title never shifts and the fade back in is the same. "Meine Aufgaben" sets it while its empty note offers "Aufgabe erstellen"; none under reduced motion
+- `addAway` (#609): the button fades out for `--duration-base` (200 ms) and (`opacity-0`, the transition is the button's own) and is `inert` (out of the tab order, the pointer and the reader's tree), keeping its box, so the title never shifts and the fade back in is the same. "Alle Aufgaben" sets it while its empty note offers "Aufgabe erstellen"; none under reduced motion
 - `titleSuffix` (#660): Wartet's "?" while the column is empty. A zero-width inline-block after the word, so the title box and its centring never change when it comes or goes; the heading's `aria-label` keeps the name "Wartet?"
 -->
 <template>
@@ -98,9 +98,9 @@ const props = defineProps<{
   showAdd?: boolean;
   /** A draft is open: the button stays in place but does nothing */
   addDisabled?: boolean;
-  /** The button fades out and leaves the tab order and the reader's tree, its place kept (#609: "Meine Aufgaben" while its empty note offers the same add) */
+  /** The button fades out and leaves the tab order and the reader's tree, its place kept (#609: "Alle Aufgaben" while its empty note offers the same add) */
   addAway?: boolean;
-  /** Test id of the add button; "Meine Aufgaben" sets its own, so the two headers of "Alle" never share one (#380) */
+  /** Test id of the add button; "Alle Aufgaben" sets its own, so the two headers of "Alle" never share one (#380) */
   addTestId?: string;
   /** Offen only (#375): the place that shows. A title that changes together with it fades; any other title change (a locale, Wartet's "?") is plain */
   titleFadeKey?: string;
@@ -277,7 +277,7 @@ const isWaiting = computed(() => props.status === TaskStatus.Waiting);
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    /* A host with a wider card area ("Meine Aufgaben": two card columns, #380) sets --add-row-width and --add-row-max */
+    /* A host with a wider card area ("Alle Aufgaben": two card columns, #380) sets --add-row-width and --add-row-max */
     width: min(var(--add-row-width, var(--task-card-width)), 100%);
     max-width: var(--add-row-max, var(--task-card-max-width));
     margin-inline: auto;

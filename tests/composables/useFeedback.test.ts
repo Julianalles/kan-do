@@ -194,7 +194,7 @@ describe('useFeedback', () => {
     expect(url.searchParams.get('body')).toContain('Der Titel ist zu lang.')
     expect(calls('github_request')).toEqual([])
     expect(feedback.isOpen.value).toBe(false)
-    expect(toastAddMock.mock.calls.map(c => c[0].title)).toEqual(['GitHub ist im Browser geöffnet. Sende das Issue dort ab.'])
+    expect(toastAddMock.mock.calls.map(c => c[0].title)).toEqual(['GitHub ist im Browser geöffnet. Sende das Feedback dort ab.'])
   })
 
   it('knows the token state on the form already, so the form can name the GitHub account (public repository)', async () => {

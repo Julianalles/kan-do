@@ -50,7 +50,7 @@ test.describe('Notion Setup Stepper', () => {
     test('shows 3 steps and navigates mapping -> custom -> status', async ({ page, baseURL }) => {
       await page.goto(baseURL! + '/tasks')
 
-      // ⋯ -> Einstellungen opens the Verbindungen page; its Notion row leads to the dedicated settings page
+      // ⋯ -> Einstellungen opens the Speicherorte page; its Notion row leads to the dedicated settings page
       await expect(moreButton(page)).toBeVisible({ timeout: 7000 })
       await openSettings(page, 'sources')
       await expect(page).toHaveURL(/\/settings(\?tab=sources)?$/)

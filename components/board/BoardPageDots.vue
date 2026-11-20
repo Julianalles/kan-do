@@ -6,7 +6,7 @@
 @usage Rendered once by Board.vue beside .board (so it does not slide with the pages)
 @avoid Phone only, for the board's column pages; not a tab bar or pagination on desktop.
 @responsibility
-- Says how many pages the place has (Heute: Offen, Jetzt + Wartet, Erledigt; "Alle": "Meine Aufgaben", Offen; `count`) and which one is showing (kd#26)
+- Says how many pages the place has (Heute: Offen, Jetzt + Wartet, Erledigt; "Alle": "Alle Aufgaben", Offen; `count`) and which one is showing (kd#26)
 - Follows a live swipe: the pill stretches from one dot to the next with the finger, then settles on the board's own timing
 - Pure indicator: not focusable, not tappable (`pointer-events: none`, `aria-hidden`), so it is no tab bar (#470, ADR 017); the page is
   already exposed by the column headings and `data-mobile-page`, a hidden "page 2 of 3" would say it twice

@@ -2,7 +2,7 @@
  * @composable useNewDay
  * @description A new day starts fresh only when the user says so (#387; it replaces the automatic pass of #356):
  * the app never takes a card off the board and never writes to a connection by itself. The fresh start takes what
- * was planned and not finished (Jetzt, Offen and Wartet) off the board, onto "Meine Aufgaben"; skipping it keeps
+ * was planned and not finished (Jetzt, Offen and Wartet) off the board, onto "Alle Aufgaben"; skipping it keeps
  * yesterday's board as it is. Module-level state, so the page, the notice, the recap and the board share it.
  * @responsibility
  * - `check()`: the day check, called by `pages/tasks.vue` on the app's start (the first board mount of a page load)
@@ -29,7 +29,7 @@
  * - `isNewDayDue()`: a local day has passed since the last fresh start (or, before the first one, since the recap's
  *   marker), i.e. today has not been started fresh.
  * - `groupIds`: the Jetzt and Offen tasks of today's fresh start that are still not planned, i.e. the first half of
- *   the panel "Gestern auf dem Board"; it ends with its day without a write. `waitingIds`: the not-planned tasks that
+ *   the panel "Zuletzt geplant und nicht erledigt"; it ends with its day without a write. `waitingIds`: the not-planned tasks that
  *   same start took out of Wartet (`sentBack.waiting`), the panel's second half, ending with its day too (#469); an
  *   earlier start's Wartet task is a plain "Weitere Aufgaben" task.
  * - `noticeShown` / `closeNotice()`: the notice that offers the fresh start, on a day that has begun in this window,
@@ -181,7 +181,7 @@ export function useNewDay() {
   /** The ids of the tasks that are held as not planned now. */
   const heldIds = computed(() => new Set(tasksStore.tasks.filter(task => isNotPlanned(task)).map(task => task.id)))
 
-  /** The group "Gestern auf dem Board": today's Jetzt and Offen tasks that are still not planned, in their order. */
+  /** The group "Zuletzt geplant und nicht erledigt": today's Jetzt and Offen tasks that are still not planned, in their order. */
   const groupIds = computed<string[]>(() => {
     const ids = todaysBack.value?.ids ?? []
     return ids.length === 0 ? ids : ids.filter(id => heldIds.value.has(id))

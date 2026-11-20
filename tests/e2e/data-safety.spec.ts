@@ -48,7 +48,7 @@ async function openDataPage(page: Page, data: DataStubOptions = {}) {
   await expect(page.getByTestId('data-folder-moved')).toBeVisible()
 }
 
-/** The folder, its state and every storage problem sit in the Lokal row of Verbindungen (#438). */
+/** The folder, its state and every storage problem sit in the Lokal row of Speicherorte (#438). */
 async function openStoragePage(page: Page, data: DataStubOptions = {}) {
   await installTauriStub(page.context(), { data: { folder: CURRENT, envelope: withBoard(envelope(tasks(25))), ...data } })
   await page.goto('/settings?tab=sources')
@@ -404,7 +404,7 @@ test.describe('Export and import', () => {
     await openDataPage(page, { importFiles: files })
     for (const [path, message] of [
       ['/in/junk.json', 'keine gültige JSON-Datei'],
-      ['/in/foreign.json', 'keine Kan-Do-Exportdatei'],
+      ['/in/foreign.json', 'keine Kan-do-Exportdatei'],
       ['/in/newer.json', 'neueren App-Version'],
     ] as const) {
       await page.evaluate((target) => {

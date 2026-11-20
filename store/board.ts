@@ -132,7 +132,7 @@ export const useBoardStore = defineStore("board", () => {
   /** The topic focus (#161), persisted; null = no focus. Read it through `activeFocusTopic`, which ends it with its day. */
   const focus = ref<BoardFocus | null>(null);
   /**
-   * The order of "Meine Aufgaben" (#354), persisted: the ids of the tasks put back by hand, newest first. A
+   * The order of "Alle Aufgaben" (#354), persisted: the ids of the tasks put back by hand, newest first. A
    * not-planned task that is not listed (it never was on the board) follows them in stored order
    * (`tasksStore.tasksNotPlanned`). `reconcileColumnsWithTasks` drops an id that is no longer not planned.
    */
@@ -526,7 +526,7 @@ export const useBoardStore = defineStore("board", () => {
     }
   }
 
-  /** "Nicht heute" (#354): the task goes to the top of "Meine Aufgaben"; a list (#356, the new day) keeps its order there. */
+  /** "Nicht für heute planen" (#354): the task goes to the top of "Alle Aufgaben"; a list (#356, the new day) keeps its order there. */
   function noteNotPlanned(taskIds: string | readonly string[]) {
     const ids = typeof taskIds === 'string' ? [taskIds] : [...new Set(taskIds)];
     notPlannedOrder.value = [...ids, ...notPlannedOrder.value.filter(id => !ids.includes(id))];
@@ -578,7 +578,7 @@ export const useBoardStore = defineStore("board", () => {
 
     let hasChanges = false;
 
-    // A task that was planned, moved on or removed leaves the order of "Meine Aufgaben" (#354)
+    // A task that was planned, moved on or removed leaves the order of "Alle Aufgaben" (#354)
     if (notPlannedOrder.value.some(id => !notPlannedIds.has(id))) {
       notPlannedOrder.value = notPlannedOrder.value.filter(id => notPlannedIds.has(id));
       hasChanges = true;
@@ -698,7 +698,7 @@ export const useBoardStore = defineStore("board", () => {
       // mutation persists it (hydration must not write by itself, below). An earlier day's focus stays until then
       // and `activeFocusTopic` ignores it.
       ctx.store.focus = sanitizeFocus(ctx.store.focus);
-      // The order of "Meine Aufgaben" (#354) follows the same rule: missing or malformed reads as empty, no write
+      // The order of "Alle Aufgaben" (#354) follows the same rule: missing or malformed reads as empty, no write
       ctx.store.notPlannedOrder = sanitizeNotPlannedOrder(ctx.store.notPlannedOrder);
       const hydrated = ctx.store.boardConfig;
       const sanitised = sanitizeBoardConfig(hydrated);

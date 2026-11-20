@@ -2,7 +2,7 @@
 
 ## Vision
 
-Kan-Do narrows attention to the work already chosen for today. It provides a frictionless flow for updating state, tracking time, and celebrating wins without duplicating upstream task management tooling.
+Kan-do narrows attention to the work already chosen for today. It provides a frictionless flow for updating state, tracking time, and celebrating wins without duplicating upstream task management tooling.
 
 ## Core Principles
 

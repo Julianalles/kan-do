@@ -56,7 +56,7 @@ describe('useTaskContextMenu: quick actions (#296)', () => {
   it('puts Start now and Mark done on top, the copy group before Delete', () => {
     const groups = groupsOf(makeTask())
     // An Offen card can also leave today's board (#354)
-    expect(groups[0]!.map(i => i.label)).toEqual(['Jetzt starten', 'Als erledigt markieren', 'Nicht heute'])
+    expect(groups[0]!.map(i => i.label)).toEqual(['Jetzt starten', 'Als erledigt markieren', 'Nicht für heute planen'])
     expect(groupsOf(makeTask({ status: TaskStatus.Waiting }))[0]!.map(i => i.label)).toEqual(['Jetzt starten', 'Als erledigt markieren'])
     expect(groups).toHaveLength(3)
     expect(groups[1]!.map(i => i.label)).toEqual(['Details öffnen', 'Als ungeplante Arbeit markieren', 'Status ändern', 'Priorität ändern', 'Timebox setzen'])

@@ -1,26 +1,26 @@
-- region "Mit Erinnerungen verbinden":
+- region "Mit Apple Erinnerungen verbinden":
   - list "Fortschritt der Einrichtung":
     - listitem: Zugriff (abgeschlossen)
     - listitem: Listen (abgeschlossen)
     - listitem: Heute
-  - paragraph: So nutzt Kan-Do das Datum.
+  - paragraph: So nutzt Kan-do das Datum.
   - group "Heute":
-    - paragraph: Das Datum in Erinnerungen entscheidet, was heute auf dein Board kommt.
+    - paragraph: Das Datum in Apple Erinnerungen entscheidet, was heute auf dein Board kommt.
     - table "Datum und Board":
       - caption: Datum und Board
       - rowgroup:
         - row "Heute Auf dem Board":
           - rowheader "Heute"
           - cell "Auf dem Board"
-        - row "Gestern oder früher In Meine Aufgaben":
+        - row "Gestern oder früher In „Alle Aufgaben“":
           - rowheader "Gestern oder früher"
-          - cell "In Meine Aufgaben"
-        - row "Morgen oder später In Meine Aufgaben":
+          - cell "In „Alle Aufgaben“"
+        - row "Morgen oder später In „Alle Aufgaben“":
           - rowheader "Morgen oder später"
-          - cell "In Meine Aufgaben"
-        - row "Kein Datum In Meine Aufgaben":
+          - cell "In „Alle Aufgaben“"
+        - row "Kein Datum In „Alle Aufgaben“":
           - rowheader "Kein Datum"
-          - cell "In Meine Aufgaben"
-    - paragraph: Planst du in Kan-Do eine Aufgabe für heute ein, setzt Kan-Do ihr Datum auf heute. Uhrzeit und Erinnerungen bleiben. Rückgängig im Hinweis stellt das alte Datum wieder her.
+          - cell "In „Alle Aufgaben“"
+    - paragraph: Planst du in Kan-do eine Aufgabe für heute ein, setzt Kan-do ihr Datum auf heute. Uhrzeit und Erinnerungen bleiben. Rückgängig im Hinweis stellt das alte Datum wieder her.
   - button "Zurück"
   - button "Verbinden"

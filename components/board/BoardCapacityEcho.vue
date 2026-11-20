@@ -4,7 +4,7 @@
 @category display
 @description The echo of Offen's "Kapazität" line on the place "Alle" (#354, #334 D6): the same wavy line and label with one muted sentence, shown at the foot of Offen while the real line (BoardCapacityDivider) is out of view. A click shows the real line.
 @usage Inside BoardCapacityDock only (desktop, the foot of Offen): shown while the day is full and the real line is outside the window.
-@avoid Not the line itself (BoardCapacityDivider, in the Offen list) and not an alert or a limit: it informs, nothing is blocked, no numbers of time and no room-left counter. Never on Heute, never over "Meine Aufgaben" and not on a phone (#566).
+@avoid Not the line itself (BoardCapacityDivider, in the Offen list) and not an alert or a limit: it informs, nothing is blocked, no numbers of time and no room-left counter. Never on Heute, never over "Alle Aufgaben" and not on a phone (#566).
 @responsibility
 - Reads the Offen column's own line (`useOpenCapacityLine`), so it follows the topic focus, the sorting and the stacks; it never calculates
 - Sentence: "Damit ist dein Tag vermutlich voll." while nothing lies under the line, else how many tasks do

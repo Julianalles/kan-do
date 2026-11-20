@@ -11,7 +11,7 @@ export const useNotionConfigStore = defineStore("notionConfig", () => {
   const config = ref<NotionConfig | null>(null);
   /**
    * Whether the last Notion fetch left "not planned" pages out, because Notion holds more than the limit (#357,
-   * `NOT_PLANNED_PAGE_LIMIT`): "Meine Aufgaben" then says so. Additive: older data has none and reads as `false`.
+   * `NOT_PLANNED_PAGE_LIMIT`): "Alle Aufgaben" then says so. Additive: older data has none and reads as `false`.
    */
   const notPlannedLimited = ref(false);
 

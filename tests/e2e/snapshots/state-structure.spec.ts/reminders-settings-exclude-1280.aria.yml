@@ -1,6 +1,6 @@
 - region "Listen":
   - heading "Listen" [level=2]
-  - list "Erinnerungen-Listen":
+  - list "Listen aus Apple Erinnerungen":
     - listitem:
       - text: Zuhause Wird nicht gelesen
       - radiogroup "Zuhause zählt als":
@@ -8,7 +8,7 @@
         - radio "Aktivität"
         - radio "Aus" [checked]
       - group "Zuhause nicht mehr lesen?":
-        - paragraph: Zuhause nicht mehr lesen? 3 Aufgaben verlassen Kan-Do, 3 davon stehen heute auf dem Board. In Erinnerungen bleibt alles, wie es ist.
+        - paragraph: Zuhause nicht mehr lesen? 3 Aufgaben verlassen Kan-do, 3 davon stehen heute auf dem Board. In Apple Erinnerungen bleibt alles, wie es ist.
         - button "Nicht mehr lesen"
         - button "Abbrechen"
     - listitem:
@@ -23,28 +23,28 @@
         - radio "Thema"
         - radio "Aktivität"
         - radio "Aus" [checked]
-  - paragraph: "Thema: worum es geht, etwa Steuer oder Wohnung. Aktivität: wie du arbeitest, etwa Anrufe. Aus: Kan-Do liest die Liste nicht, in Erinnerungen bleibt sie, wie sie ist."
+  - paragraph: "Thema: worum es geht, etwa Steuer oder Wohnung. Aktivität: wie du arbeitest, etwa Anrufe. Aus: Kan-do liest die Liste nicht, in Apple Erinnerungen bleibt sie, wie sie ist."
 - region "Heute":
   - heading "Heute" [level=2]
-  - paragraph: Das Datum in Erinnerungen entscheidet, was heute auf dein Board kommt.
+  - paragraph: Das Datum in Apple Erinnerungen entscheidet, was heute auf dein Board kommt.
   - table "Datum und Board":
     - caption: Datum und Board
     - rowgroup:
       - row "Heute Auf dem Board":
         - rowheader "Heute"
         - cell "Auf dem Board"
-      - row "Gestern oder früher In Meine Aufgaben":
+      - row "Gestern oder früher In „Alle Aufgaben“":
         - rowheader "Gestern oder früher"
-        - cell "In Meine Aufgaben"
-      - row "Morgen oder später In Meine Aufgaben":
+        - cell "In „Alle Aufgaben“"
+      - row "Morgen oder später In „Alle Aufgaben“":
         - rowheader "Morgen oder später"
-        - cell "In Meine Aufgaben"
-      - row "Kein Datum In Meine Aufgaben":
+        - cell "In „Alle Aufgaben“"
+      - row "Kein Datum In „Alle Aufgaben“":
         - rowheader "Kein Datum"
-        - cell "In Meine Aufgaben"
-  - paragraph: Planst du in Kan-Do eine Aufgabe für heute ein, setzt Kan-Do ihr Datum auf heute. Uhrzeit und Erinnerungen bleiben. Rückgängig im Hinweis stellt das alte Datum wieder her.
+        - cell "In „Alle Aufgaben“"
+  - paragraph: Planst du in Kan-do eine Aufgabe für heute ein, setzt Kan-do ihr Datum auf heute. Uhrzeit und Erinnerungen bleiben. Rückgängig im Hinweis stellt das alte Datum wieder her.
 - region "Zugriff":
   - heading "Zugriff" [level=2]
-  - paragraph: Kan-Do darf auf Erinnerungen zugreifen.
+  - paragraph: Kan-do darf auf Apple Erinnerungen zugreifen.
   - button "Systemeinstellungen öffnen"
   - button "Trennen"

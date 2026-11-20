@@ -1,5 +1,5 @@
 /**
- * The rule of the drag between "Meine Aufgaben" and Offen (#355): what a drop means, and which cards the side takes.
+ * The rule of the drag between "Alle Aufgaben" and Offen (#355): what a drop means, and which cards the side takes.
  */
 import { describe, it, expect } from 'vitest'
 import { TaskStatus } from '~/types/taskStatus'
@@ -21,7 +21,7 @@ describe('resolvePlanDrop', () => {
     ['on its own slot', held(), held(), 'back'],
     ['on the drop zone of another column', held(TaskStatus.Open), dropZone(TaskStatus.Done), 'back'],
     ['sorted into another column', held(TaskStatus.Waiting), null, 'back'],
-  ] as const)('a "Meine Aufgaben" card %s: %s', (_label, source, target, expected) => {
+  ] as const)('a "Alle Aufgaben" card %s: %s', (_label, source, target, expected) => {
     expect(resolvePlanDrop(source, target)).toBe(expected)
   })
 

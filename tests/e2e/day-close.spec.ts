@@ -209,14 +209,14 @@ test.describe('Day close stage (#480)', () => {
     await page.waitForTimeout(600)
     expect(await page.evaluate(() => document.activeElement === document.body)).toBe(false)
 
-    // They are in "Alle", under "Meine Aufgaben"
+    // They are in "Alle", under "Alle Aufgaben"
     await goToPlace(page, 'Alle')
     for (const title of ['Konzept ausarbeiten', 'Dokumentation lesen', 'Review schreiben', 'Blocker klären']) {
       await expect(page.locator('[data-not-planned-id]', { hasText: title })).toHaveCount(1)
     }
   })
 
-  test('the next morning: the panel "Gestern auf dem Board" is there, no notice, no second fresh start, the recap still lists what was left', async ({ page }) => {
+  test('the next morning: the panel "Zuletzt geplant und nicht erledigt" is there, no notice, no second fresh start, the recap still lists what was left', async ({ page }) => {
     await page.goto('/tasks')
     await openDayClose(page)
     await doneButton(page).click()
@@ -238,7 +238,7 @@ test.describe('Day close stage (#480)', () => {
     await expect(page.getByTestId('new-day-note')).toHaveCount(0)
 
     // Jetzt, Offen and Wartet of the closed day: one panel (#469)
-    await expect(page.getByRole('heading', { level: 3, name: /^Gestern auf dem Board \d+$/ })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 3, name: /^Zuletzt geplant und nicht erledigt \d+$/ })).toBeVisible()
     const group = page.locator('[data-not-planned-id]')
     for (const title of ['Konzept ausarbeiten', 'Dokumentation lesen', 'Review schreiben', 'Blocker klären']) {
       await expect(group.filter({ hasText: title })).toHaveCount(1)

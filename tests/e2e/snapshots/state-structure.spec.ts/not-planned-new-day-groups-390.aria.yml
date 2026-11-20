@@ -1,8 +1,8 @@
-- region "Meine Aufgaben":
+- region "Alle Aufgaben":
   - heading "Alle" [level=2]
   - button "Aufgabe hinzufügen"
-  - group "Gestern auf dem Board 4":
-    - heading "Gestern auf dem Board 4" [level=3]
+  - group "Zuletzt geplant und nicht erledigt 4":
+    - heading "Zuletzt geplant und nicht erledigt 4" [level=3]
     - list:
       - listitem:
         - group "Präsentation vorbereiten":

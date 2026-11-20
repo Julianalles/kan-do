@@ -2,7 +2,7 @@
 @component BoardNotPlannedItem
 @kind component
 @category layout
-@description One card under "Meine Aufgaben" on the place "Alle" (#354, #355): the task's card, the arrow that plans it for today, and its registration with the board's drag so it can be carried onto Offen
+@description One card under "Alle Aufgaben" on the place "Alle" (#354, #355): the task's card, the arrow that plans it for today, and its registration with the board's drag so it can be carried onto Offen
 @usage Rendered by BoardNotPlanned, one per task, as the list's `li` (one root node per list item)
 @avoid Not a board card: no status, no card menu, no delete key, never a drop target for another card (SortableTaskWrapper is the card of a column). Not for a static list of cards (trash, recap).
 @responsibility
@@ -153,7 +153,7 @@ function openFromKey(event: KeyboardEvent) {
   display: none;
 }
 
-/* Desktop with a pointer (#373): hidden at rest, as "Nicht heute" beside an Offen card (SortableTaskWrapper); shown
+/* Desktop with a pointer (#373): hidden at rest, as "Nicht für heute planen" beside an Offen card (SortableTaskWrapper); shown
    under the pointer and on keyboard focus of the card or the arrow. Opacity, not display: the arrow stays in the tab
    order. A touch-only device keeps it visible (no hover to find it with); a phone has it in the card's corner. */
 @media (--desktop) and (hover: hover) {

@@ -1,6 +1,6 @@
-# Contributing to Kan-Do
+# Contributing to Kan-do
 
-Kan-Do is a focus layer for one person's day: a today-only board (Offen, Jetzt, Wartet, Erledigt) on top of Notion or local tasks, as a Nuxt web app and a Tauri macOS desktop app. This file gets you from clone to merged pull request. It points at the sources of truth instead of copying them.
+Kan-do is a focus layer for one person's day: a today-only board (Offen, Jetzt, Wartet, Erledigt) on top of Notion or local tasks, as a Nuxt web app and a Tauri macOS desktop app. This file gets you from clone to merged pull request. It points at the sources of truth instead of copying them.
 
 ## Contents
 
@@ -192,7 +192,7 @@ Build-time environment variables (read in `nuxt.config.ts`):
 | `BASE_URL` | `/` | App base path (trailing slash matters) | `/my-app/` |
 | `NITRO_PRESET` | `static` (`vercel` on Vercel) | Build preset | `node-server` |
 | `NUXT_PUBLIC_FEEDBACK_RELAY_URL` | production relay (`/api/feedback` in dev) | Where the feedback dialog posts reports; empty switches the relay off (a fork should set it empty or to its own relay) | `https://example.org/api/feedback` |
-| `APP_TITLE` | `kan-do` | Browser title | `My Kan-Do` |
+| `APP_TITLE` | `kan-do` | Browser title | `My Kan-do` |
 | `APP_LANG` | `de` | HTML `lang` attribute | `en` |
 
 Scenarios:

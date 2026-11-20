@@ -12,9 +12,9 @@
 -->
 <dict>
   <key>NSRemindersFullAccessUsageString</key>
-  <string>Kan-Do reads your Reminders, shows today's on the board and sets the date when you plan something for today.</string>
+  <string>Kan-do reads your Reminders, shows today's on the board and sets the date when you plan something for today.</string>
   <key>NSRemindersUsageDescription</key>
-  <string>Kan-Do reads your Reminders, shows today's on the board and sets the date when you plan something for today.</string>
+  <string>Kan-do reads your Reminders, shows today's on the board and sets the date when you plan something for today.</string>
   <key>CFBundleLocalizations</key>
   <array>
     <string>en</string>

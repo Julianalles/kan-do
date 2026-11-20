@@ -573,10 +573,10 @@ test.describe('Notion-owned topics', () => {
         await expect(name).toBeDisabled()
         await expect(editor(page).getByTestId('topic-name-gate')).toContainText('Der Name kommt aus Notion')
         await expect(name).toHaveAttribute('aria-describedby', /.+/)
-        await expect(editor(page).getByTestId('topic-color-hint')).toContainText('Ohne eigene Wahl zeigt Kan-Do die Farbe aus Notion (Blau)')
+        await expect(editor(page).getByTestId('topic-color-hint')).toContainText('Ohne eigene Wahl zeigt Kan-do die Farbe aus Notion (Blau)')
 
         await editor(page).getByTestId('topic-hue-red').click()
-        await expect(editor(page).getByTestId('topic-color-hint')).toContainText('Gilt nur in Kan-Do, Notion behält Blau')
+        await expect(editor(page).getByTestId('topic-color-hint')).toContainText('Gilt nur in Kan-do, Notion behält Blau')
         await editor(page).getByTestId('topic-save').click()
         await expect(editor(page)).toHaveCount(0)
 
@@ -638,7 +638,7 @@ test.describe('inherited colour in the topic editor (#144)', () => {
     await seedLocalBoard(context, [base({ id: 'ih-1', title: 'Entwurf', status: 0, topic: 'Design', topicColorCode: 'blue' })])
     await page.goto('/tasks/ih-1')
     await openEditorFromPicker(page, 'Design')
-    await expect(editor(page).getByTestId('topic-color-hint')).toContainText('Ohne eigene Wahl zeigt Kan-Do die Farbe der Aufgaben (Blau)')
+    await expect(editor(page).getByTestId('topic-color-hint')).toContainText('Ohne eigene Wahl zeigt Kan-do die Farbe der Aufgaben (Blau)')
     await editor(page).getByTestId('topic-hue-red').click()
     await expect(editor(page).getByTestId('topic-color-hint')).toHaveCount(0)
   })

@@ -53,7 +53,7 @@ test.describe('Done day of a task marked done late (kd#131)', () => {
     await openSheet(page, baseURL, 'late-1')
     await expect(row(page)).toContainText('Erledigt am')
     await expect(trigger(page)).toHaveText(longDate(dayKeyDaysAgo(0)))
-    // A Local task holds the day itself: no "only in Kan-Do" note
+    // A Local task holds the day itself: no "only in Kan-do" note
     await expect(page.getByTestId('done-day-local-only')).toHaveCount(0)
   })
 

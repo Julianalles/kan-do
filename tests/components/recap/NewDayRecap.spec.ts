@@ -91,14 +91,14 @@ describe('NewDayRecap', () => {
     expect(page()).toBeNull()
   })
 
-  it('is a non-modal region named "Kurzer Rückblick" on the photo, with the partial sentence', async () => {
+  it('is a non-modal region named "Tagesrückblick" on the photo, with the partial sentence', async () => {
     await open([doneAt(1, 'a'), doneAt(1, 'b'), task('o', TaskStatus.Open), task('w', TaskStatus.Waiting), task('j', TaskStatus.Progress)])
     const stage = page()!
     expect(stage.getAttribute('role')).toBe('region')
     expect(document.querySelector('[role="dialog"]')).toBeNull()
     const title = q('[data-slot="title"]')
     expect(stage.getAttribute('aria-labelledby')).toBe(title.id)
-    expect(title.textContent).toContain('Kurzer Rückblick')
+    expect(title.textContent).toContain('Tagesrückblick')
     expect(q('[data-testid="recap-summary"]').textContent).toBe('Du hast gestern 2 von 5 Aufgaben erledigt.')
     expect(q('[data-testid="recap-photo"]').getAttribute('alt')).toBe('')
     expect(stage.parentElement).toBe(document.getElementById('recap-stage-host'))
@@ -146,7 +146,7 @@ describe('NewDayRecap', () => {
   it('has English copy', async () => {
     setTestLocale('en')
     await open([doneAt(3), task('o', TaskStatus.Open)])
-    expect(q('[data-slot="title"]').textContent).toContain('Quick look back')
+    expect(q('[data-slot="title"]').textContent).toContain('Daily recap')
     expect(q('[data-testid="recap-summary"]').textContent).toBe('You got 1 of 2 tasks done on Monday.')
   })
 
