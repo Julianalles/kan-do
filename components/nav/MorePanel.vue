@@ -207,7 +207,6 @@ import { integrationLabel, repairRouteOf } from '~/lib/taskSources'
 import type { SourceProblem } from '~/lib/integrationHealth'
 import { isTauri } from '~/utils/isTauri'
 import { BREAKPOINT_QUERIES } from '~/lib/breakpoints';
-
 import { sourceCompound } from '~/utils/sourceCompound'
 
 defineOptions({ name: 'MorePanel' })

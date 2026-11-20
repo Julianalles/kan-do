@@ -85,7 +85,6 @@ import { useI18n } from 'vue-i18n'
 import type { DropdownMenuItem } from '@nuxt/ui'
 import type { ConnectedSourceRow } from '~/composables/useSourceList'
 import type { SourceId } from '~/types/taskSource'
-
 import { sourceCompound } from '~/utils/sourceCompound'
 
 defineOptions({ name: 'SourceRow' })

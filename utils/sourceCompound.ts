@@ -5,5 +5,5 @@
  * locales and one-word names stay as they are. Use it only for a message that glues the name to a noun.
  */
 export function sourceCompound(name: string, locale: string): string {
-  return locale.startsWith('de') ? name.trim().replace(/\s+/g, '-') : name
+  return (locale === 'de' || locale.startsWith('de-')) ? name.trim().replace(/\s+/g, '-') : name
 }

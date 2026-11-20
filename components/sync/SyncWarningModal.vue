@@ -21,7 +21,6 @@ import { ICONS } from '~/lib/icons'
 import { integrationLabel, sourceHomeUrl } from '~/lib/taskSources'
 import { useNotionConfigStore } from '~/store/notionConfig'
 import type { SourceId } from '~/types/taskSource'
-
 import { sourceCompound } from '~/utils/sourceCompound'
 
 defineOptions({ name: 'SyncWarningModal' })
