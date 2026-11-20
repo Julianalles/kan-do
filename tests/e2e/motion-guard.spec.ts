@@ -29,10 +29,6 @@ type Flow = { name: string, url: string, seed?: 'board' | 'none', prepare?: (con
 const READS_A_STEP_MS = 450
 /** The back button's label changes between the first step ("Zurück zu Einstellungen", "Zurück zur Auswahl") and the later ones ("Zurück"): its box changes width in one frame, a label swap and not a move. */
 const SETUP_BACK_LABEL: AllowedJump = { match: /setup-back/, issue: '#652', why: 'the label of the back button changes with the step, so its width does (not a move)' }
-/** The Notion mapping step lays its rows out once the schema has been read and auto-mapped, and the rows below the new ones move 241 px in one frame (inside the pane, whose own height eases). */
-const MAPPER_ROWS: AllowedJump = { match: /Aufgewendete Zeit|Erledigungsdatum/, issue: '#667', why: 'the mapping step\'s rows re-lay in one frame when the auto-mapping fills them in (PropertyMapper)' }
-/** The welcome page ends the flow: the page box changes height by 21 px in one frame at the done beat. */
-const WELCOME_DONE_BEAT: AllowedJump = { match: /^div#__nuxt|^div#teleports|^div$|welcome-root/, issue: '#668', why: 'the done beat changes the welcome page height by 21 px in one frame' }
 const SETUP_PAGE_SCROLL: AllowedJump = { match: /flow-root|brand-flight/, issue: '#649', why: 'the pane has no scroll area of its own now, so a tall step makes the page scroll; when the done beat shortens the page the sampler (page y = rect + scrollY) reads the scroll reset as a jump of the pane block and of the fixed brand flight (both glide on screen)' }
 
 /** The completion toast's viewport (the Nuxt UI toaster, `ol.fixed`) changes height by 122 px in one frame when the toast arrives; the toast itself slides in. Found while #661 left the list; #675. */
@@ -49,6 +45,7 @@ const FLOWS: Flow[] = [
     name: 'welcome: start -> samples -> back, then the Notion steps',
     seed: 'none',
     url: '/welcome',
+    viewport: { width: 1280, height: 2000 }, // the last step makes the page 1521 px tall: at 1500 px a driver that scrolls Verbinden into view moves every page box by the 21 px overflow in the frame the done beat appears (236 px in a 720 px window); the beat itself keeps the page height (#668)
     run: async (page) => {
       await page.getByTestId('welcome-choice-samples').click()
       await expect(page.getByTestId('samples-setup-flow')).toBeVisible()
@@ -59,7 +56,7 @@ const FLOWS: Flow[] = [
       await page.getByRole('button', { name: 'Mit Notion einrichten' }).click()
       await completeNotionWizard(page, undefined, { pauseMs: READS_A_STEP_MS })
     },
-    jumps: [SETUP_PAGE_SCROLL, SETUP_BACK_LABEL, MAPPER_ROWS, WELCOME_DONE_BEAT],
+    jumps: [SETUP_PAGE_SCROLL, SETUP_BACK_LABEL],
   },
   {
     name: 'settings: the Notion setup stage from the sources tab to the connection (#652)',
@@ -71,7 +68,7 @@ const FLOWS: Flow[] = [
       await completeNotionWizard(page, undefined, { pauseMs: READS_A_STEP_MS })
       await expect(page.getByTestId('source-row-notion')).toBeVisible()
     },
-    jumps: [SETUP_PAGE_SCROLL, SETUP_BACK_LABEL, MAPPER_ROWS],
+    jumps: [SETUP_PAGE_SCROLL, SETUP_BACK_LABEL],
   },
   {
     name: 'Mehr panel: open and close',

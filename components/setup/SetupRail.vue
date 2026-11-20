@@ -3,13 +3,14 @@
 @kind component
 @category navigation
 @description Guide rail of a multi-step setup on a page (#43): a vertical rail with one-line help at md and up, a label
-  plus "n / m" and a progress bar below md. Non-interactive: the steps validate in order.
+  plus "n / m", a progress bar and the help below md. Non-interactive: the steps validate in order.
 @usage <SetupRail :steps="[{ key, label }]" :current="2" :help="text" :label="t('notion.modal.stepsLabel')" />
 @avoid Progress of a multi-step setup page; not a tab bar and not interactive.
 @responsibility
 - Shows done, current and todo steps (state in data-state, aria-current on the current one, a screen-reader "done" on finished ones)
 - Pattern: step progress, new (guide rail). Replaces the dialog stepper of the Notion modal for the welcome page only
 - `helpLines` (the shell passes 4) reserves that many lines for the help at md and up, so a longer or shorter help never changes the rail height and moves the footer (#649)
+- Below md the step's help sits under the bar too (#665: on the Notion token step it is the privacy line); it reserves up to three lines so the pane never moves with the help's length
 - Reduced motion: dot, line and bar changes are instant
 -->
 <template>
@@ -59,20 +60,25 @@
           </span>
         </li>
       </ol>
-      <p
-        v-if="help"
-        class="mt-6 border-t border-default pt-4 text-body text-muted"
-        :style="helpLines ? { minHeight: `calc(${helpLines}lh + 1rem + 1px)` } : undefined"
-        aria-live="polite"
-      >{{ help }}</p>
     </div>
+
+    <!-- One help for both layouts (#665: below md it sits under the bar, from md under the rail; one element so a text query finds it once). It reserves lines so a longer or shorter help never moves what sits under it: four from md, three below -->
+    <p
+      v-if="help"
+      class="mt-2 min-h-[calc(var(--help-lines-phone,0)*1lh)] text-sm text-muted md:mt-6 md:min-h-[calc(var(--help-lines,0)*1lh+1rem+1px)] md:border-t md:border-default md:pt-4 md:text-body"
+      :style="helpLines ? { '--help-lines': helpLines, '--help-lines-phone': phoneHelpLines } : undefined"
+      aria-live="polite"
+      data-testid="setup-progress-help"
+    >{{ help }}</p>
   </div>
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
+
 defineOptions({ name: 'SetupRail' });
 
-defineProps<{
+const props = defineProps<{
   steps: { key: string; label: string }[];
   /** Zero-based index of the current step */
   current: number;
@@ -82,6 +88,9 @@ defineProps<{
   label: string;
   doneLabel: string;
 }>();
+
+/** The phone help is smaller text on a narrow column: reserve fewer lines than md and up (measured at 390 px) */
+const phoneHelpLines = computed(() => Math.min(props.helpLines ?? 0, 3));
 </script>
 
 <style scoped>
