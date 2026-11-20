@@ -209,6 +209,8 @@ One answer per state, on every control, whoever built it.
 - **Groups of cards** collapse into a stack; no lines, boxes or tints around a group.
 - **Chrome:** one global app bar on every page. The board has no toolbar of its own, and the bar is the way between pages. A step inside a flow (the welcome steps) and a deeper route (a settings sub-page) go back with the back button, not with the bar: see "Step back" under Components.
 
+**The One Stage Rule.** The day close and the recap are one stage: the title anchored under the app bar, one 44 rem column, the footer sheet docked at the foot with the content scrolling above it (the way out soft, the main button solid without an arrow, on top on a phone); the day close enters with the photo coming down over the board and both leave with it lifting (user, 2026-11-20, #612, #580).
+
 ## Components
 
 Nuxt UI components first, themed in `app.config.ts`; a shared primitive in `components/ui/` from three call sites on; custom components for the board domain. One line per user task; how each looks, with every variant and state, is on `/ui`.
@@ -222,7 +224,7 @@ Nuxt UI components first, themed in `app.config.ts`; a shared primitive in `comp
 - **Show a status or count:** a neutral `UBadge` in the label role, one size; priority "Hoch" is the one tinted badge on a card. A topic is muted text with its mark, never a chip.
 - **Head a section:** `SectionHeader` (roles: hero, display, headline, sub and the 12 px label) and `PageHeader` (the page title); no hand-written heading classes.
 - **Hold content as a surface:** the sheet. `TaskCard` on the board; `PageSheet` for a page (settings section, statistics tile, welcome) takes its radius and resting shadow; a page's intro and a side note (the trash note) take none ("Flat intro, lifted work"). A card in a page (the trash entries) is a sheet already and sits on the canvas.
-- **The task card:** topic first, the title below it, the footer with the source icon first (when the card names its source), then the timebox chip, the carried-over dots and priority (#471). The Jetzt card is a regular card: focus comes from the board stepping back, not from the card changing.
+- **The task card:** topic first, the title below it, the footer with the source icon first (when the card names its source: only where the board has two or more sources, the same in every column and on "Alle", #609), then the timebox chip, the carried-over dots and priority (#471). The Jetzt card is a regular card: focus comes from the board stepping back, not from the card changing.
 - **The task sheet:** details and the add form are one sheet, opened the same way from the board and from statistics. A task's detail on desktop is a card-sized sheet that grows out of its card and folds back into it (720 px wide, 32 px corners, title across the top, the rows left and the notes right, Metadaten and Löschen on the last line; `TaskMorphShell`, #468); the add form on desktop is a side sheet; on a phone both are a bottom drawer.
 - **Ask in a dialog:** `AppDialog` in three widths; `ResponsiveOverlay` when it becomes a drawer on a phone. For a question or a short task the user returns from, never for a process ("A process is a page"); one overlay at a time.
 - **Ask about one card:** on the card (`TaskTimeboxNudge`, the new-card flow): non-modal, self-dismissing, ignoring it loses nothing.
