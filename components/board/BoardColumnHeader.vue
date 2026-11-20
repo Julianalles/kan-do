@@ -32,7 +32,7 @@
       :aria-label="titleSuffix ? title + titleSuffix : undefined"
       :class="{ 'column-header__marked': marker !== undefined, 'column-header__marked--hidden': marker === 'hidden', 'column-header__fading': outgoingTitle !== null }"
     >
-      <span ref="titleEl" class="relative">{{ title }}<span v-if="titleSuffix" class="inline-block w-0" aria-hidden="true">{{ titleSuffix }}</span></span>
+      <span ref="titleEl">{{ title }}<span v-if="titleSuffix" class="inline-block w-0" aria-hidden="true">{{ titleSuffix }}</span></span>
       <!-- The title of the place just left, fading out over the new one (#375); never read: the heading has one name -->
       <span v-if="outgoingTitle !== null" ref="outgoingEl" class="column-header__outgoing" aria-hidden="true">{{ outgoingTitle }}</span>
     </h2>
