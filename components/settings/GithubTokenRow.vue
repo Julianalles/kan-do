@@ -24,20 +24,23 @@
 
     <!-- Saved -->
     <div v-if="state === 'saved'" class="flex flex-wrap items-center gap-x-4 gap-y-2" data-testid="github-token-saved">
-      <p class="flex items-center gap-2 text-sm">
+      <div class="flex items-center gap-2 text-sm">
         <span class="font-mono text-muted" aria-hidden="true">{{ masked }}</span>
         <span class="sr-only">{{ t('settings.github.savedAria', { last4: row.last4 ?? '' }) }}</span>
-        <LoadingLine v-if="row.checking">{{ t('settings.github.checking') }}</LoadingLine>
-        <span v-else class="flex items-center gap-1 text-muted" role="status">
-          <UIcon
-            :name="row.valid ? 'i-ph-check-circle' : 'i-ph-key'"
-            :class="row.valid ? 'text-success' : 'text-muted'"
-            class="size-4"
-            aria-hidden="true"
-          />
-          {{ row.valid ? t('settings.github.valid') : t('settings.github.stored') }}
+        <!-- One live region stays mounted; only its content swaps, so the result of a check is announced -->
+        <span role="status">
+          <LoadingLine v-if="row.checking" :announce="false">{{ t('settings.github.checking') }}</LoadingLine>
+          <span v-else class="flex items-center gap-1 text-muted">
+            <UIcon
+              :name="row.valid ? 'i-ph-check-circle' : 'i-ph-key'"
+              :class="row.valid ? 'text-success' : 'text-muted'"
+              class="size-4"
+              aria-hidden="true"
+            />
+            {{ row.valid ? t('settings.github.valid') : t('settings.github.stored') }}
+          </span>
         </span>
-      </p>
+      </div>
       <div class="flex items-center gap-1">
         <UButton
           variant="ghost"

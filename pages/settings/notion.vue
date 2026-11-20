@@ -37,6 +37,7 @@
       <UTabs
         v-else
         ref="tabsRef"
+        data-testid="notion-settings-tabs"
         v-model="activeTab"
         :items="tabItems"
         variant="link"

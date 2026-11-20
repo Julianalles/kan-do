@@ -54,12 +54,6 @@
 }
 
 @layer components {
-  /* A sticky element inside a sub-page sticks below the desktop bar and its veil, so the veil never washes it. The
-     PageHeader scrolls away with the page (#615), so it no longer takes part in the offset. */
-  .sticky-below-page-header {
-    top: calc(var(--app-bar-offset-top) + var(--app-bar-veil-hang));
-  }
-
   .app-nav {
     /* One timeline for everything that changes the pill's layout (#583); read by AppNav.vue as well */
     --nav-move: var(--duration-place);
