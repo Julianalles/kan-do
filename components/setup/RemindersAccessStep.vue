@@ -3,18 +3,19 @@
 @kind block
 @category input
 @description Step 1 of the Apple Reminders setup (#552): says what macOS will ask and what Kan-Do does and never does with the access, before the prompt appears, then shows the answer (asking, granted with the list count, granted but the lists unreadable, denied with the way out).
-@usage <RemindersAccessStep :access="access" :list-count="n" :lists-failed="failed" @open-settings="…" /> inside RemindersSetupFlow; the buttons "Zugriff erlauben", "Weiter" and "Erneut prüfen" are the flow's one primary button
+@usage <RemindersAccessStep :access="access" :list-count="n" :lists-failed="failed" @open-settings="…" /> as the first step's pane content of RemindersSetupFlow (SetupShell; no heading and no scroll area of its own, the rail names the step); the buttons "Zugriff erlauben", "Weiter" and "Erneut prüfen" are the flow's one primary button
 @avoid Only the access step of the Reminders setup; the later state of the permission is the "Zugriff" section of /settings/reminders.
 @responsibility
 - Before the click: the intro, the preview of the macOS dialog (its usage string, until the Mac check of slice 1 confirms the real wording), and three facts (why full access, what Kan-Do never does, how to revoke)
-- After it: one live region (`aria-live="polite"`) at the top of the step holds the waiting line, the granted line ("Kan-Do sieht {n} Listen") or the denied panel, so the answer is never below the fold of the step's scroll box; once access is granted the announcement folds away
+- After it: one live region (`aria-live="polite"`) at the top of the step holds the waiting line, the granted line ("Kan-Do sieht {n} Listen") or the denied panel, so the answer is always at the top of the pane; once access is granted the announcement folds away
 - Granted but the lists could not be read: a warning alert instead of the count (never "0 Listen"); the flow's primary button reads "Erneut versuchen"
 - Denied (also restricted or write-only): a warning alert with how to allow it and "Systemeinstellungen öffnen" (the flow's primary button reads "Erneut prüfen"); never a toast, never a dialog
 - Pattern: explain before a system permission, new (no existing pattern; searched: permission, access, prompt); denied panel aligned with the disconnect dialog's UAlert
 -->
 <template>
-  <div class="flex flex-col gap-5" data-testid="reminders-access-step">
-    <div aria-live="polite" class="flex flex-col gap-3">
+  <div class="flex flex-col" data-testid="reminders-access-step">
+    <!-- The live region stays mounted (it announces the answer); its gap to the intro exists only while it holds something, so the first line of the pane aligns with the rail -->
+    <div aria-live="polite" class="flex flex-col gap-3" :class="{ 'has-[*]:mb-5': access !== 'granted' }">
       <p v-if="access === 'asking'" class="text-body text-muted" data-testid="reminders-asking">
         {{ t('onboarding.flow.reminders.access.waiting') }}
       </p>
@@ -48,7 +49,7 @@
         </template>
       </UAlert>
     </div>
-    <template v-if="access !== 'granted'">
+    <div v-if="access !== 'granted'" class="flex flex-col gap-5">
       <p class="text-body text-default">{{ t('onboarding.flow.reminders.access.intro') }}</p>
 
       <div class="flex items-start gap-3 rounded-lg bg-muted p-4" data-testid="reminders-prompt-preview">
@@ -67,7 +68,7 @@
           <dd class="text-body text-muted">{{ t(`onboarding.flow.reminders.access.${fact}Text`) }}</dd>
         </div>
       </dl>
-    </template>
+    </div>
 
   </div>
 </template>

@@ -1,26 +1,26 @@
 - region "Mit Erinnerungen verbinden":
-  - button "Zurück"
   - list "Fortschritt der Einrichtung":
     - listitem: Zugriff (abgeschlossen)
     - listitem: Listen (abgeschlossen)
     - listitem: Heute
   - paragraph: So nutzt Kan-Do das Datum.
-  - heading "Heute" [level=2]
-  - paragraph: Das Datum in Erinnerungen entscheidet, was heute auf dein Board kommt.
-  - table "Datum und Board":
-    - caption: Datum und Board
-    - rowgroup:
-      - row "Heute Auf dem Board":
-        - rowheader "Heute"
-        - cell "Auf dem Board"
-      - row "Gestern oder früher In Meine Aufgaben":
-        - rowheader "Gestern oder früher"
-        - cell "In Meine Aufgaben"
-      - row "Morgen oder später In Meine Aufgaben":
-        - rowheader "Morgen oder später"
-        - cell "In Meine Aufgaben"
-      - row "Kein Datum In Meine Aufgaben":
-        - rowheader "Kein Datum"
-        - cell "In Meine Aufgaben"
-  - paragraph: Planst du in Kan-Do eine Aufgabe für heute ein, setzt Kan-Do ihr Datum auf heute. Uhrzeit und Erinnerungen bleiben. Rückgängig im Hinweis stellt das alte Datum wieder her.
+  - group "Heute":
+    - paragraph: Das Datum in Erinnerungen entscheidet, was heute auf dein Board kommt.
+    - table "Datum und Board":
+      - caption: Datum und Board
+      - rowgroup:
+        - row "Heute Auf dem Board":
+          - rowheader "Heute"
+          - cell "Auf dem Board"
+        - row "Gestern oder früher In Meine Aufgaben":
+          - rowheader "Gestern oder früher"
+          - cell "In Meine Aufgaben"
+        - row "Morgen oder später In Meine Aufgaben":
+          - rowheader "Morgen oder später"
+          - cell "In Meine Aufgaben"
+        - row "Kein Datum In Meine Aufgaben":
+          - rowheader "Kein Datum"
+          - cell "In Meine Aufgaben"
+    - paragraph: Planst du in Kan-Do eine Aufgabe für heute ein, setzt Kan-Do ihr Datum auf heute. Uhrzeit und Erinnerungen bleiben. Rückgängig im Hinweis stellt das alte Datum wieder her.
+  - button "Zurück"
   - button "Verbinden"

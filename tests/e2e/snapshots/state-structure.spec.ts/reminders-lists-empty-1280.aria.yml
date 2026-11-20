@@ -1,31 +1,31 @@
 - region "Mit Erinnerungen verbinden":
-  - button "Zurück"
   - list "Fortschritt der Einrichtung":
     - listitem: Zugriff (abgeschlossen)
     - listitem: Listen
     - listitem: Heute
   - paragraph: Du änderst das später in den Einstellungen.
-  - heading "Deine Listen" [level=2]
-  - paragraph: Was bedeutet jede Liste für dich? Standard ist Thema. Listen, die du nicht brauchst, stellst du auf Aus.
-  - status: Alle Listen sind aus. Stelle mindestens eine auf Thema oder Aktivität.
-  - paragraph: "Thema: worum es geht, etwa Steuer oder Wohnung. Aktivität: wie du arbeitest, etwa Anrufe. Aus: Kan-Do liest die Liste nicht, in Erinnerungen bleibt sie, wie sie ist."
-  - list "Erinnerungen-Listen":
-    - listitem:
-      - text: Zuhause Wird nicht gelesen
-      - radiogroup "Zuhause zählt als":
-        - radio "Thema"
-        - radio "Aktivität"
-        - radio "Aus" [checked]
-    - listitem:
-      - text: Arbeit Wird nicht gelesen
-      - radiogroup "Arbeit zählt als":
-        - radio "Thema"
-        - radio "Aktivität"
-        - radio "Aus" [checked]
-    - listitem:
-      - text: Privat Wird nicht gelesen
-      - radiogroup "Privat zählt als":
-        - radio "Thema"
-        - radio "Aktivität"
-        - radio "Aus" [checked]
+  - group "Listen":
+    - paragraph: Was bedeutet jede Liste für dich? Standard ist Thema. Listen, die du nicht brauchst, stellst du auf Aus.
+    - status: Alle Listen sind aus. Stelle mindestens eine auf Thema oder Aktivität.
+    - paragraph: "Thema: worum es geht, etwa Steuer oder Wohnung. Aktivität: wie du arbeitest, etwa Anrufe. Aus: Kan-Do liest die Liste nicht, in Erinnerungen bleibt sie, wie sie ist."
+    - list "Erinnerungen-Listen":
+      - listitem:
+        - text: Zuhause Wird nicht gelesen
+        - radiogroup "Zuhause zählt als":
+          - radio "Thema"
+          - radio "Aktivität"
+          - radio "Aus" [checked]
+      - listitem:
+        - text: Arbeit Wird nicht gelesen
+        - radiogroup "Arbeit zählt als":
+          - radio "Thema"
+          - radio "Aktivität"
+          - radio "Aus" [checked]
+      - listitem:
+        - text: Privat Wird nicht gelesen
+        - radiogroup "Privat zählt als":
+          - radio "Thema"
+          - radio "Aktivität"
+          - radio "Aus" [checked]
+  - button "Zurück"
   - button "Weiter" [disabled]

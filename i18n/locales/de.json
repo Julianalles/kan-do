@@ -1422,7 +1422,6 @@
           "todayNotion": "Danach richtest du Notion ein."
         },
         "access": {
-          "title": "Zugriff auf Erinnerungen",
           "intro": "Kan-Do liest deine Erinnerungen und zeigt die von heute auf dem Board. Dafür fragt macOS gleich nach deiner Erlaubnis.",
           "previewLabel": "Das siehst du gleich",
           "previewText": "„Kan-Do liest deine Erinnerungen, zeigt die von heute auf dem Board und setzt das Datum, wenn du etwas für heute einplanst.“",
@@ -1444,7 +1443,6 @@
           "deniedText": "Erlaube ihn in den Systemeinstellungen unter Datenschutz & Sicherheit › Erinnerungen. Danach prüft Kan-Do es noch einmal."
         },
         "lists": {
-          "title": "Deine Listen",
           "lead": "Was bedeutet jede Liste für dich? Standard ist Thema. Listen, die du nicht brauchst, stellst du auf Aus.",
           "groupLabel": "Erinnerungen-Listen",
           "choiceLabel": "{list} zählt als",
@@ -1459,7 +1457,6 @@
           "loading": "Listen werden geladen…"
         },
         "today": {
-          "title": "Heute",
           "lead": "Das Datum in Erinnerungen entscheidet, was heute auf dein Board kommt.",
           "tableLabel": "Datum und Board",
           "rowToday": "Heute",
