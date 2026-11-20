@@ -134,13 +134,13 @@
       "description": "“{running}” is running, “{waiting}” is waiting"
     },
     "focus": {
-      "trigger": "Focus",
-      "endNamed": "End focus: {topic}",
-      "chips": "Focus by topic",
+      "trigger": "Topic",
+      "endNamed": "Clear topic: {topic}",
+      "chips": "By topic",
       "chip": "{topic}, {n} task | {topic}, {n} tasks",
-      "pillLead": "Focus:",
+      "pillLead": "Topic:",
       "hidden": "{n} hidden",
-      "end": "End focus"
+      "end": "Clear topic"
     },
     "notPlanned": {
       "title": "My tasks",

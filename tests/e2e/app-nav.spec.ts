@@ -454,7 +454,7 @@ for (const { label, size } of VIEWPORTS) {
       expect(await page.evaluate(() => (window as unknown as { __lagging: string[] }).__lagging)).toEqual([])
     })
 
-    test('the panel holds the board controls only on the board, the rest on every page, and never Fokus', async ({ page }) => {
+    test('the panel holds the board controls only on the board, the rest on every page, and never Thema', async ({ page }) => {
       await page.goto('/tasks')
       let panel = await openMore(page)
       await expect(panel.getByRole('switch', { name: 'Karten stapeln' })).toBeVisible()
@@ -463,7 +463,7 @@ for (const { label, size } of VIEWPORTS) {
       await expect(panel.getByTestId('more-settings')).toBeVisible()
       await expect(panel.getByTestId('more-update')).toHaveCount(0) // the web build has no App-Update row
       await expect(panel.getByTestId('more-sync')).toBeVisible()
-      await expect(panel.getByText('Fokus')).toHaveCount(0)
+      await expect(panel.getByTestId('focus-trigger')).toHaveCount(0)
       await closeMore(page)
 
       for (const path of ['/statistics', '/trash', '/settings']) {

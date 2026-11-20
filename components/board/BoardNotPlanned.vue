@@ -27,6 +27,8 @@
     :inert="!active || undefined"
     data-testid="not-planned"
   >
+    <!-- The topic focus bar on the phone (#608), first in the page -->
+    <slot name="head" />
     <!-- The add button (#380): a task made on "Alle" is not planned and lands here, so the button sits where the task appears -->
     <BoardColumnHeader
       ref="headerRef"

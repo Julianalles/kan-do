@@ -28,6 +28,8 @@
     @mouseenter="handleMouseEnter"
     @mouseleave="handleMouseLeave"
   >
+    <!-- The topic focus bar on the phone (#608): the first item of the page, scrolls away with the list -->
+    <slot name="head" />
     <board-column-header
       ref="headerRef"
       :title="computedHeadline"

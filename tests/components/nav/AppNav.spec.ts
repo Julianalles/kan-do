@@ -24,7 +24,13 @@ vi.mock('~/composables/useNewDayRecap', async () => {
   recapFlag.ref = vueRef(false)
   return { recapOpen: recapFlag.ref }
 })
-vi.mock('~/composables/useDayClose', () => ({ useDayClose: () => ({ open: openDayClose }) }))
+// `isOpen` hides the topic funnel while day close shows (#608)
+const dayCloseOpenFlag = vi.hoisted(() => ({ ref: null as unknown as { value: boolean } }))
+vi.mock('~/composables/useDayClose', async () => {
+  const { ref: vueRef } = await import('vue')
+  dayCloseOpenFlag.ref = vueRef(false)
+  return { useDayClose: () => ({ open: openDayClose, isOpen: dayCloseOpenFlag.ref }) }
+})
 vi.mock('~/components/nav/MorePanel.vue', () => ({
   default: {
     emits: ['close', 'dayClose'],
@@ -63,6 +69,7 @@ describe('AppNav: the global app bar (#470)', () => {
     useIntegrationHealthStore().recordSuccessfulSync('notion')
     go('/tasks')
     recapFlag.ref.value = false
+    dayCloseOpenFlag.ref.value = false
     route.meta = {}
     navigateTo.mockClear()
     openDayClose.mockClear()
