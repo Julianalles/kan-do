@@ -111,7 +111,7 @@
 
       <UPopover
         v-model:open="open"
-        :content="{ side: isPhone ? 'top' : 'bottom', align: isPhone ? 'end' : 'center', sideOffset: 8, collisionPadding: 8 }"
+        :content="{ side: isPhone ? 'top' : 'bottom', align: isPhone ? 'end' : 'center', sideOffset: 8, collisionPadding: 8, disableUpdateOnLayoutShift: true }"
       >
         <UTooltip :open="tipOpen" :text="tooltipText" :kbds="tooltipKbds" :disabled="isPhone || open" @update:open="onTipOpen">
           <button
