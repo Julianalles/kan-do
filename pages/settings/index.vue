@@ -131,7 +131,7 @@ App-Reset, and on desktop Updates and GitHub-Zugriff).
                   <ListRow
                     v-for="row in more"
                     :key="row.id"
-                    class="gap-y-3"
+                    class="min-h-14 gap-y-3"
                     :data-testid="`source-more-${row.id}`"
                   >
                     <UIcon :name="row.icon" class="size-5 shrink-0 text-muted" aria-hidden="true" />

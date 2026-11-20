@@ -119,7 +119,7 @@ const answerLabelId = useId()
       <ExternalLink
         v-if="sourceUrl"
         :href="sourceUrl"
-        class="mr-auto inline-flex min-h-11 items-center gap-1.5 text-sm text-toned underline underline-offset-2 hover:text-highlighted"
+        class="mr-auto inline-flex min-h-11 items-center gap-1.5 text-sm"
         data-testid="sync-warning-open"
       >
         <UIcon :name="ICONS.external" class="size-4" aria-hidden="true" />

@@ -20,7 +20,7 @@ tauri-plugin-opener (narrow URL permission in src-tauri/capabilities); on web it
     target="_blank"
     rel="noopener noreferrer"
     :class="standalone ? 'max-md:inline-flex max-md:min-h-11 max-md:items-center' : ''"
-    class="rounded-sm focus-ring"
+    class="text-link"
     @click="open"
   >
     <slot />

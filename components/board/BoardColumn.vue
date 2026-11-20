@@ -108,7 +108,7 @@
         <i18n-t keypath="board.yesterdayUnderAll" :plural="props.yesterdayCount" scope="global">
           <template #n>{{ props.yesterdayCount }}</template>
           <template #all>
-            <ULink :to="allLocation" class="font-medium text-primary underline" data-testid="open-yesterday-link">{{ t('nav.all') }}</ULink>
+            <ULink :to="allLocation" data-testid="open-yesterday-link">{{ t('nav.all') }}</ULink>
           </template>
         </i18n-t>
       </p>

@@ -63,28 +63,6 @@ test.describe('Notion Setup Stepper', () => {
       await expect(page.getByText('Weitere Felder', { exact: true }).first()).toBeVisible()
       await expect(page.getByText('Status', { exact: true }).first()).toBeVisible()
     })
-
-    test('scrolled, the page header scrolls away and the vertical tab list sticks below the app bar, not under it (#615)', async ({ page, baseURL }) => {
-      await page.setViewportSize({ width: 1280, height: 420 }) // short: the page must scroll for the list to stick
-      await page.goto(baseURL! + '/settings/notion')
-      const list = page.getByRole('tablist')
-      await expect(list).toBeVisible()
-      await expect(page.locator('.page-header')).toHaveCSS('position', 'static')
-      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
-      await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100) // the premise: really scrolled
-      // The header left with the page; the bar stays
-      await expect.poll(async () => { const box = await page.locator('.page-header').boundingBox(); return box!.y + box!.height }).toBeLessThanOrEqual(0)
-      const nav = (await page.getByTestId('app-nav').boundingBox())!
-      expect(nav.y).toBe(0)
-      // The list sticks at the veil's lower edge (row 3.5rem + hang 1.75rem), so the veil never washes it
-      const veilBottom = await page.getByTestId('app-nav').evaluate(el => el.getBoundingClientRect().top + Number.parseFloat(getComputedStyle(el, '::before').height))
-      expect(veilBottom).toBeCloseTo(56 + 28, 0)
-      await expect.poll(async () => (await list.boundingBox())!.y).toBeCloseTo(veilBottom, 0)
-      // The first tab is reachable, not covered by the bar or its veil
-      const first = list.getByRole('tab').first()
-      const box = (await first.boundingBox())!
-      expect(await first.evaluate((el, pt) => document.elementFromPoint(pt.x, pt.y) === el || el.contains(document.elementFromPoint(pt.x, pt.y)), { x: box.x + box.width / 2, y: box.y + box.height / 2 })).toBe(true)
-    })
   })
 
   test.describe('Tabs on a phone (#625)', () => {
@@ -142,33 +120,25 @@ test.describe('Notion Setup Stepper', () => {
       }).toBe(true)
     })
 
-    test('crossing 768px switches the orientation and keeps the active tab', async ({ page, baseURL }) => {
+    test('the tabs are one horizontal row at every width (#603) and keep the active tab when the width changes', async ({ page, baseURL }) => {
       await page.setViewportSize({ width: 1280, height: 800 })
       await page.goto(baseURL! + '/settings/notion')
       const list = page.getByRole('tablist')
-      await expect(list).toHaveAttribute('aria-orientation', 'vertical')
-      // An edit in progress in the panel survives the switch (same panel, only the list changes)
+      await expect(list).toHaveAttribute('aria-orientation', 'horizontal')
+      // An edit in progress in the panel survives a resize (same panel, only the row changes)
       await page.getByRole('button', { name: 'Datenbank ändern' }).click()
       await expect(page.getByRole('button', { name: 'Abbrechen' }).first()).toBeVisible()
       await page.setViewportSize({ width: 390, height: 844 })
       await expect(list).toHaveAttribute('aria-orientation', 'horizontal')
       await expect(page.getByRole('button', { name: 'Abbrechen' }).first()).toBeVisible()
-      await page.setViewportSize({ width: 1280, height: 800 })
-      // The last tab is chosen at desktop width, then the viewport shrinks: it must not stay out of sight in the row
       await page.getByRole('tab', { name: 'Status' }).click()
-      await page.setViewportSize({ width: 390, height: 844 })
       await expect.poll(async () => {
         const [tab, row] = [(await page.getByRole('tab', { name: 'Status' }).boundingBox())!, (await list.boundingBox())!]
         return tab.x >= row.x - 1 && tab.x + tab.width <= row.x + row.width + 1
       }).toBe(true)
       await page.setViewportSize({ width: 1280, height: 800 })
-      await page.getByRole('tab', { name: 'Eigenschaften' }).click()
-      await page.setViewportSize({ width: 390, height: 844 })
       await expect(list).toHaveAttribute('aria-orientation', 'horizontal')
-      await expect(page.getByRole('tab', { name: 'Eigenschaften' })).toHaveAttribute('data-state', 'active')
-      await page.setViewportSize({ width: 1280, height: 800 })
-      await expect(list).toHaveAttribute('aria-orientation', 'vertical')
-      await expect(page.getByRole('tab', { name: 'Eigenschaften' })).toHaveAttribute('data-state', 'active')
+      await expect(page.getByRole('tab', { name: 'Status' })).toHaveAttribute('data-state', 'active')
     })
   })
 

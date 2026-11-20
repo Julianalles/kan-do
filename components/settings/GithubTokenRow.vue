@@ -27,14 +27,15 @@
       <p class="flex items-center gap-2 text-sm">
         <span class="font-mono text-muted" aria-hidden="true">{{ masked }}</span>
         <span class="sr-only">{{ t('settings.github.savedAria', { last4: row.last4 ?? '' }) }}</span>
-        <span class="flex items-center gap-1 text-muted" role="status">
+        <LoadingLine v-if="row.checking">{{ t('settings.github.checking') }}</LoadingLine>
+        <span v-else class="flex items-center gap-1 text-muted" role="status">
           <UIcon
-            :name="row.checking ? 'i-ph-circle-notch' : row.valid ? 'i-ph-check-circle' : 'i-ph-key'"
-            :class="[row.checking ? 'motion-safe:animate-spin' : row.valid ? 'text-success' : 'text-muted']"
+            :name="row.valid ? 'i-ph-check-circle' : 'i-ph-key'"
+            :class="row.valid ? 'text-success' : 'text-muted'"
             class="size-4"
             aria-hidden="true"
           />
-          {{ row.checking ? t('settings.github.checking') : row.valid ? t('settings.github.valid') : t('settings.github.stored') }}
+          {{ row.valid ? t('settings.github.valid') : t('settings.github.stored') }}
         </span>
       </p>
       <div class="flex items-center gap-1">
@@ -92,7 +93,7 @@
         <ExternalLink
           v-if="row.upload === 'denied'"
           :href="manageTokensUrl"
-          class="inline-flex items-center gap-1 rounded-sm text-sm text-highlighted underline underline-offset-2 focus-ring"
+          class="inline-flex items-center gap-1 text-sm"
         >
           {{ t('settings.github.probe.changeToken') }}
           <UIcon :name="ICONS.external" class="size-4" aria-hidden="true" />
@@ -109,13 +110,6 @@
         </p>
         <UAlert color="error" variant="subtle" icon="i-ph-warning-circle" role="status" :description="t('settings.github.rejectedLine')" />
       </template>
-      <ExternalLink
-        :href="tokenUrl"
-        class="inline-flex items-center gap-1 rounded-sm text-sm text-highlighted underline underline-offset-2 focus-ring"
-      >
-        {{ t('settings.github.createToken') }}
-        <UIcon :name="ICONS.external" class="size-4" aria-hidden="true" />
-      </ExternalLink>
       <form class="flex flex-wrap items-start gap-2 sm:flex-nowrap" @submit.prevent="onSave">
         <UFormField
           :label="t('settings.github.fieldLabel', { name: title })"
@@ -140,6 +134,10 @@
           {{ row.checking ? t('settings.github.checking') : t('settings.github.save') }}
         </UButton>
       </form>
+      <ExternalLink :href="tokenUrl" standalone class="inline-flex items-center gap-1">
+        {{ t('settings.github.createToken') }}
+        <UIcon :name="ICONS.external" class="size-4" aria-hidden="true" />
+      </ExternalLink>
     </div>
 
     <p v-if="entry === 'github-feedback'" class="text-body text-muted">{{ t('settings.github.scopeHelp') }}</p>
@@ -149,6 +147,7 @@
 <script setup lang="ts">
 import SectionHeader from '~/components/ui/SectionHeader.vue'
 import PageSheet from '~/components/ui/PageSheet.vue'
+import LoadingLine from '~/components/ui/LoadingLine.vue'
 import { ICONS } from '~/lib/icons'
 import { computed, nextTick, ref } from 'vue';
 import { useI18n } from 'vue-i18n';

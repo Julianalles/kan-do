@@ -176,7 +176,7 @@ The user ticked 111 of 117 items (not ticked: 2, 61, 69, 96, 104, 105) and asked
 | #600 | ready | guard 101 | guard spec, nothing jumps during a transition and reduced motion is instant |
 | #601 | needs-spec | 19, 45, 73, 74 | place changes, overlay timings and the command palette move one way |
 | #602 | needs-spec | 43, 63, 65, 66, 67, 70 | board controls, sort control on focus, context menu groups, tooltips, one round icon button, steady Mehr switch |
-| #603 | needs-spec | 56, 57, 58, 59, 60 | settings siblings share tab form, token row, text link, text action and loading line |
+| #603 | in build (PR) | 56, 57, 58, 59, 60 | settings siblings share tab form, token row, text link, text action and loading line |
 | #604 | needs-spec | 50, 53, 79 | Statistik and day close say the same facts the same way; tiles fill the row; empty lists |
 | #605 | needs-spec | 51, 52 | type table gets a key-figure row and an answer for the 14 px group heading |
 | #606 | needs-spec | 48, 62, 68, 72, 78 | settle where DESIGN.md disagrees with itself (sheet radius, selected fill, pill fields, checkbox, confirm colour) |

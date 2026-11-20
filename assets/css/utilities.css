@@ -105,6 +105,18 @@ html.kando-capture-mask [data-private] {
   }
 }
 
+/*
+ * `text-link`: the one look of a link inside a sentence (#603, DESIGN.md "Colour": links are forest green): the 600 step
+ * (AA on the paper and on a sheet), underlined at rest with a 2px offset, the 700 step on hover, the `focus-ring` halo.
+ * The `link` theme of `ULink` (app.config.ts) and `ExternalLink` carry it; no call site sets its own colour or underline.
+ */
+@utility text-link {
+  @apply rounded-sm text-primary-600 underline underline-offset-2 focus-ring;
+  &:hover {
+    @apply text-primary-700;
+  }
+}
+
 /* Desktop app (#614): no rubber-band bounce past the top or bottom, as in an installed Mac app. `plugins/desktop-shell.client.ts`
    sets the marker. `overscroll-behavior` is not inherited, so every nested scroller (columns, sheets, dialogs) needs it too;
    the web build keeps the browser's scrolling. Mobile board pages keep their own `contain` (board.css, an id selector wins). */

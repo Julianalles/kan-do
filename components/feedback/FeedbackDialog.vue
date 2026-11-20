@@ -215,7 +215,7 @@ v-if="logTail" v-model="draft.include.log" :label="t('feedback.review.itemLog')"
         <!-- Without a token the intro already names the browser path; only a refused token needs its own line -->
         <p v-if="tokenState === 'rejected'" class="text-body text-toned" data-testid="feedback-fallback-note">
           {{ rejectedText }}
-          <ULink v-if="tokenSource === 'keychain'" to="/settings/github" class="underline" @click="close">{{ t('feedback.fallback.accessLink') }}</ULink>
+          <ULink v-if="tokenSource === 'keychain'" to="/settings/github" @click="close">{{ t('feedback.fallback.accessLink') }}</ULink>
         </p>
         <p v-if="fallbackKnown && prefilled.trimmed.length" class="text-body text-toned" data-testid="feedback-trimmed-note">
           {{ t('feedback.fallback.trimmed', { parts: trimmedParts }) }}
@@ -232,7 +232,7 @@ v-if="logTail" v-model="draft.include.log" :label="t('feedback.review.itemLog')"
         >
           <template #description>
             {{ problemText }}
-            <ULink v-if="problem === 'rejected' && tokenSource === 'keychain'" to="/settings/github" class="underline" @click="close">{{ t('feedback.fallback.accessLink') }}</ULink>
+            <ULink v-if="problem === 'rejected' && tokenSource === 'keychain'" to="/settings/github" @click="close">{{ t('feedback.fallback.accessLink') }}</ULink>
           </template>
         </UAlert>
         <UAlert
