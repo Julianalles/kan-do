@@ -88,3 +88,28 @@ describe('TasksTable accuracy verdict', () => {
     expect(mount(TasksTable, { props: { tasks: [] }, global }).text()).toContain('No tasks in the selected period');
   });
 });
+
+describe('TasksTable paging (#604)', () => {
+  const UButton = { template: '<button v-bind="$attrs"><slot /></button>', props: ['color', 'variant'] };
+  const many = (n: number) => Array.from({ length: n }, (_, i) => record({ taskId: `t${i}`, title: `Task ${i}` }));
+  const mountN = (n: number) => mount(TasksTable, { props: { tasks: many(n) }, global: { components: { ...global.components, UButton } } });
+
+  it('shows a page of 25 and a button that adds 25 until all rows are shown', async () => {
+    const wrapper = mountN(60);
+    expect(wrapper.findAll('tbody tr')).toHaveLength(25);
+    expect(wrapper.get('[data-testid="stats-table-shown"]').text()).toBe('25 von 60 angezeigt');
+    await wrapper.get('[data-testid="stats-table-more"]').trigger('click');
+    expect(wrapper.findAll('tbody tr')).toHaveLength(50);
+    await wrapper.get('[data-testid="stats-table-more"]').trigger('click');
+    expect(wrapper.findAll('tbody tr')).toHaveLength(60);
+    expect(wrapper.find('[data-testid="stats-table-more"]').exists()).toBe(false);
+    expect(wrapper.get('[data-testid="stats-table-shown"]').text()).toBe('60 von 60 angezeigt');
+  });
+
+  it('has no button and no count line at 25 rows or fewer', () => {
+    const wrapper = mountN(25);
+    expect(wrapper.findAll('tbody tr')).toHaveLength(25);
+    expect(wrapper.find('[data-testid="stats-table-more"]').exists()).toBe(false);
+    expect(wrapper.find('[data-testid="stats-table-shown"]').exists()).toBe(false);
+  });
+});

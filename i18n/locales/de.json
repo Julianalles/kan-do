@@ -433,6 +433,8 @@
       "inTimebox": "In Timebox?",
       "unplanned": "Ungeplant",
       "scrollRegionLabel": "Tabelle erledigter Aufgaben, scrollbar",
+      "showMore": "Mehr anzeigen",
+      "shown": "{shown} von {total} angezeigt",
       "empty": "Keine Aufgaben im ausgewählten Zeitraum"
     },
     "question": {
@@ -1543,9 +1545,6 @@
     "allDone": "Alle Aufgaben erledigt",
     "timebox": {
       "heading": "Timebox",
-      "under": "deutlich unter der Timebox",
-      "within": "etwa in der Timebox",
-      "over": "deutlich über der Timebox",
       "caption": "Basis: {n} erledigte Aufgabe mit Timebox und erfasster Zeit. | Basis: {n} erledigte Aufgaben mit Timebox und erfasster Zeit."
     },
     "topics": {

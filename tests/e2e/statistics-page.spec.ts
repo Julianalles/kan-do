@@ -316,6 +316,44 @@ test.describe('Statistics Page', () => {
       await expect(page.getByTestId('stats-patterns')).toBeVisible();
     });
 
+    test('the task table pages by 25 rows (#604)', async ({ page, baseURL }) => {
+      await page.goto(`${baseURL}/statistics`);
+      const list = page.getByTestId('stats-all-tasks');
+      await list.getByText(/Alle erledigten Aufgaben/).click();
+      await expect(list.locator('tbody tr')).toHaveCount(25);
+      await expect(page.getByTestId('stats-table-shown')).toHaveText('25 von 26 angezeigt');
+      await page.getByTestId('stats-table-more').click();
+      await expect(list.locator('tbody tr')).toHaveCount(26);
+      await expect(page.getByTestId('stats-table-more')).toHaveCount(0);
+      await expect(page.getByTestId('stats-table-shown')).toHaveText('26 von 26 angezeigt');
+    });
+
+    test('closed tiles hug their content and an open tile leaves a full row (#604)', async ({ page, baseURL }) => {
+      await page.setViewportSize({ width: 1280, height: 900 });
+      await page.goto(`${baseURL}/statistics`);
+      const box = async (n: number) => (await page.getByTestId(`stats-tile-${n}`).boundingBox())!;
+      await expect(page.getByTestId('stats-tile-4')).toBeVisible();
+      // none open: three tiles in one row, each as high as its own content (top aligned, not stretched)
+      const [a, b, c] = [await box(2), await box(3), await box(4)];
+      expect(Math.abs(a.y - b.y)).toBeLessThan(1);
+      expect(Math.abs(b.y - c.y)).toBeLessThan(1);
+      const heights = await page.evaluate(() => [2, 3, 4].map((n) => {
+        const tile = document.querySelector(`[data-testid="stats-tile-${n}"]`) as HTMLElement;
+        return tile.scrollHeight - tile.clientHeight;
+      }));
+      expect(heights.every(h => h <= 1)).toBe(true);
+      // one open: it is full width, the other two share the next row and reach both edges of the grid
+      await page.getByTestId('stats-tile-3-toggle').click();
+      await expect(page.getByTestId('stats-tile-3-toggle')).toHaveAttribute('aria-expanded', 'true');
+      const open = await box(3);
+      const [left, right] = [await box(2), await box(4)];
+      expect(Math.abs(left.y - right.y)).toBeLessThan(1);
+      expect(left.y).toBeGreaterThan(open.y + open.height - 1);
+      expect(Math.abs(left.x - open.x)).toBeLessThan(1);
+      expect(Math.abs(right.x + right.width - (open.x + open.width))).toBeLessThan(1);
+      expect(Math.abs(left.width - right.width)).toBeLessThan(2);
+    });
+
     test('all completed tasks sit behind one disclosure and keep the drill-down', async ({ page, baseURL }) => {
       await page.goto(`${baseURL}/statistics`);
       const list = page.getByTestId('stats-all-tasks');
