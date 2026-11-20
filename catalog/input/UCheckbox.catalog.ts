@@ -1,13 +1,13 @@
 import type { CatalogEntry } from '../types'
 
-/** Nuxt UI checkbox: neutral for settings, primary only where a check confirms a mapping. */
+/** Nuxt UI checkbox: a ticked box is the primary fill by theme default (DESIGN.md "States", #606); no call site sets a colour. */
 export default {
   component: 'UCheckbox',
   source: 'nuxt-ui',
   kind: 'primitive',
   category: 'input',
   description: 'A checkbox with an optional label and description, in the semantic colours, with a list and a card variant.',
-  usage: 'An independent yes/no among several, or a consent: `color="neutral"` in settings and dialogs. Always give it a `label` (or an `aria-label`).',
+  usage: 'An independent yes/no among several, or a consent, in the theme colour (green when ticked); never set a `color` at the call site. Always give it a `label` (or an `aria-label`).',
   avoid: 'Not for a setting that applies at once (USwitch), not for one of several exclusive options (URadioGroup) and not for a toggle button (UButton with `aria-pressed`).',
   alternatives: ['USwitch', 'URadioGroup'],
   theme: 'checkbox',

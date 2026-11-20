@@ -51,7 +51,6 @@ describe('line heights come from the size tokens (DESIGN.md "Type")', () => {
   it('no leading-* class or size class with a line height (text-<size>/<lh>) in shipped UI or the theme', () => {
     expect(hits(new RegExp(`\\bleading-[\\w.()[\\]-]+|${SIZE_WITH_LINE_HEIGHT.source}`, 'g'), shipped, {
       // The clock in the ring is one line in a fixed box at two sizes
-      'components/statistics/StatsTimeSplit.vue: leading-(--lh-tight)': 'single-line figure in the donut',
     })).toEqual([])
     expect([...config.matchAll(/\bleading-[\w.()[\]-]+/g)].map(m => m[0])).toEqual([])
     // The one chip size sets its 12 px line in the theme (kd#180); a second one needs a reason here
@@ -129,5 +128,35 @@ describe('a control casts no shadow (The Sheets Cast Shadows Rule)', () => {
   it.each(['select', 'selectMenu'])('the %s theme has a shadow only on its menu (a sheet)', (key) => {
     const lines = themeBlock(key).split('\n').filter(line => /\bshadow-(?!none)/.test(line))
     expect(lines.filter(line => !/^\s*content:/.test(line))).toEqual([])
+  })
+})
+
+describe('a text size is a role or a key figure (DESIGN.md "Type", #605)', () => {
+  // The type table has no 16, 20, 24, 30 or 36 px Tailwind step: a key figure is `text-figure` (24 px) or `text-figure-lg`
+  // (36 px), a heading takes its size from `SectionHeader`, reading text from `text-body`.
+  it('no template or theme writes text-base, -xl, -2xl, -3xl, -4xl or -6xl', () => {
+    const OFF_ROLE = /(?<![\w-])(?:[a-z-]+:)*text-(?:base|xl|2xl|3xl|4xl|6xl)(?![\w-])/g
+    const found = [...shipped, ...css].flatMap(p => [...body(p).matchAll(OFF_ROLE)].map(m => `${relative(root, p)}: ${m[0]}`))
+    const inConfig = [...config.replace(/\/\/.*$/gm, '').matchAll(OFF_ROLE)].map(m => `app.config.ts: ${m[0]}`)
+    expect([...found, ...inConfig]).toEqual([])
+  })
+
+  it('every key-figure class sits in a file the weight list names', () => {
+    const figures = shipped.filter(p => /(?<![\w-])text-figure(?:-lg)?(?![\w-])/.test(body(p))).map(p => relative(root, p))
+    expect(figures.length).toBeGreaterThan(0)
+    for (const f of figures) expect(/font-semibold/.test(body(join(root, f))), `${f} uses a key-figure size without its weight 600`).toBe(true)
+  })
+})
+
+describe('a ticked checkbox and a toast action look the same everywhere (DESIGN.md "States", "The One Lamp Rule", #606)', () => {
+  it('no UCheckbox sets a colour: the theme default (primary) is the one', () => {
+    expect(hits(/<UCheckbox\b[^>]*?\bcolor=[^>]*>/gs, shipped)).toEqual([])
+    expect(config).toMatch(/checkbox: \{\s*defaultVariants: \{\s*color: 'primary'/)
+  })
+
+  it('no toast action is a solid button: a toast never adds a second lamp', () => {
+    const sources = [...files(join(root, 'composables'), ['.ts']), ...shipped].filter(p => /toast\.add\(/.test(body(p)))
+    expect(sources.length).toBeGreaterThan(0)
+    expect(hits(/\bvariant: 'solid'/g, sources)).toEqual([])
   })
 })

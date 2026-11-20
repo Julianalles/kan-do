@@ -95,7 +95,7 @@ export default defineAppConfig({
     // tailwind-merge does not know our `--text-*` type roles (main.css `@theme`, #70): without this `text-label/3` reads as
     // a colour and Nuxt UI's own `text-[10px]/3` stays next to it. Keep in step with the roles; design-tokens.test.ts checks.
     tv: {
-      twMergeConfig: { extend: { theme: { text: ['display', 'headline', 'title', 'label', 'brand', 'body'] } } },
+      twMergeConfig: { extend: { theme: { text: ['display', 'headline', 'title', 'label', 'brand', 'body', 'figure', 'figure-lg'] } } },
     },
     fonts: {
       sans: "var(--font-sans)",
@@ -605,7 +605,7 @@ export default defineAppConfig({
             root: 'divide-default/40',
             viewport: 'divide-y-0 p-2 mask-b-from-92%',
             group: 'p-0 pb-3',
-            label: 'text-base font-medium text-muted px-3 pt-3 pb-1',
+            label: 'text-xs font-medium text-muted px-3 pt-3 pb-1',
             // The stock highlight (bg-elevated/50) is invisible on the bg-elevated (white) modal, and so is bg-muted (~1.07:1); use the
             // canvas fill's hover step, the same warm tint as every other state fill (main.css `--fill-on-canvas-hover`).
             // Disabled rows keep full opacity so the reason suffix stays AA; only the label is dimmed.
@@ -641,7 +641,11 @@ export default defineAppConfig({
     },
     // Phone: the whole row of a checkbox is the target (#592). The box is 16 px, so its row is 44 px high and an invisible layer
     // over the row (the box's `::after`, positioned against the row) takes the tap, label and gap included.
+    // A ticked checkbox is the primary fill everywhere (DESIGN.md "States", #606): the colour is set here once, no call site sets one
     checkbox: {
+      defaultVariants: {
+        color: 'primary'
+      },
       slots: {
         root: 'max-md:min-h-11 max-md:items-center',
         base: 'max-md:after:absolute max-md:after:inset-0'

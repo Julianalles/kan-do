@@ -279,8 +279,8 @@ export function useGithubTokens() {
       actions: [
         {
           label: translate('common.undo'),
-          color: 'primary',
-          variant: 'solid',
+          color: 'neutral',
+          variant: 'soft',
           // The action's own auto-close would report the toast as closed (= delete) before Undo runs.
           closeOnClick: false,
           onClick: () => {

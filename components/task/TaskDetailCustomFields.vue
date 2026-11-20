@@ -26,7 +26,6 @@
       >
         <UCheckbox
           :model-value="entry.value.value"
-          color="primary"
           :aria-label="entry.name"
           @update:model-value="(val) => emitUpdate(entry.key, { type: 'checkbox', value: val as boolean })"
         />

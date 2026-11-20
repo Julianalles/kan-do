@@ -146,8 +146,8 @@ export function useCompletionUndo() {
       actions: [
         {
           label: t('common.undo'),
-          color: 'primary',
-          variant: 'solid',
+          color: 'neutral',
+          variant: 'soft',
           onClick: () => {
             toast.remove(id)
             void undoCompletion(snapshot)
@@ -175,8 +175,8 @@ export function useCompletionUndo() {
       actions: [
         {
           label: t('common.undo'),
-          color: 'primary',
-          variant: 'solid',
+          color: 'neutral',
+          variant: 'soft',
           onClick: () => {
             toast.remove(id)
             void undoCompletions(snapshots)
