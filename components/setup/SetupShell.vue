@@ -48,7 +48,6 @@
                 ref="paneRef"
                 role="group"
                 :aria-label="paneLabel ?? steps[current]?.label"
-                :aria-busy="loading ? 'true' : undefined"
                 tabindex="-1"
                 class="outline-none"
                 data-testid="setup-pane"
