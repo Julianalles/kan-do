@@ -191,6 +191,7 @@ The user ticked 111 of 117 items (not ticked: 2, 61, 69, 96, 104, 105) and asked
 - Rule candidates 81 to 89: adopted and written into `DESIGN.md` through skill `design-rule`; the proposal blocks and code follow-ups are in `rules-adopted.md`.
 - Already tracked (107 to 117): the sweep's additions are a comment on #573, #575, #577, #579, #580, #581, #562, #374 and #478; #554 and #587 got none (nothing to add).
 - Wave order: 1 the seven design rounds and the three issues that park on a `DESIGN.md` decision (#601, #605, #606), so every question reaches the user together; 2 and 3 the ready issues; 4 the guard spec #600, the Specify lane and what the answers release.
+- Result (2026-11-20): all 24 batch issues are merged, #607 as an epic of five sub-issues (#648 to #652); the ten design and `DESIGN.md` decisions were answered by the user with the recommendations. Closed along the way: #562, #577, #580, #581. Still open, partly covered: #573 (one case done) and #575 (the activity option). Side findings were filed as `inbox`, triaged and built in the same run, except #675 and #680 (`needs-spec`, not built). The term registry changed on 2026-11-20 (user) and the copy follows it (#654); the registry is guidance, only the product name is a hard check.
 
 ## Tracker
 
@@ -202,7 +203,7 @@ The user ticked 111 of 117 items (not ticked: 2, 61, 69, 96, 104, 105) and asked
 | 4 | Rendered walk | done | 2026-11-19 | `findings-rendered.md` | 36 findings: 14 obvious fixes, 20 proposals, 2 guards; its "Not reachable" table lists the rows not walked (mostly Tauri-only states behind a click) |
 | 5 | Motion | done | 2026-11-19 | `findings-motion.md` | 17 findings: 5 obvious fixes, 9 proposals, 1 rule candidate, 2 guards; 217 recordings; its "Not recorded" table lists the gaps (trash, desktop-only pages, phone touch gestures) |
 | 6 | Blind test and overview | done | 2026-11-19 | `overview.md` | blind test: 4 of 4 found unprompted, no rerun needed; 117 items: 40 obvious fixes, 40 proposals, 9 rule candidates, 17 guards, 11 already tracked |
-| 7 | Issues and guards | done (filing); the build runs as an orchestration | 2026-11-19 | issues #590 to #613, `rules-adopted.md`, `DESIGN.md` | 24 batches: 11 ready, 6 needs-spec, 7 needs-design; table above the tracker |
+| 7 | Issues and guards | done, built and merged | 2026-11-19 | issues #590 to #613, `rules-adopted.md`, `DESIGN.md` | 24 batches: 11 ready, 6 needs-spec, 7 needs-design; table above the tracker |
 
 Status values: open, running, done, blocked (say on what).
 
@@ -210,6 +211,7 @@ Status values: open, running, done, blocked (say on what).
 
 Newest first. At most five lines per session: what the next session must know that the output files do not say.
 
+- 2026-11-20, session 7 done and the sweep is closed: nine orchestration waves merged every batch (see "Session 7 result"). A throwaway before/after review (71 steps) was built for the user in `/tmp/kd-sweep-review/` (not committed); what the user reports from it becomes new issues, not part of this plan.
 - 2026-11-19, session 6 done; **the sweep now waits for the user's ticks on `overview.md`**, session 7 starts only after them. Blind test: entry 1 = items 54 and 56, entry 2 = item 76 (the user's own wish, spacious elements with the official service icons, was added to that item from `blind-test.md`), entry 3 = items 21 and 109, entry 4 = items 30 and 81.
 - Session 6 ran the merge as one subagent that wrote `overview.md` itself; the parent read only a one-line-per-finding index (`grep -hE '^### |^- Group:|^- Already tracked:' findings-*.md`), ran the coverage check (all 100 finding ids are in a `Ref:` line) and spot-checked six items. The 2026-11-19 note below ("the harness refuses a findings file written by a subagent") was wrong: nothing blocks the write, the subagent followed its default instruction not to write report files. A brief that says the file is the requested deliverable is enough.
 - Judgement calls of the merge the user may overrule: item 25 (folding near-token durations) is listed as an obvious fix although one pass called it a choice; items 33 and 55 split the "Zurück" wording into the local step (fix) and the inner steps (proposal); item 41 moved the funnel's push from obvious fix to proposal; item 54 asks for a design round for heading, button width and phone form.
