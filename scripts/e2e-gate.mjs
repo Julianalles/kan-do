@@ -21,7 +21,9 @@
  * changed helper + the `E2E-specs:` line; the `design` specs and the label/testid text matches are dropped (also from a
  * style-only PR, which then runs no E2E) except the style fingerprint (kd#230): a change that can move the computed style of a `/ui`
  * sample (`catalog` in the rules: stylesheets, `app.config.ts`, a component with a catalog entry) adds
- * `catalog.specs`, style-only PRs included. `KANDO_TESTING_MODE` in the environment overrides the file (the gate's CLI tests). `quality` (the default, also for a missing or unknown value) is the
+ * `catalog.specs`, style-only PRs included. Screenshots (#684): a map rule's `fast` list keeps those specs (`visual-regression`) in `fast`;
+ * a style-only PR that changes a stylesheet or `<style>` block on a `visual.paths` path runs `visual.specs` in both modes, a changed baseline
+ * (`tests/e2e/snapshots/<name>.spec.ts/*`) selects `<name>` in every tier, and the style tier honours the `E2E-specs:` line. `KANDO_TESTING_MODE` in the environment overrides the file (the gate's CLI tests). `quality` (the default, also for a missing or unknown value) is the
  * behaviour above, unchanged. `E2E_GATE=full` and an unresolved list still run everything in both modes.
  *
  * CLI (the hook calls it from the worktree that has the PR head, so the PR's own config is used):
@@ -56,6 +58,10 @@ const isDocsOnly = file => DOCS_ONLY.test(file) && !GATE_FILES.test(file) && !RU
 const UNIT_ONLY = /^tests\/(?!e2e\/|fixtures\/notion\/)/
 /** Style-only paths (#375): stylesheets and the visual-regression baselines; docs count too (`DOCS_ONLY`). */
 const STYLE_ONLY = /\.css$|^tests\/e2e\/snapshots\//
+/** A visual baseline names the spec that records it by folder: `tests/e2e/snapshots/<name>.spec.ts/<file>` (#684). */
+const SNAPSHOT_SPEC = /^tests\/e2e\/snapshots\/([^/]+)\.spec\.ts\//
+/** @param {string} file @returns {string | null} basename of the spec that owns a changed baseline file, else `null` */
+export const snapshotSpec = file => SNAPSHOT_SPEC.exec(file)?.[1] ?? null
 /** `gh pr view --json files` returns at most 100 files; a full page may be a truncated list. */
 const GH_FILE_LIMIT = 100
 
@@ -255,7 +261,7 @@ export function isStyleOnlyVue(before, after) {
  * @param {{
  *   files: string[] | null | undefined,
  *   body?: string,
- *   config: { smoke: string[], map: { paths: string[], specs: string[], risk?: boolean }[], design?: { paths: string[], specs: string[] }, catalog?: { paths: string[], components: string, specs: string[] } },
+ *   config: { smoke: string[], map: { paths: string[], specs: string[], risk?: boolean, fast?: string[] }[], design?: { paths: string[], specs: string[] }, catalog?: { paths: string[], components: string, specs: string[] }, visual?: { paths: string[], specs: string[] } },
  *   existingSpecs: string[],
  *   cataloguedComponents?: () => Set<string>,
  *   env?: Record<string, string | undefined>,
@@ -304,6 +310,8 @@ export function selectE2e({ files, body = '', config, existingSpecs, env = {}, m
     const moves = file => matchesAny(file, rule.paths) || (file.endsWith('.vue') && matchesGlob(file, rule.components) && isCatalogued(file))
     return list.some(moves) ? rule.specs : []
   }
+  /** The screenshot specs (`config.visual`, #684) for style files on a UI path; both testing modes. */
+  const visualSpecs = (list) => config.visual && list.some(file => matchesAny(file, config.visual.paths)) ? config.visual.specs : []
   const resolved = Array.isArray(files) && files.length > 0
   const full = (reason) => result('full', reason, [...exists].sort())
   // A truncated list is never judged docs-only; the env switch beats the docs-only skip.
@@ -327,10 +335,20 @@ export function selectE2e({ files, body = '', config, existingSpecs, env = {}, m
     // A style change is exactly what the rendered design scan judges, so it runs even when nothing else does.
     const design = designSpecs(files) // none in fast mode
     const fingerprint = catalogSpecs(files) // fast mode only
-    const picked = [...new Set([...changedSpecs, ...design, ...fingerprint])].filter(name => exists.has(name)).sort()
-    if (picked.length === 0) return result('style', 'style-only: css, <style> blocks, comments, docs, snapshots')
-    const reason = design.length > 0 ? 'style-only + design scan' : fingerprint.length > 0 ? 'style-only + style fingerprint' : 'style-only + touched specs'
-    return result('targeted', reason, picked)
+    // A style change on a UI path moves pixels, and a changed baseline must still match its spec (#684: #676 merged with stale baselines).
+    const visual = visualSpecs(files.filter(file => isStyleFile(file) && !SNAPSHOT_SPEC.test(file)))
+    const baselines = files.map(snapshotSpec).filter(Boolean)
+    const named = bodySpecNames(body)
+    const unknown = [...new Set(named.filter(name => !exists.has(name)))]
+    const picked = [...new Set([...changedSpecs, ...design, ...fingerprint, ...visual, ...baselines, ...named])].filter(name => exists.has(name)).sort()
+    if (picked.length === 0) return result('style', 'style-only: css, <style> blocks, comments, docs, snapshots', [], [], unknown)
+    const parts = [
+      design.length > 0 ? 'design scan' : fingerprint.length > 0 ? 'style fingerprint' : '',
+      visual.length > 0 ? 'visual baselines' : '',
+      baselines.length > 0 ? 'baseline specs' : '',
+      named.length > 0 ? 'E2E-specs line' : '',
+    ].filter(Boolean)
+    return result('targeted', `style-only + ${parts.length > 0 ? parts.join(' + ') : 'touched specs'}`, picked, [], unknown)
   }
   const specs = new Set([...config.smoke, ...designSpecs(files), ...catalogSpecs(files)])
   const unmapped = []
@@ -348,9 +366,12 @@ export function selectE2e({ files, body = '', config, existingSpecs, env = {}, m
       if (importers.length === 0) unmapped.push(file)
       continue
     }
+    // a changed baseline selects the spec that records it, whatever the rules say (#684)
+    const owner = snapshotSpec(file)
+    if (owner) specs.add(owner)
     const mapped = config.map.filter(rule => matchesAny(file, rule.paths))
-    // fast mode runs only the risk-area rules; `unmapped` still reads the whole map
-    for (const rule of mapped) if (!fast || rule.risk) for (const name of rule.specs) specs.add(name)
+    // fast mode runs only the risk-area rules, plus the specs a rule keeps in `fast` (#684: visual-regression); `unmapped` still reads the whole map
+    for (const rule of mapped) for (const name of !fast || rule.risk ? rule.specs : rule.fast ?? []) specs.add(name)
     // unit tests, their helpers and fixtures have no E2E spec to pick
     if (mapped.length === 0 && !UNIT_ONLY.test(file)) unmapped.push(file)
   }

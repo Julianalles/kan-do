@@ -1,5 +1,5 @@
 {
-  "$comment": "Rules of the tiered pre-merge E2E gate (scripts/e2e-gate.mjs, .claude/hooks/e2e-before-merge.sh, #355, #446). No glob or label selects the whole suite: `E2E_GATE=full` in the hook's environment (the coordinator's merge of shared-infrastructure PRs) and an unresolved or truncated file list do; `npm run release` runs it itself. A changed file adds the specs of every `map` rule whose `paths` match it (names are basenames of tests/e2e/*.spec.ts); the first group of rules covers the risk areas of .claude/issue-workflow.md (their `area` says what the specs exercise), the later ones the page and component areas. A change in tests/e2e/helpers/** adds the specs that import the helper, directly or through another helper, read from the imports at gate time. A changed i18n value or `data-testid` adds every spec whose text (or an imported helper's) contains it, whatever file the change sits in (#525: the old value of a changed or removed key, the sibling values of an added or removed key, the static prefix of a dynamic testid; `byText` in the decision). A PR touching a `design.paths` file also runs `design.specs` (the rendered Impeccable scan and the /ui style fingerprint, #66), in the style tier too, which then becomes `targeted` (reason `style-only + design scan`). The final set is `smoke` + design + mapped + touched specs + label/testid matches + the `E2E-specs:` line of the PR body. A changed file that matches nothing runs `smoke` only and is reported as `unmapped` (so is a changed helper that no spec imports; unit-test files, their helpers and fixtures are exempt), and tests/scripts/e2e-gate.test.ts fails when a file of components/, composables/, lib/, pages/, utils/, plugins/, layouts/ or types/ maps to no spec beyond `smoke` and is not on its short allow-list. The term registry docs/copy/terms*.json is never docs-only either (#486: the copy editor reads it at runtime). The Impeccable design sidecar .impeccable/design.json counts as docs (#494: it mirrors DESIGN.md and no spec reads it). The gate's own files (this file, .claude/hooks/e2e-*.sh, .claude/hooks/e2e-*.pl, scripts/e2e-gate.mjs) are never docs-only. A PR whose every file is a .css file, a .vue change inside <style> blocks or comments, docs or tests/e2e/snapshots/** runs no E2E (tier `style`; only its changed specs run if it touches tests/e2e/*.spec.ts). In fast testing mode, which drops the `design` specs, the `catalog` rule keeps the style fingerprint (kd#230): a changed file under `catalog.paths` (assets/css, app.config.ts) or a `.vue` file under `catalog.components` whose component has a `catalog/<category>/<Name>.catalog.ts` entry adds `catalog.specs`, style-only PRs included (reason `style-only + style fingerprint`), because a token or component style change moves the recorded computed styles and only the full run on main would otherwise show it.",
+  "$comment": "Rules of the tiered pre-merge E2E gate (scripts/e2e-gate.mjs, .claude/hooks/e2e-before-merge.sh, #355, #446). No glob or label selects the whole suite: `E2E_GATE=full` in the hook's environment (the coordinator's merge of shared-infrastructure PRs) and an unresolved or truncated file list do; `npm run release` runs it itself. A changed file adds the specs of every `map` rule whose `paths` match it (names are basenames of tests/e2e/*.spec.ts); the first group of rules covers the risk areas of .claude/issue-workflow.md (their `area` says what the specs exercise), the later ones the page and component areas. A change in tests/e2e/helpers/** adds the specs that import the helper, directly or through another helper, read from the imports at gate time. A changed i18n value or `data-testid` adds every spec whose text (or an imported helper's) contains it, whatever file the change sits in (#525: the old value of a changed or removed key, the sibling values of an added or removed key, the static prefix of a dynamic testid; `byText` in the decision). A PR touching a `design.paths` file also runs `design.specs` (the rendered Impeccable scan and the /ui style fingerprint, #66), in the style tier too, which then becomes `targeted` (reason `style-only + design scan`). The final set is `smoke` + design + mapped + touched specs + label/testid matches + the `E2E-specs:` line of the PR body. A changed file that matches nothing runs `smoke` only and is reported as `unmapped` (so is a changed helper that no spec imports; unit-test files, their helpers and fixtures are exempt), and tests/scripts/e2e-gate.test.ts fails when a file of components/, composables/, lib/, pages/, utils/, plugins/, layouts/ or types/ maps to no spec beyond `smoke` and is not on its short allow-list. The term registry docs/copy/terms*.json is never docs-only either (#486: the copy editor reads it at runtime). The Impeccable design sidecar .impeccable/design.json counts as docs (#494: it mirrors DESIGN.md and no spec reads it). The gate's own files (this file, .claude/hooks/e2e-*.sh, .claude/hooks/e2e-*.pl, scripts/e2e-gate.mjs) are never docs-only. A PR whose every file is a .css file, a .vue change inside <style> blocks or comments, docs or tests/e2e/snapshots/** runs only its changed specs, the `E2E-specs:` line, the `visual` specs when a stylesheet or <style> change lies on a `visual.paths` path, and the spec that owns a changed baseline (tests/e2e/snapshots/<name>.spec.ts/ -> <name>, every tier; #684), else no E2E (tier `style`). A non-risk map rule may keep specs in fast mode through its `fast` list (#684: visual-regression; tests/scripts/e2e-gate.test.ts checks that every non-risk rule that lists it carries it). In fast testing mode, which drops the `design` specs, the `catalog` rule keeps the style fingerprint (kd#230): a changed file under `catalog.paths` (assets/css, app.config.ts) or a `.vue` file under `catalog.components` whose component has a `catalog/<category>/<Name>.catalog.ts` entry adds `catalog.specs`, style-only PRs included (reason `style-only + style fingerprint`), because a token or component style change moves the recorded computed styles and only the full run on main would otherwise show it.",
   "smoke": [
     "smoke",
     "drag-and-drop",
@@ -37,6 +37,19 @@
     "components": "components/**",
     "specs": [
       "ui-catalog"
+    ]
+  },
+  "visual": {
+    "area": "visual-regression baselines (#684): a style-only PR moves pixels without touching code, so a stylesheet or <style> change on a UI path, and any changed baseline, runs the screenshot spec in both testing modes; a map rule keeps it in fast mode through its own `fast` list",
+    "paths": [
+      "components/**",
+      "pages/**",
+      "layouts/**",
+      "assets/**",
+      "app.vue"
+    ],
+    "specs": [
+      "visual-regression"
     ]
   },
   "map": [
@@ -423,6 +436,9 @@
         "task-move-source",
         "mobile-app-bar",
         "visual-regression"
+      ],
+      "fast": [
+        "visual-regression"
       ]
     },
     {
@@ -447,6 +463,9 @@
         "visual-regression",
         "a11y",
         "text-zoom"
+      ],
+      "fast": [
+        "visual-regression"
       ]
     },
     {
@@ -531,6 +550,9 @@
         "visual-regression",
         "jetzt-swap",
         "add-task-slot"
+      ],
+      "fast": [
+        "visual-regression"
       ]
     },
     {
@@ -810,6 +832,9 @@
         "source-icon-footer",
         "scrollbar-gutter",
         "visual-regression"
+      ],
+      "fast": [
+        "visual-regression"
       ]
     },
     {
@@ -842,6 +867,9 @@
         "timebox-presets",
         "keyboard-card",
         "jetzt-current-card",
+        "visual-regression"
+      ],
+      "fast": [
         "visual-regression"
       ]
     },
@@ -1011,6 +1039,9 @@
         "overlay-scrim",
         "modal-style",
         "visual-regression"
+      ],
+      "fast": [
+        "visual-regression"
       ]
     },
     {
@@ -1037,6 +1068,9 @@
         "text-zoom",
         "i18n",
         "command-palette",
+        "visual-regression"
+      ],
+      "fast": [
         "visual-regression"
       ]
     },
@@ -1147,6 +1181,9 @@
         "design-detect",
         "state-structure",
         "phone-hit-areas"
+      ],
+      "fast": [
+        "visual-regression"
       ]
     },
     {
