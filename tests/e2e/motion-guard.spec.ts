@@ -21,8 +21,6 @@ type Flow = { name: string, url: string, seed?: 'board' | 'none', run: (page: Pa
 /** Allow lists name the boxes seen jumping in a strict run, never every box. The step swap and the setup's height: motion-4 / #607 (setup steps), motion-1 / #601 (page transition), motion-9 / #610 (disclosures). The chip row of #608 never moved in these flows. */
 const SETUP_STEPS: AllowedJump = { match: /^div#__nuxt|^div#teleports|^div$|welcome-root|setup-back|Status\d|Aufgewendete Zeit|Erledigungsdatum/, issue: '#607', why: 'the setup steps still jump in height and place (motion-4)' }
 const PAGE_TRANSITION: AllowedJump = { match: /^div#__nuxt|^div#teleports|^div$|Zurück zu/, issue: '#601', why: 'the page transition stacks the new page below the old one and then jumps (motion-1)' }
-/** Not yet triaged: the shortcuts panel moves 9 px in a page change (#636). */
-const SHORTCUTS_PANEL: AllowedJump = { match: /Schnellaktionen/, issue: '#636', why: 'moves 9 px in one or two frames during a page change, not yet looked at' }
 const DISCLOSURES: AllowedJump = { match: /task-metadata/, issue: '#610', why: 'a disclosure opens in one step (motion-9)' }
 
 /** In-app navigation: the sampler lives in one document, so a flow never reloads the page. */
@@ -71,7 +69,7 @@ const FLOWS: Flow[] = [
       await push(page, '/tasks')
       await expect(page).toHaveURL(/\/tasks/)
     },
-    jumps: [PAGE_TRANSITION, SHORTCUTS_PANEL],
+    jumps: [PAGE_TRANSITION],
   },
   {
     name: 'task sheet: opened by route, Metadaten open and closed',
