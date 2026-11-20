@@ -221,7 +221,16 @@ test.describe('timebox nudge on a card that lands in Jetzt (desktop)', () => {
   test('opening the sheet (click on the face, outside the buttons) ends the nudge; the card leaving Jetzt too', async ({ page }) => {
     await contextMenuMoveTo(page, PLAIN.title, 'Jetzt')
     await expect(nudge(page)).toBeVisible()
-    const card = (await jetzt(page).locator('.task').boundingBox())!
+    // The move glides the board (#661): the card is not at its place until the glide has ended
+    const face = jetzt(page).locator('.task')
+    let last = ''
+    await expect.poll(async () => {
+      const now = JSON.stringify(await face.boundingBox())
+      const stable = now === last
+      last = now
+      return stable
+    }, { intervals: [120] }).toBe(true)
+    const card = (await face.boundingBox())!
     // The top-left corner of the face is outside the controls: the layer passes the click through
     await page.mouse.click(card.x + 12, card.y + 12)
     await expect(page).toHaveURL(/\/tasks\/plain/)
