@@ -28,12 +28,29 @@ const SCREENS: Array<{ name: string, seed?: (context: BrowserContext) => Promise
   {
     name: 'the board, each column page',
     run: async (page) => {
+      let sorts = 0
       for (const index of [0, 1, 2] as const) {
         await showColumnPage(page, index)
-        const small = await undersizedControls(page, { exceptions: EXCEPTIONS })
-        if (process.env.HIT_SURVEY) console.log(`SURVEY column ${index}: ${JSON.stringify(small)}`)
-        else expect(small, `column page ${index}`).toEqual([])
+        const rest = await undersizedControls(page, { exceptions: EXCEPTIONS })
+        if (process.env.HIT_SURVEY) console.log(`SURVEY column ${index}: ${JSON.stringify(rest)}`)
+        else expect(rest, `column page ${index}`).toEqual([])
+        // A column's sort control shows while the column is hovered, and a touch can leave the pointer there (compat mouse events): CI measured
+        // it, a local run did not. Hover the control on this page on purpose and wait until it shows, so its 48 px box (4 px past its spacer, over
+        // the header and the first card; `z-10` keeps it on top) is measured on every run, not only when the pointer state allows
+        const controls = page.getByTestId('column-sorting-control')
+        for (let i = 0; i < await controls.count(); i++) {
+          const box = await controls.nth(i).boundingBox()
+          if (!box || box.x < 0 || box.x >= 390) continue
+          await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2)
+          await expect(controls.nth(i)).toHaveCSS('opacity', '1')
+          const hovered = await undersizedControls(page, { exceptions: EXCEPTIONS })
+          if (process.env.HIT_SURVEY) console.log(`SURVEY column ${index} hovered: ${JSON.stringify(hovered)}`)
+          else expect(hovered, `column page ${index}, sort control shown`).toEqual([])
+          sorts++
+        }
       }
+      // The sweep reaches a visible sort control at all: a layout that hides it from every page would pass the loop above unmeasured
+      expect(sorts, 'a column page showed its sort control').toBeGreaterThan(0)
     },
   },
   {
