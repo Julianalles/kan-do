@@ -53,7 +53,7 @@
       <UButton
         color="neutral"
         variant="soft"
-        :aria-label="t('sources.row.repairNamed', { source: row.name })"
+        :aria-label="t('sources.row.repairNamed', { source: sourceCompound(row.name, locale) })"
         :data-testid="`source-repair-${row.id}`"
         @click="emit('repair', row.id)"
       >
@@ -86,6 +86,8 @@ import type { DropdownMenuItem } from '@nuxt/ui'
 import type { ConnectedSourceRow } from '~/composables/useSourceList'
 import type { SourceId } from '~/types/taskSource'
 
+import { sourceCompound } from '~/utils/sourceCompound'
+
 defineOptions({ name: 'SourceRow' })
 
 interface Props {
@@ -98,7 +100,7 @@ const emit = defineEmits<{
   (e: 'setDefault' | 'repair' | 'openSettings' | 'disconnect', id: SourceId): void
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 /** Only a warning is announced: the live region changes on a real status change, not when "vor 3 Min." counts up */
 const announcement = computed(() => (props.row.statusTone === 'warning' ? props.row.statusText : ''))
@@ -112,7 +114,7 @@ const menuItems = computed<DropdownMenuItem[][]>(() => {
     items.push({ label: t('sources.row.setDefault'), icon: 'i-ph-check-circle', onSelect: () => emit('setDefault', id) })
   }
   if (props.row.canConfigure) {
-    items.push({ label: t('sources.row.settings', { source: name }), icon: 'i-ph-gear', onSelect: () => emit('openSettings', id) })
+    items.push({ label: t('sources.row.settings', { source: sourceCompound(name, locale.value) }), icon: 'i-ph-gear', onSelect: () => emit('openSettings', id) })
     leaving.push({ label: t('sources.row.disconnect'), icon: 'i-ph-plugs', onSelect: () => emit('disconnect', id) })
   }
   return [items, leaving].filter((group) => group.length)

@@ -708,6 +708,6 @@
       "Reminders app"
     ],
     "status": "proposed",
-    "note": "Earlier form: \"Erinnerungen\" / \"Reminders\". The Apple Reminders task source (#551, epic #481): the app on the Mac and the source name `source.name.reminders`. Where the text names the macOS permission or its Settings path (\"Systemeinstellungen › Datenschutz & Sicherheit › Erinnerungen\") the system's own word stays, and \"your reminders\" as the items in the app are tasks of that source. Needs the user's `npm run terms:approve`."
+    "note": "Earlier form: \"Erinnerungen\" / \"Reminders\". The Apple Reminders task source (#551, epic #481): the app on the Mac and the source name `source.name.reminders`. Where the text names the macOS permission or its Settings path (\"Systemeinstellungen › Datenschutz & Sicherheit › Erinnerungen\") the system's own word stays, and \"your reminders\" as the items in the app are tasks of that source. In a German compound the two words are coupled with hyphens (\"Apple-Erinnerungen-Einstellungen\", `sourceCompound`, #685). Needs the user's `npm run terms:approve`."
   }
 ]

@@ -415,7 +415,7 @@ test.describe('Apple Reminders setup and settings (#552)', () => {
     await expect(page.locator('#column-open-list').getByText('Milch kaufen')).toBeVisible()
     await openSettings(page, 'sources')
     await page.getByTestId('source-actions-reminders').click()
-    await page.getByRole('menuitem', { name: 'Apple Erinnerungen-Einstellungen' }).click()
+    await page.getByRole('menuitem', { name: 'Apple-Erinnerungen-Einstellungen' }).click()
     await page.getByTestId('reminders-role-list-home-off').click()
     await expect(page.getByTestId('reminders-exclude-confirm')).toBeVisible()
     await settleAnimations(page)

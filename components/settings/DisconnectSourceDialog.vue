@@ -28,7 +28,7 @@ Notion settings page now and from the "Speicherorte" page (#324).
         <p class="text-default">
           {{ plan && plan.taskCount > 0
             ? t('sources.disconnect.leaving', { n: plan.taskCount, source: sourceName }, plan.taskCount)
-            : t('sources.disconnect.leavingNone', { source: sourceName }) }}
+            : t('sources.disconnect.leavingNone', { source: sourceCompound(sourceName, locale) }) }}
         </p>
         <p v-if="plan?.isDefault" class="text-default" data-testid="disconnect-default-note">
           {{ t('sources.disconnect.defaultFallback') }}
@@ -121,6 +121,8 @@ import { useTasksStore } from '~/store/tasks'
 import { TaskStatus } from '~/types/taskStatus'
 import type { IntegrationSourceId } from '~/types/taskSource'
 
+import { sourceCompound } from '~/utils/sourceCompound'
+
 defineOptions({ name: 'DisconnectSourceDialog' })
 
 interface Props {
@@ -134,7 +136,7 @@ const emit = defineEmits<{
   (e: 'disconnected', result: Extract<DisconnectResult, { ok: true }>): void
 }>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const tasksStore = useTasksStore()
 const { disconnectPlan, disconnectSource } = useSourceConnections()
 

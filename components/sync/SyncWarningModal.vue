@@ -22,6 +22,8 @@ import { integrationLabel, sourceHomeUrl } from '~/lib/taskSources'
 import { useNotionConfigStore } from '~/store/notionConfig'
 import type { SourceId } from '~/types/taskSource'
 
+import { sourceCompound } from '~/utils/sourceCompound'
+
 defineOptions({ name: 'SyncWarningModal' })
 
 interface Props {
@@ -46,7 +48,7 @@ type Answer = 'yes' | 'no'
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 /** Nothing is preselected: the footer button waits for the user's answer */
 const answer = ref<Answer | null>(null)
@@ -109,7 +111,7 @@ const answerLabelId = useId()
           <ul class="ml-6 list-disc space-y-1 text-sm text-toned">
             <li>{{ t('sync.warning.causeEmpty', { source: sourceName }) }}</li>
             <li>{{ t('sync.warning.causeReach', { source: sourceName }) }}</li>
-            <li>{{ t('sync.warning.causeFilter', { source: sourceName }) }}</li>
+            <li>{{ t('sync.warning.causeFilter', { source: sourceCompound(sourceName, locale) }) }}</li>
           </ul>
         </details>
       </div>
