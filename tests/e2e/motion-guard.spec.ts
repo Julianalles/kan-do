@@ -32,8 +32,8 @@ const SETUP_PAGE_SCROLL: AllowedJump = { match: /flow-root|brand-flight/, issue:
 /** The "Wartet" heading changes its width by 18 px in one frame when its column empties (`.waiting-header.empty`): found in the #642 flow (#660). */
 const WARTET_HEADING: AllowedJump = { match: /^h2\.font-display "Wartet"/, issue: '#660', why: 'the heading of an emptied Wartet column changes width in one frame (`.waiting-header.empty`)' }
 
-/** The completion toast's viewport (the Nuxt UI toaster, `ol.fixed`) changes height by 122 px in one frame when the toast arrives; the toast itself slides in. Found while #661 left the list; filed as an inbox issue from the #659/#661 PR. */
-const TOAST_VIEWPORT: AllowedJump = { match: /^ol\.fixed\.flex\.flex-col/, issue: 'inbox (toast viewport)', why: 'the toaster viewport box grows with its toast in one frame' }
+/** The completion toast's viewport (the Nuxt UI toaster, `ol.fixed`) changes height by 122 px in one frame when the toast arrives; the toast itself slides in. Found while #661 left the list; #675. */
+const TOAST_VIEWPORT: AllowedJump = { match: /^ol\.fixed\.flex\.flex-col/, issue: '#675', why: 'the toaster viewport box grows with its toast in one frame' }
 
 /** In-app navigation: the sampler lives in one document, so a flow never reloads the page. */
 const push = (page: Page, path: string) => page.evaluate(path => (window as unknown as { useNuxtApp: () => { $router: { push: (p: string) => Promise<unknown> } } }).useNuxtApp().$router.push(path), path)
