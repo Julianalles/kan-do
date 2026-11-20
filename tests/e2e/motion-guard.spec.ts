@@ -20,6 +20,7 @@ type Flow = { name: string, url: string, seed?: 'board' | 'none', run: (page: Pa
 
 /** Allow lists name the boxes seen jumping in a strict run, never every box. The step swap and the setup's height: motion-4 / #607 (setup steps), motion-9 / #610 (disclosures). The chip row of #608 never moved in these flows. */
 const SETUP_STEPS: AllowedJump = { match: /^div#__nuxt|^div#teleports|^div$|welcome-root|setup-back|Status\d|Aufgewendete Zeit|Erledigungsdatum/, issue: '#607', why: 'the setup steps still jump in height and place (motion-4)' }
+const SETUP_PAGE_SCROLL: AllowedJump = { match: /flow-root|brand-flight/, issue: '#649', why: 'the pane has no scroll area of its own now, so a tall step makes the page scroll; when the done beat shortens the page the sampler (page y = rect + scrollY) reads the scroll reset as a jump of the pane block and of the fixed brand flight (both glide on screen)' }
 const DISCLOSURES: AllowedJump = { match: /task-metadata/, issue: '#610', why: 'a disclosure opens in one step (motion-9)' }
 const FOCUS_CARDS: AllowedJump = { match: /^div#column-(open|done)-list|column-drop-zone|"Wartet"|^nav\[app-nav\]|^ol\.fixed|dnd-kit-announcement/, issue: 'inbox: topic focus cards (PR of #608)', why: 'picking or ending a topic hides or shows the other topics\' cards in one frame; the chip row and the pill themselves glide (#608). The fixed app bar and toast list are page-scroll artefacts of the sampler (page y = rect + scrollY) when the page height changes' }
 
@@ -44,7 +45,7 @@ const FLOWS: Flow[] = [
       await page.getByRole('button', { name: 'Mit Notion einrichten' }).click()
       await completeNotionWizard(page)
     },
-    jumps: [SETUP_STEPS],
+    jumps: [SETUP_STEPS, SETUP_PAGE_SCROLL],
   },
   {
     name: 'Mehr panel: open and close',

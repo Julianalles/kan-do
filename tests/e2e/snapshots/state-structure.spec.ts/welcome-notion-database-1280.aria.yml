@@ -1,0 +1,26 @@
+- region "Mit Notion verbinden":
+  - list "Fortschritt der Einrichtung":
+    - listitem: Vorbereitung (abgeschlossen)
+    - listitem: Token (abgeschlossen)
+    - listitem: Datenbank
+    - listitem: Eigenschaften
+    - listitem: Weitere Eigenschaften
+    - listitem: Status
+  - paragraph: Wähle die Datenbank mit deinen Aufgaben. Die Datenbank muss mit deiner Integration geteilt sein.
+  - group "Datenbank":
+    - text: Notion-Datenbank auswählen
+    - combobox "Notion-Datenbank auswählen": Demo Aufgaben
+    - paragraph: Kan-Do geht von einer bestehenden Aufgaben-Datenbank aus. Noch keine? Lege sie zuerst in Notion an und komm dann zurück.
+    - text: Nötig
+    - list "Nötig":
+      - listitem: Titel
+      - listitem: Status
+    - text: Optional
+    - list "Optional":
+      - listitem: Fälligkeit
+      - listitem: Priorität
+      - listitem: Timebox
+      - listitem: Aufgewendete Zeit
+    - paragraph: Die Namen der Felder dürfen in Notion anders sein.
+  - button "Zurück"
+  - button "Weiter"

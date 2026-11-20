@@ -3,10 +3,6 @@
     "count": 1,
     "reason": "keep: the desktop title bar strip (fixed, drag region), a selector no utility says"
   },
-  "components/setup/NotionSetupFlow.vue": {
-    "count": 1,
-    "reason": "keep: hides a child component's heading through :deep"
-  },
   "components/setup/SetupRail.vue": {
     "count": 1,
     "reason": "keep: the line between two dots is a pseudo-element"

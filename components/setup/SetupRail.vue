@@ -9,6 +9,7 @@
 @responsibility
 - Shows done, current and todo steps (state in data-state, aria-current on the current one, a screen-reader "done" on finished ones)
 - Pattern: step progress, new (guide rail). Replaces the dialog stepper of the Notion modal for the welcome page only
+- `helpLines` (the shell passes 4) reserves that many lines for the help at md and up, so a longer or shorter help never changes the rail height and moves the footer (#649)
 - Reduced motion: dot, line and bar changes are instant
 -->
 <template>
@@ -58,7 +59,12 @@
           </span>
         </li>
       </ol>
-      <p v-if="help" class="mt-6 border-t border-default pt-4 text-body text-muted" aria-live="polite">{{ help }}</p>
+      <p
+        v-if="help"
+        class="mt-6 border-t border-default pt-4 text-body text-muted"
+        :style="helpLines ? { minHeight: `calc(${helpLines}lh + 1rem + 1px)` } : undefined"
+        aria-live="polite"
+      >{{ help }}</p>
     </div>
   </div>
 </template>
@@ -71,6 +77,8 @@ defineProps<{
   /** Zero-based index of the current step */
   current: number;
   help?: string;
+  /** Reserve this many lines for the help (md and up), so a longer or shorter help never changes the rail's height and moves what sits under it (#649) */
+  helpLines?: number;
   label: string;
   doneLabel: string;
 }>();

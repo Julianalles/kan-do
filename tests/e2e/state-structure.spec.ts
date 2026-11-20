@@ -319,8 +319,22 @@ test.describe('welcome setup on the page (#43)', () => {
     await page.getByTestId('welcome-choice-local').click()
     await page.getByTestId('local-source-notion').click()
     await page.getByTestId('local-confirm').click()
-    await expect(page.getByRole('heading', { name: 'Vorbereitung' })).toBeFocused()
+    await expect(page.getByRole('group', { name: 'Vorbereitung' })).toBeFocused()
     await expect(page.getByTestId('notion-setup-flow')).toMatchAriaSnapshot({ name: 'welcome-notion-first-step-1280.aria.yml' })
+  })
+
+  test('Notion: the database step with the fact badges (1280, #649)', async ({ page }) => {
+    await page.goto('/welcome')
+    await page.getByTestId('welcome-choice-local').click()
+    await page.getByTestId('local-source-notion').click()
+    await page.getByTestId('local-confirm').click()
+    const flow = page.getByTestId('notion-setup-flow')
+    await page.getByTestId('wizard-proceed').click() // the intro
+    await flow.getByPlaceholder('Integrationstoken eingeben').fill('notion_test_stub')
+    await page.getByTestId('wizard-proceed').click()
+    await expect(flow.getByRole('group', { name: 'Datenbank', exact: true })).toBeFocused()
+    await expect(flow.getByRole('combobox')).toBeVisible()
+    await expect(flow).toMatchAriaSnapshot({ name: 'welcome-notion-database-1280.aria.yml' })
   })
 
   test('Local: step 2 with the source checklist (1280, #294)', async ({ page }) => {
