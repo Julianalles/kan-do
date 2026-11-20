@@ -252,6 +252,14 @@ describe('deriveReview patterns', () => {
     expect(estimate.longer).toBeCloseTo(100 / 3) // 16 of 10 min: 6 min over the 5 min floor
     expect(estimate.shorter).toBeCloseTo(100 / 3) // 3 of 10 min: 7 min under
   })
+
+  it('leaves a boxed task with no tracked time out, like the day close (#634)', () => {
+    const untracked = rec(1, { timeBoxSeconds: 1800, actualTimeSpentSeconds: 0, estimationAccuracy: 0 })
+    const { estimate } = deriveReview([untracked, boxed(2, 100)], NOW)
+    expect(estimate.n).toBe(1)
+    expect(estimate.shorter).toBe(0)
+    expect(estimate.onTarget).toBe(100)
+  })
 })
 
 describe('deriveReview outliers and time split', () => {
