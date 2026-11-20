@@ -31,8 +31,6 @@ const SETUP_PAGE_SCROLL: AllowedJump = { match: /flow-root|brand-flight/, issue:
 
 /** The sheet's own opening moves its last line (Metadaten, the actions) 174 px in one frame: found while the #610 allow entry left (#659). The disclosures themselves are guarded strictly in their own flow. */
 const SHEET_OPENS: AllowedJump = { match: /task-metadata/, issue: '#659', why: 'the sheet\'s last line arrives in one step when the sheet opens (not the disclosure)' }
-/** The "Wartet" heading changes its width by 18 px in one frame when its column empties (`.waiting-header.empty`): found in the #642 flow (#660). */
-const WARTET_HEADING: AllowedJump = { match: /^h2\.font-display "Wartet"/, issue: '#660', why: 'the heading of an emptied Wartet column changes width in one frame (`.waiting-header.empty`)' }
 
 /** A status change in the open sheet moves the task's card to another column behind the sheet in one frame (page boxes change height): found in the #610 flow (#661). The sheet's own rows are guarded. */
 const CARD_MOVES_BEHIND_SHEET: AllowedJump = { match: /^div#__nuxt|^div#teleports|^div "Erledigt|dnd-kit-announcement/, issue: '#661', why: 'the board behind the sheet re-lays when the card changes column' }
@@ -134,7 +132,6 @@ const FLOWS: Flow[] = [
       await page.getByTestId('focus-end').click()
       await expect(page.getByTestId('focus-bar')).toHaveCount(0)
     },
-    jumps: [WARTET_HEADING],
   },
   {
     name: 'Gestern erledigt: open and close the list (#610)',
