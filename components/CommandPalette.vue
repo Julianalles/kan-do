@@ -88,8 +88,8 @@ const modalUi = {
   overlay: 'window-drag-exempt',
   content: 'sm:top-20 sm:translate-y-0 sm:max-w-xl overflow-hidden',
 }
-// Variant B "Quiet Desk" (chosen over stock A and dense C, see PR): display-role group headings like the
-// column names, no hard dividers between groups, suffix in Graphite (text-muted) for AA contrast.
+// Variant B "Quiet Desk" (chosen over stock A and dense C, see PR): group labels in the sans at 500 (The One Role Rule), no
+// hard dividers between groups, suffix in Graphite (text-muted) for AA contrast.
 // Replaces Nuxt UI's defaults wholesale, so repeat them (strict threshold keeps "erledigt" off the Wartet row).
 const fuseOptions = {
   fuseOptions: { ignoreLocation: true, threshold: 0.1, keys: ['label', 'description', 'suffix'] },
@@ -101,7 +101,7 @@ const paletteUi = {
   root: 'divide-default/40',
   viewport: 'divide-y-0 p-2 mask-b-from-92%',
   group: 'p-0 pb-3',
-  label: 'text-base font-semibold text-muted px-3 pt-3 pb-1',
+  label: 'text-base font-medium text-muted px-3 pt-3 pb-1',
   // The stock highlight (bg-elevated/50) is invisible on the bg-elevated (white) modal, and so is bg-muted (~1.07:1); use the
   // canvas fill's hover step, the same warm tint as every other state fill (main.css `--fill-on-canvas-hover`).
   // Disabled rows keep full opacity so the reason suffix stays AA; only the label is dimmed.

@@ -1011,6 +1011,7 @@
         "utils/localeResolution.ts",
         "lib/i18n.ts",
         "utils/modalSizes.ts",
+        "utils/sectionRoles.ts",
         "pages/error-test.vue"
       ],
       "specs": [

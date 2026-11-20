@@ -671,7 +671,7 @@ const openDetails = (event: MouseEvent) => {
   overflow-wrap: anywhere;
   color: var(--ui-color-success-800);
   font-size: var(--text-title);
-  font-weight: 600;
+  font-weight: 500;
   line-height: var(--lh-snug);
   text-align: left;
   text-wrap: balance;

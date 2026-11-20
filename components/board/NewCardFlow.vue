@@ -1141,7 +1141,7 @@ onBeforeUnmount(() => {
   color: inherit;
   font: inherit;
   font-size: var(--text-label);
-  font-weight: 600;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }
