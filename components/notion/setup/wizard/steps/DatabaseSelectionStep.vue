@@ -9,7 +9,7 @@
 - Displays available Notion databases for selection
 - Manages the selected database state
 - Communicates selection changes to parent component
-- Under the selection it says that Kan-Do expects an existing task database and shows the minimum schema as two chip lines (Nötig, Optional) plus the hint that Notion's field names may differ (#441); shown in the setup page and in the dialog alike, it does not depend on the load state
+- Under the selection it says that Kan-Do expects an existing task database and shows the minimum schema as two badge lines (Nötig, Optional) plus the hint that Notion's field names may differ (#441); shown in the setup page and in the dialog alike, it does not depend on the load state
 -->
 <template>
   <div class="space-y-4">
@@ -45,11 +45,11 @@
       <p class="text-sm text-muted">{{ t('notion.database.note.description') }}</p>
       <div class="flex flex-col gap-1.5">
         <span class="text-xs text-muted">{{ t('notion.database.note.required') }}</span>
-        <SetupChipList :label="t('notion.database.note.required')" :items="requiredFields" />
+        <SetupFactList :label="t('notion.database.note.required')" :items="requiredFields" />
       </div>
       <div class="flex flex-col gap-1.5">
         <span class="text-xs text-muted">{{ t('notion.database.note.optional') }}</span>
-        <SetupChipList :label="t('notion.database.note.optional')" :items="optionalFields" />
+        <SetupFactList :label="t('notion.database.note.optional')" :items="optionalFields" />
       </div>
       <p class="flex items-start gap-2 text-xs text-muted">
         <UIcon name="i-ph-info" class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
@@ -101,7 +101,7 @@ import { useI18n } from 'vue-i18n';
 import type { NotionDatabaseSummary } from "~/types/notion";
 import { useFeatureFlags } from "~/utils/featureFlags";
 import LoadingLine from '~/components/ui/LoadingLine.vue';
-import SetupChipList from '~/components/setup/SetupChipList.vue';
+import SetupFactList from '~/components/setup/SetupFactList.vue';
 
 defineOptions({ name: 'NotionDatabaseSelectionStep' });
 

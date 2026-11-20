@@ -10,10 +10,10 @@
 - Provides feedback on token validity
 - Manages token input state and validation process
 - Offers links to Notion integration setup
+- No heading of its own: the setup's rail and the dialog's title name the step (#649)
 -->
 <template>
   <div>
-    <SectionHeader tag="h2" class="mb-4">{{ t('notion.token.heading') }}</SectionHeader>
     <div v-if="infoMessage" class="mb-4">
       <UAlert
         color="warning"
@@ -57,7 +57,6 @@
 </template>
 
 <script setup lang="ts">
-import SectionHeader from '~/components/ui/SectionHeader.vue'
 import { nextTick, ref, watch } from "vue";
 import ExternalLink from "~/components/ui/ExternalLink.vue";
 import { useI18n } from "vue-i18n";

@@ -662,7 +662,6 @@
       }
     },
     "token": {
-      "heading": "Notion setup",
       "hintTitle": "Note",
       "fieldLabel": "Notion integration token",
       "placeholder": "Enter integration token",
@@ -708,7 +707,6 @@
       "warningLabel": "Warning:",
       "brokenNotice": "The Notion setup is no longer valid. Set it up again.",
       "stepTitle": {
-        "intro": "Preparation",
         "token": "Notion token",
         "database": "Select database",
         "mapping": "Map properties",

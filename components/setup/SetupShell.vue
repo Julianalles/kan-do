@@ -6,10 +6,10 @@
 @usage <SetupShell :steps="[{ key, label }]" :current="1" :help="text" back-label="Zurück" next-test-id="wizard-proceed" :loading="busy" :error="message" @back="goBack" @next="proceed"> step content </SetupShell>; `done` with `done-title` shows the "… ist verbunden" beat instead (role="status", focused)
 @avoid Not a dialog and not a stepper for a few fields (a form in a sheet has a plain footer, `footer-actions`); it does not run a step list itself: the flow owns the step state, the answers and the primary action's meaning. No visible step heading: the rail names the step.
 @responsibility
-- Rail (`SetupRail`: md and up the rail with the one-line help, below md label, n / m and bar), pane and footer share the sheet's padding (the shell adds none) and one content edge; the pane never has a scroll area of its own, a long list scrolls with the page
+- Rail (`SetupRail`: md and up the rail with the help, which reserves four lines so the footer never moves when a step's help is shorter or longer, below md label, n / m and bar), pane and footer share the sheet's padding (the shell adds none) and one content edge; the pane never has a scroll area of its own, a long list scrolls with the page
 - The pane is a labelled group (`role="group"`, named by the current step, or `pane-label`); after a step change focus moves to it (`preventScroll`), the DOM order is rail, pane, footer
 - Pane height: `usePaneHeight` eases it to its content in 300 ms (`MOTION.slowMs`, `MOTION.emphasized`) when a step changes or content grows or shrinks; a step change also slides the pane 14 px sideways (forward from the right, back mirrored) and fades it in; all instant under `prefers-reduced-motion`; nothing animates on the first mount
-- Footer (`footer-actions`, #611): one cluster at the right edge, Zurück soft first (`setup-back`, only with `back-label`), Weiter solid last (`next-test-id`, default `setup-next`); on a phone the two share the row (48 px), a lone button fills it. `loading` puts Weiter in its loading state and leaves the pane at its height
+- Footer (`footer-actions`, #611): one cluster at the right edge, Zurück soft first (`setup-back`, only with `back-label`), Weiter solid last (`next-test-id`, default `setup-next`); on a phone the two share the row (48 px) and size to their labels (`flex-auto`, so "Zurück zur Auswahl" never wraps), a lone button fills it. `loading` puts Weiter in its loading state and leaves the pane at its height
 - `error`: a subtle `UAlert` at the end of the pane (`role="alert"`); `done`: the beat replaces rail, pane and footer at the height the shell had (`role="status"`, focused)
 - Copy: Weiter, Zurück and the rail's labels default to the existing generic keys (`notion.modal.next`, `common.back`, `notion.modal.stepsLabel`, `notion.modal.stepDone`); a flow passes its own where the wording differs ("Zurück zur Auswahl")
 - Pattern: step progress via SetupRail; footer cluster per DESIGN.md "Trigger an action" (#611); step back aligned with BackButton (arrow, label rule, test id), soft in the footer instead of ghost above the title; new shell the three setup flows adopt (slices 2, 3, 5 of #607)
@@ -38,6 +38,7 @@
           :steps="steps"
           :current="current"
           :help="help"
+          :help-lines="4"
           :label="railLabel ?? t('notion.modal.stepsLabel')"
           :done-label="t('notion.modal.stepDone')"
         />
@@ -70,10 +71,10 @@
       </div>
 
       <div class="footer-actions mt-6" data-testid="setup-footer">
-        <UButton v-if="backLabel" color="neutral" variant="soft" :icon="ICONS.stepBack" data-testid="setup-back" @click="emit('back')">
+        <UButton v-if="backLabel" class="max-md:flex-auto" color="neutral" variant="soft" :icon="ICONS.stepBack" data-testid="setup-back" @click="emit('back')">
           {{ backLabel }}
         </UButton>
-        <UButton color="primary" :loading="loading" :disabled="nextDisabled" :data-testid="nextTestId" @click="emit('next')">
+        <UButton class="max-md:flex-auto" color="primary" :loading="loading" :disabled="nextDisabled" :data-testid="nextTestId" @click="emit('next')">
           {{ nextLabel ?? t('notion.modal.next') }}
         </UButton>
       </div>

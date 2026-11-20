@@ -20,6 +20,7 @@ type Flow = { name: string, url: string, seed?: 'board' | 'none', prepare?: (con
 
 /** Allow lists name the boxes seen jumping in a strict run, never every box. The step swap and the setup's height: motion-4 / #607 (setup steps). Every place that opens or re-lays in one step has left the list (#610 blocks that open in place, #642 topic focus). */
 const SETUP_STEPS: AllowedJump = { match: /^div#__nuxt|^div#teleports|^div$|welcome-root|setup-back|Status\d|Aufgewendete Zeit|Erledigungsdatum/, issue: '#607', why: 'the setup steps still jump in height and place (motion-4)' }
+const SETUP_PAGE_SCROLL: AllowedJump = { match: /flow-root|brand-flight/, issue: '#649', why: 'the pane has no scroll area of its own now, so a tall step makes the page scroll; when the done beat shortens the page the sampler (page y = rect + scrollY) reads the scroll reset as a jump of the pane block and of the fixed brand flight (both glide on screen)' }
 
 /** The sheet's own opening moves its last line (Metadaten, the actions) 174 px in one frame: found while the #610 allow entry left (#659). The disclosures themselves are guarded strictly in their own flow. */
 const SHEET_OPENS: AllowedJump = { match: /task-metadata/, issue: '#659', why: 'the sheet\'s last line arrives in one step when the sheet opens (not the disclosure)' }
@@ -50,7 +51,7 @@ const FLOWS: Flow[] = [
       await page.getByRole('button', { name: 'Mit Notion einrichten' }).click()
       await completeNotionWizard(page)
     },
-    jumps: [SETUP_STEPS],
+    jumps: [SETUP_STEPS, SETUP_PAGE_SCROLL],
   },
   {
     name: 'Mehr panel: open and close',

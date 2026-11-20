@@ -9,11 +9,12 @@
 - Manages navigation between wizard steps
 - Handles database selection and property mapping
 - Communicates with Notion API
-- Saves configuration on completion
+- Saves configuration on completion (`finishSetup` is the only `setConfig`: nothing is written to the connection before the last step)
+- `flush` drops its own padding where the host owns the content edge (the welcome flow's shell, #649); the settings dialog keeps it
 -->
 <template>
   <div class="notion-setup">
-    <div ref="animateRef" class="p-4">
+    <div ref="animateRef" :class="flush ? undefined : 'p-4'">
       <!-- Token Step -->
       <TokenStep
         v-if="step === 'token'"
@@ -144,6 +145,8 @@ const props = defineProps<{
   broken?: boolean;
   /** Animate step content changes (auto-animate); the welcome page animates the whole pane itself (#43) */
   animate?: boolean;
+  /** No padding of its own: a host that owns the content edge (the setup shell, #649) */
+  flush?: boolean;
 }>();
 
 const [animateRef, setAnimate] = useAutoAnimate();
@@ -819,6 +822,7 @@ defineExpose({
   step, // Expose step for button logic
   cancel, // Added from previous defineExpose
   isValidating,
+  isLoadingDatabases,
   statusMappingStep, // Expose statusMappingStep ref for external access
   priorityMappingStep, // Expose priorityMappingStep ref for external access
   propertyMapping, // Expose propertyMapping for conditional step rendering

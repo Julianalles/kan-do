@@ -366,14 +366,14 @@ test.describe('Notion Setup Stepper', () => {
       await expect(flow.getByText('Das brauchst du')).toBeVisible()
       await expect(flow.getByRole('list', { name: 'Das brauchst du' }).getByRole('listitem')).toHaveText(['Notion-Konto', 'Aufgaben-Datenbank', 'Token'])
       await expect(flow.getByPlaceholder('Integrationstoken eingeben')).toBeHidden()
-      await expect(flow.getByRole('heading', { name: 'Vorbereitung' })).toHaveClass(/sr-only/)
+      await expect(flow.getByRole('heading')).toHaveCount(0) // the rail names the step (#649)
 
       const proceed = page.getByTestId('wizard-proceed')
       await expect(proceed).toHaveText('Weiter')
       await proceed.click()
       const token = flow.getByPlaceholder('Integrationstoken eingeben')
       await expect(token).toBeVisible()
-      await expect(flow.getByRole('heading', { name: 'Notion-Token' })).toBeFocused()
+      await expect(flow.getByRole('group', { name: 'Token' })).toBeFocused()
       await token.fill('secret_typed_token')
 
       await page.getByTestId('setup-back').click() // from the token step back to the intro

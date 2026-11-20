@@ -163,7 +163,7 @@ test('Notion ticked in step 2 shows the setup on the page (no dialog); Back retu
 
   const flow = page.getByTestId('notion-setup-flow')
   await expect(flow).toBeVisible()
-  await expect(flow.getByRole('heading', { name: 'Vorbereitung' })).toBeFocused() // the hidden heading of the first step (#441)
+  await expect(flow.getByRole('group', { name: 'Vorbereitung' })).toBeFocused() // the shell's pane, named by the first step (#441, #649)
   await expect(page.getByTestId('wizard-proceed')).toBeVisible()
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(page).toHaveURL(/\/welcome$/)
@@ -189,7 +189,61 @@ test('the Notion setup is wider than the start screen and the sheet does not ove
 })
 
 for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
-  test(`the Notion setup footer at ${viewport.width}px: the proceed button is the lg CTA, Back a 44px target (#552, #43)`, async ({ page, baseURL }) => {
+  test(`the Notion setup on the shell at ${viewport.width}px: no scroll area at any step, the footer follows the step, facts are neutral badges, nothing stored before "Verbinden" (#649)`, async ({ page, baseURL }) => {
+    await page.setViewportSize(viewport)
+    await page.goto(baseURL! + '/welcome')
+    await openNotion(page)
+    const flow = page.getByTestId('notion-setup-flow')
+    const proceed = page.getByTestId('wizard-proceed')
+    const back = page.getByTestId('setup-back')
+    const scrollAreas = () => flow.evaluate((root) => Array.from(root.querySelectorAll<HTMLElement>('*')).filter((el) => {
+      const { overflowY } = getComputedStyle(el)
+      return (overflowY === 'auto' || overflowY === 'scroll') && el.scrollHeight > el.clientHeight
+    }).length)
+
+    // The intro: the fact badges are neutral (no border, no ring: nothing that reads as a button), the lone button fills the row on a phone
+    await expect(back).toHaveText('Zurück zur Auswahl')
+    await expect(proceed).toHaveText('Weiter') // the intro's button keeps its label ("onboarding.flow.notion.start")
+    const badge = flow.getByRole('list', { name: 'Das brauchst du' }).getByRole('listitem').first().locator('span').first()
+    await expect(badge).toBeVisible()
+    expect(await badge.evaluate((el) => { const s = getComputedStyle(el); return [s.borderTopWidth, s.boxShadow] })).toEqual(['0px', 'none'])
+    expect(await scrollAreas()).toBe(0)
+    await proceed.click()
+
+    await expect(back).toHaveText('Zurück')
+    const token = flow.getByPlaceholder('Integrationstoken eingeben')
+    await token.fill('notion_test_stub')
+    const stepNames = ['Token', 'Datenbank', 'Eigenschaften', 'Weitere Eigenschaften']
+    for (const name of stepNames) {
+      await expect(flow.getByRole('group', { name, exact: true })).toBeVisible()
+      await expect(proceed).toBeEnabled()
+      expect(await scrollAreas(), name).toBe(0)
+      if (name === 'Datenbank') {
+        // "Nötig" and "Optional" are neutral badges too
+        await expect(flow.getByRole('list', { name: 'Nötig' }).getByRole('listitem')).toHaveText(['Titel', 'Status'])
+      }
+      await proceed.click()
+      await expect(flow.getByRole('group', { name, exact: true })).toHaveCount(0)
+    }
+    // Weitere Eigenschaften -> (Priorität) -> Status; the last step's button reads "Verbinden"
+    await expect(proceed).toBeEnabled()
+    while ((await proceed.innerText()).trim() !== 'Verbinden') {
+      const before = await flow.locator('[aria-current="step"]').first().innerText()
+      await proceed.click()
+      await expect(flow.locator('[aria-current="step"]').first()).not.toHaveText(before, { useInnerText: true })
+      await expect(proceed).toBeEnabled()
+    }
+    expect(await scrollAreas()).toBe(0)
+    // Nothing is written to the connection before the last step's button
+    expect(await page.evaluate(() => localStorage.getItem('notionConfig'))).toBeNull()
+    await proceed.click()
+    await expect(page.getByTestId('setup-done')).toContainText('Notion ist verbunden')
+    await expect(page).toHaveURL(/\/tasks$/, { timeout: 10_000 })
+  })
+}
+
+for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
+  test(`the Notion setup footer at ${viewport.width}px: Zurück and the proceed button are one footer cluster, the same height (#552, #43, #649)`, async ({ page, baseURL }) => {
     await page.setViewportSize(viewport)
     await page.goto(baseURL! + '/welcome')
     await openNotion(page)
@@ -198,7 +252,7 @@ for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 
     const height = async (locator: ReturnType<Page['locator']>) => Math.round((await locator.boundingBox())!.height)
     const phone = viewport.width === 390
     await expect.poll(() => height(proceed)).toBe(phone ? 48 : 36)
-    expect(await height(page.getByTestId('setup-back'))).toBeGreaterThanOrEqual(44)
+    expect(await height(page.getByTestId('setup-back'))).toBe(await height(proceed)) // a footer button, not the old 44 px link above the title
   })
 }
 
@@ -406,6 +460,16 @@ test('welcome: brand and subline sit on the photo with AA contrast at 1280 and 3
     await expectContrast(page, page.getByTestId('welcome-brand'), 3)
     await expectContrast(page, page.getByText('Das Kanban-Board, mit dem du deine Aufgaben des Tages fokussiert erledigst.'), 4.5)
   }
+})
+
+test('in the Notion setup the subline keeps AA contrast on the photo at the token step at 390px (the sheet is shorter there, #649)', async ({ page, baseURL }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto(baseURL! + '/welcome')
+  await openNotion(page)
+  await page.getByTestId('wizard-proceed').click()
+  await expect(page.getByRole('group', { name: 'Token', exact: true })).toBeVisible()
+  await page.mouse.move(0, 0)
+  await expectContrast(page, page.getByText('Das Kanban-Board, mit dem du deine Aufgaben des Tages fokussiert erledigst.'), 4.5)
 })
 
 test('in the Notion setup the brand keeps the sheet\'s left edge while the sheet widens (#437)', async ({ page, baseURL }) => {

@@ -662,7 +662,6 @@
       }
     },
     "token": {
-      "heading": "Notion-Einrichtung",
       "hintTitle": "Hinweis",
       "fieldLabel": "Notion-Integrationstoken",
       "placeholder": "Integrationstoken eingeben",
@@ -708,7 +707,6 @@
       "warningLabel": "Warnung:",
       "brokenNotice": "Die Notion-Einrichtung ist nicht mehr gültig. Richte sie neu ein.",
       "stepTitle": {
-        "intro": "Vorbereitung",
         "token": "Notion-Token",
         "database": "Datenbank auswählen",
         "mapping": "Eigenschaften zuordnen",
