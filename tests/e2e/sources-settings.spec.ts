@@ -26,14 +26,25 @@ test.describe('Local only', () => {
     await seedLocalBoard(context)
   })
 
-  test('/settings/notion without an integration is one muted sentence and a soft button, no warning block (#557)', async ({ page, baseURL }) => {
+  test('/settings/notion without an integration shows the setup as a stage of the page: 768 px sheet, intro first, no dialog (#652)', async ({ page, baseURL }) => {
     await page.goto(`${baseURL}/settings/notion`)
 
-    const block = page.getByTestId('notion-not-configured')
-    await expect(block).toContainText('Noch keine Notion-Integration eingerichtet.')
-    await expect(block.locator('svg, [class*="text-warning"]')).toHaveCount(0)
-    await block.getByRole('link', { name: 'Integration einrichten' }).click()
+    const stage = page.getByTestId('notion-setup-stage')
+    await expect(stage.getByTestId('notion-setup-flow')).toBeVisible()
+    await expect(stage.getByTestId('notion-setup-steps').locator('[aria-current="step"]')).toContainText('Vorbereitung')
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    await expect(page.getByTestId('sub-page-column')).toHaveCount(1)
+    expect((await page.getByTestId('sub-page-column').boundingBox())!.width).toBe(768)
+
+    // Zurück on the first step reads where it leads and returns to the sources tab, nothing is written
+    await expect(stage.getByTestId('setup-back')).toHaveText('Zurück zu Einstellungen')
+    await stage.getByTestId('setup-back').click()
     await expect(page).toHaveURL(/\/settings\?tab=sources$/)
+    await expect(page.getByTestId('source-more-notion')).toBeVisible()
+    await expect(page.getByTestId('sub-page-column')).toHaveCount(1) // the page fade has ended
+    expect((await page.getByTestId('sub-page-column').boundingBox())!.width).toBe(672) // the other pages keep their column
+    await expect.poll(() => sourcesFromStorage(page)).toEqual({ connected: [], default: 'local' })
+    await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem('notionConfig') ?? '{}').config ?? null)).toBeNull()
   })
 
   test('/settings has no visible page header (the bar names it), a settings sub-page keeps its own (#670)', async ({ page, baseURL }) => {
@@ -106,8 +117,11 @@ test.describe('Local only', () => {
   test('"Verbinden" runs the Notion setup: Notion joins the list with its tasks on the board, the default stays Lokal; then it can become the default', async ({ page, baseURL }) => {
     await openFromBoard(page, baseURL)
     await page.getByRole('button', { name: 'Notion verbinden' }).click()
+    await expect(page).toHaveURL(/\/settings\/notion\?setup=connect$/)
+    await expect(page.getByTestId('notion-setup-steps').locator('[aria-current="step"]')).toContainText('Vorbereitung') // starts at the intro
     await completeNotionWizard(page)
 
+    await expect(page).toHaveURL(/\/settings\?tab=sources$/)
     await expect(row(page, 'notion')).toBeVisible()
     await expect(page.getByTestId('source-more-notion')).toHaveCount(0)
     await expect(page.getByTestId('source-default-local')).toBeVisible()
@@ -225,7 +239,7 @@ test.describe('Notion that needs attention', () => {
     await seedMixedBoard(context, undefined, { notionConfig: { token: `notion_test_stub:fail=401:${crypto.randomUUID()}` } })
   })
 
-  test('shows "Verbindung prüfen" in the warning colour with the repair, which opens the setup at the token step and returns focus on cancel', async ({ page, baseURL }) => {
+  test('shows "Verbindung prüfen" in the warning colour with the repair, which opens the setup stage at the token step and leaves untouched on Zurück (#652)', async ({ page, baseURL }) => {
     const rejected = page.waitForResponse((res) => res.url().includes('/api/notion/') && res.status() === 401)
     await page.goto(`${baseURL}/tasks`)
     await rejected
@@ -238,16 +252,17 @@ test.describe('Notion that needs attention', () => {
     await expect(repair).toBeVisible()
 
     await repair.click()
-    const dialog = page.getByRole('dialog')
-    await expect(dialog.getByText('Mit Notion verbinden')).toBeVisible()
-    await expect(dialog.getByPlaceholder('Integrationstoken eingeben')).toBeVisible() // the token step, not the mapping
-    await expect(dialog.getByText('Notion-Einrichtung ist nicht mehr gültig')).toBeVisible()
-    await expect(dialog.getByRole('button', { name: 'Zurücksetzen' })).toHaveCount(0) // the old reset is gone
-    await page.getByRole('button', { name: 'Abbrechen' }).click()
+    await expect(page).toHaveURL(/\/settings\/notion\?setup=repair$/)
+    const stage = page.getByTestId('notion-setup-stage')
     await expect(page.getByRole('dialog')).toHaveCount(0)
-    await expect(repair).toBeFocused()
-    await expect(page).toHaveURL(/\/settings(\?tab=sources)?$/)
-    await expect(status).toHaveText('Verbindung prüfen') // cancelling repairs nothing
+    await expect(stage.getByPlaceholder('Integrationstoken eingeben')).toBeVisible() // the token step, not the intro or the mapping
+    await expect(stage.getByTestId('notion-setup-steps').locator('[aria-current="step"]')).toContainText('Token')
+    await expect(stage.getByText('Notion-Einrichtung ist nicht mehr gültig')).toBeVisible()
+    await expect(stage.getByRole('button', { name: 'Zurücksetzen' })).toHaveCount(0) // the old reset is gone
+    await expect(stage.getByTestId('setup-back')).toHaveText('Zurück zu Einstellungen')
+    await stage.getByTestId('setup-back').click()
+    await expect(page).toHaveURL(/\/settings\?tab=sources$/)
+    await expect(status).toHaveText('Verbindung prüfen') // leaving repairs nothing
   })
 
   test('sequence: revoked token, repair from the Mehr panel, a new token, the source is healthy and the sync works', async ({ page, baseURL }) => {
@@ -262,7 +277,7 @@ test.describe('Notion that needs attention', () => {
     await expect(page.getByTestId('source-status-notion')).toHaveText('Verbindung prüfen')
 
     await page.getByRole('button', { name: 'Notion-Verbindung reparieren' }).click()
-    await expect(page.getByRole('dialog').getByPlaceholder('Integrationstoken eingeben')).toBeVisible()
+    await expect(page.getByTestId('notion-setup-stage').getByPlaceholder('Integrationstoken eingeben')).toBeVisible()
     await completeNotionWizard(page) // a fresh stub token: the revoked one is replaced
 
     const status = page.getByTestId('source-status-notion')
@@ -313,6 +328,27 @@ test.describe('Notion that is merely offline', () => {
     await expect(page.getByTestId('source-status-notion')).toHaveText(/^Synchronisiert/) // last-sync line, no warning
     await expect(page.getByRole('button', { name: 'Notion-Verbindung reparieren' })).toHaveCount(0)
     await expect(page.getByRole('dialog')).toHaveCount(0)
+  })
+})
+
+test.describe('Notion setup stage in settings mode (#652)', () => {
+  test('a merely degraded connection opens the shorter mapping steps, Zurück on the first leaves the connection untouched', async ({ context, page, baseURL }) => {
+    await seedMixedBoard(context, undefined, { once: true })
+    await page.goto(`${baseURL}/settings/notion?setup=settings`)
+
+    const stage = page.getByTestId('notion-setup-stage')
+    const steps = stage.getByTestId('notion-setup-steps')
+    await expect(steps.locator('[aria-current="step"]')).toContainText('Eigenschaften')
+    await expect(steps.getByText('Token', { exact: true })).toHaveCount(0) // the credentials are fine: no token, no database step
+    await expect(steps.getByText('Vorbereitung', { exact: true })).toHaveCount(0)
+    await expect(page.getByRole('dialog')).toHaveCount(0)
+    const before = await page.evaluate(() => localStorage.getItem('notionConfig'))
+
+    await expect(stage.getByTestId('setup-back')).toHaveText('Zurück zu Einstellungen')
+    await stage.getByTestId('setup-back').click()
+    await expect(page).toHaveURL(/\/settings\?tab=sources$/)
+    expect(await page.evaluate(() => localStorage.getItem('notionConfig'))).toBe(before)
+    await expect.poll(() => sourcesFromStorage(page)).toEqual(expect.objectContaining({ connected: expect.arrayContaining(['notion']) }))
   })
 })
 

@@ -3,14 +3,14 @@
 @kind compound
 @category input
 @description Controller component for the Notion setup wizard
-@usage Used within the Notion setup modal to manage the setup flow
+@usage Hosted by NotionSetupFlow (the welcome page and the stage of /settings/notion, #652); never in a dialog
 @avoid Only drives the Notion setup steps; other flows (LocalSetupFlow) have their own sequence.
 @responsibility
 - Manages navigation between wizard steps
 - Handles database selection and property mapping
 - Communicates with Notion API
 - Saves configuration on completion (`finishSetup` is the only `setConfig`: nothing is written to the connection before the last step)
-- `flush` drops its own padding where the host owns the content edge (the welcome flow's shell, #649); the settings dialog keeps it
+- `flush` drops its own padding where the host owns the content edge (NotionSetupFlow's shell, #649)
 -->
 <template>
   <div class="notion-setup">

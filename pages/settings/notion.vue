@@ -5,7 +5,8 @@
 @responsibility
 - Provides tabbed navigation (`UTabs` `variant="link"`, the light underline of an in-page view switch, #318, #368) to different configuration sections
 - One tab form with `/settings/topics` (#603): horizontal underline tabs without icons above a full-width panel, in the 672 px column of every settings sibling (it was a vertical icon list in 992 px). The list scrolls sideways inside itself when the tabs do not fit and keeps the active tab in view
-- Without an integration: one muted sentence and a soft button to the settings (no warning block)
+- The setup runs here as a stage (#652, epic #607): without an integration, or with `?setup=connect|repair|settings`, the sheet holds `NotionSetupFlow` (the welcome flow's component on `SetupShell`, no dialog) at 768 px like the welcome sheet (`useSetupStageWidth`). `connect` starts at the intro, `repair` (credentials needed: a broken connection) at the token step with the broken notice, `settings` (a merely degraded connection) at the shorter mapping steps. The stage is decided once on arrival, so the connection the flow saves does not swap the page under its own "verbunden" beat; the sources tab's "Verbinden" and "Verbindung reparieren" navigate here
+- Zurück on the first step ("Zurück zu Einstellungen") and the end of the flow leave to the sources tab (`/settings?tab=sources`; one history step back when the page came from there); the end then connects the source (`connectSource`, the first fetch merges as today) or, for a repair, fetches it, behind the done beat. Nothing is written to the connection before the last step confirms
 - Allows direct access to specific settings without wizard flow
 - Manages save/cancel actions per section; the inline database edit pairs a soft "Abbrechen" with a solid "Speichern" (#596)
 - Phone: while tabs hide past the right edge the row fades out there (the cue that it scrolls, #596)
@@ -27,11 +28,14 @@
       </template>
 
       <!-- Main Content -->
-      <PageSheet v-if="!isConfigured" class="space-y-4" data-testid="notion-not-configured">
-        <p class="text-muted">{{ t('notion.settings.notConfigured.message') }}</p>
-        <UButton color="neutral" variant="soft" to="/settings?tab=sources">
-          {{ t('notion.settings.notConfigured.action') }}
-        </UButton>
+      <PageSheet v-if="stage" data-testid="notion-setup-stage">
+        <NotionSetupFlow
+          :mode="stage.mode"
+          :intro="stage.intro"
+          back-target="settings"
+          @back="leaveStage"
+          @complete="onStageComplete"
+        />
       </PageSheet>
 
       <UTabs
@@ -243,6 +247,12 @@ import { useSecrets } from '~/composables/useSecrets';
 import { isTauri } from '~/utils/isTauri';
 import { maskToken } from '~/lib/secrets';
 import ExternalLink from '~/components/ui/ExternalLink.vue';
+import NotionSetupFlow from '~/components/setup/NotionSetupFlow.vue';
+import { useSetupStageWidth } from '~/composables/useSetupStageWidth';
+import { useSourceConnections } from '~/composables/useSourceConnections';
+import { useIntegrationManager } from '~/composables/useIntegrationManager';
+import { navigateTo } from 'nuxt/app';
+import { useRoute, useRouter } from 'vue-router';
 import { useFeatureFlags } from '~/utils/featureFlags';
 import { NotionClientAPI } from '~/integrations/NotionClientAPI';
 import { usePropertyOptionsStore } from '~/store/propertyOptions';
@@ -278,6 +288,47 @@ const secrets = useSecrets();
 const isDesktop = isTauri();
 const featureFlags = useFeatureFlags();
 const propertyOptionsStore = usePropertyOptionsStore();
+const route = useRoute();
+const router = useRouter();
+const { connectSource } = useSourceConnections();
+const { fetchSource } = useIntegrationManager();
+
+// ---- Setup stage (#652) ----
+
+type SetupStage = { purpose: 'connect' | 'repair'; mode: 'setup' | 'settings'; intro: boolean };
+const SOURCES_TAB = '/settings?tab=sources';
+
+/** Not connected, or asked for by `?setup=`: the setup shows instead of the tabs. Decided once, so the config the flow saves does not swap the page mid-beat. */
+function stageOnArrival(): SetupStage | null {
+  const asked = Array.isArray(route.query.setup) ? route.query.setup[0] : route.query.setup;
+  if (!notionConfig.isConfigured || asked === 'connect') return { purpose: 'connect', mode: 'setup', intro: true };
+  // A broken connection needs its credentials again: the token step, never the mapping a dead token cannot serve
+  if (asked === 'repair') return { purpose: 'repair', mode: 'setup', intro: false };
+  if (asked === 'settings') return { purpose: 'repair', mode: 'settings', intro: false };
+  return null;
+}
+const stage = ref<SetupStage | null>(stageOnArrival());
+const isStage = computed(() => stage.value !== null);
+useSetupStageWidth(isStage);
+
+/** Back to the sources tab: one history step when the page was opened from there, so the history keeps no copy of it */
+function leaveStage() {
+  const from = import.meta.client ? (window.history.state as { back?: unknown } | null)?.back : undefined;
+  if (typeof from === 'string' && from.startsWith('/settings?') && from.includes('tab=sources')) return router.back();
+  return navigateTo(SOURCES_TAB, { replace: true });
+}
+
+/** The flow saved the connection: add Notion on top of the board (a connect; its first fetch merges per source) or fetch so the status reflects the repair, then leave */
+async function onStageComplete() {
+  try {
+    if (stage.value?.purpose === 'connect') await connectSource('notion');
+    else await fetchSource('notion');
+  } catch (error) {
+    // A refused connect (busy, already connected) changes nothing; a failed fetch is recorded in the source's health and the row reads "Verbindung prüfen"
+    if (stage.value?.purpose === 'connect') handleError(error as Error, 'notion_setup');
+  }
+  await leaveStage();
+}
 
 // Refs for child components
 const propertyMapperRef = ref<InstanceType<typeof PropertyMapper> | null>(null);
@@ -727,6 +778,7 @@ watch(localDatabaseId, () => {
 
 // Initialize on mount
 onMounted(async () => {
+  if (stage.value) return; // the stage's flow loads what it needs itself
   initializeFromConfig();
   originalDatabaseId.value = localDatabaseId.value;
   if (isConfigured.value && localToken.value) {

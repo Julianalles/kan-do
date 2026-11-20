@@ -12,6 +12,7 @@
   by default, a 672 px reading column (`max-w-2xl` on a div inside the padded `main`, so the content is 672 px and not less)
   on a page with `definePageMeta({ pageWidth: 'narrow' })` (Einstellungen and its sub-pages, Papierkorb). The header follows
   the same column (`PageHeader` `narrow`). The pages carry no width class of their own
+- A setup stage (`/settings/notion`, `/settings/reminders`, #652) widens the column to 768 px (`max-w-3xl`, the welcome sheet's width: one sheet width for every setup flow, epic #607) while it shows: the page sets `useState('sub-page-wide')` beside `sub-page-description-key` and resets it when it leaves; the other settings pages keep 672 px
 -->
 <template>
   <div class="sub-page bg-page">
@@ -20,6 +21,7 @@
       :title="pageTitle"
       :description="pageDescription"
       :narrow="isNarrow"
+      :wide="isWide"
     >
       <template v-if="backTo" #back>
         <BackButton :label="t('common.backToSettings')" :to="backTo" />
@@ -32,7 +34,7 @@
 
     <div class="px-safe" :class="{ 'pt-safe': !showsHeader }">
       <main class="mx-auto max-w-5xl px-4 py-8">
-        <div data-testid="sub-page-column" :class="{ 'mx-auto max-w-2xl': isNarrow }">
+        <div data-testid="sub-page-column" :class="columnClass">
           <div v-if="backTo && !showsHeader" class="mb-4 flex">
             <BackButton :label="t('common.backToSettings')" :to="backTo" />
           </div>
@@ -62,6 +64,11 @@ const backTo = computed(() => (route.path.startsWith('/settings/') ? thirdItemOf
 
 /** One 672 px column on the axis instead of the full container (#673) */
 const isNarrow = computed(() => route.meta.pageWidth === 'narrow');
+
+/** A setup stage is wider than a reading column (768 px, #652); the page sets this while the stage shows */
+const wideOverride = useState<boolean>('sub-page-wide', () => false);
+const isWide = computed(() => isNarrow.value && wideOverride.value);
+const columnClass = computed(() => (isWide.value ? 'mx-auto max-w-3xl' : isNarrow.value ? 'mx-auto max-w-2xl' : undefined));
 
 const pageTitle = computed(() => {
   const key = route.meta.titleKey as string | undefined;

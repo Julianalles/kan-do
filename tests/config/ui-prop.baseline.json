@@ -15,10 +15,6 @@
     "count": 1,
     "reason": "keep: placement"
   },
-  "components/notion/setup/NotionSetupModal.vue": {
-    "count": 1,
-    "reason": "keep: placement"
-  },
   "components/settings/GithubTokenRow.vue": {
     "count": 1,
     "reason": "keep: placement"

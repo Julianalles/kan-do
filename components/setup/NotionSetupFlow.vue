@@ -2,17 +2,18 @@
 @component NotionSetupFlow
 @kind block
 @category input
-@description The Notion setup as page content inside the welcome sheet (#43), on the shared SetupShell (#649, epic #607): guide rail (md and up) or progress bar (below md), one pane with the existing wizard steps, and a footer bar with Zurück and Weiter. No dialog.
-@usage <NotionSetupFlow @back="flow = null" @complete="onConnected" /> inside pages/welcome.vue
-@avoid Only the Notion setup on the welcome page; reconfiguring later is NotionSetupModal.
+@description The Notion setup as page content, on the shared SetupShell (#649, #652, epic #607): guide rail (md and up) or progress bar (below md), one pane with the existing wizard steps, and a footer bar with Zurück and Weiter. No dialog: the welcome sheet and the stage of /settings/notion host the same component.
+@usage <NotionSetupFlow @back="flow = null" @complete="onConnected" /> inside pages/welcome.vue; <NotionSetupFlow back-target="settings" :intro="false" @back="…" @complete="…" /> on /settings/notion (`mode="settings"` for the shorter steps of a merely degraded connection)
+@avoid Not a dialog; the connected view of /settings/notion (tabs per section) is a different page.
 @responsibility
-- Fills SetupShell with the steps, the rail help, the footer state of WizardController (`canProceed`, `isValidating`, the step) and the primary action; hosts WizardController (steps, validation and saving unchanged) in setup mode, `flush` (no padding of its own: the shell's content edge) and drives it: Weiter, Verbinden, Zurück
-- Zurück goes one step; from the first step ("Zurück zur Auswahl") it emits `back` (the choice); the last step's button reads "Verbinden"
-- The first step is the intro "Vorbereitung" (NotionSetupIntro, #441): it says what Notion and Kan-Do do and what to have at hand, writes nothing and shows on every run; its button reads "Weiter" and Zurück from the token step returns to it. The wizard stays mounted (hidden) behind it, so a typed token survives the trip back
+- Fills SetupShell with the steps, the rail help, the footer state of WizardController (`canProceed`, `isValidating`, the step) and the primary action; hosts WizardController (steps, validation and saving unchanged) in its `mode`, `flush` (no padding of its own: the shell's content edge) and drives it: Weiter, Verbinden, Zurück
+- Zurück goes one step; from the first step it emits `back`, labelled by `back-target`: "Zurück zur Auswahl" (`choice`, the welcome page) or "Zurück zu Einstellungen" (`settings`, the stage of /settings/notion, #652); the last step's button reads "Verbinden"
+- Props: `mode` `setup` (default: intro, token, database, then the mapping steps) or `settings` (a configured connection that is only degraded: the mapping steps, no intro, no token); `intro` (default on; off where the run starts at the token step, the repair of a broken connection)
+- The first step of a setup run is the intro "Vorbereitung" (NotionSetupIntro, #441): it says what Notion and Kan-Do do and what to have at hand, writes nothing; its button reads "Weiter" and Zurück from the token step returns to it. The wizard stays mounted (hidden) behind it, so a typed token survives the trip back
 - No step heading and no scroll area of its own: the rail names the step, the shell's pane follows each step's height (300 ms) and focus moves to the pane after a step change; a long database list grows the pane and the page scrolls
 - Nothing is written to the connection before the last step: `WizardController.finishSetup` is the only `setConfig`
 - Completion shows a short "Notion ist verbunden" beat (SetupShell `done`), then emits `complete`
-- Pattern: first-run setup, diverged from the modal wizard (a process the user stays in); step progress via SetupRail, footer via SetupShell
+- Pattern: setup flow, one component for the welcome page and settings (#562): a process the user stays in is a page, not a dialog; step progress via SetupRail, footer via SetupShell
 -->
 <template>
   <section class="notion-setup-flow" data-testid="notion-setup-flow" :aria-label="t('onboarding.flow.notion.label')">
@@ -20,7 +21,7 @@
       :steps="railSteps"
       :current="stepIndex"
       :help="t(`onboarding.flow.help.${stepKey}`)"
-      :back-label="isFirst ? t('onboarding.flow.backToChoice') : t('common.back')"
+      :back-label="isFirst ? t(props.backTarget === 'settings' ? 'common.backToSettings' : 'onboarding.flow.backToChoice') : t('common.back')"
       :next-label="nextLabel"
       next-test-id="wizard-proceed"
       :next-disabled="!inIntro && !wizard?.canProceed"
@@ -38,7 +39,7 @@
           ref="wizard"
           :token="notionConfigStore.config?.token"
           :broken="isBroken"
-          mode="setup"
+          :mode="props.mode"
           :animate="false"
           flush
           @cancel="emit('back')"
@@ -61,7 +62,18 @@ import { useIntegrationHealthStore } from '~/store/integrationHealth';
 
 defineOptions({ name: 'NotionSetupFlow' });
 
+const props = withDefaults(defineProps<{
+  /** `settings`: a configured, merely degraded connection (the mapping steps only) */
+  mode?: 'setup' | 'settings';
+  /** Start with the intro "Vorbereitung" (setup mode only) */
+  intro?: boolean;
+  /** Where Zurück on the first step leads: the welcome choice or the settings */
+  backTarget?: 'choice' | 'settings';
+}>(), { mode: 'setup', intro: true, backTarget: 'choice' });
+
 const emit = defineEmits<{ (e: 'back' | 'complete'): void }>();
+
+const hasIntro = props.mode === 'setup' && props.intro;
 
 const { t } = useI18n();
 const notionConfigStore = useNotionConfigStore();
@@ -87,13 +99,15 @@ const STEP_LABEL: Record<string, string> = {
 
 /** The steps of this run: the priority step exists only when a priority field is mapped */
 const stepKeys = computed<string[]>(() => {
-  const hasPriority = !!wizard.value?.propertyMapping?.priority;
-  return ['intro', 'token', 'database', 'mapping', 'custom-properties', ...(hasPriority ? ['priority-mapping'] : []), 'status-mapping'];
+  // A configured connection may have a priority mapping stored already
+  const hasPriority = !!(wizard.value?.propertyMapping?.priority || (props.mode === 'settings' && notionConfigStore.config?.propertyMapping?.priority));
+  const lead = props.mode === 'settings' ? [] : [...(hasIntro ? ['intro'] : []), 'token', 'database'];
+  return [...lead, 'mapping', 'custom-properties', ...(hasPriority ? ['priority-mapping'] : []), 'status-mapping'];
 });
 const railSteps = computed(() => stepKeys.value.map((key) => ({ key, label: t(STEP_LABEL[key] ?? key) })));
 /** The intro comes before the wizard: it is not a wizard step, so the flow tracks it itself (#441) */
-const inIntro = ref(true);
-const stepKey = computed(() => (inIntro.value ? 'intro' : wizard.value?.step ?? 'token'));
+const inIntro = ref(hasIntro);
+const stepKey = computed(() => (inIntro.value ? 'intro' : wizard.value?.step ?? (props.mode === 'settings' ? 'mapping' : 'token')));
 const stepIndex = computed(() => Math.max(0, stepKeys.value.indexOf(stepKey.value)));
 const isFirst = computed(() => stepIndex.value === 0);
 const nextLabel = computed(() => {
@@ -104,11 +118,11 @@ const nextLabel = computed(() => {
 function goBack() {
   if (isFirst.value) return emit('back');
   // The token is the wizard's first step: Back from it returns to the intro
-  if (wizard.value?.step === 'token' || !wizard.value) {
+  if (hasIntro && (wizard.value?.step === 'token' || !wizard.value)) {
     inIntro.value = true;
     return;
   }
-  wizard.value.back();
+  wizard.value?.back();
 }
 
 function proceed() {
