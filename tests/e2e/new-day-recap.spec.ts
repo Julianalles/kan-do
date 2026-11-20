@@ -1,7 +1,7 @@
 import { test, expect, type BrowserContext, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { settleAnimations } from './helpers/settle'
-import { appNav, goToPlace, openMore, openSettings } from './helpers/appNav'
+import { appNav, goToPlace, openDayClose, openMore, openSettings } from './helpers/appNav'
 import { expectContrast } from './helpers/contrast'
 import {
   MIXED_SEED_TASKS, atDaysAgo, dayKeyDaysAgo, newDayBackTasks, newDayTasks, seedAfterMidnight, seedDayRecapStore, seedMixedBoard, seedNewDayBoard,
@@ -367,7 +367,7 @@ test.describe('New-day recap (#385)', () => {
     expect(panel.y).toBeGreaterThanOrEqual(Math.max(undone.y + undone.height, done.y + done.height))
   })
 
-  test('the controls sheet holds the two buttons on one line: skip left of "Tag neu planen", the arrow icon after the label (#428)', async ({ page, context }) => {
+  test('the footer sheet is docked at the foot with the two buttons in a row: soft way out left of the solid "Tag neu planen", no arrow (#428, #612)', async ({ page, context }) => {
     await seedNewDayBoard(context)
     await page.goto('/tasks')
     const panel = panelOf(page)
@@ -376,10 +376,11 @@ test.describe('New-day recap (#385)', () => {
     const panelBox = (await panel.boundingBox())!
     const button = (await planButton(page).boundingBox())!
     const skip = (await continueButton(page).boundingBox())!
-    // "Überspringen und Board anzeigen" left of "Tag neu planen" (#356), on one line, inside the sheet
+    // "Überspringen und Board anzeigen" left of "Tag neu planen" (#356), on one line, inside the sheet, right-aligned
     expect(skip.x).toBeGreaterThanOrEqual(panelBox.x)
     expect(skip.x + skip.width).toBeLessThanOrEqual(button.x)
     expect(button.x + button.width).toBeLessThanOrEqual(panelBox.x + panelBox.width)
+    expect(panelBox.x + panelBox.width - (button.x + button.width)).toBeLessThan(20)
     expect(Math.abs(skip.y + skip.height / 2 - (button.y + button.height / 2))).toBeLessThan(2)
     // both vertically centred in the sheet
     expect(Math.abs(panelBox.y + panelBox.height / 2 - (button.y + button.height / 2))).toBeLessThan(2)
@@ -387,13 +388,53 @@ test.describe('New-day recap (#385)', () => {
     await expect(planButton(page)).toHaveAccessibleName('Tag neu planen')
     // no paper sheet around the content: the headline sits on the photo, only the controls have a surface
     await expect(page.locator('.recap-stage__sheet')).toHaveCount(0)
-    // trailing: the icon is the last child of the button, after the label, and decorative
-    const icon = planButton(page).locator('svg[data-slot="trailingIcon"]')
-    await expect(icon).toHaveAttribute('aria-hidden', 'true')
-    const iconBox = (await icon.boundingBox())!
-    const buttonBox = (await planButton(page).boundingBox())!
-    expect(iconBox.x + iconBox.width).toBeGreaterThan(buttonBox.x + buttonBox.width / 2)
+    // the way out is soft (a fill, not the ghost's none), the main button solid, no arrow
+    const fill = (locator: ReturnType<Page['locator']>) => locator.evaluate(el => getComputedStyle(el).backgroundColor)
+    expect(await fill(continueButton(page))).not.toMatch(/^rgba\(.*, 0\)$|^transparent$/)
+    expect(await fill(continueButton(page))).not.toBe(await fill(planButton(page)))
+    await expect(planButton(page).locator('svg')).toHaveCount(0)
+    // docked: the sheet ends at the foot of the stage (the stage's padding), whatever the content's height
+    const stageBox = (await recap(page).boundingBox())!
+    expect(stageBox.y + stageBox.height - (panelBox.y + panelBox.height)).toBeLessThan(24)
   })
+
+  test('at rest no halo on the focused main button; the first key brings it (#612)', async ({ page, context }) => {
+    await seedNewDayBoard(context)
+    await page.goto('/tasks')
+    await expect(planButton(page)).toBeFocused()
+    await settleAnimations(page)
+    await expect(recap(page)).toHaveAttribute('data-quiet-focus')
+    await expect(planButton(page)).toHaveCSS('outline-color', /rgba\(0, 0, 0, 0\)|transparent/)
+    await page.keyboard.press('Shift+Tab')
+    await expect(recap(page)).not.toHaveAttribute('data-quiet-focus')
+    await expect(continueButton(page)).toBeFocused()
+    await expect(continueButton(page)).not.toHaveCSS('outline-color', /rgba\(0, 0, 0, 0\)|transparent/)
+  })
+
+  for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
+    test(`one stage shell with the day close at ${viewport.width}px: the title at the same y, the footer at the same width and foot (#612)`, async ({ page, context }) => {
+      await page.setViewportSize(viewport)
+      await seedNewDayBoard(context)
+      await page.goto('/tasks')
+      await expect(recap(page)).toBeVisible()
+      await settleAnimations(page)
+      const measure = async (stage: ReturnType<typeof recap>) => {
+        const title = (await stage.locator('[data-slot="title"]').boundingBox())!
+        const footer = (await stage.locator('.recap-stage__footer').boundingBox())!
+        return { titleY: Math.round(title.y), footerX: Math.round(footer.x), footerW: Math.round(footer.width), footerBottom: Math.round(footer.y + footer.height) }
+      }
+      const fromRecap = await measure(recap(page))
+      // the column is 44 rem at most (704 px), a phone's is the window less the stage's padding
+      expect(fromRecap.footerW).toBe(viewport.width >= 768 ? 704 : viewport.width - 32)
+      await continueButton(page).click()
+      await expect(recap(page)).toBeHidden()
+      await openDayClose(page)
+      const dayClose = page.getByTestId('day-close-stage')
+      await expect(dayClose).toBeVisible()
+      await settleAnimations(page)
+      await expect.poll(async () => measure(dayClose)).toEqual(fromRecap)
+    })
+  }
 
   test('a drag past 80px advances, 60px snaps back; the next card is the new front and the counter wraps', async ({ page, context }) => {
     await seedNewDayBoard(context)
