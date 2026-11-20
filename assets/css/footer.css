@@ -15,7 +15,8 @@
   }
 
   @media (--phone) {
-    .footer-actions > * {
+    /* An element anchored to the start edge (`mr-auto`: a link, a "discard draft" button) keeps its own width. */
+    .footer-actions > :not(.mr-auto) {
       flex: 1 1 0;
       min-width: 0;
       justify-content: center;
