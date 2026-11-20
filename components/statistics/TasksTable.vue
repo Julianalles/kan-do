@@ -42,7 +42,7 @@ import { useI18n } from 'vue-i18n';
 import EmptyNote from '~/components/ui/EmptyNote.vue';
 import { useLocaleFormat } from "~/composables/useLocaleFormat";
 import { getAccuracyTier, getAccuracyVerdict, getVerdictColor } from "~/utils/statisticsAccuracy";
-import { computed, h, nextTick, ref } from 'vue';
+import { computed, h, nextTick, ref, watch } from 'vue';
 import type { TableColumn, TableRow } from '@nuxt/ui';
 import type { TaskCompletionRecord } from '@/store/taskStatistics';
 
@@ -71,6 +71,9 @@ const shownCount = ref(PAGE_SIZE);
 const visibleTasks = computed(() => props.tasks.slice(0, shownCount.value));
 const hasMore = computed(() => shownCount.value < props.tasks.length);
 const tableWrap = ref<HTMLElement | null>(null);
+
+// A new list (a filter or a reload) starts on the first page again
+watch(() => props.tasks, () => { shownCount.value = PAGE_SIZE; });
 
 async function showMore() {
   shownCount.value += PAGE_SIZE;

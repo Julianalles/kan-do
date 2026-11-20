@@ -6,7 +6,7 @@
 @usage Summary of the Q3 tile
 @avoid Only the Q3 estimate chart; a generic ring is StatsRing.
 @responsibility
-- Ink ramp only, steps and order from `ESTIMATE_GROUPS` (`lib/inkRamp.ts`, shared with the day-close Timebox, #604): longer = darkest, as planned = 32 %, shorter = 10 %; no status colour
+- Ink ramp only, steps and order from `ESTIMATE_GROUPS` (`lib/inkRamp.ts`, shared with the day-close Timebox, #604): longer = darkest, as planned = 32 %, shorter = 18 %; no status colour
 - The aria-label and the legend carry the same numbers
 -->
 <template>
