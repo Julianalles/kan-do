@@ -972,6 +972,7 @@
     {
       "paths": [
         "components/setup/**",
+        "composables/usePaneHeight.ts",
         "pages/welcome.vue",
         "pages/index.vue",
         "utils/brandFlight.ts",

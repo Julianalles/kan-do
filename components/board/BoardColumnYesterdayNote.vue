@@ -12,7 +12,7 @@
 - Keep today's wins on top: the strip is a `BoardColumnNotice` (`tone="done"`, #293), `--task-note-height` collapsed (48px on desktop, 56px at 390px so both controls reach 44px with air around them), card width, centred
 - Surface (#605, D2; outline dropped #57) lives in BoardColumnNotice: no border, `--done-note-wash` (70 % `success-100` over `success-50`: darker than the in-card confirmation wash so it separates without a frame, short of the `success-100` Erledigt drop wash so it never reads as a drop target), card radius. Tick and "Gesehen" in `success-800`; title row neutral, rows `toned`
 - Its controls are `UButton`s: label toggle and title rows ghost neutral (#71), "Gesehen" soft (BoardColumnNotice): the theme brings focus ring, hover wash and the 44 px phone floor; the note's scoped CSS keeps only its geometry, type and colours. The toggle stays a button inside the `<h3>` (`aria-expanded`)
-- Collapse over `--duration-base` when it leaves (instant under prefers-reduced-motion); the caret rotates over the same
+- Opens and closes in place over `--duration-slow` (a `UCollapsible`, DESIGN.md "Open a block in place", #610; instant under prefers-reduced-motion): the cards below glide with it; the trailing `DisclosureCaret` turns over the same
 -->
 <template>
   <section
@@ -48,44 +48,40 @@
             <span class="min-w-0 truncate">
               {{ headline }}<span class="text-muted ml-1.5">{{ tasks.length }}</span>
             </span>
-            <UIcon
-              name="i-ph-caret-down"
-              class="yesterday-note__caret text-muted"
-              :class="{ 'yesterday-note__caret--open': open }"
-              aria-hidden="true"
-            />
+            <DisclosureCaret :open="open" />
           </UButton>
         </h3>
 
         <template #below>
-          <ul
-            v-if="open"
-            class="yesterday-note__list"
-          >
-            <li
-              v-for="task in visibleTasks"
-              :key="task.id"
-            >
-              <UButton
-                color="neutral"
-                variant="ghost"
-                class="yesterday-note__title text-toned"
-                @click="openTask(task.id)"
-              >
-                <span class="yesterday-note__name min-w-0 flex-1 truncate" data-private>{{ task.title }}</span>
-                <span
-                  v-if="timeSpent(task)"
-                  class="yesterday-note__time text-xs text-muted tabular-nums"
-                >{{ timeSpent(task) }}</span>
-              </UButton>
-            </li>
-            <li
-              v-if="hiddenCount > 0"
-              class="yesterday-note__more text-muted"
-            >
-              {{ t('board.yesterday.more', { n: hiddenCount }) }}
-            </li>
-          </ul>
+          <UCollapsible :open="open">
+            <template #content>
+              <ul class="yesterday-note__list">
+                <li
+                  v-for="task in visibleTasks"
+                  :key="task.id"
+                >
+                  <UButton
+                    color="neutral"
+                    variant="ghost"
+                    class="yesterday-note__title text-toned"
+                    @click="openTask(task.id)"
+                  >
+                    <span class="yesterday-note__name min-w-0 flex-1 truncate" data-private>{{ task.title }}</span>
+                    <span
+                      v-if="timeSpent(task)"
+                      class="yesterday-note__time text-xs text-muted tabular-nums"
+                    >{{ timeSpent(task) }}</span>
+                  </UButton>
+                </li>
+                <li
+                  v-if="hiddenCount > 0"
+                  class="yesterday-note__more text-muted"
+                >
+                  {{ t('board.yesterday.more', { n: hiddenCount }) }}
+                </li>
+              </ul>
+            </template>
+          </UCollapsible>
         </template>
       </BoardColumnNotice>
     </div>
@@ -97,6 +93,7 @@ import { computed, ref, useId } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { Task } from '~/types/task'
 import BoardColumnNotice from '~/components/board/BoardColumnNotice.vue'
+import DisclosureCaret from '~/components/ui/DisclosureCaret.vue'
 import { useLocaleFormat } from '~/composables/useLocaleFormat'
 import { useToday } from '~/composables/useToday'
 import { doneDayLabel, newestCompletedAt, weekdayName } from '~/utils/doneDayLabel'
@@ -205,17 +202,6 @@ function openTask(taskId: string) {
   width: 1rem;
   height: 1rem;
   color: var(--ui-color-success-800);
-}
-
-.yesterday-note__caret {
-  flex-shrink: 0;
-  width: 0.75rem;
-  height: 0.75rem;
-  transition: transform var(--duration-base) var(--ease-standard);
-}
-
-.yesterday-note__caret--open {
-  transform: rotate(180deg);
 }
 
 /* 44px hit areas on the phone (D4): the notice's line and action grow to 44px (BoardColumnNotice); the toggle restates the floor because its own min-height (2rem) outranks the theme's */

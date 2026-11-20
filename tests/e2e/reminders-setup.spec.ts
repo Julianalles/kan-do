@@ -33,6 +33,16 @@ async function openReminders(page: Page, withNotion = false) {
 }
 
 const proceed = (page: Page) => page.getByTestId('reminders-proceed')
+/** The step the rail marks as current; the pane carries its name and has no heading of its own (#650) */
+const expectStep = async (page: Page, label: 'Zugriff' | 'Listen' | 'Heute') => {
+  await expect(page.getByTestId('setup-pane')).toHaveAccessibleName(label)
+  await expect(page.locator('[data-testid="notion-setup-steps"] [aria-current="step"]')).toContainText(label)
+  await expect(page.getByTestId('reminders-setup-flow').getByRole('heading')).toHaveCount(0)
+  // No scroll area inside the page: nothing in the flow scrolls on its own, a long list scrolls with the page
+  const innerScrollers = await page.getByTestId('reminders-setup-flow').evaluate((root) =>
+    [root, ...root.querySelectorAll('*')].filter((el) => ['auto', 'scroll'].includes(getComputedStyle(el).overflowY) && el.scrollHeight > el.clientHeight).length)
+  expect(innerScrollers).toBe(0)
+}
 const roleChoice = (page: Page, listId: string, role: string) => page.getByTestId(`reminders-role-${listId}-${role}`)
 
 /** Access granted: step 1 -> step 2 */
@@ -90,7 +100,7 @@ test.describe('welcome step 2 and the setup (#552)', () => {
     await firstRun(context)
     await openReminders(page)
 
-    await expect(page.getByTestId('reminders-step-title')).toHaveText('Zugriff auf Erinnerungen')
+    await expectStep(page, 'Zugriff')
     await expect(page.getByTestId('reminders-prompt-preview')).toContainText('Das siehst du gleich')
     await expect(page.getByText('Warum Vollzugriff?')).toBeVisible()
     await expect(page.getByText('Was Kan-Do nie tut')).toBeVisible()
@@ -155,7 +165,7 @@ test.describe('welcome step 2 and the setup (#552)', () => {
     await openReminders(page)
     await grantAndContinue(page)
 
-    await expect(page.getByTestId('reminders-step-title')).toHaveText('Deine Listen')
+    await expectStep(page, 'Listen')
     for (const list of LISTS) {
       await expect(roleChoice(page, list.id, 'topic')).toBeChecked()
       await expect(page.getByTestId(`reminders-list-${list.id}`).getByRole('radio')).toHaveCount(3)
@@ -187,7 +197,7 @@ test.describe('welcome step 2 and the setup (#552)', () => {
     await roleChoice(page, 'list-private', 'off').click()
     await proceed(page).click()
 
-    await expect(page.getByTestId('reminders-step-title')).toHaveText('Heute')
+    await expectStep(page, 'Heute')
     await expect(page.getByRole('table', { name: 'Datum und Board' })).toBeVisible()
     await expect(page.getByTestId('reminders-today-row-today')).toContainText('Auf dem Board')
     for (const key of ['earlier', 'later', 'none']) await expect(page.getByTestId(`reminders-today-row-${key}`)).toContainText('In Meine Aufgaben')
@@ -197,7 +207,7 @@ test.describe('welcome step 2 and the setup (#552)', () => {
     expect(await storedSources(page)).toBeNull()
 
     await proceed(page).click()
-    await expect(page.getByTestId('reminders-done')).toContainText('Erinnerungen ist verbunden')
+    await expect(page.getByTestId('setup-done')).toContainText('Erinnerungen ist verbunden')
     await expect(page).toHaveURL(/\/tasks$/)
     await expect(page.locator('#column-open-list').getByText('Milch kaufen')).toBeVisible()
 
@@ -214,14 +224,14 @@ test.describe('welcome step 2 and the setup (#552)', () => {
     await grantAndContinue(page)
     await roleChoice(page, 'list-work', 'off').click()
     await proceed(page).click()
-    await expect(page.getByTestId('reminders-step-title')).toHaveText('Heute')
+    await expectStep(page, 'Heute')
 
     await page.getByTestId('setup-back').click()
-    await expect(page.getByTestId('reminders-step-title')).toHaveText('Deine Listen')
+    await expectStep(page, 'Listen')
     // The answer made on the way is still there
     await expect(roleChoice(page, 'list-work', 'off')).toBeChecked()
     await page.getByTestId('setup-back').click()
-    await expect(page.getByTestId('reminders-step-title')).toHaveText('Zugriff auf Erinnerungen')
+    await expectStep(page, 'Zugriff')
     await expect(page.getByTestId('setup-back')).toHaveText('Zurück zur Auswahl')
     await page.getByTestId('setup-back').click()
 
@@ -239,12 +249,12 @@ test.describe('welcome step 2 and the setup (#552)', () => {
     await openReminders(page)
     await grantAndContinue(page)
     await proceed(page).click()
-    await expect(page.getByTestId('reminders-step-title')).toHaveText('Heute')
+    await expectStep(page, 'Heute')
 
     await setRemindersStatus(page, 'denied') // revoked in System Settings meanwhile
     await proceed(page).click()
 
-    await expect(page.getByTestId('reminders-step-title')).toHaveText('Zugriff auf Erinnerungen')
+    await expectStep(page, 'Zugriff')
     await expect(page.getByTestId('reminders-denied')).toBeVisible()
     await expect(page).toHaveURL(/\/welcome$/)
     await page.waitForTimeout(600)
@@ -437,7 +447,7 @@ test.describe('Erinnerungen-Einstellungen (#552)', () => {
     await proceed(page).click() // granted already: "Weiter"
     await proceed(page).click()
     await proceed(page).click() // "Verbinden"
-    await expect(page.getByTestId('reminders-done')).toBeVisible()
+    await expect(page.getByTestId('setup-done')).toBeVisible()
     await expect(page.getByTestId('reminders-settings')).toBeVisible()
     await expect.poll(async () => ((await storedSources(page)) as { connected: string[] } | null)?.connected).toEqual(['reminders'])
   })

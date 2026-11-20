@@ -151,7 +151,7 @@
       {
         "name": "duration-slow",
         "value": "300ms",
-        "purpose": "A surface changing size or position."
+        "purpose": "A surface changing size or position, a block opening in place, the board re-laying its cards."
       },
       {
         "name": "duration-place",
@@ -304,6 +304,11 @@
         "name": "The Sheets Cast Shadows Rule",
         "body": "A shadow belongs to a sheet: a surface lifted off the canvas that holds content. A control never casts one; a selected tab or place is a fill. The one named exception is the app bar's nav pill (flat white, no glass).",
         "section": "elevation"
+      },
+      {
+        "name": "The One Stage Rule",
+        "body": "The day close and the recap are one stage: the title anchored under the app bar, one 44 rem column, the footer sheet docked at the foot with the content scrolling above it (the way out soft, the main button solid without an arrow, on top on a phone); the day close enters with the photo coming down over the board and both leave with it lifting (user, 2026-11-20, #612, #580).",
+        "section": "spacing"
       },
       {
         "name": "The One Piece Rule",

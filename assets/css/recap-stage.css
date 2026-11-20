@@ -4,8 +4,15 @@
  * padding takes its height), the photo runs behind it (#262: no paper band above the photo, and the
  * bar's paper veil steps back while the stage is mounted, bottom of this file).
  * Not modal: the app bar (z-bar) paints above it, the board stays inert behind it (pages/tasks.vue).
- * Enter (#463, "Dawn"): the whole stage fades in over --recap-enter-duration (1.4 s), also on an app start. A click mid-fade lets the fade finish under the curtain (no jump to full opacity).
- * Curtain on close: only the photo layer lifts (`--duration-curtain`, 700 ms) with a feathered bottom edge; the content fades
+ * One shell for both stages (#612): the title anchored under the app bar (the content starts at the top, never centred), one 44 rem
+ * column, the footer sheet docked at the foot of the stage (a flex sibling of the scroller, so the content scrolls above it and the
+ * footer ends above the phone app bar), the same footer buttons (`.recap-stage__actions`: soft way out, solid main, stacked with the
+ * main on top below 40 rem, a right-aligned row above).
+ * Enter of the recap (#463, "Dawn"): the whole stage fades in over --recap-enter-duration (1.3 s), also on an app start. A click mid-fade lets the fade finish under the curtain (no jump to full opacity).
+ * Enter of the day close (#580, `.recap-stage--curtain-down`): the opposite curtain. The photo comes down over the board
+ * (`--duration-stage`, 1.3 s) and the column fades in over `--duration-slow` as it lands. Transitions on `data-entered` (set by
+ * DayCloseStage two frames after it mounted), not a keyframe animation: a leave mid-drop retargets from where the photo is.
+ * Curtain on close: only the photo layer lifts (`--duration-curtain`, 700 ms) with a feathered bottom edge; the column fades
  * out (--duration-base). The photo layer reaches --recap-feather below the stage, so the feathered edge is off screen
  * at rest and sweeps through while it slides up. Reduced motion: no fade, no slide (the component closes at once).
  */
@@ -35,35 +42,97 @@
     mask-image: linear-gradient(to bottom, var(--ui-bg) calc(100% - var(--recap-feather)), transparent);
   }
 
-  .recap-stage__scroll {
+  /* The column holds the scroller and the docked footer; it is what fades (enter of the day close, leave of both) */
+  .recap-stage__column {
     position: relative;
     display: flex;
+    flex-direction: column;
     height: 100%;
+  }
+
+  /* Only this scrolls, on a short window; it spans the stage so its bar sits at the window edge and the sheets' shadows are not clipped */
+  .recap-stage__scroll {
+    flex: 1 1 0;
+    min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
   }
 
-  /* One centred column, no sheet behind it (#428): the headline, summary and decks lie on the photo */
+  /* One 44 rem column, no sheet behind it (#428): the headline, summary and decks lie on the photo. Anchored at the top: the title sits at the same y on both stages (#612) */
   .recap-stage__content {
     display: flex;
     flex-direction: column;
     gap: 2rem;
-    margin: auto;
+    margin: 0 auto;
+    padding: 1.5rem 0 1rem;
     width: 100%;
     max-width: 44rem;
   }
 
-  /* The day close (#480) is one calm sheet, not two decks: a narrower column, desktop and phone alike */
-  .recap-stage__content--narrow {
-    max-width: 32rem;
-  }
-
-  /* The only sheet: the controls (#428). A white sheet with the one warm shadow, as the Paper Desk rule says */
+  /* A sheet: the day close's summary (#480) and the footer (#428). A white sheet with the one warm shadow, as the Paper Desk rule says */
   .recap-stage__controls {
     border-radius: var(--ui-radius);
     background: var(--ui-bg);
     box-shadow: var(--shadow-task);
     padding: 1rem;
+  }
+
+  /* The footer, docked at the foot of the stage under the scroller (#612); its buttons stack by the window width */
+  .recap-stage__footer {
+    flex: none;
+    margin: 0 auto;
+    width: 100%;
+    max-width: 44rem;
+  }
+
+  /* The two ways out, one look on both stages (#612): the way out soft (neutral), the main button solid; stacked and full width with the main on top, a right-aligned row from 40 rem (`--sm`) */
+  .recap-stage__actions {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 0.5rem;
+  }
+
+  .recap-stage__actions > * {
+    width: 100%;
+    justify-content: center;
+  }
+
+  @media (--sm) {
+    .recap-stage__actions {
+      flex-direction: row;
+      align-items: center;
+      justify-content: flex-end;
+    }
+
+    .recap-stage__actions > * {
+      width: auto;
+    }
+  }
+
+  /* The day close's enter (#580): the opposite curtain. `data-entered` lands two frames after the stage mounted, so the first frame is the covered state */
+  .recap-stage--curtain-down {
+    animation: none;
+  }
+
+  .recap-stage--curtain-down .recap-stage__photo {
+    transition: transform var(--duration-stage) var(--ease-emphasized);
+  }
+
+  .recap-stage--curtain-down .recap-stage__column {
+    transition: opacity var(--duration-slow) var(--ease-emphasized) calc(var(--duration-stage) - var(--duration-slow));
+  }
+
+  /* Invisible means not clickable: the column takes no pointer until it has faded in (`data-landed`) */
+  .recap-stage--curtain-down:not([data-landed]) .recap-stage__column {
+    pointer-events: none;
+  }
+
+  .recap-stage--curtain-down:not([data-entered]) .recap-stage__photo {
+    transform: translateY(-100%);
+  }
+
+  .recap-stage--curtain-down:not([data-entered]) .recap-stage__column {
+    opacity: 0;
   }
 
   /* The fade-in is left running when the curtain starts (a click mid-fade): resetting it would flash the stage to full opacity */
@@ -76,7 +145,7 @@
     transition: transform var(--recap-curtain-duration) var(--ease-standard);
   }
 
-  .recap-stage[data-closing] .recap-stage__scroll {
+  .recap-stage[data-closing] .recap-stage__column {
     opacity: 0;
     transform: scale(0.98);
     transition: opacity var(--duration-base) var(--ease-emphasized), transform var(--duration-base) var(--ease-emphasized);
@@ -90,7 +159,7 @@
   @media (prefers-reduced-motion: reduce) {
     .recap-stage { animation: none; }
     .recap-stage[data-closing] .recap-stage__photo,
-    .recap-stage[data-closing] .recap-stage__scroll { transition: none; }
+    .recap-stage[data-closing] .recap-stage__column { transition: none; }
   }
 }
 
@@ -100,6 +169,13 @@
 html[data-recap-stage] .app-nav::before {
   opacity: 0;
   transition: opacity var(--duration-fast) var(--ease-standard);
+}
+
+/* No halo at rest (#612): the stage puts focus on its main button by script, which Chromium draws as `:focus-visible`. The halo (an
+   `outline` from the button theme, in the utilities layer, hence outside @layer here) waits for the first key or press in the stage;
+   `data-quiet-focus` is set by NewDayRecap.vue and DayCloseStage.vue and cleared there. */
+.recap-stage[data-quiet-focus] :focus-visible {
+  outline-color: transparent;
 }
 
 /* A recap that is open as the board page mounts hides the board until it is left (#427): the board is never painted before

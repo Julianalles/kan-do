@@ -2,9 +2,9 @@
 @component NewDayRecap
 @kind block
 @category overlay
-@description "Kurzer Rückblick" (#385, #451, #44, #245, #428): the recap on the first start of a new day, shown as a stage on the welcome photo, behind the app bar, instead of a dialog over the board. The headline, the summary and the two decks (still open, done: Offen → Erledigt like the board) lie directly on the photo; only the controls sit on a sheet: "Tag neu planen" (primary: the fresh start, which takes yesterday's unfinished cards off the board and archives the done ones, and the way to "Alle") and "Überspringen und Board anzeigen" (leads to the board and keeps it as it is, archives nothing).
+@description "Kurzer Rückblick" (#385, #451, #44, #245, #428): the recap on the first start of a new day, shown as a stage on the welcome photo, behind the app bar, instead of a dialog over the board. The headline, the summary and the two decks (still open, done: Offen → Erledigt like the board) lie directly on the photo; only the controls sit on a sheet, docked at the foot of the stage: "Tag neu planen" (primary: the fresh start, which takes yesterday's unfinished cards off the board and archives the done ones, and the way to "Alle") and "Überspringen und Board anzeigen" (leads to the board and keeps it as it is, archives nothing).
 @usage Mounted once in pages/tasks.vue next to DayCloseStage; opened by useNewDayRecap().check() on mount.
-One centred column (max 44rem) with both decks side by side from 768px, one deck with a switcher below; the controls sheet closes it. The page itself never scrolls; only the stage's scroll area may, on very short windows.
+One shell with the day close (#612): the title anchored under the app bar, one 44 rem column with both decks side by side from 768px (one deck with a switcher below), the controls sheet docked at the foot as a sibling of the scroller. The page itself never scrolls; only the stage's scroll area may, on very short windows.
 @avoid Only the first start of a new day; closing the day is DayCloseStage.
 @responsibility
 - Shell only: headline (the page title, SectionHeader `display`), summary, decks (body), controls sheet; no paper sheet around the content (#428). Text lies on the photo, so DESIGN.md "The Bright Ground Rule" applies: its tokens must hold AA there (rendered scan)
@@ -16,7 +16,7 @@ One centred column (max 44rem) with both decks side by side from 768px, one deck
 - The photo is the welcome page's (`public/welcome`), decoration only (`alt=""`); until it loads, or if it fails, the layer is the paper colour
 - Phone switcher ("n noch offen" / "n erledigt", a `UTabs` pill: `role="tab"`, `aria-selected`): one RecapDeck mounted at a time, starts on "noch offen" (on "erledigt" when nothing is open, then without a switcher)
 - The decks never change size (RecapDeck), so nothing moves while they are looked at
-- Controls sheet: the two buttons right in a container query (`@md`), stacked and full width when narrow with "Tag neu planen" above "Überspringen und Board anzeigen"; default button size on both (One Height Rule, #424), no width override beyond the stacked full width
+- Controls sheet (the docked footer, #612): "Überspringen und Board anzeigen" a soft neutral button, "Tag neu planen" solid and without an arrow (the day close's footer, `.recap-stage__actions`); right in a row from `--sm`, stacked and full width on a phone with "Tag neu planen" above "Überspringen und Board anzeigen"; default button size on both (One Height Rule, #424). The halo of the focused primary button waits for the first key or press (`data-quiet-focus`)
 -->
 <template>
   <!-- Outside the inert board (<main> in pages/tasks.vue), in app.vue's host: the same stacking context as the app bar, so the bar paints above the photo (#262) -->
@@ -27,10 +27,12 @@ One centred column (max 44rem) with both decks side by side from 768px, one deck
       role="region"
       :aria-labelledby="titleId"
       :data-closing="closing || undefined"
+      :data-quiet-focus="quiet || undefined"
       :inert="closing || undefined"
       data-testid="new-day-recap"
       data-window-drag-layer
-      @keydown.esc="planning || leaveOnce()"
+      @pointerdown.capture="quiet = false"
+      @keydown="onKeydown"
     >
       <!-- Atmosphere only; the layer is the paper colour until the photo has loaded (or if it never does) -->
       <div class="recap-stage__photo bg-page" aria-hidden="true">
@@ -46,48 +48,51 @@ One centred column (max 44rem) with both decks side by side from 768px, one deck
           @load="photoLoaded = true"
         >
       </div>
-      <div class="recap-stage__scroll">
-        <div class="recap-stage__content">
-          <div class="text-center">
-            <SectionHeader :id="titleId" tag="h2" size="display" data-slot="title">{{ t('recap.title') }}</SectionHeader>
-            <p class="mt-2 text-body text-toned" data-testid="recap-summary">{{ summary }}</p>
-          </div>
-          <div v-if="snapshot">
-            <!-- Phones: one deck at a time. Nothing open: only the done deck, no switcher -->
-            <div v-if="!isDesktop && snapshot.undone.length > 0" ref="switcherWrap" class="mb-4 flex justify-center">
-              <UTabs
-                :model-value="shownKind"
-                :items="switcherOptions"
-                :content="false"
-                variant="pill"
-                data-testid="recap-switcher"
-                @update:model-value="pickedKind = $event === 'done' ? 'done' : 'undone'"
-              />
+      <div class="recap-stage__column">
+        <div class="recap-stage__scroll">
+          <div class="recap-stage__content">
+            <div class="text-center">
+              <SectionHeader :id="titleId" tag="h2" size="display" data-slot="title">{{ t('recap.title') }}</SectionHeader>
+              <p class="mt-2 text-body text-toned" data-testid="recap-summary">{{ summary }}</p>
             </div>
+            <div v-if="snapshot">
+              <!-- Phones: one deck at a time. Nothing open: only the done deck, no switcher -->
+              <div v-if="!isDesktop && snapshot.undone.length > 0" ref="switcherWrap" class="mb-4 flex justify-center">
+                <UTabs
+                  :model-value="shownKind"
+                  :items="switcherOptions"
+                  :content="false"
+                  variant="pill"
+                  data-testid="recap-switcher"
+                  @update:model-value="pickedKind = $event === 'done' ? 'done' : 'undone'"
+                />
+              </div>
 
-            <!-- Board order: Offen left, Erledigt right -->
-            <div class="flex w-full flex-col items-center gap-8 md:flex-row md:items-start md:justify-center md:gap-12">
-              <RecapDeck
-                v-if="snapshot.undone.length > 0 && (isDesktop || shownKind === 'undone')"
-                kind="undone"
-                :tasks="snapshot.undone"
-                :hide-heading="!isDesktop"
-              />
-              <RecapDeck
-                v-if="isDesktop || shownKind === 'done'"
-                kind="done"
-                :tasks="snapshot.done"
-                :hide-heading="!isDesktop && snapshot.undone.length > 0"
-              />
+              <!-- Board order: Offen left, Erledigt right -->
+              <div class="flex w-full flex-col items-center gap-8 md:flex-row md:items-start md:justify-center md:gap-12">
+                <RecapDeck
+                  v-if="snapshot.undone.length > 0 && (isDesktop || shownKind === 'undone')"
+                  kind="undone"
+                  :tasks="snapshot.undone"
+                  :hide-heading="!isDesktop"
+                />
+                <RecapDeck
+                  v-if="isDesktop || shownKind === 'done'"
+                  kind="done"
+                  :tasks="snapshot.done"
+                  :hide-heading="!isDesktop && snapshot.undone.length > 0"
+                />
+              </div>
             </div>
           </div>
-          <!-- The only sheet (#428): the two ways out; stacked when narrow, in a column the primary button is on top -->
-          <div class="recap-stage__controls @container" data-testid="recap-controls">
-            <div class="flex flex-col-reverse gap-2 @md:flex-row @md:items-center @md:justify-end">
+        </div>
+        <!-- The footer sheet (#428), docked at the foot of the stage (#612): the two ways out; stacked on a phone with the primary button on top -->
+        <div class="recap-stage__footer">
+          <div class="recap-stage__controls" data-testid="recap-controls">
+            <div class="recap-stage__actions">
               <UButton
                 color="neutral"
-                variant="ghost"
-                class="w-full justify-center @md:w-auto"
+                variant="soft"
                 data-testid="recap-continue"
                 @click="leaveToToday"
               >
@@ -95,8 +100,6 @@ One centred column (max 44rem) with both decks side by side from 768px, one deck
               </UButton>
               <UButton
                 color="primary"
-                :trailing-icon="ICONS.goOn"
-                class="w-full justify-center @md:w-auto"
                 data-recap-primary
                 data-testid="recap-plan"
                 @click="leaveToPlan"
@@ -112,7 +115,6 @@ One centred column (max 44rem) with both decks side by side from 768px, one deck
 </template>
 
 <script setup lang="ts">
-import { ICONS } from '~/lib/icons'
 import { computed, nextTick, onBeforeUnmount, ref, useId, watch, watchEffect } from 'vue'
 import { useI18n } from 'vue-i18n'
 import RecapDeck from '~/components/recap/RecapDeck.vue'
@@ -168,6 +170,12 @@ const summary = computed(() => {
   return done === total ? t('recap.summary.all', { when }) : t('recap.summary.partial', { when, n: done, m: total })
 })
 
+/** The first key in the stage brings the halo back (#612); Escape only dismisses, never while the board moves to "Alle" first. */
+function onKeydown(event: KeyboardEvent) {
+  quiet.value = false
+  if (event.key === 'Escape' && !planning.value) leaveOnce()
+}
+
 /**
  * Focus starts on "Tag neu planen". The stage may not be in the DOM yet: opened as the page mounts (#427) it is teleported
  * only once the host is there, a few frames after this runs, so it looks again on each frame (up to a second).
@@ -181,6 +189,8 @@ function focusPrimary(framesLeft = 60) {
 const titleId = useId()
 const isDesktop = useIsDesktop()
 const photoLoaded = ref(false)
+/** The halo of the focused button waits for the first key or press (#612, recap-stage.css). */
+const quiet = ref(true)
 /** The curtain is running: `leave()` already closed the recap, the stage stays until the photo is off. */
 const closing = ref(false)
 /** "Tag neu planen" waits for the board to stand on "Alle" before the curtain starts (#490) */
@@ -279,6 +289,7 @@ onBeforeUnmount(() => {
 watch(isOpen, async (open) => {
   if (!open || typeof window === 'undefined') return
   pickedKind.value = 'undone'
+  quiet.value = true
   await nextTick()
   requestAnimationFrame(() => focusPrimary())
 }, { immediate: true })
