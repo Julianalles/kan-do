@@ -85,6 +85,27 @@ test.describe('source icon: shown on a mixed board only', () => {
     await expect(sourceIcon(page)).toHaveCount(0)
   })
 
+  test('"Alle" on a one-source board shows no icon in either column (#609)', async ({ context, page }) => {
+    await seedLocalBoard(context, SEED_TASKS.map((t, i) => (i === 0 ? { ...t, status: 0, notPlanned: true } : t)))
+    await page.goto('/all')
+    await expect(page.getByTestId('not-planned').locator('.task')).toHaveCount(1)
+    await expect(page.locator('#column-open .task').first()).toBeVisible()
+    await expect(sourceIcon(page)).toHaveCount(0)
+  })
+
+  test('"Alle" on a mixed board shows the icon on every card of both columns (#609)', async ({ context, page }) => {
+    await seedMixedBoard(context, MIXED_SEED_TASKS.map((t) => (t.id === 'local-open-1' ? { ...t, status: 0, notPlanned: true } : t)))
+    await page.goto('/all')
+    const side = page.getByTestId('not-planned')
+    await expect(side.locator('.task')).toHaveCount(1)
+    await expect(sourceIcon(side)).toHaveCount(1)
+    const open = page.locator('#column-open .task')
+    await expect(open.first()).toBeVisible()
+    const n = await open.count()
+    expect(n).toBeGreaterThan(0)
+    await expect(sourceIcon(page.locator('#column-open'))).toHaveCount(n)
+  })
+
   test('the add sheet draft card has none', async ({ context, page }) => {
     await seedMixedBoard(context)
     await page.goto('/tasks')

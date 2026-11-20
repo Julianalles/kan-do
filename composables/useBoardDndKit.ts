@@ -1,3 +1,4 @@
+import { nextTick } from 'vue'
 import { useTasksStore } from '~/store/tasks'
 import { useBoardStore } from '~/store/board'
 import { useBoardDragState, type DraggedStack } from '~/composables/useBoardDragState'
@@ -489,11 +490,14 @@ export function useBoardDndKit() {
           if (moved && taskIds.length === 1) void afterPutBack(taskId)
           taken = moved || taken
         }
-        // The card lands on top: a scrolled list shows its start, so the drop glide ends on a card in view
-        // (the arrow's move does the same, usePlanMoves)
+        // The card lands on top: with the page scrolled down that is out of view, so the page scrolls to it and the drop
+        // glide ends on a card in view (#609; the arrow's move does the same, usePlanMoves)
         if (taken && origin?.list) {
-          const body = document.querySelector<HTMLElement>('#column-not-planned .not-planned__body')
-          if (body) body.scrollTop = 0
+          void nextTick().then(() => {
+            Array.from(document.querySelectorAll<HTMLElement>('#column-not-planned [data-not-planned-id]'))
+              .find(el => el.dataset.notPlannedId === taskIds[0])
+              ?.scrollIntoView?.({ block: 'nearest', behavior: 'instant' })
+          })
         }
         if (import.meta.dev) console.log('[DnD] unplan', { taskIds })
       }

@@ -665,7 +665,7 @@ const columnClasses = computed(() => ({
   bottom: 0;
   display: flex;
   justify-content: center;
-  padding: 1rem 0;
+  padding: 1rem 0 var(--column-footer-pad-bottom, 1rem);
   /* Above the cards (z-index 100 + index, board.css) so the sticky CTA is never painted under a card; below the
      stack control (500) and the focus overlay's lift (1100, board-focus-overlay.css) */
   z-index: var(--z-column-footer);

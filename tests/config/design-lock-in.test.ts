@@ -60,7 +60,6 @@ describe('line heights come from the size tokens (DESIGN.md "Type")', () => {
   it('a hand-written line-height is a token, 1 on a fixed single-line box, or a listed exception', () => {
     expect(hits(/(?<![-\w])line-height:\s*(?!\s|var\(--lh-|1;|0;|inherit;)[^;]+;/g, [...shipped, ...css], {
       'components/task/TaskTimeboxNudge.vue: line-height: 1.25rem;': 'rows at fixed offsets in the 132 px card (kd#190)',
-      'components/board/BoardNotPlanned.vue: line-height: 2.5rem;': 'one truncated line centred in the 40 px heading row it replaces, so no padding sits off the 4 px grid (#591)',
     })).toEqual([])
   })
 })

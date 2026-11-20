@@ -1,4 +1,4 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Locator, type Page } from '@playwright/test'
 import { seedLocalBoard, type SeedTask } from './helpers/seed'
 import { dropSettled, edgeDwell, finger, hover, pickUp } from './helpers/dnd'
 import { dwell, settleAnimations } from './helpers/settle'
@@ -133,14 +133,14 @@ test.describe('The place "Alle" (#354), desktop', () => {
     await expect(placeLink(page, 'all')).toHaveAttribute('aria-current', 'page')
     await expect(page.getByTestId('app-nav-continue')).toHaveCount(0)
     await atRest(page)
-    await expect(notPlanned(page).getByRole('heading', { name: 'Meine Aufgaben' })).toBeVisible()
+    await expect(notPlanned(page).getByRole('heading', { name: 'Alle' })).toBeVisible()
     await expect(page.locator('#column-open')).toBeVisible()
     await expect(page.locator('#column-progress')).toBeHidden()
     await expect(page.locator('#column-done')).toBeHidden()
     expect(await notPlannedIds(page)).toEqual(['np-1', 'np-2'])
     expect(await openIds(page)).toEqual(['open-1', 'open-2'])
-    // Every card here names its source, on a board with one source too
-    await expect(item(page, 'np-1').getByTestId('task-source-icon')).toHaveCount(1)
+    // One rule for both columns (#609): a board with one source shows no source icon on any card
+    await expect(item(page, 'np-1').getByTestId('task-source-icon')).toHaveCount(0)
     await expect(openCard(page, 'open-1').getByTestId('task-source-icon')).toHaveCount(0)
   })
 
@@ -204,7 +204,7 @@ test.describe('The place "Alle" (#354), desktop', () => {
     await atRest(page)
     await expect(page.locator('.column-header__outgoing')).toHaveCount(0)
     await expect(heading).toHaveText('Heute')
-    await expect(notPlanned(page).getByRole('heading', { level: 2 })).toHaveText('Meine Aufgaben')
+    await expect(notPlanned(page).getByRole('heading', { level: 2 })).toHaveText('Alle')
 
     outgoing = sawOutgoingTitle(page)
     await toHeute(page).click()
@@ -547,17 +547,47 @@ test.describe('The place "Alle" (#354), desktop', () => {
     await expect(page.getByTestId('app-nav-place-statistics')).toHaveAttribute('aria-current', 'page')
   })
 
-  test('many items: "Meine Aufgaben" scrolls inside itself; Offen and the app bar\'s way on stay in view', async ({ context, page }) => {
+  test('many items (#609): the page is the one scroll area; "Meine Aufgaben" grows with its cards and no column scrolls inside itself', async ({ context, page }) => {
     const many = Array.from({ length: 30 }, (_, i) => held(`many-${i}`, `Vorrat ${i}`))
     await seedLocalBoard(context, [...many, open('open-1', 'Rechnung schicken')])
     await gotoAll(page)
-    const body = notPlanned(page).locator('.not-planned__body')
-    expect(await body.evaluate(el => el.scrollHeight > el.clientHeight)).toBe(true)
+    // Nothing inside the board has a scroll box of its own: the side and Offen both grow the page
+    const inner = await page.locator('.board').evaluate(board => [board, ...board.querySelectorAll('*')]
+      .filter(el => el instanceof HTMLElement && ['auto', 'scroll'].includes(getComputedStyle(el).overflowY) && el.scrollHeight > el.clientHeight)
+      .map(el => (el as HTMLElement).id || el.className))
+    expect(inner).toEqual([])
+    expect(await page.evaluate(() => document.documentElement.scrollHeight > window.innerHeight)).toBe(true)
     await item(page, 'many-29').scrollIntoViewIfNeeded()
     await expect(item(page, 'many-29')).toBeInViewport()
-    expect(await page.evaluate(() => window.scrollY)).toBe(0)
-    await expect(openCard(page, 'open-1')).toBeInViewport()
+    expect(await page.evaluate(() => window.scrollY)).toBeGreaterThan(0)
+    // The app bar's way on stays in view while the page scrolls
     await expect(toHeute(page)).toBeInViewport()
+  })
+
+  test('the headline is the place name "Alle" at the Display step; the region keeps the name "Meine Aufgaben" (#609)', async ({ context, page }) => {
+    await seedLocalBoard(context, BOARD)
+    await gotoAll(page)
+    const heading = notPlanned(page).getByRole('heading', { level: 2 })
+    await expect(heading).toHaveText('Alle')
+    await expect(notPlanned(page)).toHaveAttribute('aria-label', 'Meine Aufgaben')
+    const size = (el: Locator) => el.evaluate(node => getComputedStyle(node).fontSize)
+    expect(await size(heading)).toBe(await size(page.locator('#column-open h2')))
+    expect(await size(heading)).toBe('36px')
+  })
+
+  test('the round add button steps aside while the empty note offers the same add, and comes back with the first held task (#609, #581)', async ({ context, page }) => {
+    await seedLocalBoard(context, BOARD.filter(t => !t.notPlanned))
+    await gotoAll(page)
+    const add = page.getByTestId('not-planned-add')
+    await expect(page.getByTestId('not-planned-empty')).toBeVisible()
+    // Away: invisible, out of the tab order and the reader's tree, but its box stays (nothing jumps)
+    await expect(add).toHaveCSS('opacity', '0')
+    await expect(add).toHaveJSProperty('inert', true)
+    expect((await add.boundingBox())!.width).toBeGreaterThan(0)
+    await page.getByTestId('not-planned-create').click()
+    await saveInCard(page, 'Fenster ausmessen')
+    await expect(add).toHaveCSS('opacity', '1')
+    await expect(add).toHaveJSProperty('inert', false)
   })
 
   test('desktop: a place change keeps the window scroll (Offen survives the move)', async ({ context, page }) => {
@@ -645,7 +675,7 @@ test.describe('The place "Alle" (#354), phone', () => {
     // "Alle" opens on "Meine Aufgaben"
     expect(await pageOf(page)).toBe('0')
     await expect(dots(page)).toHaveCount(2)
-    await expect(notPlanned(page).getByRole('heading', { name: 'Meine Aufgaben' })).toBeInViewport()
+    await expect(notPlanned(page).getByRole('heading', { name: 'Alle' })).toBeInViewport()
 
     await swipe(page, 'left')
     await expect.poll(() => pageOf(page)).toBe('1')
@@ -704,7 +734,7 @@ test.describe('The place "Alle" (#354), phone', () => {
     await expect(page).toHaveURL(/\/all$/)
     await pageAtRest(page)
     expect(await pageOf(page)).toBe('0')
-    await expect(notPlanned(page).getByRole('heading', { name: 'Meine Aufgaben' })).toBeInViewport()
+    await expect(notPlanned(page).getByRole('heading', { name: 'Alle' })).toBeInViewport()
     await expect(page.locator('#column-done')).toBeHidden()
   })
 
@@ -819,7 +849,6 @@ const openListIds = (page: Page) =>
   page.locator('#column-open-list > :is(.task-wrapper, .not-planned__item)').evaluateAll(els =>
     els.map(el => el.getAttribute('data-task-id') ?? el.getAttribute('data-not-planned-id')))
 const side = (page: Page) => page.locator('#column-not-planned')
-const dropHint = (page: Page) => page.getByTestId('not-planned-drop-hint')
 const card = (page: Page, id: string) => item(page, id).locator('.not-planned__card')
 
 /** Moves the held card onto the middle of "Meine Aufgaben" and waits until that side is the drop target */
@@ -867,7 +896,8 @@ test.describe('Drag between "Meine Aufgaben" and Offen (#355), desktop', () => {
     await pickUp(page, openCard(page, 'open-2'))
     await hoverSide(page)
     await expect(side(page)).toHaveClass(/is-drop-target/)
-    await expect(dropHint(page)).toHaveText('Hier ablegen: nicht heute')
+    // #609, #581: no note names the drop, the wash is the whole answer
+    await expect(page.getByText('Hier ablegen')).toHaveCount(0)
     // The side names itself like a hovered column: its headline is at full ink, Offen's steps back
     await expect(side(page).locator('h2')).toHaveCSS('opacity', '1')
     await expect(page.locator('#column-open h2')).toHaveCSS('opacity', '0.5')
@@ -877,32 +907,29 @@ test.describe('Drag between "Meine Aufgaben" and Offen (#355), desktop', () => {
     // Leaving ends the answer, coming back shows it again
     await hover(page, openCard(page, 'open-1'))
     await expect(side(page)).not.toHaveClass(/is-drop-target/)
-    await expect(dropHint(page)).toHaveCount(0)
     await hoverSide(page)
-    await expect(dropHint(page)).toBeVisible()
+    await expect(side(page)).toHaveClass(/is-drop-target/)
 
     await page.mouse.up()
     await dropSettled(page)
     await expect.poll(() => notPlannedIds(page)).toEqual(['open-2', 'np-1', 'np-2'])
     await expect.poll(() => openIds(page)).toEqual(['open-1'])
     await expect(side(page)).not.toHaveClass(/is-drop-target/)
-    await expect(dropHint(page)).toHaveCount(0)
   })
 
-  test('a drop on a scrolled "Meine Aufgaben" list shows the card where it landed, on top', async ({ context, page }) => {
+  test('a drop on "Meine Aufgaben" with the page scrolled down shows the card where it landed, on top (#609: the page scrolls to it)', async ({ context, page }) => {
     const many = Array.from({ length: 14 }, (_, i) => held(`fill-${i}`, `Aufgabe ${i + 1}`))
     await seedLocalBoard(context, [...many, ...BOARD])
     await gotoAll(page)
-    const body = side(page).locator('.not-planned__body')
-    await body.evaluate((el) => { el.scrollTop = el.scrollHeight })
-    await expect.poll(() => body.evaluate(el => el.scrollTop)).toBeGreaterThan(100)
 
+    // Held in Offen's first card while the page is scrolled down: the side's top is out of view
     await pickUp(page, openCard(page, 'open-1'))
+    await page.mouse.wheel(0, 4000)
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(100)
     await hoverSide(page)
     await page.mouse.up()
     await dropSettled(page)
     await expect.poll(async () => (await notPlannedIds(page))[0]).toBe('open-1')
-    await expect.poll(() => body.evaluate(el => el.scrollTop)).toBe(0)
     await expect(item(page, 'open-1')).toBeInViewport()
   })
 
@@ -1011,7 +1038,6 @@ test.describe('Drag between "Meine Aufgaben" and Offen (#355), 390', () => {
     await expect(page.locator('.edge-indicator--right')).toHaveCount(0)
     await edgeDwell(page, 'left')
     await expect(side(page)).toHaveClass(/is-drop-target/)
-    await expect(dropHint(page)).toBeVisible()
     await page.mouse.up()
     await dropSettled(page)
     await expect.poll(() => notPlannedIds(page)).toEqual(['open-2', 'np-2'])

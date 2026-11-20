@@ -58,11 +58,10 @@ async function fly(from: DOMRect | null, find: () => HTMLElement | null): Promis
   await nextTick()
   const el = find()
   if (!el || typeof el.animate !== 'function') return
-  // A card put back flies into "Meine Aufgaben": that side lifts above Offen and stops clipping meanwhile (board.css).
-  // It lands on top, so the list is scrolled to its start before the card's box is read.
+  // A card put back flies into "Meine Aufgaben": that side lifts above Offen meanwhile (board.css).
   const side = el.closest<HTMLElement>('#column-not-planned')
-  const body = side?.querySelector<HTMLElement>('.not-planned__body')
-  if (body) body.scrollTop = 0
+  // A card put back lands on top of "Meine Aufgaben": with the page scrolled down that is out of view, so it scrolls into view first (#609)
+  if (side) el.scrollIntoView({ block: 'nearest', behavior: 'instant' })
   const to = el.getBoundingClientRect()
   const dx = from.left - to.left
   const dy = from.top - to.top

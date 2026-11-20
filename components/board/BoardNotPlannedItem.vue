@@ -6,7 +6,7 @@
 @usage Rendered by BoardNotPlanned, one per task, as the list's `li` (one root node per list item)
 @avoid Not a board card: no status, no card menu, no delete key, never a drop target for another card (SortableTaskWrapper is the card of a column). Not for a static list of cards (trash, recap).
 @responsibility
-- Card: TaskCard as the board shows it, always with the source icon; a click, a tap or Enter on the focused card opens its sheet (`open`)
+- Card: TaskCard as the board shows it (the source icon by the board's one rule: two or more sources, #609); a click, a tap or Enter on the focused card opens its sheet (`open`)
 - Pick: a round button ("Für heute einplanen", named with the task's title; `pick`). Soft primary look (#467, not the solid button: One Lamp Rule). In the card's top right corner at every width (#469 D2; #467's edge arrow would cover the neighbour card in the pair 12 px apart); desktop hides it at rest and shows it on hover and keyboard focus (#373; touch-only devices keep it visible), a phone has it always. A press on it never starts a drag
 - Drag (#355): the `li` is a dnd-kit sortable of the group `NOT_PLANNED_GROUP` that accepts only itself, so the cards of this side never make room for one another; the card box is the handle (pointer, touch hold, Space). dnd-kit moves the `li` into Offen's list while it previews a slot there; `useBoardDndKit` puts it back before it stores anything
 - Named for assistive tech like a board card: role=group, the task's title, the board's role description
@@ -27,7 +27,7 @@
       :aria-roledescription="t('board.dnd.roleDescription')"
       @keydown.enter.self="openFromKey"
     >
-      <TaskCard :task="task" source-icon corner-room @open="(id: string) => emit('open', id)" />
+      <TaskCard :task="task" corner-room @open="(id: string) => emit('open', id)" />
     </div>
     <UTooltip :text="t('board.notPlanned.plan')" :disabled="isPhone">
       <UButton
