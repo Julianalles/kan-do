@@ -16,15 +16,15 @@
   app bar (`--app-bar-offset-top`), not under this header
 - Support page-specific actions via slot
 - `back` slot (#263): the sub-page layout puts the `BackButton` there, the first line of the head above the title (title and description follow it); it spans the column, the actions stay beside the title
-- `narrow`: the title and actions sit in the same 672 px column as the content below (sub-page layout, `pageWidth: 'narrow'`, #673)
+- `narrow`: the title and actions sit in the same 672 px column as the content below (sub-page layout, `pageWidth: 'narrow'`, #673); `wide` (with `narrow`): the 768 px column of a setup stage (#652)
 -->
 <template>
   <header class="page-header pt-safe px-safe bg-page">
     <div class="mx-auto max-w-5xl px-4 py-6">
-      <div v-if="$slots.back" class="mb-2 flex" :class="{ 'mx-auto max-w-2xl': narrow }" data-testid="page-header-back">
+      <div v-if="$slots.back" class="mb-2 flex" :class="narrowClass" data-testid="page-header-back">
         <slot name="back" />
       </div>
-      <div class="flex items-center justify-between" :class="{ 'mx-auto max-w-2xl': narrow }">
+      <div class="flex items-center justify-between" :class="narrowClass">
         <div>
           <h1 class="font-display text-display tracking-display text-highlighted">{{ title }}</h1>
           <p v-if="description" class="mt-0.5 text-body text-muted">{{ description }}</p>
@@ -38,6 +38,8 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue';
+
 defineOptions({ name: 'PageHeader' });
 
 interface Props {
@@ -47,10 +49,15 @@ interface Props {
   description?: string;
   /** Sit in the 672 px column of a narrow sub-page instead of the full container */
   narrow?: boolean;
+  /** With `narrow`: the 768 px column of a setup stage (#652) */
+  wide?: boolean;
 }
 
-withDefaults(defineProps<Props>(), {
+const props = withDefaults(defineProps<Props>(), {
   description: undefined,
   narrow: false,
+  wide: false,
 });
+
+const narrowClass = computed(() => (props.narrow ? ['mx-auto', props.wide ? 'max-w-3xl' : 'max-w-2xl'] : undefined));
 </script>

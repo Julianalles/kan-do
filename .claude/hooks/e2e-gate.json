@@ -113,6 +113,7 @@
         "store/propertyOptions.ts",
         "store/integrationHealth.ts",
         "lib/integrationHealth.ts",
+        "lib/notionSetupStage.ts",
         "types/integration.ts",
         "types/customPropertyIndex.ts"
       ],
@@ -973,6 +974,7 @@
       "paths": [
         "components/setup/**",
         "composables/usePaneHeight.ts",
+        "composables/useSetupStageWidth.ts",
         "pages/welcome.vue",
         "pages/index.vue",
         "utils/brandFlight.ts",

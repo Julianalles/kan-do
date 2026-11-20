@@ -337,6 +337,14 @@ test.describe('welcome setup on the page (#43)', () => {
     await expect(flow).toMatchAriaSnapshot({ name: 'welcome-notion-database-1280.aria.yml' })
   })
 
+  test('Notion: the setup as a stage of the settings page, first step (1280, #652)', async ({ context, page }) => {
+    await seedLocalBoard(context)
+    await page.goto('/settings/notion')
+    await expect(page.getByRole('group', { name: 'Vorbereitung' })).toBeVisible()
+    await settleAnimations(page)
+    await expect(page.getByTestId('notion-setup-flow')).toMatchAriaSnapshot({ name: 'settings-notion-stage-first-step-1280.aria.yml' })
+  })
+
   test('Local: step 2 with the source checklist (1280, #294)', async ({ page }) => {
     await page.goto('/welcome')
     await page.getByTestId('welcome-choice-local').click()

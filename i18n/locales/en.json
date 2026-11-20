@@ -645,10 +645,6 @@
   "notion": {
     "modal": {
       "next": "Next",
-      "finish": "Finish",
-      "titleSettings": "Notion settings",
-      "titleConnect": "Connect to Notion",
-      "titleConfigure": "Set up Notion integration",
       "stepsLabel": "Setup progress",
       "stepDone": "(completed)",
       "steps": {
@@ -852,10 +848,6 @@
     },
     "settings": {
       "pageTitle": "Notion settings",
-      "notConfigured": {
-        "message": "No Notion integration set up yet.",
-        "action": "Set up integration"
-      },
       "tabs": {
         "connection": "Database",
         "properties": "Properties",
