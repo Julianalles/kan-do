@@ -69,7 +69,7 @@
             :required-message="t('task.form.titleRequired')"
             class="text-headline"
             container-class="-ms-2"
-            display-class="font-display"
+            display-class="font-display max-md:min-h-11"
             size="xl"
             :aria-describedby="isSmallerStep ? smallerHintId : undefined"
             @save="(val) => handleTitleSave(val as string)"
