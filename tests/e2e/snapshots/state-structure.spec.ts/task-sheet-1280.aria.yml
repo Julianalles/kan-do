@@ -18,6 +18,6 @@
     - heading "Notiz" [level=3]
     - 'button "Notiz: Entwurf bis Ende der Woche fertigstellen."'
     - paragraph: Entwurf bis Ende der Woche fertigstellen.
-  - button "Metadaten":
-    - heading "Metadaten" [level=3]
+  - heading "Metadaten" [level=3]:
+    - button "Metadaten"
   - button "Löschen"

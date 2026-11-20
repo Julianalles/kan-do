@@ -16,6 +16,7 @@ import { TaskStatus } from '~/types/taskStatus'
 import { isDemoTaskId } from '~/lib/demoIds'
 import { dayKey, isValidDayKey } from '~/utils/recapDay'
 import { IN_TIMEBOX_MAX_ACCURACY } from '~/utils/statisticsAccuracy'
+import { timeBoxGroupOf } from '~/utils/dayClose'
 
 /** Group key for records without a topic; translated at display time (`statistics.noTopic`). */
 export const NO_TOPIC = '__none__'
@@ -66,8 +67,6 @@ export const REVIEW = {
   /** Time split: window in days, slices kept before the rest folds into "Sonstiges". */
   splitDays: 28,
   sliceKeep: 4,
-  /** Estimate ring: shorter than this share of the timebox counts as "shorter". */
-  shorterBelow: 90,
 } as const
 
 export type Verdict = 'better' | 'usual' | 'harder'
@@ -379,8 +378,10 @@ export function deriveReview(
   const patternFrom = addDays(today, -(REVIEW.patternDays - 1))
   const patternEntries = within(entries, patternFrom, tomorrow)
   const boxedInPatternWindow = patternEntries.filter(e => isBoxed(e.record))
-  const longer = boxedInPatternWindow.filter(e => e.record.estimationAccuracy! > IN_TIMEBOX_MAX_ACCURACY).length
-  const shorter = boxedInPatternWindow.filter(e => e.record.estimationAccuracy! < REVIEW.shorterBelow).length
+  // The same classification as the day-close Timebox (#634): one task, one word
+  const groupOf = (e: Entry) => timeBoxGroupOf({ timeSpentSeconds: e.record.actualTimeSpentSeconds, timeBoxSeconds: e.record.timeBoxSeconds! })
+  const longer = boxedInPatternWindow.filter(e => groupOf(e) === 'over').length
+  const shorter = boxedInPatternWindow.filter(e => groupOf(e) === 'under').length
   const nBoxed = boxedInPatternWindow.length
   const pct = (n: number) => (nBoxed ? (n / nBoxed) * 100 : 0)
 
