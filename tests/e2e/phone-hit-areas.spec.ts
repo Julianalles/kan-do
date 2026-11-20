@@ -30,6 +30,11 @@ const SCREENS: Array<{ name: string, seed?: (context: BrowserContext) => Promise
     run: async (page) => {
       for (const index of [0, 1, 2] as const) {
         await showColumnPage(page, index)
+        // The column's sort control shows while the column is hovered, and a touch can leave the pointer there (compat mouse events): CI measured
+        // it, a local run did not. Hover on purpose so the spec reads the same on every run (the control's 48 px box overlaps its header and
+        // the first card, 4 px each way, and only `z-10` on the control keeps the whole box tappable, #592)
+        await page.mouse.move(195, 300)
+        await page.waitForTimeout(300)
         const small = await undersizedControls(page, { exceptions: EXCEPTIONS })
         if (process.env.HIT_SURVEY) console.log(`SURVEY column ${index}: ${JSON.stringify(small)}`)
         else expect(small, `column page ${index}`).toEqual([])
