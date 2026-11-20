@@ -9,7 +9,7 @@
 - Reads the Offen column's own line (`useOpenCapacityLine`), so it follows the topic focus, the sorting and the stacks; it never calculates
 - Sentence: "Damit ist dein Tag vermutlich voll." while nothing lies under the line, else how many tasks do
 - One button: the label "Kapazität" and the sentence are its name; `show` asks the host to bring the real line into view
-- Same tone as the line: `error-700` for the wave and the label only, the sentence muted; a page-coloured backing with a soft upper edge, because it lies over the cards at the column's foot
+- Same tone as the line: `error-700` for the wave and the label only, the sentence muted; a page-coloured backing with a soft upper edge, because it lies over the cards at the column's foot: a card's width plus 1 rem each side and no space below it (#573 case 1, #609), so a card under it is hidden fully and the text is not pressed to an edge
 - Fades in and out (none under reduced motion)
 -->
 <template>
@@ -96,9 +96,9 @@ const sentence = computed(() =>
   height: auto;
   min-height: 0;
   font-weight: inherit;
-  width: min(var(--task-card-width, 100%), 100%);
-  max-width: var(--task-card-max-width);
-  padding: 0.75rem 0 0.25rem;
+  width: min(calc(var(--task-card-width, 100%) + 2rem), 100%);
+  max-width: calc(var(--task-card-max-width) + 2rem);
+  padding: 0.75rem 1rem 0.75rem;
   /* Page ground with a soft upper edge, so the cards scroll away under the line (unlayered, so on hover too: no button wash) */
   background: linear-gradient(transparent, var(--ui-page-bg) 0.75rem);
   border-radius: var(--radius-md);

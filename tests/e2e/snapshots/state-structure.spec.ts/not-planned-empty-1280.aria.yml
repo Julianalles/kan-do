@@ -1,4 +1,4 @@
 - region "Meine Aufgaben":
-  - heading "Meine Aufgaben" [level=2]
+  - heading "Alle" [level=2]
   - paragraph: Keine weiteren Aufgaben vorhanden.
   - button "Aufgabe erstellen"
