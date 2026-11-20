@@ -50,7 +50,10 @@
             {{ t('common.cancel') }}
           </UButton>
         </template>
-        <UTooltip v-else-if="forever" :text="t('trash.removeForeverNamed', { title: entry.task.title })" :disabled="isPhone">
+        <UTooltip v-else-if="forever" :disabled="isPhone">
+          <template #content>
+            <span data-private>{{ t('trash.removeForeverNamed', { title: entry.task.title }) }}</span>
+          </template>
           <UButton
             ref="removeBtn"
             :icon="ICONS.delete"

@@ -11,7 +11,10 @@
 - Esc closes the chip row and keeps focus on the funnel
 -->
 <template>
-  <UTooltip v-if="hasFocusJob" :text="triggerLabel" :disabled="isPhone">
+  <UTooltip v-if="hasFocusJob" :disabled="isPhone">
+    <template #content>
+      <span data-private>{{ triggerLabel }}</span>
+    </template>
   <UButton
     ref="button"
     icon="i-ph-funnel"

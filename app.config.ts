@@ -466,7 +466,7 @@ export default defineAppConfig({
             'data-[round=md]:size-8 data-[round=md]:min-w-8 max-md:data-[round=md]:size-11 max-md:data-[round=md]:min-w-11 max-md:data-[round=md]:min-h-11',
             'data-[round=sm]:size-7 data-[round=sm]:min-w-7 max-md:data-[round=sm]:min-w-7 max-md:data-[round=sm]:min-h-0',
             'data-[round=arrow]:size-8 data-[round=arrow]:min-w-8 max-md:data-[round=arrow]:size-7 max-md:data-[round=arrow]:min-w-7 max-md:data-[round=arrow]:min-h-0',
-            'data-[round=bar]:size-(--app-nav-pill-height) data-[round=bar]:min-w-(--app-nav-pill-height) max-md:data-[round=bar]:min-w-11',
+            'data-[round=bar]:size-(--app-nav-pill-height) data-[round=bar]:min-w-(--app-nav-pill-height) data-[round=bar]:shrink-0 max-md:data-[round=bar]:min-w-(--app-nav-pill-height)',
             'data-[round=sm]:after:absolute data-[round=sm]:after:-inset-2 data-[round=sm]:after:content-[\'\']',
             'max-md:data-[round=arrow]:after:absolute max-md:data-[round=arrow]:after:-inset-2 max-md:data-[round=arrow]:after:content-[\'\']',
             '[&[data-round][data-fill=primary]]:bg-primary-100 [&[data-round][data-fill=primary]]:text-primary-600 [&[data-round][data-fill=primary]]:hover:not-disabled:bg-primary-200 [&[data-round][data-fill=primary]]:active:not-disabled:bg-primary-200',

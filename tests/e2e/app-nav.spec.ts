@@ -96,6 +96,9 @@ for (const { label, size } of VIEWPORTS) {
         expect(more.width).toBeCloseTo(36, 0)
       } else {
         expect(pill.y).toBeGreaterThan(size.height * 0.8)
+        // The funnel is a round button (#602): a crowded bar must not squeeze it into an oval (measured box, width equals height)
+        expect(funnel!.width).toBeGreaterThanOrEqual(44)
+        expect(Math.abs(funnel!.width - funnel!.height)).toBeLessThanOrEqual(1)
         for (const control of [heute(page), statistik(page), moreButton(page)]) {
           const box = (await control.boundingBox())!
           expect(box.width).toBeGreaterThanOrEqual(44)
