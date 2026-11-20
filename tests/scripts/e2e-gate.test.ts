@@ -169,7 +169,7 @@ describe('selectE2e', () => {
       const result = select({ files: ['tests/e2e/helpers/notionWizard.ts'] })
       expect(result.tier).toBe('targeted')
       expect(result.unmapped).toEqual([])
-      expect(result.specs).toEqual([...new Set([...config.smoke, 'sources-settings', 'welcome-setup'])].sort())
+      expect(result.specs).toEqual([...new Set([...config.smoke, 'sources-settings', 'welcome-setup', 'motion-guard'])].sort())
     })
 
     it('follows imports between helpers: a constants.ts change reaches the importers of seed.ts and dnd.ts', () => {
