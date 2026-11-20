@@ -567,7 +567,7 @@ const openDetails = (event: MouseEvent) => {
    whole shorthand, so the neighbours snap there on purpose. */
 .task--returning {
   animation:
-    task-returning 180ms var(--ease-emphasized),
+    task-returning var(--duration-base) var(--ease-emphasized),
     task-returning-room var(--duration-base) var(--ease-standard);
 }
 /* The compact gap gave up part of the card's height; the card takes it back as a negative bottom margin that runs to 0 (measured, so a taller phone card or an undo without a gap is exact), so
@@ -579,13 +579,6 @@ const openDetails = (event: MouseEvent) => {
 @keyframes task-returning {
   from { opacity: 0; transform: scale(0.92); }
   to { opacity: 1; transform: scale(1); }
-}
-@media (prefers-reduced-motion: reduce) {
-  .task--returning { animation: task-returning-fade 180ms linear; }
-  @keyframes task-returning-fade {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
 }
 
 /* ========================================
@@ -615,7 +608,8 @@ const openDetails = (event: MouseEvent) => {
    keeps it invisible during the wait. The spring is a linear() easing (damping ratio 0.45, ~20 % overshoot,
    settles inside 480 ms) on scale 0.3 -> 1 plus opacity; transform and opacity only, so the card never reflows.
    Compared with `/impeccable live`: B (pop above the layer from the start) showed two checks at once, C (clip-path
-   draw with a tilt) was too faint at 20 px. Reduced motion: no animation, the static check. */
+   draw with a tilt) was too faint at 20 px. Reduced motion: no animation, the static check. The 480 ms spring is this
+   effect's own choreography, off the tokens (#593); so is the linear confirmation strip below (a progress line). */
 .task-done-check--pop {
   animation: done-check-pop 480ms linear(0, 0.117, 0.381, 0.68, 0.935, 1.107, 1.191, 1.202, 1.165, 1.106, 1.047, 0.999, 0.97, 0.958, 0.96, 0.97, 0.982, 0.994, 1.003, 1.007, 1)
     var(--done-confirm-fade-at) backwards;
@@ -671,7 +665,7 @@ const openDetails = (event: MouseEvent) => {
   overflow-wrap: anywhere;
   color: var(--ui-color-success-800);
   font-size: var(--text-title);
-  font-weight: 600;
+  font-weight: 500;
   line-height: var(--lh-snug);
   text-align: left;
   text-wrap: balance;

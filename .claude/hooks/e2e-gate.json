@@ -137,6 +137,7 @@
         "composables/useColumnSortable.ts",
         "composables/useDropMotion.ts",
         "lib/completionPace.ts",
+        "lib/motionTokens.ts",
         "composables/useStack*.ts",
         "components/board/SortableTaskWrapper.vue",
         "components/board/ColumnDropZone.vue",
@@ -1016,6 +1017,7 @@
         "utils/localeResolution.ts",
         "lib/i18n.ts",
         "utils/modalSizes.ts",
+        "utils/sectionRoles.ts",
         "pages/error-test.vue"
       ],
       "specs": [

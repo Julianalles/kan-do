@@ -14,7 +14,7 @@ changes size, so nothing on the page moves while it is looked at.
 - With 2+ cards the deck is one tab stop: `role="group"`, `tabindex="0"`, roledescription "Stapel", name "{label}, mit Pfeiltasten wechseln"; ←/→ act only while the deck itself has focus. With 0 or 1 card there is nothing to switch to (#478): no `tabindex`, no roledescription, the name is just "{label}"; all three follow `canMove` when the count crosses 1 <-> 2
 - A visually hidden polite live region announces "2 von 4: Titel" after a settled change (the cards are inert, so this is how a screen reader hears the front card); the counter is decorative
 - Geometry: layer d (max 2) at `translateY(d*8px) scale(1 - d*0.04)`, deeper cards hidden; front card follows the pointer with `rotate(dx/24 deg)`
-- Motion (#690): the travelling card (next: front, prev: back) slides sideways 50% of the deck width at full opacity (130ms), then takes its new depth, so it passes behind the stack (next) or comes to the front (prev); while it slides out, a card going to the back already sinks to the last layer's height and size (#243), so the z-order flip shows no step; settle 300ms `cubic-bezier(0.34, 1.32, 0.64, 1)` (a soft overshoot) on transform. Nothing fades out; a card deeper than layer 2 stays visible while it travels. With prefers-reduced-motion cards swap at once (the drag still follows the pointer)
+- Motion (#690): the travelling card (next: front, prev: back) slides sideways 50% of the deck width at full opacity (130 ms), then takes its new depth, so it passes behind the stack (next) or comes to the front (prev); while it slides out, a card going to the back already sinks to the last layer's height and size (#243), so the z-order flip shows no step; settle `--duration-slow` (300 ms) on `cubic-bezier(0.34, 1.32, 0.64, 1)` (a soft overshoot) on transform; a card that drops below layer 2 vanishes 320 ms in, just after the settle (own choreography, kept off the tokens: the 130 ms slide and its curve, the overshoot curve, the 320 ms hide, #593). Nothing fades out; a card deeper than layer 2 stays visible while it travels. With prefers-reduced-motion cards swap at once (the drag still follows the pointer)
 - The grab area carries `data-vaul-no-drag`: on phones the deck sits in a drawer, and a card swipe must never drag it closed (closing archives the done tasks, #44)
 - Gesture, queue and timers live in `useSwipeDeck` (drag past 80px or tap = next, 6px tap slop, queue of 8)
 - Accepted trade-offs (#451): one card at a time, no list view; two chevrons per deck stay focusable (six tab stops for two decks) so keyboard users need not discover the arrow keys
@@ -215,11 +215,11 @@ function onPointerDown(event: PointerEvent) {
   display: block;
   transform-origin: 50% 100%;
   pointer-events: none;
-  transition: transform 300ms var(--deck-settle-ease), opacity 240ms ease;
+  transition: transform var(--duration-slow) var(--deck-settle-ease), opacity var(--duration-slow) var(--ease-standard);
 }
 .recap-deck__card--hidden {
   /* a card that drops below layer 2 stays visible until it has travelled behind the stack, then vanishes (#690) */
-  transition: transform 300ms var(--deck-settle-ease), opacity 0s linear 320ms;
+  transition: transform var(--duration-slow) var(--deck-settle-ease), opacity 0s 320ms;
 }
 .recap-deck__card--out {
   transition: transform 130ms cubic-bezier(0.33, 1, 0.68, 1);
@@ -254,11 +254,5 @@ function onPointerDown(event: PointerEvent) {
 .recap-deck__counter {
   min-width: 3.5rem;
   text-align: center;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .recap-deck__card {
-    transition: none;
-  }
 }
 </style>

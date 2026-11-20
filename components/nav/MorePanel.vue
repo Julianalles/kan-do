@@ -39,7 +39,7 @@
     </template>
     <template v-if="onBoard">
       <section :aria-labelledby="pageHeadingId">
-        <h2 :id="pageHeadingId" class="px-2 pt-2 pb-1 text-xs font-semibold text-muted">{{ t('nav.groupPage') }}</h2>
+        <SectionHeader :id="pageHeadingId" tag="h2" size="label" class="px-2 pt-2">{{ t('nav.groupPage') }}</SectionHeader>
         <div class="space-y-3 p-2">
           <UFormField :help="t('board.sync.stackHelp')">
             <USwitch
@@ -82,7 +82,7 @@
     </template>
 
     <section :aria-labelledby="placesHeadingId">
-      <h2 :id="placesHeadingId" class="px-2 pt-2 pb-1 text-xs font-semibold text-muted">{{ t('nav.groupPlaces') }}</h2>
+      <SectionHeader :id="placesHeadingId" tag="h2" size="label" class="px-2 pt-2">{{ t('nav.groupPlaces') }}</SectionHeader>
       <UButton
         v-if="thirdItem?.to !== '/trash'"
         to="/trash"
@@ -183,6 +183,7 @@ import { computed, ref, useId, watchEffect } from 'vue'
 import { useMediaQuery } from '@vueuse/core'
 import { useI18n } from 'vue-i18n'
 import ChoiceChip from '~/components/ui/ChoiceChip.vue'
+import SectionHeader from '~/components/ui/SectionHeader.vue'
 import { useAppNav } from '~/composables/useAppNav'
 import { useBoardGrouping } from '~/composables/useBoardGrouping'
 import { useManualSync } from '~/composables/useManualSync'

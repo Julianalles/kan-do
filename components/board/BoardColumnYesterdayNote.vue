@@ -12,7 +12,7 @@
 - Keep today's wins on top: the strip is a `BoardColumnNotice` (`tone="done"`, #293), `--task-note-height` collapsed (48px on desktop, 56px at 390px so both controls reach 44px with air around them), card width, centred
 - Surface (#605, D2; outline dropped #57) lives in BoardColumnNotice: no border, `--done-note-wash` (70 % `success-100` over `success-50`: darker than the in-card confirmation wash so it separates without a frame, short of the `success-100` Erledigt drop wash so it never reads as a drop target), card radius. Tick and "Gesehen" in `success-800`; title row neutral, rows `toned`
 - Its controls are `UButton`s: label toggle and title rows ghost neutral (#71), "Gesehen" soft (BoardColumnNotice): the theme brings focus ring, hover wash and the 44 px phone floor; the note's scoped CSS keeps only its geometry, type and colours. The toggle stays a button inside the `<h3>` (`aria-expanded`)
-- Collapse over 180ms when it leaves (instant under prefers-reduced-motion); the caret rotates 180ms
+- Collapse over `--duration-base` when it leaves (instant under prefers-reduced-motion); the caret rotates over the same
 -->
 <template>
   <section
@@ -211,7 +211,7 @@ function openTask(taskId: string) {
   flex-shrink: 0;
   width: 0.75rem;
   height: 0.75rem;
-  transition: transform 180ms var(--ease-standard);
+  transition: transform var(--duration-base) var(--ease-standard);
 }
 
 .yesterday-note__caret--open {
@@ -269,7 +269,7 @@ function openTask(taskId: string) {
 
 .yesterday-note-leave-active,
 .yesterday-note-enter-active {
-  transition: grid-template-rows 180ms var(--ease-standard), opacity 180ms var(--ease-standard);
+  transition: grid-template-rows var(--duration-base) var(--ease-standard), opacity var(--duration-base) var(--ease-standard);
 }
 
 .yesterday-note-leave-active .yesterday-note__inner,
@@ -281,13 +281,5 @@ function openTask(taskId: string) {
 .yesterday-note-enter-from {
   grid-template-rows: 0fr;
   opacity: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .yesterday-note-leave-active,
-  .yesterday-note-enter-active,
-  .yesterday-note__caret {
-    transition: none;
-  }
 }
 </style>

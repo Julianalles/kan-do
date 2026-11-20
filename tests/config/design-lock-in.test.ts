@@ -45,12 +45,17 @@ function themeBlock(key: string): string {
 }
 
 describe('line heights come from the size tokens (DESIGN.md "Type")', () => {
-  it('no leading-* class in shipped UI or the theme', () => {
-    expect(hits(/\bleading-[\w.()[\]-]+/g, shipped, {
+  // `text-2xl/tight` sets a line height through the size class (#590): the size token carries its own (`--text-*--line-height`)
+  const SIZE_WITH_LINE_HEIGHT = /\btext-(?:xs|sm|base|lg|xl|[2-9]xl|body|label|title|headline|display|brand)\/[\w.()[\]-]+/g
+
+  it('no leading-* class or size class with a line height (text-<size>/<lh>) in shipped UI or the theme', () => {
+    expect(hits(new RegExp(`\\bleading-[\\w.()[\\]-]+|${SIZE_WITH_LINE_HEIGHT.source}`, 'g'), shipped, {
       // The clock in the ring is one line in a fixed box at two sizes
       'components/statistics/StatsTimeSplit.vue: leading-(--lh-tight)': 'single-line figure in the donut',
     })).toEqual([])
     expect([...config.matchAll(/\bleading-[\w.()[\]-]+/g)].map(m => m[0])).toEqual([])
+    // The one chip size sets its 12 px line in the theme (kd#180); a second one needs a reason here
+    expect([...config.replace(/\/\/.*$/gm, '').matchAll(SIZE_WITH_LINE_HEIGHT)].map(m => m[0]).filter(m => m !== 'text-xs/3')).toEqual([])
   })
 
   it('a hand-written line-height is a token, 1 on a fixed single-line box, or a listed exception', () => {
@@ -58,6 +63,40 @@ describe('line heights come from the size tokens (DESIGN.md "Type")', () => {
       'components/task/TaskTimeboxNudge.vue: line-height: 1.25rem;': 'rows at fixed offsets in the 132 px card (kd#190)',
       'components/board/BoardNotPlanned.vue: line-height: 2.5rem;': 'one truncated line centred in the 40 px heading row it replaces, so no padding sits off the 4 px grid (#591)',
     })).toEqual([])
+  })
+})
+
+describe('weight 600 is for a key figure (DESIGN.md "The One Role Rule", #590)', () => {
+  // The sans stays at 400 to 500; 600 and up only where this list names the file with its reason. A ratchet: a file above its
+  // count fails (a new file has 0), a count above the real number fails too ("lower it"), so a cleanup says so in its PR.
+  const WEIGHT = /\bfont-(?:semibold|bold|extrabold|black)\b|font-weight:\s*(?:[6-9]00|bold)\b/g
+  const KEPT: Record<string, { count: number, reason: string }> = {
+    'components/statistics/StatsEstimateRing.vue': { count: 1, reason: 'key figure: the estimate count in the ring' },
+    'components/statistics/StatsTimeSplit.vue': { count: 1, reason: 'key figure: the clock in the donut' },
+    'components/statistics/StatsVerdict.vue': { count: 1, reason: 'key figure: the verdict percentage' },
+    'components/statistics/TasksTable.vue': { count: 1, reason: 'key figure: the accuracy in the table' },
+    'components/board/DayCloseTimebox.vue': { count: 1, reason: 'key figure: the day-close count' },
+    'components/ui/PropertyValueTrigger.vue': { count: 1, reason: 'the picked suggestion is told apart from the others by weight (#590, user-ticked item 7)' },
+    'components/board/NewCardOptionList.vue': { count: 1, reason: 'the current option is told apart by weight as well as colour (not colour alone, WCAG 1.4.1), like the picked suggestion' },
+    'components/task/TaskDetailContent.vue': { count: 1, reason: 'key figure: an overrun timebox (0 min left) keeps its weight so it reads apart from the 20 % warning at 500' },
+    'components/updates/UpdateDialog.vue': { count: 1, reason: '<strong> in running text: the bullet title' },
+    'components/updates/WhatsNewDialog.vue': { count: 1, reason: '<strong> in running text: the bullet title' },
+    'components/overlay/NowWindow.vue': { count: 1, reason: 'key figure: the running clock of the always-on-top window (13 px, tabular figures)' },
+    'assets/css/task-detail.css': { count: 2, reason: 'user-written markdown in the notes: headings and <strong> keep their emphasis' },
+  }
+
+  it('only the listed files write a weight of 600 or more, each at most its count, each with a reason', () => {
+    const real: Record<string, number> = {}
+    for (const p of [...shipped, ...css]) {
+      const n = [...body(p).matchAll(WEIGHT)].length
+      if (n > 0) real[relative(root, p)] = n
+    }
+    const findings = [
+      ...Object.entries(real).filter(([f, n]) => n > (KEPT[f]?.count ?? 0)).map(([f, n]) => `${f} has ${n} weight 600 use(s), the list allows ${KEPT[f]?.count ?? 0}: step the text to 500 (font-medium), or list a key figure with its reason`),
+      ...Object.entries(KEPT).filter(([f, e]) => e.count > (real[f] ?? 0)).map(([f, e]) => `${f} is listed with ${e.count} but has ${real[f] ?? 0}: lower the list`),
+      ...Object.entries(KEPT).filter(([, e]) => !e.reason.trim()).map(([f]) => `${f} needs a reason`),
+    ]
+    expect(findings).toEqual([])
   })
 })
 

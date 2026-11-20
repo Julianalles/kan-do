@@ -1,5 +1,6 @@
 import { onBeforeUnmount, watch, type Ref } from 'vue'
 import { useBoardDragState } from '~/composables/useBoardDragState'
+import { MOTION } from '~/lib/motionTokens'
 
 /**
  * Expand / collapse motion of a stack (#197). Purely visual: the state change is instant and final
@@ -35,9 +36,9 @@ export const STACK_LAYER_ATTR = 'data-stack-motion-layer'
 /** The collapsed face shows the front card and at most two peek layers (TaskStack.vue) */
 const MAX_PEEK_LAYERS = 2
 const MAX_CLONES = 8
-const DEFAULT_DURATION_MS = 200
-const DEFAULT_FADE_MS = 150
-const DEFAULT_EASING = 'cubic-bezier(0.4, 0, 0.2, 1)'
+const DEFAULT_DURATION_MS = MOTION.baseMs
+const DEFAULT_FADE_MS = MOTION.fastMs
+const DEFAULT_EASING = MOTION.standard
 const DEFAULT_OFFSET_PX = 4
 /** z-index of the travelling pill (above the cards and clones) and of the wash clone (above the folding cards) */
 const PILL_Z = 700
@@ -286,6 +287,7 @@ export function useStackMotion(options: StackMotionOptions) {
     const travel = (el: Element, keyframes: Keyframe[]) => {
       starts.push(() => el.animate(keyframes, { duration, easing, fill: 'none' }))
     }
+    // The linear segments below are keyframe offsets of one beat, not eases: a curve would bend the offsets (#593)
     /** Hidden until `from`, then up to full by `to` (offsets of the beat): the real element is covered by clones meanwhile */
     const hold = (el: Element, from: number, to: number) => {
       starts.push(() => el.animate(

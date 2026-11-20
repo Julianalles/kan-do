@@ -61,7 +61,7 @@ function onClick() {
   border-radius: 9999px;
   /* Resting: a muted glyph, no surface (the nav pills are the only sheets on the bar) */
   color: var(--ui-text-muted);
-  transition: color var(--duration-fast) ease, background-color var(--duration-fast) ease;
+  transition: color var(--duration-fast) var(--ease-standard), background-color var(--duration-fast) var(--ease-standard);
 }
 
 .board-focus-trigger:hover,
@@ -78,11 +78,5 @@ function onClick() {
 
 .board-focus-trigger.is-on:hover {
   background: var(--ui-primary);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .board-focus-trigger {
-    transition: none;
-  }
 }
 </style>

@@ -85,6 +85,7 @@ In-card question pattern (DESIGN.md "Behaviour"; this is its first user, extract
 
         <span
           class="nudge__bar"
+          data-motion-progress
           :class="{ 'is-paused': paused }"
           :style="{ '--nudge-duration': `${TIMEBOX_NUDGE_MS}ms` }"
           aria-hidden="true"
@@ -342,7 +343,7 @@ const onBarEnd = (event: AnimationEvent) => {
 }
 
 /* Countdown hairline: a muted track with a fill that drains over TIMEBOX_NUDGE_MS (CSS animation + animationend;
-   functional, so it stays under reduced motion). Paused, not reset, while the pointer or focus is on the layer. */
+   functional, so it stays under reduced motion: `data-motion-progress` keeps it out of the global reduced-motion rule, `main.css`). Paused, not reset, while the pointer or focus is on the layer. */
 .nudge__bar {
   position: absolute;
   left: 1.5rem;
@@ -375,17 +376,17 @@ const onBarEnd = (event: AnimationEvent) => {
   }
 }
 
-/* The layer fades in (180ms) with a 4px settle and out (220ms) */
+/* The layer fades in (`--duration-base`) with a 4px settle and out */
 .nudge-enter-active {
-  transition: opacity 180ms var(--nudge-ease);
+  transition: opacity var(--duration-base) var(--nudge-ease);
 }
 
 .nudge-leave-active {
-  transition: opacity 220ms var(--nudge-ease);
+  transition: opacity var(--duration-base) var(--nudge-ease);
 }
 
 .nudge-enter-active .nudge__panel {
-  transition: transform 180ms var(--nudge-ease);
+  transition: transform var(--duration-base) var(--nudge-ease);
 }
 
 .nudge-enter-from,
@@ -398,11 +399,11 @@ const onBarEnd = (event: AnimationEvent) => {
 }
 
 /* The card's own content steps back while the layer is up: hidden, still in the DOM (opacity only). It fades out with
-   the layer's 180ms; when the nudge ends the class goes and the layer's own fade reveals the content. */
+   the layer's `--duration-base`; when the nudge ends the class goes and the layer's own fade reveals the content. */
 .task--nudged > [data-slot="body"] > :not(.nudge),
 .task--nudged > [data-slot="footer"] {
   opacity: 0;
-  animation: nudge-content-out 180ms var(--nudge-ease);
+  animation: nudge-content-out var(--duration-base) var(--nudge-ease);
 }
 
 @keyframes nudge-content-out {
@@ -431,23 +432,5 @@ const onBarEnd = (event: AnimationEvent) => {
   .nudge__bar {
     bottom: 1.25rem;
   }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .nudge-enter-active,
-  .nudge-leave-active,
-  .nudge-enter-active .nudge__panel {
-    transition-duration: 0ms;
-  }
-
-  .nudge-enter-from .nudge__panel {
-    transform: none;
-  }
-
-  .task--nudged > [data-slot="body"] > :not(.nudge),
-  .task--nudged > [data-slot="footer"] {
-    animation: none;
-  }
-
 }
 </style>

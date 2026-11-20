@@ -252,6 +252,7 @@
 
 <script setup lang="ts">
 import { ICONS } from '~/lib/icons'
+import { MOTION } from '~/lib/motionTokens'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useToast } from '#imports';
@@ -425,7 +426,7 @@ let advanceTimer: ReturnType<typeof setTimeout> | undefined;
 /** One short beat on the wash: a pick landed (the cue for Aktivität and Notiz, which a card does not show) */
 function pulse() {
   if (prefersReducedMotion()) return;
-  veilEl.value?.animate?.([{ opacity: 1 }, { opacity: 0.55 }, { opacity: 1 }], { duration: 260, easing: 'ease-in-out' });
+  veilEl.value?.animate?.([{ opacity: 1 }, { opacity: 0.55 }, { opacity: 1 }], { duration: MOTION.slowMs, easing: MOTION.standard });
 }
 
 /** Offset of an element's top inside the card, from layout (a transform on the card, such as its entrance, does not skew it) */
@@ -880,7 +881,7 @@ onBeforeUnmount(() => {
 .ncf__face :deep(.task-topic),
 .ncf__face :deep(.task-title-text),
 .ncf__face :deep(.task-footer) {
-  transition: filter 260ms var(--ncf-ease), opacity 260ms var(--ncf-ease);
+  transition: filter var(--duration-slow) var(--ncf-ease), opacity var(--duration-slow) var(--ncf-ease);
 }
 
 .ncf.is-steps:not(.is-saving) .ncf__face :deep(.task-topic),
@@ -909,7 +910,7 @@ onBeforeUnmount(() => {
   background: var(--ui-bg-elevated);
   opacity: 0;
   pointer-events: none;
-  transition: opacity 260ms var(--ncf-ease);
+  transition: opacity var(--duration-slow) var(--ncf-ease);
 }
 
 .ncf.is-steps .ncf__veil {
@@ -1141,7 +1142,7 @@ onBeforeUnmount(() => {
   color: inherit;
   font: inherit;
   font-size: var(--text-label);
-  font-weight: 600;
+  font-weight: 500;
   font-variant-numeric: tabular-nums;
   line-height: 1;
 }

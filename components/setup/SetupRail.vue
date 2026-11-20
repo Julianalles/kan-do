@@ -28,7 +28,7 @@
         :aria-valuenow="current + 1"
       >
         <div
-          class="h-full rounded-full bg-inverted transition-[width] duration-(--duration-slow) ease-out motion-reduce:transition-none"
+          class="h-full rounded-full bg-inverted transition-[width] duration-(--duration-slow) ease-(--ease-emphasized) motion-reduce:transition-none"
           :style="{ width: `${((current + 1) / steps.length) * 100}%` }"
         />
       </div>
@@ -45,14 +45,14 @@
           :data-state="index < current ? 'done' : index === current ? 'active' : 'todo'"
         >
           <span
-            class="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold transition-colors duration-(--duration-base) motion-reduce:transition-none"
+            class="flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-medium transition-colors duration-(--duration-base) motion-reduce:transition-none"
             :class="index <= current ? 'bg-inverted text-inverted' : 'bg-accented text-muted'"
             aria-hidden="true"
           >
             <UIcon v-if="index < current" name="i-ph-check-bold" class="size-3" />
             <template v-else>{{ index + 1 }}</template>
           </span>
-          <span class="text-sm" :class="index === current ? 'font-semibold text-highlighted' : index < current ? 'text-default' : 'text-muted'">
+          <span class="text-sm" :class="index === current ? 'font-medium text-highlighted' : index < current ? 'text-default' : 'text-muted'">
             {{ step.label }}
             <span v-if="index < current" class="sr-only">{{ doneLabel }}</span>
           </span>
@@ -90,10 +90,5 @@ defineProps<{
 }
 .setup-rail-item[data-state='done']:not(:last-child)::after {
   background: var(--ui-bg-inverted);
-}
-@media (prefers-reduced-motion: reduce) {
-  .setup-rail-item::after {
-    transition: none;
-  }
 }
 </style>

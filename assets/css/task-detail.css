@@ -23,7 +23,7 @@
 }
 
 .task-detail-content {
-  animation: task-detail-fade-in var(--duration-base) ease-out;
+  animation: task-detail-fade-in var(--duration-base) var(--ease-emphasized);
 }
 
 /* ========================================
@@ -40,7 +40,7 @@
 
 /* Smooth section transitions */
 .task-detail-section {
-  transition: opacity var(--duration-base) ease;
+  transition: opacity var(--duration-base) var(--ease-standard);
 }
 
 /* ========================================
@@ -53,7 +53,7 @@
 .task-property-value {
   text-decoration: underline dotted var(--ui-border-accented) 1px;
   text-underline-offset: 0.3em;
-  transition: text-decoration-color var(--duration-fast) ease;
+  transition: text-decoration-color var(--duration-fast) var(--ease-standard);
 }
 
 .task-property-value:hover:not(:disabled, [aria-disabled='true']),

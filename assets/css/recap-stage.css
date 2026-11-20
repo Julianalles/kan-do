@@ -5,15 +5,15 @@
  * bar's paper veil steps back while the stage is mounted, bottom of this file).
  * Not modal: the app bar (z-bar) paints above it, the board stays inert behind it (pages/tasks.vue).
  * Enter (#463, "Dawn"): the whole stage fades in over --recap-enter-duration (1.4 s), also on an app start. A click mid-fade lets the fade finish under the curtain (no jump to full opacity).
- * Curtain on close: only the photo layer lifts (700 ms, ease in-out) with a feathered bottom edge; the content fades
+ * Curtain on close: only the photo layer lifts (`--duration-curtain`, 700 ms) with a feathered bottom edge; the content fades
  * out (--duration-base). The photo layer reaches --recap-feather below the stage, so the feathered edge is off screen
  * at rest and sweeps through while it slides up. Reduced motion: no fade, no slide (the component closes at once).
  */
 @layer components {
   .recap-stage {
     --recap-feather: 4rem;
-    --recap-curtain-duration: 700ms; /* the photo lifting off; the component waits for it (NewDayRecap.vue) */
-    --recap-enter-duration: 1400ms; /* Dawn (#463): the stage fades in, one clock with the lift below; also on an app start */
+    --recap-curtain-duration: var(--duration-curtain); /* the photo lifting off; the component waits for it (NewDayRecap.vue) */
+    --recap-enter-duration: var(--duration-stage); /* Dawn (#463): the stage fades in, one clock with the lift below; also on an app start */
     position: fixed;
     inset: 0;
     z-index: var(--z-titlebar);
@@ -24,7 +24,7 @@
 
   /* "Tag neu planen" (#433): the photo lifts slower, onto "Alle" that the board already stands on (#490, the board does not move beneath it; the app bar's chip travels on this clock) (NewDayRecap.vue sets data-pace) */
   .recap-stage[data-pace='lift'] {
-    --recap-curtain-duration: 1400ms;
+    --recap-curtain-duration: var(--duration-stage);
   }
 
   .recap-stage__photo {
@@ -79,7 +79,7 @@
   .recap-stage[data-closing] .recap-stage__scroll {
     opacity: 0;
     transform: scale(0.98);
-    transition: opacity var(--duration-base) ease-out, transform var(--duration-base) ease-out;
+    transition: opacity var(--duration-base) var(--ease-emphasized), transform var(--duration-base) var(--ease-emphasized);
   }
 
   @keyframes recap-stage-in {

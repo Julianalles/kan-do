@@ -162,7 +162,7 @@ One shadow colour (`--shadow-color`, a warm brown) at three steps.
 | `--ease-standard` | `cubic-bezier(0.4, 0, 0.2, 1)` | things that change in place |
 | `--ease-emphasized` | `cubic-bezier(0.2, 0, 0, 1)` | things that arrive and settle |
 
-Motion explains a state change, the way paper would move. A mechanical change is short; motion is never decorative or looping, and `prefers-reduced-motion` makes it instant. On page load nothing moves except a key moment that opens the session (the new-day recap, the welcome photo). A component with its own choreography (the app bar's indicator, the progress chip, the completion burst) records it in its doc block.
+Motion explains a state change, the way paper would move. A mechanical change is short; motion is never decorative or looping, and `prefers-reduced-motion` makes it instant. On page load nothing moves except a key moment that opens the session (the new-day recap, the welcome photo). A component with its own choreography (the app bar's indicator, the progress chip, the completion burst) records it in its doc block. Reduced motion is one global rule (`assets/css/main.css`, last layer) that zeroes every transition and animation; the exceptions are progress indicators, not movement: the spinner, the delete gap's drain line and the nudge's countdown (`data-motion-progress`), and the focus overlay's 150 ms fade (a `!important` of its own, `board-focus-overlay.css`). Scripted animations (`element.animate`) read `lib/motionTokens.ts`, the script mirror of this table, and check the media query themselves.
 
 **The One Piece Rule.** A view arrives as one piece: incoming content does not rearrange after it is visible, a surface changes size only as a guided motion, and hover never moves a neighbour (user, ten corrections, among them #43, #225, #294).
 
@@ -244,6 +244,8 @@ What a check already guarantees is not repeated above. `npm run verify` runs the
 | Guarantee | Guard |
 |---|---|
 | Semantic tokens only: no palette classes, hex, arbitrary values, stray z-index, duration or easing | ESLint, `tests/config/token-literals.test.ts`, `scripts/lint/design-tokens.mjs` |
+| No motion literal outside the tokens: a duration, a curve or an easing keyword in a declaration, a custom property, a `duration-N` / `ease-*` class or a scripted `.animate()`; what stays is a component's own choreography, recorded in its doc block and counted in `scripts/lint/literal-baseline.json` | `scripts/lint/design-tokens.mjs` (`npm run lint`), `tests/config/token-literals.test.ts` |
+| The motion tokens of the stylesheet, the script mirror and this table agree; reduced motion is the one global rule | `tests/config/motion-tokens.test.ts` |
 | The 4 px grid, in `.vue` files: no half-step spacing class but `-0.5` and `-1.5` (roots `p`, `m`, `gap`, `space`, `inset`, `top`/`left`/`right`/`bottom`, `size`, `w`, `h`, `min-`/`max-` and `translate` forms; not `start-`, `end-`, `basis-`, `indent-`), no padding, margin or gap off the grid in a style block, no icon-class width or height off 12, 16, 20, 24 px in a style block (Tailwind `size-N` on a `UIcon` and `.css` files are not checked) (a kept exception is on the file's allow list with its reason) | `scripts/lint/design-tokens.mjs` (`checkScaleLiterals`), `tests/config/token-literals.test.ts` |
 | Button vocabulary: the one size, the allowed variants, the phone floor, the 96 px minimum of a solid button, the list of smaller buttons with their reasons | `tests/config/button-ladder.test.ts` |
 | Text and control contrast, the focus halo on the main button, the receding-text exceptions | `tests/e2e/a11y.spec.ts`, `tests/config/button-contrast.test.ts`, `role-contrast.test.ts`, `error-soft-contrast.test.ts` |
@@ -256,10 +258,10 @@ What a check already guarantees is not repeated above. `npm run verify` runs the
 | Every visible control on the seeded screens has a 44 × 44 hit area at 390 px, a named exception list | `tests/e2e/phone-hit-areas.spec.ts` (#592) |
 | A Pattern line for every new or changed UI element | `tests/config/pattern-check.test.ts`, `.claude/rules/ui-patterns.md` |
 | The rendered look: computed-style fingerprint of `/ui`, pixel baselines, Impeccable scan | `tests/e2e/` (`visual-regression`, `design-detect`, the `/ui` specs) |
-| Line heights from the size tokens (no `leading-*`, no hand-written line height), the icon size scale, no shadow on a control | `tests/config/design-lock-in.test.ts` |
+| Line heights from the size tokens (no `leading-*`, no `text-<size>/<line height>`, no hand-written line height), weight 600 only in the listed files (key figures, running-text `<strong>`, the picked or current value; a ratchet), the icon size scale, no shadow on a control | `tests/config/design-lock-in.test.ts` |
 | One solid green button per view | `tests/e2e/design-detect.spec.ts` (counted on every scanned surface) |
 | `aria-current="page"` on exactly one control per route | `tests/e2e/app-nav.spec.ts` |
-| The board's display rules: one sheet shape, one heading, one list row, one badge size, the closed radius scale | `tests/config/display-layout.test.ts` |
+| The board's display rules: one sheet shape, one heading (a heading or legend with a text or font class only falls: a ratchet), one list row, one badge size, the closed radius scale | `tests/config/display-layout.test.ts` |
 | One term per concept, both languages, plurals | `docs/copy/terms.json`, `npm run i18n:check`, ESLint `no-raw-text` |
 
 ## App icon

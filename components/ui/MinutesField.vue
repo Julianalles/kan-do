@@ -59,12 +59,6 @@ function onInput(event: Event) {
   border-color: transparent;
 }
 
-@media (prefers-reduced-motion: reduce) {
-  .minutes-field {
-    transition: none;
-  }
-}
-
 .minutes-field::-webkit-inner-spin-button,
 .minutes-field::-webkit-outer-spin-button {
   appearance: none;
