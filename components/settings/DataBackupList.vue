@@ -56,7 +56,7 @@ event, the page owns the single confirmation modal.
     </p>
     <div v-else-if="backupsLoad === 'error'" class="flex flex-wrap items-center gap-x-3 gap-y-1">
       <UAlert color="error" variant="subtle" icon="i-ph-x-circle" class="w-auto" :description="t('settings.data.backups.loadFailed')" />
-      <UButton variant="link" color="neutral" @click="refreshBackups">{{ t('settings.data.backups.reload') }}</UButton>
+      <UButton variant="ghost" color="neutral" @click="refreshBackups">{{ t('settings.data.backups.reload') }}</UButton>
     </div>
     <EmptyNote v-else-if="backups.length === 0" data-testid="data-backups-empty">
       {{ t('settings.data.backups.empty') }}
@@ -102,7 +102,7 @@ event, the page owns the single confirmation modal.
 
     <UButton
       v-if="backups.length > VISIBLE_COUNT"
-      variant="link"
+      variant="ghost"
       color="neutral"
       :aria-expanded="showAll"
       data-testid="data-backups-toggle"

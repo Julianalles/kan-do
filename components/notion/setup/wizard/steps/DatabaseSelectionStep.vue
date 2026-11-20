@@ -29,10 +29,7 @@
       </div>
       
       <!-- Show loading state -->
-      <div v-else-if="loading" class="flex items-center space-x-2 text-toned">
-        <div class="size-4  animate-spin rounded-full border-b-2 border-primary" />
-        <span>{{ t('notion.database.loading') }}</span>
-      </div>
+      <LoadingLine v-else-if="loading">{{ t('notion.database.loading') }}</LoadingLine>
       
       <!-- Show error state -->
       <UAlert v-else-if="error" color="error" variant="subtle" icon="i-ph-warning-circle" :title="error" :description="t('notion.database.errorHint')" />
@@ -103,6 +100,7 @@ import { ref, watch, computed, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import type { NotionDatabaseSummary } from "~/types/notion";
 import { useFeatureFlags } from "~/utils/featureFlags";
+import LoadingLine from '~/components/ui/LoadingLine.vue';
 import SetupChipList from '~/components/setup/SetupChipList.vue';
 
 defineOptions({ name: 'NotionDatabaseSelectionStep' });

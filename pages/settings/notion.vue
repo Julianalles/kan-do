@@ -4,10 +4,7 @@
 @usage Accessed via /settings/notion for users with an existing Notion integration
 @responsibility
 - Provides tabbed navigation (`UTabs` `variant="link"`, the light underline of an in-page view switch, #318, #368) to different configuration sections
-- Desktop (>= 768px): vertical list beside the panel, sticky below the app bar and its veil. Phone (#625): horizontal
-  list above a full-width panel (the vertical list left the panel ~100px); the list scrolls sideways inside itself,
-  keeps the active tab in view and is not sticky (a short row; the phone bar is at the bottom, so there is no offset
-  to stick at). The `orientation` prop follows the breakpoint, so the arrow keys match what is seen
+- One tab form with `/settings/topics` (#603): horizontal underline tabs without icons above a full-width panel, in the 672 px column of every settings sibling (it was a vertical icon list in 992 px). The list scrolls sideways inside itself when the tabs do not fit and keeps the active tab in view
 - Without an integration: one muted sentence and a soft button to the settings (no warning block)
 - Allows direct access to specific settings without wizard flow
 - Manages save/cancel actions per section; the inline database edit pairs a soft "Abbrechen" with a solid "Speichern" (#596)
@@ -40,12 +37,12 @@
       <UTabs
         v-else
         ref="tabsRef"
+        data-testid="notion-settings-tabs"
         v-model="activeTab"
         :items="tabItems"
         variant="link"
-        :orientation="isDesktopWidth ? 'vertical' : 'horizontal'"
         :ui="tabsUi"
-        :class="isDesktopWidth ? 'flex items-start gap-8' : 'gap-0'"
+        class="gap-0"
       >
         <!-- Database Tab -->
         <template #connection>
@@ -75,12 +72,9 @@
                   disabled
                 />
                 <template #help>
-                  <ExternalLink
-                    href="https://www.notion.so/my-integrations"
-                    standalone
-                    class="text-primary hover:underline"
-                  >
+                  <ExternalLink href="https://www.notion.so/my-integrations" standalone class="inline-flex items-center gap-1">
                     {{ t('notion.settings.connection.manageToken') }}
+                    <UIcon :name="ICONS.external" class="size-4" aria-hidden="true" />
                   </ExternalLink>
                 </template>
               </UFormField>
@@ -96,10 +90,9 @@
                     disabled
                   />
                   <UButton
-                    variant="link"
-                    color="primary"
+                    variant="ghost"
+                    color="neutral"
                     icon="i-ph-pencil-simple"
-                    class="px-0"
                     @click="() => { isEditingDatabase = true; }"
                   >
                     {{ t('notion.settings.connection.changeDatabase') }}
@@ -108,10 +101,7 @@
                 
                 <!-- Edit view -->
                 <div v-else class="space-y-2">
-                  <div v-if="isLoadingDatabases" class="flex items-center gap-2 py-2 text-muted">
-                    <UIcon name="i-ph-arrow-clockwise" class="animate-spin" />
-                    <span>{{ t('notion.settings.connection.loadingDatabases') }}</span>
-                  </div>
+                  <LoadingLine v-if="isLoadingDatabases" class="py-2">{{ t('notion.settings.connection.loadingDatabases') }}</LoadingLine>
                   <template v-else>
                     <USelect
                       v-model="localDatabaseId"
@@ -242,9 +232,10 @@
 
 <script setup lang="ts">
 import PageSheet from '~/components/ui/PageSheet.vue'
+import LoadingLine from '~/components/ui/LoadingLine.vue'
+import { ICONS } from '~/lib/icons'
 import { ref, computed, nextTick, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useIsDesktop } from '~/composables/useIsDesktop';
 import { useNotionConfigStore } from '~/store/notionConfig';
 import { useIntegrationHealthStore } from '~/store/integrationHealth';
 import { useErrorHandler } from '~/composables/useErrorHandler';
@@ -275,6 +266,7 @@ defineOptions({ name: 'NotionSettingsPage' });
 definePageMeta({
   layout: false,
   titleKey: 'notion.settings.pageTitle',
+  pageWidth: 'narrow', // one 672 px column on the app bar's axis, like every settings sibling (#673, #603)
 });
 
 const { t } = useI18n();
@@ -284,7 +276,6 @@ const integrationHealth = useIntegrationHealthStore();
 const { handleError } = useErrorHandler();
 const secrets = useSecrets();
 const isDesktop = isTauri();
-const isDesktopWidth = useIsDesktop();
 const featureFlags = useFeatureFlags();
 const propertyOptionsStore = usePropertyOptionsStore();
 
@@ -302,10 +293,10 @@ const tabsRef = ref<{ $el?: HTMLElement } | null>(null);
 const moreTabsRight = ref(false);
 function updateTabsCue() {
   const list = tabsRef.value?.$el?.querySelector<HTMLElement>('[role=tablist]');
-  moreTabsRight.value = !!list && !isDesktopWidth.value && list.scrollLeft + list.clientWidth < list.scrollWidth - 1;
+  moreTabsRight.value = !!list && list.scrollLeft + list.clientWidth < list.scrollWidth - 1;
 }
 let cueList: HTMLElement | null = null;
-watch([isDesktopWidth, tabsRef], async () => {
+watch(tabsRef, async () => {
   cueList?.removeEventListener('scroll', updateTabsCue);
   cueList = null;
   await nextTick();
@@ -316,15 +307,17 @@ watch([isDesktopWidth, tabsRef], async () => {
 onMounted(() => { updateTabsCue(); window.addEventListener('resize', updateTabsCue); });
 onBeforeUnmount(() => { window.removeEventListener('resize', updateTabsCue); cueList?.removeEventListener('scroll', updateTabsCue); });
 
-// Desktop: the vertical list sticks below the bar and veil. Phone: a horizontal row that scrolls inside itself, full width
-const tabsUi = computed(() => isDesktopWidth.value
-  ? { list: 'w-56 shrink-0 sticky sticky-below-page-header', trigger: 'justify-start', content: 'flex-1 min-w-0' }
-  : { list: `w-full overflow-x-auto${moreTabsRight.value ? ' [mask-image:linear-gradient(to_right,black_calc(100%-3rem),transparent)]' : ''}`, trigger: 'shrink-0 whitespace-nowrap', content: 'w-full min-w-0 pt-6' });
+// The row scrolls inside itself when the tabs do not fit (a phone); full width
+const tabsUi = computed(() => ({
+  list: `w-full overflow-x-auto${moreTabsRight.value ? ' [mask-image:linear-gradient(to_right,black_calc(100%-3rem),transparent)]' : ''}`,
+  trigger: 'shrink-0 whitespace-nowrap',
+  content: 'w-full min-w-0 pt-6',
+}));
 
-// Phone: the list scrolls sideways, so keep the chosen tab in view (also after a resize into phone width). Scrolls the
+// The list scrolls sideways, so keep the chosen tab in view. Scrolls the
 // list itself, never the page.
-watch([activeTab, isDesktopWidth], async () => {
-  if (!import.meta.client || isDesktopWidth.value) return;
+watch(activeTab, async () => {
+  if (!import.meta.client) return;
   await nextTick();
   const list = tabsRef.value?.$el?.querySelector<HTMLElement>('[role=tablist]');
   const tab = list?.querySelector<HTMLElement>('[role=tab][data-state=active]');
@@ -336,16 +329,16 @@ watch([activeTab, isDesktopWidth], async () => {
 
 const tabItems = computed(() => {
   const items = [
-    { label: t('notion.settings.tabs.connection'), value: 'connection', icon: 'i-ph-database', slot: 'connection' },
-    { label: t('notion.settings.tabs.properties'), value: 'properties', icon: 'i-ph-sliders-horizontal', slot: 'properties' },
-    { label: t('notion.settings.tabs.custom'), value: 'custom', icon: 'i-ph-plus-square', slot: 'custom' },
+    { label: t('notion.settings.tabs.connection'), value: 'connection', slot: 'connection' },
+    { label: t('notion.settings.tabs.properties'), value: 'properties', slot: 'properties' },
+    { label: t('notion.settings.tabs.custom'), value: 'custom', slot: 'custom' },
   ];
   
   if (hasPriorityProperty.value) {
-    items.push({ label: t('notion.settings.tabs.priority'), value: 'priority', icon: 'i-ph-flag', slot: 'priority' });
+    items.push({ label: t('notion.settings.tabs.priority'), value: 'priority', slot: 'priority' });
   }
   
-  items.push({ label: t('notion.settings.tabs.status'), value: 'status', icon: 'i-ph-check-circle', slot: 'status' });
+  items.push({ label: t('notion.settings.tabs.status'), value: 'status', slot: 'status' });
   
   return items;
 });

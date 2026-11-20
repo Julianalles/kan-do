@@ -868,7 +868,7 @@
       "connection": {
         "description": "Token and target",
         "tokenLabel": "Integration token",
-        "manageToken": "Manage token in Notion →",
+        "manageToken": "Manage token in Notion",
         "databaseLabel": "Database",
         "noDatabase": "No database selected",
         "changeDatabase": "Change database",

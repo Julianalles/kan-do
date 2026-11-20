@@ -495,6 +495,19 @@ export default defineAppConfig({
         ...buttonRoleCompounds
       ]
     },
+    // A link inside a sentence (#603): the look of the `text-link` utility (assets/css/utilities.css, which `ExternalLink`
+    // uses), spelled in classes here because the theme's own `text-muted` and `hover:text-default` have to be merged away
+    // (a custom utility is invisible to tailwind-merge). No call site sets its own colour or underline; the active state
+    // carries no second colour.
+    link: {
+      base: 'rounded-sm underline underline-offset-2 focus-ring',
+      variants: {
+        active: { true: 'text-primary-600', false: 'text-primary-600' }
+      },
+      compoundVariants: [
+        { active: false, disabled: false, class: 'hover:text-primary-700' }
+      ]
+    },
     // One in-page tab look (#557): a track on the canvas, the active tab a flat white chip (a selected tab is a fill,
     // never a shadow: DESIGN.md "States"). Nuxt UI's neutral pill fills the active tab with `bg-inverted`; the second class on the
     // `before:` selector covers a list without an indicator. Unselected text stays `text-muted` from the base slot.
