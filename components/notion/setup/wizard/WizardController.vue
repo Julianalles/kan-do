@@ -289,7 +289,14 @@ const nextStep = async () => {
     } else if (step.value === 'database' && selectedDatabase.value) {
       // Read the schema first: the mapping step then mounts with its fields (and their auto-mapping) in place instead of
       // re-laying once the schema arrives (#667)
-      await fetchDatabaseSchema();
+      // The database list and Zurück stay usable during the read: open mapping only for the pair that was read, and
+      // only while the user is still on the database step (a changed pick reads again)
+      let read: string;
+      do {
+        read = `${selectedDatabase.value}|${selectedDataSource.value}`;
+        await fetchDatabaseSchema();
+        if (step.value !== 'database') return;
+      } while (read !== `${selectedDatabase.value}|${selectedDataSource.value}` && selectedDatabase.value);
       step.value = 'mapping';
     } else if (step.value === 'mapping' && mappingStep.value) {
       // This will be handled by the save event from the mapping step

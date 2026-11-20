@@ -117,6 +117,62 @@ describe('WizardController schema source (#313)', () => {
     expect(schemaKeys(wrapper)).toEqual(['Name', 'Legacy'])
   })
 
+  describe('the awaited schema read (#665)', () => {
+    type Vm = { selectedDatabase: string; selectedDataSource: string; nextStep: () => Promise<void>; back: () => void; step: string }
+    const gate = () => {
+      let release!: () => void
+      const held = new Promise<void>((resolve) => { release = resolve })
+      return { held, release }
+    }
+
+    it('stays off the mapping step when the user went back during the read', async () => {
+      const wrapper = await mountSetup()
+      const vm = wrapper.vm as unknown as Vm
+      vm.selectedDatabase = 'db-1'
+      vm.selectedDataSource = 'ds-a'
+      await flushPromises()
+      vm.step = 'database'
+      const { held, release } = gate()
+      api.getDataSource.mockImplementation(async (id: string) => {
+        await held
+        return { id, properties: sourceASchema }
+      })
+      const next = vm.nextStep()
+      vm.back()
+      release()
+      await next
+      await flushPromises()
+
+      expect(vm.step).not.toBe('mapping')
+    })
+
+    it('reads again when another data source is picked during the read', async () => {
+      const wrapper = await mountSetup()
+      const vm = wrapper.vm as unknown as Vm
+      vm.selectedDatabase = 'db-1'
+      vm.selectedDataSource = 'ds-a'
+      await flushPromises()
+      vm.step = 'database'
+      const { held, release } = gate()
+      let first = true
+      api.getDataSource.mockImplementation(async (id: string) => {
+        if (first) {
+          first = false
+          await held
+        }
+        return { id, properties: id === 'ds-a' ? sourceASchema : sourceBSchema }
+      })
+      const next = vm.nextStep()
+      vm.selectedDataSource = 'ds-b'
+      release()
+      await next
+      await flushPromises()
+
+      expect(vm.step).toBe('mapping')
+      expect(schemaKeys(wrapper)).toEqual(['Name', 'Beta'])
+    })
+  })
+
   describe('settings mode', () => {
     const configure = () => {
       const store = useNotionConfigStore()

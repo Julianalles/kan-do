@@ -148,3 +148,38 @@ describe('PropertyMapper – isMappingValid gate (#358)', () => {
     expect((wrapper.vm as any).isMappingValid).toBe(true)
   })
 })
+
+describe('PropertyMapper – saved mapping units (#665)', () => {
+  const unitSchema: NotionDatabaseSchema = {
+    Title: { id: 't', name: 'Title', type: 'title' },
+    Status: { id: 's', name: 'Status', type: 'select' },
+    Spent: { id: 'sp', name: 'Spent', type: 'number' },
+    Box: { id: 'b', name: 'Box', type: 'number' },
+  }
+  const mountWith = (defaultMapping?: Partial<NotionPropertyMapping>) =>
+    mount(PropertyMapper as any, {
+      global: { stubs: globalStubs as any },
+      props: { databaseSchema: unitSchema, defaultMapping: defaultMapping as any },
+    })
+
+  it('keeps a legacy mapping without units unitless on mount and save', async () => {
+    const wrapper = mountWith({ title: 'Title', status: 'Status', timeSpent: 'Spent', timeBox: 'Box' })
+    await wrapper.vm.$nextTick()
+    ;(wrapper.vm as any).save()
+    const saved = wrapper.emitted('saved')?.[0]?.[0] as NotionPropertyMapping
+    expect(saved.timeSpent).toBe('Spent')
+    expect(saved.timeSpentUnit).toBeUndefined()
+    expect(saved.timeBoxUnit).toBeUndefined()
+  })
+
+  it('keeps the saved units', async () => {
+    const wrapper = mountWith({
+      title: 'Title', status: 'Status', timeSpent: 'Spent', timeSpentUnit: 'seconds', timeBox: 'Box', timeBoxUnit: 'formatted',
+    })
+    await wrapper.vm.$nextTick()
+    ;(wrapper.vm as any).save()
+    const saved = wrapper.emitted('saved')?.[0]?.[0] as NotionPropertyMapping
+    expect(saved.timeSpentUnit).toBe('seconds')
+    expect(saved.timeBoxUnit).toBe('formatted')
+  })
+})

@@ -610,11 +610,17 @@ const handleTimeSpentPropertiesChange = (
 
 watch(timeSpentProperties, handleTimeSpentPropertiesChange, { immediate: true });
 
+const watchRan = { timeSpentUnit: false, timeBoxUnit: false };
+
 // When timeSpent is selected for the first time, auto-detect unit based on field type
 watch(
   () => mapping.value.timeSpent,
   (newVal, oldVal) => {
-    if (newVal && !oldVal && !mapping.value.timeSpentUnit) {
+    // The mount run (#667) only detects for an auto-mapped field: a saved mapping keeps the unit it has, or none
+    // (no unit reads as seconds / formatted downstream)
+    const mountFromSaved = !watchRan.timeSpentUnit && !!props.defaultMapping;
+    watchRan.timeSpentUnit = true;
+    if (newVal && !oldVal && !mapping.value.timeSpentUnit && !mountFromSaved) {
       // Auto-detect unit based on the property type in the schema
       const propertyType = props.databaseSchema?.[newVal]?.type;
       
@@ -638,7 +644,11 @@ watch(
 watch(
   () => mapping.value.timeBox,
   (newVal, oldVal) => {
-    if (newVal && !oldVal && !mapping.value.timeBoxUnit) {
+    // The mount run (#667) only detects for an auto-mapped field: a saved mapping keeps the unit it has, or none
+    // (no unit reads as seconds / formatted downstream)
+    const mountFromSaved = !watchRan.timeBoxUnit && !!props.defaultMapping;
+    watchRan.timeBoxUnit = true;
+    if (newVal && !oldVal && !mapping.value.timeBoxUnit && !mountFromSaved) {
       // Auto-detect unit based on the property type in the schema
       const propertyType = props.databaseSchema?.[newVal]?.type;
       
