@@ -47,13 +47,15 @@ shared TopicEditor: an inline panel under the row at >=768px, a bottom drawer at
                     <DisclosureCaret :open="open === name" />
                   </span>
                   <template #after>
-                    <UCollapsible :open="open === name">
+                    <UCollapsible v-if="isDesktop" :open="open === name">
                       <template #content>
                         <div class="mb-3 ml-9 max-md:ml-0">
                           <TopicEditorHost :key="`${kind}:${name}`" :topic="name" :kind="kind" @close="close" @saved="onSaved" />
                         </div>
                       </template>
                     </UCollapsible>
+                    <!-- below md the editor is a drawer: it is mounted only while open, so no fold keeps it up -->
+                    <TopicEditorHost v-else-if="open === name" :key="`${kind}:${name}`" :topic="name" :kind="kind" @close="close" @saved="onSaved" />
                   </template>
                 </ListRow>
               </ul>
@@ -83,6 +85,7 @@ import EmptyState from '~/components/ui/EmptyState.vue'
 import ListRow from '~/components/ui/ListRow.vue'
 import MiddleEllipsis from '~/components/ui/MiddleEllipsis.vue'
 import TopicEditorHost from '~/components/topic/TopicEditorHost.vue'
+import { useIsDesktop } from '~/composables/useIsDesktop'
 import { useTopicManagement } from '~/composables/useTopicManagement'
 import type { NameKind } from '~/lib/topicNames'
 
@@ -97,6 +100,7 @@ definePageMeta({
 const { t } = useI18n()
 const { topics, activities, countOf, isSourceOwned } = useTopicManagement()
 
+const isDesktop = useIsDesktop()
 const root = ref<HTMLElement | null>(null)
 const kind = ref<NameKind>('topic')
 const open = ref<string | null>(null)
