@@ -22,7 +22,8 @@ test.use({ launchOptions: { ignoreDefaultArgs: ['--hide-scrollbars'] } })
 // The task sheet re-centres the app bar's group in the space left of it (#290, a slide over `--sheet-fade-duration`): that
 // shift is the design, not a scrollbar shift, and whether it has started when the dialog shows is a race. The bar's own
 // box (`.app-nav`, `.titlebar`) stays checked, which is where a scrollbar shift shows.
-const openers: Array<{ name: string, ignore?: string, open: (page: Page) => Promise<void> }> = [
+// Day close (phone only): it hides the topic focus funnel (#608), and on a phone the app bar's group shares its centre with the funnel (#381), so it re-centres when the funnel goes: by design. Desktop keeps the centre and the group stays checked.
+const openers: Array<{ name: string, ignore?: string | ((width: number) => string | undefined), open: (page: Page) => Promise<void> }> = [
   {
     name: 'card context menu',
     open: async (page) => {
@@ -40,6 +41,7 @@ const openers: Array<{ name: string, ignore?: string, open: (page: Page) => Prom
   },
   {
     name: 'day-close stage',
+    ignore: width => (width <= 767 ? '.app-nav-group' : undefined),
     open: async (page) => {
       await openDayClose(page)
       await expect(page.getByRole('region', { name: 'Tag abschließen' })).toBeVisible()
@@ -72,7 +74,7 @@ for (const viewport of [{ name: 'desktop', width: 1280, height: 700 }, { name: '
         await showColumnPage(page, 0) // the board opens on Jetzt while a task sits there (kd#191)
         // The precondition: a classic scrollbar takes width from the page (not on touch layouts, where the board scrolls inside)
                 if (viewport.width > 767) await expect.poll(() => documentScrollbar(page), { message: 'the document has a classic scrollbar' }).toBeGreaterThan(0)
-        await tagElements(page, ignore)
+        await tagElements(page, typeof ignore === 'function' ? ignore(viewport.width) : ignore)
         const before = await boxes(page)
 
         await open(page)

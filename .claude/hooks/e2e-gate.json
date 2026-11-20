@@ -350,7 +350,9 @@
         "assets/css/sheet.css",
         "assets/css/app-nav.css",
         "components/nav/AppNav.vue",
-        "components/board/Board.vue"
+        "components/board/Board.vue",
+        "composables/useBoardFocus.ts",
+        "composables/useDayClose*"
       ],
       "specs": [
         "scrollbar-gutter",
