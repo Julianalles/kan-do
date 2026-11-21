@@ -15,6 +15,7 @@ import { test, expect, type Page } from '@playwright/test'
 import { seedLocalBoard, fillerTasks, SEED_TASKS } from './helpers/seed'
 import { openDayClose } from './helpers/appNav'
 import { showColumnPage } from './helpers/dnd'
+import { settleSheet } from './helpers/settle'
 import { forceClassicScrollbar, tagElements, boxes, moved, documentScrollbar } from './helpers/layoutShift'
 
 test.use({ launchOptions: { ignoreDefaultArgs: ['--hide-scrollbars'] } })
@@ -54,6 +55,9 @@ const openers: Array<{ name: string, ignore?: string | ((width: number) => strin
       await page.locator('.task-wrapper').first().focus()
       await page.keyboard.press('Enter')
       await expect(page.getByRole('dialog')).toBeVisible()
+      // The desktop sheet grows out of its card (#705): a copy of the card's face, which carries the card's probe tags (`cloneNode`),
+      // scales from 288 to 500 px for 340 ms, and `boxes` would read that copy instead of the board card. Measure at rest: the face is gone then.
+      if ((page.viewportSize()?.width ?? 0) > 767) await settleSheet(page)
     },
   },
 ]
