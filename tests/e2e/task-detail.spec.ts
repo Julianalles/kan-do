@@ -2,7 +2,7 @@ import { test, expect, type Locator, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { seedLocalBoard, type SeedTask } from './helpers/seed';
 import { settleAnimations } from './helpers/settle';
-import { openTaskMenu, taskMenu } from './helpers/taskMenu';
+import { openTaskMenu, taskMenu, taskMenuItem } from './helpers/taskMenu';
 
 /**
  * E2E tests for Task Detail view (page and modal)
@@ -660,6 +660,7 @@ test.describe('Task Detail View', () => {
 
     await openSheet(page, baseURL, 'test-task-1');
     await taskMenu(page).click();
+    await expect(taskMenuItem(page, /Löschen/)).toBeVisible();
     await expect(page.getByRole('menuitem', { name: /öffnen/ })).toHaveCount(0);
   });
 
@@ -1135,6 +1136,7 @@ test.describe('task sheet frame and property strip (#705)', () => {
       frameTask('frame-four', 'notion', customs(4, true)),
       frameTask('frame-eleven', 'notion', customs(11, true)),
       frameTask('frame-empty', 'notion', customs(2, false)),
+      frameTask('frame-tags', 'notion', { tags: { key: 'tags', name: 'Stichwörter', propType: 'multi_select', value: { type: 'multi_select', value: Array.from({ length: 14 }, (_, i) => ({ name: `Stichwort Nummer ${i + 1}`, color: 'default' })) } } }),
     ], {}, undefined, { once: true })
   })
 
@@ -1162,6 +1164,20 @@ test.describe('task sheet frame and property strip (#705)', () => {
     await openProperties(page)
     await expect(page.getByTestId('task-properties-popover').getByTestId('task-property-row')).toHaveCount(11)
     await expect(page.getByText(/weitere/)).toHaveCount(0)
+  })
+
+  test('a multi-select with many tags stays inside the strip, says "+n" and the popover has them all', async ({ page }) => {
+    await openSheet(page, '', 'frame-tags')
+    const chips = page.getByTestId('task-property-chips')
+    const box = (await chips.boundingBox())!
+    expect(box.height).toBeLessThanOrEqual(56)
+    for (const badge of await chips.locator('[data-slot="base"], span.truncate').all()) {
+      const b = await badge.boundingBox()
+      if (b && b.y < box.y + box.height) expect(b.x + b.width).toBeLessThanOrEqual(box.x + box.width + 1)
+    }
+    await expect(page.getByTestId('task-properties-more')).toHaveText(/^\+\d+$/)
+    await openProperties(page)
+    await expect(page.getByTestId('task-properties-popover').getByRole("button", { name: /Stichwort Nummer 14/ })).toBeVisible()
   })
 
   test('four short chips fit: no "+n"', async ({ page }) => {

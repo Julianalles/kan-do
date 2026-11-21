@@ -6,7 +6,7 @@ import type { Locator, Page } from '@playwright/test'
  */
 export const taskMenu = (page: Page): Locator => page.getByTestId('task-menu')
 
-export const taskMenuItem = (page: Page, name: string | RegExp): Locator => page.getByRole('menuitem', { name })
+export const taskMenuItem = (page: Page, name: string | RegExp): Locator => page.getByRole('menuitem', { name, exact: typeof name === 'string' })
 
 /** Opens the menu and returns the item with this label, once it shows. */
 export async function openTaskMenu(page: Page, name: string | RegExp): Promise<Locator> {
