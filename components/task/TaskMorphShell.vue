@@ -183,6 +183,8 @@ const settle = () => {
   if (el) {
     const vp = viewport();
     Object.assign(el.style, { height: `${sheetHeight(sheetWidth(vp.width), sheetMaxHeight(vp.height, vp.top))}px`, visibility: 'visible' });
+    // At rest: the frame's height is the same before and after the morph, so the E2E settle helper reads this mark, not the height (#705)
+    el.dataset.settled = 'true';
   }
   if (innerRef.value) Object.assign(innerRef.value.style, { width: '', height: '', flex: '' });
 };
@@ -206,6 +208,7 @@ async function playOpen(mine: number, atRest: boolean) {
   const inner = innerRef.value;
   if (!el || !inner) return;
   animating = true;
+  delete el.dataset.settled;
   const vp = viewport();
   const w = sheetWidth(vp.width);
   const maxH = sheetMaxHeight(vp.height, vp.top);
@@ -256,6 +259,7 @@ async function playClose(mine: number) {
   const inner = innerRef.value;
   if (!el || !inner) return;
   animating = true;
+  delete el.dataset.settled;
   const current = boxOf(el);
   cancelAll();
   const reduced = reducedMotion();

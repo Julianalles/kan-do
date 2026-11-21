@@ -14,8 +14,8 @@
 - Emits `update` as TaskDetailCustomFields does; it writes nothing itself
 -->
 <template>
-  <div v-if="customList.length > 0" class="flex shrink-0 items-start gap-3 ps-6 pe-6 pb-4" data-testid="task-property-strip">
-    <div ref="chipsEl" class="flex max-h-14 min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1.5 overflow-hidden" data-testid="task-property-chips">
+  <div v-if="customList.length > 0" class="-mt-5 flex shrink-0 items-start gap-3 px-6 pb-4" data-testid="task-property-strip">
+    <div ref="chipsEl" class="flex max-h-14 min-w-0 flex-1 flex-wrap items-center gap-x-5 gap-y-1.5 overflow-hidden" data-testid="task-property-chips">
       <span
         v-for="(chip, index) in chips"
         :key="chip.key"
@@ -27,8 +27,9 @@
         <template v-if="chip.tags.length > 0">
           <UBadge v-for="tag in chip.tags" :key="tag" color="neutral" variant="subtle">{{ tag }}</UBadge>
         </template>
-        <span v-else class="truncate text-sm">
-          <span class="text-muted">{{ chip.name }}</span><template v-if="chip.text"> <span class="text-default">{{ chip.text }}</span></template>
+        <span v-else class="flex min-w-0 items-baseline gap-1.5 text-sm">
+          <span class="shrink-0 text-xs text-muted">{{ chip.name }}</span>
+          <span v-if="chip.text" class="truncate text-default">{{ chip.text }}</span>
         </span>
       </span>
     </div>
@@ -79,7 +80,8 @@ const hidden = computed(() => Math.max(0, chips.value.length - firstHidden.value
 const measure = () => {
   const el = chipsEl.value;
   if (!el) return;
-  const tops = Array.from(el.children, (child) => (child as HTMLElement).offsetTop);
+  const origin = el.getBoundingClientRect().top;
+  const tops = Array.from(el.children, (child) => child.getBoundingClientRect().top - origin);
   const limit = el.clientHeight;
   const count = hiddenChipCount(tops, limit);
   firstHidden.value = tops.length - count;
