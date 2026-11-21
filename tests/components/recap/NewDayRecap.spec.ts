@@ -105,12 +105,15 @@ describe('NewDayRecap', () => {
     expect(stage.hasAttribute('data-window-drag-layer')).toBe(true)
   })
 
-  it('shares the day close\'s stage shell: one column with the scroller and the docked footer, the way out soft, the main button without an arrow (#612)', async () => {
+  it('shares the day close\'s stage shell: the title above one sheet that holds the scroller and the footer, the way out soft, the main button without an arrow (#612, #707)', async () => {
     await open([doneAt(1, 'a'), task('o', TaskStatus.Open)])
     const column = q('.recap-stage__column')
-    expect([...column.children].map(el => el.className)).toEqual(['recap-stage__scroll', 'recap-stage__footer'])
-    expect(q('.recap-stage__scroll').contains(q('[data-slot="title"]'))).toBe(true)
-    expect(q('.recap-stage__footer').contains(q('[data-testid="recap-controls"]'))).toBe(true)
+    expect([...column.children].map(el => el.className)).toEqual(['recap-stage__head text-center', 'recap-stage__sheet'])
+    expect(q('.recap-stage__head').contains(q('[data-slot="title"]'))).toBe(true)
+    expect(q('.recap-stage__sheet').contains(q('[data-slot="title"]'))).toBe(false)
+    expect([...q('.recap-stage__sheet').children].map(el => el.className)).toEqual(['recap-stage__scroll', 'recap-stage__footer'])
+    expect(q('.recap-stage__scroll').contains(q('[data-testid="recap-deck-done"]'))).toBe(true)
+    expect(q('.recap-stage__footer').getAttribute('data-testid')).toBe('recap-controls')
     expect(q('[data-testid="recap-controls"]').contains(q('[data-testid="recap-plan"]'))).toBe(true)
     expect(q('[data-testid="recap-controls"] .recap-stage__actions')).toBeTruthy()
     expect(q('[data-testid="recap-continue"]').getAttribute('data-variant')).toBe('soft')
