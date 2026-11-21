@@ -17,7 +17,7 @@
   <component
     :is="control"
     v-bind="controlProps"
-    class="group focus-ring flex min-h-16 w-full items-center gap-4 rounded-md border border-default bg-elevated p-4 text-left not-data-[state=checked]:not-data-disabled:hover:border-accented data-[state=checked]:border-primary data-[state=checked]:bg-primary/10"
+    class="group focus-ring flex min-h-16 w-full items-center gap-4 rounded-md border border-default bg-elevated px-4 py-2 text-left not-data-[state=checked]:not-data-disabled:hover:border-accented data-[state=checked]:border-primary data-[state=checked]:bg-primary/10"
   >
     <span
       v-if="isCheckbox"

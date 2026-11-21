@@ -14,6 +14,7 @@
 - Provides header with status information
 - Enables task addition for the Open column (#248): the header's round add button asks the add slot, the draft host at the start of the list, to open; the draft card enters at the top (#125). Cancel returns focus to the header button
 - Handles visual states for different statuses and empty states
+- `top` slot (Offen on "Alle", #573 case 2): a zero-height sticky host under the app bar for the capacity echo of a line above the window
 - Offen on Heute, empty while tasks of today's group "Zuletzt geplant und nicht erledigt" wait under "Alle" (#356): one muted sentence with a link to "Alle"; every other empty column stays blank
 - Erledigt drop target (#124): a light green wash under the list and a one-line hint while a card
   from another column hovers it
@@ -22,14 +23,16 @@
   <div
     :id="columnId"
     ref="columnEl"
-    class="column relative flex flex-col"
+    class="column group/column relative flex flex-col"
     :class="columnClasses"
     :data-status="statusAttr"
-    @mouseenter="handleMouseEnter"
-    @mouseleave="handleMouseLeave"
   >
     <!-- The topic focus bar on the phone (#608): the first item of the page, scrolls away with the list -->
     <slot name="head" />
+    <!-- Offen on "Alle": the capacity echo for a line above the window (#573 case 2); a zero-height sticky host, so it takes no room -->
+    <div v-if="$slots.top" class="column-top-dock">
+      <slot name="top" />
+    </div>
     <board-column-header
       ref="headerRef"
       :title="computedHeadline"
@@ -48,7 +51,8 @@
     <div class="relative flex h-10 items-center justify-center">
       <column-sorting-control
         v-if="!isProgressColumn && tasks.length >= 2"
-        :visible="(isHovering || isSortingOpen) && !props.isDragging"
+        :open="isSortingOpen"
+        :suppressed="props.isDragging"
         :status="taskStatus"
         :sorting="columnSorting"
         @change="handleSortingChange"
@@ -194,7 +198,6 @@ const { dragState } = useBoardDragState();
 const { basePath, isAll, place } = useBoardPlace();
 const allLocation = boardPlaceLocation('all');
 
-const isHovering = ref(false);
 const isSortingOpen = ref(false);
 
 const props = defineProps({
@@ -492,15 +495,6 @@ const showAddButton = computed(() => showAddSlot.value && featureFlags.openColum
 
 const headerRef = ref<{ addButtonEl: () => HTMLElement | null } | null>(null);
 const addSlotRef = ref<{ open: () => void; isDrafting: boolean } | null>(null);
-
-// Mouse event handlers
-const handleMouseEnter = () => {
-  isHovering.value = true;
-};
-
-const handleMouseLeave = () => {
-  isHovering.value = false;
-};
 
 // Hover/focus handlers kept as no-ops for template compatibility
 const handlePointerMove = () => {};
