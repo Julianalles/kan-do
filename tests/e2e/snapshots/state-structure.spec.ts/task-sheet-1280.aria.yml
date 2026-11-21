@@ -2,6 +2,7 @@
   - heading "Konzept ausarbeiten" [level=2]
   - button "Schließen"
   - 'button "Titel: Konzept ausarbeiten"'
+  - button "Aufgabenmenü"
   - text: Status
   - 'button "Status: Offen"'
   - text: Priorität
@@ -20,4 +21,3 @@
     - paragraph: Entwurf bis Ende der Woche fertigstellen.
   - heading "Metadaten" [level=3]:
     - button "Metadaten"
-  - button "Löschen"

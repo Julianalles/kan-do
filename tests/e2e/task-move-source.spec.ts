@@ -1,6 +1,7 @@
 import { test, expect, type Page, type Locator } from '@playwright/test'
 import { elapse, elapseWindow, installClock, settleRequests } from './helpers/clock'
 import { seedMixedBoard, MIXED_SEED_TASKS } from './helpers/seed'
+import { openTaskMenu } from './helpers/taskMenu'
 
 /**
  * Move a task between sources (#322, epic #264). The Notion stub keeps page state per session token, so
@@ -170,14 +171,14 @@ test.describe('Move a task between sources (#322)', () => {
     await page.goto(`${baseURL}/tasks/local-open-1`)
     await expect(page.getByRole('dialog')).toBeVisible()
 
-    await page.getByTestId('task-move-source').click()
+    await (await openTaskMenu(page, 'Verschieben nach …')).click()
     await page.getByRole('menuitem', { name: /^Notion/ }).click()
 
     await expect(toastText(page, 'Nach Notion verschoben')).toBeVisible()
     await elapseWindow(page)
     await expect.poll(() => creates.length).toBe(1)
     await expect.poll(async () => (await storedTask(page, 'local-open-1'))?.source).toBe('notion')
-    await page.getByTestId('task-move-source').click()
+    await (await openTaskMenu(page, 'Verschieben nach …')).click()
     await expect(page.getByRole('menuitem', { name: /^Lokal/ })).toBeVisible()
     await expect(page.getByRole('menuitem', { name: /^Notion/ })).toHaveCount(0)
   })

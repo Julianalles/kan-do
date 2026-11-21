@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { elapse, elapseWindow, installClock, settleRequests } from './helpers/clock'
 import { seedLocalBoard, seedNotionBoard, SEED_TASKS, type SeedCarryOver, type SeedTask } from './helpers/seed'
+import { openTaskMenu } from './helpers/taskMenu'
 
 /** Local date key, same format as utils/carryOver.ts (the browser runs on this machine). */
 const dayKey = (offsetDays = 0) => {
@@ -121,8 +122,7 @@ test.describe('Carried-over cue (#99), Notion stub: deferred upstream delete', (
     })
 
     await page.goto(`${baseURL}/tasks/page-1`)
-    const del = page.getByTestId('task-delete')
-    await expect(del).toHaveText('Löschen, auch in Notion')
+    const del = await openTaskMenu(page, 'Löschen, auch in Notion')
     await del.click()
 
     await expect(deleteGap(page)).toContainText('Im Papierkorb')

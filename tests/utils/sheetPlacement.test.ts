@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isUsableOrigin, keepInside, placeSheet, SHEET_MARGIN, SHEET_MAX_WIDTH, sheetMaxHeight, sheetWidth } from '~/utils/sheetPlacement'
+import { isUsableOrigin, keepInside, placeSheet, SHEET_MARGIN, SHEET_MAX_WIDTH, sheetHeight, sheetMaxHeight, sheetWidth } from '~/utils/sheetPlacement'
 
 const viewport = { width: 1280, height: 800 }
 const card = { x: 500, y: 300, w: 288, h: 132 }
@@ -16,6 +16,14 @@ describe('sheetPlacement', () => {
   it('is at most the window height minus the margins', () => {
     expect(sheetMaxHeight(800)).toBe(768)
     expect(sheetMaxHeight(10)).toBe(0)
+  })
+
+  it('has one frame height that follows the width, or the window when that is shorter (#705)', () => {
+    expect(sheetHeight(720, 728)).toBe(612)
+    expect(sheetHeight(720, 1000)).toBe(612)
+    expect(sheetHeight(720, 300)).toBe(300)
+    expect(sheetHeight(568, 728)).toBe(483)
+    expect(sheetHeight(0, 0)).toBe(0)
   })
 
   it('centres the sheet on the card', () => {

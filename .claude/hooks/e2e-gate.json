@@ -852,7 +852,8 @@
         "utils/taskStatusMappings.ts",
         "composables/usePlatformShortcut.ts",
         "utils/renderMarkdown.ts",
-        "utils/sheetPlacement.ts"
+        "utils/sheetPlacement.ts",
+        "utils/chipOverflow.ts"
       ],
       "specs": [
         "card-menu-button",

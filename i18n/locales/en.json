@@ -306,7 +306,9 @@
       "metadata": "Metadata",
       "sourceLocal": "Local",
       "created": "Created: {date}",
-      "openIn": "Open in {source}"
+      "openIn": "Open in {source}",
+      "menuLabel": "Task menu",
+      "propertiesMore": "+{n}"
     },
     "timeStats": {
       "remaining": "{time} left"
