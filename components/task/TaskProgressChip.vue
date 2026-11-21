@@ -214,8 +214,7 @@ watch(() => props.isNow, (now) => {
 </script>
 
 <style scoped>
-/* Component tokens (DESIGN.md, Progress chip). The width spring is a linear() easing with ~5 % overshoot that
-   settles; only the width springs, height, text size and radius ease out without bounce. */
+/* Component tokens (DESIGN.md, Progress chip). The width spring is a linear() easing with ~5 % overshoot that settles; only the width springs, height, text size and radius ease out without bounce. */
 .chip-slot {
   --chip-h: 1.375rem;
   --chip-h-now: 1.875rem;
@@ -237,7 +236,6 @@ watch(() => props.isNow, (now) => {
   pointer-events: none;
 }
 .chip-slot--now { z-index: 5; }
-
 /* Reserves the collapsed width in the footer so the row keeps its width rule (the dots clip first) */
 .chip__sizer {
   display: inline-flex;
@@ -318,8 +316,7 @@ watch(() => props.isNow, (now) => {
 }
 .chip-slot--armed .chip__fill { transition: width var(--chip-fill-duration) var(--chip-ease), background-color var(--duration-slow) var(--ease-standard); }
 .chip--boxless .chip__fill { width: 0; }
-/* The timer bar never shrinks below the icon and its padding (#450 design review): the clock always sits on the fill, the
-   fill stays a pill instead of a sliver, and the step into the overrun is a step from a pill, not from nothing */
+/* The timer bar never shrinks below the icon and its padding (#450 design review): the clock always sits on the fill, the fill stays a pill, and the overrun step starts from a pill */
 .chip--now:not(.chip--boxless) .chip__fill { min-width: min(calc(2.5rem + var(--source-w, 0px)), 100%); }
 .chip-slot--armed .chip--now .chip__fill { transition-delay: 0ms, var(--chip-settle-delay); }
 
@@ -348,7 +345,6 @@ watch(() => props.isNow, (now) => {
 .chip__box { margin-left: auto; }
 .chip--now .chip__box { color: var(--ui-text-toned); }
 .chip--boxless.chip--now .chip__box { color: var(--ui-text-highlighted); margin-left: 0; }
-
 /* A chip that appears (no timebox: entering Jetzt or first time spent) pops in; leaving it pops back out */
 .chip-pop-enter-active { animation: chip-pop var(--duration-slow) var(--chip-ease) var(--chip-settle-delay) both; }
 .chip-pop-leave-active { animation: chip-pop var(--duration-base) var(--ease-standard) reverse both; }
