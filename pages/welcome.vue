@@ -43,7 +43,7 @@
     <!-- Brand block and sheet share one column: it owns the width (wider in the Notion flow), so the brand follows the
          sheet's left edge. The brand sits on the photo's bright wall, not on a plate (#437). -->
     <div
-      class="welcome-column relative w-full transition-[max-width] duration-(--duration-slow) ease-(--ease-emphasized) motion-reduce:transition-none"
+      class="welcome-column relative mt-24 w-full transition-[max-width] duration-(--duration-slow) ease-(--ease-emphasized) motion-reduce:transition-none sm:mt-0"
       :class="flow === 'notion' || flow === 'reminders' ? 'sm:max-w-3xl' : 'sm:max-w-lg'"
     >
       <header class="mb-4 px-6 sm:mb-5 sm:px-8">
@@ -279,10 +279,11 @@ const handleNotionSetupComplete = async () => {
 @media (--sm) {
   /* The brand stays where it is while the steps swap (UX decision #437): the column hangs from a fixed line above the
      page's middle instead of being centred, so a taller step grows downward and the brand never moves. The line sits
-     21rem above the middle (#690): the first-run step's main button stays in view at 1280 x 800, and the tallest
-     Notion step (the database step) still fits a 800px-high window. */
+     18rem above the middle on tall windows (the start screen, about 26rem high, lands at the optical centre) and
+     moves up by up to 3rem as the window drops under 56rem (#690): the first-run step's main button stays in view at
+     1280 x 800, and the tallest Notion step (the database step) still fits a 800px-high window. */
   .welcome-column {
-    margin-block-start: max(var(--welcome-column-floor, 0px), calc(50dvh - 21rem));
+    margin-block-start: max(var(--welcome-column-floor, 0px), calc(50dvh - 18rem - min(3rem, max(0px, 56rem - 100dvh))));
   }
   /* Floor under the hang line on short windows: the column starts 24px (main padding) below the page top, and the
      brand must clear the desktop bar row (3.5rem: drag strip and traffic lights) and, when shown, the data-storage
