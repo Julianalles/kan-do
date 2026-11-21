@@ -13,8 +13,7 @@
   <div
     data-testid="column-sorting-control"
     class="relative z-10 transition-opacity duration-(--duration-base)"
-    :class="shown ? 'opacity-100' : 'pointer-events-none opacity-0 focus-within:pointer-events-auto focus-within:opacity-100'
-      + (suppressed || open ? '' : ' in-[.column:hover]:pointer-events-auto in-[.column:hover]:opacity-100')"
+    :class="revealClass"
   >
     <UDropdownMenu
       :items="items"
@@ -72,7 +71,12 @@ interface SortOption {
   hint?: string;
 }
 
-const shown = computed(() => props.open);
+// An open menu keeps the control shown, except while a card is dragged; otherwise the column's hover reveals it (plain :hover, so a tap on the phone does too)
+const revealClass = computed(() => {
+  if (props.open && !props.suppressed) return 'opacity-100';
+  const rest = 'pointer-events-none opacity-0 focus-within:pointer-events-auto focus-within:opacity-100';
+  return props.suppressed ? rest : `${rest} in-[.column:hover]:pointer-events-auto in-[.column:hover]:opacity-100`;
+});
 
 const currentSort = computed(() => props.sorting || { field: 'manual', direction: 'asc' });
 
