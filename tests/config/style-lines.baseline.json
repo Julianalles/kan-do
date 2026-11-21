@@ -48,7 +48,7 @@
     "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
   },
   "components/board/BoardNotPlannedGroup.vue": {
-    "count": 62,
+    "count": 61,
     "reason": "keep: board and card geometry, motion and states, justified as a whole (the plan's session 4); it may only shrink"
   },
   "components/board/BoardNotPlannedItem.vue": {

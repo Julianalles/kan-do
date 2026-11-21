@@ -798,6 +798,7 @@
         "composables/useHeldWhileDragging*",
         "composables/useEdgeIndicatorTop*",
         "composables/usePlanMoves.ts",
+        "composables/usePlanAll.ts",
         "utils/planDrop.ts",
         "lib/boardPlace.ts",
         "plugins/board-place.client.ts",

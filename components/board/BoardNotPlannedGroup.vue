@@ -107,9 +107,7 @@ const isPhone = useIsPhone()
   background: var(--fill-on-canvas);
 }
 
-.nps-group--panel + .nps-group--panel {
-  margin-top: 1.5rem;
-}
+.nps-group--panel + .nps-group--panel { margin-top: 1.5rem; }
 
 @media (--desktop) {
   .nps-group {
@@ -130,7 +128,7 @@ const isPhone = useIsPhone()
   /* The label starts on the cards' left edge; the button sits below the row, the full width of the cards */
   .nps-group__head {
     flex-wrap: wrap;
-    padding: 0.75rem max(0.75rem, calc((100% - var(--task-card-max-width)) / 2)) 0.625rem;
+    padding: 0.75rem max(0.75rem, calc((100% - var(--task-card-max-width)) / 2)) 0.5rem;
   }
 
   .nps-group__action {
