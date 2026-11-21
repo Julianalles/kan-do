@@ -1,6 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { seedRemindersBoard, SEED_TASKS, dayKeyDaysAhead } from './helpers/seed'
 import { persistedStores, setRemindersStatus, setReminderCompleted, stubState, type TauriStubState } from './helpers/tauriStub'
+import { taskMenu } from './helpers/taskMenu'
 
 /**
  * Apple Reminders as a task source (#551, epic #481 slice 2). The connect UI is slice 3, so the seed connects the source
@@ -154,8 +155,8 @@ test.describe('Apple Reminders source (#551)', () => {
     await expect(page.getByRole('button', { name: /^Aktivität/ })).toHaveCount(0)
     await expect(page.getByTestId('task-notes').getByText('Hafermilch')).toBeVisible()
     await expect(page.getByTestId('task-notes').getByRole('button')).toHaveCount(0)
-    await expect(page.getByTestId('task-delete')).toHaveCount(0)
-    await expect(page.getByTestId('task-move-source')).toHaveCount(0)
+    // No link to open, nowhere to move, nothing to delete: the task menu has no item left, so no button
+    await expect(taskMenu(page)).toHaveCount(0)
 
     await page.goto('/tasks/add')
     await expect(page.getByTestId('add-target-switch')).toHaveCount(0)

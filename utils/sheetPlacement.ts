@@ -17,10 +17,10 @@ export const SHEET_MAX_WIDTH = 720;
  * and `--ease-standard` (things that leave) of main.css: the Web Animations API does not resolve a custom property in an easing.
  */
 export const SHEET_MOTION = {
-  /** The grow out of the card: the panel box, the radius and the card face's hold. */
-  openMs: 280,
-  /** The fold back into the card. */
-  closeMs: 200,
+  /** The grow out of the card (#705): one phase for the panel box, the radius, the scaling card face and the content fading in. */
+  openMs: 340,
+  /** The fold back into the card: the same phase reversed, a little shorter. */
+  closeMs: 260,
   /** No origin card: the centred scale-in. */
   centredInMs: 160,
   /** No origin card: the short fade out. */
@@ -54,6 +54,16 @@ const clamp = (value: number, low: number, high: number): number => Math.max(low
 
 /** The sheet's width in a window of this width: 720 px, or the window minus the margins. */
 export const sheetWidth = (viewportWidth: number): number => Math.max(0, Math.min(SHEET_MAX_WIDTH, viewportWidth - 2 * SHEET_MARGIN));
+
+/** The sheet's frame height as a share of its width (#705): 612 px at 720, whatever the task holds. */
+export const SHEET_FRAME_RATIO = 0.85;
+
+/**
+ * The fixed frame of the desktop task sheet (#705): its height follows the width and the window, never the content, so the
+ * sheet keeps one shape for a task with no extra properties and for one with eleven. A window too short for it gives the
+ * sheet `maxHeight`; the columns scroll inside.
+ */
+export const sheetHeight = (width: number, maxHeight: number): number => Math.max(0, Math.min(Math.round(width * SHEET_FRAME_RATIO), maxHeight));
 
 /** The tallest the sheet may be in a window of this height with this top inset (default: the margin); above that its columns scroll. */
 export const sheetMaxHeight = (viewportHeight: number, top: number = SHEET_MARGIN): number => Math.max(0, viewportHeight - Math.max(SHEET_MARGIN, top) - SHEET_MARGIN);

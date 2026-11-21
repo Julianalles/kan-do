@@ -175,6 +175,41 @@ export function formatDateRange(value: { start: string; end?: string } | null): 
   return end ? `${start} – ${end}` : start;
 }
 
+/** One chip of the task sheet's property strip (#705): a multi-select's tags show as badges, every other value as "name value". */
+export type CustomChip = { key: string; name: string; tags: string[]; text: string };
+
+/**
+ * The strip's chips: only entries that hold a value (an empty one is reached through the "Eigenschaften" popover, where it keeps its row).
+ * A checkbox is a chip only while it is checked, and shows its name alone; a number and a date read in the active locale.
+ */
+export function customChips(entries: CustomDisplayEntry[]): CustomChip[] {
+  const chips: CustomChip[] = [];
+  for (const entry of entries) {
+    const base = { key: entry.key, name: entry.name };
+    const value = entry.value;
+    switch (value.type) {
+      case 'multi_select':
+        if (value.value?.length) chips.push({ ...base, tags: value.value.map((tag) => tag.name), text: '' });
+        break;
+      case 'checkbox':
+        if (value.value) chips.push({ ...base, tags: [], text: '' });
+        break;
+      case 'number':
+        if (value.value !== null && value.value !== undefined) chips.push({ ...base, tags: [], text: formatTaskNumber(value.value) });
+        break;
+      case 'select':
+        if (value.value?.name) chips.push({ ...base, tags: [], text: value.value.name });
+        break;
+      case 'date':
+        if (value.value?.start) chips.push({ ...base, tags: [], text: formatDateRange(value.value) });
+        break;
+      default:
+        if (value.value) chips.push({ ...base, tags: [], text: value.value });
+    }
+  }
+  return chips;
+}
+
 /**
  * Composable for task detail views
  * @param taskIdRef - Reactive reference to task ID (string or null)
