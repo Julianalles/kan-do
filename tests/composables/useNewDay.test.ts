@@ -1295,4 +1295,87 @@ describe('useNewDay: the day check and the fresh start (#387)', () => {
       expect(stored('nj')).toBe(1200)
     })
   })
+
+  describe('the one-time note on "Alle" after "Tag neu planen" (#711)', () => {
+    it('is not shown before the user chose "Tag neu planen": the day check, a skipped day and a reload arm nothing', () => {
+      const { newDay } = setup()
+      expect(newDay.planNoteShown.value).toBe(false)
+      newDay.check()
+      expect(newDay.planNoteShown.value).toBe(false)
+      newDay.closeNotice()
+      expect(newDay.planNoteShown.value).toBe(false)
+    })
+
+    it('a board with nothing unfinished is started by the day check: no fresh start, so no note; the recap\'s explicit arm still shows it', () => {
+      const { recap, newDay } = setup({ tasks: [task('d', TaskStatus.Done, { completedAt: at(21, 15) })] })
+      newDay.check()
+      expect(newDay.freshStart()).toEqual([])
+      expect(newDay.planNoteShown.value).toBe(false)
+      newDay.armPlanNote()
+      expect(newDay.planNoteShown.value).toBe(true)
+      newDay.answerPlanNote()
+      expect(recap.validPlanNoteSeen).toBe(true)
+    })
+
+    it('arms through the fresh start, is answered once and never comes back, also after a reload', () => {
+      const { recap, newDay } = setup()
+      expect(startFresh(newDay)).toHaveLength(4)
+      expect(newDay.planNoteShown.value).toBe(true)
+      newDay.answerPlanNote()
+      expect(newDay.planNoteShown.value).toBe(false)
+      expect(recap.planNoteSeen).toBe(true)
+      // a later day's fresh start: still answered
+      resetNewDay()
+      vi.setSystemTime(at(23, 9))
+      useTasksStore().planTask('o1')
+      expect(startFresh(newDay)).toEqual(['o1'])
+      expect(newDay.planNoteShown.value).toBe(false)
+    })
+
+    it('a reload before it was answered shows nothing and stores nothing: the arrival is runtime only', () => {
+      const { recap, newDay } = setup()
+      startFresh(newDay)
+      expect(newDay.planNoteShown.value).toBe(true)
+      resetNewDay()
+      expect(newDay.planNoteShown.value).toBe(false)
+      expect(recap.planNoteSeen).toBe(false)
+    })
+
+    it('a refused start arms nothing: not due, the data status blocks writes, the day close is open', () => {
+      const { recap, newDay } = setup()
+      Object.assign(dataState, emptyDataStatus(), { available: true, status: 'conflict' })
+      expect(newDay.freshStart()).toEqual([])
+      expect(newDay.planNoteShown.value).toBe(false)
+      Object.assign(dataState, emptyDataStatus(), { available: false })
+      useDayClose().open()
+      expect(newDay.freshStart()).toEqual([])
+      expect(newDay.planNoteShown.value).toBe(false)
+      useDayClose().close()
+      startFresh(newDay)
+      newDay.answerPlanNote()
+      // a second click the same day does not arm it again, answered or not
+      expect(newDay.freshStart()).toEqual([])
+      expect(newDay.planNoteShown.value).toBe(false)
+      expect(recap.planNoteSeen).toBe(true)
+    })
+
+    it('answered while the data status blocks writes: gone for this window, nothing stored', () => {
+      const { recap, newDay } = setup()
+      startFresh(newDay)
+      Object.assign(dataState, emptyDataStatus(), { available: true, status: 'conflict' })
+      newDay.answerPlanNote()
+      expect(newDay.planNoteShown.value).toBe(false)
+      expect(recap.planNoteSeen).toBe(false)
+    })
+
+    it('changes no task and writes to no connection', () => {
+      const { tasks, newDay } = setup()
+      startFresh(newDay)
+      const before = JSON.stringify(tasks.tasks)
+      newDay.answerPlanNote()
+      expect(JSON.stringify(tasks.tasks)).toBe(before)
+      expect(notion.updateTask).not.toHaveBeenCalled()
+      expect(notion.createTask).not.toHaveBeenCalled()
+    })
+  })
 })

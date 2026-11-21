@@ -1041,7 +1041,10 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await expect(page.getByTestId('nps-group-count').first()).toHaveText('3')
     await side(page).locator('[data-not-planned-id="nd-open-2"]').getByTestId('not-planned-pick').click()
     await expect(page.getByTestId('nps-group-count').first()).toHaveText('2')
-    // the first card of the panel sits level with the first card of Offen (the label row is the 40 px row of every column; review of #702)
+    // the first card of the panel sits level with the first card of Offen (the label row is the 40 px row of every column; review of #702);
+    // while the one-time note (#711) stands above the panel the cards are lower, so it is closed first
+    await page.getByTestId('plan-note-close').click()
+    await expect(page.getByTestId('plan-note')).toHaveCount(0)
     await expect.poll(async () => {
       const [panelCard, openCard] = [await page.getByTestId('not-planned-panel-planned').locator('.not-planned__card').first().boundingBox(), await page.locator('#column-open .task-wrapper').first().boundingBox()]
       return Math.abs(panelCard!.y - openCard!.y)
@@ -1495,6 +1498,166 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await page.keyboard.press('Enter')
     await expect.poll(() => openIds(page)).toEqual(['nd-open-1', 'nd-waiting-1'])
     await expect(pick('nd-held-1')).toBeFocused()
+  })
+
+  /**
+   * #711: the one-time note at the top of "Alle Aufgaben" after "Tag neu planen": what the step is for and when to go to "Heute".
+   * Seen when closed or when the user goes on to "Heute"; a persisted flag, so it never returns.
+   */
+  test.describe('the one-time note on "Alle" (#711)', () => {
+    const planNote = (page: Page) => page.getByTestId('plan-note')
+    const storedSeen = (page: Page) =>
+      page.evaluate(() => (JSON.parse(localStorage.getItem('day-recap-store') ?? '{}') as { planNoteSeen?: unknown }).planNoteSeen === true)
+    const seedSeen = (context: Parameters<typeof seedNewDayBoard>[0]) => context.addInitScript(() => {
+      const raw = localStorage.getItem('day-recap-store')
+      if (raw && !sessionStorage.getItem('e2e-seen-seeded')) {
+        sessionStorage.setItem('e2e-seen-seeded', '1')
+        localStorage.setItem('day-recap-store', JSON.stringify({ ...JSON.parse(raw), planNoteSeen: true }))
+      }
+    })
+
+    test('through the recap\'s "Tag neu planen": the note shows above the panels with its copy; "Schließen" ends it for good, also after a reload; no continue button', async ({ page, context }) => {
+      await seedNewDayBoard(context, { tasks: newDayBackTasks() })
+      await page.goto('/tasks')
+      await planButton(page).click()
+      await expect(page).toHaveURL(/\/all$/)
+      await settled(page)
+      await expect(planNote(page)).toBeVisible()
+      await expect(planNote(page)).toHaveAttribute('role', 'status')
+      await expect(planNote(page)).toContainText('Wähle aus, was heute dran ist')
+      await expect(planNote(page)).toContainText('Plane hier die Aufgaben für heute ein. Wechsle zu „Heute“, sobald du loslegen willst.')
+      await expect(planNote(page).getByTestId('plan-note-close')).toHaveText('Schließen')
+      await expect(page.getByTestId('app-nav-continue')).toHaveCount(0)
+      // it stands above the panels, inside the column
+      const [noteBox, panelBox] = [await planNote(page).boundingBox(), await page.getByTestId('not-planned-panel-planned').boundingBox()]
+      expect(noteBox!.y + noteBox!.height).toBeLessThanOrEqual(panelBox!.y + 1)
+      // nothing was written yet: closing it is the answer
+      expect(await storedSeen(page)).toBe(false)
+
+      await page.getByTestId('plan-note-close').click()
+      await expect(planNote(page)).toHaveCount(0)
+      await expect.poll(() => page.evaluate(() => document.activeElement !== null && document.activeElement !== document.body)).toBe(true)
+      await expect.poll(() => storedSeen(page)).toBe(true)
+      // the panels and the board are as they were: the note moved no task
+      await expect.poll(() => groupIds(page, 'panel')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1', 'nd-waiting-1'])
+      await page.reload()
+      await expect(board(page)).toBeVisible()
+      await goToPlace(page, 'Heute')
+      await goToPlace(page, 'Alle')
+      await expect(planNote(page)).toHaveCount(0)
+    })
+
+    test('through the notice\'s "Tag neu planen": the note shows; going on to "Heute" is the answer, it does not come back on "Alle" or after a reload', async ({ page, context }) => {
+      await seedNewDayBoard(context, { tasks: boardOnly() })
+      await page.goto('/tasks')
+      await startButton(page).click()
+      await expect(page).toHaveURL(/\/all$/)
+      await expect(planNote(page)).toBeVisible()
+      // a task sheet under /all/:id is not a way to "Heute": the note stays
+      await page.getByTestId('not-planned-list-others').locator('[data-not-planned-id]').first().locator('.not-planned__card').click()
+      await expect(page).toHaveURL(/\/all\/[^/]+$/)
+      await page.keyboard.press('Escape')
+      await expect(page).toHaveURL(/\/all$/)
+      await expect(planNote(page)).toBeVisible()
+      expect(await storedSeen(page)).toBe(false)
+
+      await goToPlace(page, 'Heute')
+      await expect.poll(() => storedSeen(page)).toBe(true)
+      await goToPlace(page, 'Alle')
+      await expect(planNote(page)).toHaveCount(0)
+      await page.reload()
+      await expect(board(page)).toBeVisible()
+      await expect(planNote(page)).toHaveCount(0)
+      await goToPlace(page, 'Heute')
+      await goToPlace(page, 'Alle')
+      await expect(planNote(page)).toHaveCount(0)
+    })
+
+    test('leaving "Alle" for Statistik is not an answer: the note is there again on the way back; going on to "Heute" is', async ({ page, context }) => {
+      await seedNewDayBoard(context, { tasks: newDayBackTasks() })
+      await page.goto('/tasks')
+      await planButton(page).click()
+      await expect(page).toHaveURL(/\/all$/)
+      await settled(page)
+      await expect(planNote(page)).toBeVisible()
+
+      await goToPlace(page, 'Statistik')
+      await expect(page).toHaveURL(/\/statistics/)
+      expect(await storedSeen(page)).toBe(false)
+      await goToPlace(page, 'Alle')
+      await expect(planNote(page)).toBeVisible()
+      expect(await storedSeen(page)).toBe(false)
+
+      await goToPlace(page, 'Heute')
+      await expect.poll(() => storedSeen(page)).toBe(true)
+      await goToPlace(page, 'Alle')
+      await expect(planNote(page)).toHaveCount(0)
+    })
+
+    test('"Alle" opened any other way shows none: the pill, a deep link, and "Überspringen und Board anzeigen"', async ({ page, context }) => {
+      await seedNewDayBoard(context, { tasks: newDayBackTasks() })
+      await page.goto('/tasks')
+      await continueButton(page).click()
+      await settled(page)
+      await expect(planNote(page)).toHaveCount(0)
+      await goToPlace(page, 'Alle')
+      await expect(planNote(page)).toHaveCount(0)
+      await goToPlace(page, 'Heute')
+      await page.goto('/all')
+      await expect(page.getByTestId('not-planned')).toBeVisible()
+      await expect(planNote(page)).toHaveCount(0)
+      expect(await storedSeen(page)).toBe(false)
+    })
+
+    test('a reload between the choice and the answer shows nothing and stores nothing: it belongs to the step the user is in', async ({ page, context }) => {
+      await seedNewDayBoard(context, { tasks: boardOnly() })
+      await page.goto('/tasks')
+      await startButton(page).click()
+      await expect(planNote(page)).toBeVisible()
+      await page.reload()
+      await expect(page.getByTestId('not-planned')).toBeVisible()
+      await expect(planNote(page)).toHaveCount(0)
+      expect(await storedSeen(page)).toBe(false)
+    })
+
+    test('a user who has seen it once gets none on a later day\'s "Tag neu planen"', async ({ page, context }) => {
+      await seedNewDayBoard(context, { tasks: boardOnly() })
+      await seedSeen(context)
+      await page.goto('/tasks')
+      await startButton(page).click()
+      await expect(page).toHaveURL(/\/all$/)
+      await expect(page.getByTestId('not-planned-group-others')).toBeVisible()
+      await expect(planNote(page)).toHaveCount(0)
+    })
+
+    test('data stored before the flag existed loads and shows the note (no stored flag, nothing written at load)', async ({ page, context }) => {
+      await seedNewDayBoard(context, { tasks: boardOnly() })
+      await page.goto('/tasks')
+      expect(await page.evaluate(() => JSON.parse(localStorage.getItem('day-recap-store') ?? '{}'))).not.toHaveProperty('planNoteSeen')
+      await startButton(page).click()
+      await expect(planNote(page)).toBeVisible()
+    })
+
+    test('at 390 px the note stands above the panels, the button below the text, and it is gone after "Schließen"', async ({ page, context }) => {
+      await seedNewDayBoard(context, { tasks: newDayBackTasks() })
+      await page.setViewportSize({ width: 390, height: 844 })
+      await page.goto('/tasks')
+      await planButton(page).click()
+      await settled(page)
+      await goToPlace(page, 'Alle')
+      await expect(planNote(page)).toBeVisible()
+      const [noteBox, text, button] = [
+        await planNote(page).boundingBox(),
+        await planNote(page).getByText('Plane hier die Aufgaben für heute ein.').boundingBox(),
+        await page.getByTestId('plan-note-close').boundingBox(),
+      ]
+      expect(noteBox!.x).toBeGreaterThanOrEqual(0)
+      expect(noteBox!.x + noteBox!.width).toBeLessThanOrEqual(390)
+      expect(button!.y).toBeGreaterThan(text!.y + text!.height - 1)
+      expect(button!.height).toBeGreaterThanOrEqual(44)
+      await page.getByTestId('plan-note-close').click()
+      await expect(planNote(page)).toHaveCount(0)
+    })
   })
 
   /**

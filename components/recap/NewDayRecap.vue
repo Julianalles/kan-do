@@ -9,7 +9,7 @@ One shell with the day close (#612): the title anchored under the app bar, one 4
 @responsibility
 - Shell only: headline (the page title, SectionHeader `display`) and summary on the photo, then one paper sheet (`.recap-stage__sheet`) with the decks (body) and the controls (foot) (#707; #428 had the decks on the photo, reversed by user decision of 2026-11-21). The title and summary lie on the photo, so DESIGN.md "The Bright Ground Rule" applies: its tokens must hold AA there (rendered scan)
 - Not modal (#245), teleported to `#recap-stage-host` (app.vue) so the inert board does not take it along and the bar stays above it: a `role="region"` named by the headline, no scrim, no focus trap. The app bar stays usable and sits above the stage (`--z-bar`); the board is `inert` behind it (`pages/tasks.vue`). Going to settings and coming back finds the same recap, because the state lives in `useNewDayRecap`
-- Focus starts on "Tag neu planen"; both buttons and Escape inside the stage call `leave()`: "Tag neu planen" goes to "Alle" first and then starts the day fresh (`useNewDay().freshStart()`, #387: the only thing here that moves a card) and archives yesterday's done tasks (`leave({ archive: true })`), "Überspringen und Board anzeigen" goes to Heute when "Alle" shows and moves and archives nothing (the done tasks stay in Erledigt under the "Gestern erledigt" note, whose "Gesehen" hides them), Escape only dismisses, never navigates, moves and archives nothing; `finishLeave()` after the curtain hands focus to the board
+- Focus starts on "Tag neu planen"; both buttons and Escape inside the stage call `leave()`: "Tag neu planen" goes to "Alle" first and then starts the day fresh (`useNewDay().freshStart()`, #387; it also arms the one-time note on "Alle", #711: the only thing here that moves a card) and archives yesterday's done tasks (`leave({ archive: true })`), "Überspringen und Board anzeigen" goes to Heute when "Alle" shows and moves and archives nothing (the done tasks stay in Erledigt under the "Gestern erledigt" note, whose "Gesehen" hides them), Escape only dismisses, never navigates, moves and archives nothing; `finishLeave()` after the curtain hands focus to the board
 - The app bar follows the open state (#428): while the recap is open its pill is Rückblick + Statistik (useAppNav), and leaving it turns Rückblick into Alle + Heute.
 - Open as the page mounts (an app start, or back from another page, #427): `pages/tasks.vue` runs the day check in setup and hides the board (`data-recap-cover`) until the recap is left, so the board is never seen before it; the stage fades in over `--duration-stage` (1.3 s, "Dawn", #463, `--recap-enter-duration`) also then, over the paper colour
 - Curtain (assets/css/recap-stage.css): `leave()` runs at once (archive, marker, the board is live), the stage stays mounted while the content fades (200 ms) and only the photo slides up (`--duration-curtain`, 700 ms; "Tag neu planen" lifts it `--duration-stage` onto "Alle", which the board reached at once beneath the covering stage before the curtain started, with no Heute frame and no second slide, `data-pace="lift"`, #433, #490) with a feathered edge; reduced motion: instant. A second click or Escape during the curtain does nothing
@@ -138,7 +138,7 @@ const { t } = useI18n()
 const { locale } = useLocaleFormat()
 const { isOpen, snapshot, leave, finishLeave } = useNewDayRecap()
 // Resolved in setup: the fresh start needs the Nuxt-bound move path
-const { freshStart } = useNewDay()
+const { freshStart, armPlanNote } = useNewDay()
 const { isAll } = useBoardPlace()
 
 /** Phone switcher: the user's pick; with nothing open the done deck is the only one. Reset on every open. */
@@ -242,15 +242,19 @@ async function leaveToPlan() {
   }
   // The curtain waits for the route: a second click or Escape meanwhile does nothing
   planning.value = true
+  let refused = false
   try {
     await navigateTo(boardPlaceLocation('all'))
   }
   catch {
+    refused = true
     // A refused navigation must not keep the recap open: the day is planned either way, the board shows where it is
   }
   finally {
     planning.value = false
   }
+  // The user chose this step and landed on "Alle": it tells them once what it is for (#711). A refused navigation arms nothing
+  if (!refused) armPlanNote()
   leaveOnce({ archive: true })
   // Left (not: nothing to leave): the user's click is the fresh start
   if (!isOpen.value) freshStart()

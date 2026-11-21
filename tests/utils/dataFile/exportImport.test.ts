@@ -75,6 +75,15 @@ describe('buildExport', () => {
     if (parsed.ok) expect(JSON.parse(parsed.text).stores).toEqual(stores)
   })
 
+  it('carries the answered one-time note of "Alle" through export and import (#711), and a file from before it imports without one', () => {
+    const stores = { 'tasks-store': { tasks: [] }, 'day-recap-store': { lastShownDay: '2026-10-22', planNoteSeen: true } }
+    const parsed = parseImport(buildExport({ stores, deviceId: 'device-1', appVersion: '0.1.0' }, now).text)
+    expect(parsed.ok).toBe(true)
+    if (parsed.ok) expect(JSON.parse(parsed.text).stores['day-recap-store']).toEqual({ lastShownDay: '2026-10-22', planNoteSeen: true })
+    const older = parseImport(buildExport({ stores: { 'tasks-store': { tasks: [] }, 'day-recap-store': { lastShownDay: '2026-10-22' } }, deviceId: 'device-1', appVersion: '0.1.0' }, now).text)
+    expect(older.ok && JSON.parse(older.text).stores['day-recap-store']).toEqual({ lastShownDay: '2026-10-22' })
+  })
+
   it('round-trips through parseImport', () => {
     const built = buildExport({ stores: stateWithEverySecret(), deviceId: 'device-1', appVersion: '0.1.0' }, now)
     const parsed = parseImport(built.text)

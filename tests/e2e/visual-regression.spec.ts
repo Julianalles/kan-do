@@ -1009,9 +1009,26 @@ for (const { size, viewport } of CORE_VIEWPORTS) {
     await page.goto('/all')
     await page.getByTestId('new-day-note-start').click()
     await expect(page.getByTestId('not-planned-panel-planned')).toBeVisible()
+    // the panels' own look: the one-time note (#711) has its own baseline below
+    await page.getByTestId('plan-note-close').click()
+    await expect(page.getByTestId('plan-note')).toHaveCount(0)
     await page.mouse.move(0, 0)
     await settle(page)
     await expect(page).toHaveScreenshot(`alle-panel-${size}.png`, { animations: 'disabled' })
+  })
+
+  test(`alle: the one-time note above the panels after "Tag neu planen" (${size}, #711)`, async ({ context, page }) => {
+    await page.setViewportSize(viewport)
+    await pinClockToFixedNow(context)
+    await seedLocalBoard(context, PANEL_SEED, {}, undefined, { once: true })
+    await seedDayRecapStore(context, { lastShownDay: dayKeyAgo(2), once: true })
+    await page.goto('/all')
+    await page.getByTestId('new-day-note-start').click()
+    await expect(page.getByTestId('plan-note')).toBeVisible()
+    await expect(page.getByTestId('not-planned-panel-planned')).toBeVisible()
+    await page.mouse.move(0, 0)
+    await settle(page)
+    await expect(page).toHaveScreenshot(`alle-plan-note-${size}.png`, { animations: 'disabled' })
   })
 }
 

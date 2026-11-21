@@ -34,6 +34,11 @@
  *   earlier start's Wartet task is a plain "Weitere Aufgaben" task.
  * - `noticeShown` / `closeNotice()`: the notice that offers the fresh start, on a day that has begun in this window,
  *   has not been started fresh, whose notice was not closed, while something unfinished is on the board.
+ * - `planNoteShown` / `armPlanNote()` / `answerPlanNote()` (#711): the one-time note on "Alle" about what the step is for. `freshStart()` (the
+ *   notice's button) and `armPlanNote()` (the recap's button, also when there is nothing to start) arm the runtime signal
+ *   `planArrival` (`lib/dayBegun`); neither "Überspringen
+ *   und Board anzeigen", the pill, a deep link, a reload nor the day close does. It is shown until `answerPlanNote()` writes the persisted
+ *   `dayRecap.planNoteSeen`: once per user, never again, also after a restart.
  * - `timeOffer` / `takeOffTime()` / `keepTime()`: the question "the timer ran on for {duration} after midnight: take
  *   that time off, or keep it?" for that one day. Unanswered the time stays (keep is the default) and the question
  *   ends with its day; taking it off lowers the task's time (also of a timer that still runs), cuts the Statistik
@@ -54,7 +59,7 @@ import { armGlide } from '~/lib/boardPlace'
 import { isDemoTaskId } from '~/lib/demoIds'
 import { isNotPlanned } from '~/lib/taskPlanning'
 import { dayKey } from '~/utils/recapDay'
-import { begunDay, dueOn, resetNewDay } from '~/lib/dayBegun'
+import { begunDay, dueOn, planArrival, resetNewDay } from '~/lib/dayBegun'
 
 export { resetNewDay }
 
@@ -158,6 +163,8 @@ export function useNewDay() {
     if (!isNewDayDue(now)) return []
 
     const todayKey = dayKey(now)
+    // The user chose this step: "Alle" may tell them once what it is for (#711)
+    planArrival.value = true
     // A check always comes first in the app; a caller without one still loses no question
     askAboutNight(todayKey)
 
@@ -214,6 +221,30 @@ export function useNewDay() {
     recapStore.closeNotice(dayKey(today.value))
   }
 
+  /**
+   * The one-time note on "Alle" (#711): the user arrived through "Tag neu planen" in this window and has not answered it yet
+   * (closed it, or gone on to "Heute"), in this life of the app or an earlier one. Whether "Alle" shows is the caller's.
+   */
+  const planNoteShown = computed(() => planArrival.value && !recapStore.validPlanNoteSeen)
+
+  /**
+   * The user chose "Tag neu planen" without `freshStart()` having anything to start (the recap's button on a board with nothing
+   * unfinished: the day check already counted it as started): the note still tells them what "Alle" is for.
+   */
+  function armPlanNote(): void {
+    planArrival.value = true
+  }
+
+  /**
+   * The note is answered ("Schließen", or the user went on to "Heute"): it never comes back. While the data status blocks writes
+   * (ADR 011) nothing is stored: the note is gone for this window only.
+   */
+  function answerPlanNote(): void {
+    planArrival.value = false
+    if (writesBlocked()) return
+    recapStore.markPlanNoteSeen()
+  }
+
   /** The open question about the time after midnight: today's offer for a task that still exists, else null. */
   const timeOffer = computed(() => {
     const offer = recapStore.validTimeOffer
@@ -246,5 +277,5 @@ export function useNewDay() {
     recapStore.resolveTimeOffer()
   }
 
-  return { check, isDayBegun, freshStart, groupIds, waitingIds, noticeShown, closeNotice, timeOffer, takeOffTime, keepTime }
+  return { check, isDayBegun, freshStart, groupIds, waitingIds, noticeShown, closeNotice, planNoteShown, armPlanNote, answerPlanNote, timeOffer, takeOffTime, keepTime }
 }

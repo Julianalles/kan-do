@@ -99,6 +99,22 @@ test.describe('a new day (#356, #387)', () => {
     await expect(page.getByTestId('not-planned')).toMatchAriaSnapshot({ name: 'not-planned-new-day-groups-390.aria.yml' })
   })
 
+  test('"Alle Aufgaben" after the fresh start: the one-time note stands first, a status region with its "Schließen" (1280, #711)', async ({ context, page }) => {
+    await seedNewDayBoard(context, { tasks: board() })
+    await page.goto('/all')
+    await startFresh(page)
+    await expect(page.getByTestId('plan-note')).toMatchAriaSnapshot({ name: 'plan-note-1280.aria.yml' })
+    await expect(page.getByTestId('not-planned')).toMatchAriaSnapshot({ name: 'not-planned-plan-note-1280.aria.yml' })
+  })
+
+  test('"Alle Aufgaben" after the fresh start: the one-time note on a phone (390, #711)', async ({ context, page }) => {
+    await page.setViewportSize(MOBILE)
+    await seedNewDayBoard(context, { tasks: board() })
+    await gotoBoard(page)
+    await startFresh(page)
+    await expect(page.getByTestId('plan-note')).toMatchAriaSnapshot({ name: 'plan-note-390.aria.yml' })
+  })
+
   test('an empty Offen on Heute says how many tasks of yesterday wait under "Alle", with a link (390)', async ({ context, page }) => {
     await page.setViewportSize(MOBILE)
     await seedNewDayBoard(context, { tasks: board() })
