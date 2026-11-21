@@ -133,6 +133,12 @@ test('step 2 apps are choice cards (#651): Notion first, one tab stop per card, 
     // Disabled cards: reason on the card and in the accessible name, not an option the keyboard reaches
     await expect(flow.getByRole('checkbox', { name: 'Apple Erinnerungen Nur in der Mac-App' })).toBeDisabled()
     await expect(flow.getByRole('checkbox', { name: 'Todoist Bald verfügbar' })).toBeDisabled()
+    // The main button is in view without scrolling, and the page does not scroll (#690)
+    await expect.poll(async () => {
+      const box = (await page.getByTestId('local-confirm').boundingBox())!
+      return box.y + box.height <= viewport.height
+    }).toBe(true)
+    expect(await page.evaluate(() => document.documentElement.scrollHeight <= window.innerHeight)).toBe(true)
     // Geometry: at least 64 px high, filling the row, nothing scrolls inside
     for (const id of ['notion', 'reminders', 'todoist']) {
       const box = (await page.getByTestId(`local-source-${id}`).boundingBox())!
