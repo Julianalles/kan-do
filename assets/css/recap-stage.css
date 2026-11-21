@@ -1,13 +1,14 @@
 /**
- * New-day recap stage (#245, #428), also the stage of the day close (#480, `DayCloseStage`): the welcome photo, fixed over the whole window, with the headline, the summary and the
- * two decks lying directly on it and one paper sheet for the controls only; the content sits below the app bar row (the
- * padding takes its height), the photo runs behind it (#262: no paper band above the photo, and the
+ * New-day recap stage (#245, #428, #707), also the stage of the day close (#480, `DayCloseStage`): the welcome photo, fixed over the whole window, with the headline and the
+ * summary (the head) lying on it and, under them, one paper sheet that holds the content (the decks, or the day close's summary, timebox and topics) and the two buttons,
+ * like `/welcome`. #428 had the decks on the photo and only the controls on a sheet, #612 docked that sheet at the foot of the stage: both reversed by user decision of
+ * 2026-11-21 (#707). The content sits below the app bar row (the padding takes its height), the photo runs behind it (#262: no paper band above the photo, and the
  * bar's paper veil steps back while the stage is mounted, bottom of this file).
  * Not modal: the app bar (z-bar) paints above it, the board stays inert behind it (pages/tasks.vue).
- * One shell for both stages (#612): the title anchored under the app bar (the content starts at the top, never centred), one 44 rem
- * column, the footer sheet docked at the foot of the stage (a flex sibling of the scroller, so the content scrolls above it and the
- * footer ends above the phone app bar), the same footer buttons (`.recap-stage__actions`: soft way out, solid main, stacked with the
- * main on top below 40 rem, a right-aligned row above).
+ * One shell for both stages (#612): the head anchored under the app bar (the content starts at the top, never centred), one 44 rem
+ * column, the sheet under it (`.recap-stage__sheet`: a flex column whose scroller shrinks on a short window, so the title stays and the buttons stay at the sheet's
+ * foot under a hairline; the stage's bottom padding keeps it above the phone app bar, so on a phone it floats with all corners rounded, unlike `/welcome`'s docked
+ * sheet), the same footer buttons (`.recap-stage__actions`: soft way out, solid main, stacked with the main on top below 40 rem, a right-aligned row above).
  * Enter of the recap (#463, "Dawn"): the whole stage fades in over --recap-enter-duration (1.3 s), also on an app start. A click mid-fade lets the fade finish under the curtain (no jump to full opacity).
  * Enter of the day close (#580, `.recap-stage--curtain-down`): the opposite curtain. The photo comes down over the board
  * (`--duration-stage`, 1.3 s) and the column fades in over `--duration-slow` as it lands. Transitions on `data-entered` (set by
@@ -21,10 +22,12 @@
     --recap-feather: 4rem;
     --recap-curtain-duration: var(--duration-curtain); /* the photo lifting off; the component waits for it (NewDayRecap.vue) */
     --recap-enter-duration: var(--duration-stage); /* Dawn (#463): the stage fades in, one clock with the lift below; also on an app start */
+    --recap-sheet-pad-x: 1.25rem;
     position: fixed;
     inset: 0;
     z-index: var(--z-titlebar);
     overflow: hidden;
+    container-type: inline-size; /* the scroller below reaches to the stage's edges: 100cqw is the column's width */
     padding: calc(var(--app-bar-offset-top) + env(safe-area-inset-top, 0px) + 0.75rem) 1rem calc(var(--phone-bar-offset) + 0.75rem);
     animation: recap-stage-in var(--recap-enter-duration) var(--ease-emphasized) both;
   }
@@ -42,7 +45,7 @@
     mask-image: linear-gradient(to bottom, var(--ui-bg) calc(100% - var(--recap-feather)), transparent);
   }
 
-  /* The column holds the scroller and the docked footer; it is what fades (enter of the day close, leave of both) */
+  /* The column holds the head and the sheet; it is what fades (enter of the day close, leave of both) */
   .recap-stage__column {
     position: relative;
     display: flex;
@@ -50,39 +53,74 @@
     height: 100%;
   }
 
-  /* Only this scrolls, on a short window; it spans the stage so its bar sits at the window edge and the sheets' shadows are not clipped */
-  .recap-stage__scroll {
-    flex: 1 1 0;
-    min-height: 0;
-    overflow-y: auto;
-    overscroll-behavior: contain;
+  /* The title and the subline lie on the photo, above the sheet, in the sheet's 44 rem column (#707). Anchored at the top: the title sits at the same y on both stages (#612) */
+  .recap-stage__head {
+    flex: none;
+    margin: 0 auto;
+    padding: 1.5rem 0 1.25rem;
+    width: 100%;
+    max-width: 44rem;
   }
 
-  /* One 44 rem column, no sheet behind it (#428): the headline, summary and decks lie on the photo. Anchored at the top: the title sits at the same y on both stages (#612) */
+  /* The one sheet (#707): paper, the radius and the one warm shadow of PageSheet (a flex column: the scroller above, the footer at its foot). It grows with its content and then the scroller shrinks, so on a short window the head stays and nothing scrolls twice */
+  .recap-stage__sheet {
+    display: flex;
+    flex: 0 1 auto;
+    flex-direction: column;
+    margin: 0 auto;
+    min-height: 0;
+    width: 100%;
+    max-width: 44rem;
+    border-radius: var(--task-card-radius); /* PageSheet's 16 px: the card's radius */
+    background: var(--ui-bg);
+    box-shadow: var(--shadow-task);
+    padding: 1.25rem var(--recap-sheet-pad-x) 1rem;
+  }
+
+  @media (--sm) {
+    .recap-stage {
+      --recap-sheet-pad-x: 1.5rem;
+    }
+
+    .recap-stage__sheet {
+      padding: 1.5rem var(--recap-sheet-pad-x) 1.25rem;
+    }
+  }
+
+  /* Only this scrolls, inside the sheet, on a short window. It reaches sideways to the stage's edges (the negative margin and the padding cancel out, so the content keeps
+     the sheet's inner width): a deck card that is dragged or flies out (RecapDeck) is not cut at the sheet, and `overflow-x: hidden` keeps it from scrolling sideways.
+     A soft shadow at the edge that has more behind it says it scrolls (design review: a clipped chart with no cue reads as the whole content): paper covers it (`local`)
+     while the scroller sits at that edge, so it shows only where content is hidden. The cues are as wide as the sheet's inner width, not the scroller */
+  .recap-stage__scroll {
+    --recap-cue-width: calc(min(44rem, 100cqw) - 2 * var(--recap-sheet-pad-x));
+    flex: 0 1 auto;
+    margin-inline: calc(50% - 50cqw);
+    padding-inline: calc(50cqw - 50%);
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background:
+      linear-gradient(var(--ui-bg) 30%, transparent) center top / var(--recap-cue-width) 1.5rem no-repeat local,
+      linear-gradient(transparent, var(--ui-bg) 70%) center bottom / var(--recap-cue-width) 1.5rem no-repeat local,
+      radial-gradient(farthest-side at 50% 0, color-mix(in oklab, var(--ui-text) 16%, transparent), transparent) center top / var(--recap-cue-width) 0.5rem no-repeat scroll,
+      radial-gradient(farthest-side at 50% 100%, color-mix(in oklab, var(--ui-text) 16%, transparent), transparent) center bottom / var(--recap-cue-width) 0.5rem no-repeat scroll;
+  }
+
+  /* The content of the sheet: the decks, or the day close's summary, timebox and topics */
   .recap-stage__content {
     display: flex;
     flex-direction: column;
-    gap: 2rem;
-    margin: 0 auto;
-    padding: 1.5rem 0 1rem;
+    gap: 1.5rem;
     width: 100%;
-    max-width: 44rem;
   }
 
-  /* A sheet: the day close's summary (#480) and the footer (#428). A white sheet with the one warm shadow, as the Paper Desk rule says */
-  .recap-stage__controls {
-    border-radius: var(--ui-radius);
-    background: var(--ui-bg);
-    box-shadow: var(--shadow-task);
-    padding: 1rem;
-  }
-
-  /* The footer, docked at the foot of the stage under the scroller (#612); its buttons stack by the window width */
+  /* The foot of the sheet (#707): a hairline above the buttons; its buttons stack by the window width */
   .recap-stage__footer {
     flex: none;
-    margin: 0 auto;
-    width: 100%;
-    max-width: 44rem;
+    margin-top: 1rem;
+    border-top: 1px solid var(--ui-border);
+    padding-top: 1.25rem;
   }
 
   /* The two ways out, one look on both stages (#612): the way out soft (neutral), the main button solid; stacked and full width with the main on top, a right-aligned row from 40 rem (`--sm`) */
@@ -106,6 +144,30 @@
 
     .recap-stage__actions > * {
       width: auto;
+    }
+  }
+
+  /* A window too short for the head, the buttons and a readable scroller (a landscape phone, a window under about 30 rem; under 40 rem wide the buttons stack, so 34 rem):
+     the sheet no longer scrolls inside: the column does, the title, the content and the buttons one after the other (nothing sits outside the stage, the scroller never
+     shrinks to nothing; the buttons would not stay stuck at the foot, the head and the foot alone fill such a window). The column reaches to the window's edges (a flying
+     card is not cut), a foot of padding keeps the sheet's shadow */
+  @media (height < 30rem), (width < 40rem) and (height < 34rem) {
+    .recap-stage__column {
+      margin-inline: -1rem;
+      padding: 0 1rem 1rem;
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+
+    .recap-stage__sheet {
+      flex: none;
+    }
+
+    .recap-stage__scroll {
+      flex: none;
+      overflow: visible;
+      background: none;
     }
   }
 

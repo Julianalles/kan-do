@@ -2,12 +2,12 @@
 @component NewDayRecap
 @kind block
 @category overlay
-@description "Tagesrückblick" (#385, #451, #44, #245, #428): the recap on the first start of a new day, shown as a stage on the welcome photo, behind the app bar, instead of a dialog over the board. The headline, the summary and the two decks (still open, done: Offen → Erledigt like the board) lie directly on the photo; only the controls sit on a sheet, docked at the foot of the stage: "Tag neu planen" (primary: the fresh start, which takes yesterday's unfinished cards off the board and archives the done ones, and the way to "Alle") and "Überspringen und Board anzeigen" (leads to the board and keeps it as it is, archives nothing).
+@description "Tagesrückblick" (#385, #451, #44, #245, #428): the recap on the first start of a new day, shown as a stage on the welcome photo, behind the app bar, instead of a dialog over the board. The headline and the summary lie on the photo; the two decks (still open, done: Offen → Erledigt like the board) and the controls sit together in one paper sheet under them (#707, reverses #428), the controls at its foot: "Tag neu planen" (primary: the fresh start, which takes yesterday's unfinished cards off the board and archives the done ones, and the way to "Alle") and "Überspringen und Board anzeigen" (leads to the board and keeps it as it is, archives nothing).
 @usage Mounted once in pages/tasks.vue next to DayCloseStage; opened by useNewDayRecap().check() on mount.
-One shell with the day close (#612): the title anchored under the app bar, one 44 rem column with both decks side by side from 768px (one deck with a switcher below), the controls sheet docked at the foot as a sibling of the scroller. The page itself never scrolls; only the stage's scroll area may, on very short windows.
+One shell with the day close (#612): the title anchored under the app bar, one 44 rem column with both decks side by side from 768px (one deck with a switcher below), the title above one sheet whose scroller holds the decks and whose footer holds the controls. The page itself never scrolls; only the sheet's scroll area may, on short windows (the sheet shrinks, the title stays); under about 30 rem of height the stage's column scrolls instead (title, content, buttons one after the other), and a card dragged out of a deck is not cut by the sheet (the scroller reaches to the stage's edges).
 @avoid Only the first start of a new day; closing the day is DayCloseStage.
 @responsibility
-- Shell only: headline (the page title, SectionHeader `display`), summary, decks (body), controls sheet; no paper sheet around the content (#428). Text lies on the photo, so DESIGN.md "The Bright Ground Rule" applies: its tokens must hold AA there (rendered scan)
+- Shell only: headline (the page title, SectionHeader `display`) and summary on the photo, then one paper sheet (`.recap-stage__sheet`) with the decks (body) and the controls (foot) (#707; #428 had the decks on the photo, reversed by user decision of 2026-11-21). The title and summary lie on the photo, so DESIGN.md "The Bright Ground Rule" applies: its tokens must hold AA there (rendered scan)
 - Not modal (#245), teleported to `#recap-stage-host` (app.vue) so the inert board does not take it along and the bar stays above it: a `role="region"` named by the headline, no scrim, no focus trap. The app bar stays usable and sits above the stage (`--z-bar`); the board is `inert` behind it (`pages/tasks.vue`). Going to settings and coming back finds the same recap, because the state lives in `useNewDayRecap`
 - Focus starts on "Tag neu planen"; both buttons and Escape inside the stage call `leave()`: "Tag neu planen" goes to "Alle" first and then starts the day fresh (`useNewDay().freshStart()`, #387: the only thing here that moves a card) and archives yesterday's done tasks (`leave({ archive: true })`), "Überspringen und Board anzeigen" goes to Heute when "Alle" shows and moves and archives nothing (the done tasks stay in Erledigt under the "Gestern erledigt" note, whose "Gesehen" hides them), Escape only dismisses, never navigates, moves and archives nothing; `finishLeave()` after the curtain hands focus to the board
 - The app bar follows the open state (#428): while the recap is open its pill is Rückblick + Statistik (useAppNav), and leaving it turns Rückblick into Alle + Heute.
@@ -16,7 +16,7 @@ One shell with the day close (#612): the title anchored under the app bar, one 4
 - The photo is the welcome page's (`public/welcome`), decoration only (`alt=""`); until it loads, or if it fails, the layer is the paper colour
 - Phone switcher ("n noch offen" / "n erledigt", a `UTabs` pill: `role="tab"`, `aria-selected`): one RecapDeck mounted at a time, starts on "noch offen" (on "erledigt" when nothing is open, then without a switcher)
 - The decks never change size (RecapDeck), so nothing moves while they are looked at
-- Controls sheet (the docked footer, #612): "Überspringen und Board anzeigen" a soft neutral button, "Tag neu planen" solid and without an arrow (the day close's footer, `.recap-stage__actions`); right in a row from `--sm`, stacked and full width on a phone with "Tag neu planen" above "Überspringen und Board anzeigen"; default button size on both (One Height Rule, #424). The halo of the focused primary button waits for the first key or press (`data-quiet-focus`)
+- Controls (the sheet's footer under a hairline, #707; the docked footer sheet of #612 is gone): "Überspringen und Board anzeigen" a soft neutral button, "Tag neu planen" solid and without an arrow (the day close's footer, `.recap-stage__actions`); right in a row from `--sm`, stacked and full width on a phone with "Tag neu planen" above "Überspringen und Board anzeigen"; default button size on both (One Height Rule, #424). The halo of the focused primary button waits for the first key or press (`data-quiet-focus`)
 -->
 <template>
   <!-- Outside the inert board (<main> in pages/tasks.vue), in app.vue's host: the same stacking context as the app bar, so the bar paints above the photo (#262) -->
@@ -49,46 +49,48 @@ One shell with the day close (#612): the title anchored under the app bar, one 4
         >
       </div>
       <div class="recap-stage__column">
-        <div class="recap-stage__scroll">
-          <div class="recap-stage__content">
-            <div class="text-center">
-              <SectionHeader :id="titleId" tag="h2" size="display" data-slot="title">{{ t('recap.title') }}</SectionHeader>
-              <p class="mt-2 text-body text-toned" data-testid="recap-summary">{{ summary }}</p>
-            </div>
-            <div v-if="snapshot">
-              <!-- Phones: one deck at a time. Nothing open: only the done deck, no switcher -->
-              <div v-if="!isDesktop && snapshot.undone.length > 0" ref="switcherWrap" class="mb-4 flex justify-center">
-                <UTabs
-                  :model-value="shownKind"
-                  :items="switcherOptions"
-                  :content="false"
-                  variant="pill"
-                  data-testid="recap-switcher"
-                  @update:model-value="pickedKind = $event === 'done' ? 'done' : 'undone'"
-                />
-              </div>
+        <!-- The title lies on the photo, above the one sheet (#707) -->
+        <div class="recap-stage__head text-center">
+          <SectionHeader :id="titleId" tag="h2" size="display" data-slot="title">{{ t('recap.title') }}</SectionHeader>
+          <p class="mt-2 text-body text-toned" data-testid="recap-summary">{{ summary }}</p>
+        </div>
+        <!-- One paper sheet (#707): the decks scroll inside it, the two ways out sit at its foot under a hairline -->
+        <div class="recap-stage__sheet" data-testid="recap-sheet">
+          <div class="recap-stage__scroll">
+            <div class="recap-stage__content">
+              <div v-if="snapshot">
+                <!-- Phones: one deck at a time. Nothing open: only the done deck, no switcher -->
+                <div v-if="!isDesktop && snapshot.undone.length > 0" ref="switcherWrap" class="mb-4 flex justify-center">
+                  <UTabs
+                    :model-value="shownKind"
+                    :items="switcherOptions"
+                    :content="false"
+                    variant="pill"
+                    data-testid="recap-switcher"
+                    @update:model-value="pickedKind = $event === 'done' ? 'done' : 'undone'"
+                  />
+                </div>
 
-              <!-- Board order: Offen left, Erledigt right -->
-              <div class="flex w-full flex-col items-center gap-8 md:flex-row md:items-start md:justify-center md:gap-12">
-                <RecapDeck
-                  v-if="snapshot.undone.length > 0 && (isDesktop || shownKind === 'undone')"
-                  kind="undone"
-                  :tasks="snapshot.undone"
-                  :hide-heading="!isDesktop"
-                />
-                <RecapDeck
-                  v-if="isDesktop || shownKind === 'done'"
-                  kind="done"
-                  :tasks="snapshot.done"
-                  :hide-heading="!isDesktop && snapshot.undone.length > 0"
-                />
+                <!-- Board order: Offen left, Erledigt right -->
+                <div class="flex w-full flex-col items-center gap-8 md:flex-row md:items-start md:justify-center md:gap-12">
+                  <RecapDeck
+                    v-if="snapshot.undone.length > 0 && (isDesktop || shownKind === 'undone')"
+                    kind="undone"
+                    :tasks="snapshot.undone"
+                    :hide-heading="!isDesktop"
+                  />
+                  <RecapDeck
+                    v-if="isDesktop || shownKind === 'done'"
+                    kind="done"
+                    :tasks="snapshot.done"
+                    :hide-heading="!isDesktop && snapshot.undone.length > 0"
+                  />
+                </div>
               </div>
             </div>
           </div>
-        </div>
-        <!-- The footer sheet (#428), docked at the foot of the stage (#612): the two ways out; stacked on a phone with the primary button on top -->
-        <div class="recap-stage__footer">
-          <div class="recap-stage__controls" data-testid="recap-controls">
+          <!-- The foot of the sheet: the two ways out; stacked on a phone with the primary button on top -->
+          <div class="recap-stage__footer" data-testid="recap-controls">
             <div class="recap-stage__actions">
               <UButton
                 color="neutral"
