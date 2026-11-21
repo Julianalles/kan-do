@@ -8,7 +8,7 @@
  *   plans by date raises no toast per task: this toast is the only one, and its "Rückgängig" restores the dates. A task
  *   that could not move (a card that is still leaving, a task that is gone) is left out. Resolves to the ids that moved.
  * - The toast counts the tasks that moved ("n Aufgaben sind für heute geplant.") and offers "Rückgängig" for 6 s. Undo
- *   restores a planned date first (a source that plans by date), one task after another, and then puts exactly those
+ *   waits for the plan's writes still running, restores a planned date (a source that plans by date), one task after another, and then puts exactly those
  *   tasks back in one `unplanTasks` (so "Alle" keeps the order of a put-back), each one still planned in Offen (a task
  *   moved on to Jetzt or Wartet meanwhile keeps its date); they return to their panel because the panel is derived from
  *   `useNewDay`, not stored.
@@ -26,12 +26,15 @@ import { useToast } from '#imports'
 
 export function usePlanAll() {
   const { planMany } = usePlanMoves()
-  const { restorePlannedDate, unplanTasks } = useTaskSync()
+  const { restorePlannedDate, unplanTasks, whenPlanWritten } = useTaskSync()
   const tasksStore = useTasksStore()
   const toast = useToast()
 
   async function undo(ids: readonly string[], toastId: string): Promise<void> {
     toast.remove(toastId)
+    // The plan's write loop may still be running for the later tasks (a write already started cannot be stopped, one
+    // not started would run after the restore and write today's date again): wait for it, as the single put-back does
+    await Promise.all(ids.map(whenPlanWritten))
     const back: string[] = []
     // One after another: the date writes go to the source in the order planned
     for (const id of ids) {
