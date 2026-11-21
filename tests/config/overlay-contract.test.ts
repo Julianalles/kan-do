@@ -49,6 +49,13 @@ describe('overlay contract: the pill is system glass and shows whichever window 
     expect(rust).toContain('WindowEffect::LiquidGlassRegular, WindowEffect::HudWindow')
   })
 
+  it('is 280 x 42 pt and the pill\'s CSS box says the same (#703)', () => {
+    const num = (name: string) => Number(new RegExp(`const ${name}: f64 = ([\\d.]+);`).exec(rust)?.[1])
+    expect([num('WINDOW_WIDTH'), num('WINDOW_HEIGHT')]).toEqual([280, 42])
+    const css = read('components/overlay/NowWindow.vue')
+    expect(css).toMatch(/\.now-window \{[^}]*\n {2}width: 280px;\n {2}height: 42px;/)
+  })
+
   it('keeps the glass corner radius a capsule: half the window height, as the pill\'s CSS radius says', () => {
     const height = Number(/const WINDOW_HEIGHT: f64 = ([\d.]+);/.exec(rust)?.[1])
     const radius = Number(/const CORNER_RADIUS: f64 = ([\d.]+);/.exec(rust)?.[1])
@@ -61,7 +68,7 @@ describe('overlay contract: the pill is system glass and shows whichever window 
     for (const message of ['contentView', 'setCornerRadius: CORNER_RADIUS', 'setCornerCurve:', '"circular"', 'setMasksToBounds: true', 'invalidateShadow']) {
       expect(mask, message).toContain(message)
     }
-    // the pill's own capsule is the same arc: 9999px clamps to half the 60 px box, the glass radius
+    // the pill's own capsule is the same arc: 9999px clamps to half the 42 px box, the glass radius
     expect(read('components/overlay/NowWindow.vue')).toContain('--now-radius: 9999px;')
   })
 

@@ -43,10 +43,10 @@ pub const ACTION_EVENT: &str = "overlay://action";
 pub const OVERLAY_ACTIONS: &[&str] = &["open", "toggle-pause", "done"];
 
 /// The window is the pill itself (system glass, native shadow): there is no transparent margin around it.
-const WINDOW_WIDTH: f64 = 340.0;
-const WINDOW_HEIGHT: f64 = 60.0;
+const WINDOW_WIDTH: f64 = 280.0;
+const WINDOW_HEIGHT: f64 = 42.0;
 /// Corner radius of the glass, in points: the pill's own radius in `NowWindow.vue` matches it.
-const CORNER_RADIUS: f64 = 30.0;
+const CORNER_RADIUS: f64 = 21.0;
 const DEFAULT_MARGIN: i32 = 16;
 const POSITION_FILE: &str = "overlay-window.json";
 const SAVE_DEBOUNCE: Duration = Duration::from_millis(400);
@@ -371,6 +371,9 @@ fn apply<R: Runtime>(app: &AppHandle<R>) {
     let window = app.get_webview_window(OVERLAY_LABEL);
     if snapshot.is_none() {
         if let Some(window) = window {
+            // The empty snapshot first: the pill unmounts (and its breathing band stops) instead of animating in a
+            // hidden window, whether or not the web view reports the window as hidden (#703)
+            let _ = app.emit_to(OVERLAY_LABEL, STATE_EVENT, &snapshot);
             let _ = window.hide();
         }
         return;
@@ -526,7 +529,7 @@ pub async fn overlay_action(window: tauri::Window, app: AppHandle, kind: String,
 mod tests {
     use super::*;
 
-    const SIZE: (u32, u32) = (340, 60);
+    const SIZE: (u32, u32) = (280, 42);
     const MAIN: Rect = Rect { x: 0, y: 25, width: 2560, height: 1375 };
     const SIDE: Rect = Rect { x: 2560, y: 0, width: 1920, height: 1080 };
 
@@ -559,13 +562,13 @@ mod tests {
     #[test]
     fn default_is_bottom_right_of_the_primary_work_area() {
         let spot = resolve_position(None, SIZE, &[MAIN, SIDE], 0, 16);
-        assert_eq!(spot, Some((2560 - 340 - 16, 25 + 1375 - 60 - 16)));
+        assert_eq!(spot, Some((2560 - 280 - 16, 25 + 1375 - 42 - 16)));
     }
 
     #[test]
     fn default_follows_the_primary_index() {
         let spot = resolve_position(None, SIZE, &[MAIN, SIDE], 1, 16);
-        assert_eq!(spot, Some((4480 - 340 - 16, 1080 - 60 - 16)));
+        assert_eq!(spot, Some((4480 - 280 - 16, 1080 - 42 - 16)));
     }
 
     #[test]
@@ -577,20 +580,20 @@ mod tests {
     #[test]
     fn a_saved_spot_half_off_the_edge_is_pulled_back_in() {
         // centre still inside the area, window sticks out to the right and below
-        assert_eq!(resolve_position(Some((2380, 1360)), SIZE, &[MAIN], 0, 16), Some((2560 - 340, 25 + 1375 - 60)));
+        assert_eq!(resolve_position(Some((2380, 1360)), SIZE, &[MAIN], 0, 16), Some((2560 - 280, 25 + 1375 - 42)));
         // above the menu bar
-        assert_eq!(resolve_position(Some((100, 0)), SIZE, &[MAIN], 0, 16), Some((100, 25)));
+        assert_eq!(resolve_position(Some((100, 8)), SIZE, &[MAIN], 0, 16), Some((100, 25)));
     }
 
     #[test]
     fn a_saved_spot_on_a_removed_display_falls_back_to_the_default() {
         assert_eq!(
             resolve_position(Some((2800, 100)), SIZE, &[MAIN], 0, 16),
-            Some((2560 - 340 - 16, 25 + 1375 - 60 - 16))
+            Some((2560 - 280 - 16, 25 + 1375 - 42 - 16))
         );
         assert_eq!(
             resolve_position(Some((-5000, -5000)), SIZE, &[MAIN], 0, 16),
-            Some((2560 - 340 - 16, 25 + 1375 - 60 - 16))
+            Some((2560 - 280 - 16, 25 + 1375 - 42 - 16))
         );
     }
 

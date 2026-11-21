@@ -313,7 +313,6 @@ export const SCALE_ALLOWLIST = {
   'assets/css/app-nav.css': { literals: ['padding: 0.1875rem', 'padding-inline: 0.625rem'], reason: 'the phone nav pill: 3 px pill padding and 10 px a segment are tied to the 390 px layout (the funnel right of ⋯ sits at 388 px, #375) and to the indicator that rides the same inset' },
   'components/task/TaskCard.vue': { literals: ['padding-right: 1.875rem', 'width: 2.75rem', 'height: 2.75rem', 'width: 1.75rem', 'height: 1.75rem'], reason: 'padding-right 30 px is the card-corner menu button (28 px circle) plus 2 px; the 44 px check and 28 px rocket are the completion mark sized to the confirm message, not UI icons' },
   'components/task/TaskStackHeader.vue': { literals: ['margin-top: -1.375rem'], reason: 'margin-top -22 px: half of the 44 px close button, centring it on the 32 px header edge' },
-  'components/overlay/NowWindow.vue': { literals: ['padding: 0 14px 0 24px', 'padding-left: 30px', 'gap: 10px'], reason: 'the floating Now window is fixed pixels on purpose, tracked in #587' },
   'app.config.ts': { literals: ['text-[0.5rem]/3'], reason: 'text-[0.5rem]/3: the xs badge, rem so it follows text zoom (#66); no role is that small' },
 }
 
