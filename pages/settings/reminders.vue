@@ -175,7 +175,7 @@ function onPick(listId: string, role: ReminderListRole) {
   }
   pendingOff.value = null
   config.setList(listId, { role, title: titleOf(listId) })
-  // A list switched on (or between Thema and Aktivität) changes what the board shows: fetch it
+  // A list switched on changes what the board shows: fetch it
   void fetchSource('reminders')
 }
 

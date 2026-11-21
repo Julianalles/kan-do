@@ -276,6 +276,17 @@ describe('done-occurrence ledger (E2)', () => {
     expect(tasks[1]!.completedAt).toEqual(new Date(NOON - 5000))
   })
 
+  it('a held legacy `activity` occurrence comes back with the list title as Thema and no activity (#575)', async () => {
+    bridge.fetch.mockResolvedValue({
+      reminders: [reminder({ id: 'ABC', listId: 'L-home', recurrence: { rule: 'FREQ=DAILY' }, due: { date: '2026-11-20', time: null } })],
+      missingListIds: [],
+    })
+    const legacy = { ...ticked, topic: null, activity: 'Zuhause' } as Task
+    const { source } = setup({ held: [legacy], ledger: { 'ABC@2026-11-19': { completedAt: NOON - 5000 } } })
+    const kept = (await source.fetchActive()).find(t => t.externalId === 'ABC@2026-11-19')
+    expect(kept).toMatchObject({ topic: 'Zuhause', activity: null, status: TaskStatus.Done, timeBoxSeconds: 1500 })
+  })
+
   it('is pruned at local midnight', async () => {
     const yesterday = MIDNIGHT - 60_000
     const { source, state } = setup({ held: [ticked], ledger: { 'ABC@2026-11-19': { completedAt: yesterday } } })
