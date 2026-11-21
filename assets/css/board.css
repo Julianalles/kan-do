@@ -97,6 +97,43 @@
       /* Offen's footer holds only the capacity echo (#573): no space below it, it reaches the window's foot and hides what scrolls under it */
       --column-footer-pad-bottom: 0;
     }
+
+    /* The capacity echo for a line above the window (#573 case 2): a zero-height sticky host under the app bar and the veil that hangs
+       below it (app-nav.css), the echo hangs from it over the cards. The echo mirrors the foot one: the sentence above the wave, the
+       backing fading at its lower edge, the caret turned up, no space above it. */
+    #column-open > .column-top-dock {
+      position: sticky;
+      top: calc(var(--app-bar-offset-top) + var(--app-bar-veil-hang));
+      display: flex;
+      justify-content: center;
+      height: 0;
+      z-index: var(--z-column-footer);
+    }
+
+    #column-open > .column-top-dock > * {
+      position: absolute;
+      top: 0;
+      width: 100%;
+    }
+
+    #column-open .capacity-echo--top {
+      display: flex;
+      flex-direction: column-reverse;
+      background: linear-gradient(var(--ui-page-bg) calc(100% - 0.75rem), transparent);
+    }
+
+    #column-open .capacity-echo--top .capacity-echo__text {
+      margin: 0 0 0.25rem;
+    }
+
+    #column-open .capacity-echo--top .capacity-echo__caret {
+      transform: rotate(180deg);
+    }
+
+    #column-open .capacity-echo--top.capacity-echo-enter-from,
+    #column-open .capacity-echo--top.capacity-echo-leave-to {
+      transform: translateY(-0.5rem);
+    }
   }
 
   /* The move between the places (#354, #334 D8): the app bar's own time and curve (--nav-move, --nav-ease in
