@@ -22,11 +22,9 @@
   <div
     :id="columnId"
     ref="columnEl"
-    class="column relative flex flex-col"
+    class="column group/column relative flex flex-col"
     :class="columnClasses"
     :data-status="statusAttr"
-    @mouseenter="handleMouseEnter"
-    @mouseleave="handleMouseLeave"
   >
     <!-- The topic focus bar on the phone (#608): the first item of the page, scrolls away with the list -->
     <slot name="head" />
@@ -48,7 +46,8 @@
     <div class="relative flex h-10 items-center justify-center">
       <column-sorting-control
         v-if="!isProgressColumn && tasks.length >= 2"
-        :visible="(isHovering || isSortingOpen) && !props.isDragging"
+        :open="isSortingOpen"
+        :suppressed="props.isDragging"
         :status="taskStatus"
         :sorting="columnSorting"
         @change="handleSortingChange"
@@ -194,7 +193,6 @@ const { dragState } = useBoardDragState();
 const { basePath, isAll, place } = useBoardPlace();
 const allLocation = boardPlaceLocation('all');
 
-const isHovering = ref(false);
 const isSortingOpen = ref(false);
 
 const props = defineProps({
@@ -492,15 +490,6 @@ const showAddButton = computed(() => showAddSlot.value && featureFlags.openColum
 
 const headerRef = ref<{ addButtonEl: () => HTMLElement | null } | null>(null);
 const addSlotRef = ref<{ open: () => void; isDrafting: boolean } | null>(null);
-
-// Mouse event handlers
-const handleMouseEnter = () => {
-  isHovering.value = true;
-};
-
-const handleMouseLeave = () => {
-  isHovering.value = false;
-};
 
 // Hover/focus handlers kept as no-ops for template compatibility
 const handlePointerMove = () => {};

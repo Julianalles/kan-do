@@ -3,7 +3,7 @@
 @kind component
 @category action
 @description Per-column sort menu in the column header: sort field and direction for one column
-@usage Rendered by BoardColumn; fades out while not hovered or focused (`visible`)
+@usage Rendered by BoardColumn; revealed by CSS while the column (`group/column`) is hovered, while it has focus or while its menu is `open`; `suppressed` hides it during a drag (#579: no Vue state changes on hover, so the column never re-renders)
 @avoid Sorts one column only; board-wide controls (grouping, day close) live in MorePanel.
 @responsibility
 - List the sort options for the column's status, mark the active one
@@ -13,7 +13,8 @@
   <div
     data-testid="column-sorting-control"
     class="relative z-10 transition-opacity duration-(--duration-base)"
-    :class="visible ? 'opacity-100' : 'pointer-events-none opacity-0 focus-within:pointer-events-auto focus-within:opacity-100'"
+    :class="shown ? 'opacity-100' : 'pointer-events-none opacity-0 focus-within:pointer-events-auto focus-within:opacity-100'
+      + (suppressed || open ? '' : ' in-[.column:hover]:pointer-events-auto in-[.column:hover]:opacity-100')"
   >
     <UDropdownMenu
       :items="items"
@@ -50,7 +51,10 @@ defineOptions({ name: 'ColumnSortingControl' });
 const { t } = useI18n();
 
 const props = defineProps<{
-  visible: boolean;
+  /** The menu is open: the control stays shown */
+  open: boolean;
+  /** A card is dragged: hover does not reveal it */
+  suppressed?: boolean;
   status: TaskStatus;
   sorting: ColumnSorting | undefined;
 }>();
@@ -67,6 +71,8 @@ interface SortOption {
   /** Direction hint; shown as the item description and appended in the trigger. */
   hint?: string;
 }
+
+const shown = computed(() => props.open);
 
 const currentSort = computed(() => props.sorting || { field: 'manual', direction: 'asc' });
 
