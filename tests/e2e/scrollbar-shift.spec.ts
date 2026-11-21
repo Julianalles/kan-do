@@ -56,7 +56,7 @@ const openers: Array<{ name: string, ignore?: string | ((width: number) => strin
       await page.keyboard.press('Enter')
       await expect(page.getByRole('dialog')).toBeVisible()
       // The desktop sheet grows out of its card (#705): a copy of the card's face, which carries the card's probe tags (`cloneNode`),
-      // scales from 288 to 500 px for 340 ms, and `boxes` would read that copy instead of the board card. Measure at rest: the face is gone then.
+      // scales from 288 to 500 px for 340 ms, and `boxes` would read that copy instead of the board card. Measure at rest, where the lock stays in place and a scrollbar shift stays visible: the face is gone then.
       if ((page.viewportSize()?.width ?? 0) > 767) await settleSheet(page)
     },
   },
@@ -77,7 +77,7 @@ for (const viewport of [{ name: 'desktop', width: 1280, height: 700 }, { name: '
         await expect(page.locator('.task-wrapper').first()).toBeVisible()
         await showColumnPage(page, 0) // the board opens on Jetzt while a task sits there (kd#191)
         // The precondition: a classic scrollbar takes width from the page (not on touch layouts, where the board scrolls inside)
-                if (viewport.width > 767) await expect.poll(() => documentScrollbar(page), { message: 'the document has a classic scrollbar' }).toBeGreaterThan(0)
+        if (viewport.width > 767) await expect.poll(() => documentScrollbar(page), { message: 'the document has a classic scrollbar' }).toBeGreaterThan(0)
         await tagElements(page, typeof ignore === 'function' ? ignore(viewport.width) : ignore)
         const before = await boxes(page)
 
