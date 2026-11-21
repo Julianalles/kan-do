@@ -294,9 +294,9 @@ describe('the 4 px grid (#591)', () => {
 
   it('lets an allowlisted file keep a named value', () => {
     const dir2 = mkdtempSync(join(tmpdir(), 'grid-'))
-    mkdirSync(join(dir2, 'components/overlay'), { recursive: true })
-    const file = join(dir2, 'components/overlay/NowWindow.vue')
-    writeFileSync(file, '<template><div /></template>\n<style>\n.a { gap: 10px; padding-left: 30px; padding-right: 10px; }\n</style>')
+    mkdirSync(join(dir2, 'components/task'), { recursive: true })
+    const file = join(dir2, 'components/task/TaskStackHeader.vue')
+    writeFileSync(file, '<template><div /></template>\n<style>\n.a { margin-top: -1.375rem; padding-right: 10px; }\n</style>')
     expect((checkScaleLiterals(dir2, [file]) as Finding[]).map(f => f.message.split(' ')[0])).toEqual(['padding-right:'])
     rmSync(dir2, { recursive: true, force: true })
   })

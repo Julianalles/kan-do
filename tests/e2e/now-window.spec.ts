@@ -2,6 +2,7 @@ import { test, expect, type BrowserContext, type Page } from '@playwright/test'
 import { SEED_TASKS, seedLocalBoard, type SeedTask } from './helpers/seed'
 import { emitTauriEvent, installTauriStub, stubState } from './helpers/tauriStub'
 import { openSettings } from './helpers/appNav'
+import { measureContrast } from './helpers/contrast'
 
 /**
  * #383: the floating Now window. Two halves, both through the Tauri stub (the real window needs a macOS desktop,
@@ -31,7 +32,7 @@ const calls = async (page: Page, cmd: string) => (await stubState(page)).calls.f
 const pill = (page: Page) => page.getByTestId('now-pill')
 
 test.describe('the pill window (/overlay)', () => {
-  test('shows title, remaining time and the tint; the title is private; it counts down by the wall clock', async ({ context, page }) => {
+  test('shows title, remaining time and the light; the title is private; it counts down by the wall clock', async ({ context, page }) => {
     await openPill(context, page, snap({ running: true }))
     await expect(pill(page)).toBeVisible()
     await expect(page.getByTestId('now-title')).toHaveText('Release notes schreiben')
@@ -55,11 +56,11 @@ test.describe('the pill window (/overlay)', () => {
     await expect(page.getByTestId('now-pause')).toHaveAccessibleName('Fortsetzen')
   })
 
-  test('the tint drains with the time left, turns amber above 80 % spent and is full and amber again over the timebox', async ({ context, page }) => {
+  test('the light drains with the time left, turns amber above 80 % spent and is full and amber again over the timebox', async ({ context, page }) => {
     // 860 of 1500 s spent: 43 % left, primary
     await openPill(context, page, snap({ spentSeconds: 860 }))
     const fill = page.locator('[data-testid="now-fill"]')
-    const share = async () => Number((await fill.evaluate(el => (el as HTMLElement).style.width)).replace('%', '')) / 100
+    const share = async () => Number(await fill.evaluate(el => (el as HTMLElement).style.getPropertyValue('--now-share')))
     expect(await share()).toBeCloseTo(640 / 1500, 3)
     await expect(pill(page)).not.toHaveClass(/is-warning/)
     // 1200 s = exactly 80 %: still primary; one second more: warning (the app's rule, `getTimeboxRingColor`)
@@ -75,7 +76,7 @@ test.describe('the pill window (/overlay)', () => {
     expect(await share()).toBe(1)
   })
 
-  test('the tint glides on a tick and jumps when the task changes or the timebox runs out (#436)', async ({ context, page }) => {
+  test('the light glides on a tick and jumps when the task changes or the timebox runs out (#436)', async ({ context, page }) => {
     await openPill(context, page, snap({ spentSeconds: 860 }))
     const fill = page.locator('[data-testid="now-fill"]')
     await emitTauriEvent(page, NOW_EVENT, snap({ spentSeconds: 861, at: Date.now() }))
@@ -89,7 +90,100 @@ test.describe('the pill window (/overlay)', () => {
     await expect(fill).not.toHaveClass(/is-gliding/)
   })
 
-  test('without a timebox there is no tint and the time counts up', async ({ context, page }) => {
+  test('the light is 280 x 42 pt with a straight, soft edge that holds at any share, and only transform moves it (#703)', async ({ context, page }) => {
+    await openPill(context, page, snap({ spentSeconds: 860 }))
+    const box = (await pill(page).boundingBox())!
+    expect([box.width, box.height]).toEqual([280, 42])
+    const fill = page.getByTestId('now-fill')
+    // the layer is as wide as the pill and slid left by the time gone: its right end is the visible edge, at share x width
+    const edgeAt = async () => fill.evaluate(el => { const r = el.getBoundingClientRect(); return { width: r.width, right: r.right - el.parentElement!.getBoundingClientRect().left } })
+    let edge = await edgeAt()
+    expect(edge.width).toBeCloseTo(280, 0)
+    expect(edge.right).toBeCloseTo(280 * (640 / 1500), 0)
+    // a share narrower than the corner radius (21 px): still the same layer, only moved; no round cap of its own
+    await emitTauriEvent(page, NOW_EVENT, snap({ spentSeconds: 1495, at: Date.now() }))
+    await expect(page.getByTestId('now-time')).toHaveText('0:05')
+    edge = await edgeAt()
+    expect(edge.width).toBeCloseTo(280, 0)
+    expect(edge.right).toBeLessThan(21)
+    expect(await fill.evaluate(el => getComputedStyle(el).borderRadius)).toBe('0px')
+    // the breathing band moves opacity and transform only
+    const band = await page.locator('.now-edge').evaluate(el => el.getAnimations().flatMap(a => ((a.effect as KeyframeEffect).getKeyframes()).flatMap(k => Object.keys(k))).filter(k => !['offset', 'easing', 'composite', 'computedOffset'].includes(k)))
+    expect([...new Set(band)].sort()).toEqual(['opacity', 'transform'])
+  })
+
+  test('the band breathes while it runs and holds still while paused (#703)', async ({ context, page }) => {
+    await openPill(context, page, snap({ running: true }))
+    const state = () => page.locator('.now-edge').evaluate(el => el.getAnimations().map(a => a.playState))
+    await expect.poll(state).toEqual(['running'])
+    await emitTauriEvent(page, NOW_EVENT, snap({ running: false, at: Date.now() }))
+    await expect(pill(page)).toHaveClass(/is-paused/)
+    await expect.poll(state).toEqual(['paused'])
+  })
+
+  test('with reduced motion the band rests at mid brightness and the light does not glide (#703)', async ({ context, page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await openPill(context, page, snap({ running: true }))
+    const edge = page.locator('.now-edge')
+    await expect.poll(() => edge.evaluate(el => Number(getComputedStyle(el).opacity))).toBeCloseTo(0.7, 1)
+    expect(await edge.evaluate(el => getComputedStyle(el).transform)).toBe('none')
+    // paused is no different: no animation sits at its first keyframe (0.35)
+    await emitTauriEvent(page, NOW_EVENT, snap({ running: false, at: Date.now() }))
+    await expect(pill(page)).toHaveClass(/is-paused/)
+    expect(await edge.evaluate(el => el.getAnimations().length)).toBe(0)
+    expect(Number(await edge.evaluate(el => getComputedStyle(el).opacity))).toBeCloseTo(0.7, 1)
+    await emitTauriEvent(page, NOW_EVENT, snap({ spentSeconds: 861, at: Date.now() }))
+    expect(await page.getByTestId('now-fill').evaluate(el => getComputedStyle(el).transitionDuration)).toBe('0s')
+  })
+
+  test('a long title is cut with an ellipsis and never hides the time or the buttons, also over an hour (#703)', async ({ context, page }) => {
+    await openPill(context, page, snap({ title: 'Ein sehr langer Titel einer Aufgabe, der nicht in die Pille passt', timeBoxSeconds: 5400, spentSeconds: 60, running: true }))
+    await expect(page.getByTestId('now-time')).toHaveText(/^1:\d{2}:\d{2}$/)
+    const title = page.getByTestId('now-title')
+    expect(await title.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true)
+    const edge = (await pill(page).boundingBox())!
+    for (const id of ['now-time', 'now-pause', 'now-done']) {
+      const box = (await page.getByTestId(id).boundingBox())!
+      expect(box.x, id).toBeGreaterThanOrEqual(edge.x)
+      expect(box.x + box.width, id).toBeLessThanOrEqual(edge.x + edge.width)
+    }
+    const t = (await title.boundingBox())!, time = (await page.getByTestId('now-time').boundingBox())!
+    expect(t.x + t.width).toBeLessThanOrEqual(time.x + 0.5)
+    for (const id of ['now-pause', 'now-done']) expect((await page.getByTestId(id).boundingBox())!.width).toBeGreaterThanOrEqual(28)
+  })
+
+  // The light is under the title and the time: text 4.5:1, glyphs 3:1 in every state, on a light and a dark stand-in backdrop, with the band at its brightest.
+  // The real glass is a manual check (`desktop-verify`); the backdrop here is a mid wallpaper tone.
+  for (const scheme of ['light', 'dark'] as const) {
+    test(`text and glyphs keep their contrast over the light in every state, ${scheme} (#703)`, async ({ browser }) => {
+      const states: Record<string, Partial<Snap>> = { running: {}, paused: { running: false }, warning: { spentSeconds: 1300 }, narrow: { spentSeconds: 1400 }, over: { spentSeconds: 1630 } }
+      for (const [name, extra] of Object.entries(states)) {
+        const context = await browser.newContext({ colorScheme: scheme, locale: 'de-DE' })
+        try {
+          const page = await context.newPage()
+          await installTauriStub(context, {})
+          await context.addInitScript((v) => { (window as unknown as { __overlaySnapshot: unknown }).__overlaySnapshot = { ...v, at: Date.now() } }, snap({ running: true, ...extra }))
+          await page.goto('/overlay')
+          await expect(pill(page)).toBeVisible()
+          await page.addStyleTag({ content: `html,body{background:${scheme === 'light' ? '#cfd8e8' : '#26364f'} !important}` })
+          // The band at its brightest, still: the keyframe's peak (opacity 1, shifted 4 px) set by CSS. A paused animation does not hold: `measureContrast` screenshots with `animations: 'disabled'`, which cancels an infinite one and would leave the band at its base opacity.
+          await page.addStyleTag({ content: '.now-edge{animation:none !important;opacity:1 !important;transform:translateX(-4px) !important}' })
+          for (const id of ['now-title', 'now-time']) {
+            const { ratio } = await measureContrast(page, page.getByTestId(id))
+            expect(ratio, `${scheme} ${name} ${id}`).toBeGreaterThanOrEqual(name === 'paused' && id === 'now-time' ? 3 : 4.5)
+          }
+          for (const id of ['now-pause', 'now-done']) {
+            const { ratio } = await measureContrast(page, page.getByTestId(id).locator('svg'))
+            expect(ratio, `${scheme} ${name} ${id}`).toBeGreaterThanOrEqual(3)
+          }
+        } finally {
+          await context.close()
+        }
+      }
+    })
+  }
+
+  test('without a timebox there is no light and the time counts up', async ({ context, page }) => {
     await openPill(context, page, snap({ timeBoxSeconds: null, spentSeconds: 125, running: true }))
     await expect(page.getByTestId('now-title')).toBeVisible()
     await expect(page.getByTestId('now-fill')).toHaveCount(0)
