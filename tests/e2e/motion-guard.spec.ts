@@ -31,9 +31,6 @@ const READS_A_STEP_MS = 450
 const SETUP_BACK_LABEL: AllowedJump = { match: /setup-back/, issue: '#652', why: 'the label of the back button changes with the step, so its width does (not a move)' }
 const SETUP_PAGE_SCROLL: AllowedJump = { match: /flow-root|brand-flight/, issue: '#649', why: 'the pane has no scroll area of its own now, so a tall step makes the page scroll; when the done beat shortens the page the sampler (page y = rect + scrollY) reads the scroll reset as a jump of the pane block and of the fixed brand flight (both glide on screen)' }
 
-/** The completion toast's viewport (the Nuxt UI toaster, `ol.fixed`) changes height by 122 px in one frame when the toast arrives; the toast itself slides in. Found while #661 left the list; #675. */
-const TOAST_VIEWPORT: AllowedJump = { match: /^ol\.fixed\.flex\.flex-col/, issue: '#675', why: 'the toaster viewport box grows with its toast in one frame' }
-
 /** In-app navigation: the sampler lives in one document, so a flow never reloads the page. */
 const push = (page: Page, path: string) => page.evaluate(path => (window as unknown as { useNuxtApp: () => { $router: { push: (p: string) => Promise<unknown> } } }).useNuxtApp().$router.push(path), path)
 
@@ -241,7 +238,6 @@ const FLOWS: Flow[] = [
       await status.click()
       await page.getByRole('option', { name: 'Offen', exact: true }).click()
     },
-    jumps: [TOAST_VIEWPORT],
   },
   {
     name: 'Karten stapeln on, another group-by, off (#610)',
@@ -353,6 +349,33 @@ test.describe('the frame sampler', () => {
     const report = await probe(page, `${mk('probe-empty', 0, 40)} ${mk('probe-empty-w', 20, 0)}`)
     expect(labels(report)).not.toContain('probe-empty')
   })
+
+  /** A bottom-anchored container that grows by its child in one frame (the toaster viewport of #675); `snap` also moves the child 60 px in one frame later. */
+  const grower = (id: string, css: string, extra = '', snap = false) => `{ const c = document.createElement("div"); c.id = "${id}"; c.setAttribute("data-probe", ""); c.style.cssText = "right:20px;bottom:16px;width:300px;${css}"; ${extra} document.body.appendChild(c); setTimeout(() => { const k = document.createElement("div"); k.id = "${id}-child"; k.setAttribute("data-probe", ""); k.style.cssText = "position:relative;left:0;height:120px;background:#888;"; c.appendChild(k); ${snap ? `setTimeout(() => { k.style.left = "60px" }, 300);` : ''} }, 100) }`
+  const reportsBox = (r: Awaited<ReturnType<typeof probe>>, id: string) => r.jumps.some(j => new RegExp(`#${id}(?!-)`).test(j.label))
+
+  test('a fixed box that paints nothing and grows by its child is not reported, its child still is (#675)', async ({ page }) => {
+    const script = grower('probe-bare', 'position:fixed;', '', true)
+    let report = await probe(page, script)
+    // A dropped frame around the child's snap makes it uncertain: try again like the snap probe above
+    for (let attempt = 1; attempt < 8 && report.skipped > 0 && !labels(report).includes('probe-bare-child'); attempt++) report = await probe(page, script)
+    expect(labels(report)).toContain('probe-bare-child')
+    expect(reportsBox(report, 'probe-bare'), labels(report)).toBe(false)
+  })
+
+  for (const [name, css, extra] of [
+    ['has a background', 'position:fixed;background:#ccc;', ''],
+    ['has a border', 'position:fixed;border:2px solid #444;', ''],
+    ['has text of its own', 'position:fixed;', 'c.appendChild(document.createTextNode("Hallo"));'],
+    ['is absolute, not fixed', 'position:absolute;', ''],
+  ] as const) {
+    test(`the same box that ${name} is reported when it grows in one frame (#675)`, async ({ page }) => {
+      const script = grower('probe-grow', css, extra)
+      let report = await probe(page, script)
+      for (let attempt = 1; attempt < 8 && report.skipped > 0 && !reportsBox(report, 'probe-grow'); attempt++) report = await probe(page, script)
+      expect(reportsBox(report, 'probe-grow'), labels(report)).toBe(true)
+    })
+  }
 
   test('a glide with a stall in the middle is not reported', async ({ page }) => {
     const report = await probe(page, stalledGlide)

@@ -12,6 +12,9 @@
  * frame pair more than `MAX_FRAME_MS` apart is skipped: a loaded machine drops frames, and a dropped frame would turn a glide
  * into a jump. The count of skipped pairs is part of the report so a run that mostly skipped can be seen. A box with a width or height
  * of 0 in two frames in a row (an empty toast viewport, #672) has nothing to see move and is not measured; one that gains or loses its area in a frame is.
+ * Neither is a `position: fixed` box that paints nothing itself (transparent, no border, shadow or filter), holds elements only and
+ * no text of its own (#675: the toast viewport grows from 0 to its toast's height in one frame, the toast glides in and is measured):
+ * its children are the boxes that show. An absolute or in-flow box, one with a background or with text of its own, is measured.
  *
  * The thresholds are about a frame at 60 Hz, and a loaded CI runner (2 vCPUs, a video recording) has frames of 30 to 40 ms, so
  * every rule reads the frame's own duration (#666): the step limit is per 17 ms (a frame twice as long may move twice as far),
@@ -71,13 +74,27 @@ export interface FrameSampler {
 export async function startFrames(page: Page, selector = 'body *'): Promise<FrameSampler> {
   await page.evaluate(([sel, maxFrameMs, frameMs]) => {
     // steps[i] = px moved in frame i (0 = still, -1 = moved in a dropped frame: how far and how fast is not known); times[i] = that frame's ms
-    type Track = { x: number, y: number, w: number, h: number, steps: number[], times: number[], el: Element }
+    type Track = { x: number, y: number, w: number, h: number, steps: number[], times: number[], el: Element, bare?: boolean }
     const tracks = new Map<Element, Track>()
     let last = performance.now()
     let measured = 0
     let skipped = 0
     let afterDrop = false
     let running = true
+    // A fixed box that paints nothing itself and holds only elements: its children are the boxes to see (#675)
+    const isBareFixed = (el: Element) => {
+      if (el.childElementCount === 0) return false
+      for (const n of Array.from(el.childNodes)) if (n.nodeType === Node.TEXT_NODE && (n.textContent ?? '').trim()) return false
+      const cs = getComputedStyle(el)
+      return cs.position === 'fixed'
+        && (cs.backgroundColor === 'rgba(0, 0, 0, 0)' || cs.backgroundColor === 'transparent')
+        && cs.backgroundImage === 'none'
+        && [cs.borderTopWidth, cs.borderRightWidth, cs.borderBottomWidth, cs.borderLeftWidth].every(w => parseFloat(w) === 0)
+        && cs.boxShadow === 'none'
+        && (cs.outlineStyle === 'none' || parseFloat(cs.outlineWidth) === 0)
+        && cs.filter === 'none'
+        && (cs.backdropFilter === 'none' || cs.backdropFilter === '')
+    }
     const sample = (now: number) => {
       if (!running) return
       const frameDt = now - last
@@ -116,6 +133,17 @@ export async function startFrames(page: Page, selector = 'body *'): Promise<Fram
           continue
         }
         const step = Math.max(Math.abs(x - t.x), Math.abs(y - t.y), Math.abs(r.width - t.w), Math.abs(r.height - t.h))
+        // The toaster viewport is a transparent, bottom-anchored `ol` that grows by its toast in one frame while the toast
+        // glides in: nothing to see move (#675). Judged once, when the box first moves.
+        if (step >= 0.5 && (t.bare ??= isBareFixed(el))) {
+          t.x = x
+          t.y = y
+          t.w = r.width
+          t.h = r.height
+          t.steps.push(0)
+          t.times.push(frameDt)
+          continue
+        }
         // The frame after a stall shows what the stall held back: a transition that began inside it, a spring that catches up
         if (!dropped && !afterDrop) {
           t.steps.push(step < 0.5 ? 0 : step)
