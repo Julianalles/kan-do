@@ -144,7 +144,6 @@
     },
     "notPlanned": {
       "title": "All tasks",
-      "heading": "All",
       "plan": "Plan for today",
       "planNamed": "{title}: plan for today",
       "notToday": "Don't plan for today",
@@ -160,8 +159,13 @@
       "dragBack": "“{title}” stays in “All tasks”.",
       "capacityFull": "With this your day is probably full.",
       "capacityBelow": "Your day is probably full. One task is below the line. | Your day is probably full. {n} tasks are below the line.",
-      "groupBoardYesterday": "Last planned and not done",
-      "groupOthers": "More tasks"
+      "panelPlanned": "Planned yesterday",
+      "panelWaiting": "Waiting yesterday",
+      "panelCount": "{n} task | {n} tasks",
+      "planAll": "Plan all for today",
+      "planAllShort": "Plan all",
+      "planAllNamed": "Plan all tasks from “{section}” for today",
+      "plannedMany": "One task is planned for today. | {n} tasks are planned for today."
     },
     "yesterdayUnderAll": "One task from yesterday is under {all}. | {n} tasks from yesterday are under {all}.",
     "newDayNote": {

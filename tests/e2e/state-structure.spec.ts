@@ -84,14 +84,14 @@ test.describe('a new day (#356, #387)', () => {
     await settleAnimations(page)
   }
 
-  test('"Alle Aufgaben" after the fresh start: the panel "Zuletzt geplant und nicht erledigt" (a labelled group) and "Weitere Aufgaben", each a heading with its list (1280)', async ({ context, page }) => {
+  test('"Alle Aufgaben" after the fresh start: the panels "Gestern geplant" and "Gestern in Wartet" (labelled groups with a button) above the plain list (1280)', async ({ context, page }) => {
     await seedNewDayBoard(context, { tasks: board() })
     await page.goto('/all')
     await startFresh(page)
     await expect(page.getByTestId('not-planned')).toMatchAriaSnapshot({ name: 'not-planned-new-day-groups-1280.aria.yml' })
   })
 
-  test('"Alle Aufgaben" after the fresh start: the panel is one named group on a phone (390)', async ({ context, page }) => {
+  test('"Alle Aufgaben" after the fresh start: the panels are named groups on a phone (390)', async ({ context, page }) => {
     await page.setViewportSize(MOBILE)
     await seedNewDayBoard(context, { tasks: board() })
     await gotoBoard(page)

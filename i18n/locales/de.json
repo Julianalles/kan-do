@@ -144,7 +144,6 @@
     },
     "notPlanned": {
       "title": "Alle Aufgaben",
-      "heading": "Alle",
       "plan": "Für heute einplanen",
       "planNamed": "{title}: für heute einplanen",
       "notToday": "Nicht für heute planen",
@@ -160,8 +159,13 @@
       "dragBack": "„{title}“ bleibt in „Alle Aufgaben“.",
       "capacityFull": "Damit ist dein Tag vermutlich voll.",
       "capacityBelow": "Dein Tag ist vermutlich voll. Eine Aufgabe liegt unter der Linie. | Dein Tag ist vermutlich voll. {n} Aufgaben liegen unter der Linie.",
-      "groupBoardYesterday": "Zuletzt geplant und nicht erledigt",
-      "groupOthers": "Weitere Aufgaben"
+      "panelPlanned": "Gestern geplant",
+      "panelWaiting": "Gestern in Wartet",
+      "panelCount": "{n} Aufgabe | {n} Aufgaben",
+      "planAll": "Alle für heute einplanen",
+      "planAllShort": "Alle einplanen",
+      "planAllNamed": "Alle Aufgaben aus „{section}“ für heute einplanen",
+      "plannedMany": "Eine Aufgabe ist für heute geplant. | {n} Aufgaben sind für heute geplant."
     },
     "yesterdayUnderAll": "Eine Aufgabe von gestern liegt unter {all}. | {n} Aufgaben von gestern liegen unter {all}.",
     "newDayNote": {
