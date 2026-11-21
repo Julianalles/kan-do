@@ -8,7 +8,7 @@
 @responsibility
 - Outside Jetzt: a light grey chip "45 min" (track and fill half a step lighter since #584) whose grey fill shows the spent share of the timebox (no colour, also not on overrun or done cards)
 - In Jetzt: once the card has settled it springs wider (x axis only) into a bar across the whole footer, anchored at its own
-  left edge (the footer start, or right after the source icon, #584, #471) and growing to the right over the carry-over dots and priority badge: "12 min ...... 45 min", fill primary, warning above 80 percent
+  left edge (the footer start, or right after the source icon, #584, #471; in Jetzt under the icon, #704) and growing to the right over the carry-over dots and priority badge: "12 min ...... 45 min", fill primary, warning above 80 percent
 - In Jetzt the fill is a timer (#450, as the Now window's line, `getTimerBarShare`): it starts full and shrinks toward the left
   with the remaining time; the colour still follows the spent share; over the timebox it is full and warning again, set at
   once (the step into the overrun never plays a refill). The labels stay spent and timebox, the progressbar value stays the
@@ -38,7 +38,7 @@
 - The timer bar keeps a minimum fill (2.5 rem: the icon with its padding), so the last stretch never shows a sliver and the icon stays on the fill; the spent label can still straddle the fill's edge (both sides keep 4.5:1)
 - Accepted: the task sheet's ring still shows the spent share while the Jetzt bar shows the share left (a record next to a timer); the overrun differs from a fresh start by colour only (a "+12 min" label would be new copy, out of scope of #450)
 - Accepted: in Jetzt the bar covers the carry-over dots and priority badge (TaskCard makes the group after the
-  chip inert); the source icon (#471) stands before the chip and stays visible, so the bar's width is the footer's less that unit (`--footer-w`, set by TaskCard); the spring overshoot may poke a few px past the footer padding, inside the card
+  chip inert); the bar spans the whole footer (`--footer-w`) and starts under the source unit (#471, `--source-w`, both set by TaskCard; #704), the icon on top of it; the spring overshoot may poke a few px past the footer padding, inside the card
 -->
 <template>
   <Transition name="chip-pop" :appear="popsOnMount">
@@ -293,13 +293,17 @@ watch(() => props.isNow, (now) => {
 .chip--primary { --chip-fill: var(--ui-color-primary-200); --chip-accent: var(--ui-color-primary-600); }
 .chip--warning { --chip-fill: var(--ui-color-warning-200); --chip-accent: var(--ui-color-warning-600); }
 
-/* Jetzt: a bar from the chip to the footer's end (--footer-w is the footer less the source unit before it), over the items after the chip */
+/* Jetzt: a bar across the whole footer (--footer-w), starting under the source unit before the chip (--source-w, #704) and over the items after the chip */
 .chip--now {
   width: var(--footer-w, 100%);
   height: var(--chip-h-now);
   padding-inline: 0.75rem;
   font-size: var(--text-sm); /* body step */
   border-radius: var(--chip-radius-now);
+}
+.chip--now:not(.chip--boxless) {
+  left: calc(-1 * var(--source-w, 0px));
+  padding-inline-start: calc(0.75rem + var(--source-w, 0px)); /* the clock stays clear of the source icon on top of the bar */
 }
 .chip-slot--armed .chip--now { transition-delay: var(--chip-settle-delay); }
 .chip--now.chip--boxless { width: auto; min-width: 100%; font-size: var(--text-xs); --chip-track: var(--ui-color-primary-100); }
@@ -309,14 +313,13 @@ watch(() => props.isNow, (now) => {
   inset: 0;
   z-index: -1;
   width: var(--chip-p);
-  background: var(--chip-fill);
-  border-radius: inherit;
+  background: var(--chip-fill); /* straight inner edge (#704): no radius of its own, the track's overflow clips the outer corners */
 }
 .chip-slot--armed .chip__fill { transition: width var(--chip-fill-duration) var(--chip-ease), background-color var(--duration-slow) var(--ease-standard); }
 .chip--boxless .chip__fill { width: 0; }
 /* The timer bar never shrinks below the icon and its padding (#450 design review): the clock always sits on the fill, the
    fill stays a pill instead of a sliver, and the step into the overrun is a step from a pill, not from nothing */
-.chip--now:not(.chip--boxless) .chip__fill { min-width: min(2.5rem, 100%); }
+.chip--now:not(.chip--boxless) .chip__fill { min-width: min(calc(2.5rem + var(--source-w, 0px)), 100%); }
 .chip-slot--armed .chip--now .chip__fill { transition-delay: 0ms, var(--chip-settle-delay); }
 
 .chip__content { display: inline-flex; align-items: center; gap: 0.25rem; width: 100%; min-width: 0; }

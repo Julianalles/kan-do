@@ -117,7 +117,7 @@ test.describe('source icon: shown on a mixed board only', () => {
   })
 })
 
-  test('in Jetzt the icon stays visible at the far left and the bar runs from the chip to the footer end (#471)', async ({ context, page }) => {
+  test('in Jetzt the icon stays visible on top of the bar, which spans the whole footer (#471, #704)', async ({ context, page }) => {
     await seedMixedBoard(context, MIXED_SEED_TASKS.map((t) => (t.id === 'page-2' ? { ...t, timeBoxSeconds: 1800, timeSpentSeconds: 600 } : t)))
     await blockNotion(page)
     await page.goto('/tasks')
@@ -133,10 +133,11 @@ test.describe('source icon: shown on a mixed board only', () => {
       const bar = await box(chip)
       return {
         iconAtStart: Math.abs(icon.x - footer.x) <= 1,
-        barAfterIcon: bar.x >= icon.x + icon.width - 1,
+        barStartsAtFooter: Math.abs(bar.x - footer.x) <= 2,
+        iconOnTopOfBar: await sourceIcon(jetzt).evaluate((el) => { const r = el.getBoundingClientRect(); return document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)?.closest('[data-testid="task-footer-source"]') !== null }),
         barEndsAtFooter: Math.abs(bar.x + bar.width - (footer.x + footer.width)) <= 2,
       }
-    }, { timeout: 5000 }).toEqual({ iconAtStart: true, barAfterIcon: true, barEndsAtFooter: true })
+    }, { timeout: 5000 }).toEqual({ iconAtStart: true, barStartsAtFooter: true, iconOnTopOfBar: true, barEndsAtFooter: true })
   })
 
 for (const { name, viewport } of [{ name: '1280px', viewport: DESKTOP }, { name: '390px', viewport: MOBILE }]) {
