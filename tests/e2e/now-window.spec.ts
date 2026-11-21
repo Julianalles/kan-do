@@ -127,6 +127,11 @@ test.describe('the pill window (/overlay)', () => {
     const edge = page.locator('.now-edge')
     await expect.poll(() => edge.evaluate(el => Number(getComputedStyle(el).opacity))).toBeCloseTo(0.7, 1)
     expect(await edge.evaluate(el => getComputedStyle(el).transform)).toBe('none')
+    // paused is no different: no animation sits at its first keyframe (0.35)
+    await emitTauriEvent(page, NOW_EVENT, snap({ running: false, at: Date.now() }))
+    await expect(pill(page)).toHaveClass(/is-paused/)
+    expect(await edge.evaluate(el => el.getAnimations().length)).toBe(0)
+    expect(Number(await edge.evaluate(el => getComputedStyle(el).opacity))).toBeCloseTo(0.7, 1)
     await emitTauriEvent(page, NOW_EVENT, snap({ spentSeconds: 861, at: Date.now() }))
     expect(await page.getByTestId('now-fill').evaluate(el => getComputedStyle(el).transitionDuration)).toBe('0s')
   })
@@ -154,23 +159,26 @@ test.describe('the pill window (/overlay)', () => {
       const states: Record<string, Partial<Snap>> = { running: {}, paused: { running: false }, warning: { spentSeconds: 1300 }, narrow: { spentSeconds: 1400 }, over: { spentSeconds: 1630 } }
       for (const [name, extra] of Object.entries(states)) {
         const context = await browser.newContext({ colorScheme: scheme, locale: 'de-DE' })
-        const page = await context.newPage()
-        await installTauriStub(context, {})
-        await context.addInitScript((v) => { (window as unknown as { __overlaySnapshot: unknown }).__overlaySnapshot = { ...v, at: Date.now() } }, snap({ running: true, ...extra }))
-        await page.goto('/overlay')
-        await expect(pill(page)).toBeVisible()
-        await page.addStyleTag({ content: `html,body{background:${scheme === 'light' ? '#cfd8e8' : '#26364f'} !important}` })
-        // the band at its brightest, still
-        await page.locator('.now-edge').evaluate(el => el.getAnimations().forEach((a) => { a.pause(); a.currentTime = 2400 }))
-        for (const id of ['now-title', 'now-time']) {
-          const { ratio } = await measureContrast(page, page.getByTestId(id))
-          expect(ratio, `${scheme} ${name} ${id}`).toBeGreaterThanOrEqual(name === 'paused' && id === 'now-time' ? 3 : 4.5)
+        try {
+          const page = await context.newPage()
+          await installTauriStub(context, {})
+          await context.addInitScript((v) => { (window as unknown as { __overlaySnapshot: unknown }).__overlaySnapshot = { ...v, at: Date.now() } }, snap({ running: true, ...extra }))
+          await page.goto('/overlay')
+          await expect(pill(page)).toBeVisible()
+          await page.addStyleTag({ content: `html,body{background:${scheme === 'light' ? '#cfd8e8' : '#26364f'} !important}` })
+          // The band at its brightest, still: the keyframe's peak (opacity 1, shifted 4 px) set by CSS. A paused animation does not hold: `measureContrast` screenshots with `animations: 'disabled'`, which cancels an infinite one and would leave the band at its base opacity.
+          await page.addStyleTag({ content: '.now-edge{animation:none !important;opacity:1 !important;transform:translateX(-4px) !important}' })
+          for (const id of ['now-title', 'now-time']) {
+            const { ratio } = await measureContrast(page, page.getByTestId(id))
+            expect(ratio, `${scheme} ${name} ${id}`).toBeGreaterThanOrEqual(name === 'paused' && id === 'now-time' ? 3 : 4.5)
+          }
+          for (const id of ['now-pause', 'now-done']) {
+            const { ratio } = await measureContrast(page, page.getByTestId(id).locator('svg'))
+            expect(ratio, `${scheme} ${name} ${id}`).toBeGreaterThanOrEqual(3)
+          }
+        } finally {
+          await context.close()
         }
-        for (const id of ['now-pause', 'now-done']) {
-          const { ratio } = await measureContrast(page, page.getByTestId(id).locator('svg'))
-          expect(ratio, `${scheme} ${name} ${id}`).toBeGreaterThanOrEqual(3)
-        }
-        await context.close()
       }
     })
   }

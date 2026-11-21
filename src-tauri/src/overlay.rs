@@ -371,6 +371,9 @@ fn apply<R: Runtime>(app: &AppHandle<R>) {
     let window = app.get_webview_window(OVERLAY_LABEL);
     if snapshot.is_none() {
         if let Some(window) = window {
+            // The empty snapshot first: the pill unmounts (and its breathing band stops) instead of animating in a
+            // hidden window, whether or not the web view reports the window as hidden (#703)
+            let _ = app.emit_to(OVERLAY_LABEL, STATE_EVENT, &snapshot);
             let _ = window.hide();
         }
         return;

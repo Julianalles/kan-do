@@ -19,7 +19,7 @@
 - The window is exactly the pill (280 x 42 pt, no margin): the shadow is the system's, and the bevel rim (light edge top left, dark edge bottom right, a faint inner glow) is drawn inside the box, above the light, so a half-pixel offset cannot clip it
 - Over the timebox the light is full again and warning-coloured (it has run out, not "nothing left")
 - Paused wins over warning for the time (regular weight, muted): a paused task keeps its light colour, so the urgency stays readable there
-- Motion: the light eases one second per tick (linear) and only on the per-tick shrink; the band breathes on a loop and stops while paused or while the window is hidden (`document.visibilityState`); under `prefers-reduced-motion` the global rule ends both, the band rests at mid brightness and the width follows the time by tick
+- Motion: the light eases one second per tick (linear) and only on the per-tick shrink; the band breathes on a loop and stops while paused; with no task Rust sends the empty snapshot before it hides the window, so the pill (and its band) unmounts, and `visibilitychange` holds it as a second guard; under `prefers-reduced-motion` the animation is off (also when paused or hidden), the band rests at mid brightness and the position follows the time by tick
 -->
 <template>
   <div class="now-window" data-testid="now-window">
@@ -109,7 +109,7 @@ const DRAG_THRESHOLD_PX = 3
 
 const now = ref(Date.now())
 let ticker: ReturnType<typeof setInterval> | null = null
-/** The band stops breathing while the window is hidden (Rust hides the pill when no task is shown); no work for a window nobody sees (#703) */
+/** Belt and braces: the band holds while the document is hidden. It does not rely on this: Rust tells the pill when no task is shown (`overlay::apply` emits the empty snapshot before it hides the window), `v-if="snapshot"` then unmounts the band, so nothing animates in a hidden window even if WKWebView never fires `visibilitychange` (unverified, #703). The 1 s ticker runs on, one cheap ref write a second. */
 const hidden = ref(false)
 function onVisibility(): void { hidden.value = document.visibilityState === 'hidden' }
 onMounted(() => {
@@ -125,7 +125,7 @@ onBeforeUnmount(() => {
 const shown = computed<NowSnapshot>(() => props.snapshot ?? { taskId: '', title: '', timeBoxSeconds: null, spentSeconds: 0, at: now.value, running: false, locale: 'de' })
 const view = computed(() => nowView(shown.value, now.value))
 
-/** The light glides only on the per-tick shrink; a new task, a new timebox or the step into the overrun set the width without motion (#436, #565). Decided in the render that changes the width, hence the sync flush. */
+/** The light glides only on the per-tick shrink; a new task, a new timebox or the step into the overrun set the position without motion (#436, #565). Decided in the render that changes the width, hence the sync flush. */
 const glide = ref(false)
 let lastFrame: LineFrame | null = null
 watch(view, (next) => {
@@ -273,6 +273,8 @@ function onOpen(): void {
 .is-paused .now-fill { opacity: 0.5; filter: saturate(0.5); }
 .is-paused .now-edge,
 .is-hidden .now-edge { animation-play-state: paused; }
+/* Reduced motion ends the animation outright: a paused or hidden pill would otherwise sit at keyframe 0 (0.35) instead of the mid brightness at rest (0.7) */
+@media (prefers-reduced-motion: reduce) { .now-edge { animation: none; } }
 .is-paused .now-time { color: var(--now-text-muted); font-weight: 400; }
 
 .now-row { position: relative; display: flex; flex: 1; align-items: center; gap: 2px; min-width: 0; }
