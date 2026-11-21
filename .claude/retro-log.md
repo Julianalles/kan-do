@@ -357,3 +357,5 @@ Running log of `/workflow-retro` (agent-workflow): the context-size history and 
 | W267 | Direct docs push approving all terms broke copy-editor.spec on main (10 min; gate maps terms*.json only for PRs) | escaped | npm run terms:approve | 1 | 2026-11-21 | watching: inbox issue 700 (approve script runs the spec) |
 | W268 | Isolated design-critique sub-agent denied by the auto-mode classifier in a fix worker (extra fix round) | wrong-instruction | issue-workflow.md Design quality gate | 1 | 2026-11-21 | watching: act if seen again |
 | 2026-11-21 | run_44ede166be57 (7 PRs, 8 issues, 5 fix rounds, ~1h40, 2 escaped) | not re-measured | CLAUDE.md 15316 B unchanged | issue-workflow 5036 | - | - | no prose added; start not measured |
+| 2026-11-21 | retro (2 old rediscovery entries) | not re-measured | e2e.md +1 sentence | - | - | - | start not measured |
+| W269 | Repro rediscovery: off-screen phone card click, welcome Board ansehen confirm (6 min) | rediscovery | e2e.md | 2 | 2026-11-21 | fixed 2026-11-21 e2e.md: expect no repeat |
