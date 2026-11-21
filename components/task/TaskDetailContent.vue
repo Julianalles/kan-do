@@ -8,9 +8,9 @@
 @responsibility
 - Display task properties as labelled rows (shared with the add form, #161), notes, and custom fields
 - Every property is a row in a stable position; unset Thema/Aktivität show the empty "Auswählen" state (#161)
-- Order: property rows (time spent last, with the time left beside it, kd#4), notes, custom properties, metadata (#386). Desktop sheet (#468, `TaskMorphShell`): title across the top, the rows (and the custom properties after them) in the left column, the notes in the right column, each column scrolling inside the sheet when the window is too short; Metadaten and the action row share the last line, no band, no hairline
+- Order: property rows (time spent last, with the time left beside it, kd#4), notes, custom properties, metadata (#386). Desktop sheet (#468, `TaskMorphShell`; one fixed frame, #705): title across the top with the task menu and the close button at its end, the custom-property strip under it (TaskDetailPropertyStrip: chips and one "Eigenschaften" button, only when properties are configured), then the six rows in the left column and the notes in the right column, each column scrolling inside the sheet (the sheet never grows with its content; Metadaten open shrinks the columns); Metadaten alone on the last line, no band, no hairline. The drawer lists the custom properties as rows after the notes
 - Provide formatted display of all task metadata
-- Bottom action row (#244, TaskSheetActions): open in source, move to source, Delete; no title-row menu, no copy id (the id is in Metadaten). Desktop: the right end of the last line, Metadaten on its left; mobile: last in the flow
+- Task menu (#705, TaskSheetMenu; reverses #244's bottom row): open in source, move to source, Delete behind one ⋯ button in the title row, no copy id (the id is in Metadaten). Desktop: left of the shell's close button (`inset-e-14 top-4`); drawer: beside the title. It follows the title in the DOM, so the tab order is close, title, menu
 - Render error state when task not found
 - Handle inline updates and synchronization
 - Topic and activity pickers (TopicPropertyPicker): the topic mark before each option, no control inside an option; an edit mode in the
@@ -22,14 +22,14 @@
   picking "Nicht geplant" takes a task off today's board from any column (`useTaskStatusActions.chooseStatus`)
 - Guard against drift (#161, kd#4): at most six always-visible standard rows (Status, Priorität, Thema, Aktivität, Timebox,
   Aufgewendete Zeit),
-  no per-row icons, no dividers; more always-visible rows must revisit the layout. There is no hairline in the sheet
+  no per-row icons, no dividers; more always-visible rows must revisit the layout. Custom properties are not rows of the column on desktop (#705): the frame leaves no room for variable-height rows. There is no hairline in the sheet
 - Done day (kd#131, agent-decided): a done task gets one more row, "Erledigt am", last in the list so no other row moves
   when a task is completed. It is the correction of a task marked done late, not part of completing: a DatePickerField
   without Löschen, limited to the days from the task's creation to today; picking a day goes through
   `useTaskSync.setCompletedDay` (statistics and the board's today / before-today split follow at once). The row is
   conditional, so the six-row guard above still counts the always-visible rows. A task whose connection holds no
   completion date says "Gilt nur in Kan-do." beside the value
-- Close clearance (kd#201): on desktop the shell's close button sits at the top end corner (`top-4 end-4`, 32 px), so the title and a triage block end 56 px (`pe-14`/`me-14`) from the sheet's edge and never run under the control; change both together
+- Close clearance (kd#201, #705): on desktop the shell's close button sits at the top end corner (`top-4 end-4`, 32 px) and the task menu left of it, so the title and a triage block end 96 px (`pe-24`/`me-24`) from the sheet's edge and never run under the controls; change both together
 - Property rows (moved from DESIGN.md, kd#176): a quiet label column and the value as its own control, a soft select with a chevron when it opens a list (`TaskPropertySelect`), an editable label on a faint dotted rule when it is free input (`InlineEditable`, `PropertyValueTrigger`). Every row keeps its place whether set or not ("Auswählen…", "+ hinzufügen"); six standard rows, the last one "Aufgewendete Zeit" (a source that owns the text, Reminders #551, shows Thema and Aktivität as plain values and leaves an empty one out); no per-row icons, dividers or chips, and no separate time block or progress ring on the sheet
 -->
 
@@ -51,15 +51,15 @@
           :task-id="task.id"
           :hold="!triageOpen"
           class="mt-4 mb-2"
-          :class="twoColumn ? 'ms-6 me-14' : 'mx-6'"
+          :class="twoColumn ? 'ms-6 me-24' : 'mx-6'"
           @kept="onTriageKept"
           @delete="emit('delete')"
         />
       </template>
     </UCollapsible>
 
-    <!-- Title: the sheet's one display line; on desktop it runs clear of the close button (kd#201: `top-4 end-4`, 32 px) -->
-    <div class="shrink-0 pb-4" :class="twoColumn ? 'ps-6 pe-14 pt-5' : 'px-6 pt-2'" data-testid="task-detail-header">
+    <!-- Title: the sheet's one display line; on desktop it runs clear of the close button (kd#201: `top-4 end-4`, 32 px) and the task menu left of it (#705: `inset-e-14 top-4`, 32 px) -->
+    <div class="shrink-0 pb-4" :class="twoColumn ? 'ps-6 pe-24 pt-5' : 'px-6 pt-2'" data-testid="task-detail-header">
       <div class="flex items-start gap-3">
         <div class="min-w-0 flex-1">
           <InlineEditable
@@ -99,8 +99,19 @@
             </template>
           </UCollapsible>
         </div>
+        <!-- Task menu (#705): beside the title on the drawer; on desktop it sits absolutely left of the shell's close button, still after the title in the tab order -->
+        <TaskSheetMenu
+          v-bind="actionProps"
+          :class="twoColumn ? 'absolute inset-e-14 top-4 z-10' : '-me-2 shrink-0 max-md:-me-3'"
+          @open="openSource"
+          @move="moveToSource"
+          @delete="emit('delete')"
+        />
       </div>
     </div>
+
+    <!-- Custom properties on the desktop sheet (#705): a chip strip under the title and one button for the editable list; the drawer lists them as rows after the notes -->
+    <TaskDetailPropertyStrip v-if="twoColumn" :key="task.id" :custom-list="customList" @update="updateCustomField" />
 
     <!-- Groups are separated by space only: properties, time, notes, custom properties, metadata. Desktop: rows left, notes right, each scrolling inside its column -->
     <div :class="twoColumn ? 'grid min-h-0 flex-1 grid-cols-2 grid-rows-[minmax(0,1fr)] gap-x-8 px-6 pb-3' : 'flex flex-col gap-6 px-6 pb-6'">
@@ -283,16 +294,6 @@
         </UCollapsible>
       </div>
 
-      <!-- 3. Custom (Notion) properties: one quiet heading, rows in the same grammar; in the sheet they follow the six rows in the left column -->
-      <section v-if="hasCustom && twoColumn" aria-labelledby="custom-heading" class="task-detail-section mt-6">
-        <SectionHeader id="custom-heading" :text="t('task.field.properties')" tag="h3" size="label" class="mb-0" />
-        <TaskDetailCustomFields
-          :key="task.id"
-          :custom-list="customList"
-          @update="updateCustomField"
-        />
-      </section>
-
       </div>
 
       <!-- 2. Notes: directly after the main fields on every sheet variant (#386); in the sheet their own column, scrolling inside it and never setting the sheet's height -->
@@ -314,7 +315,7 @@
 
     </div>
 
-    <!-- 4. Metadata (collapsed by default) and the action row: the last line of the sheet (Metadaten left, Löschen right, no band), last in the flow on the drawer (#386, #244) -->
+    <!-- 4. Metadata (collapsed by default): the last line of the sheet, no band; the task actions sit in the title row's menu (#705) -->
     <div :class="twoColumn ? 'flex shrink-0 items-start justify-between gap-4 px-6 pb-6' : 'flex flex-col gap-6 px-6 pb-6'" data-testid="task-detail-footer">
       <TaskDetailMetadata
         v-model:open="isMetadataOpen"
@@ -323,7 +324,6 @@
         :created-at="formatDate(task.createdAt)"
         :task-id="task.id"
       />
-      <TaskSheetActions v-bind="actionProps" :class="{ 'shrink-0': twoColumn }" @open="openSource" @move="moveToSource" @delete="emit('delete')" />
     </div>
 
     </div>
@@ -356,7 +356,8 @@ import TaskDetailCustomFields from '~/components/task/TaskDetailCustomFields.vue
 import TaskPropertyRow from '~/components/task/TaskPropertyRow.vue';
 import TaskDetailNotes from '~/components/task/TaskDetailNotes.vue';
 import TaskDetailMetadata from '~/components/task/TaskDetailMetadata.vue';
-import TaskSheetActions from '~/components/task/TaskSheetActions.vue';
+import TaskSheetMenu from '~/components/task/TaskSheetMenu.vue';
+import TaskDetailPropertyStrip from '~/components/task/TaskDetailPropertyStrip.vue';
 import TaskPropertySelect from '~/components/task/TaskPropertySelect.vue';
 import DatePickerField from '~/components/task/DatePickerField.vue';
 import { doneDayBounds } from '~/lib/doneDay';

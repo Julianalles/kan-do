@@ -80,24 +80,28 @@ describe('TaskMorphShell', () => {
     expect(panel()).toBeNull()
   })
 
-  it('grows from the card to a sheet centred on it, in about 280 ms', async () => {
+  it('grows from the card to the fixed frame centred on it, in about 340 ms, the card face scaling with it (#705)', async () => {
     addCard('t1', rect(500, 300, 288, 132))
     await mountShell({ open: true, originId: 't1' })
     const grow = panelAnimation()
     expect(grow).toBeDefined()
-    expect(grow!.options.duration).toBe(280)
+    expect(grow!.options.duration).toBe(340)
     const [from, to] = grow!.keyframes
     expect(from).toMatchObject({ left: '500px', top: '300px', width: '288px', height: '132px' })
-    // 720 x 384 around the card's centre (644, 366)
-    expect(to).toMatchObject({ left: '284px', top: '174px', width: '720px', height: '384px' })
+    // The frame is 720 x 612 (85 % of the width) around the card's centre (644, 366), whatever the content's natural height is
+    expect(to).toMatchObject({ left: '284px', top: '60px', width: '720px', height: '612px' })
     expect(panel()?.style.left).toBe('284px')
+    // The card's face scales by the sheet's width over the card's, from the panel's corner, and dissolves
+    const face = recorded.filter((entry) => entry.keyframes.some((frame) => typeof frame.transform === 'string' && String(frame.transform).startsWith('scale(')) && entry.keyframes.length === 2)
+    expect(face.map((entry) => entry.keyframes.map((frame) => frame.transform))).toContainEqual(['scale(1)', 'scale(2.5)'])
+    expect(face.every((entry) => entry.options.duration === 340)).toBe(true)
   })
 
   it('keeps the sheet 16 px inside the window for a card at the edge', async () => {
     addCard('t1', rect(980, 650, 288, 132))
     await mountShell({ open: true, originId: 't1' })
     const [, to] = panelAnimation()!.keyframes
-    expect(to).toMatchObject({ left: '544px', top: '400px' })
+    expect(to).toMatchObject({ left: '544px', top: '172px' })
   })
 
   it('stays below the app bar for a card high in the window (#518)', async () => {
@@ -127,7 +131,7 @@ describe('TaskMorphShell', () => {
     addCard('t1', rect(100, 300, 288, 132))
     await mountShell({ open: true, originId: 't1' })
     const [, to] = panelAnimation()!.keyframes
-    expect(to).toMatchObject({ left: '16px', top: '174px', width: '668px' })
+    expect(to).toMatchObject({ left: '16px', top: '82px', width: '668px', height: '568px' })
     expect(panel()?.style.maxHeight).toBe('768px')
   })
 
@@ -145,14 +149,14 @@ describe('TaskMorphShell', () => {
     const scaleIn = recorded.find((entry) => entry.target === panel() && entry.keyframes.some((frame) => frame.transform === 'scale(0.97)'))
     expect(scaleIn?.options.duration).toBe(160)
     expect(panel()?.style.left).toBe('280px')
-    expect(panel()?.style.top).toBe('208px')
+    expect(panel()?.style.top).toBe('94px')
   })
 
   it('treats a card scrolled out of the window as no origin', async () => {
     addCard('t1', rect(500, 1200, 288, 132))
     await mountShell({ open: true, originId: 't1' })
     expect(panelAnimation()).toBeUndefined()
-    expect(panel()?.style.top).toBe('208px')
+    expect(panel()?.style.top).toBe('94px')
   })
 
   it('opens at the same place with reduced motion, with a 1 ms fade and no grow', async () => {
@@ -161,12 +165,12 @@ describe('TaskMorphShell', () => {
     await mountShell({ open: true, originId: 't1' })
     expect(panelAnimation()).toBeUndefined()
     expect(panel()?.style.left).toBe('284px')
-    expect(panel()?.style.top).toBe('174px')
+    expect(panel()?.style.top).toBe('60px')
     const fades = recorded.filter((entry) => entry.target === panel())
     expect(fades.map((entry) => entry.options.duration)).toEqual([1])
   })
 
-  it('folds back into the card in about 200 ms, then reports after-leave', async () => {
+  it('folds back into the card in about 260 ms, the face scaling back down, then reports after-leave', async () => {
     addCard('t1', rect(500, 300, 288, 132))
     const shell = await mountShell({ open: true, originId: 't1' })
     const el = panel()
@@ -174,7 +178,7 @@ describe('TaskMorphShell', () => {
     await shell.setProps({ open: false })
     await flushPromises()
     const fold = recorded.find((entry) => entry.target === el && entry.keyframes.some((frame) => 'left' in frame))
-    expect(fold?.options.duration).toBe(200)
+    expect(fold?.options.duration).toBe(260)
     expect(fold!.keyframes[1]).toMatchObject({ left: '500px', top: '300px', width: '288px', height: '132px' })
     expect(shell.emitted('after-leave')).toHaveLength(1)
     expect(panel()).toBeNull()

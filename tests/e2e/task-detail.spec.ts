@@ -2,6 +2,7 @@ import { test, expect, type Locator, type Page } from '@playwright/test';
 import AxeBuilder from '@axe-core/playwright';
 import { seedLocalBoard, type SeedTask } from './helpers/seed';
 import { settleAnimations } from './helpers/settle';
+import { openTaskMenu, taskMenu } from './helpers/taskMenu';
 
 /**
  * E2E tests for Task Detail view (page and modal)
@@ -167,6 +168,12 @@ async function openSheet(page: Page, baseURL: string | undefined, id: string) {
   await settleAnimations(page); // the sheet slides in: a position read before it stops moving is off by a few px
 }
 
+/** Desktop (#705): the custom properties are editable rows in the popover behind the "Eigenschaften" button. */
+async function openProperties(page: Page) {
+  await page.getByTestId('task-properties-button').click();
+  await expect(page.getByTestId('task-properties-popover')).toBeVisible();
+}
+
 test.describe('Task Detail View', () => {
   test.beforeEach(async ({ context }) => {
     // Seeded before page JS runs (no goto + evaluate + reload, #512). `once`: the persistence tests reload
@@ -259,6 +266,7 @@ test.describe('Task Detail View', () => {
   test.describe('custom property rows stay while being edited', () => {
     test('clearing a text value keeps its row (no unmount under the user)', async ({ page, baseURL }) => {
       await openSheet(page, baseURL, 'test-task-6');
+      await openProperties(page);
 
       const row = page.getByTestId('task-property-row').filter({ hasText: 'Kommentar' });
       await row.getByRole('button', { name: /^Kommentar: / }).click();
@@ -273,6 +281,7 @@ test.describe('Task Detail View', () => {
 
     test('deselecting the last multi-select option keeps the row and the open picker', async ({ page, baseURL }) => {
       await openSheet(page, baseURL, 'test-task-6');
+      await openProperties(page);
 
       const row = page.getByTestId('task-property-row').filter({ hasText: 'Tags' });
       const trigger = row.getByRole('button', { name: /^Tags: / });
@@ -286,6 +295,7 @@ test.describe('Task Detail View', () => {
 
     test('unchecking a checkbox keeps its row', async ({ page, baseURL }) => {
       await openSheet(page, baseURL, 'test-task-6');
+      await openProperties(page);
 
       const row = page.getByTestId('task-property-row').filter({ hasText: 'Freigegeben' });
       const checkbox = row.getByRole('checkbox', { name: 'Freigegeben' });
@@ -385,9 +395,9 @@ test.describe('Task Detail View', () => {
     // Task 1 has topic "Development"
     await expect.soft(page.getByText('Development').first(), 'shows topic badge when topic is set').toBeVisible();
 
-    // #244: no three-dots menu in the title row; Delete sits in the sheet's bottom row, visible without hovering
-    await expect.soft(page.getByTestId('task-detail-header').getByTestId('task-actions-menu'), 'no menu in the header').toHaveCount(0);
-    await expect.soft(page.getByTestId('task-sheet-actions').getByTestId('task-delete'), 'Delete is visible in the bottom row').toBeVisible();
+    // #705: the task actions sit behind one menu in the title row (it reverses #244's bottom row); the footer holds Metadaten only
+    await expect.soft(page.getByTestId('task-detail-header').getByTestId('task-menu'), 'the menu is in the title row').toBeVisible();
+    await expect.soft(page.getByTestId('task-detail-footer').getByRole('button', { name: /Löschen/ }), 'no Delete in the footer').toHaveCount(0);
   });
 
   // #114: a value shows at rest what it is (no hover): a list value is a soft select with a chevron, a free value an editable label with a dotted rule
@@ -580,12 +590,12 @@ test.describe('Task Detail View', () => {
     await expect(page.getByTestId('task-metadata')).toContainText('test-task-1');
   });
 
-  test('Delete in the bottom row opens the usual delete flow; Local board shows no source buttons (#244)', async ({ page, baseURL }) => {
+  test('Delete in the task menu opens the usual delete flow; a Local board\'s menu holds Delete alone (#705)', async ({ page, baseURL }) => {
     await openSheet(page, baseURL, 'test-task-1');
 
-    const row = page.getByTestId('task-sheet-actions');
-    await expect(row.getByRole('button')).toHaveCount(1);
-    await row.getByTestId('task-delete').click();
+    await taskMenu(page).click();
+    await expect(page.getByRole('menuitem')).toHaveCount(1);
+    await page.getByRole('menuitem', { name: /^Löschen/ }).click();
     await expect(page).toHaveURL(/\/tasks$/);
     await expect(page.locator('.task-wrapper[data-task-id="test-task-1"]')).toHaveCount(0);
   });
@@ -632,6 +642,7 @@ test.describe('Task Detail View', () => {
   test('date custom field shows the formatted date, and a click on it opens the calendar', async ({ page, baseURL }) => {
     // task-5 has a date custom field with start: '2026-04-15'
     await page.goto(`${baseURL}/tasks/test-task-5`);
+    await openProperties(page);
 
     const trigger = page.getByTestId('date-picker-trigger').first();
     await expect.soft(trigger, 'date custom field shows formatted date').toBeVisible();
@@ -644,28 +655,32 @@ test.describe('Task Detail View', () => {
   // #303: the link is derived from source + externalId; Local has none
   test('a Notion task shows "In Notion öffnen" in the sheet, a Local task does not', async ({ page, baseURL }) => {
     await openSheet(page, baseURL, 'test-task-5');
-    await expect(page.getByTestId('task-open-source')).toBeVisible();
-    await expect(page.getByTestId('task-open-source')).toContainText('Notion');
+    await expect(await openTaskMenu(page, 'In Notion öffnen')).toBeVisible();
+    await page.keyboard.press('Escape');
 
     await openSheet(page, baseURL, 'test-task-1');
-    await expect(page.getByTestId('task-sheet-actions')).toBeVisible();
-    await expect(page.getByTestId('task-open-source')).toHaveCount(0);
+    await taskMenu(page).click();
+    await expect(page.getByRole('menuitem', { name: /öffnen/ })).toHaveCount(0);
   });
 
   test('Escape with the date picker open closes the picker only, not the sheet', async ({ page, baseURL }) => {
     await openSheet(page, baseURL, 'test-task-5');
+    await openProperties(page);
 
     await page.getByTestId('date-picker-trigger').first().click();
     const calendar = page.getByTestId('date-picker-calendar');
     await expect(calendar).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(calendar).not.toBeVisible();
-    await expect(page.getByRole('dialog')).toBeVisible();
+    // The sheet and the properties popover are both dialogs now: the title row tells the sheet is still open, and the popover is still there (only the topmost layer closed)
+    await expect(page.getByTestId('task-detail-header')).toBeVisible();
+    await expect(page.getByTestId('task-properties-popover')).toBeVisible();
     await expect(page).toHaveURL(/\/tasks\/test-task-5/);
   });
 
   test('date picker Heute sets todays date', async ({ page, baseURL }) => {
     await openSheet(page, baseURL, 'test-task-5');
+    await openProperties(page);
 
     const trigger = page.getByTestId('date-picker-trigger').first();
     await trigger.click();
@@ -683,6 +698,7 @@ test.describe('Task Detail View', () => {
 
   test('date picker Löschen clears the date value', async ({ page, baseURL }) => {
     await openSheet(page, baseURL, 'test-task-5');
+    await openProperties(page);
 
     const trigger = page.getByTestId('date-picker-trigger').first();
     await trigger.click();
@@ -902,18 +918,17 @@ test.describe('Task Detail View', () => {
       const props = (await page.getByTestId('task-property-list').boundingBox())!;
       const notes = (await page.getByTestId('task-notes').boundingBox())!;
       const meta = (await page.getByTestId('task-metadata').boundingBox())!;
-      const actions = (await page.getByTestId('task-sheet-actions').boundingBox())!;
+      const menu = (await taskMenu(page).boundingBox())!;
       const dialogBox = (await dialog.boundingBox())!;
 
       // The title is above both columns; the rows sit left of the notes, both start at the same height
       expect(props.y).toBeGreaterThanOrEqual(header.y + header.height - 1);
       expect(notes.x).toBeGreaterThan(props.x + props.width - 1);
       expect(Math.abs(notes.y - props.y)).toBeLessThan(24);
-      // The last line: Metadaten left, Löschen right, below the columns; no pinned footer band hugging another edge
-      expect(meta.x).toBeLessThan(actions.x);
+      // The last line holds Metadaten alone, below the columns; no pinned footer band hugging another edge (the actions are in the title row's menu, #705)
       expect(meta.y).toBeGreaterThanOrEqual(props.y + props.height - 1);
-      expect(Math.abs((meta.y + 12) - (actions.y + actions.height / 2))).toBeLessThan(24);
-      expect(dialogBox.y + dialogBox.height - (actions.y + actions.height)).toBeLessThan(40);
+      expect(dialogBox.y + dialogBox.height - (meta.y + meta.height)).toBeLessThan(40);
+      expect(menu.y).toBeLessThan(header.y + header.height);
     });
 
     test('mobile: the notes follow the properties, the metadata comes last in the flow', async ({ page, baseURL }) => {
@@ -1038,7 +1053,8 @@ test.describe('task sheet close button (kd#201)', () => {
 
       // Clear of the title row: no overlap of the boxes
       const closeBox = (await close.boundingBox())!
-      for (const target of [dialog.getByTestId('task-detail-header').locator('[data-inline-editable]')]) {
+      // The title, and the task menu beside the close button (#705)
+      for (const target of [dialog.getByTestId('task-detail-header').locator('[data-inline-editable]'), taskMenu(page)]) {
         const box = (await target.boundingBox())!
         const overlaps = closeBox.x < box.x + box.width && closeBox.x + closeBox.width > box.x && closeBox.y < box.y + box.height && closeBox.y + closeBox.height > box.y
         expect(overlaps).toBe(false)
@@ -1058,7 +1074,9 @@ test.describe('task sheet close button (kd#201)', () => {
       await settleAnimations(page)
       const closeBox = (await dialog.getByRole('button', { name: /^(Schließen|Close)$/ }).boundingBox())!
       const title = (await dialog.getByTestId('task-detail-header').locator('[data-inline-editable]').boundingBox())!
-      expect(title.x + title.width).toBeLessThanOrEqual(closeBox.x)
+      const menuBox = (await taskMenu(page).boundingBox())!
+      expect(title.x + title.width).toBeLessThanOrEqual(menuBox.x)
+      expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(closeBox.x)
       // The sheet is the window minus 16 px to every edge at most; the rows scroll inside it and nothing is clipped
       const box = (await dialog.boundingBox())!
       expect(box.height).toBeLessThanOrEqual(340 - 32 + 1)
@@ -1095,5 +1113,99 @@ test.describe('task sheet close button (kd#201)', () => {
       await expect(page.getByTestId('task-property-list')).toBeVisible()
       await expect(page.getByRole('dialog').getByRole('button', { name: /^(Schließen|Close)$/ })).toHaveCount(0)
     })
+  })
+})
+
+// #705: one fixed frame whatever the task holds; the custom properties are a chip strip plus a popover
+test.describe('task sheet frame and property strip (#705)', () => {
+  test.use({ viewport: { width: 1280, height: 900 } })
+
+  const customs = (count: number, filled: boolean) => Object.fromEntries(Array.from({ length: count }, (_, i) => {
+    const key = `eigenschaft-${i + 1}`
+    return [key, { key, name: `Eigenschaft ${i + 1}`, propType: 'text', value: { type: 'text', value: filled ? `Wert Nummer ${i + 1}` : '' } }]
+  }))
+  const frameTask = (id: string, source: 'local' | 'notion', custom: Record<string, unknown>): SeedTask => ({
+    id, source, externalId: source === 'notion' ? id : null, title: `Rahmen ${id}`, status: 0, priority: 2,
+    timeSpentSeconds: 0, timeBoxSeconds: null, topic: null, topicColorCode: null, activity: null, notes: null, isUnplanned: false, custom,
+  })
+
+  test.beforeEach(async ({ context }) => {
+    await seedLocalBoard(context, [
+      frameTask('frame-none', 'local', {}),
+      frameTask('frame-four', 'notion', customs(4, true)),
+      frameTask('frame-eleven', 'notion', customs(11, true)),
+      frameTask('frame-empty', 'notion', customs(2, false)),
+    ], {}, undefined, { once: true })
+  })
+
+  test('the sheet has the same size for a task with 0, 4 and 11 properties, with Metadaten open or closed', async ({ page }) => {
+    const sizes: { w: number, h: number }[] = []
+    for (const id of ['frame-none', 'frame-four', 'frame-eleven']) {
+      await openSheet(page, '', id)
+      const box = (await page.getByRole('dialog').boundingBox())!
+      sizes.push({ w: Math.round(box.width), h: Math.round(box.height) })
+    }
+    expect(sizes).toEqual([{ w: 720, h: 612 }, { w: 720, h: 612 }, { w: 720, h: 612 }])
+    await page.getByRole('button', { name: 'Metadaten' }).click()
+    await settleAnimations(page)
+    const open = (await page.getByRole('dialog').boundingBox())!
+    expect([Math.round(open.width), Math.round(open.height)]).toEqual([720, 612])
+  })
+
+  test('set properties are chips in at most two lines, "+n" counts the rest, and the popover lists every row', async ({ page }) => {
+    await openSheet(page, '', 'frame-eleven')
+    const chips = page.getByTestId('task-property-chips')
+    await expect(chips).toBeVisible()
+    expect((await chips.boundingBox())!.height).toBeLessThanOrEqual(56)
+    await expect(page.getByTestId('task-properties-more')).toHaveText(/^\+\d+$/)
+
+    await openProperties(page)
+    await expect(page.getByTestId('task-properties-popover').getByTestId('task-property-row')).toHaveCount(11)
+    await expect(page.getByText(/weitere/)).toHaveCount(0)
+  })
+
+  test('four short chips fit: no "+n"', async ({ page }) => {
+    await openSheet(page, '', 'frame-four')
+    await expect(page.getByTestId('task-property-chips').getByText('Wert Nummer 1')).toBeVisible()
+    await expect(page.getByTestId('task-properties-more')).toHaveCount(0)
+  })
+
+  test('all empty: no chip, the button stays and the popover shows the empty rows; a Local task has neither strip nor button', async ({ page }) => {
+    await openSheet(page, '', 'frame-empty')
+    await expect(page.getByTestId('task-property-chips').locator('span')).toHaveCount(0)
+    await openProperties(page)
+    await expect(page.getByTestId('task-properties-popover').getByTestId('task-property-row')).toHaveCount(2)
+    await page.keyboard.press('Escape')
+    await expect(page.getByTestId('task-properties-popover')).toHaveCount(0)
+
+    await openSheet(page, '', 'frame-none')
+    await expect(page.getByTestId('task-property-strip')).toHaveCount(0)
+    await expect(page.getByTestId('task-properties-button')).toHaveCount(0)
+  })
+
+  test('Escape closes the popover only, focus returns to the button; an outside press closes it too', async ({ page }) => {
+    await openSheet(page, '', 'frame-four')
+    await openProperties(page)
+    await page.keyboard.press('Escape')
+    await expect(page.getByTestId('task-properties-popover')).toHaveCount(0)
+    await expect(page.getByTestId('task-detail-header')).toBeVisible()
+    await expect(page.getByTestId('task-properties-button')).toBeFocused()
+
+    await openProperties(page)
+    await page.getByTestId('task-detail-header').click({ position: { x: 20, y: 40 } })
+    await expect(page.getByTestId('task-properties-popover')).toHaveCount(0)
+    await expect(page.getByTestId('task-detail-header')).toBeVisible()
+  })
+
+  test('the task menu opens by keyboard and Escape returns focus to it', async ({ page }) => {
+    await openSheet(page, '', 'frame-four')
+    const menu = taskMenu(page)
+    await menu.focus()
+    await page.keyboard.press('Enter')
+    await expect(page.getByRole('menuitem', { name: /Notion öffnen/ })).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('menuitem')).toHaveCount(0)
+    await expect(menu).toBeFocused()
+    await expect(page.getByTestId('task-detail-header')).toBeVisible()
   })
 })

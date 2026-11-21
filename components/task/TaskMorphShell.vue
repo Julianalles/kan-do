@@ -2,17 +2,17 @@
 @component TaskMorphShell
 @kind block
 @category overlay
-@description The desktop shell of the task sheet (#468): a card-sized sheet that grows out of the card the user opened and folds back into it on close
+@description The desktop shell of the task sheet (#468, #705): a sheet of one fixed frame that grows out of the card the user opened, the card's face scaling along with it, and folds back into it on close
 @usage Rendered by TaskSheet on the detail route (/tasks/:id, /statistics/:id) at 768 px and up, with the route's task id as `originId`. The add route and the phone drawer stay on ResponsiveOverlay.
 @avoid Not a generic dialog; other overlays use ResponsiveOverlay or AppDialog. It hosts the two-column task detail only: the layout inside is TaskDetailContent's.
 @responsibility
 - Dialog behaviour from reka's DialogRoot/DialogContent: focus trap and return, Escape, an outside press; the dismiss hooks come in through `contentProps` (TaskSheet owns them) and every close is requested through `update:open`
-- Placement (`utils/sheetPlacement.ts`): 720 px wide (the window minus 32 px when narrower), centred on the origin card's centre, 16 px from the left, right and bottom window edge and below the app bar (#518: its top is at least the bottom of `[data-app-nav]`, 56 px, measured at each placement, so the centred group of wordmark, pill and ⋯ stays whole above the sheet at every card; no bar on the page, 16 px); as high as its content, at most the window height minus that top minus 16 px (the columns scroll inside, TaskDetailContent). The shell keeps it inside the window when the content grows (expanded Metadaten, an open topic editor) or the window shrinks
-- Open (about 280 ms, ease-out `cubic-bezier(0.2, 0, 0, 1)`): the panel's box and corner radius run from the card's (16 px) to the sheet's (32 px, twice the card's, `--task-sheet-radius`); a copy of the card's face holds the card's place on screen and fades out after the first beat while the content fades in; the scrim fades in over 160 ms. The grow is the Web Animations API on left/top/width/height, the content keeps its final size meanwhile so it does not reflow (`flex: none`: its `flex-1` basis of 0 would otherwise beat the set height and the last line would follow the panel's height, #659)
-- Close (about 200 ms, `cubic-bezier(0.4, 0, 0.2, 1)`): the sheet folds into the card where it sits now (a status change may have moved it), the content fades out first, the face fades back in, the scrim fades out
+- Placement (`utils/sheetPlacement.ts`): 720 px wide (the window minus 32 px when narrower), centred on the origin card's centre, 16 px from the left, right and bottom window edge and below the app bar (#518: its top is at least the bottom of `[data-app-nav]`, 56 px, measured at each placement, so the centred group of wordmark, pill and ⋯ stays whole above the sheet at every card; no bar on the page, 16 px); one fixed frame (#705, user, 2026-11-21): its height follows the width and the window, never the content (`sheetHeight`: 85 % of the width, 612 px at 720, at most the window height minus that top minus 16 px), so a task with eleven extra properties and one with none open the same shape; the columns scroll inside (TaskDetailContent) and expanded Metadaten or an open topic editor shrink them instead of growing the sheet. The shell keeps it inside the window when the window shrinks
+- Open (one phase of 340 ms, ease-out `cubic-bezier(0.2, 0, 0, 1)`, #705): the panel's box and corner radius run from the card's (16 px) to the sheet's (32 px, twice the card's, `--task-sheet-radius`); a copy of the card's face scales up with the card (uniformly, from the panel's top-left corner, by the sheet's width over the card's, on the panel's own easing, so it always spans the panel's width and its items travel with it) and dissolves into the content (opaque to 20 %, gone by 70 %) while the content fades in from 35 % to 85 %; the scrim fades in over 160 ms. The grow is the Web Animations API on left/top/width/height, the content keeps its final size meanwhile so it does not reflow (`flex: none`: its `flex-1` basis of 0 would otherwise beat the set height and the last line would follow the panel's height, #659)
+- Close (260 ms, `cubic-bezier(0.4, 0, 0.2, 1)`): the same phase reversed: the sheet folds into the card where it sits now (a status change may have moved it), the content fades out first, the face scales back down to the card's size and fades in, the scrim fades out
 - No origin card (a statistics row, a deep link, a card scrolled out of the window or gone): centred, a 160 ms scale-in from 97 % with a fade; it leaves with a 140 ms fade
 - Direct link (#594): a sheet that is open from the first route of the session (`arrivedFromAnotherPage()` is false) stands at its place at once, no grow, no fade, no scrim fade; "never runs on page load" (DESIGN.md Motion)
-- Reduced motion (read when the sheet opens and closes): no grow and no fold, a 1 ms fade, same place as without it
+- Reduced motion (read when the sheet opens and closes): no grow, no fold and no scaling, a 1 ms fade, same place as without it
 - The panel is `bg-elevated` with the overlay shadow, as every sheet; the scrim is today's `--overlay-scrim` over the whole window (#419), the other cards fade through sheet.css as today
 - Close button: first in the tab order inside the sheet (kd#201), aria label `common.close`; the title is the next stop (TaskDetailContent)
 - Provides the desktop variant to the hosted content (`OVERLAY_DESKTOP_KEY`), so the nested topic editor and the two-column layout follow the sheet and not the live window width (#199)
@@ -54,7 +54,7 @@ import { useI18n } from 'vue-i18n';
 import { ICONS } from '~/lib/icons';
 import { OVERLAY_DESKTOP_KEY } from '~/composables/useIsDesktop';
 import { arrivedFromAnotherPage } from '~/lib/routeArrival';
-import { isUsableOrigin, keepInside, placeSheet, SHEET_MOTION, sheetMaxHeight, sheetWidth, type SheetBox } from '~/utils/sheetPlacement';
+import { isUsableOrigin, keepInside, placeSheet, SHEET_MOTION, sheetHeight, sheetMaxHeight, sheetWidth, type SheetBox } from '~/utils/sheetPlacement';
 
 defineOptions({ name: 'TaskMorphShell' });
 
@@ -162,11 +162,28 @@ const setFace = (card: HTMLElement | null, box: SheetBox | null) => {
   Object.assign(face.style, box ? { width: `${box.w}px`, height: `${box.h}px` } : { width: '', height: '' });
 };
 
+/**
+ * The card's face scales uniformly with the card (#705): from the panel's top-left corner, by the ratio of the sheet's width to the card's,
+ * on the panel's own easing and duration, so the face always spans the panel's width and its items travel with it.
+ */
+const scaleFace = (cardWidth: number, sheetWidthPx: number, direction: 'up' | 'down') => {
+  const face = faceRef.value;
+  if (!face || cardWidth <= 0) return;
+  const scale = sheetWidthPx / cardWidth;
+  Object.assign(face.style, { transformOrigin: '0 0', willChange: 'transform' });
+  const { openMs, closeMs, easeOpen, easeClose } = SHEET_MOTION;
+  void run(face, direction === 'up' ? [{ transform: 'scale(1)' }, { transform: `scale(${scale})` }] : [{ transform: `scale(${scale})` }, { transform: 'scale(1)' }], { duration: direction === 'up' ? openMs : closeMs, easing: direction === 'up' ? easeOpen : easeClose });
+};
+
 const settle = () => {
   cancelAll();
   setFace(null, null);
+  Object.assign(faceRef.value?.style ?? {}, { transformOrigin: '', willChange: '' });
   const el = panel();
-  if (el) Object.assign(el.style, { height: 'auto', visibility: 'visible' });
+  if (el) {
+    const vp = viewport();
+    Object.assign(el.style, { height: `${sheetHeight(sheetWidth(vp.width), sheetMaxHeight(vp.height, vp.top))}px`, visibility: 'visible' });
+  }
   if (innerRef.value) Object.assign(innerRef.value.style, { width: '', height: '', flex: '' });
 };
 
@@ -192,12 +209,9 @@ async function playOpen(mine: number, atRest: boolean) {
   const vp = viewport();
   const w = sheetWidth(vp.width);
   const maxH = sheetMaxHeight(vp.height, vp.top);
-  // Measure the natural height at the final width while the panel is hidden
-  Object.assign(el.style, { left: '0px', top: '0px', width: `${w}px`, height: 'auto', maxHeight: `${maxH}px`, visibility: 'hidden', opacity: '', transform: '' });
-  Object.assign(inner.style, { width: `${w}px`, height: '', flex: '' });
-  await nextTick();
-  if (mine !== generation) return;
-  const h = Math.min(el.getBoundingClientRect().height, maxH);
+  // The frame is fixed (#705): its height follows the width and the window, never the content, so nothing is measured
+  const h = sheetHeight(w, maxH);
+  Object.assign(el.style, { maxHeight: `${maxH}px`, opacity: '', transform: '' });
   const card = originCard();
   const from = card ? boxOf(card) : null;
   const to = placeSheet(from, { w, h }, vp);
@@ -225,10 +239,10 @@ async function playOpen(mine: number, atRest: boolean) {
     const sheetLook = lookOf(el);
     setFace(card, from);
     const { openMs, easeOpen } = SHEET_MOTION;
-    // The panel grows around the card's centre, so the face moves the opposite way and holds its place on screen
-    void run(faceRef.value, [{ transform: 'translate(0px, 0px)' }, { transform: `translate(${from.x - to.x}px, ${from.y - to.y}px)` }], { duration: openMs, easing: easeOpen });
-    void run(faceRef.value, [{ opacity: 1 }, { opacity: 1, offset: 0.2 }, { opacity: 0, offset: 0.6 }, { opacity: 0 }], { duration: openMs, easing: 'linear' });
-    void run(inner, [{ opacity: 0 }, { opacity: 0, offset: 0.4 }, { opacity: 1, offset: 0.85 }, { opacity: 1 }], { duration: openMs, easing: 'linear' });
+    // The card's face scales up with the card from the panel's top-left corner (the panel's left and top run from the card's, so the face stays on the card's place) and dissolves into the content (#705)
+    scaleFace(from.w, to.w, 'up');
+    void run(faceRef.value, [{ opacity: 1 }, { opacity: 1, offset: 0.2 }, { opacity: 0, offset: 0.7 }, { opacity: 0 }], { duration: openMs, easing: 'linear' });
+    void run(inner, [{ opacity: 0 }, { opacity: 0, offset: 0.35 }, { opacity: 1, offset: 0.85 }, { opacity: 1 }], { duration: openMs, easing: 'linear' });
     await run(el, [{ ...px(from), ...cardLook }, { ...px(to), ...sheetLook }], { duration: openMs, easing: easeOpen });
   }
   if (mine !== generation) return;
@@ -262,9 +276,9 @@ async function playClose(mine: number) {
     Object.assign(el.style, { ...px(current), height: `${current.h}px`, maxHeight: 'none' });
     Object.assign(inner.style, { width: `${current.w}px`, height: `${current.h}px`, flex: HELD_SIZE });
     setFace(card, to);
-    void run(inner, [{ opacity: 1 }, { opacity: 0, offset: 0.5 }, { opacity: 0 }], { duration: closeMs, easing: 'linear' });
-    void run(faceRef.value, [{ transform: `translate(${to.x - current.x}px, ${to.y - current.y}px)` }, { transform: 'translate(0px, 0px)' }], { duration: closeMs, easing: easeClose });
-    void run(faceRef.value, [{ opacity: 0 }, { opacity: 0, offset: 0.4 }, { opacity: 1 }], { duration: closeMs, easing: 'linear' });
+    void run(inner, [{ opacity: 1 }, { opacity: 0, offset: 0.4 }, { opacity: 0 }], { duration: closeMs, easing: 'linear' });
+    scaleFace(current.w, to.w, 'down');
+    void run(faceRef.value, [{ opacity: 0 }, { opacity: 0, offset: 0.25 }, { opacity: 1, offset: 0.65 }, { opacity: 1 }], { duration: closeMs, easing: 'linear' });
     await run(el, [{ ...px(current), ...sheetLook }, { ...px(to), ...cardLook }], { duration: closeMs, easing: easeClose });
   }
   if (mine !== generation) return;
@@ -278,6 +292,7 @@ function keepPanelInside() {
   const vp = viewport();
   el.style.maxHeight = `${sheetMaxHeight(vp.height, vp.top)}px`;
   el.style.width = `${sheetWidth(vp.width)}px`;
+  el.style.height = `${sheetHeight(sheetWidth(vp.width), sheetMaxHeight(vp.height, vp.top))}px`;
   const next = keepInside(boxOf(el), vp);
   Object.assign(el.style, { left: `${next.x}px`, top: `${next.y}px` });
 }

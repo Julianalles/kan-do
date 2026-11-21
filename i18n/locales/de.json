@@ -302,7 +302,9 @@
       "metadata": "Metadaten",
       "sourceLocal": "Lokal",
       "created": "Erstellt: {date}",
-      "openIn": "In {source} öffnen"
+      "openIn": "In {source} öffnen",
+      "menuLabel": "Aufgabenmenü",
+      "propertiesMore": "+{n}"
     },
     "timeStats": {
       "remaining": "{time} übrig"

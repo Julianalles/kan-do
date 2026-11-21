@@ -3,7 +3,7 @@
 @kind component
 @category input
 @description Custom (Notion) properties of a task as flat label/value rows with inline editing
-@usage Used in TaskDetailContent under the "Eigenschaften" heading
+@usage Used inside the "Eigenschaften" popover of TaskDetailPropertyStrip on the desktop sheet (#705) and in TaskDetailContent under the "Eigenschaften" heading on the drawer
 @avoid Only the Notion custom properties in the task detail; core properties use TaskPropertyRow.
 @responsibility
 - Renders every custom property type (text, number, url, email, phone, checkbox, select, multi-select, date)

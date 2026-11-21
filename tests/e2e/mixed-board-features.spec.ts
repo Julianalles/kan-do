@@ -9,6 +9,7 @@ import {
   type SeedTask,
 } from './helpers/seed'
 import { goToPlace, openDayClose, openMore } from './helpers/appNav'
+import { openTaskMenu } from './helpers/taskMenu'
 
 /**
  * Existing features on a mixed board (#325, epic #264 section 8): delete, "Gesehen", day close, the command
@@ -66,7 +67,7 @@ async function deleteViaCardMenu(page: Page, title: string, label: string) {
 
 async function deleteViaSheet(page: Page, id: string, label: string) {
   await page.goto(`/tasks/${id}`)
-  await page.getByTestId('task-delete').filter({ hasText: label }).click()
+  await (await openTaskMenu(page, label)).click()
   await expect(page).toHaveURL(/\/tasks$/)
 }
 
@@ -74,8 +75,7 @@ async function deleteViaTriage(page: Page, id: string, label: string) {
   await page.goto(`/tasks/${id}`)
   // The age box's "Nein, löschen" (#247) and the footer Delete run the same flow; the footer names the upstream consequence
   await expect(page.getByTestId('carry-over-delete')).toHaveText('Nein, löschen')
-  const del = page.getByTestId('task-delete')
-  await expect(del).toHaveText(label)
+  const del = await openTaskMenu(page, label)
   await del.click()
   await expect(page).toHaveURL(/\/tasks$/)
 }
@@ -166,7 +166,7 @@ test.describe('delete label names the task\'s own source (#325)', () => {
       await page.keyboard.press('Escape')
 
       await page.goto(`/tasks/${task.id}`)
-      await expect(page.getByTestId('task-delete')).toHaveText(task.triageLabel)
+      await expect(await openTaskMenu(page, task.triageLabel)).toBeVisible()
     })
   }
 })

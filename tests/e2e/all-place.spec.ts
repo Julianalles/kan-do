@@ -4,6 +4,7 @@ import { dropSettled, edgeDwell, finger, hover, pickUp } from './helpers/dnd'
 import { dwell, settleAnimations } from './helpers/settle'
 import { EDGE_HOLD_DWELL_MS } from './helpers/constants'
 import { appNav } from './helpers/appNav'
+import { openTaskMenu } from './helpers/taskMenu'
 
 /**
  * #354 (epic #334): the place "Alle". `/all` is a second path of the board page: "Alle Aufgaben" beside Offen, the
@@ -666,7 +667,7 @@ test.describe('The place "Alle" (#354), desktop', () => {
     await gotoAll(page)
     await item(page, 'np-2').locator('.task').click()
     await expect(page).toHaveURL(/\/all\/np-2$/)
-    await page.getByTestId('task-sheet-actions').getByTestId('task-delete').click()
+    await (await openTaskMenu(page, /^Löschen/)).click()
     await expect(page).toHaveURL(/\/all$/)
     await expect(item(page, 'np-2')).toHaveCount(0)
     // No gap for it in Offen: it never stood there
