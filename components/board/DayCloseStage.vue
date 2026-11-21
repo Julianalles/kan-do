@@ -2,12 +2,12 @@
 @component DayCloseStage
 @kind block
 @category overlay
-@description The day close as a key moment (#98, #237, #480): a full-size stage on the recap's photo, like the new-day recap, with one calm sheet: the progress text, how the done tasks compare with their timebox, the spread of the topics, one line saying what closing does, and the two buttons. The user chooses nothing: closing archives the done tasks and takes every unfinished task off today's board for "Alle", where it is re-planned the next day; nothing is deleted.
+@description The day close as a key moment (#98, #237, #480): a full-size stage on the recap's photo, like the new-day recap, with the title on the photo and one calm sheet under it: the progress text, how the done tasks compare with their timebox, the spread of the topics, one line saying what closing does, and the two buttons. The user chooses nothing: closing archives the done tasks and takes every unfinished task off today's board for "Alle", where it is re-planned the next day; nothing is deleted.
 @usage Mounted once in pages/tasks.vue (lazy, like the recap); opened through useDayClose().open() (Mehr panel row, the Erledigt CTA, the native menu, the command palette).
-One shell with the recap (#612): the title anchored under the app bar, one 44 rem column, the footer sheet docked at the foot (a sibling of the scroller: the content scrolls above it, both buttons stay visible on a phone); the page itself never scrolls, only the stage's scroll area on short windows.
+One shell with the recap (#612): the title anchored under the app bar, one 44 rem column, the title above one paper sheet (#707, reverses the footer sheet of #612): the content scrolls inside it and the footer holds both buttons under a hairline, so they stay visible on a phone; the page itself never scrolls, only the sheet's scroll area on short windows (the sheet shrinks, the title stays).
 @avoid Not for a plain confirmation (UModal) and not the first start of a new day (NewDayRecap); no lists of tasks and no per-task choice here.
 @responsibility
-- Shell only: title (the page title, SectionHeader `display`), the date as subline, sheet 1 (DayCloseSummary, DayCloseTimebox, DayCloseTopics), sheet 2, the docked footer (the consequence line and the buttons: way out soft, main solid without an arrow, main on top on a phone); the stage reuses the recap's photo, CSS and closing curtain (assets/css/recap-stage.css)
+- Shell only: title (the page title, SectionHeader `display`), the date as subline (both on the photo), then one sheet (`.recap-stage__sheet`) holding DayCloseSummary, DayCloseTimebox, DayCloseTopics and its footer (the consequence line and the buttons: way out soft, main solid without an arrow, main on top on a phone); the stage reuses the recap's photo, CSS and closing curtain (assets/css/recap-stage.css)
 - Enter (#580): the opposite curtain. The photo comes down over the board (`--duration-stage`, 1.3 s) and the column fades in over `--duration-slow` as it lands (`recap-stage--curtain-down`, transitions on `data-entered`, set two frames after the mount); the column takes no pointer until it has faded in (`data-landed`), so the invisible buttons cannot be hit; a leave mid-drop retargets from where the photo is; reduced motion: instant. The leave is the recap's: the photo up over `--duration-curtain`
 - The halo of the focused button waits for the first key or press (`data-quiet-focus`, #612)
 - Not modal, like the recap: teleported to `#recap-stage-host`, a `role="region"` named by the title, no scrim, no focus trap; the app bar stays usable above it and the board is `inert` behind it (pages/tasks.vue); leaving the page closes it without a change
@@ -51,24 +51,22 @@ One shell with the recap (#612): the title anchored under the app bar, one 44 re
         >
       </div>
       <div class="recap-stage__column">
-        <div class="recap-stage__scroll">
-          <div class="recap-stage__content">
-            <div class="text-center">
-              <SectionHeader :id="titleId" tag="h2" size="display" data-slot="title">{{ t('dayClose.title') }}</SectionHeader>
-              <p class="mt-2 text-body text-toned" data-testid="day-close-date">{{ date }}</p>
-            </div>
-
-            <!-- Sheet 1: how the day went. No list and no choice -->
-            <div class="recap-stage__controls flex flex-col gap-6" data-testid="day-close-sheet">
+        <!-- The title and the date lie on the photo, above the one sheet (#707) -->
+        <div class="recap-stage__head text-center">
+          <SectionHeader :id="titleId" tag="h2" size="display" data-slot="title">{{ t('dayClose.title') }}</SectionHeader>
+          <p class="mt-2 text-body text-toned" data-testid="day-close-date">{{ date }}</p>
+        </div>
+        <!-- One paper sheet (#707): how the day went scrolls inside it, what closing does and the two ways out sit at its foot under a hairline. No list and no choice -->
+        <div class="recap-stage__sheet" data-testid="day-close-sheet">
+          <div class="recap-stage__scroll">
+            <div class="recap-stage__content">
               <DayCloseSummary :done-count="done.length" :open-count="inFlight.length" />
               <DayCloseTimebox :groups="boxGroups" />
               <DayCloseTopics :rows="topics" />
             </div>
           </div>
-        </div>
-        <!-- Sheet 2, the footer, docked at the foot of the stage (#612): what closing does, and the two ways out; stacked on a phone with the primary button on top -->
-        <div class="recap-stage__footer">
-          <div class="recap-stage__controls" data-testid="day-close-controls">
+          <!-- The foot of the sheet: what closing does, and the two ways out; stacked on a phone with the primary button on top -->
+          <div class="recap-stage__footer" data-testid="day-close-controls">
             <p v-if="consequence" class="mb-3 text-sm text-toned" data-testid="day-close-consequence">{{ consequence }}</p>
             <div class="recap-stage__actions">
               <UButton

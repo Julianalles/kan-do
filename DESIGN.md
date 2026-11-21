@@ -209,7 +209,7 @@ One answer per state, on every control, whoever built it.
 - **Groups of cards** collapse into a stack; no lines, boxes or tints around a group.
 - **Chrome:** one global app bar on every page. The board has no toolbar of its own, and the bar is the way between pages. A step inside a flow (the welcome steps) and a deeper route (a settings sub-page) go back with the back button, not with the bar: see "Step back" under Components.
 
-**The One Stage Rule.** The day close and the recap are one stage: the title anchored under the app bar, one 44 rem column, the footer sheet docked at the foot with the content scrolling above it (the way out soft, the main button solid without an arrow, on top on a phone); the day close enters with the photo coming down over the board and both leave with it lifting (user, 2026-11-20, #612, #580).
+**The One Stage Rule.** The day close and the recap are one stage: the title and subline lie on the photo, anchored under the app bar, and under them sits one paper sheet in a 44 rem column that holds the content (the decks, or the summary, timebox and topics) and the two buttons, like `/welcome`: the content scrolls inside the sheet, the buttons stay at its foot under a hairline (the way out soft, the main button solid without an arrow, on top on a phone). On a phone the sheet floats above the tab bar with all corners rounded. The day close enters with the photo coming down over the board and both leave with it lifting. This reverses #428 (the recap's content on the photo, only the controls on a sheet) and the docked footer sheet of #612, by user decision of 2026-11-21 (#707); before that: user, 2026-11-20, #612, #580.
 
 ## Components
 

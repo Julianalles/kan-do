@@ -16,8 +16,10 @@ const summary = (page: Page) => page.getByTestId('recap-summary')
 const continueButton = (page: Page) => page.getByTestId('recap-continue')
 /** "Tag neu planen" (#356, #428): the primary way out, leads to "Alle" */
 const planButton = (page: Page) => page.getByTestId('recap-plan')
-/** The controls sheet (#428) that holds the two buttons. */
+/** The foot of the one sheet (#707) that holds the two buttons. */
 const panelOf = (page: Page) => page.getByTestId('recap-controls')
+/** The one paper sheet (#707): the decks and the foot with the buttons. */
+const sheetOf = (page: Page) => page.getByTestId('recap-sheet')
 const switcher = (page: Page, kind: 'done' | 'undone') => page.getByTestId('recap-switcher').getByRole('tab').nth(kind === 'undone' ? 0 : 1)
 const board = (page: Page) => page.locator('main[data-task-sheet-return]')
 const doneColumn = (page: Page) => page.locator('#column-done')
@@ -360,42 +362,74 @@ test.describe('New-day recap (#385)', () => {
     expect(hUndone.y + hUndone.height).toBeLessThanOrEqual(undone.y)
     expect(hDone.y + hDone.height).toBeLessThanOrEqual(done.y)
     expect(Math.abs(hUndone.y - hDone.y)).toBeLessThan(1)
-    // headline and sentence above both, the controls sheet below both
+    // headline and sentence above both, the controls (the sheet's foot) below both
     const head = (await summary(page).boundingBox())!
     const panel = (await panelOf(page).boundingBox())!
     expect(head.y + head.height).toBeLessThanOrEqual(hUndone.y)
     expect(panel.y).toBeGreaterThanOrEqual(Math.max(undone.y + undone.height, done.y + done.height))
   })
 
-  test('the footer sheet is docked at the foot with the two buttons in a row: soft way out left of the solid "Tag neu planen", no arrow (#428, #612)', async ({ page, context }) => {
+  test('the two buttons sit at the foot of the one sheet in a row: soft way out left of the solid "Tag neu planen", no arrow, a hairline above them (#428, #612, #707)', async ({ page, context }) => {
     await seedNewDayBoard(context)
     await page.goto('/tasks')
     const panel = panelOf(page)
     await expect(panel).toBeVisible()
     await settleAnimations(page) // the stage fades in: boxes are measured at rest
     const panelBox = (await panel.boundingBox())!
+    const sheetBox = (await sheetOf(page).boundingBox())!
     const button = (await planButton(page).boundingBox())!
     const skip = (await continueButton(page).boundingBox())!
-    // "Überspringen und Board anzeigen" left of "Tag neu planen" (#356), on one line, inside the sheet, right-aligned
+    // "Überspringen und Board anzeigen" left of "Tag neu planen" (#356), on one line, inside the sheet's foot, right-aligned
     expect(skip.x).toBeGreaterThanOrEqual(panelBox.x)
     expect(skip.x + skip.width).toBeLessThanOrEqual(button.x)
     expect(button.x + button.width).toBeLessThanOrEqual(panelBox.x + panelBox.width)
     expect(panelBox.x + panelBox.width - (button.x + button.width)).toBeLessThan(20)
     expect(Math.abs(skip.y + skip.height / 2 - (button.y + button.height / 2))).toBeLessThan(2)
-    // both vertically centred in the sheet
-    expect(Math.abs(panelBox.y + panelBox.height / 2 - (button.y + button.height / 2))).toBeLessThan(2)
     await expect(continueButton(page)).toHaveAccessibleName('Überspringen und Board anzeigen')
     await expect(planButton(page)).toHaveAccessibleName('Tag neu planen')
-    // no paper sheet around the content: the headline sits on the photo, only the controls have a surface
-    await expect(page.locator('.recap-stage__sheet')).toHaveCount(0)
+    // one paper sheet holds the decks and the foot (#707); the title and the summary lie above it on the photo
+    await expect(sheetOf(page)).toBeVisible()
+    await expect(sheetOf(page).locator('[data-slot="title"]')).toHaveCount(0)
+    await expect(sheetOf(page).getByTestId('recap-controls')).toHaveCount(1)
+    await expect(sheetOf(page).getByTestId('recap-deck-done')).toHaveCount(1)
+    const titleBox = (await recap(page).locator('[data-slot="title"]').boundingBox())!
+    expect(titleBox.y + titleBox.height).toBeLessThanOrEqual(sheetBox.y)
+    expect(panelBox.y + panelBox.height).toBeLessThanOrEqual(sheetBox.y + sheetBox.height)
+    expect(button.x + button.width).toBeLessThanOrEqual(sheetBox.x + sheetBox.width)
+    // no second surface: the foot and the head carry no shadow of their own, the sheet does, and a hairline sits above the buttons
+    await expect(sheetOf(page)).not.toHaveCSS('box-shadow', 'none')
+    await expect(panel).toHaveCSS('box-shadow', 'none')
+    await expect(recap(page).locator('.recap-stage__head')).toHaveCSS('box-shadow', 'none')
+    await expect(panel).toHaveCSS('border-top-width', '1px')
     // the way out is soft (a fill, not the ghost's none), the main button solid, no arrow
     const fill = (locator: ReturnType<Page['locator']>) => locator.evaluate(el => getComputedStyle(el).backgroundColor)
     expect(await fill(continueButton(page))).not.toMatch(/^rgba\(.*, 0\)$|^transparent$/)
     expect(await fill(continueButton(page))).not.toBe(await fill(planButton(page)))
     await expect(planButton(page).locator('svg')).toHaveCount(0)
-    // docked: the sheet ends at the foot of the stage (the stage's padding), whatever the content's height
+    // not docked (#707): the sheet ends above the stage's foot padding, whatever the content's height
     const stageBox = (await recap(page).boundingBox())!
-    expect(stageBox.y + stageBox.height - (panelBox.y + panelBox.height)).toBeLessThan(24)
+    expect(sheetBox.y + sheetBox.height).toBeLessThanOrEqual(stageBox.y + stageBox.height - 8)
+  })
+
+  test('a short window keeps the title and the buttons in view: the sheet shrinks and its scroller scrolls, the page and the stage do not (#707)', async ({ page, context }) => {
+    await page.setViewportSize({ width: 1280, height: 480 })
+    await seedNewDayBoard(context)
+    await page.goto('/tasks')
+    await expect(recap(page)).toBeVisible()
+    await settleAnimations(page)
+    const scroller = recap(page).locator('.recap-stage__scroll')
+    const metrics = await scroller.evaluate(el => ({ scrolls: el.scrollHeight > el.clientHeight + 1, overflowY: getComputedStyle(el).overflowY }))
+    expect(metrics).toEqual({ scrolls: true, overflowY: 'auto' })
+    await expect(recap(page).locator('[data-slot="title"]')).toBeInViewport({ ratio: 1 })
+    await expect(planButton(page)).toBeInViewport({ ratio: 1 })
+    await expect(continueButton(page)).toBeInViewport({ ratio: 1 })
+    // scrolling the sheet's scroller moves the decks, not the title or the buttons
+    const titleY = (await recap(page).locator('[data-slot="title"]').boundingBox())!.y
+    const planY = (await planButton(page).boundingBox())!.y
+    await scroller.evaluate(el => { el.scrollTop = el.scrollHeight })
+    expect((await recap(page).locator('[data-slot="title"]').boundingBox())!.y).toBe(titleY)
+    expect((await planButton(page).boundingBox())!.y).toBe(planY)
+    expect(await recap(page).locator('.recap-stage__column').evaluate(el => el.scrollHeight <= el.clientHeight)).toBe(true)
   })
 
   test('at rest no halo on the focused main button; the first key brings it (#612)', async ({ page, context }) => {
@@ -412,7 +446,7 @@ test.describe('New-day recap (#385)', () => {
   })
 
   for (const viewport of [{ width: 1280, height: 800 }, { width: 390, height: 844 }]) {
-    test(`one stage shell with the day close at ${viewport.width}px: the title at the same y, the footer at the same width and foot (#612)`, async ({ page, context }) => {
+    test(`one stage shell with the day close at ${viewport.width}px: the title at the same y, the sheet at the same x and width (#612, #707)`, async ({ page, context }) => {
       await page.setViewportSize(viewport)
       await seedNewDayBoard(context)
       await page.goto('/tasks')
@@ -420,12 +454,12 @@ test.describe('New-day recap (#385)', () => {
       await settleAnimations(page)
       const measure = async (stage: ReturnType<typeof recap>) => {
         const title = (await stage.locator('[data-slot="title"]').boundingBox())!
-        const footer = (await stage.locator('.recap-stage__footer').boundingBox())!
-        return { titleY: Math.round(title.y), footerX: Math.round(footer.x), footerW: Math.round(footer.width), footerBottom: Math.round(footer.y + footer.height) }
+        const sheet = (await stage.locator('.recap-stage__sheet').boundingBox())!
+        return { titleY: Math.round(title.y), sheetX: Math.round(sheet.x), sheetW: Math.round(sheet.width) }
       }
       const fromRecap = await measure(recap(page))
       // the column is 44 rem at most (704 px), a phone's is the window less the stage's padding
-      expect(fromRecap.footerW).toBe(viewport.width >= 768 ? 704 : viewport.width - 32)
+      expect(fromRecap.sheetW).toBe(viewport.width >= 768 ? 704 : viewport.width - 32)
       await continueButton(page).click()
       await expect(recap(page)).toBeHidden()
       await openDayClose(page)
@@ -763,7 +797,7 @@ test.describe('New-day recap (#385)', () => {
       })
       expect(await noScroll()).toEqual({ page: true, pageX: true, body: true })
 
-      // The switcher lies on the photo (#428): both labels hold AA over it
+      // The switcher sits in the one sheet (#707; on the photo under #428): both labels hold AA over the paper
       await expectContrast(page, switcher(page, 'undone'), 4.5)
       await expectContrast(page, switcher(page, 'done'), 4.5)
       // One deck, "noch offen" first; the switcher says how many are in each
@@ -789,6 +823,12 @@ test.describe('New-day recap (#385)', () => {
       expect(box.width).toBeGreaterThan(390 - 2 * 40)
       // the stage sits above the phone bar, which stays usable
       expect(box.y + box.height).toBeLessThan(844 - 72)
+      // the sheet floats above the phone bar with all four corners rounded, it does not dock like /welcome's (#707, D2)
+      const sheetBox = (await sheetOf(page).boundingBox())!
+      const navBox = (await appNav(page).boundingBox())!
+      expect(sheetBox.y + sheetBox.height).toBeLessThan(navBox.y)
+      await expect(sheetOf(page)).toHaveCSS('border-bottom-left-radius', '16px')
+      await expect(sheetOf(page)).toHaveCSS('border-top-left-radius', '16px')
 
       // a tap and a mouse drag past 80px advance the deck without moving anything
       const before = await layoutSnapshot2(page)

@@ -1,7 +1,8 @@
 import { test, expect, type Locator, type Page } from '@playwright/test'
 import AxeBuilder from '@axe-core/playwright'
 import { fillerTasks, seedLocalBoard, SEED_TASKS, type SeedCarryOver, type SeedTask } from './helpers/seed'
-import { dayCloseCta, goToPlace, moreButton, openDayClose, openMore } from './helpers/appNav'
+import { appNav, dayCloseCta, goToPlace, moreButton, openDayClose, openMore } from './helpers/appNav'
+import { settleAnimations } from './helpers/settle'
 
 /** Issue #98, #237, #480: the day close ("Tag abschließen") is a full-size stage with one calm sheet. Local tasks, no integration. */
 
@@ -346,6 +347,55 @@ test.describe('Day close stage (#480)', () => {
       }
     })
   }
+
+  test('one paper sheet under the title holds the summary, the charts and the buttons; a short window shrinks it and scrolls inside, the buttons stay in view (#707)', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 520 })
+    await page.goto('/tasks')
+    await openDayClose(page)
+    await expect(stage(page)).toBeVisible()
+    await settleAnimations(page)
+    const sheet = page.getByTestId('day-close-sheet')
+    await expect(sheet.getByTestId('day-close-controls')).toHaveCount(1)
+    await expect(sheet.getByTestId('day-close-timebox')).toHaveCount(1)
+    await expect(sheet.locator('[data-slot="title"]')).toHaveCount(0)
+    // no second paper: the foot has no shadow of its own, a hairline sits above it
+    await expect(page.getByTestId('day-close-controls')).toHaveCSS('box-shadow', 'none')
+    await expect(page.getByTestId('day-close-controls')).toHaveCSS('border-top-width', '1px')
+    const scroller = stage(page).locator('.recap-stage__scroll')
+    expect(await scroller.evaluate(el => el.scrollHeight > el.clientHeight + 1)).toBe(true)
+    await expect(stage(page).locator('[data-slot="title"]')).toBeInViewport({ ratio: 1 })
+    await expect(doneButton(page)).toBeInViewport({ ratio: 1 })
+    await expect(cancelButton(page)).toBeInViewport({ ratio: 1 })
+    const titleY = (await stage(page).locator('[data-slot="title"]').boundingBox())!.y
+    await scroller.evaluate(el => { el.scrollTop = el.scrollHeight })
+    expect((await stage(page).locator('[data-slot="title"]').boundingBox())!.y).toBe(titleY)
+    await expect(doneButton(page)).toBeInViewport({ ratio: 1 })
+    expect(await stage(page).locator('.recap-stage__column').evaluate(el => el.scrollHeight <= el.clientHeight)).toBe(true)
+  })
+
+  test.describe('390px', () => {
+    test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })
+
+    test('the sheet floats above the phone bar with rounded corners, the buttons stacked full width with "Tag abschließen" on top (#707)', async ({ page }) => {
+      await page.goto('/tasks')
+      await openDayClose(page)
+      await expect(stage(page)).toBeVisible()
+      await settleAnimations(page)
+      const sheet = page.getByTestId('day-close-sheet')
+      const sheetBox = (await sheet.boundingBox())!
+      const navBox = (await appNav(page).boundingBox())!
+      expect(sheetBox.y + sheetBox.height).toBeLessThan(navBox.y)
+      await expect(sheet).toHaveCSS('border-bottom-left-radius', '16px')
+      await expect(sheet).toHaveCSS('border-top-left-radius', '16px')
+      const done = (await doneButton(page).boundingBox())!
+      const cancel = (await cancelButton(page).boundingBox())!
+      expect(done.y + done.height).toBeLessThanOrEqual(cancel.y)
+      expect(done.width).toBeGreaterThan(390 - 2 * 40)
+      expect(cancel.y + cancel.height).toBeLessThan(sheetBox.y + sheetBox.height)
+      await expect(doneButton(page)).toBeInViewport({ ratio: 1 })
+      expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(true)
+    })
+  })
 
   test('enters with the photo coming down over the board, the content fading in as it lands; Escape mid-drop leaves cleanly (#580, #612)', async ({ page }) => {
     await page.goto('/tasks')
