@@ -22,10 +22,12 @@
     --recap-feather: 4rem;
     --recap-curtain-duration: var(--duration-curtain); /* the photo lifting off; the component waits for it (NewDayRecap.vue) */
     --recap-enter-duration: var(--duration-stage); /* Dawn (#463): the stage fades in, one clock with the lift below; also on an app start */
+    --recap-sheet-pad-x: 1.25rem;
     position: fixed;
     inset: 0;
     z-index: var(--z-titlebar);
     overflow: hidden;
+    container-type: inline-size; /* the scroller below reaches to the stage's edges: 100cqw is the column's width */
     padding: calc(var(--app-bar-offset-top) + env(safe-area-inset-top, 0px) + 0.75rem) 1rem calc(var(--phone-bar-offset) + 0.75rem);
     animation: recap-stage-in var(--recap-enter-duration) var(--ease-emphasized) both;
   }
@@ -72,27 +74,37 @@
     border-radius: var(--task-card-radius); /* PageSheet's 16 px: the card's radius */
     background: var(--ui-bg);
     box-shadow: var(--shadow-task);
-    padding: 1.25rem 1.25rem 1rem;
+    padding: 1.25rem var(--recap-sheet-pad-x) 1rem;
   }
 
   @media (--sm) {
+    .recap-stage {
+      --recap-sheet-pad-x: 1.5rem;
+    }
+
     .recap-stage__sheet {
-      padding: 1.5rem 1.5rem 1.25rem;
+      padding: 1.5rem var(--recap-sheet-pad-x) 1.25rem;
     }
   }
 
-  /* Only this scrolls, inside the sheet, on a short window. A soft shadow at the edge that has more behind it says so (design review: a clipped
-     chart with no cue reads as the whole content): paper covers it (`local`) while the scroller sits at that edge, so it shows only where content is hidden */
+  /* Only this scrolls, inside the sheet, on a short window. It reaches sideways to the stage's edges (the negative margin and the padding cancel out, so the content keeps
+     the sheet's inner width): a deck card that is dragged or flies out (RecapDeck) is not cut at the sheet, and `overflow-x: hidden` keeps it from scrolling sideways.
+     A soft shadow at the edge that has more behind it says it scrolls (design review: a clipped chart with no cue reads as the whole content): paper covers it (`local`)
+     while the scroller sits at that edge, so it shows only where content is hidden. The cues are as wide as the sheet's inner width, not the scroller */
   .recap-stage__scroll {
+    --recap-cue-width: calc(min(44rem, 100cqw) - 2 * var(--recap-sheet-pad-x));
     flex: 0 1 auto;
+    margin-inline: calc(50% - 50cqw);
+    padding-inline: calc(50cqw - 50%);
     min-height: 0;
+    overflow-x: hidden;
     overflow-y: auto;
     overscroll-behavior: contain;
     background:
-      linear-gradient(var(--ui-bg) 30%, transparent) center top / 100% 1.5rem no-repeat local,
-      linear-gradient(transparent, var(--ui-bg) 70%) center bottom / 100% 1.5rem no-repeat local,
-      radial-gradient(farthest-side at 50% 0, color-mix(in oklab, var(--ui-text) 16%, transparent), transparent) center top / 100% 0.5rem no-repeat scroll,
-      radial-gradient(farthest-side at 50% 100%, color-mix(in oklab, var(--ui-text) 16%, transparent), transparent) center bottom / 100% 0.5rem no-repeat scroll;
+      linear-gradient(var(--ui-bg) 30%, transparent) center top / var(--recap-cue-width) 1.5rem no-repeat local,
+      linear-gradient(transparent, var(--ui-bg) 70%) center bottom / var(--recap-cue-width) 1.5rem no-repeat local,
+      radial-gradient(farthest-side at 50% 0, color-mix(in oklab, var(--ui-text) 16%, transparent), transparent) center top / var(--recap-cue-width) 0.5rem no-repeat scroll,
+      radial-gradient(farthest-side at 50% 100%, color-mix(in oklab, var(--ui-text) 16%, transparent), transparent) center bottom / var(--recap-cue-width) 0.5rem no-repeat scroll;
   }
 
   /* The content of the sheet: the decks, or the day close's summary, timebox and topics */
@@ -132,6 +144,30 @@
 
     .recap-stage__actions > * {
       width: auto;
+    }
+  }
+
+  /* A window too short for the head, the buttons and a readable scroller (a landscape phone, a window under about 30 rem; under 40 rem wide the buttons stack, so 34 rem):
+     the sheet no longer scrolls inside: the column does, the title, the content and the buttons one after the other (nothing sits outside the stage, the scroller never
+     shrinks to nothing; the buttons would not stay stuck at the foot, the head and the foot alone fill such a window). The column reaches to the window's edges (a flying
+     card is not cut), a foot of padding keeps the sheet's shadow */
+  @media (height < 30rem), (width < 40rem) and (height < 34rem) {
+    .recap-stage__column {
+      margin-inline: -1rem;
+      padding: 0 1rem 1rem;
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+
+    .recap-stage__sheet {
+      flex: none;
+    }
+
+    .recap-stage__scroll {
+      flex: none;
+      overflow: visible;
+      background: none;
     }
   }
 

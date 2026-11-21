@@ -3,6 +3,7 @@ import AxeBuilder from '@axe-core/playwright'
 import { fillerTasks, seedLocalBoard, SEED_TASKS, type SeedCarryOver, type SeedTask } from './helpers/seed'
 import { appNav, dayCloseCta, goToPlace, moreButton, openDayClose, openMore } from './helpers/appNav'
 import { settleAnimations } from './helpers/settle'
+import { expectStageFits } from './helpers/recapStage'
 
 /** Issue #98, #237, #480: the day close ("Tag abschließen") is a full-size stage with one calm sheet. Local tasks, no integration. */
 
@@ -372,6 +373,17 @@ test.describe('Day close stage (#480)', () => {
     await expect(doneButton(page)).toBeInViewport({ ratio: 1 })
     expect(await stage(page).locator('.recap-stage__column').evaluate(el => el.scrollHeight <= el.clientHeight)).toBe(true)
   })
+
+  for (const viewport of [{ width: 844, height: 300 }, { width: 568, height: 320 }, { width: 1280, height: 360 }]) {
+    test(`a window as short as ${viewport.width}x${viewport.height}: the content area keeps its height and both buttons can be reached whole, none cut off or under the tab bar (#707)`, async ({ page }) => {
+      await page.setViewportSize(viewport)
+      await page.goto('/tasks')
+      await openDayClose(page)
+      await expect(stage(page)).toBeVisible()
+      await settleAnimations(page)
+      await expectStageFits(page, stage(page), [doneButton(page), cancelButton(page)])
+    })
+  }
 
   test.describe('390px', () => {
     test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true })

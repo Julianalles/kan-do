@@ -3,6 +3,7 @@ import AxeBuilder from '@axe-core/playwright'
 import { settleAnimations } from './helpers/settle'
 import { appNav, goToPlace, openDayClose, openMore, openSettings } from './helpers/appNav'
 import { expectContrast } from './helpers/contrast'
+import { clippedBy, expectStageFits } from './helpers/recapStage'
 import {
   MIXED_SEED_TASKS, atDaysAgo, dayKeyDaysAgo, newDayBackTasks, newDayTasks, seedAfterMidnight, seedDayRecapStore, seedMixedBoard, seedNewDayBoard,
   type SeedTask,
@@ -430,6 +431,41 @@ test.describe('New-day recap (#385)', () => {
     expect((await recap(page).locator('[data-slot="title"]').boundingBox())!.y).toBe(titleY)
     expect((await planButton(page).boundingBox())!.y).toBe(planY)
     expect(await recap(page).locator('.recap-stage__column').evaluate(el => el.scrollHeight <= el.clientHeight)).toBe(true)
+  })
+
+  for (const viewport of [{ width: 844, height: 300 }, { width: 568, height: 320 }, { width: 1280, height: 360 }]) {
+    test(`a window as short as ${viewport.width}x${viewport.height}: the content area keeps its height and both buttons can be reached whole, none cut off or under the tab bar (#707)`, async ({ page, context }) => {
+      await page.setViewportSize(viewport)
+      await seedNewDayBoard(context)
+      await page.goto('/tasks')
+      await expect(recap(page)).toBeVisible()
+      await settleAnimations(page)
+      await expectStageFits(page, recap(page), [planButton(page), continueButton(page)])
+    })
+  }
+
+  test('a deck card that is dragged or flies off is not cut by the sheet and the scroller does not scroll sideways (#707)', async ({ page, context }) => {
+    await page.setViewportSize({ width: 1280, height: 800 })
+    await seedNewDayBoard(context)
+    await page.goto('/tasks')
+    await expect(deck(page, 'done')).toBeVisible()
+    await settleAnimations(page)
+    const front = deck(page, 'done').locator('.recap-deck__card[style*="z-index: 10"]')
+    const scroller = recap(page).locator('.recap-stage__scroll')
+    const sideways = () => scroller.evaluate(el => ({ scrollWidth: el.scrollWidth, clientWidth: el.clientWidth }))
+    const rest = await sideways()
+    expect(rest.scrollWidth).toBe(rest.clientWidth)
+    const box = (await deck(page, 'done').boundingBox())!
+    await page.mouse.move(box.x + 100, box.y + 60)
+    await page.mouse.down()
+    await page.mouse.move(box.x + 240, box.y + 70, { steps: 4 }) // 140px right: past the sheet's inner edge
+    expect(await clippedBy(front)).toEqual([])
+    expect(await sideways()).toEqual(rest)
+    await page.mouse.up() // past 80px: the card flies out and goes behind the stack
+    expect(await clippedBy(deck(page, 'done').locator('.recap-deck__card').first())).toEqual([])
+    expect(await clippedBy(front)).toEqual([])
+    expect(await sideways()).toEqual(rest)
+    await expect(counter(page, 'done')).toHaveText('2 / 4')
   })
 
   test('at rest no halo on the focused main button; the first key brings it (#612)', async ({ page, context }) => {
