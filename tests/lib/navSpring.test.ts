@@ -63,6 +63,20 @@ describe('navSpring: the rubber segment (#583)', () => {
     expect(Math.abs(edge.x)).toBeLessThan(200)
   })
 
+  it('a step of 0 or less changes nothing (a frame that starts before the move was set up, #680)', () => {
+    for (const dt of [0, -0.001, -0.03, -0.3, Number.NaN]) {
+      const state = at(704, 820)
+      state.left.v = 12
+      rubberStep(state, { l: 547, r: 618 }, -1, dt)
+      expect(state, `dt ${dt}`).toEqual({ left: { x: 704, v: 12 }, right: { x: 820, v: 0 } })
+    }
+    const state = at(704, 820)
+    const target = { l: 547, r: 618 }
+    rubberStep(state, target, -1, -0.3)
+    run(state, target, -1)
+    expect(isSettled(state, target)).toBe(true)
+  })
+
   it('directionOf compares centres; snapTo rests on the target', () => {
     const state = at(10, 70)
     expect(directionOf(state, { l: 80, r: 170 })).toBe(1)

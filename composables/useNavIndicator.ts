@@ -77,7 +77,9 @@ export function useNavIndicator({ pill, indicator, motionMs }: Options) {
       moving.value = false
       return
     }
-    const dt = Math.min((now - lastT) / 1000, MAX_DT)
+    // `now` is the frame's start, `lastT` a `performance.now()` read in `follow()`: after a long task the frame can start
+    // before it, and a negative step would fling the chip across the bar (#680)
+    const dt = Math.max(0, Math.min((now - lastT) / 1000, MAX_DT))
     lastT = now
     rubberStep(state, target, dir, dt)
     // The chip never leaves the pill, whatever the overshoot

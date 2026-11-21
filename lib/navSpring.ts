@@ -33,8 +33,12 @@ export const RUBBER = {
 /** Longest step the loop integrates in one go (a background tab must not fling the chip) */
 export const MAX_DT = 0.05
 
-/** One underdamped spring step (semi-implicit Euler, sub-stepped for stability). Mutates `edge`. */
+/**
+ * One underdamped spring step (semi-implicit Euler, sub-stepped for stability). Mutates `edge`.
+ * A step of 0 or less (or NaN) does nothing: a negative `h` is one unstable Euler step, not a step back in time (#680).
+ */
 export function springStep(edge: Edge, target: number, k: number, zeta: number, dt: number): void {
+  if (!(dt > 0)) return
   const c = 2 * zeta * Math.sqrt(k)
   const n = Math.max(1, Math.ceil(dt / 0.004))
   const h = dt / n
