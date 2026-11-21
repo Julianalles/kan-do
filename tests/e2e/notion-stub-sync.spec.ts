@@ -51,6 +51,8 @@ test.describe('Custom property the task has no entry for yet (#184)', () => {
     await seedNotionBoard(context, undefined, config)
     await page.goto(`${baseURL}/tasks/page-1`)
     await expect(page.getByRole('dialog')).toBeVisible()
+    // #705: the custom rows sit in the "Eigenschaften" popover on the desktop sheet
+    await page.getByTestId('task-properties-button').click()
     const row = page.getByTestId('task-property-row').filter({ hasText: 'Kommentar' })
     await expect(row).toBeVisible()
 
@@ -65,6 +67,7 @@ test.describe('Custom property the task has no entry for yet (#184)', () => {
 
     await page.reload()
     await expect(page.getByRole('dialog')).toBeVisible()
+    await page.getByTestId('task-properties-button').click()
     await expect(
       page.getByTestId('task-property-row').filter({ hasText: 'Kommentar' }).getByRole('button', { name: 'Kommentar: Erster Stand' }),
     ).toBeVisible()
@@ -74,6 +77,7 @@ test.describe('Custom property the task has no entry for yet (#184)', () => {
     await seedNotionBoard(context, undefined, config)
     await page.goto(`${baseURL}/tasks/page-1`)
     await expect(page.getByRole('dialog')).toBeVisible()
+    await page.getByTestId('task-properties-button').click()
     const row = page.getByTestId('task-property-row').filter({ hasText: 'Kommentar' })
     const writes: string[] = []
     page.on('request', (req) => {

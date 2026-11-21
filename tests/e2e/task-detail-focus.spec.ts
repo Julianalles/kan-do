@@ -38,7 +38,8 @@ test.describe('desktop sheet', () => {
     const box = await dialog.boundingBox()
     expect(box).toBeTruthy()
     expect(box!.width).toBeCloseTo(720, 0)
-    expect(box!.height).toBeLessThan(600)
+    // The fixed frame (#705): 85 % of the width, whatever the task holds
+    expect(box!.height).toBeCloseTo(612, 0)
     expect(box!.x).toBeGreaterThanOrEqual(16 - 1)
     expect(box!.y).toBeGreaterThanOrEqual(16 - 1)
     expect(box!.x + box!.width).toBeLessThanOrEqual(1440 - 16 + 1)
