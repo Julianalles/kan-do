@@ -32,7 +32,7 @@ const withMutedStackFrontExempt: AxeConfigure = (b) => b.exclude(MUTED_STACK_FRO
 
 /**
  * #394, accepted trade-off (DESIGN.md "The Receding Text Rule", measured in the FocusOverlay doc block): while a task sits in Jetzt the rest of the board is dimmed
- * on purpose (a warm dusk up to 46 % at the rim, with a flat blur); one mouse move, a tap or the setting in
+ * on purpose (a light paper veil, half strength at the rim, with a flat blur); one mouse move, a tap or the setting in
  * Einstellungen brings it back at full contrast. Only the overlay-on test exempts what the overlay covers
  * (Offen, Wartet, Erledigt with its footer; the app bar is not dimmed, #694); the lit part (the Jetzt column) keeps
  * 4.5:1, and the same board with the overlay off is measured plain, with no exclusions.
