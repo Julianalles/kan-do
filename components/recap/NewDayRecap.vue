@@ -240,19 +240,21 @@ async function leaveToPlan() {
     armLift()
     document.querySelector<HTMLElement>('[data-testid="new-day-recap"]')?.setAttribute('data-pace', 'lift')
   }
-  // The user chose this step: "Alle" tells them once what it is for (#711)
-  armPlanNote()
   // The curtain waits for the route: a second click or Escape meanwhile does nothing
   planning.value = true
+  let refused = false
   try {
     await navigateTo(boardPlaceLocation('all'))
   }
   catch {
+    refused = true
     // A refused navigation must not keep the recap open: the day is planned either way, the board shows where it is
   }
   finally {
     planning.value = false
   }
+  // The user chose this step and landed on "Alle": it tells them once what it is for (#711). A refused navigation arms nothing
+  if (!refused) armPlanNote()
   leaveOnce({ archive: true })
   // Left (not: nothing to leave): the user's click is the fresh start
   if (!isOpen.value) freshStart()

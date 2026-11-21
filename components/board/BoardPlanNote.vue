@@ -7,7 +7,7 @@
 @avoid Not a notice about the board's state (NewDayNote), not a toast, not a tour step or a tip anchored at another element: it stands where the step happens and goes once. Never for "Alle" opened any other way (pill, deep link, "Überspringen und Board anzeigen").
 @responsibility
 - One neutral, boxed note like NewDayNote and NewDayTimeNote (a subtle UAlert as the theme draws it, `role="status"`, no call-site `:ui`): title (what the step is), description (when to go to "Heute"), one link action "Schließen" with the notices' 44 px hit area on touch (`kando-notice-actions`), beside the text on desktop and below it on a phone
-- Answered by "Schließen" or when the place leaves "Alle" while the note is up (the user went on to "Heute"): both write the persisted flag, so it never returns, also after a restart. Opening a task sheet under `/all/:id` does not leave "Alle". Nothing is written to a connection and no task changes
+- Answered by "Schließen" or when the place changes from "Alle" to "Heute" while the note is up (the user went on; a page off the board such as Statistik is no answer, the note returns with "Alle"): both write the persisted flag, so it never returns, also after a restart. Opening a task sheet under `/all/:id` does not leave "Alle". Nothing is written to a connection and no task changes
 - Width: hosted in a BoardNotPlannedGroup without label or panel, so it is as wide as the pair of card columns on desktop and the page's width less the cards' inset on a phone; the panels and cards below it move down while it stands (it is one-time)
 - Keyboard focus goes to the board region when "Schließen" removes the focused button, never to `<body>`
 -->
@@ -37,6 +37,7 @@ import { useI18n } from 'vue-i18n'
 import BoardNotPlannedGroup from '~/components/board/BoardNotPlannedGroup.vue'
 import { useNewDay } from '~/composables/useNewDay'
 import { useBoardPlace } from '~/composables/useBoardPlace'
+import { boardPlaceOfPath, currentBoardPath } from '~/lib/boardPlace'
 import { useIsPhone } from '~/composables/useIsDesktop'
 import { focusFirstAvailable } from '~/utils/focusRecovery'
 
@@ -50,9 +51,10 @@ const isPhone = useIsPhone()
 
 const shown = computed(() => planNoteShown.value && isAll.value)
 
-// Going on to "Heute" answers it: the note exists to tell the user where to go, and they went
+// Going on to "Heute" answers it: the note exists to tell the user where to go, and they went. A page off the board (Statistik,
+// Einstellungen) is not "Heute": the note stays unanswered and is there again on the way back to "Alle"
 watch(isAll, (now) => {
-  if (!now && planNoteShown.value) answerPlanNote()
+  if (!now && planNoteShown.value && boardPlaceOfPath(currentBoardPath.value) === 'today') answerPlanNote()
 })
 
 /** The note leaves with its answer: focus goes to the board region instead of falling to <body>. */

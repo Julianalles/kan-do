@@ -1573,6 +1573,27 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
       await expect(planNote(page)).toHaveCount(0)
     })
 
+    test('leaving "Alle" for Statistik is not an answer: the note is there again on the way back; going on to "Heute" is', async ({ page, context }) => {
+      await seedNewDayBoard(context, { tasks: newDayBackTasks() })
+      await page.goto('/tasks')
+      await planButton(page).click()
+      await expect(page).toHaveURL(/\/all$/)
+      await settled(page)
+      await expect(planNote(page)).toBeVisible()
+
+      await goToPlace(page, 'Statistik')
+      await expect(page).toHaveURL(/\/statistics/)
+      expect(await storedSeen(page)).toBe(false)
+      await goToPlace(page, 'Alle')
+      await expect(planNote(page)).toBeVisible()
+      expect(await storedSeen(page)).toBe(false)
+
+      await goToPlace(page, 'Heute')
+      await expect.poll(() => storedSeen(page)).toBe(true)
+      await goToPlace(page, 'Alle')
+      await expect(planNote(page)).toHaveCount(0)
+    })
+
     test('"Alle" opened any other way shows none: the pill, a deep link, and "Überspringen und Board anzeigen"', async ({ page, context }) => {
       await seedNewDayBoard(context, { tasks: newDayBackTasks() })
       await page.goto('/tasks')

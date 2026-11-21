@@ -20,7 +20,7 @@ import { dayKey } from '~/utils/recapDay'
 export const begunDay = ref<string | null>(null)
 
 /**
- * The user chose "Tag neu planen" in this window (#711): armed by `useNewDay().freshStart()`, so the one-time note on "Alle" knows
+ * The user chose "Tag neu planen" in this window (#711): armed by `useNewDay().freshStart()` (the notice's button) or `armPlanNote()` (the recap's button), so the one-time note on "Alle" knows
  * the user arrived through that step. Runtime only: a reload, the pill, a deep link and "Überspringen und Board anzeigen" never
  * arm it. Cleared when the note is answered.
  */
