@@ -1,7 +1,7 @@
 /**
  * @store remindersConfig
  * @description What kan-do keeps of the Apple Reminders source (#551, epic #481 decision E3): the answer per list
- * (Thema, Aktivität, Aus) and the ledger of recurring occurrences done today. Its own persisted key, not a field of
+ * (Thema or Aus; an Aktivität an older version stored reads as Thema, #575) and the ledger of recurring occurrences done today. Its own persisted key, not a field of
  * `boardConfig` (ADR 015 addendum "Reminders source"). Additive and tolerant like `notionConfig`: nothing stored means no
  * lists; a malformed role or ledger entry reads as its default in memory (`afterHydrate`, no write, #273). No secret:
  * macOS holds the permission, nothing here is a token.

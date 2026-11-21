@@ -4,7 +4,7 @@ import { persistedStores, setRemindersStatus, setReminderCompleted, stubState, t
 
 /**
  * Apple Reminders as a task source (#551, epic #481 slice 2). The connect UI is slice 3, so the seed connects the source
- * and the Tauri stub plays macOS: three lists (Thema, Aktivität, Aus) and five reminders, one of them recurring. What the
+ * and the Tauri stub plays macOS: three lists (Thema, a list stored as the legacy Aktivität which reads as Thema, Aus) and five reminders, one of them recurring. What the
  * board shows, done both ways, the recurring occurrence, a revoked permission and the read-only menus.
  */
 
@@ -23,7 +23,7 @@ async function moveTo(page: Page, title: string, target: string) {
 }
 
 test.describe('Apple Reminders source (#551)', () => {
-  test('the open reminders and those completed today of every list that is not Off arrive: the list is the Thema or the Aktivität', async ({ context, page }) => {
+  test('the open reminders and those completed today of every list that is not Off arrive: the list is always the Thema, also one an older version stored as Aktivität (#575)', async ({ context, page }) => {
     await seedRemindersBoard(context)
     await page.goto('/tasks')
 
@@ -39,7 +39,7 @@ test.describe('Apple Reminders source (#551)', () => {
     const tasks = await storedTasks(page)
     const by = (title: string) => tasks.find(task => task.title === title)
     expect(by('Milch kaufen')).toMatchObject({ source: 'reminders', externalId: 'rem-milk', topic: 'Zuhause', activity: null, notes: 'Hafermilch', status: 0 })
-    expect(by('Quartalsbericht schreiben')).toMatchObject({ topic: null, activity: 'Arbeit', reminders: { due: { date: dayKeyDaysAhead(0), time: '09:30' }, listId: 'list-work' } })
+    expect(by('Quartalsbericht schreiben')).toMatchObject({ topic: 'Arbeit', activity: null, reminders: { due: { date: dayKeyDaysAhead(0), time: '09:30' }, listId: 'list-work' } })
     // A recurring reminder is one task per occurrence: its externalId carries the date
     expect(by('Pflanzen gießen')).toMatchObject({ externalId: `rem-plants@${dayKeyDaysAhead(0)}`, reminders: { recurrence: 'FREQ=WEEKLY' } })
     // Dated today: the date is the plan (#553), so each starts Offen on the board, nothing written
@@ -147,7 +147,7 @@ test.describe('Apple Reminders source (#551)', () => {
     await expect(header.getByText('Milch kaufen')).toBeVisible()
     await expect(header.getByTestId('inline-readonly')).toBeVisible()
     await expect(header.getByRole('button', { name: /Titel/ })).toHaveCount(0)
-    // The list is the Thema: a plain value, no picker; the empty Aktivität has no row
+    // The list is the Thema: a plain value, no picker; a Reminders card has no Aktivität row
     await expect(page.getByTestId('task-topic-readonly')).toContainText('Zuhause')
     await expect(page.getByTestId('task-topic-readonly').getByRole('button')).toHaveCount(0)
     await expect(page.getByTestId('task-activity-readonly')).toHaveCount(0)

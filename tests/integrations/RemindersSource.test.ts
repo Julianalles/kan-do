@@ -52,7 +52,7 @@ const reminder = (over: Partial<Reminder> & Pick<Reminder, 'id' | 'listId'>): Re
 })
 
 function setup(opts: { roles?: Record<string, ReminderListRole>; held?: Task[]; ledger?: Record<string, DoneOccurrence> } = {}) {
-  const roles = opts.roles ?? { 'L-home': 'topic', 'L-work': 'activity', 'L-off': 'off' }
+  const roles = opts.roles ?? { 'L-home': 'topic', 'L-work': 'topic', 'L-off': 'off' }
   const state = { ledger: { ...(opts.ledger ?? {}) }, access: null as string | null, changed: 0, begun: true }
   const deps: RemindersSourceDeps = {
     roleOf: id => roles[id] ?? 'topic',
@@ -104,7 +104,7 @@ describe('identity (E2)', () => {
 })
 
 describe('fetchActive', () => {
-  it('maps the reminders of every list that is not Off: list title is the topic (Thema) or the activity (Aktivität)', async () => {
+  it('maps the reminders of every list that is not Off: the list title is the topic (Thema), never an activity (#575)', async () => {
     bridge.fetch.mockResolvedValue({
       reminders: [
         reminder({ id: 'a', listId: 'L-home', title: 'Milch', notes: 'Hafer', due: { date: '2026-11-20', time: '08:30' } }),
@@ -122,7 +122,7 @@ describe('fetchActive', () => {
     expect(tasks.map(t => t.externalId)).toEqual(['a', 'b@2026-11-19', 'c'])
     expect(tasks[0]).toMatchObject({ source: 'reminders', title: 'Milch', notes: 'Hafer', topic: 'Zuhause', activity: null, status: TaskStatus.Open })
     expect(tasks[0]!.reminders).toEqual({ due: { date: '2026-11-20', time: '08:30' }, recurrence: null, listId: 'L-home' })
-    expect(tasks[1]).toMatchObject({ topic: null, activity: 'Arbeit' })
+    expect(tasks[1]).toMatchObject({ topic: 'Arbeit', activity: null })
     expect(tasks[1]!.reminders?.recurrence).toBe('FREQ=WEEKLY')
     expect(tasks[2]).toMatchObject({ status: TaskStatus.Done })
     expect(tasks[2]!.completedAt).toEqual(new Date(NOON - 1000))
@@ -274,6 +274,17 @@ describe('done-occurrence ledger (E2)', () => {
     // Built from the held task: kan-do's own fields come along
     expect(tasks[1]).toMatchObject({ timeBoxSeconds: 1500, priority: 2 })
     expect(tasks[1]!.completedAt).toEqual(new Date(NOON - 5000))
+  })
+
+  it('a held legacy `activity` occurrence comes back with the list title as Thema and no activity (#575)', async () => {
+    bridge.fetch.mockResolvedValue({
+      reminders: [reminder({ id: 'ABC', listId: 'L-home', recurrence: { rule: 'FREQ=DAILY' }, due: { date: '2026-11-20', time: null } })],
+      missingListIds: [],
+    })
+    const legacy = { ...ticked, topic: null, activity: 'Zuhause' } as Task
+    const { source } = setup({ held: [legacy], ledger: { 'ABC@2026-11-19': { completedAt: NOON - 5000 } } })
+    const kept = (await source.fetchActive()).find(t => t.externalId === 'ABC@2026-11-19')
+    expect(kept).toMatchObject({ topic: 'Zuhause', activity: null, status: TaskStatus.Done, timeBoxSeconds: 1500 })
   })
 
   it('is pruned at local midnight', async () => {

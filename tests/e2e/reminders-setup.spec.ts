@@ -43,7 +43,8 @@ const expectStep = async (page: Page, label: 'Zugriff' | 'Listen' | 'Heute') => 
     [root, ...root.querySelectorAll('*')].filter((el) => ['auto', 'scroll'].includes(getComputedStyle(el).overflowY) && el.scrollHeight > el.clientHeight).length)
   expect(innerScrollers).toBe(0)
 }
-const roleChoice = (page: Page, listId: string, role: string) => page.getByTestId(`reminders-role-${listId}-${role}`)
+/** The one switch of a list (#575): on reads it as a Thema, off does not read it */
+const toggle = (page: Page, listId: string) => page.getByTestId(`reminders-list-toggle-${listId}`)
 
 /** Access granted: step 1 -> step 2 */
 /** From the board (so its tasks are loaded) to the page: sources tab -> the row's menu */
@@ -160,31 +161,35 @@ test.describe('welcome step 2 and the setup (#552)', () => {
     expect(await prompts(page)).toBe(1)
   })
 
-  test('step 2: every list Thema (preselected), Aktivität or Aus; the picked answer is a lifted segment, an Aus list reads "Wird nicht gelesen"; all Aus blocks the way on', async ({ context, page }) => {
+  test('step 2: one switch per list, on by default (a Thema); an Aus list reads "Wird nicht gelesen"; all Aus blocks the way on', async ({ context, page }) => {
     await firstRun(context)
     await openReminders(page)
     await grantAndContinue(page)
 
     await expectStep(page, 'Listen')
     for (const list of LISTS) {
-      await expect(roleChoice(page, list.id, 'topic')).toBeChecked()
-      await expect(page.getByTestId(`reminders-list-${list.id}`).getByRole('radio')).toHaveCount(3)
-      await expect(page.getByRole('radiogroup', { name: `${list.title} zählt als` })).toBeVisible()
+      await expect(toggle(page, list.id)).toBeChecked()
+      await expect(page.getByTestId(`reminders-list-${list.id}`).getByRole('radio')).toHaveCount(0)
+      await expect(page.getByRole('switch', { name: `${list.title} lesen` })).toBeVisible()
     }
+    // No Aktivität anywhere in the step (#575)
+    await expect(page.getByTestId('reminders-lists-step')).not.toContainText('Aktivität')
     await expect(page.getByTestId('reminders-list-detail-list-home')).toHaveText('2 offen')
-    // The picked answer is no solid green fill
-    await expect(roleChoice(page, 'list-home', 'topic')).not.toHaveClass(/bg-primary/)
 
-    await roleChoice(page, 'list-private', 'off').click()
-    await expect(roleChoice(page, 'list-private', 'off')).toBeChecked()
+    await toggle(page, 'list-private').click()
+    await expect(toggle(page, 'list-private')).not.toBeChecked()
+    // A tap on the name works too: it is the label of the switch
+    await page.getByTestId('reminders-list-list-private').getByText('Privat', { exact: true }).click()
+    await expect(toggle(page, 'list-private')).toBeChecked()
+    await toggle(page, 'list-private').click()
     await expect(page.getByTestId('reminders-list-detail-list-private')).toHaveText('Wird nicht gelesen')
 
-    await roleChoice(page, 'list-home', 'off').click()
-    await roleChoice(page, 'list-work', 'off').click()
-    await expect(page.getByTestId('reminders-lists-empty')).toHaveText('Alle Listen sind aus. Stelle mindestens eine auf Thema oder Aktivität.')
+    await toggle(page, 'list-home').click()
+    await toggle(page, 'list-work').click()
+    await expect(page.getByTestId('reminders-lists-empty')).toHaveText('Alle Listen sind aus. Schalte mindestens eine an.')
     await expect(proceed(page)).toBeDisabled()
 
-    await roleChoice(page, 'list-work', 'activity').click()
+    await toggle(page, 'list-work').click()
     await expect(page.getByTestId('reminders-lists-empty')).toHaveCount(0)
     await expect(proceed(page)).toBeEnabled()
   })
@@ -193,8 +198,7 @@ test.describe('welcome step 2 and the setup (#552)', () => {
     await firstRun(context)
     await openReminders(page)
     await grantAndContinue(page)
-    await roleChoice(page, 'list-work', 'activity').click()
-    await roleChoice(page, 'list-private', 'off').click()
+    await toggle(page, 'list-private').click()
     await proceed(page).click()
 
     await expectStep(page, 'Heute')
@@ -212,7 +216,8 @@ test.describe('welcome step 2 and the setup (#552)', () => {
     await expect(page.locator('#column-open-list').getByText('Milch kaufen')).toBeVisible()
 
     await expect.poll(() => storedSources(page)).toEqual({ connected: ['reminders'], default: 'local' })
-    await expect.poll(async () => (await storedRoles(page))['list-work']?.role).toBe('activity')
+    // Only `topic` or `off` is ever stored (#575)
+    await expect.poll(async () => (await storedRoles(page))['list-work']?.role).toBe('topic')
     expect(await storedRoles(page)).toMatchObject({ 'list-home': { role: 'topic', title: 'Zuhause' }, 'list-private': { role: 'off', title: 'Privat' } })
     // The list set to Aus is never read
     expect((await calls(page, 'reminders_fetch')).at(-1)?.args).toMatchObject({ listIds: ['list-home', 'list-work'] })
@@ -222,14 +227,14 @@ test.describe('welcome step 2 and the setup (#552)', () => {
     await firstRun(context)
     await openReminders(page)
     await grantAndContinue(page)
-    await roleChoice(page, 'list-work', 'off').click()
+    await toggle(page, 'list-work').click()
     await proceed(page).click()
     await expectStep(page, 'Heute')
 
     await page.getByTestId('setup-back').click()
     await expectStep(page, 'Listen')
     // The answer made on the way is still there
-    await expect(roleChoice(page, 'list-work', 'off')).toBeChecked()
+    await expect(toggle(page, 'list-work')).not.toBeChecked()
     await page.getByTestId('setup-back').click()
     await expectStep(page, 'Zugriff')
     await expect(page.getByTestId('setup-back')).toHaveText('Zurück zur Auswahl')
@@ -292,9 +297,9 @@ test.describe('welcome step 2 and the setup (#552)', () => {
     await grantAndContinue(page)
     await expect(page.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '2')
     for (const list of LISTS) {
-      for (const role of ['topic', 'activity', 'off']) {
-        expect((await roleChoice(page, list.id, role).boundingBox())!.height).toBeGreaterThanOrEqual(40)
-      }
+      // The switch's own box is small; its invisible hit area is the 44 px target (theme, #592), so measure the row
+      expect((await page.getByTestId(`reminders-list-${list.id}`).boundingBox())!.height).toBeGreaterThanOrEqual(44)
+      await expect(toggle(page, list.id)).toBeVisible()
     }
     expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0)
   })
@@ -314,9 +319,10 @@ test.describe('Erinnerungen-Einstellungen (#552)', () => {
     await expect(page.getByRole('heading', { level: 2, name: 'Listen' })).toBeVisible()
     await expect(page.getByRole('heading', { level: 2, name: 'Heute' })).toBeVisible()
     await expect(page.getByRole('heading', { level: 2, name: 'Zugriff' })).toBeVisible()
-    await expect(roleChoice(page, 'list-home', 'topic')).toBeChecked()
-    await expect(roleChoice(page, 'list-work', 'activity')).toBeChecked()
-    await expect(roleChoice(page, 'list-private', 'off')).toBeChecked()
+    await expect(toggle(page, 'list-home')).toBeChecked()
+    await expect(toggle(page, 'list-work')).toBeChecked()
+    await expect(toggle(page, 'list-private')).not.toBeChecked()
+    await expect(page.getByTestId('reminders-list-choices')).not.toContainText('Aktivität')
     await expect(page.getByTestId('reminders-today-row-today')).toContainText('Auf dem Board')
     await expect(page.getByTestId('reminders-access-granted')).toHaveText('Kan-do darf auf Apple Erinnerungen zugreifen.')
 
@@ -330,22 +336,23 @@ test.describe('Erinnerungen-Einstellungen (#552)', () => {
   test('a list to Aus asks first when tasks would leave: counts, Cancel restores the choice, nothing is written to Reminders; Confirm takes the tasks off the board', async ({ context, page }) => {
     await seedRemindersBoard(context)
     await openRemindersSettings(page)
-    await expect(roleChoice(page, 'list-home', 'topic')).toBeChecked()
+    await expect(toggle(page, 'list-home')).toBeChecked()
 
-    await roleChoice(page, 'list-home', 'off').click()
+    await toggle(page, 'list-home').click()
     const question = page.getByTestId('reminders-exclude-confirm')
     // Zuhause holds Milch kaufen, Pflanzen gießen and the ticked Müll rausgebracht
     await expect(question).toContainText('Zuhause nicht mehr lesen?')
     await expect(question).toContainText('3 Aufgaben verlassen Kan-do, 3 davon stehen heute auf dem Board.')
     await expect(question).toContainText('In Apple Erinnerungen bleibt alles, wie es ist.')
-    await expect(roleChoice(page, 'list-home', 'off')).toBeChecked()
+    await expect(toggle(page, 'list-home')).not.toBeChecked()
 
     await page.getByTestId('reminders-exclude-confirm-cancel').click()
     await expect(question).toHaveCount(0)
-    await expect(roleChoice(page, 'list-home', 'topic')).toBeChecked()
+    await expect(toggle(page, 'list-home')).toBeChecked()
+    await expect(toggle(page, 'list-home')).toBeFocused()
     expect((await storedRoles(page))['list-home']?.role).toBe('topic')
 
-    await roleChoice(page, 'list-home', 'off').click()
+    await toggle(page, 'list-home').click()
     await page.getByTestId('reminders-exclude-confirm-yes').click()
     await expect(question).toHaveCount(0)
     await expect(page.getByTestId('reminders-list-detail-list-home')).toHaveText('Wird nicht gelesen')
@@ -365,7 +372,7 @@ test.describe('Erinnerungen-Einstellungen (#552)', () => {
     await seedRemindersBoard(context)
     await openRemindersSettings(page)
     // Privat is Aus already: switching it on fetches its reminder
-    await roleChoice(page, 'list-private', 'activity').click()
+    await toggle(page, 'list-private').click()
     await expect(page.getByTestId('reminders-exclude-confirm')).toHaveCount(0)
     // Dated tomorrow, so by #553 it is not on today's board: it waits in "Alle"
     await goToPlace(page, 'Heute')
@@ -376,7 +383,7 @@ test.describe('Erinnerungen-Einstellungen (#552)', () => {
     await openSettings(page, 'sources')
     await page.getByTestId('source-actions-reminders').click()
     await page.getByRole('menuitem', { name: 'Apple-Erinnerungen-Einstellungen' }).click()
-    await roleChoice(page, 'list-private', 'off').click()
+    await toggle(page, 'list-private').click()
     // It has a task now, so it asks: one task, none of it on today's board
     await expect(page.getByTestId('reminders-exclude-confirm')).toContainText('1 Aufgabe verlässt Kan-do, 0 davon stehen heute auf dem Board.')
   })

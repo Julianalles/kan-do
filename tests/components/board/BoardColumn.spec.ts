@@ -64,7 +64,7 @@ const stubs = {
   BoardColumnHeader: true,
   ColumnSortingControl: {
     template: '<div data-testid="sorting-control"></div>',
-    props: ['visible', 'status', 'sorting']
+    props: ['open', 'suppressed', 'status', 'sorting']
   },
   BoardColumnYesterdayNote: true,
   BoardColumnProgressContent: true,

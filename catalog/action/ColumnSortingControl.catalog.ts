@@ -6,11 +6,11 @@ export default {
   source: 'app',
   alternatives: ['UDropdownMenu', 'UButton'],
   variants: [
-    { id: 'open-column', label: 'Offen, manual', props: { visible: true, status: 0, sorting: null } },
-    { id: 'done-column', label: 'Erledigt, completed last', props: { visible: true, status: 3, sorting: { field: 'dateCompleted', direction: 'desc' } } },
+    { id: 'open-column', label: 'Offen, manual', props: { open: true, status: 0, sorting: null } },
+    { id: 'done-column', label: 'Erledigt, completed last', props: { open: true, status: 3, sorting: { field: 'dateCompleted', direction: 'desc' } } },
   ],
   states: [
-    { id: 'long-text', state: 'long-text', label: 'sorted by priority: field and hint in the trigger', props: { visible: true, status: 0, sorting: { field: 'priority', direction: 'desc' } } },
-    { id: 'focus', state: 'focus', props: { visible: true, status: 0, sorting: null } },
+    { id: 'long-text', state: 'long-text', label: 'sorted by priority: field and hint in the trigger', props: { open: true, status: 0, sorting: { field: 'priority', direction: 'desc' } } },
+    { id: 'focus', state: 'focus', props: { open: true, status: 0, sorting: null } },
   ],
 } satisfies CatalogEntry

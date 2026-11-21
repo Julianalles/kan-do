@@ -1,7 +1,7 @@
 /**
  * @module lib/remindersSource
  * @description The pure parts of the Apple Reminders task source (#551, ADR 015 addendum "Reminders source"):
- * the identity of a reminder as a task (E2), the list roles and their tolerant reader (E3), the done-occurrence
+ * the identity of a reminder as a task (E2), the list roles and their tolerant reader (E3, #575), the done-occurrence
  * ledger and the mapping of a fetched reminder to a `Task`. No store, no native call: `RemindersSource` and
  * `store/remindersConfig.ts` build on it.
  */
@@ -10,10 +10,10 @@ import type { Task, TaskReminders } from '~/types/task'
 import { TaskStatus } from '~/types/taskStatus'
 import { DEFAULT_PRIORITY } from '~/lib/priority'
 
-/** What a list of Reminders is on the board: a Thema, an Aktivität, or not read at all (`off`). */
-export type ReminderListRole = 'topic' | 'activity' | 'off'
+/** What a list of Reminders is on the board: a Thema (its title is the topic of its reminders), or not read at all (`off`). */
+export type ReminderListRole = 'topic' | 'off'
 
-export const REMINDER_LIST_ROLES: readonly ReminderListRole[] = ['topic', 'activity', 'off']
+export const REMINDER_LIST_ROLES: readonly ReminderListRole[] = ['topic', 'off']
 
 /** The role a list reads as until the user answered (a list created in Reminders later, a malformed stored role). */
 export const DEFAULT_LIST_ROLE: ReminderListRole = 'topic'
@@ -37,7 +37,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 export const isListRole = (value: unknown): value is ReminderListRole =>
   (REMINDER_LIST_ROLES as readonly unknown[]).includes(value)
 
-/** A stored `lists` value made usable: a malformed role reads as `topic`, a malformed entry is dropped. Pure, never writes. */
+/**
+ * A stored `lists` value made usable: a malformed role reads as `topic`, a malformed entry is dropped. Pure, never writes.
+ * The role `activity` an older version stored (#575, a list could count as an Aktivität) is not a role any more: it is
+ * not in `REMINDER_LIST_ROLES`, so it reads as `topic` like any unknown value, and the list stays read.
+ */
 export function readLists(raw: unknown): Record<string, ReminderListConfig> {
   if (!isRecord(raw)) return {}
   const lists: Record<string, ReminderListConfig> = {}
@@ -87,12 +91,12 @@ export function startOfLocalDay(now: number): number {
 export const isReadRole = (role: ReminderListRole): boolean => role !== 'off'
 
 /**
- * A fetched reminder as a task. `topic` is the list title for a list with the role Thema, `activity` for the role
- * Aktivität, the other stays null. Priority and time box are kan-do's own (a reminder carries neither), so a new card
+ * A fetched reminder as a task. `topic` is the list title, `activity` stays null: a Reminders list is always a Thema
+ * (#575). Priority and time box are kan-do's own (a reminder carries neither), so a new card
  * starts with the defaults and `mergeTasks` keeps what kan-do holds for a known one (`keepsKanDoFields`). A task is
  * delivered without a planning state: it starts Offen (slice 4 adds the date rules).
  */
-export function reminderToTask(reminder: Reminder, list: Pick<ReminderList, 'title'>, role: ReminderListRole): Task {
+export function reminderToTask(reminder: Reminder, list: Pick<ReminderList, 'title'>): Task {
   const externalId = reminderExternalId(reminder)
   return {
     id: externalId,
@@ -104,9 +108,9 @@ export function reminderToTask(reminder: Reminder, list: Pick<ReminderList, 'tit
     priority: DEFAULT_PRIORITY,
     timeBoxSeconds: null,
     timeSpentSeconds: 0,
-    topic: role === 'topic' ? list.title : null,
+    topic: list.title,
     topicColorCode: null,
-    activity: role === 'activity' ? list.title : null,
+    activity: null,
     timerId: null,
     isUnplanned: false,
     ...(reminder.completed && reminder.completedAt !== null ? { completedAt: new Date(reminder.completedAt) } : {}),

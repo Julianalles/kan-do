@@ -13,7 +13,7 @@
 - Pattern: first-run setup, diverged from the modal wizard; the apps are choice cards, diverged from the circle checkboxes (the UX decision of #607)
 -->
 <template>
-  <section class="flex flex-col gap-6" data-testid="local-setup-flow" :aria-label="t('onboarding.flow.local.label')">
+  <section class="flex flex-col gap-4 sm:gap-5" data-testid="local-setup-flow" :aria-label="t('onboarding.flow.local.label')">
     <BackButton :label="t('onboarding.flow.backToChoice')" @click="emit('back')" />
     <div>
       <SectionHeader ref="headingRef" tag="h2" size="display" tabindex="-1" class="text-balance outline-none">
@@ -22,8 +22,8 @@
       <p class="mt-2 text-body text-default">{{ t('onboarding.flow.local.intro') }}</p>
     </div>
 
-    <fieldset class="flex flex-col gap-3" data-testid="local-sources">
-      <SectionHeader tag="legend" size="label" class="mb-3">{{ t('onboarding.flow.local.legend') }}</SectionHeader>
+    <fieldset class="flex flex-col gap-2" data-testid="local-sources">
+      <SectionHeader tag="legend" size="label" class="mb-2">{{ t('onboarding.flow.local.legend') }}</SectionHeader>
       <ChoiceCard v-model="notion" icon="i-simple-icons-notion" data-testid="local-source-notion">
         {{ t('onboarding.flow.local.notion') }}
         <template #hint>{{ t('onboarding.flow.local.notionHint') }}</template>

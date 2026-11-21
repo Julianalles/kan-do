@@ -5,27 +5,18 @@
     - listitem: Heute
   - paragraph: Du änderst das später in den Einstellungen.
   - group "Listen":
-    - paragraph: Was bedeutet jede Liste für dich? Standard ist Thema. Listen, die du nicht brauchst, stellst du auf Aus.
-    - status: Alle Listen sind aus. Stelle mindestens eine auf Thema oder Aktivität.
-    - paragraph: "Thema: worum es geht, etwa Steuer oder Wohnung. Aktivität: wie du arbeitest, etwa Anrufe. Aus: Kan-do liest die Liste nicht, in Apple Erinnerungen bleibt sie, wie sie ist."
+    - paragraph: Welche Listen soll Kan-do lesen?
+    - status: Alle Listen sind aus. Schalte mindestens eine an.
+    - paragraph: Ist eine Liste an, wird ihr Name zum Thema ihrer Aufgaben, etwa Steuer oder Wohnung. Ist sie aus, liest Kan-do sie nicht. In Apple Erinnerungen bleibt sie, wie sie ist.
     - list "Listen aus Apple Erinnerungen":
       - listitem:
         - text: Zuhause Wird nicht gelesen
-        - radiogroup "Zuhause zählt als":
-          - radio "Thema"
-          - radio "Aktivität"
-          - radio "Aus" [checked]
+        - switch "Zuhause lesen"
       - listitem:
         - text: Arbeit Wird nicht gelesen
-        - radiogroup "Arbeit zählt als":
-          - radio "Thema"
-          - radio "Aktivität"
-          - radio "Aus" [checked]
+        - switch "Arbeit lesen"
       - listitem:
         - text: Privat Wird nicht gelesen
-        - radiogroup "Privat zählt als":
-          - radio "Thema"
-          - radio "Aktivität"
-          - radio "Aus" [checked]
+        - switch "Privat lesen"
   - button "Zurück"
   - button "Weiter" [disabled]
