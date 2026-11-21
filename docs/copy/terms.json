@@ -6,7 +6,7 @@
     "en": "task",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "Counted at seeding: de \"Aufgabe\" 120 values, de \"Task\" 1; en \"task\" 123 values, en \"to-do\" 5. Known limit: de \"Task\" also hits \"Tasks\" (intended) and compounds such as \"Taskleiste\" (no value today); no unrelated collision at seeding."
   },
   {
@@ -16,7 +16,7 @@
     "en": "storage location",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "Earlier form: \"Verbindung\" / \"connection\". Names where a task lives, Local included: the sources page, the add target, the command palette group. A source that is an integration (Notion, Todoist, Apple Reminders) is also a Verbindung (term integration); Local is a Speicherort, never a Verbindung. A network problem stays \"Keine Verbindung\" / \"No connection\", and a source with a problem is \"Verbindung prüfen\" (term needs-attention). \"Datenquelle\"/\"data source\" names the Notion database data source in notion.database.* (the Notion API term): a different concept, not an avoid form. Code identifiers and the {source} placeholder keep their name. Pitfall: a bare \"source\" in avoidEn would hit every {source} placeholder."
   },
   {
@@ -26,7 +26,7 @@
     "en": "default",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "de \"Standard\" 7 values, en \"Default\" 6 values (en also writes \"Standard\" once)."
   },
   {
@@ -36,7 +36,7 @@
     "en": "connection",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "Earlier form: \"Integration\" / \"integration\". A task source outside the app, such as Notion or Todoist: de \"Verbindung\", en \"connection\". Local is a source (term task-source), not an integration. Notion's own words stay where the text points at Notion's screens (the path \"Notion › Einstellungen › Integrationen\", \"Notion-Integrationstoken\") and GitHub's permission names stay as GitHub writes them."
   },
   {
@@ -46,7 +46,7 @@
     "en": "connect",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "en \"connect\" is consistent. de \"Verbindung\" is the noun for an integration (term integration); where a task lives is a \"Speicherort\" (term task-source). en \"link\" (the noun, 5 values for URLs) is not an avoid form: it cannot be told from the verb under word-prefix matching, so \"linked\" and \"link up\" stand in for it."
   },
   {
@@ -56,7 +56,7 @@
     "en": "disconnect",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "Ending an integration connection (user answer: removing an integration = Trennen). de \"Trennen\" 8 values, en \"disconnect\" 8. Data removal is delete, taking a value or element away is remove. Local cannot be disconnected."
   },
   {
@@ -66,7 +66,7 @@
     "en": "Check connection",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "The state is shown as an action (\"Verbindung prüfen\", \"Verbindung reparieren\"), not as an error word (PRODUCT.md principle 5: no technical detail). The tasks stay usable. Avoid forms are about the connection state only: the plain \"Fehler\"/\"error\"/\"failed\" were dropped, they hit every genuine error message (32 values at seeding) which is a different concept."
   },
   {
@@ -76,7 +76,7 @@
     "en": "move",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "Never \"copy\": the original is deleted from the old source once the task exists in the new one. \"kopieren\"/\"copy\" alone were narrowed to \"Aufgabe kopieren\"/\"copy task\": the bare words hit clipboard actions (\"ID kopieren\", \"Copy summary\") and backup copies (14 values), a different concept."
   },
   {
@@ -86,7 +86,7 @@
     "en": "Open",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "UI status labels are used in E2E assertions. board.columns.* in en.json holds \"Open\", \"Now\", \"Waiting\", \"Done\" (de label in de.json)."
   },
   {
@@ -96,7 +96,7 @@
     "en": "Now",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "The key is board.columns.progress; the term is \"Jetzt\". \"Aktuell\"/\"current\" are not avoid forms: ordinary words (23 values such as \"aktuell keine Datenquellen\", \"Replaces your current data\"). Known collision: en \"doing\" hits the Notion status example \"Today, Doing, Waiting, Done\" (1 value), allow that key when deciding."
   },
   {
@@ -106,7 +106,7 @@
     "en": "Waiting",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "en values containing \"waiting\": 9 at seeding."
   },
   {
@@ -116,7 +116,7 @@
     "en": "Done",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "User answer (#485): a task's state is always erledigt / done; Fertig / Done only labels a button that closes a dialog; abschließen only for the day (Tag abschließen) or a setup. The allow list also exempts de errors.title.success \"Fertig\" (a success toast title, an open question); the 6 en task-state strings that said \"finished\" now say \"done\" (#491)."
   },
   {
@@ -126,7 +126,7 @@
     "en": "timebox",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "User answer (#473): \"Timebox\". de \"Timebox\" 25 values, en \"timebox\" 24; no \"Zeitbox\"/\"Zeitvorgabe\" left. en \"estimate\" (14 values) is not an avoid form: estimation accuracy (\"Estimated accurately\", \"your estimates\") is a different concept from the planned box."
   },
   {
@@ -136,7 +136,7 @@
     "en": "topic",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "de \"Thema/Themen\" 17 values, en \"topic\" 17; en \"category\" 8, de \"Kategorie\" 1. Avoid forms are matched as case-insensitive word prefixes, so they are narrowed: de \"Tags\" (the plural) instead of \"Tag\", because \"Tag\" also hits \"Tage\", \"Tagen\", \"Tagesabschluss\" and day-close's own \"Tag abschließen\"; the singular loanword \"Tag\" is not catchable. Known collisions today: \"Label\"/\"label\" also hit the placeholder name \"{label}\" (4 values each); en \"tag\" also hits \"tagline\" and \"tagged\" (no value today). Resolve the collisions with a per-key allow when the term is decided (not part of the calibration)."
   },
   {
@@ -146,7 +146,7 @@
     "en": "activity",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "de \"Aktivität\" 15 values, en \"activity\" 12 (plus one \"Activity\" in de.json). en \"action\" is not an avoid form: it hits \"More actions\" and \"update action\" (2 values), other concepts."
   },
   {
@@ -156,7 +156,7 @@
     "en": "note",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "User answer (#473): \"Notiz\" over \"Notizen\"/\"Beschreibung\", singular in both languages. The feedback message field \"Beschreibung (optional)\" (feedback.descriptionLabel) is a different concept and is allowed."
   },
   {
@@ -166,7 +166,7 @@
     "en": "trash",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "de \"Papierkorb\" 5 values, en \"trash\" 5."
   },
   {
@@ -176,7 +176,7 @@
     "en": "Delete",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "User answer (#473): data removal = Löschen. de \"Löschen\" 29 values, en \"delete\" 28. Different concepts: delete (data goes away), remove (a value or element is taken away, nothing deleted), disconnect (ends an integration). The GitHub token is stored data (Löschen), the feedback draft \"Entwurf löschen\" replaces \"verwerfen\"."
   },
   {
@@ -186,7 +186,7 @@
     "en": "Remove",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "de \"Entfernen\" 6 values (task.property.clear, task.contextMenu.removeTimebox, feedback.removeElement, feedback.screenshot.remove, feedback.annotate.drawHint, the checkbox sentence in settings.data.exportImport.failedSafety), en \"remove\" 5. Boundary to delete and disconnect: see those entries. \"Löschen\"/\"delete\" are not avoid forms here: they are the preferred forms of delete, and a term may not avoid another term's preferred form (checkTerms). The boundary is by concept, reviewed per string."
   },
   {
@@ -196,7 +196,7 @@
     "en": "Archive",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "de \"Archiv*\" 6 values, en 6. Known collision: de \"Ablegen\" also hits the drag-and-drop hint \"Hier ablegen, um die Aufgabe abzuschließen\" (1 value, allow that key)."
   },
   {
@@ -206,7 +206,7 @@
     "en": "Restore",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "de \"Wiederherstellen\" 16 values, en \"restore\" 15."
   },
   {
@@ -216,7 +216,7 @@
     "en": "Undo",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "de \"Rückgängig\" 3 values, en \"Undo\" 4. DESIGN.md: undo instead of confirm."
   },
   {
@@ -226,7 +226,7 @@
     "en": "Save",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "de \"Speichern\" 12 values vs \"Sichern\" 2; en \"Save\" 32. Narrowed: bare \"Sichern\"/\"store\" hit backups (\"Jetzt sichern\", \"Stored on this device\"), a different concept (3+2 values)."
   },
   {
@@ -236,7 +236,7 @@
     "en": "Apply",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "common.apply and task.timeboxNudge.apply; save vs apply: save stores a form, apply takes a suggestion. Narrowed: bare \"accept\" hits \"did not accept the change\" (Keychain) and \"not accepting more requests\" (3 values)."
   },
   {
@@ -246,7 +246,7 @@
     "en": "Cancel",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "de \"Abbrechen\" 3 values, en \"Cancel\" 7. \"Zurück\" (common.back) is navigation, not cancel."
   },
   {
@@ -256,7 +256,7 @@
     "en": "Close",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "de \"Schließen\" 6 values, en \"Close\" 10. Not for ending the day, see day-close."
   },
   {
@@ -266,7 +266,7 @@
     "en": "Close the day",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "de \"Tag abschließen\" 4 values vs \"Tagesabschluss\" 1 (dayClose.markdown.heading, a generated heading); en \"Close the day\"."
   },
   {
@@ -276,7 +276,7 @@
     "en": "Daily recap",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "Earlier form: \"Kurzer Rückblick\" / \"Quick look back\". recap.title and README/PRODUCT prose. The app bar segment while the recap is open is the shorter nav-recap (\"Rückblick\" / \"Look back\"). Narrowed: bare \"Zusammenfassung\"/\"summary\" hit the day summary export (\"Copy summary\", \"Summary copied\", 8 values) and \"review\" hits the feedback dialog (\"Review and send\"), other concepts."
   },
   {
@@ -286,7 +286,7 @@
     "en": "Sync",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "de \"Synchron*\" 20 values and \"Sync\" 19; en \"sync\" 27. de \"Abgleich\" 1. Known collision: de \"Aktualisieren\" also hits the app updater (\"App aktualisieren\", 1 value); it cannot be told apart under word-prefix matching, allow that key."
   },
   {
@@ -297,7 +297,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "note": "User answer (#485): the time spent on a task is 'Aufgewendete Zeit' / 'Time spent', not 'Zeit investiert' or 'Aufwand'. The running timer on a card keeps 'Bisher gearbeitet'.",
-    "status": "proposed"
+    "status": "decided"
   },
   {
     "id": "settings",
@@ -307,7 +307,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "note": "User answer (#485): Einstellungen / settings for the place and what can be changed; no Konfiguration / configuration.",
-    "status": "proposed"
+    "status": "decided"
   },
   {
     "id": "set-up",
@@ -317,7 +317,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "note": "User answer (#485): the first guided setup of an integration; \"Einrichtung\" / \"setup\" is the noun.",
-    "status": "proposed"
+    "status": "decided"
   },
   {
     "id": "product-name",
@@ -337,7 +337,7 @@
       "Kan Do"
     ],
     "note": "\"Kan-do\" in German and English running text. PRODUCT.md \"Name: Kan-do\". The wordmark text `nav.brand` stays lowercase on purpose (DESIGN.md Navigation: the brand `kan-do` in the app bar pill) and is allowed. `productName`, the bundle identifier, the data folder and the updater and Keychain keys are not copy and keep their spelling.",
-    "status": "proposed",
+    "status": "decided",
     "caseSensitive": true,
     "enforce": "hard"
   },
@@ -348,7 +348,7 @@
     "en": "you",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "docs/copy/voice.md \"Address\": du. The formal address is converted (#474). \"Sie\"/\"Ihr\"/\"Ihnen\" are matched case-sensitively (caseSensitive), so the pronoun \"sie\"/\"ihre\" (she/they/it) does not hit; the 4 sentence-initial pronouns \"Sie bleibt…\" are exempt via allow (keep the list to these keys: a new sentence-initial pronoun needs an allowed key)."
   },
   {
@@ -358,7 +358,7 @@
     "en": "day end",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "Not an exact time: the count is the last one the app saw that day, so a day on which the app was only open in the morning shows the morning count. Not to be confused with day-close (the dialog, \"Tag abschließen\")."
   },
   {
@@ -368,7 +368,7 @@
     "en": "title",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "The add-sheet placeholder asks to \"benennen\"/\"name\" the task and the empty-title error says \"Gib der Aufgabe einen Titel.\" / \"Give the task a title.\": verb and noun differ on purpose (the field is a title, naming is the act)."
   },
   {
@@ -378,7 +378,7 @@
     "en": "Statistics",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "A place is named like the app bar names it (\"Heute\", \"Statistik\", \"Papierkorb\", \"Einstellungen\"): the singular, also as the page title and the tab title. de \"Statistiken\" was the page title and tab title before #680 while the app bar and the command said \"Statistik\". en was consistent (\"Statistics\" everywhere). \"Statistik\" inside running text (\"zur Statistik hinzugefügt\") is the same word."
   },
   {
@@ -388,7 +388,7 @@
     "en": "System",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "Earlier form: \"Verwaltung\" / \"Manage\". The tab and the sheet heading of the third settings tab. Named by the user in the #691 design round: user-data maintenance, not board behaviour, so Themen und Aktivitäten lives here too. The tab strip reads Board, Speicherorte, System. Not \"Mehr\" / \"More\" as a catch-all tab name; \"Mehr\" names the new-card flow's fourth cell (quick-add-more-values) and the registry test forbids one term's avoid form being another's preferred form."
   },
   {
@@ -398,7 +398,7 @@
     "en": "request limit",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed"
+    "status": "decided"
   },
   {
     "id": "feedback-issue",
@@ -407,7 +407,7 @@
     "en": "feedback",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "Earlier form: \"Issue\" / \"issue\". What a feedback report becomes on GitHub: the dialog says \"Feedback\" (\"Als Feedback senden\", \"öffentliches Feedback\", \"Feedback-Text\"). GitHub's own permission names stay as GitHub writes them (\"Issues + Inhalte: schreiben\"), and an issue number is written \"#{number}\"."
   },
   {
@@ -417,7 +417,7 @@
     "en": "GitHub account",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "Not the token: the token is the secret stored in the app (token entry); the account is the person's sign-in on github.com. German compound with the brand name takes a hyphen (DESIGN.md)."
   },
   {
@@ -427,7 +427,7 @@
     "en": "Done on",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "Same wording as the Statistik table column (statistics.table.completedAt). Follows the decided task state erledigt / done (column-done). The Notion setup names Notion's own property and is not this row."
   },
   {
@@ -437,7 +437,7 @@
     "en": "swap",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "Earlier form: \"wechseln\" / \"switch\". Toast \"Aufgabe getauscht\" / \"Task swapped\" and the drop announcement (\"Beim Ablegen tauschen beide\"). The code and the issue say swap. Other \"wechseln\" / \"switch\" in the UI (the data folder, the arrow-key deck) are different concepts. Not the Jetzt focus overlay."
   },
   {
@@ -447,7 +447,7 @@
     "en": "reset",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "The command, the section and the dialog say \"App zurücksetzen\" / \"Reset app\"; the effect is described with Löschen / delete (the decided data term). Proposed by the #227 build; the user decides."
   },
   {
@@ -457,7 +457,7 @@
     "en": "topic",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "Funnel \"Thema\", pill \"Thema: <Name>, n ausgeblendet\", ✕ \"Thema beenden\" (EN \"Topic\", \"Topic: <name>, n hidden\", \"Clear topic\"). Proposed by the #608 build (item 75, D2): \"Fokus\" stays the Jetzt focus overlay (settings.focus.*, #394), so the two features no longer share a word. The user decides. \"Fokus\" / \"focus\" are no avoid forms here: the word is the preferred form of the Jetzt focus features (settings.focus.*, the floating focus timer), and a word match cannot tell the features apart."
   },
   {
@@ -467,7 +467,7 @@
     "en": "planned on {n} days",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "Changed in #356 from \"Tag {n} auf dem Board\" / \"day {n} on the board\": since a new day sends unfinished cards back, the count means the days a task was planned, not the days it lay on the board. The count is displayDay (stored days + 1), the same number on the card dots, the label and the sheet question (\"seit {n} Tagen zur Erledigung eingeplant\"). The label shows from day 2, so only the plural form exists."
   },
   {
@@ -477,7 +477,7 @@
     "en": "Kan-do developer",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "Earlier form: \"Kan-Do-Team\" / \"Kan-Do team\". The relay path files reports privately; the dialog names a recipient without \"wir\" / \"we\" (voice: the app has no speaker): \"die Kan-do-Entwickler\" / \"the Kan-do developers\". Chosen over \"Entwickler\" / \"developer\" to stay neutral; the project has one maintainer today."
   },
   {
@@ -487,7 +487,7 @@
     "en": "Your capacity",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "Earlier form: \"Kapazität\" / \"Capacity\". Label of the divider: \"Deine Kapazität\" / \"Your capacity\"; a compound or sentence may use the bare noun (\"Kapazitätshinweis\"). Not \"Limit\" (the WIP limit of Jetzt is a rule, this one only informs) and not \"Warnung\" (principle: calm, no alarm). Chosen in the design round of #132 (the user's own wording from decision D1)."
   },
   {
@@ -497,7 +497,7 @@
     "en": "Working hours",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "Label \"Arbeitszeit pro Tag\" / \"Working hours per day\"; the automatic choice is \"Automatisch\" / \"Automatic\" (learned from tracked work). Not \"Kapazität\" (that is the divider's own label) and not \"Tageslänge\"."
   },
   {
@@ -507,7 +507,7 @@
     "en": "All",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "Named \"Alle\" / \"All\" (#435; first approved by the user on 2026-11-16, #367, then renamed \"Planung\" / \"Planning\" in #375, renamed back in #435, never made decided). The user's `npm run terms:approve` makes it decided. The route stays /all. \"Backlog\" is not the name of this place: it is an avoid form of column-open and not registered here, because an avoid form matches as a word prefix across every string."
   },
   {
@@ -517,7 +517,7 @@
     "en": "All tasks",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "User, 2026-11-20: the column's headline shows the short form \"Alle\" / \"All\" (design answer on #609); \"Alle Aufgaben\" / \"All tasks\" is the form for sentences and the region name (earlier forms: \"Meine Aufgaben\" / \"My tasks\", and before that \"Nicht geplant\" / \"Not planned\"). The user's `npm run terms:approve` makes it decided. Names the column only (headline, region name, sentences that say where a task goes); the state of a task there is the term not-planned-state. \"Nicht geplant\" is not an avoid form: it is that state's term."
   },
   {
@@ -527,7 +527,7 @@
     "en": "Not planned",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "Split from not-planned in #375, when the column became \"Alle Aufgaben\"; the wording itself was approved by the user on 2026-11-16 (#367). A state, like \"Offen\": \"Status: Nicht geplant\", \"… ist nicht mehr für heute geplant.\". Not \"ungeplant\" / \"unplanned\": that is ad-hoc work (task.isUnplanned, \"Ungeplant\"). Whether \"chosen for today\" is a marker separate from the status is #374."
   },
   {
@@ -537,7 +537,7 @@
     "en": "Today",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "The user's wording of 2026-11-16 (#375). Only the headline (and the column's spoken name) on \"Alle\", key board.columns.openPlanning; on the place \"Heute\" the column is headed \"Offen\", and the status is \"Offen\" everywhere (column-open). The same word as the app bar's place \"Heute\" on purpose: both mean today's plan."
   },
   {
@@ -547,7 +547,7 @@
     "en": "Plan for today",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "Approved by the user on 2026-11-16 (#367); the user's `npm run terms:approve` makes it decided. Name of the arrow button beside a card in \"Alle Aufgaben\". Proposed in the design of #334 (D4)."
   },
   {
@@ -557,7 +557,7 @@
     "en": "Don't plan for today",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "Earlier form: \"Nicht heute\" / \"Not today\". Card menu entry and name of the mirrored arrow. Approved by the user on 2026-11-16 (#367); the user's `npm run terms:approve` makes it decided. Proposed in the design of #334 (D4)."
   },
   {
@@ -567,7 +567,7 @@
     "en": "Continue to the board",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "The user's own German wording of 2026-11-16 (#373), English by the copy-writer skill; the user's `npm run terms:approve` makes it decided. It replaces \"Tag starten\" / \"Start the day\" (entry start-the-day, removed with the footer button), which had replaced the proposed \"Weiter zu Heute\". Unused since #454: the pill and key nav.continue are removed. \"Board\" is the user's word here, as in \"Direkt zum Board\" (straight-to-board)."
   },
   {
@@ -577,7 +577,7 @@
     "en": "Plan the day",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "Approved by the user on 2026-11-16 (#367) as the recap's button; the user's `npm run terms:approve` makes it decided. Since #387 it is the fresh start itself and also the notice's button (the same action gets the same name; the working name \"Frisch starten\" of #387 is not used, decision D1 d there). The second way out is \"Direkt zum Board\". Since #428 the recap's button reads \"Tag neu planen\" (entry replan-the-day); the notice's button reads \"Tag neu planen\" too (#454), so this entry is unused."
   },
   {
@@ -587,7 +587,7 @@
     "en": "Straight to the board",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "The user's own wording of 2026-11-16 (#367; the user's `npm run terms:approve` makes it decided); it replaces the proposed \"Direkt zu Heute\" / \"Straight to Today\" (entry straight-to-today). Also what Escape does on the recap. Since #428 the recap's secondary button reads \"Überspringen und Board anzeigen\" (entry skip-and-show-board); this entry stays for the history of the wording."
   },
   {
@@ -597,7 +597,7 @@
     "en": "Replan the day",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "The user's own German wording of 2026-11-17 (#428), English by the copy-writer skill; the user's `npm run terms:approve` makes it decided. It replaces \"Tag planen\" on the recap only (entry plan-the-day); since #454 the notice's button reads it as well (the same action gets the same name)."
   },
   {
@@ -607,7 +607,7 @@
     "en": "Skip and show the board",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "The user's own German wording of 2026-11-17 (#428), English by the copy-writer skill; the user's `npm run terms:approve` makes it decided. It replaces \"Direkt zum Board\" (entry straight-to-board). Escape on the recap dismisses without a move, as before."
   },
   {
@@ -617,7 +617,7 @@
     "en": "Look back",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "nav.recap. The short form of the recap's headline (entry recap: \"Tagesrückblick\" / \"Daily recap\"); the user's mockup of 2026-11-17 (#428) shows \"Rückblick\". English \"Look back\" because the recap entry avoids \"recap\"."
   },
   {
@@ -627,7 +627,7 @@
     "en": "Last planned and not done",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "Earlier form: \"Gestern auf dem Board\" / \"On the board yesterday\". Proposed in the design of #469 (user answer D1: one panel, Wartet included). Replaces \"Gestern geplant, noch offen\" (planned-yesterday, approved 2026-11-16 in #367, never made decided) and \"Zuletzt in Wartet\" (was-waiting). The panel names the last board, not a date, so it reads the same when that board was longer ago."
   },
   {
@@ -637,7 +637,7 @@
     "en": "More tasks",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "Approved by the user on 2026-11-16 (#367); the user's `npm run terms:approve` makes it decided. Proposed in the design of #334. Shown only together with the panel above it."
   },
   {
@@ -647,7 +647,7 @@
     "en": "Subtract time / Keep time",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "Proposed wording from the user's decision. Not \"Entfernen\": that term is for a value or element taken away; here a counted amount is subtracted from the total. Recorded time only changes when the user says so."
   },
   {
@@ -657,7 +657,7 @@
     "en": "Create task",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "The user's own wording of 2026-11-16 (#367; the user's `npm run terms:approve` makes it decided), the same words as the add form's submit button (task.form.submit). The column header's icon button stays \"Aufgabe hinzufügen\" (board.addTask). The empty state beside it reads \"Keine weiteren Aufgaben vorhanden.\", also the user's wording."
   },
   {
@@ -667,7 +667,7 @@
     "en": "Keep the board",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "The other footer button of the same dialog is \"Änderung übernehmen\" / \"Apply the change\" (the term `apply`). The dialog's title is \"Kurz prüfen\" / \"Quick check\": the design copy said \"Bitte kurz prüfen\", which the voice rule \"No 'Bitte'\" rules out."
   },
   {
@@ -677,7 +677,7 @@
     "en": "Floating focus timer",
     "avoidDe": [],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "Earlier form: \"Schwebendes Jetzt-Fenster\" / \"Floating Now window\". The setting's label and the feature's name in prose; code, the route `/overlay` and ADR 020 keep \"overlay\". Not \"Fokus\": the board's dusk overlay (settings.focus, \"Jetzt-Karte im Fokus\") is a different feature. The window's buttons are \"Pausieren\" / \"Fortsetzen\" (EN Pause / Resume), \"Als erledigt markieren\" and \"Kan-do öffnen\" (the pill's aria-labels; the pill shows icons only)."
   },
   {
@@ -693,7 +693,7 @@
       "Prerequisites",
       "Before you start"
     ],
-    "status": "proposed",
+    "status": "decided",
     "note": "Stepper label and hidden step heading; the intro pane itself has no visible heading."
   },
   {
@@ -707,7 +707,7 @@
     "avoidEn": [
       "Reminders app"
     ],
-    "status": "proposed",
+    "status": "decided",
     "note": "Earlier form: \"Erinnerungen\" / \"Reminders\". The Apple Reminders task source (#551, epic #481): the app on the Mac and the source name `source.name.reminders`. Where the text names the macOS permission or its Settings path (\"Systemeinstellungen › Datenschutz & Sicherheit › Erinnerungen\") the system's own word stays, and \"your reminders\" as the items in the app are tasks of that source. In a German compound the two words are coupled with hyphens (\"Apple-Erinnerungen-Einstellungen\", `sourceCompound`, #685). Needs the user's `npm run terms:approve`."
   }
 ]
