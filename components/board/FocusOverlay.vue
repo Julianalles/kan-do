@@ -2,8 +2,8 @@
 @component FocusOverlay
 @kind primitive
 @category display
-@description The layer that calms the board while a task sits in Jetzt (#394): a soft radial pool of warm dusk
-centred on the Jetzt card (a desk lamp), with a flat defocus under the whole layer.
+@description The layer that calms the board while a task sits in Jetzt (#394): a light paper veil that is strongest
+at the rim and absent at the Jetzt card (a pool around it), with a flat defocus under the whole layer.
 @usage First child of `.board` in Board.vue, rendered only while the focus is possible (`focusEnabledNow`)
 @avoid A calming layer, not a modal backdrop (ResponsiveOverlay) and never interactive; only while a task sits in Jetzt.
 @responsibility
@@ -19,10 +19,12 @@ centred on the Jetzt card (a desk lamp), with a flat defocus under the whole lay
 - `aria-hidden`: purely visual, no DOM of the board is removed. Layer rules and gradient: board-focus-overlay.css
 - Lit above it: only the Jetzt column (header and card, which lifts with `--shadow-task-lifted` while the overlay is
   visible), and on the phone the nav pill. The Erledigt footer sits below it (#503); on desktop the app bar (z 40) stays
-  above it, undimmed (#694), and the overlay is `fixed` over the whole viewport. While it is lit a classic scroll bar takes the dusk tone. `--focus-dusk` is used only here and in that shadow, never as text, fill or border
+  above it, undimmed (#694), and the overlay is `fixed` over the whole viewport. The veil is paper-coloured (`--focus-veil`, #706): no dark tint, so the scroll bar, the app bar's veil and the phone bars keep their normal colours. `--focus-dusk` tones only the lifted card's shadow, never text, fill or border
 - Accepted contrast trade-off (DESIGN.md "The Receding Text Rule"): the dimmed board is intentionally below 4.5:1 while the
-  overlay is on. Measured 2026-10-29 from composited colours without the blur: worst case muted text on paper at the
-  rim 3.13:1 (3.24:1 on a card, body text on a card 5.7:1); the lit Jetzt column keeps its normal contrast. #503 puts the Erledigt
+  overlay is on. Measured for the paper veil (#706, sRGB blend of the veil over the page, blur ignored): at the rim (veil .5)
+  ink on page 3.3:1 (card 3.6), graphite 2.3:1, muted 2.0:1; at mid distance (veil .25) ink 7.6:1, graphite 4.0:1,
+  muted 3.0:1; at the card unchanged. Titles stay readable everywhere, secondary text drops below 3:1 only in the outer
+  rim zone, so the rim is capped at .5. The lit Jetzt column keeps its normal contrast. #503 puts the Erledigt
   footer under the same trade-off (same rule, same reversal); the app bar is no longer dimmed (#694). It is reversible
   (mouse move, tap, the Fokus setting); `tests/e2e/a11y.spec.ts` exempts exactly what it covers
 - Never covers a focused control (a key press hides it, WCAG 2.2 SC 2.4.11), never changes drop collision, and the
