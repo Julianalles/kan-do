@@ -78,6 +78,7 @@
       <BoardNotPlannedGroup
         v-if="plannedTasks.length > 0"
         panel
+        class="mt-2"
         :title="t('board.notPlanned.panelPlanned')"
         :heading-id="plannedHeadingId"
         :count="plannedTasks.length"
@@ -105,6 +106,7 @@
       <BoardNotPlannedGroup
         v-if="waitingTasks.length > 0"
         panel
+        :class="{ 'mt-2': plannedTasks.length === 0 }"
         :title="t('board.notPlanned.panelWaiting')"
         :heading-id="waitingHeadingId"
         :count="waitingTasks.length"

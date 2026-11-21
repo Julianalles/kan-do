@@ -90,6 +90,7 @@ const isPhone = useIsPhone()
   justify-content: space-between;
   gap: 0.75rem;
   min-height: 2.5rem;
+  padding-top: 0.5rem;
 }
 
 /* The surface is a layer of its own (::before): the group keeps the width of the pair, label and cards the card edge */
@@ -100,7 +101,7 @@ const isPhone = useIsPhone()
 .nps-group--panel::before {
   content: '';
   position: absolute;
-  inset: 0.5rem calc(-1 * var(--nps-pad)) 0;
+  inset: 0 calc(-1 * var(--nps-pad)) 0;
   z-index: -1;
   border-radius: calc(var(--task-card-radius) + 0.25rem);
   background: var(--fill-on-canvas);
@@ -123,13 +124,13 @@ const isPhone = useIsPhone()
   }
 
   .nps-group--panel::before {
-    inset: 0.625rem 0.25rem 0;
+    inset: 0 0.25rem 0;
   }
 
   /* The label starts on the cards' left edge; the button sits below the row, the full width of the cards */
   .nps-group__head {
     flex-wrap: wrap;
-    padding: 0.5rem max(0.75rem, calc((100% - var(--task-card-max-width)) / 2)) 0.375rem;
+    padding: 0.75rem max(0.75rem, calc((100% - var(--task-card-max-width)) / 2)) 0.625rem;
   }
 
   .nps-group__action {
