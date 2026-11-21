@@ -1,6 +1,7 @@
 /**
  * #551: `remindersConfig` (the per-list answers and the done-occurrence ledger) is additive and tolerant: nothing stored
  * means no lists, a malformed role reads as Thema, a malformed ledger entry is dropped, hydrating writes nothing (#273).
+ * #575: the role `activity` of an older app version still loads, as Thema.
  */
 import { describe, it, expect } from 'vitest'
 import { createPinia, setActivePinia } from 'pinia'
@@ -39,12 +40,22 @@ describe('remindersConfig hydration (#551)', () => {
 
   it('keeps stored roles and ledger entries', () => {
     const { store, writes } = hydrate({
-      lists: { a: { role: 'activity', title: 'Arbeit' }, b: { role: 'off', title: 'Privat' } },
+      lists: { a: { role: 'topic', title: 'Arbeit' }, b: { role: 'off', title: 'Privat' } },
       doneOccurrences: { 'x@2026-11-19': { completedAt: 1000 } },
     })
-    expect(store.roleOf('a')).toBe('activity')
+    expect(store.roleOf('a')).toBe('topic')
     expect(store.roleOf('b')).toBe('off')
     expect(store.doneOccurrences).toEqual({ 'x@2026-11-19': { completedAt: 1000 } })
+    expect(writes).toEqual([])
+  })
+
+  it('a list an older version stored as Aktivität reads as Thema (still read, title kept), and hydrating writes nothing (#575)', () => {
+    const { store, writes } = hydrate({
+      lists: { a: { role: 'activity', title: 'Arbeit' }, b: { role: 'off', title: 'Privat' } },
+    })
+    expect(store.roleOf('a')).toBe('topic')
+    expect(store.lists['a']).toEqual({ role: 'topic', title: 'Arbeit' })
+    expect(store.roleOf('b')).toBe('off')
     expect(writes).toEqual([])
   })
 

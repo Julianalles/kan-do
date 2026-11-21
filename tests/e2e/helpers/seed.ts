@@ -570,14 +570,17 @@ export async function seedMixedBoard(
 // Apple Reminders source (#551, epic #481)
 // ---------------------------------------------------------------------------
 
-/** The three lists of the Reminders seed: Thema, Aktivität and Aus (never fetched). */
+/** The three lists of the Reminders seed: two read (one of them stored with the legacy role, see below) and one Aus (never fetched). */
 export const REMINDERS_SEED_LISTS: RemindersListStub[] = [
   { id: 'list-home', title: 'Zuhause' },
   { id: 'list-work', title: 'Arbeit' },
   { id: 'list-private', title: 'Privat' },
 ]
 
-export const REMINDERS_SEED_ROLES: Record<string, 'topic' | 'activity' | 'off'> = {
+/** What a stored answer can read in a seed: `activity` is the role an app version before #575 wrote, which still loads as Thema */
+export type SeedReminderRole = 'topic' | 'off' | 'activity'
+
+export const REMINDERS_SEED_ROLES: Record<string, SeedReminderRole> = {
   'list-home': 'topic',
   'list-work': 'activity',
   'list-private': 'off',
@@ -589,7 +592,7 @@ export function dayKeyDaysAhead(daysAhead: number): string {
 }
 
 /**
- * The reminders of the seed (all dated today, so the date is the plan and each starts on today's board, #553): a one-off with notes, a one-off in the Aktivität list, a weekly recurring one (ticking it
+ * The reminders of the seed (all dated today, so the date is the plan and each starts on today's board, #553): a one-off with notes, a one-off in the list stored as the legacy Aktivität (#575: read as Thema), a weekly recurring one (ticking it
  * leaves it open at the next date, the Reminders behaviour of the stub), one that was completed today, and one in the list
  * set to Off. Titles are unique so a spec finds a card by text.
  */
@@ -611,7 +614,7 @@ export interface SeedRemindersOptions {
   /** Local tasks that sit beside the Reminders ones (a mixed board shows the source icon); none by default. */
   tasks?: SeedTask[]
   /** The answer per list (`remindersConfig.lists`); the three roles of the seed by default. */
-  roles?: Record<string, 'topic' | 'activity' | 'off'>
+  roles?: Record<string, SeedReminderRole>
   lists?: RemindersListStub[]
   reminders?: ReminderStub[]
   /** The macOS permission at start; `granted` by default. */

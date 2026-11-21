@@ -122,7 +122,7 @@ describe('useRemindersSetup (#552)', () => {
     expect(setup.allOff.value).toBe(true)
     expect(setup.canProceed.value).toBe(false)
 
-    setup.setRole('L-work', 'activity')
+    setup.setRole('L-work', 'topic')
     expect(setup.allOff.value).toBe(false)
     expect(setup.canProceed.value).toBe(true)
   })
@@ -168,13 +168,13 @@ describe('useRemindersSetup (#552)', () => {
     const tasks = useTasksStore()
     const setup = useRemindersSetup({ firstRun: true })
     await setup.refreshAccess()
-    setup.setRole('L-work', 'activity')
+    setup.setRole('L-work', 'topic')
 
     expect(await setup.connect()).toBe('connected')
 
     expect(board.boardConfig.sources).toEqual({ connected: ['reminders'], default: 'local' })
     // The untouched list is written too: it reads Thema
-    expect(config.lists).toEqual({ 'L-home': { role: 'topic', title: 'Zuhause' }, 'L-work': { role: 'activity', title: 'Arbeit' } })
+    expect(config.lists).toEqual({ 'L-home': { role: 'topic', title: 'Zuhause' }, 'L-work': { role: 'topic', title: 'Arbeit' } })
     expect(bridge.fetch).toHaveBeenCalledTimes(1)
     expect(tasks.tasks.map((task) => [task.source, task.externalId])).toEqual([['reminders', 'r1']])
   })
@@ -215,7 +215,7 @@ describe('useRemindersSetup (#552)', () => {
     mac('granted')
     const board = useBoardStore()
     const config = useRemindersConfigStore()
-    config.setList('L-old', { role: 'activity', title: 'Alt' })
+    config.setList('L-old', { role: 'topic', title: 'Alt' })
     const setup = useRemindersSetup({ firstRun: true })
     await setup.refreshAccess()
     bridge.fetch.mockRejectedValue(new RemindersError('failed'))
@@ -225,7 +225,7 @@ describe('useRemindersSetup (#552)', () => {
     expect(setup.connectFailed.value).toBe(true)
     expect(board.connectedIntegrations).toEqual([])
     expect(board.isOnboarded).toBe(false)
-    expect(config.lists).toEqual({ 'L-old': { role: 'activity', title: 'Alt' } })
+    expect(config.lists).toEqual({ 'L-old': { role: 'topic', title: 'Alt' } })
 
     // And a retry after the cause is gone connects
     bridge.fetch.mockResolvedValue({ reminders: [], missingListIds: [] })
@@ -272,7 +272,7 @@ describe('useRemindersSetup (#552)', () => {
       const board = useBoardStore()
       board.setSources({ connected: ['reminders'], default: 'local' })
       const config = useRemindersConfigStore()
-      config.setLists({ 'L-home': { role: 'off', title: 'Zuhause' }, 'L-work': { role: 'activity', title: 'Arbeit' } })
+      config.setLists({ 'L-home': { role: 'off', title: 'Zuhause' }, 'L-work': { role: 'topic', title: 'Arbeit' } })
       const setup = useRemindersSetup({ firstRun: false })
       await setup.refreshAccess()
       return { setup, config, tasks: useTasksStore() }
@@ -281,7 +281,7 @@ describe('useRemindersSetup (#552)', () => {
     it('a list reads the answer the board already has, not Thema', async () => {
       const { setup } = await connected()
       expect(setup.roleOf('L-home')).toBe('off')
-      expect(setup.roleOf('L-work')).toBe('activity')
+      expect(setup.roleOf('L-work')).toBe('topic')
       expect(setup.roleOf('L-new')).toBe('topic')
     })
 

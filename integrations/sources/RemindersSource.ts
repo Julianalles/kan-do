@@ -30,6 +30,7 @@ import {
   remindersSetCompleted,
   remindersSetDue,
   type ReminderDue,
+  type ReminderList,
   type RemindersAccessStatus,
 } from '~/lib/reminders'
 import {
@@ -130,9 +131,9 @@ export class RemindersSource implements TaskSourceAdapter {
     const tasks: Task[] = []
     for (const reminder of fetched) {
       const list = titles.get(reminder.listId)
-      if (list) tasks.push(this.withPlanning(reminderToTask(reminder, list, this.deps.roleOf(list.id))))
+      if (list) tasks.push(this.withPlanning(reminderToTask(reminder, list)))
     }
-    return [...tasks, ...this.doneOccurrences(tasks, now)]
+    return [...tasks, ...this.doneOccurrences(tasks, now, titles)]
   }
 
   /**
@@ -171,7 +172,7 @@ export class RemindersSource implements TaskSourceAdapter {
    * The done occurrences of recurring reminders kept for the rest of today (E2). `fetched` is what the fetch returned:
    * an occurrence it returns itself (completed, or open again) wins and leaves the ledger.
    */
-  private doneOccurrences(fetched: readonly Task[], now: number): Task[] {
+  private doneOccurrences(fetched: readonly Task[], now: number, lists: ReadonlyMap<string, Pick<ReminderList, 'title'>>): Task[] {
     const fetchedIds = new Set(fetched.map(task => task.externalId))
     const held = this.deps.heldTasks()
 
@@ -198,7 +199,9 @@ export class RemindersSource implements TaskSourceAdapter {
         this.deps.dropDone(externalId)
         continue
       }
-      kept.push({ ...heldTask, status: TaskStatus.Done, completedAt: new Date(entry.completedAt) })
+      // A list is always a Thema (#575): a card an older version held as an Aktivität comes back with the list title as topic
+      const topic = lists.get(heldTask.reminders.listId)?.title ?? heldTask.topic ?? heldTask.activity ?? null
+      kept.push({ ...heldTask, topic, activity: null, status: TaskStatus.Done, completedAt: new Date(entry.completedAt) })
     }
     return kept
   }

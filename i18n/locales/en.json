@@ -1436,16 +1436,13 @@
           "deniedText": "Allow it in System Settings under Privacy & Security › Reminders. Kan-do then checks again."
         },
         "lists": {
-          "lead": "What does each list mean to you? Topic is the default. Switch off lists you don't need.",
+          "lead": "Which lists should Kan-do read?",
           "groupLabel": "Apple Reminders lists",
-          "choiceLabel": "{list} counts as",
-          "topic": "Topic",
-          "activity": "Activity",
-          "off": "Off",
+          "choiceLabel": "Read {list}",
           "open": "{n} open",
           "notRead": "Not read",
-          "help": "Topic: what it is about, such as taxes or housing. Activity: how you work, such as calls. Off: Kan-do doesn't read the list, and it stays as it is in Apple Reminders.",
-          "empty": "All lists are off. Set at least one to Topic or Activity.",
+          "help": "When a list is on, its name becomes the topic of its tasks, such as taxes or housing. When it's off, Kan-do doesn't read it. In Apple Reminders it stays as it is.",
+          "empty": "All lists are off. Switch at least one on.",
           "none": "Apple Reminders has no list yet. Create one there, then check again.",
           "loading": "Loading lists…"
         },

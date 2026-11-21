@@ -194,3 +194,19 @@ describe('mergeTasks of a source that plans by date (#553)', () => {
     })
   })
 })
+
+describe('a list an older version stored as Aktivität (#575)', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  it('the held card carried the list title as its activity; the next fetch makes it the topic and clears the activity', () => {
+    const store = useTasksStore()
+    store.mergeTasks('reminders', [{ ...delivered('a', TODAY), topic: null, activity: 'Arbeit' }], BY_DATE)
+    expect(store.task('a')).toMatchObject({ topic: null, activity: 'Arbeit' })
+
+    store.mergeTasks('reminders', [{ ...delivered('a', TODAY), topic: 'Arbeit', activity: null }], BY_DATE)
+
+    expect(store.task('a')).toMatchObject({ topic: 'Arbeit', activity: null })
+    expect(store.task('a')!.pendingSync).toBeUndefined()
+    expect(store.tasks.map(t => t.id)).toEqual(['a'])
+  })
+})

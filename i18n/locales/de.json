@@ -1436,16 +1436,13 @@
           "deniedText": "Erlaube ihn in den Systemeinstellungen unter Datenschutz & Sicherheit › Erinnerungen. Danach prüft Kan-do es noch einmal."
         },
         "lists": {
-          "lead": "Was bedeutet jede Liste für dich? Standard ist Thema. Listen, die du nicht brauchst, stellst du auf Aus.",
+          "lead": "Welche Listen soll Kan-do lesen?",
           "groupLabel": "Listen aus Apple Erinnerungen",
-          "choiceLabel": "{list} zählt als",
-          "topic": "Thema",
-          "activity": "Aktivität",
-          "off": "Aus",
+          "choiceLabel": "{list} lesen",
           "open": "{n} offen",
           "notRead": "Wird nicht gelesen",
-          "help": "Thema: worum es geht, etwa Steuer oder Wohnung. Aktivität: wie du arbeitest, etwa Anrufe. Aus: Kan-do liest die Liste nicht, in Apple Erinnerungen bleibt sie, wie sie ist.",
-          "empty": "Alle Listen sind aus. Stelle mindestens eine auf Thema oder Aktivität.",
+          "help": "Ist eine Liste an, wird ihr Name zum Thema ihrer Aufgaben, etwa Steuer oder Wohnung. Ist sie aus, liest Kan-do sie nicht. In Apple Erinnerungen bleibt sie, wie sie ist.",
+          "empty": "Alle Listen sind aus. Schalte mindestens eine an.",
           "none": "In Apple Erinnerungen gibt es noch keine Liste. Lege dort eine an und prüfe dann noch einmal.",
           "loading": "Listen werden geladen…"
         },
