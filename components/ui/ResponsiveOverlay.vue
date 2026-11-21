@@ -11,6 +11,7 @@
 - Open/close echo guard: vaul's DrawerRoot emits `update:open` with its current value on mount (page load at 390px, resize across the breakpoint). Only a value that differs from `open` is forwarded; without it a closed drawer reported `false` and a host started a close nobody asked for
 - `after-leave` fires for every variant
 - Focus into the drawer (#566): vaul cancels reka's open auto-focus (to keep the mobile keyboard closed), so the drawer never took focus and reka's trap never engaged. The drawer variant moves focus onto the drawer itself once it is mounted and again when its enter animation ends, unless hosted content already focused something inside (the task add form focuses its title field). The modal and slideover need none: reka focuses them. Hosts do not handle this
+- Browser bar tint (#554): while the drawer variant is open it sets `<meta name="theme-color">` to the sheet white so the phone's browser bars blend into the drawer; closing or unmounting removes the meta, so the browser samples the page again. The modal and slideover never set it
 - Focus handling (Escape guards, focus return) is the host's, handed in as `contentProps`
 -->
 <template>
@@ -90,7 +91,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, provide, readonly, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, provide, readonly, ref, watch } from 'vue';
 import { OVERLAY_DESKTOP_KEY, useIsDesktop } from '~/composables/useIsDesktop';
 
 defineOptions({ name: 'ResponsiveOverlay' });
@@ -164,6 +165,38 @@ watch(() => props.open, async (isOpen) => {
   await nextTick();
   requestAnimationFrame(focusIntoDrawer);
 });
+
+/** The drawer's background, read from `--ui-bg` (a meta tag cannot use a CSS variable); a canvas-resolved colour, e.g. `rgb(255, 255, 255)`. */
+const drawerThemeColor = () => {
+  if (!import.meta.client) return undefined;
+  const probe = document.createElement('div');
+  probe.style.backgroundColor = 'var(--ui-bg)';
+  document.body.appendChild(probe);
+  const color = getComputedStyle(probe).backgroundColor;
+  probe.remove();
+  return color;
+};
+
+const drawerOpen = computed(() => props.open && !isDesktop.value);
+let themeMeta: HTMLMetaElement | null = null;
+
+const clearThemeColor = () => {
+  themeMeta?.remove();
+  themeMeta = null;
+};
+
+// Present only while the drawer is open (#554); removed on close and on unmount, so the browser samples the page again
+watch(drawerOpen, (open) => {
+  if (!import.meta.client) return;
+  clearThemeColor();
+  if (!open) return;
+  themeMeta = document.createElement('meta');
+  themeMeta.name = 'theme-color';
+  themeMeta.content = drawerThemeColor() ?? '';
+  document.head.appendChild(themeMeta);
+}, { immediate: true });
+
+onBeforeUnmount(clearThemeColor);
 
 const drawerUi = computed<OverlayUi>(() => ({ container: 'min-h-0 gap-0 overflow-hidden p-0', ...props.mobileUi }));
 
