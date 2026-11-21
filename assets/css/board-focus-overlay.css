@@ -1,5 +1,5 @@
 /**
- * Jetzt focus overlay (#394): layer rules and looks. Imported by main.css.
+ * Jetzt focus overlay (#394, #706): layer rules and looks. Since #706 the overlay is a light paper veil, not a dusk. Imported by main.css.
  *
  * Unlayered on purpose: the `#column-*` z-index rules in board.css sit in `@layer components`, and unlayered
  * rules beat layered ones whatever their specificity, so the `.board[data-focus]` overrides below always win.
@@ -12,20 +12,19 @@
  * - Desktop (>=768px): the app bar (`.app-nav`, z-index 40, app-nav.css) is outside the board and sticky, and the
  *   board is a stacking context below it, so the bar simply stays above the overlay, undimmed and clickable (#694,
  *   reverses the dimmed bar of #503). The overlay is `fixed` over the whole viewport (the bar's paper veil sits on top
- *   of it, the pool shows through below). A classic document scroll bar lies outside the viewport box and cannot be
- *   dimmed, so while the overlay is lit its colours step back into the dusk (`scrollbar-color`, below).
+ *   of it, the pool shows through below). A classic document scroll bar lies outside the viewport box; the veil is
+ *   light, so it keeps its normal colours.
  * - Phone: the floating nav pill stays above the overlay (the board stays below 40); on the phone it is the anchor
  *   that shows there is a way out of the focus. The overlay stays `absolute` over the board. The page dots stay above
  *   it too (kd#207).
- * - The bar's and the dots' paper veils fade out while the overlay is lit (bottom of this file), so the dusk is whole.
  * With the setting off or nothing in Jetzt there is no `data-focus` and none of this applies.
  *
- * The Jetzt card's raised shadow follows the overlay being visible (`data-focus-lit`, set by Board.vue from the
+ * The Jetzt card's raised shadow follows the overlay being visible (`data-focus-lit` on `.board`, set by Board.vue from the
  * state machine's `shown`), not the focus mode: a hidden overlay (mouse moved, menu open) leaves the regular card shadow.
  *
- * State outside the board (#275): what the lit overlay and an open task sheet change above the board (the app bar's
+ * State outside the board (#275): what an open task sheet changes above the board (the app bar's
  * veil, the page dots, the root colours) keys on attributes that Board.vue mirrors in the same update:
- * `data-focus-lit` on `.board-container` and on `<html>`, `data-sheet-open` and `data-sheet-side` (the add route's
+ * `data-sheet-open` and `data-sheet-side` (the add route's
  * slideover only, #517) on `<html>`. Never `html:has(…)` or
  * `.board-container:has(…)`: a `:has()` on an ancestor keeps everything below in its scope, so each card change
  * restyled the whole page (2 whole-page passes per task sheet on a 73-task board;
@@ -52,9 +51,10 @@
 }
 
 .focus-overlay {
-  /* Strength (gentle): max darkness at the rim, a little already in the middle, flat blur everywhere */
-  --focus-max: 0.46;
-  --focus-core: 0.07;
+  /* Strength (#706, paper veil): the film is strongest at the rim and absent at the card, flat blur everywhere.
+     The rim stays capped at .5: the contrast of the receding board (DESIGN.md "The Receding Text Rule") was measured there. */
+  --focus-max: 0.5;
+  --focus-core: 0;
   --focus-blur: 1.5px;
   /* The pool: wide and tall around the card; tint falls off together with the ellipse */
   --focus-ellipse: ellipse calc(var(--fw) * 1.9 + 12rem) calc(var(--fh) * 3.2 + 11rem) at var(--fx) var(--fy);
@@ -93,24 +93,24 @@
   transition: opacity var(--focus-in-duration) var(--focus-in-ease);
 }
 
-/* A little dim already in the middle, then an eased (smoothstep-like) fall-off to the full dusk at the rim */
+/* Clear at the card, then an eased (smoothstep-like) rise to the full paper veil at the rim */
 .focus-overlay__tint {
   background: radial-gradient(
     var(--focus-ellipse),
-    color-mix(in oklab, var(--focus-dusk) calc(var(--focus-core) * 100%), transparent) 0%,
-    color-mix(in oklab, var(--focus-dusk) calc((var(--focus-core) + (var(--focus-max) - var(--focus-core)) * 0.04) * 100%), transparent) 14%,
-    color-mix(in oklab, var(--focus-dusk) calc((var(--focus-core) + (var(--focus-max) - var(--focus-core)) * 0.15) * 100%), transparent) 28%,
-    color-mix(in oklab, var(--focus-dusk) calc((var(--focus-core) + (var(--focus-max) - var(--focus-core)) * 0.33) * 100%), transparent) 42%,
-    color-mix(in oklab, var(--focus-dusk) calc((var(--focus-core) + (var(--focus-max) - var(--focus-core)) * 0.55) * 100%), transparent) 56%,
-    color-mix(in oklab, var(--focus-dusk) calc((var(--focus-core) + (var(--focus-max) - var(--focus-core)) * 0.76) * 100%), transparent) 70%,
-    color-mix(in oklab, var(--focus-dusk) calc((var(--focus-core) + (var(--focus-max) - var(--focus-core)) * 0.92) * 100%), transparent) 85%,
-    color-mix(in oklab, var(--focus-dusk) calc(var(--focus-max) * 100%), transparent) 100%
+    color-mix(in oklab, var(--focus-veil) calc(var(--focus-core) * 100%), transparent) 0%,
+    color-mix(in oklab, var(--focus-veil) calc((var(--focus-core) + (var(--focus-max) - var(--focus-core)) * 0.04) * 100%), transparent) 14%,
+    color-mix(in oklab, var(--focus-veil) calc((var(--focus-core) + (var(--focus-max) - var(--focus-core)) * 0.15) * 100%), transparent) 28%,
+    color-mix(in oklab, var(--focus-veil) calc((var(--focus-core) + (var(--focus-max) - var(--focus-core)) * 0.33) * 100%), transparent) 42%,
+    color-mix(in oklab, var(--focus-veil) calc((var(--focus-core) + (var(--focus-max) - var(--focus-core)) * 0.55) * 100%), transparent) 56%,
+    color-mix(in oklab, var(--focus-veil) calc((var(--focus-core) + (var(--focus-max) - var(--focus-core)) * 0.76) * 100%), transparent) 70%,
+    color-mix(in oklab, var(--focus-veil) calc((var(--focus-core) + (var(--focus-max) - var(--focus-core)) * 0.92) * 100%), transparent) 85%,
+    color-mix(in oklab, var(--focus-veil) calc(var(--focus-max) * 100%), transparent) 100%
   );
 }
 
 /* Defocus is flat: the same blur everywhere under the overlay, no radial fade */
 .focus-overlay__blur {
-  backdrop-filter: blur(var(--focus-blur)) saturate(0.85);
+  backdrop-filter: blur(var(--focus-blur)) saturate(0.7);
 }
 
 /* The lit card stands a little further off the paper only while the room is dim (overlay visible); otherwise it is a
@@ -132,30 +132,9 @@
   }
 }
 
-/* The document scroll bar (classic bars only; overlay bars draw nothing) is outside the overlay's box and would stay
-   bright beside the dimmed board: while the overlay is lit its thumb takes the dusk tone and the track disappears.
-   Scoped to the lit state because `scrollbar-color` makes Chrome ignore `::-webkit-scrollbar` (utilities.css). */
-@supports (scrollbar-color: auto) {
-  html[data-focus-lit] {
-    scrollbar-color: color-mix(in oklab, var(--focus-dusk) 35%, transparent) transparent;
-  }
-}
-
-/* The paper veils step back with the board (kd#207). The app bar's veil (app-nav.css) and the phone page dots' veil
-   (BoardPageDots) are bright bands of page colour that let cards dissolve under the bar and the dots. Over a dimmed
-   board they would cut a light stripe through the dusk, or through the task sheet's scrim, so they fade out while the
-   overlay is lit and while a sheet is open: in with the lamp's slow warm-up, back with its snap. The pills and the dots
-   themselves stay as they are, above the dusk: they are the way out and the place marker. */
-html[data-focus-lit] .app-nav::before,
-.board-container[data-focus-lit] .page-dots::before {
-  opacity: 0;
-  transition: opacity var(--focus-in-duration) var(--focus-in-ease);
-}
-
-/* On the dusk the resting dots' light border tone would vanish: they take a share of the muted ink instead */
-.board-container[data-focus-lit] .page-dot {
-  background: color-mix(in oklab, var(--ui-text-muted) calc(45% + var(--w) * 55%), transparent);
-}
+/* The app bar's veil (app-nav.css) and the phone page dots' veil (BoardPageDots) stay as they are while the overlay is
+   lit (#706): the overlay is a light paper film now, so they no longer cut a stripe through it. Over an open task
+   sheet's scrim they still fade out, in the sheet's own timing. */
 
 html[data-sheet-open] .app-nav::before,
 .board-container[data-sheet-task-id] .page-dots::before {
@@ -187,8 +166,6 @@ html[data-sheet-open] .app-nav::before,
 @media (prefers-reduced-motion: reduce) {
   @layer components { /* the global reduced-motion rule (main.css, last layer) yields to an earlier layer's !important */
   /* #290: the bar's shift away from the sheet is a jump, not a slide: the global reduced-motion rule (main.css) makes it one */
-  html[data-focus-lit] .app-nav::before,
-  .board-container[data-focus-lit] .page-dots::before,
   html[data-sheet-open] .app-nav::before,
   .board-container[data-sheet-task-id] .page-dots::before {
     transition-duration: var(--duration-fast) !important;
@@ -196,32 +173,12 @@ html[data-sheet-open] .app-nav::before,
   }
 }
 
-/* The phone browser's own bars join the dusk (kd#207; checked in the iOS 27 simulator, Safari). Safari colours its
-   bottom toolbar from the root background and the status bar from a fixed element that touches the top edge with a
-   solid `background-color` (a gradient is not read), which here is the page dots' strip. Without this both bars stay
-   paper-bright and cut the dimmed board off with a hard edge. The two tones follow the overlay where it meets each
-   bar: light at the top (the lamp is near), the full dusk at the bottom rim. The board paints its own paper, so the
-   root colour shows only in the bars and in the overscroll. The strip's lower edge is masked soft, so it does not
-   end in a line where the pool's gradient goes on. Browsers that colour their bars otherwise ignore all of it. */
+/* The phone browser's bars keep the page colour while the overlay is lit (#706): the veil is a light paper film, so the
+   status bar strip (the page dots') and the root colour need no tone of their own (kd#207 tinted them, #706 removed the tint). */
 @media (--phone) {
   html,
   .page-dots {
     transition: background-color var(--duration-fast) var(--ease-standard);
-  }
-
-  html[data-focus-lit],
-  html[data-focus-lit] body {
-    background-color: color-mix(in oklab, var(--focus-dusk) 40%, var(--ui-page-bg));
-  }
-
-  .board-container[data-focus-lit] .page-dots {
-    background-color: color-mix(in oklab, var(--focus-dusk) 15%, var(--ui-page-bg));
-    mask-image: linear-gradient(black calc(100% - 0.75rem), transparent);
-  }
-
-  html[data-focus-lit],
-  .board-container[data-focus-lit] .page-dots {
-    transition: background-color var(--focus-in-duration) var(--focus-in-ease);
   }
 
   /* An open task sheet dims the whole window with the shared scrim (an overlay above the strip): the strip keeps no
@@ -240,9 +197,7 @@ html[data-sheet-open] .app-nav::before,
 @media (--phone) and (prefers-reduced-motion: reduce) {
   @layer components { /* the global reduced-motion rule (main.css, last layer) yields to an earlier layer's !important */
   html,
-  .page-dots,
-  html[data-focus-lit],
-  .board-container[data-focus-lit] .page-dots {
+  .page-dots {
     transition-duration: var(--duration-fast) !important;
   }
   }
