@@ -71,6 +71,8 @@
         </UButton>
       </div>
 
+      <!-- A phone's first panel has 8 px of air under the headline (max-md:mt-2); on desktop it starts at the row's foot, so its
+           first card is level with Offen's -->
       <!-- On a new day (#356, #387, #469, #702): what was on yesterday's board and is still not planned, in two panels, one per
            reason a task is here: "Gestern geplant" (Jetzt and Offen of the board) and "Gestern in Wartet" (what the fresh start
            took out of Wartet). Each has its label, count and "plan all" button, and is not in the DOM while it holds nothing
@@ -78,14 +80,14 @@
       <BoardNotPlannedGroup
         v-if="plannedTasks.length > 0"
         panel
-        class="mt-2"
+        class="max-md:mt-2"
         :title="t('board.notPlanned.panelPlanned')"
         :heading-id="plannedHeadingId"
         :count="plannedTasks.length"
         :action-label="t('board.notPlanned.planAll')"
         :action-short="t('board.notPlanned.planAllShort')"
         data-testid="not-planned-panel-planned"
-        @add-all="planAll(plannedTasks.map(task => task.id))"
+        @add-all="planPanel(plannedTasks.map(task => task.id), $event)"
       >
         <TransitionGroup
           tag="ul"
@@ -106,14 +108,14 @@
       <BoardNotPlannedGroup
         v-if="waitingTasks.length > 0"
         panel
-        :class="{ 'mt-2': plannedTasks.length === 0 }"
+        :class="{ 'max-md:mt-2': plannedTasks.length === 0 }"
         :title="t('board.notPlanned.panelWaiting')"
         :heading-id="waitingHeadingId"
         :count="waitingTasks.length"
         :action-label="t('board.notPlanned.planAll')"
         :action-short="t('board.notPlanned.planAllShort')"
         data-testid="not-planned-panel-waiting"
-        @add-all="planAll(waitingTasks.map(task => task.id))"
+        @add-all="planPanel(waitingTasks.map(task => task.id), $event)"
       >
         <TransitionGroup
           tag="ul"
@@ -277,6 +279,26 @@ async function pick(id: string, event: MouseEvent) {
   const next = neighbour ? bodyEl.value?.querySelector<HTMLElement>(`[data-not-planned-id="${CSS.escape(neighbour)}"] .not-planned__pick`) : null
   // The last card: "Aufgabe erstellen" of the now empty note (Offen has no add button on "Alle", #658)
   ;(next ?? focusFallback())?.focus({ preventScroll: true })
+}
+
+/**
+ * "Alle für heute einplanen" of a panel. A panel whose tasks all moved leaves the DOM with the button that was focused, so a
+ * keyboard user's focus goes on: to the button of the next panel, else to the first card's pick button of the plain list, else
+ * to "Aufgabe erstellen" / the add button (the places a single pick hands on to as well).
+ */
+async function planPanel(ids: string[], event: MouseEvent) {
+  const button = event.currentTarget as HTMLElement | null
+  const hadFocus = button !== null && document.activeElement === button
+  const done = await planAll(ids)
+  if (done.length === 0 || !hadFocus) return
+  await nextTick()
+  // The button is still there (a task of the panel stayed): the focus is where it was
+  if (button?.isConnected) return
+  const body = bodyEl.value
+  const target = body?.querySelector<HTMLElement>('[data-testid="nps-group-plan-all"]')
+    ?? body?.querySelector<HTMLElement>('[data-testid="not-planned-list-others"] .not-planned__pick')
+    ?? focusFallback()
+  target?.focus({ preventScroll: true })
 }
 </script>
 

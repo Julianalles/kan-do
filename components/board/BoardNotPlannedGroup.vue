@@ -8,8 +8,8 @@
 @responsibility
 - Width: the pair of columns is as wide as two cards plus one `--task-list-gap`, centred in the side (a phone: one column, the page's width). Label and cards share the left edge of the pair
 - Panel (#469 D1, #702): a flat `--fill-on-canvas` surface with the card radius plus 4 px, no border and no shadow so it never reads as a card, reaching 1 rem beyond the cards (#702: the old 12 px read as narrow; a phone: 0.25rem inset from the page, the cards keep their edge). The label row is the 40 px row every column has under its title, so the first card of the first panel sits level with Offen's first card
-- Label (#702): SectionHeader `label` (h3, the sans, 12 px, muted: a list label is not a heading to read) and the count as a UBadge, named for assistive tech ("3 Aufgaben"); the panel is `role="group"` named by its label
-- Button (#702): "Alle für heute einplanen", a soft primary UButton at the right of the label row; a phone puts it below the row, full width, with the short text "Alle einplanen". It names its panel (`aria-label`) and emits `add-all`; the group moves nothing itself
+- Label (#702): SectionHeader `label` (h3, the sans, 12 px, muted: a list label is not a heading to read) and the count as a UBadge (hidden from assistive tech; a visually hidden "3 Aufgaben" beside it is read instead); the panel is `role="group"` named by its label
+- Button (#702): "Alle für heute einplanen", a soft primary UButton at the right of the label row; a phone puts it below the row, full width, with the short text "Alle einplanen". It names its panel (`aria-label`) and emits `add-all` with the click (the caller hands the focus on when the button leaves with its panel); the group moves nothing itself
 - Accepted trade-off (#469): cards inside a surface can read as "nested cards" (user's choice of panels, D1); the surface stays flat (no border, no shadow) so it never competes with a card, and the rendered Impeccable scan (`design-detect.spec.ts`, surface "alle with yesterday's panel") reports nothing for it
 -->
 <template>
@@ -26,10 +26,12 @@
           color="neutral"
           variant="soft"
           :label="String(count)"
-          :aria-label="t('board.notPlanned.panelCount', { n: count ?? 0 }, count ?? 0)"
+          aria-hidden="true"
           class="font-sans tracking-normal"
           data-testid="nps-group-count"
         />
+        <!-- A badge is a generic span: its aria-label would not be read. The count is spoken as text instead ("3 Aufgaben") -->
+        <span class="sr-only">{{ t('board.notPlanned.panelCount', { n: count ?? 0 }, count ?? 0) }}</span>
       </SectionHeader>
       <UButton
         v-if="actionLabel"
@@ -38,7 +40,7 @@
         class="nps-group__action shrink-0"
         :aria-label="t('board.notPlanned.planAllNamed', { section: title })"
         data-testid="nps-group-plan-all"
-        @click="emit('add-all')"
+        @click="(event: MouseEvent) => emit('add-all', event)"
       >
         {{ isPhone ? actionShort : actionLabel }}
       </UButton>
@@ -69,7 +71,7 @@ defineProps<{
   actionShort?: string
 }>()
 
-const emit = defineEmits<{ 'add-all': [] }>()
+const emit = defineEmits<{ 'add-all': [event: MouseEvent] }>()
 const { t } = useI18n()
 const isPhone = useIsPhone()
 </script>
@@ -83,14 +85,13 @@ const isPhone = useIsPhone()
   width: 100%;
 }
 
-/* The 40 px row every column has under its title: the first card of the first panel stays level with Offen's */
+/* The 40 px row of every column: exactly 40 (the 36 px button centred), padding would push the first card off Offen's line */
 .nps-group__head {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
-  min-height: 2.5rem;
-  padding-top: 0.5rem;
+  height: 2.5rem;
 }
 
 /* The surface is a layer of its own (::before): the group keeps the width of the pair, label and cards the card edge */
@@ -128,6 +129,7 @@ const isPhone = useIsPhone()
   /* The label starts on the cards' left edge; the button sits below the row, the full width of the cards */
   .nps-group__head {
     flex-wrap: wrap;
+    height: auto;
     padding: 0.75rem max(0.75rem, calc((100% - var(--task-card-max-width)) / 2)) 0.5rem;
   }
 

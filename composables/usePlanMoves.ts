@@ -12,6 +12,9 @@
  * - `announcement`: one polite line per move, rendered by Board.vue's live region
  * - A second request for a card that is still leaving is ignored (a double click plans once)
  * - A source that plans by date (Apple Reminders, #553) gets its toasts from `usePlanToasts` after each move
+ * - `planMany(ids)` (#702, "Alle für heute einplanen"): the same motion per card, but one `useTaskSync.planTasks` for all (one
+ *   reconcile; a source that stores planning is written one task after another, never in parallel), one screen-reader
+ *   line for the lot and no per-task toast: the caller says it once
  */
 import { nextTick, ref } from 'vue'
 import { useTaskSync } from '~/composables/useTaskSync'
@@ -117,5 +120,34 @@ export function usePlanMoves() {
   /** "Nicht für heute planen": the Offen task goes to the top of "Alle Aufgaben". */
   const notToday = (id: string) => move(id, 'unplan')
 
-  return { planForToday, notToday, announcement }
+  /**
+   * Several cards at once (#702): every card moves as in `planForToday`, the state changes in one `planTasks` call, so the
+   * writes of a source that stores planning go out in the order given, one after another. Raises no toast (the caller
+   * does, once). Resolves to the ids that moved: a card still leaving, or a task that is gone, is left out.
+   */
+  async function planMany(ids: readonly string[]): Promise<string[]> {
+    const { planTasks } = useTaskSync()
+    const tasksStore = useTasksStore()
+    const wanted = ids.filter(id => tasksStore.task(id) !== undefined && !leaving.has(id))
+    const from = new Map<string, DOMRect | null>()
+    if (typeof document !== 'undefined') {
+      if (isPhoneNow()) {
+        for (const id of wanted) leaving.add(id)
+        try {
+          await Promise.all(wanted.map(id => slideOut(notPlannedItem(id), 1)))
+        } finally {
+          for (const id of wanted) leaving.delete(id)
+        }
+      } else {
+        for (const id of wanted) from.set(id, notPlannedItem(id)?.querySelector('.task')?.getBoundingClientRect() ?? null)
+      }
+    }
+    const moved = planTasks(wanted.filter(id => tasksStore.task(id) !== undefined))
+    if (moved.length === 0) return moved
+    announcement.value = translate('board.notPlanned.plannedMany', { n: moved.length }, moved.length)
+    for (const id of moved) void fly(from.get(id) ?? null, () => openCard(id)?.querySelector<HTMLElement>('.task') ?? null)
+    return moved
+  }
+
+  return { planForToday, notToday, planMany, announcement }
 }

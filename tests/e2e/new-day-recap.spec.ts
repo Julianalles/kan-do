@@ -965,6 +965,11 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await expect(page.getByTestId('nps-group-count').first()).toHaveText('3')
     await side(page).locator('[data-not-planned-id="nd-open-2"]').getByTestId('not-planned-pick').click()
     await expect(page.getByTestId('nps-group-count').first()).toHaveText('2')
+    // the first card of the panel sits level with the first card of Offen (the label row is the 40 px row of every column; review of #702)
+    await expect.poll(async () => {
+      const [panelCard, openCard] = [await page.getByTestId('not-planned-panel-planned').locator('.not-planned__card').first().boundingBox(), await page.locator('#column-open .task-wrapper').first().boundingBox()]
+      return Math.abs(panelCard!.y - openCard!.y)
+    }).toBeLessThanOrEqual(1)
     for (const id of ['nd-now-1', 'nd-open-1', 'nd-waiting-1']) await side(page).locator(`[data-not-planned-id="${id}"]`).getByTestId('not-planned-pick').click()
     await expect(page.getByTestId('not-planned-panel-planned')).toHaveCount(0)
     await expect(page.getByTestId('not-planned-panel-waiting')).toHaveCount(0)
@@ -984,16 +989,37 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await page.getByTestId('not-planned-panel-waiting').getByTestId('nps-group-plan-all').click()
     await expect.poll(() => openIds(page)).toEqual(['nd-waiting-1'])
     await expect(page.getByTestId('not-planned-panel-waiting')).toHaveCount(0)
-    await expect(page.getByText('Eine Aufgabe ist für heute geplant.', { exact: true })).toBeVisible()
+    await expect(page.getByRole('region', { name: /Benachrichtigungen/ }).getByText('Eine Aufgabe ist für heute geplant.', { exact: true })).toBeVisible()
+    // the screen-reader line says the same sentence once for the panel (the last task's title would drop the others)
+    await expect(page.getByTestId('plan-announcement')).toHaveText('Eine Aufgabe ist für heute geplant.')
     await page.getByRole('button', { name: 'Rückgängig' }).click()
     await expect.poll(() => openIds(page)).toEqual([])
     await expect.poll(() => groupIds(page, 'panel')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1', 'nd-waiting-1'])
     // the other panel: three tasks, one toast
     await page.getByTestId('not-planned-panel-planned').getByTestId('nps-group-plan-all').click()
     await expect.poll(async () => (await openIds(page)).sort()).toEqual(['nd-now-1', 'nd-open-1', 'nd-open-2'])
-    await expect(page.getByText('3 Aufgaben sind für heute geplant.', { exact: true })).toBeVisible()
+    await expect(page.getByRole('region', { name: /Benachrichtigungen/ }).getByText('3 Aufgaben sind für heute geplant.', { exact: true })).toBeVisible()
+    await expect(page.locator('.toast, [data-slot="title"]').filter({ hasText: 'Aufgaben sind für heute geplant' })).toHaveCount(1)
     await expect(page.getByTestId('not-planned-panel-planned')).toHaveCount(0)
     await expect.poll(() => groupIds(page, 'panel')).toEqual(['nd-waiting-1'])
+  })
+
+  test('keyboard focus follows "Alle für heute einplanen": to the next panel, then to the plain list, never to <body> (review of #702)', async ({ page, context }) => {
+    await seedNewDayBoard(context, { tasks: newDayBackTasks() })
+    await page.goto('/tasks')
+    await planButton(page).click()
+    await settled(page)
+    const planned = page.getByTestId('not-planned-panel-planned').getByTestId('nps-group-plan-all')
+    const waiting = page.getByTestId('not-planned-panel-waiting').getByTestId('nps-group-plan-all')
+    await planned.focus()
+    await page.keyboard.press('Enter')
+    await expect(page.getByTestId('not-planned-panel-planned')).toHaveCount(0)
+    await expect(waiting).toBeFocused()
+    await page.keyboard.press('Enter')
+    await expect(page.getByTestId('not-planned-panel-waiting')).toHaveCount(0)
+    await expect(side(page).locator('[data-not-planned-id="nd-held-1"]').getByTestId('not-planned-pick')).toBeFocused()
+    // a single announcement for the whole panel, not the last task's title
+    await expect(page.getByTestId('plan-announcement')).toHaveText('Eine Aufgabe ist für heute geplant.')
   })
 
   test('at 390 px the button sits below the label row, full width, with the short text (#702)', async ({ page, context }) => {
