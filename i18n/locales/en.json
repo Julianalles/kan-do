@@ -175,6 +175,11 @@
       "close": "Close",
       "started": "One task is now under “All tasks”. | {n} tasks are now under “All tasks”."
     },
+    "planNote": {
+      "title": "Pick what's on for today",
+      "description": "Plan your tasks for today here. Go to “Today” when you want to start.",
+      "close": "Close"
+    },
     "newDayTimeNote": {
       "title": "Timer ran on for {duration} after midnight",
       "description": "Kan-do wasn't in focus. The time is still on the task.",

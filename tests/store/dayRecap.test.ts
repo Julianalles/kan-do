@@ -176,6 +176,46 @@ describe('day recap store', () => {
       }
     })
 
+    describe('the one-time note after "Tag neu planen" (#711)', () => {
+      it('starts not seen; markPlanNoteSeen is persisted and stays', async () => {
+        const store = useDayRecapStore()
+        expect(store.validPlanNoteSeen).toBe(false)
+        store.markPlanNoteSeen()
+        await nextTick()
+        expect(store.validPlanNoteSeen).toBe(true)
+        expect(JSON.parse(localStorage.getItem('day-recap-store') as string)).toMatchObject({ planNoteSeen: true })
+        freshPinia()
+        const again = useDayRecapStore()
+        await nextTick()
+        expect(again.validPlanNoteSeen).toBe(true)
+      })
+
+      it('state stored before the flag hydrates as not seen and writes nothing', async () => {
+        localStorage.setItem('day-recap-store', JSON.stringify({
+          lastShownDay: '2026-10-21', closedTaskIds: [], lastNewDay: '2026-10-22', sentBack: { day: '2026-10-22', ids: ['a'] }, noticeClosedDay: '2026-10-22',
+        }))
+        const before = localStorage.getItem('day-recap-store')
+        freshPinia()
+        const store = useDayRecapStore()
+        await nextTick()
+        expect(store.validPlanNoteSeen).toBe(false)
+        expect(store.validLastNewDay).toBe('2026-10-22')
+        expect(localStorage.getItem('day-recap-store')).toBe(before)
+      })
+
+      it('only a literal true is seen: a malformed stored value reads as not seen and is not written back', async () => {
+        for (const bad of [null, 'yes', 1, 0, {}, [true], 'true']) {
+          localStorage.setItem('day-recap-store', JSON.stringify({ planNoteSeen: bad }))
+          const before = localStorage.getItem('day-recap-store')
+          freshPinia()
+          const store = useDayRecapStore()
+          await nextTick()
+          expect(store.validPlanNoteSeen).toBe(false)
+          expect(localStorage.getItem('day-recap-store')).toBe(before)
+        }
+      })
+    })
+
     it('drops ids that are not strings from a stored group', () => {
       const store = useDayRecapStore()
       store.sentBack = { day: '2026-10-22', ids: ['a', 3, null, 'b'] as never }

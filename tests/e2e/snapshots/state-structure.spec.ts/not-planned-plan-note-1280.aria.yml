@@ -1,0 +1,41 @@
+- region "Alle Aufgaben":
+  - heading "Alle Aufgaben" [level=2]
+  - button "Aufgabe hinzufügen"
+  - status:
+    - text: Wähle aus, was heute dran ist Plane hier die Aufgaben für heute ein. Wechsle zu „Heute“, sobald du loslegen willst.
+    - button "Schließen"
+  - group "Gestern geplant 3 Aufgaben":
+    - heading "Gestern geplant 3 Aufgaben" [level=3]
+    - button "Alle Aufgaben aus „Gestern geplant“ für heute einplanen": Alle für heute einplanen
+    - list:
+      - listitem:
+        - group "Präsentation vorbereiten":
+          - paragraph: Präsentation vorbereiten
+          - 'progressbar /Timebox: \d+ min von 1 h/': /\d+ min 1 h/
+          - text: Hoch
+        - 'button "Präsentation vorbereiten: für heute einplanen"'
+      - listitem:
+        - group "Steuerberater anrufen":
+          - paragraph: Steuerberater anrufen
+          - text: Hoch
+        - 'button "Steuerberater anrufen: für heute einplanen"'
+      - listitem:
+        - group "Konzept ausarbeiten":
+          - paragraph: Konzept ausarbeiten
+          - text: Hoch
+        - 'button "Konzept ausarbeiten: für heute einplanen"'
+  - group "Gestern in Wartet 1 Aufgabe":
+    - heading "Gestern in Wartet 1 Aufgabe" [level=3]
+    - button "Alle Aufgaben aus „Gestern in Wartet“ für heute einplanen": Alle für heute einplanen
+    - list:
+      - listitem:
+        - group "Rückmeldung vom Vermieter":
+          - paragraph: Rückmeldung vom Vermieter
+          - text: Hoch
+        - 'button "Rückmeldung vom Vermieter: für heute einplanen"'
+  - list:
+    - listitem:
+      - group "Regal für den Keller aussuchen":
+        - paragraph: Regal für den Keller aussuchen
+        - text: Hoch
+      - 'button "Regal für den Keller aussuchen: für heute einplanen"'

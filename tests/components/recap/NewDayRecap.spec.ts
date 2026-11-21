@@ -17,7 +17,8 @@ const navigateTo = vi.hoisted(() => vi.fn())
 vi.mock('nuxt/app', () => ({ navigateTo }))
 // The fresh start itself is covered in tests/composables/useNewDay.test.ts: here only who calls it, and when
 const freshStart = vi.hoisted(() => vi.fn(() => [] as string[]))
-vi.mock('~/composables/useNewDay', () => ({ useNewDay: () => ({ freshStart }) }))
+const armPlanNote = vi.hoisted(() => vi.fn())
+vi.mock('~/composables/useNewDay', () => ({ useNewDay: () => ({ freshStart, armPlanNote }) }))
 vi.mock('~/composables/useTaskSync', () => ({ useTaskSync: () => ({ syncArchiveStatusForTasks: vi.fn().mockResolvedValue(undefined) }) }))
 vi.mock('~/store/taskStatistics', () => ({
   useTaskStatisticsStore: () => ({ syncExistingDoneTasks: vi.fn(), updateTaskRecord: vi.fn() }),
@@ -368,6 +369,7 @@ describe('NewDayRecap', () => {
     beforeEach(() => {
       navigateTo.mockClear()
       freshStart.mockClear()
+      armPlanNote.mockClear()
       setCurrentBoardPath('/tasks')
     })
     afterEach(() => setCurrentBoardPath('/tasks'))
@@ -402,6 +404,8 @@ describe('NewDayRecap', () => {
       expect(useNewDayRecap().isOpen.value).toBe(false)
       expect(useDayRecapStore().lastShownDay).toBe('2026-10-22')
       expect(freshStart).toHaveBeenCalledTimes(1)
+      // #711: the user chose the planning step, so "Alle" tells them once what it is for
+      expect(armPlanNote).toHaveBeenCalledTimes(1)
     })
 
     it('"Überspringen und Board anzeigen" leaves the recap, stays on Heute and starts nothing fresh: the board stays as it is', async () => {
@@ -410,6 +414,7 @@ describe('NewDayRecap', () => {
       expect(navigateTo).not.toHaveBeenCalled()
       expect(useNewDayRecap().isOpen.value).toBe(false)
       expect(freshStart).not.toHaveBeenCalled()
+      expect(armPlanNote).not.toHaveBeenCalled()
     })
 
     it('"Überspringen und Board anzeigen" on "Alle" goes to Heute', async () => {

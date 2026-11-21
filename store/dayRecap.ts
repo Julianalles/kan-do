@@ -29,7 +29,7 @@ export function sanitizeSentBack(raw: unknown): SentBack | null {
  * took from Jetzt and Offen (`sentBack`, the first half of the panel "Zuletzt geplant und nicht erledigt" of that one day), the day the
  * notice that offers the fresh start was closed (`noticeClosedDay`), and the open question about the time a Jetzt
  * timer ran on after midnight while the user was away (`timeOffer`, the user's decision of 2026-11-16: nothing is
- * removed silently). All additive: data stored before them has none and reads as "no start yet, no group, no
+ * removed silently), and whether the one-time note on "Alle" after "Tag neu planen" was answered (`planNoteSeen`, #711). All additive: data stored before them has none and reads as "no start yet, no group, no
  * question". `firstBackDay` and `backNoteClosed` (the one-time note of #356, gone with #387) are no longer read or
  * written: a stored value is ignored.
  *
@@ -57,6 +57,11 @@ export const useDayRecapStore = defineStore('dayRecap', () => {
   /** Local day on which the user closed the notice that offers the fresh start (#387): it stays away that day. */
   const noticeClosedDay = ref<string | null>(null)
   /**
+   * The one-time note on "Alle" after "Tag neu planen" (#711) was answered: closed, or the user went on to "Heute". Once per
+   * user, never per day. Only a literal `true` counts as seen; absent (older data) or malformed reads as not seen.
+   */
+  const planNoteSeen = ref(false)
+  /**
    * The question of `timeOffer.day`: how long the Jetzt task's timer ran on after midnight while the user was away
    * (`seconds`, with the `spans` it was counted in), for `taskId`. Unanswered it changes nothing (keep is the
    * default); it is shown on its day only, and answered or replaced by a later one it is gone.
@@ -72,6 +77,8 @@ export const useDayRecapStore = defineStore('dayRecap', () => {
     const offer = sanitizeAfterMidnight(timeOffer.value)
     return offer && offer.seconds > 0 ? offer : null
   })
+  /** `planNoteSeen` as a trusted value: anything but `true` (older data, hand-edited file, import) reads as "not seen". */
+  const validPlanNoteSeen = computed(() => planNoteSeen.value === true)
   /** `noticeClosedDay` as a trusted value: a malformed stored value reads as null ("not closed"). */
   const validNoticeClosedDay = computed(() => (isValidDayKey(noticeClosedDay.value) ? noticeClosedDay.value : null))
 
@@ -111,6 +118,11 @@ export const useDayRecapStore = defineStore('dayRecap', () => {
     lastNewDay.value = nextDay
     sentBack.value = { day: nextDay, ids: [...new Set([...ids, ...(same?.ids ?? [])])], ...(allWaiting.length > 0 ? { waiting: allWaiting } : {}) }
     return true
+  }
+
+  /** The note on "Alle" is answered (#711): it never comes back. */
+  function markPlanNoteSeen(): void {
+    planNoteSeen.value = true
   }
 
   /** "Schließen" on the notice that offers the fresh start: it stays away for `day`. */
@@ -159,10 +171,10 @@ export const useDayRecapStore = defineStore('dayRecap', () => {
 
   return {
     lastShownDay, closedTaskIds, validClosedTaskIds, validLastShownDay, markShown, rememberClosed,
-    lastNewDay, sentBack, noticeClosedDay, timeOffer, validLastNewDay, validSentBack, validNoticeClosedDay, validTimeOffer, markNewDay, markDayClosed, closeNotice, offerTime, resolveTimeOffer,
+    lastNewDay, sentBack, noticeClosedDay, planNoteSeen, timeOffer, validPlanNoteSeen, markPlanNoteSeen, validLastNewDay, validSentBack, validNoticeClosedDay, validTimeOffer, markNewDay, markDayClosed, closeNotice, offerTime, resolveTimeOffer,
   }
 }, {
-  persist: { key: 'day-recap-store', pick: ['lastShownDay', 'closedTaskIds', 'lastNewDay', 'sentBack', 'noticeClosedDay', 'timeOffer'] },
+  persist: { key: 'day-recap-store', pick: ['lastShownDay', 'closedTaskIds', 'lastNewDay', 'sentBack', 'noticeClosedDay', 'planNoteSeen', 'timeOffer'] },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 } as any)
 

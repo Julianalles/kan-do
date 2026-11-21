@@ -175,6 +175,11 @@
       "close": "Schließen",
       "started": "Eine Aufgabe liegt jetzt unter „Alle Aufgaben“. | {n} Aufgaben liegen jetzt unter „Alle Aufgaben“."
     },
+    "planNote": {
+      "title": "Wähle aus, was heute dran ist",
+      "description": "Plane hier die Aufgaben für heute ein. Wechsle zu „Heute“, sobald du loslegen willst.",
+      "close": "Schließen"
+    },
     "newDayTimeNote": {
       "title": "Timer lief nach Mitternacht {duration} weiter",
       "description": "Kan-do war dabei nicht im Vordergrund. Die Zeit steht noch an der Aufgabe.",

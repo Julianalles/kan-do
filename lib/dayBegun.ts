@@ -19,9 +19,17 @@ import { dayKey } from '~/utils/recapDay'
  */
 export const begunDay = ref<string | null>(null)
 
+/**
+ * The user chose "Tag neu planen" in this window (#711): armed by `useNewDay().freshStart()`, so the one-time note on "Alle" knows
+ * the user arrived through that step. Runtime only: a reload, the pill, a deep link and "Überspringen und Board anzeigen" never
+ * arm it. Cleared when the note is answered.
+ */
+export const planArrival = ref(false)
+
 /** Test seam: a fresh app start. */
 export function resetNewDay(): void {
   begunDay.value = null
+  planArrival.value = false
 }
 
 /** Whether `today` (a day key) is a day after the last fresh start, or after the recap's marker before the first one. */
