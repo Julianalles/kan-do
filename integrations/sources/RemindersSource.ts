@@ -130,7 +130,7 @@ export class RemindersSource implements TaskSourceAdapter {
     const tasks: Task[] = []
     for (const reminder of fetched) {
       const list = titles.get(reminder.listId)
-      if (list) tasks.push(this.withPlanning(reminderToTask(reminder, list, this.deps.roleOf(list.id))))
+      if (list) tasks.push(this.withPlanning(reminderToTask(reminder, list)))
     }
     return [...tasks, ...this.doneOccurrences(tasks, now)]
   }

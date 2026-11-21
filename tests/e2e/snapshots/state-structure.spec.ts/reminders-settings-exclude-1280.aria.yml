@@ -3,27 +3,18 @@
   - list "Listen aus Apple Erinnerungen":
     - listitem:
       - text: Zuhause Wird nicht gelesen
-      - radiogroup "Zuhause zählt als":
-        - radio "Thema"
-        - radio "Aktivität"
-        - radio "Aus" [checked]
+      - switch "Zuhause lesen"
       - group "Zuhause nicht mehr lesen?":
         - paragraph: Zuhause nicht mehr lesen? 3 Aufgaben verlassen Kan-do, 3 davon stehen heute auf dem Board. In Apple Erinnerungen bleibt alles, wie es ist.
         - button "Nicht mehr lesen"
         - button "Abbrechen"
     - listitem:
       - text: Arbeit 1 offen
-      - radiogroup "Arbeit zählt als":
-        - radio "Thema"
-        - radio "Aktivität" [checked]
-        - radio "Aus"
+      - switch "Arbeit lesen" [checked]
     - listitem:
       - text: Privat Wird nicht gelesen
-      - radiogroup "Privat zählt als":
-        - radio "Thema"
-        - radio "Aktivität"
-        - radio "Aus" [checked]
-  - paragraph: "Thema: worum es geht, etwa Steuer oder Wohnung. Aktivität: wie du arbeitest, etwa Anrufe. Aus: Kan-do liest die Liste nicht, in Apple Erinnerungen bleibt sie, wie sie ist."
+      - switch "Privat lesen"
+  - paragraph: Ist eine Liste an, wird ihr Name zum Thema ihrer Aufgaben, etwa Steuer oder Wohnung. Ist sie aus, liest Kan-do sie nicht. In Apple Erinnerungen bleibt sie, wie sie ist.
 - region "Heute":
   - heading "Heute" [level=2]
   - paragraph: Das Datum in Apple Erinnerungen entscheidet, was heute auf dein Board kommt.

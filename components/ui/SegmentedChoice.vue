@@ -2,15 +2,15 @@
 @component SegmentedChoice
 @kind primitive
 @category input
-@description A quiet segmented group for "pick one of a few short words" that sits several times on one view (the answer per Reminders list, #552): a muted track with the picked segment lifted onto the page surface with a hairline, never a green fill.
-@usage <SegmentedChoice v-model="role" :options="[{ value: 'topic', label: 'Thema' }, { value: 'off', label: 'Aus' }]" :label="t('…choiceLabel', { list })" item-testid="rem-role" />; `label` names the radio group for screen readers; `item-testid` becomes `<item-testid>-<value>` on each segment.
+@description A quiet segmented group for "pick one of a few short words" that sits several times on one view (first used for the answer per Reminders list, #552; no screen uses it since #575 made that answer a switch): a muted track with the picked segment lifted onto the page surface with a hairline, never a green fill.
+@usage <SegmentedChoice v-model="range" :options="[{ value: 'day', label: t('…day') }, { value: 'week', label: t('…week') }]" :label="t('…choiceLabel', { row })" item-testid="row-range" />; `label` names the radio group for screen readers; `item-testid` becomes `<item-testid>-<value>` on each segment.
 @avoid Not for a single answer in a flow (ChoiceChip: its picked state is the solid primary, so five rows of it would be five lamps), not for options with a description (ChoiceCard) and not for switching a view (tabs, the app bar's pill).
 @responsibility
 - One reka `RadioGroupRoot` (role `radiogroup`): one Tab stop, arrow keys move and pick, each segment is a `role="radio"` button
 - The picked segment is a lifted fill (page surface, a hairline, medium weight; no shadow: a control inside a sheet never casts one): The One Lamp Rule allows one solid green per view, so no option here is green
 - Segments are `--field-h` high (36 px, 44 px on a phone, the touch target) and keep their words on one line; the group does not grow with its host (`inline-flex`)
 - `disabled` dims the whole group to 50 % with the `not-allowed` cursor (the one disabled look, DESIGN.md "States") and takes it out of the tab order
-- Pattern: pick one of a few words, diverged from ChoiceChip (solid picked fill): five lists would have shown five solid greens (The One Lamp Rule); the look follows UTabs `variant="pill"` (a muted track, the picked option a raised light chip) but is a radio group (arrow keys, one answer per list) and not navigation
+- Pattern: pick one of a few words, diverged from ChoiceChip (solid picked fill): five rows would show five solid greens (The One Lamp Rule); the look follows UTabs `variant="pill"` (a muted track, the picked option a raised light chip) but is a radio group (arrow keys, one answer per list) and not navigation
 -->
 <template>
   <RadioGroupRoot

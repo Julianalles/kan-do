@@ -386,15 +386,15 @@ test.describe('Apple Reminders setup and settings (#552)', () => {
     await expect(page.getByTestId('reminders-setup-flow')).toMatchAriaSnapshot({ name: 'reminders-denied-1280.aria.yml' })
   })
 
-  test('lists step: one radio group per list, an Aus list, then every list Aus (1280)', async ({ context, page }) => {
+  test('lists step: one switch per list, an Aus list, then every list Aus (1280)', async ({ context, page }) => {
     await installTauriStub(context, remindersStub('granted'))
     await openSetup(page)
     await page.getByTestId('reminders-proceed').click()
     await expect(page.getByTestId('reminders-lists-step')).toBeVisible()
-    await page.getByTestId('reminders-role-list-private-off').click()
+    await page.getByTestId('reminders-list-toggle-list-private').click()
     await expect(page.getByTestId('reminders-lists-step')).toMatchAriaSnapshot({ name: 'reminders-lists-1280.aria.yml' })
-    await page.getByTestId('reminders-role-list-home-off').click()
-    await page.getByTestId('reminders-role-list-work-off').click()
+    await page.getByTestId('reminders-list-toggle-list-home').click()
+    await page.getByTestId('reminders-list-toggle-list-work').click()
     await expect(page.getByTestId('reminders-lists-empty')).toBeVisible()
     await expect(page.getByTestId('reminders-setup-flow')).toMatchAriaSnapshot({ name: 'reminders-lists-empty-1280.aria.yml' })
   })
@@ -416,7 +416,7 @@ test.describe('Apple Reminders setup and settings (#552)', () => {
     await openSettings(page, 'sources')
     await page.getByTestId('source-actions-reminders').click()
     await page.getByRole('menuitem', { name: 'Apple-Erinnerungen-Einstellungen' }).click()
-    await page.getByTestId('reminders-role-list-home-off').click()
+    await page.getByTestId('reminders-list-toggle-list-home').click()
     await expect(page.getByTestId('reminders-exclude-confirm')).toBeVisible()
     await settleAnimations(page)
     await expect(page.getByTestId('reminders-settings')).toMatchAriaSnapshot({ name: 'reminders-settings-exclude-1280.aria.yml' })
