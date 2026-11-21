@@ -203,7 +203,7 @@ test.describe('Page dots on desktop (kd#26)', () => {
 
 test.describe('Page dots under the focus overlay (kd#26, kd#207)', () => {
   test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } });
-  test('the dots stay above the lit overlay; only their paper veil steps back', async ({ context, page }) => {
+  test('the dots stay above the lit overlay, their paper veil stays too (#706: the veil is light)', async ({ context, page }) => {
     await seedLocalBoard(context, SEED_TASKS, {}, undefined, { focus: true });
     await page.goto('/tasks');
     await showColumnPage(page, 1);
@@ -212,9 +212,9 @@ test.describe('Page dots under the focus overlay (kd#26, kd#207)', () => {
     const dots = page.getByTestId('page-dots');
     // Above the board's stacking context (the overlay lives in it): the dots are not dimmed away (kd#207 reverses kd#26)
     expect(Number(await dots.evaluate(el => getComputedStyle(el).zIndex))).toBeGreaterThan(1);
-    // The bright band of page colour is what fades, so no light stripe cuts through the dusk
-    await expect.poll(() => dots.evaluate(el => getComputedStyle(el, '::before').opacity)).toBe('0');
-    // The resting dots keep a tone that shows on the dusk, the active one is the full muted ink
+    // The overlay is a light paper film (#706): the band of page colour stays, no stripe shows against it
+    await expect.poll(() => dots.evaluate(el => getComputedStyle(el, '::before').opacity)).toBe('1');
+    // The resting dots keep a visible tone, the active one is the full muted ink
     const tones = await dots.evaluate(el => [...el.querySelectorAll('.page-dot')].map(dot => getComputedStyle(dot).backgroundColor));
     expect(new Set(tones).size).toBe(2);
     expect(tones.every(tone => !/, 0\)$| \/ 0\)$/.test(tone))).toBe(true);

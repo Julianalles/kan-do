@@ -179,8 +179,10 @@
     /* The yellow text marker (DESIGN.md "The Marker Rule"): one stroke per view at most; today the Jetzt headline. */
     --marker: oklch(0.91 0.145 97);
 
-    /* --- Focus overlay (#394): the warm dusk the board steps back into while a task sits in Jetzt.
-       A brown-grey at hue 65; outside the frozen primary palette. --- */
+    /* --- Focus overlay (#394, #706): the board steps back under a light paper veil while a task sits in Jetzt.
+       `--focus-veil` is the film's paper tone; `--focus-dusk` (a brown-grey at hue 65, outside the frozen primary
+       palette) only tones the lifted Jetzt card's shadow. --- */
+    --focus-veil: oklch(0.97 0.008 80);
     --focus-dusk: oklch(0.27 0.04 65);
 
     /* --- Topic mark tones (#431): the nine hues a topic's dot or glyph can take. Mark only, never a name, card or
