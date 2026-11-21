@@ -189,10 +189,38 @@ test.describe('Board Sorting', () => {
     const openColumn = page.locator('.column[data-status="open"]');
     const control = openColumn.locator('[data-testid="column-sorting-control"]');
     await page.mouse.move(0, 0);
-    await expect(control).toHaveClass(/opacity-0/);
+    await expect(control).toHaveCSS('opacity', '0');
 
     await control.locator('button').focus();
     await expect(control).toHaveCSS('opacity', '1');
+  });
+
+  test('hovering a column moves nothing in it (#579)', async ({ page, baseURL }) => {
+    await openSortingBoard(page, baseURL);
+
+    const openColumn = page.locator('.column[data-status="open"]');
+    const control = openColumn.locator('[data-testid="column-sorting-control"]');
+    // Relative to the column: the hover itself may scroll the page, which moves every box alike
+    const snapshot = () => openColumn.evaluate((column) => {
+      const origin = column.getBoundingClientRect();
+      return [...column.querySelectorAll('*')].flatMap((el) => {
+        const r = el.getBoundingClientRect();
+        if (r.width === 0 && r.height === 0) return []; // a collapsed box has no place to keep
+        return [[el.tagName, r.top - origin.top, r.left - origin.left, r.width, r.height, getComputedStyle(el).transform].join('|')];
+      });
+    });
+
+    await page.mouse.move(0, 0);
+    await expect(control).toHaveCSS('opacity', '0');
+    const away = await snapshot();
+
+    await openColumn.hover();
+    await expect(control).toHaveCSS('opacity', '1');
+    expect(await snapshot()).toEqual(away);
+
+    await page.mouse.move((page.viewportSize()?.width ?? 1280) - 1, 5); // another column
+    await expect(control).toHaveCSS('opacity', '0');
+    expect(await snapshot()).toEqual(away);
   });
 
   test('validates sorting control interaction', async ({ page, baseURL }) => {
@@ -206,7 +234,7 @@ test.describe('Board Sorting', () => {
     
     // Wait for control to be visible (opacity 1)
     const control = openColumn.locator('[data-testid="column-sorting-control"]');
-    await expect(control).toHaveClass(/opacity-100/);
+    await expect(control).toHaveCSS('opacity', '1');
     
     // Default label is 'Manuell'
     const sortBtn = control.locator('button');
@@ -221,7 +249,7 @@ test.describe('Board Sorting', () => {
     
     // Change sorting to Date Created Asc (Oldest first)
     await openColumn.hover();
-    await expect(control).toHaveClass(/opacity-100/);
+    await expect(control).toHaveCSS('opacity', '1');
     await expect(sortBtn).toContainText('Priorität');
     await sortBtn.click();
     
@@ -231,7 +259,7 @@ test.describe('Board Sorting', () => {
 
     // Change sorting to Date Created Desc (Newest first)
     await openColumn.hover();
-    await expect(control).toHaveClass(/opacity-100/);
+    await expect(control).toHaveCSS('opacity', '1');
     await expect(sortBtn).toContainText('Erstellt');
     await sortBtn.click();
     
@@ -249,7 +277,7 @@ test.describe('Board Sorting', () => {
     // Set sorting to Created Desc (Newest first) -> Task 2 on top
     await openColumn.hover();
     const control = openColumn.locator('[data-testid="column-sorting-control"]');
-    await expect(control).toHaveClass(/opacity-100/);
+    await expect(control).toHaveCSS('opacity', '1');
     const sortBtn = control.locator('button');
     
     await sortBtn.click();
@@ -305,7 +333,7 @@ test.describe('Board Sorting', () => {
 
     // Verify sorting switched to Manual
     await openColumn.hover();
-    await expect(control).toHaveClass(/opacity-100/);
+    await expect(control).toHaveCSS('opacity', '1');
     await expect(sortBtn).toContainText('Manuell');
     
     // Verify Task 2 is now second
@@ -340,7 +368,7 @@ test.describe('Board Sorting', () => {
     // 4. Capture screenshot for visual review of centering
     await openColumn.hover();
     // Wait for opacity transition
-    await expect(control).toHaveClass(/opacity-100/);
+    await expect(control).toHaveCSS('opacity', '1');
     await page.waitForTimeout(500); 
     await page.screenshot({ path: 'tests/e2e/screenshots/sorting-control-position.png', fullPage: true });
   });
