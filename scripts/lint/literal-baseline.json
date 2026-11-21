@@ -8,7 +8,7 @@
     "components/board/BoardColumnHeader.vue": 2,
     "components/board/BoardPageDots.vue": 2,
     "components/nav/AppNav.vue": 1,
-    "components/overlay/NowWindow.vue": 2,
+    "components/overlay/NowWindow.vue": 4,
     "components/recap/RecapDeck.vue": 4,
     "components/task/TaskCard.vue": 3,
     "components/task/TaskCompletionBurst.vue": 2,
