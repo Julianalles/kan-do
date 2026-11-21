@@ -24,7 +24,7 @@ const ButtonStub = defineComponent({
 
 const mountControl = (status: TaskStatus, sorting?: ColumnSorting) =>
   mount(ColumnSortingControl, {
-    props: { visible: true, status, sorting },
+    props: { open: true, status, sorting },
     global: { stubs: { UDropdownMenu: DropdownStub, UButton: ButtonStub } }
   })
 
