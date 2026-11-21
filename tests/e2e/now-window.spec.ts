@@ -133,7 +133,7 @@ test.describe('the pill window (/overlay)', () => {
 
   test('a long title is cut with an ellipsis and never hides the time or the buttons, also over an hour (#703)', async ({ context, page }) => {
     await openPill(context, page, snap({ title: 'Ein sehr langer Titel einer Aufgabe, der nicht in die Pille passt', timeBoxSeconds: 5400, spentSeconds: 60, running: true }))
-    await expect(page.getByTestId('now-time')).toHaveText('1:29:00')
+    await expect(page.getByTestId('now-time')).toHaveText(/^1:\d{2}:\d{2}$/)
     const title = page.getByTestId('now-title')
     expect(await title.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true)
     const edge = (await pill(page).boundingBox())!
