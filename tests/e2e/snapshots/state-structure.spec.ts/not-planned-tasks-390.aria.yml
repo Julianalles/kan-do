@@ -1,5 +1,6 @@
 - region "Alle Aufgaben":
-  - heading "Alle" [level=2]
+  - heading "Alle Aufgaben" [level=2]
+  - button "Aufgabe hinzufügen"
   - list:
     - listitem:
       - group "Konzept ausarbeiten":
