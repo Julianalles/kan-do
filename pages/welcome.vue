@@ -278,9 +278,9 @@ const handleNotionSetupComplete = async () => {
 /* From `sm` the photo covers the page again (the `inset-0 size-full object-cover` of the element) */
 @media (--sm) {
   /* The brand stays where it is while the steps swap (UX decision #437): the column hangs from a fixed line above the
-     page's middle instead of being centred, so a taller step grows downward and the brand never moves. The start screen
-     (about 26rem high) lands at the optical centre; the tallest Notion step (the database step) still fits a 800px-high window. The line sits 21rem above the middle so the first-run step's main button
-     stays in view at 1280 x 800 (#690). */
+     page's middle instead of being centred, so a taller step grows downward and the brand never moves. The line sits
+     21rem above the middle (#690): the first-run step's main button stays in view at 1280 x 800, and the tallest
+     Notion step (the database step) still fits a 800px-high window. */
   .welcome-column {
     margin-block-start: max(var(--welcome-column-floor, 0px), calc(50dvh - 21rem));
   }
