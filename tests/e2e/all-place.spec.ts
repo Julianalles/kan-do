@@ -133,7 +133,7 @@ test.describe('The place "Alle" (#354), desktop', () => {
     await expect(placeLink(page, 'all')).toHaveAttribute('aria-current', 'page')
     await expect(page.getByTestId('app-nav-continue')).toHaveCount(0)
     await atRest(page)
-    await expect(notPlanned(page).getByRole('heading', { name: 'Alle' })).toBeVisible()
+    await expect(notPlanned(page).getByRole('heading', { name: 'Alle Aufgaben' })).toBeVisible()
     await expect(page.locator('#column-open')).toBeVisible()
     await expect(page.locator('#column-progress')).toBeHidden()
     await expect(page.locator('#column-done')).toBeHidden()
@@ -204,7 +204,7 @@ test.describe('The place "Alle" (#354), desktop', () => {
     await atRest(page)
     await expect(page.locator('.column-header__outgoing')).toHaveCount(0)
     await expect(heading).toHaveText('Heute')
-    await expect(notPlanned(page).getByRole('heading', { level: 2 })).toHaveText('Alle')
+    await expect(notPlanned(page).getByRole('heading', { level: 2 })).toHaveText('Alle Aufgaben')
 
     outgoing = sawOutgoingTitle(page)
     await toHeute(page).click()
@@ -577,7 +577,7 @@ test.describe('The place "Alle" (#354), desktop', () => {
     await seedLocalBoard(context, BOARD)
     await gotoAll(page)
     const heading = notPlanned(page).getByRole('heading', { level: 2 })
-    await expect(heading).toHaveText('Alle')
+    await expect(heading).toHaveText('Alle Aufgaben')
     await expect(notPlanned(page)).toHaveAttribute('aria-label', 'Alle Aufgaben')
     const size = (el: Locator) => el.evaluate(node => getComputedStyle(node).fontSize)
     expect(await size(heading)).toBe(await size(page.locator('#column-open h2')))
@@ -707,7 +707,7 @@ test.describe('The place "Alle" (#354), phone', () => {
     // "Alle" opens on "Alle Aufgaben"
     expect(await pageOf(page)).toBe('0')
     await expect(dots(page)).toHaveCount(2)
-    await expect(notPlanned(page).getByRole('heading', { name: 'Alle' })).toBeInViewport()
+    await expect(notPlanned(page).getByRole('heading', { name: 'Alle Aufgaben' })).toBeInViewport()
 
     await swipe(page, 'left')
     await expect.poll(() => pageOf(page)).toBe('1')
@@ -766,7 +766,7 @@ test.describe('The place "Alle" (#354), phone', () => {
     await expect(page).toHaveURL(/\/all$/)
     await pageAtRest(page)
     expect(await pageOf(page)).toBe('0')
-    await expect(notPlanned(page).getByRole('heading', { name: 'Alle' })).toBeInViewport()
+    await expect(notPlanned(page).getByRole('heading', { name: 'Alle Aufgaben' })).toBeInViewport()
     await expect(page.locator('#column-done')).toBeHidden()
   })
 

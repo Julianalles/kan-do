@@ -15,7 +15,7 @@
 - Enables task addition for the Open column (#248): the header's round add button asks the add slot, the draft host at the start of the list, to open; the draft card enters at the top (#125). Cancel returns focus to the header button
 - Handles visual states for different statuses and empty states
 - `top` slot (Offen on "Alle", #573 case 2): a zero-height sticky host under the app bar for the capacity echo of a line above the window
-- Offen on Heute, empty while tasks of today's group "Zuletzt geplant und nicht erledigt" wait under "Alle" (#356): one muted sentence with a link to "Alle"; every other empty column stays blank
+- Offen on Heute, empty while tasks of today's group "Gestern geplant" wait under "Alle" (#356): one muted sentence with a link to "Alle"; every other empty column stays blank
 - Erledigt drop target (#124): a light green wash under the list and a one-line hint while a card
   from another column hovers it
 -->

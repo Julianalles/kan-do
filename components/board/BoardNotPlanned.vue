@@ -2,16 +2,16 @@
 @component BoardNotPlanned
 @kind block
 @category layout
-@description The "Alle Aufgaben" side of the place "Alle" (#354, epic #334): every task kan-do holds that is not on today's board, as cards under a column headline, each with the arrow that plans it for today
+@description The "Alle Aufgaben" side of the place "Alle" (#354, epic #334): every task kan-do holds that is not on today's board, as cards under the column headline "Alle Aufgaben", each with the arrow that plans it for today
 @usage Rendered once by Board.vue as the first child of `.board`, left of Offen (desktop: two column tracks wide, the cards in two columns one `--task-list-gap` apart and centred in it, #373, #469; phone: a swipe page of its own left of Offen). `active` says whether the place "Alle" shows, `rendered` whether the cards are in the DOM (also while the board travels to Heute).
 @avoid Not a board column: no status, no sorting and no slot inside it (BoardColumn). Not for the trash or another static list of cards.
 @responsibility
-- Headline: BoardColumnHeader with the same 40 px row below it as every column, so the first card sits level with Offen's first. It names the place, "Alle" (#609, `board.notPlanned.heading`), at the Display step on every width, as "Heute" heads Offen; the region's spoken name stays "Alle Aufgaben". It carries the round add button (#380; while the empty note offers "Aufgabe erstellen" the button fades out in place, 200 ms, #609): a task made on "Alle" is not planned and lands here, so the button sits where the task appears (#567: it opens the Heute flow, an AddTaskSlot `in-card` at the top of this list, which makes the task not planned; the empty note's "Aufgabe erstellen" opens the same card; the sheet under `/all/add` stays for the palette, nav and menu); Offen's header has none on "Alle". The card is one card wide, centred above the panel and the cards (a place in the first grid cell would leave a gap beside it, and moving it between groups would lose the typed title), and the note gives way while it is open; unsaved input is lost when "Alle" is left
+- Headline: BoardColumnHeader with the same 40 px row below it as every column, so the first card sits level with Offen's first. It reads "Alle Aufgaben" (#701; the app bar pill stays "Alle"), at the Display step on every width, as "Heute" heads Offen; the region's spoken name is the same key (`board.notPlanned.title`). It carries the round add button (#380; while the empty note offers "Aufgabe erstellen" the button fades out in place, 200 ms, #609): a task made on "Alle" is not planned and lands here, so the button sits where the task appears (#567: it opens the Heute flow, an AddTaskSlot `in-card` at the top of this list, which makes the task not planned; the empty note's "Aufgabe erstellen" opens the same card; the sheet under `/all/add` stays for the palette, nav and menu); Offen's header has none on "Alle". The card is one card wide, centred above the panel and the cards (a place in the first grid cell would leave a gap beside it, and moving it between groups would lose the typed title), and the note gives way while it is open; unsaved input is lost when "Alle" is left
 - Cards: TaskCard as the board shows it (the source icon only on a board with two or more sources, #609: one rule for both columns); a click, a tap or Enter on the focused card opens its sheet under `/all/:id`, so closing returns to "Alle". No card menu. Each card is a BoardNotPlannedItem
 - Drag (#355): a card can be carried onto Offen with the board's own drag (it is planned and lands where it is dropped). The side is one dnd-kit droppable (`data.notPlannedZone`) for a card or stack from Offen: while one is held over it the side shows a wash (no note: the model says it, #609, #581), and the drop takes it off today's board, on top of this list. The cards never make room for one another: no sorting here
 - Pick: a round button per card ("Für heute einplanen", named with the task's title). In the card's top right corner at every width (#469 D2: #467's edge arrow would land on the neighbour card at the 12 px gap), in the soft primary look (primary wash, green arrow; #467); desktop hides it at rest and shows it on hover and keyboard focus, as "Nicht für heute planen" is in the Heute column (#373; it was quiet at rest so a first-time user found it, #354 D1e; a touch-only device keeps it visible); a phone has it always, where a board card has its menu button. The move is `usePlanMoves().planForToday`; keyboard focus goes on to the next card's button
 - Order: `tasksStore.tasksNotPlanned` (put back by hand first, newest first); the topic focus filters it like a column (`useBoardFocus`)
-- A new day (#356, #387, #469): the tasks that were on yesterday's board and are still not planned stand on top in one panel (BoardNotPlannedGroup) headed "Zuletzt geplant und nicht erledigt" with their count, for that one day only: the Jetzt and Offen tasks the user's fresh start of today took off the board (`useNewDay().groupIds`) in their board order, then the tasks it took out of Wartet (`waitingIds`, until each is planned again; a task in both shows once, in `groupIds`). Every other task follows plain under "Weitere Aufgaben" (heading and count, no surface). The panel's heading is the 40 px row under the headline, so its first card stays level with Offen's. Without a panel there are no headings at all; a panel the topic focus leaves empty is not shown. Pick, drag and the focus hand-over work across the groups
+- A new day (#356, #387, #469, #702): the tasks that were on yesterday's board and are still not planned stand on top in up to two panels (BoardNotPlannedGroup), for that one day only: "Gestern geplant" (the Jetzt and Offen tasks the user's fresh start of today took off the board, `useNewDay().groupIds`, in their board order) and "Gestern in Wartet" (the tasks it took out of Wartet, `waitingIds`, until each is planned again; a task in both shows once, in `groupIds`). Each panel has a sans label with its count and its own button "Alle für heute einplanen" (a phone: below the label row, "Alle einplanen"), which plans every task of the panel as a single pick does (`usePlanAll`: toast with "Rückgängig"; a waiting task lands in Offen). A panel with no tasks (also under the topic focus) is not in the DOM. Every other task follows plain, with no headline, a gap of 1.5 rem under the panels. The first panel's label row is the 40 px row under the headline, so its first card stays level with Offen's. Pick, drag and the focus hand-over work across the groups. A note for the first visit (#711) gets its place at the top of the body, above the panels
 - Limit (#357): when Notion holds more "not planned" pages than a sync loads (`notionConfig.notPlannedLimited`, the most recently edited 500), one muted line under the list says so
 - Empty: one muted note. Nothing held here: "Keine weiteren Aufgaben vorhanden." and the soft button "Aufgabe erstellen" (#367, the user's wording), which opens the card (#567); a task made while "Alle" shows is not planned, so it lands here; a focus without a match: "Keine Aufgaben gefunden."; a board without any task stays blank
 - Many items: the side grows with its cards and the page is the only scroll area on desktop (#609; the capacity echo stays at Offen's foot); on a phone the swipe page scrolls like every column page
@@ -32,7 +32,7 @@
     <!-- The add button (#380): a task made on "Alle" is not planned and lands here, so the button sits where the task appears -->
     <BoardColumnHeader
       ref="headerRef"
-      :title="t('board.notPlanned.heading')"
+      :title="t('board.notPlanned.title')"
       :status="TaskStatus.Open"
       :task-count="shown.length"
       :show-add="true"
@@ -71,26 +71,29 @@
         </UButton>
       </div>
 
-      <!-- On a new day (#356, #387, #469): what was on yesterday's board and is still not planned (Jetzt and Offen first, then
-           what a fresh start took out of Wartet) in one panel with its heading and count, for that day. Not in the reader's
-           tree while it holds nothing: an empty list says "0 items" -->
+      <!-- On a new day (#356, #387, #469, #702): what was on yesterday's board and is still not planned, in two panels, one per
+           reason a task is here: "Gestern geplant" (Jetzt and Offen of the board) and "Gestern in Wartet" (what the fresh start
+           took out of Wartet). Each has its label, count and "plan all" button, and is not in the DOM while it holds nothing
+           (an empty list says "0 items"). The regular list below has no headline: a gap of the section rhythm separates it -->
       <BoardNotPlannedGroup
-        v-show="hasPanel"
+        v-if="plannedTasks.length > 0"
         panel
-        :title="t('board.notPlanned.groupBoardYesterday')"
-        :heading-id="panelHeadingId"
-        :count="panelTasks.length"
-        icon="i-ph-arrow-u-up-left"
-        data-testid="not-planned-panel"
+        :title="t('board.notPlanned.panelPlanned')"
+        :heading-id="plannedHeadingId"
+        :count="plannedTasks.length"
+        :action-label="t('board.notPlanned.planAll')"
+        :action-short="t('board.notPlanned.planAllShort')"
+        data-testid="not-planned-panel-planned"
+        @add-all="planAll(plannedTasks.map(task => task.id))"
       >
         <TransitionGroup
           tag="ul"
           name="not-planned-item"
           class="not-planned__grid"
-          data-testid="not-planned-list-panel"
+          data-testid="not-planned-list-planned"
         >
           <BoardNotPlannedItem
-            v-for="(task, index) in panelTasks"
+            v-for="(task, index) in plannedTasks"
             :key="task.id"
             :task="task"
             :index="index"
@@ -99,20 +102,42 @@
           />
         </TransitionGroup>
       </BoardNotPlannedGroup>
-      <!-- "Weitere Aufgaben" only says something beside the panel above it: without one the side looks as on any other day -->
+      <BoardNotPlannedGroup
+        v-if="waitingTasks.length > 0"
+        panel
+        :title="t('board.notPlanned.panelWaiting')"
+        :heading-id="waitingHeadingId"
+        :count="waitingTasks.length"
+        :action-label="t('board.notPlanned.planAll')"
+        :action-short="t('board.notPlanned.planAllShort')"
+        data-testid="not-planned-panel-waiting"
+        @add-all="planAll(waitingTasks.map(task => task.id))"
+      >
+        <TransitionGroup
+          tag="ul"
+          name="not-planned-item"
+          class="not-planned__grid"
+          data-testid="not-planned-list-waiting"
+        >
+          <BoardNotPlannedItem
+            v-for="(task, index) in waitingTasks"
+            :key="task.id"
+            :task="task"
+            :index="plannedTasks.length + index"
+            @open="openTask"
+            @pick="pick"
+          />
+        </TransitionGroup>
+      </BoardNotPlannedGroup>
       <BoardNotPlannedGroup
         v-show="others.length > 0"
-        :title="hasPanel ? t('board.notPlanned.groupOthers') : undefined"
-        :heading-id="othersHeadingId"
-        :count="others.length"
-        icon="i-ph-tray"
+        :class="{ 'mt-6': hasPanel }"
         data-testid="not-planned-group-others"
       >
         <TransitionGroup
           tag="ul"
           name="not-planned-item"
           class="not-planned__grid"
-          :aria-labelledby="hasPanel ? othersHeadingId : undefined"
           data-testid="not-planned-list-others"
         >
           <BoardNotPlannedItem
@@ -147,6 +172,7 @@ import { useTasksStore } from '~/store/tasks'
 import { useBoardFocus } from '~/composables/useBoardFocus'
 import { useBoardPlace } from '~/composables/useBoardPlace'
 import { usePlanMoves } from '~/composables/usePlanMoves'
+import { usePlanAll } from '~/composables/usePlanAll'
 import { useNewDay } from '~/composables/useNewDay'
 import { inCardAdding } from '~/composables/useInCardAdding'
 import { useTaskDraft } from '~/composables/useTaskDraft'
@@ -171,6 +197,7 @@ const tasksStore = useTasksStore()
 const { applyFocus } = useBoardFocus()
 const { basePath } = useBoardPlace()
 const { planForToday } = usePlanMoves()
+const { planAll } = usePlanAll()
 
 const bodyEl = ref<HTMLElement | null>(null)
 const sideEl = ref<HTMLElement | null>(null)
@@ -204,7 +231,9 @@ const shown = computed(() => applyFocus(held.value))
 const { groupIds, waitingIds } = useNewDay()
 const { draftTask } = useTaskDraft()
 const shownById = computed(() => new Map(shown.value.map(task => [task.id, task])))
-const panelTasks = computed(() => [...groupIds.value, ...waitingIds.value].map(id => shownById.value.get(id)).filter(task => task !== undefined))
+const plannedTasks = computed(() => groupIds.value.map(id => shownById.value.get(id)).filter(task => task !== undefined))
+const waitingTasks = computed(() => waitingIds.value.map(id => shownById.value.get(id)).filter(task => task !== undefined))
+const panelTasks = computed(() => [...plannedTasks.value, ...waitingTasks.value])
 const hasPanel = computed(() => panelTasks.value.length > 0)
 const others = computed(() => {
   if (!hasPanel.value) return shown.value
@@ -213,8 +242,8 @@ const others = computed(() => {
 })
 /** The cards in the order they are rendered, across the groups */
 const renderedOrder = computed(() => [...panelTasks.value, ...others.value].map(task => task.id))
-const panelHeadingId = useId()
-const othersHeadingId = useId()
+const plannedHeadingId = useId()
+const waitingHeadingId = useId()
 
 /** kan-do holds a task at all: only then "everything is planned for today" is true; a new board stays blank */
 const hasTasks = computed(() => tasksStore.tasks.length > 0)

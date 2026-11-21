@@ -1001,14 +1001,14 @@ const PANEL_SEED: SeedTask[] = [
 ]
 
 for (const { size, viewport } of CORE_VIEWPORTS) {
-  test(`alle: yesterday's panel and "Weitere Aufgaben" (${size})`, async ({ context, page }) => {
+  test(`alle: yesterday's panels and the plain list (${size})`, async ({ context, page }) => {
     await page.setViewportSize(viewport)
     await pinClockToFixedNow(context)
     await seedLocalBoard(context, PANEL_SEED, {}, undefined, { once: true })
     await seedDayRecapStore(context, { lastShownDay: dayKeyAgo(2), once: true })
     await page.goto('/all')
     await page.getByTestId('new-day-note-start').click()
-    await expect(page.getByTestId('not-planned-panel')).toBeVisible()
+    await expect(page.getByTestId('not-planned-panel-planned')).toBeVisible()
     await page.mouse.move(0, 0)
     await settle(page)
     await expect(page).toHaveScreenshot(`alle-panel-${size}.png`, { animations: 'disabled' })

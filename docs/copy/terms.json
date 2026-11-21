@@ -641,6 +641,36 @@
     "note": "Approved by the user on 2026-11-16 (#367); the user's `npm run terms:approve` makes it decided. Proposed in the design of #334. Shown only together with the panel above it."
   },
   {
+    "id": "planned-yesterday",
+    "concept": "The panel on top of \"Alle Aufgaben\" for one day: the tasks that were on the board yesterday (Jetzt and Offen) and are still not planned (#702, replaces not-planned-yesterday of #469)",
+    "de": "Gestern geplant",
+    "en": "Planned yesterday",
+    "avoidDe": [],
+    "avoidEn": [],
+    "status": "proposed",
+    "note": "User decision on #702 (design round 1, 1B: two panels). Label in the sans label role with a count; the tasks of the same fresh start that came out of Wartet are the term waiting-yesterday."
+  },
+  {
+    "id": "waiting-yesterday",
+    "concept": "The panel on \"Alle Aufgaben\" for one day: the tasks the fresh start of today took out of Wartet and that are still not planned (#702)",
+    "de": "Gestern in Wartet",
+    "en": "Waiting yesterday",
+    "avoidDe": [],
+    "avoidEn": [],
+    "status": "proposed",
+    "note": "Second panel of #702, beside planned-yesterday. English \"Waiting\" is the column name Wartet."
+  },
+  {
+    "id": "plan-all-for-today",
+    "concept": "The button of a yesterday panel that plans all its tasks for today in one click (#702); the short form is used on a phone",
+    "de": "Alle für heute einplanen",
+    "en": "Plan all for today",
+    "avoidDe": [],
+    "avoidEn": [],
+    "status": "proposed",
+    "note": "Adapts the term plan-for-today (\"Für heute einplanen\"). Short form \"Alle einplanen\" / \"Plan all\" at 390px. The toast says \"{n} Aufgaben sind für heute geplant.\" with \"Rückgängig\"."
+  },
+  {
     "id": "take-off-time",
     "concept": "The question on the app's start or return after a night in which the Jetzt timer ran on while Kan-do was not in focus: take that time off the task again, or keep it (#356, the user's decision of 2026-11-16)",
     "de": "Zeit abziehen / Zeit behalten",
