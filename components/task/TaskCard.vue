@@ -117,13 +117,13 @@
       <div
         ref="footerEl"
         class="task-footer flex w-full items-center gap-2"
-        :style="{ '--footer-w': `${barWidth}px` }"
+        :style="{ '--footer-w': `${footerWidth}px`, '--source-w': `${sourceWidth}px` }"
       >
         <!-- Source icon (#323) and the cloud (#319): one unit with a 4px gap, the footer's first item (#471). The icon shows
              only on a board with tasks from 2+ sources (never on the add sheet's draft). The sync button names the source
-             that is the problem; the card shows nothing else about source health. It is not covered by the Jetzt bar,
-             which starts at the chip after it. -->
-        <span v-if="showSourceIcon || savePending || remindersHint" ref="sourceEl" class="flex shrink-0 items-center gap-1" data-testid="task-footer-source">
+             that is the problem; the card shows nothing else about source health. The Jetzt bar spans the whole footer and runs under
+             this unit (#704): the unit sits on top of it. -->
+        <span v-if="showSourceIcon || savePending || remindersHint" ref="sourceEl" class="task-footer-source relative z-10 flex shrink-0 items-center gap-1" data-testid="task-footer-source">
           <TaskSourceIcon v-if="showSourceIcon" :source="task.source" />
           <UIcon
             v-if="savePending"
@@ -159,8 +159,8 @@
           :is-now="isCurrent"
         />
         <!-- Under the Jetzt bar (#388) the group is covered: inert keeps it out of the tab order and the click path, so
-             no focus ring hides under the bar and a tap on the bar reaches the card. The source unit before the chip is
-             not covered. -->
+             no focus ring hides under the bar and a tap on the bar reaches the card. The source unit sits on top of the
+             bar (#704) and stays outside this group. -->
         <div class="flex min-w-0 items-center gap-2" :inert="barCoversFooter || undefined" data-testid="task-footer-lead">
           <!-- Jetzt draft (#125): the running time sits at the start of the footer, the part of the
                card the open sheet never covers -->
@@ -361,13 +361,12 @@ const elapsedLabel = computed(() => {
   return `${value} ${unit}`;
 });
 
-/** The chip in Jetzt spans the footer from its own position: the footer's measured width less the source unit is the bar's target (#388, #471) */
+/** The chip in Jetzt spans the whole footer, starting under the source unit (#388, #471, #704): the measured footer width is the bar's target, the unit's width its start offset */
 const footerEl = ref<HTMLElement | null>(null);
 const footerWidth = ref(0);
-/** The source unit (#471) sits before the chip and is not covered: the bar starts after it (and the footer's gap) */
+/** The source unit (#471) sits before the chip; the Jetzt bar extends left over it (#704): its width plus the footer's gap */
 const sourceEl = ref<HTMLElement | null>(null);
 const sourceWidth = ref(0);
-const barWidth = computed(() => Math.max(0, footerWidth.value - sourceWidth.value));
 let footerObserver: ResizeObserver | null = null;
 
 const cardUi = {
