@@ -640,6 +640,27 @@ test.describe('The place "Alle" (#354), desktop', () => {
     await expect(echo).toBeHidden()
   })
 
+  test('capacity: with the line above the window the echo docks at the top under the app bar, caret up, and a click shows the line (#573)', async ({ context, page }) => {
+    const cards = Array.from({ length: 30 }, (_, i) => open(`up-${i}`, `Karte ${i}`, null, 1))
+    await seedLocalBoard(context, [...cards, held('np-1', 'Angebot kalkulieren')])
+    await gotoAll(page)
+    const divider = page.getByTestId('capacity-divider')
+    const echo = page.getByTestId('capacity-echo')
+    await expect(echo).toHaveAttribute('data-placement', 'bottom')
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight))
+    await expect(divider).not.toBeInViewport()
+    await expect(echo).toHaveCount(1)
+    await expect(echo).toHaveAttribute('data-placement', 'top')
+    const box = (await echo.boundingBox())!
+    expect(box.y).toBeGreaterThanOrEqual((await page.getByTestId('app-nav-pill').boundingBox())!.y)
+    expect(box.y).toBeLessThan(200)
+    const column = (await page.locator('#column-open').boundingBox())!
+    expect(box.x).toBeGreaterThanOrEqual(column.x)
+    await echo.click()
+    await expect(divider).toBeInViewport()
+    await expect(echo).toBeHidden()
+  })
+
   test('deleting a not-planned task from its sheet and undoing it returns it to "Alle Aufgaben", not to Offen', async ({ context, page }) => {
     await seedLocalBoard(context, BOARD)
     await gotoAll(page)

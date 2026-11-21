@@ -18,7 +18,7 @@
 - One-off (owner, #351, 2026-11-16): "Alle" and "Heute" show Offen with the same look and vertical position, so the way between them reads as one sideways move of the board; no general rule for other places
 - "Alle", drag (#355): a card is carried between "Alle Aufgaben" and Offen with the board's own drag (useBoardDndKit); `data-over-not-planned` on `.board` while that side is the drop
   target (dnd.css takes the placeholder out of Offen's layout). Phone: the edge scroll and its arrows work on the two pages of "Alle" as on Heute's three
-- "Alle": BoardCapacityDock (the capacity echo) in Offen's footer on desktop only, so the capacity element shows with the Today column and never over "Alle Aufgaben" (#566; on a phone Offen's own line is in its list); the two planning moves are announced politely (usePlanMoves)
+- "Alle": BoardCapacityDock (the capacity echo) in Offen's footer, and under the app bar for a line above the window (#573), on desktop only, so the capacity element shows with the Today column and never over "Alle Aufgaben" (#566; on a phone Offen's own line is in its list); the two planning moves are announced politely (usePlanMoves)
 - Phone: column pages moved by swipe and drag edge-scroll only (no tabs, #470), per place: "Alle" has two ("Alle Aufgaben", Offen), "Heute" three (Offen, Jetzt + Wartet, Erledigt); a swipe, the
   edge-scroll and focus never leave the place. The active page within the place is `data-mobile-page`. Heute opens on Jetzt while a task sits there, else on Offen (kd#191), and on Offen when
   coming from "Alle"; "Alle" opens on "Alle Aufgaben". Focus entering an off-screen page of the place makes it active (the keyboard / screen-reader path the tabs were)
@@ -81,6 +81,9 @@
       >
         <template v-if="isMobile" #head><BoardFocusBar phone :active="stripPage === 0" /></template>
         <!-- The capacity echo at the foot of Offen on "Alle" (desktop), where Erledigt has "Tag abschließen" -->
+        <template v-if="isAll && !isMobile" #top>
+          <BoardCapacityDock placement="top" />
+        </template>
         <template v-if="isAll && !isMobile" #footer>
           <BoardCapacityDock />
         </template>
