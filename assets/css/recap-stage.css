@@ -81,12 +81,18 @@
     }
   }
 
-  /* Only this scrolls, inside the sheet, on a short window */
+  /* Only this scrolls, inside the sheet, on a short window. A soft shadow at the edge that has more behind it says so (design review: a clipped
+     chart with no cue reads as the whole content): paper covers it (`local`) while the scroller sits at that edge, so it shows only where content is hidden */
   .recap-stage__scroll {
     flex: 0 1 auto;
     min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
+    background:
+      linear-gradient(var(--ui-bg) 30%, transparent) center top / 100% 1.5rem no-repeat local,
+      linear-gradient(transparent, var(--ui-bg) 70%) center bottom / 100% 1.5rem no-repeat local,
+      radial-gradient(farthest-side at 50% 0, color-mix(in oklab, var(--ui-text) 16%, transparent), transparent) center top / 100% 0.5rem no-repeat scroll,
+      radial-gradient(farthest-side at 50% 100%, color-mix(in oklab, var(--ui-text) 16%, transparent), transparent) center bottom / 100% 0.5rem no-repeat scroll;
   }
 
   /* The content of the sheet: the decks, or the day close's summary, timebox and topics */
@@ -102,7 +108,7 @@
     flex: none;
     margin-top: 1rem;
     border-top: 1px solid var(--ui-border);
-    padding-top: 1rem;
+    padding-top: 1.25rem;
   }
 
   /* The two ways out, one look on both stages (#612): the way out soft (neutral), the main button solid; stacked and full width with the main on top, a right-aligned row from 40 rem (`--sm`) */
