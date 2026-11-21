@@ -24,7 +24,7 @@ at the rim and absent at the Jetzt card (a pool around it), with a flat defocus 
   overlay is on. Measured for the paper veil (#706, sRGB blend of the veil over the page, blur ignored): at the rim (veil .5)
   ink on page 3.3:1 (card 3.6), graphite 2.3:1, muted 2.0:1; at mid distance (veil .25) ink 7.6:1, graphite 4.0:1,
   muted 3.0:1; at the card unchanged. Titles stay readable everywhere, secondary text drops below 3:1 only in the outer
-  rim zone, so the rim is capped at .5. the lit Jetzt column keeps its normal contrast. #503 puts the Erledigt
+  rim zone, so the rim is capped at .5. The lit Jetzt column keeps its normal contrast. #503 puts the Erledigt
   footer under the same trade-off (same rule, same reversal); the app bar is no longer dimmed (#694). It is reversible
   (mouse move, tap, the Fokus setting); `tests/e2e/a11y.spec.ts` exempts exactly what it covers
 - Never covers a focused control (a key press hides it, WCAG 2.2 SC 2.4.11), never changes drop collision, and the
