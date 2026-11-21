@@ -30,7 +30,6 @@
   <div
     class="board-container"
     :data-sheet-task-id="spotlightTaskId ?? undefined"
-    :data-focus-lit="focusLit ? '' : undefined"
     @pointerdown="onSwipePointerDown"
     @focusin="onBoardFocusIn"
   >
@@ -514,13 +513,11 @@ const focusLit = computed(() => focusEnabledNow.value && focusShown.value);
 const mirrorOnRoot = (attribute: string, on: boolean) => {
   if (import.meta.client) document.documentElement.toggleAttribute(attribute, on);
 };
-watch(focusLit, (lit) => mirrorOnRoot('data-focus-lit', lit), { immediate: true, flush: 'post' });
 watch(spotlightTaskId, (id) => mirrorOnRoot('data-sheet-open', !!id), { immediate: true, flush: 'post' });
 // Only a sheet docked to the window's right edge moves the app bar (#290, #517): the add route's slideover. The detail
 // route's morph sheet (#468) sits at its card and leaves the bar where it is. The draft card is the add route's spotlight.
 watch(() => spotlightTaskId.value === DRAFT_TASK_ID, (side) => mirrorOnRoot('data-sheet-side', side), { immediate: true, flush: 'post' });
 onBeforeUnmount(() => {
-  mirrorOnRoot('data-focus-lit', false);
   mirrorOnRoot('data-sheet-open', false);
   mirrorOnRoot('data-sheet-side', false);
 });

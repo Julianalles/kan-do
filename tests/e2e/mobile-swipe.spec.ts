@@ -213,7 +213,9 @@ test.describe('Page dots under the focus overlay (kd#26, kd#207)', () => {
     // Above the board's stacking context (the overlay lives in it): the dots are not dimmed away (kd#207 reverses kd#26)
     expect(Number(await dots.evaluate(el => getComputedStyle(el).zIndex))).toBeGreaterThan(1);
     // The overlay is a light paper film (#706): the band of page colour stays, no stripe shows against it
-    await expect.poll(() => dots.evaluate(el => getComputedStyle(el, '::before').opacity)).toBe('1');
+    // Let the lamp's 1100 ms warm-up pass first, then the veil must still be fully there (a fade would show now)
+    await page.waitForTimeout(1300);
+    expect(await dots.evaluate(el => getComputedStyle(el, '::before').opacity)).toBe('1');
     // The resting dots keep a visible tone, the active one is the full muted ink
     const tones = await dots.evaluate(el => [...el.querySelectorAll('.page-dot')].map(dot => getComputedStyle(dot).backgroundColor));
     expect(new Set(tones).size).toBe(2);

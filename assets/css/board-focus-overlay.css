@@ -19,12 +19,12 @@
  *   it too (kd#207).
  * With the setting off or nothing in Jetzt there is no `data-focus` and none of this applies.
  *
- * The Jetzt card's raised shadow follows the overlay being visible (`data-focus-lit`, set by Board.vue from the
+ * The Jetzt card's raised shadow follows the overlay being visible (`data-focus-lit` on `.board`, set by Board.vue from the
  * state machine's `shown`), not the focus mode: a hidden overlay (mouse moved, menu open) leaves the regular card shadow.
  *
  * State outside the board (#275): what an open task sheet changes above the board (the app bar's
  * veil, the page dots, the root colours) keys on attributes that Board.vue mirrors in the same update:
- * `data-focus-lit` on `.board-container` and on `<html>`, `data-sheet-open` and `data-sheet-side` (the add route's
+ * `data-sheet-open` and `data-sheet-side` (the add route's
  * slideover only, #517) on `<html>`. Never `html:has(…)` or
  * `.board-container:has(…)`: a `:has()` on an ancestor keeps everything below in its scope, so each card change
  * restyled the whole page (2 whole-page passes per task sheet on a 73-task board;
@@ -174,7 +174,7 @@ html[data-sheet-open] .app-nav::before,
 }
 
 /* The phone browser's bars keep the page colour while the overlay is lit (#706): the veil is a light paper film, so the
-   status bar strip (the page dots') and the root colour need no tone of their own (kd#207 tinted them with the dusk). */
+   status bar strip (the page dots') and the root colour need no tone of their own (kd#207 tinted them, #706 removed the tint). */
 @media (--phone) {
   html,
   .page-dots {
