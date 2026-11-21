@@ -46,6 +46,13 @@ async function box(locator: Locator) {
   return b
 }
 
+/** True when `top` has a higher z-index than `bottom` (both positioned in the footer's stacking context) */
+async function paintsAbove(top: Locator, bottom: Locator): Promise<boolean> {
+  const z = (l: Locator) => l.evaluate((el) => Number.parseInt(getComputedStyle(el).zIndex, 10))
+  const [t, b] = await Promise.all([z(top), z(bottom)])
+  return Number.isFinite(t) && t > (Number.isFinite(b) ? b : 0)
+}
+
 test.describe('source icon: shown on a mixed board only', () => {
   test('every card of a mixed board has one, in all four columns, named after its source', async ({ context, page }) => {
     await seedMixedBoard(context)
@@ -134,7 +141,8 @@ test.describe('source icon: shown on a mixed board only', () => {
       return {
         iconAtStart: Math.abs(icon.x - footer.x) <= 1,
         barStartsAtFooter: Math.abs(bar.x - footer.x) <= 2,
-        iconOnTopOfBar: await sourceIcon(jetzt).evaluate((el) => { const r = el.getBoundingClientRect(); return document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2)?.closest('[data-testid="task-footer-source"]') !== null }),
+        // pointer-events: none on the chip slot makes elementFromPoint blind to the bar: compare the painting order instead
+        iconOnTopOfBar: icon.x >= bar.x && icon.x + icon.width <= bar.x + bar.width && (await paintsAbove(jetzt.getByTestId('task-footer-source'), chip.locator('xpath=ancestor::*[contains(@class,"chip-slot")][1]'))),
         barEndsAtFooter: Math.abs(bar.x + bar.width - (footer.x + footer.width)) <= 2,
       }
     }, { timeout: 5000 }).toEqual({ iconAtStart: true, barStartsAtFooter: true, iconOnTopOfBar: true, barEndsAtFooter: true })

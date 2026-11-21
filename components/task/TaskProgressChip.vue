@@ -259,7 +259,7 @@ watch(() => props.isNow, (now) => {
   --chip-fill: color-mix(in oklab, var(--ui-color-neutral-200), var(--ui-color-neutral-300)); /* #584 D2: half a step lighter than neutral-300 too; neutral-200 would sit at 1.07:1 on this track, so the spent share would vanish */
   --chip-accent: var(--ui-text-muted);
   position: absolute;
-  left: 0; /* #584, #471: the bar starts at the chip's own position (the footer start, or after the source icon) and grows to the right */
+  left: 0; /* #584, #471: the bar starts at the chip's own position (the footer start, or after the source icon; in Jetzt under it, #704) and grows to the right */
   top: 50%;
   transform: translateY(-50%);
   display: inline-flex;
@@ -281,6 +281,7 @@ watch(() => props.isNow, (now) => {
 .chip-slot--armed .chip {
   transition:
     width var(--chip-duration) var(--chip-spring),
+    left var(--chip-duration) var(--chip-spring), /* #704: the Jetzt bar's start under the source icon moves with the width, not ahead of it */
     height var(--chip-duration) var(--chip-ease),
     padding var(--chip-duration) var(--chip-ease),
     font-size var(--chip-duration) var(--chip-ease),

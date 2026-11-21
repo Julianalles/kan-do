@@ -159,8 +159,8 @@
           :is-now="isCurrent"
         />
         <!-- Under the Jetzt bar (#388) the group is covered: inert keeps it out of the tab order and the click path, so
-             no focus ring hides under the bar and a tap on the bar reaches the card. The source unit before the chip is
-             not covered. -->
+             no focus ring hides under the bar and a tap on the bar reaches the card. The source unit sits on top of the
+             bar (#704) and stays outside this group. -->
         <div class="flex min-w-0 items-center gap-2" :inert="barCoversFooter || undefined" data-testid="task-footer-lead">
           <!-- Jetzt draft (#125): the running time sits at the start of the footer, the part of the
                card the open sheet never covers -->
