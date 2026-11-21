@@ -25,6 +25,8 @@ WF_CHECKS_TSV="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/nu
 wf_verify() { npm run verify; }
 wf_build_needed() { git diff --name-only "$1"...HEAD | grep -Eq '^(nuxt\.config\.ts|package\.json|app\.config\.ts|server/|vercel\.json)'; }
 wf_build() { npm run build; }
+# every prep: a UI diff runs tests/config (ratchets, lock-in); fix workers' `vitest --changed` misses them (main red after PR 712)
+wf_prep_check() { if git diff --name-only "$1"...HEAD | grep -Eq '\.(vue|css)$|^app\.config\.ts$'; then npx vitest run tests/config; fi; }
 # Orca worktrees have their own node_modules; the lockfile rewrite of a local install is never committed (CLAUDE.md).
 wf_install() { npx npm@11.19.0 install --no-audit --no-fund && git checkout -- package-lock.json; }
 
