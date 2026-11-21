@@ -2,19 +2,29 @@
 @component BoardCapacityEcho
 @kind component
 @category display
-@description The echo of Offen's "Kapazität" line on the place "Alle" (#354, #334 D6): the same wavy line and label with one muted sentence, shown at the foot of Offen while the real line (BoardCapacityDivider) is out of view. A click shows the real line.
-@usage Inside BoardCapacityDock only (desktop, the foot of Offen): shown while the day is full and the real line is outside the window.
+@description The echo of Offen's "Kapazität" line on the place "Alle" (#354, #334 D6): the same wavy line and label with one muted sentence, shown while the real line (BoardCapacityDivider) is out of view: at the foot of Offen when the line lies below the window, at its top (under the app bar, caret turned up, #573 case 2) when it lies above. A click shows the real line.
+@usage Inside BoardCapacityDock only (desktop; `placement` bottom = the foot of Offen, top = under the app bar): shown while the day is full and the real line is outside the window on that side.
 @avoid Not the line itself (BoardCapacityDivider, in the Offen list) and not an alert or a limit: it informs, nothing is blocked, no numbers of time and no room-left counter. Never on Heute, never over "Alle Aufgaben" and not on a phone (#566).
 @responsibility
 - Reads the Offen column's own line (`useOpenCapacityLine`), so it follows the topic focus, the sorting and the stacks; it never calculates
 - Sentence: "Damit ist dein Tag vermutlich voll." while nothing lies under the line, else how many tasks do
 - One button: the label "Kapazität" and the sentence are its name; `show` asks the host to bring the real line into view
 - Same tone as the line: `error-700` for the wave and the label only, the sentence muted; a page-coloured backing with a soft upper edge, because it lies over the cards at the column's foot: a card's width plus 1 rem each side and no space below it (#573 case 1, #609), so a card under it is hidden fully and the text is not pressed to an edge
+- `placement="top"` (#573 case 2): the mirror of the foot echo, the sentence above the wave, the backing fading at its lower edge, the caret turned up, no space above it; shown only while the line lies above the window
 - Fades in and out (none under reduced motion)
 -->
 <template>
   <Transition name="capacity-echo">
-    <UButton v-if="shown" color="neutral" variant="ghost" class="capacity-echo" data-testid="capacity-echo" @click="emit('show')">
+    <UButton
+      v-if="shown"
+      color="neutral"
+      variant="ghost"
+      class="capacity-echo"
+      :class="{ 'capacity-echo--top': placement === 'top' }"
+      data-testid="capacity-echo"
+      :data-placement="placement"
+      @click="emit('show')"
+    >
       <span class="capacity-echo__line" aria-hidden="true">
         <svg class="capacity-echo__wave" width="100%" height="8">
           <defs>
@@ -45,6 +55,10 @@ import { useOpenCapacityLine } from '~/composables/useOpenCapacityLine'
 
 defineOptions({ name: 'BoardCapacityEcho' })
 
+const { placement = 'bottom' } = defineProps<{
+  /** Where it docks: the foot of Offen (line below the window) or under the app bar (line above it) */
+  placement?: 'bottom' | 'top'
+}>()
 
 const emit = defineEmits<{
   /** The user asks for the real line */
@@ -58,10 +72,17 @@ const patternId = `capacity-echo-wave-${useId()}`
 /** Room at the window's foot the sticky footer covers: a line under it does not count as in view */
 const FOOT_COVER_PX = 96
 
-const lineInView = ref(true)
+/** Room at the window's top the app bar and its veil cover (--app-bar-offset-top + --app-bar-veil-hang): a line under it does not count as in view */
+const HEAD_COVER_PX = 84
+
+type LineSide = 'above' | 'in' | 'below'
+const lineSide = ref<LineSide>('in')
 function measure() {
   const box = document.querySelector('#column-open [data-testid="capacity-divider"]')?.getBoundingClientRect()
-  lineInView.value = !!box && box.top < window.innerHeight - FOOT_COVER_PX && box.bottom > 0
+  if (!box) lineSide.value = 'below'
+  else if (box.bottom <= HEAD_COVER_PX) lineSide.value = 'above'
+  else if (box.top >= window.innerHeight - FOOT_COVER_PX) lineSide.value = 'below'
+  else lineSide.value = 'in'
 }
 let frame = 0
 const schedule = () => {
@@ -83,7 +104,7 @@ onBeforeUnmount(() => {
 // The line moved (a card planned, put back or reordered): look again once the list has rendered
 watch(() => [line.value.full, line.value.below], schedule, { flush: 'post' })
 
-const shown = computed(() => line.value.full && !lineInView.value)
+const shown = computed(() => line.value.full && lineSide.value === (placement === 'top' ? 'above' : 'below'))
 const sentence = computed(() =>
   line.value.below === 0 ? t('board.notPlanned.capacityFull') : t('board.notPlanned.capacityBelow', { n: line.value.below }, line.value.below),
 )
