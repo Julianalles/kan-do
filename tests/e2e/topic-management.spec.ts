@@ -60,6 +60,13 @@ const pickerTrigger = (page: Page, kind: PickerKind) => page.getByTestId(`task-$
 const pickerContent = (page: Page) => page.locator('[data-reka-popper-content-wrapper]')
 const editRow = (page: Page, name: string) => page.getByRole('button', { name: new RegExp(`^${name} .* bearbeiten$`) })
 
+/**
+ * The search field's autofocus (Nuxt UI Input) is a `setTimeout(0)` set when it mounts: a macrotask queued after the field is
+ * seen focused runs after it. Moving focus before that lets it take the focus back, and the next Enter then lands in the
+ * combobox and picks an option (#722).
+ */
+const afterSearchAutofocus = (page: Page) => page.evaluate(() => new Promise<void>((resolve) => setTimeout(resolve, 0)))
+
 /** Picker -> "Bearbeiten" -> the name's row (#443): the only way into the editor from the task sheet. */
 async function openEditorFromPicker(page: Page, name: string, kind: PickerKind = 'topic') {
   await pickerTrigger(page, kind).click()
@@ -474,6 +481,7 @@ for (const vp of VIEWPORTS) {
       await expect(page.getByTestId('topic-edit-toggle')).toBeVisible()
       const search = pickerContent(page).getByRole('combobox')
       await expect(search).toBeFocused()
+      await afterSearchAutofocus(page)
       // Search -> options are arrow-driven; Tab walks on to the footer buttons
       await page.getByTestId('topic-edit-toggle').focus()
       await page.keyboard.press('Enter')
