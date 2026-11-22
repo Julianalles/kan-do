@@ -694,10 +694,10 @@ test.describe('mixed board: source icons (#323)', () => {
   // (#364): capture only once ⋯ shows the settled state.
   const waitForOfflineSync = (page: Page) => expect(moreButton(page)).toHaveAccessibleName('Mehr, Verbindungsproblem')
 
-  test('desktop: icon at the start of every card footer, Erledigt included', async ({ page }) => {
+  test('desktop: icon at the start of every card footer, Erledigt included, none under the Jetzt bar', async ({ page }) => {
     await page.goto('/tasks')
     await expect(page.locator('.task')).toHaveCount(MIXED_VR_TASKS.length)
-    await expect(page.getByTestId('task-source-icon')).toHaveCount(MIXED_VR_TASKS.length)
+    await expect(page.getByTestId('task-source-icon')).toHaveCount(MIXED_VR_TASKS.length - 1) // the Jetzt bar hides its card's icon
     await waitForOfflineSync(page)
     await page.mouse.move(0, 0)
     await settle(page)
@@ -709,7 +709,7 @@ test.describe('mixed board: source icons (#323)', () => {
 
     test('Offen tab with icons', async ({ page }) => {
       await page.goto('/tasks')
-      await expect(page.getByTestId('task-source-icon')).toHaveCount(MIXED_VR_TASKS.length)
+      await expect(page.getByTestId('task-source-icon')).toHaveCount(MIXED_VR_TASKS.length - 1) // the Jetzt bar hides its card's icon
       await showColumnPage(page, 0) // the board opens on Jetzt while a task sits there (kd#191)
       await waitForOfflineSync(page)
       await page.mouse.move(0, 0)

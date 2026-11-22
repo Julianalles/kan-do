@@ -58,6 +58,14 @@ describe('TaskCard source icon (#323)', () => {
     expect(icon(render(tasks.task('t1')!)).exists()).toBe(true)
   })
 
+  it('hides under the full-width Jetzt bar, shows in Jetzt without a timebox (#704)', () => {
+    const tasks = useTasksStore()
+    tasks.addTask(task({ status: TaskStatus.Progress, timeBoxSeconds: 1800 }))
+    tasks.addTask(task({ id: 't2', source: 'local', externalId: null, status: TaskStatus.Progress }))
+    expect(icon(render(tasks.task('t1')!)).exists()).toBe(false)
+    expect(icon(render(tasks.task('t2')!)).exists()).toBe(true)
+  })
+
   it('never shows on the add sheet draft, even on a mixed board', () => {
     const tasks = useTasksStore()
     tasks.addTask(task())

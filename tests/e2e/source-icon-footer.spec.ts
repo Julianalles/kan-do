@@ -46,13 +46,6 @@ async function box(locator: Locator) {
   return b
 }
 
-/** True when `top` has a higher z-index than `bottom` (both positioned in the footer's stacking context) */
-async function paintsAbove(top: Locator, bottom: Locator): Promise<boolean> {
-  const z = (l: Locator) => l.evaluate((el) => Number.parseInt(getComputedStyle(el).zIndex, 10))
-  const [t, b] = await Promise.all([z(top), z(bottom)])
-  return Number.isFinite(t) && t > (Number.isFinite(b) ? b : 0)
-}
-
 test.describe('source icon: shown on a mixed board only', () => {
   test('every card of a mixed board has one, in all four columns, named after its source', async ({ context, page }) => {
     await seedMixedBoard(context)
@@ -124,28 +117,24 @@ test.describe('source icon: shown on a mixed board only', () => {
   })
 })
 
-  test('in Jetzt the icon stays visible on top of the bar, which spans the whole footer (#471, #704)', async ({ context, page }) => {
+  test('in Jetzt the bar spans the whole footer and hides the icon (#471, #704)', async ({ context, page }) => {
     await seedMixedBoard(context, MIXED_SEED_TASKS.map((t) => (t.id === 'page-2' ? { ...t, timeBoxSeconds: 1800, timeSpentSeconds: 600 } : t)))
     await blockNotion(page)
     await page.goto('/tasks')
     const jetzt = card(page, 'page-2')
     const chip = jetzt.getByTestId('task-progress-chip')
     await expect(chip).toHaveClass(/chip--now/)
-    await expect(sourceIcon(jetzt)).toBeVisible()
+    await expect(sourceIcon(jetzt)).toHaveCount(0)
     await expect(jetzt.getByTestId('task-footer-lead')).toHaveJSProperty('inert', true)
     // The bar springs wide: poll until it has settled on the footer's end
     await expect.poll(async () => {
       const footer = await box(jetzt.locator('[data-slot="footer"] .task-footer'))
-      const icon = await box(sourceIcon(jetzt))
       const bar = await box(chip)
       return {
-        iconAtStart: Math.abs(icon.x - footer.x) <= 1,
         barStartsAtFooter: Math.abs(bar.x - footer.x) <= 2,
-        // pointer-events: none on the chip slot makes elementFromPoint blind to the bar: compare the painting order instead
-        iconOnTopOfBar: icon.x >= bar.x && icon.x + icon.width <= bar.x + bar.width && (await paintsAbove(jetzt.getByTestId('task-footer-source'), chip.locator('xpath=ancestor::*[contains(@class,"chip-slot")][1]'))),
         barEndsAtFooter: Math.abs(bar.x + bar.width - (footer.x + footer.width)) <= 2,
       }
-    }, { timeout: 5000 }).toEqual({ iconAtStart: true, barStartsAtFooter: true, iconOnTopOfBar: true, barEndsAtFooter: true })
+    }, { timeout: 5000 }).toEqual({ barStartsAtFooter: true, barEndsAtFooter: true })
   })
 
 for (const { name, viewport } of [{ name: '1280px', viewport: DESKTOP }, { name: '390px', viewport: MOBILE }]) {
