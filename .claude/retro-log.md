@@ -374,3 +374,8 @@ Running log of `/workflow-retro` (agent-workflow): the context-size history and 
 
 | W275 | Lead ran one test of a touched spec (`-g`), the gate failed another test of the same spec at merge; welcome baselines carry the app version and went stale after v0.20.0 (inbox #732) (5 min, PR 731) | escaped | build verification, welcome baselines | 1 | 2026-11-22 | watching: related W266 (body check already refuses a missing selected spec); act if seen again: baseline fix is #732 |
 | 2026-11-22 | retro (PR 731, 1 entry 5 min, 1 escaped) | not re-measured | no prose added | - | - | - | start not measured |
+
+| W276 | Brief guessed `npx tauri icon`; the repo uses `npm run tauri -- icon <abs path>` (3 min, PR 733) | wrong-instruction | coordinator briefs | 1 | 2026-11-22 | watching: not in any file, act if seen again |
+| W277 | Template literal for FEEDBACK_RELAY_PRODUCTION_URL broke tauri-csp test, which greps nuxt.config source (3 min, PR 734) | missing-instruction | nuxt.config.ts | 1 | 2026-11-22 | fixed 2026-11-22 nuxt.config.ts: comment at the constant; expect no repeat |
+| W7 | (re-seen 2026-11-22) zsh 0-indexed array in an inline loop (2 min) | toil | - | 24 | 2026-11-22 | see W7 above; no new action |
+| 2026-11-22 | retro (PRs 733, 734, 3 entries 8 min, 1 wrong-instruction) | not re-measured | no prose added | - | - | - | comment only |

@@ -22,6 +22,7 @@ const copyEditor = isDev || process.env.KANDO_COPY_EDITOR === '1' || isDevInstan
 // `.nuxt` (a dev server or typecheck may be using it) or `.output` (`npm run generate` for Tauri). Unset for every other command.
 const e2eBuildDir = process.env.KANDO_E2E_BUILD_DIR
 /** Production relay route; its host is also in the desktop CSP `connect-src` (ADR 012). */
+// Keep this a quoted string literal: tests/config/tauri-csp.test.ts reads it from this source with a regex.
 const FEEDBACK_RELAY_PRODUCTION_URL = 'https://kando.julius-wuestefeld.workers.dev/api/feedback'
 // The public web instance (ADR 021), the relay's host. Link previews need an absolute image URL; `SITE_URL` overrides
 // it for another host.
