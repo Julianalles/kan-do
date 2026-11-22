@@ -62,7 +62,7 @@ export function spentAt(snapshot: NowSnapshot, now: number): number {
 export type NowTone = 'normal' | 'warning'
 
 export interface NowView {
-  /** Share of the timebox that is left, 1 at the start, 0 at the timebox; over it the share is `1` again and `over` is set (the full light in warning: it has run out); `null` without a timebox (no line) */
+  /** Share of the timebox that is left, 1 at the start, 0 at the timebox; over it the share is `1` again and `over` is set (the full light in warning: it has run out); `null` without a timebox (no light) */
   line: number | null
   /** What `label` says: the time left, the overrun, or (no timebox) the time passed */
   mode: 'left' | 'over' | 'elapsed'

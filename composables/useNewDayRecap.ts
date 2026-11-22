@@ -16,12 +16,12 @@
  * - Tasks a day close archived (`dayRecap.closedTaskIds`, #292) count as done before today, so closing the day does not
  *   cancel the next morning's recap; the marker moving clears them.
  * - A day close of the evening before (#480) took its unfinished tasks off the board and marked today as started: the still-open deck lists them from `sentBack` (Jetzt, Offen in `ids`, the Wartet ones in `waiting`).
- * - The snapshot is a copy taken at open: a fetch landing later, and the fresh start "Tag neu planen" runs (#387), change
+ * - The snapshot is a copy taken at open: a fetch landing later, and the fresh start "Neuen Tag planen" runs (#387), change
  *   nothing in the page. Its still-open deck is yesterday's board: what is on the board now, the recap opens before
  *   any fresh start; what a fresh start of today already took off (a board the automatic pass of #356 emptied this
  *   morning, before the update) is listed first.
  * - `leave({ archive })` (button, Escape, #428): archives the snapshot ids still done before today when `archive` is set, which only
- *   "Tag neu planen" does (the day's planning; shared path with the board button; no toast, no undo, #463). Skipping and Escape
+ *   "Neuen Tag planen" does (the day's planning; shared path with the board button; no toast, no undo, #463). Skipping and Escape
  *   archive nothing: the done tasks stay in Erledigt under the "Gestern erledigt" note and its "Gesehen" hides them. Moves the
  *   marker to the day the recap opened on, closes.
  * - `recapOpen`: the open state as a module-level read-only ref, for the app bar (useAppNav): while it is true the pill shows
@@ -150,7 +150,7 @@ export function useNewDayRecap() {
     }
   }
 
-  /** "Tag neu planen" (`archive`), "Überspringen und Board anzeigen" and Escape (no archive): only the planning archives the done tasks. */
+  /** "Neuen Tag planen" (`archive`), "Überspringen und Board anzeigen" and Escape (no archive): only the planning archives the done tasks. */
   function leave({ archive = false }: { archive?: boolean } = {}): void {
     const current = snapshot.value
     if (!isOpen.value || !current) return

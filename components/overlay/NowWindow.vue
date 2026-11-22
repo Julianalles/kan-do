@@ -18,7 +18,7 @@
 - Follows the system's light or dark appearance (`color-scheme: light dark` on the page), because it sits on whatever is behind it; label colours are `CanvasText`, the light the app's primary and warning steps (the one place colours are not Nuxt UI semantic tokens: they are not themed for dark)
 - The window is exactly the pill (280 x 42 pt, no margin): the shadow is the system's, and the bevel rim (light edge top left, dark edge bottom right, a faint inner glow) is drawn inside the box, above the light, so a half-pixel offset cannot clip it
 - Over the timebox the light is full again and warning-coloured (it has run out, not "nothing left")
-- Paused wins over warning for the time (regular weight, muted): a paused task keeps its light colour, so the urgency stays readable there
+- Paused dims the light and sets the time in regular weight and the muted colour (weight too, not colour alone); the warning tone never recolours the time, which keeps the label colour, so a paused task keeps its light colour
 - Motion: the light eases one second per tick (linear) and only on the per-tick shrink; the band breathes on a loop and stops while paused; with no task Rust sends the empty snapshot before it hides the window, so the pill (and its band) unmounts, and `visibilitychange` holds it as a second guard; under `prefers-reduced-motion` the animation is off (also when paused or hidden), the band rests at mid brightness and the position follows the time by tick
 -->
 <template>

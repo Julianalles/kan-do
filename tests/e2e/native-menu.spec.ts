@@ -48,6 +48,8 @@ test.describe('Native menu (desktop)', () => {
     await emitTauriEvent(page, MENU_EVENT, 'app.day-close')
     await expect(page).toHaveURL(/\/tasks$/)
     await expect(page.getByRole('region', { name: 'Tag abschließen' })).toBeVisible()
+    // Escape is handled on the stage, so it needs the focus the stage takes a frame after it shows (the safe exit)
+    await expect(page.locator('[data-day-close-cancel]')).toBeFocused()
     await page.keyboard.press('Escape')
     await expect(page.getByRole('region', { name: 'Tag abschließen' })).toBeHidden()
 
