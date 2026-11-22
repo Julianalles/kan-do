@@ -13,11 +13,11 @@
  *   ?seed=newday[-all][&daysago=n] — Local source, first start on a new day (#385): four tasks done n days ago (default 1),
  *                   not archived, plus an open and a waiting card; `newday-all` has nothing open. Writes `day-recap-store`
  *                   with `lastShownDay` n+1 days back, so the recap opens (`&daysago=3` reads "am Montag"-style copy).
- *                   Nothing moves by itself (#387): "Tag neu planen" in the recap is the fresh start, "Direkt zum Board"
+ *                   Nothing moves by itself (#387): "Neuen Tag planen" in the recap is the fresh start, "Direkt zum Board"
  *                   keeps the board and shows the notice that offers it. `&nomarker=1` (every new-day seed) stores
  *                   no `lastNewDay`: the data of a version before the fresh start (the update from v0.16.0)
  *   ?seed=newday-back — the new day in full (#356, #387): like `newday`, plus a card in Jetzt (with time spent), a
- *                   second Offen card and a task that was not planned before. After "Tag neu planen" "Alle" shows the
+ *                   second Offen card and a task that was not planned before. After "Neuen Tag planen" "Alle" shows the
  *                   group "Zuletzt geplant und nicht erledigt", the Wartet task in the same panel and "Weitere Aufgaben", and
  *                   Heute an empty Offen with its sentence
  *   ?seed=newday-notice — `newday-back` without the done tasks: no recap is due, so the board shows as it was left

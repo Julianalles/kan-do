@@ -15,7 +15,7 @@ const recap = (page: Page) => page.getByTestId('new-day-recap')
 const summary = (page: Page) => page.getByTestId('recap-summary')
 /** "Überspringen und Board anzeigen": leaves to the board and keeps it as it is (#428) */
 const continueButton = (page: Page) => page.getByTestId('recap-continue')
-/** "Tag neu planen" (#356, #428): the primary way out, leads to "Alle" */
+/** "Neuen Tag planen" (#356, #428): the primary way out, leads to "Alle" */
 const planButton = (page: Page) => page.getByTestId('recap-plan')
 /** The foot of the one sheet (#707) that holds the two buttons. */
 const panelOf = (page: Page) => page.getByTestId('recap-controls')
@@ -204,7 +204,7 @@ test.describe('New-day recap (#385)', () => {
     expect(await waiting.evaluate(el => getComputedStyle(el).filter)).toBe('none')
   })
 
-  test('"Tag neu planen" archives the done tasks without a toast and the recap does not reopen', async ({ page, context }) => {
+  test('"Neuen Tag planen" archives the done tasks without a toast and the recap does not reopen', async ({ page, context }) => {
     await seedNewDayBoard(context)
     await page.goto('/tasks')
     await expect(recap(page)).toBeVisible()
@@ -288,7 +288,7 @@ test.describe('New-day recap (#385)', () => {
     await expect(bar).not.toHaveAttribute('data-moving', 'true')
   })
 
-  test('"Tag neu planen" turns Rückblick into Alle + Heute with Alle current, and the pill is not the "Weiter zum Board" link (#428)', async ({ page, context }) => {
+  test('"Neuen Tag planen" turns Rückblick into Alle + Heute with Alle current, and the pill is not the "Weiter zum Board" link (#428)', async ({ page, context }) => {
     await seedNewDayBoard(context)
     await page.goto('/tasks')
     await planButton(page).click()
@@ -370,7 +370,7 @@ test.describe('New-day recap (#385)', () => {
     expect(panel.y).toBeGreaterThanOrEqual(Math.max(undone.y + undone.height, done.y + done.height))
   })
 
-  test('the two buttons sit at the foot of the one sheet in a row: soft way out left of the solid "Tag neu planen", no arrow, a hairline above them (#428, #612, #707)', async ({ page, context }) => {
+  test('the two buttons sit at the foot of the one sheet in a row: soft way out left of the solid "Neuen Tag planen", no arrow, a hairline above them (#428, #612, #707)', async ({ page, context }) => {
     await seedNewDayBoard(context)
     await page.goto('/tasks')
     const panel = panelOf(page)
@@ -380,14 +380,14 @@ test.describe('New-day recap (#385)', () => {
     const sheetBox = (await sheetOf(page).boundingBox())!
     const button = (await planButton(page).boundingBox())!
     const skip = (await continueButton(page).boundingBox())!
-    // "Überspringen und Board anzeigen" left of "Tag neu planen" (#356), on one line, inside the sheet's foot, right-aligned
+    // "Überspringen und Board anzeigen" left of "Neuen Tag planen" (#356), on one line, inside the sheet's foot, right-aligned
     expect(skip.x).toBeGreaterThanOrEqual(panelBox.x)
     expect(skip.x + skip.width).toBeLessThanOrEqual(button.x)
     expect(button.x + button.width).toBeLessThanOrEqual(panelBox.x + panelBox.width)
     expect(panelBox.x + panelBox.width - (button.x + button.width)).toBeLessThan(20)
     expect(Math.abs(skip.y + skip.height / 2 - (button.y + button.height / 2))).toBeLessThan(2)
     await expect(continueButton(page)).toHaveAccessibleName('Überspringen und Board anzeigen')
-    await expect(planButton(page)).toHaveAccessibleName('Tag neu planen')
+    await expect(planButton(page)).toHaveAccessibleName('Neuen Tag planen')
     // one paper sheet holds the decks and the foot (#707); the title and the summary lie above it on the photo
     await expect(sheetOf(page)).toBeVisible()
     await expect(sheetOf(page).locator('[data-slot="title"]')).toHaveCount(0)
@@ -850,7 +850,7 @@ test.describe('New-day recap (#385)', () => {
       await expect(deck(page, 'undone')).toHaveCount(0)
       expect(await noScroll()).toEqual({ page: true, pageX: true, body: true })
 
-      // The controls stack in the thumb zone: "Tag neu planen" on top, full-width skip below, both in view
+      // The controls stack in the thumb zone: "Neuen Tag planen" on top, full-width skip below, both in view
       const button = continueButton(page)
       await expect(button).toBeInViewport({ ratio: 1 })
       const planBox = (await planButton(page).boundingBox())!
@@ -957,13 +957,13 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     expect(await storedTask(page, 'nd-waiting-1')).toMatchObject({ status: 2 })
   }
 
-  test('"Tag neu planen" is the fresh start: nothing moved before the click; then Jetzt, Offen and Wartet are one panel on top, and the board is empty', async ({ page, context }) => {
+  test('"Neuen Tag planen" is the fresh start: nothing moved before the click; then Jetzt, Offen and Wartet are one panel on top, and the board is empty', async ({ page, context }) => {
     await seedNewDayBoard(context, { tasks: newDayBackTasks() })
     await page.goto('/tasks')
     // the recap looks at yesterday's board: Jetzt, both Offen cards and the Wartet card are "noch offen"
     await expect(summary(page)).toHaveText('Du hast gestern 4 von 8 Aufgaben erledigt.')
     await expect(planButton(page)).toBeFocused()
-    await expect(planButton(page)).toHaveText('Tag neu planen')
+    await expect(planButton(page)).toHaveText('Neuen Tag planen')
     await expect(continueButton(page)).toHaveText('Überspringen und Board anzeigen')
     // the app did nothing by itself: behind the recap the board is as it was left
     await expectBoardUntouched(page)
@@ -1147,8 +1147,8 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await expect(note(page)).toBeVisible()
     await expect(note(page)).toHaveAttribute('role', 'status')
     await expect(note(page)).toContainText('Auf dem Board liegt noch der Plan von gestern.')
-    await expect(note(page)).toContainText('„Tag neu planen“ legt alles, was nicht erledigt ist, zurück nach „Alle Aufgaben“.')
-    await expect(startButton(page)).toHaveText('Tag neu planen')
+    await expect(note(page)).toContainText('„Neuen Tag planen“ legt alles, was nicht erledigt ist, zurück nach „Alle Aufgaben“.')
+    await expect(startButton(page)).toHaveText('Neuen Tag planen')
 
     // a reload keeps the board and the notice; no recap again
     await page.reload()
@@ -1162,7 +1162,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await startButton(page).click()
     await expect(page).toHaveURL(/\/all$/)
     await expect(note(page)).toHaveCount(0)
-    // #462: the notice's "Tag neu planen" archives yesterday's done tasks like the recap's button of that name
+    // #462: the notice's "Neuen Tag planen" archives yesterday's done tasks like the recap's button of that name
     await expect.poll(async () => (await archived(page)).length).toBeGreaterThan(0)
     await expect(page.getByTestId('app-nav-continue')).toHaveCount(0)
     await expect(page.getByTestId('app-nav-place-all')).toHaveAttribute('aria-current', 'page')
@@ -1177,7 +1177,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
   // The update from v0.16.0: the stored state has the recap's marker but none of a fresh start. Leaving the recap
   // moves the recap's marker to today, which must not make today look started.
   test.describe('data stored before the fresh start existed (no `lastNewDay`)', () => {
-    test('"Tag neu planen" in the recap takes yesterday\'s cards off the board, once', async ({ page, context }) => {
+    test('"Neuen Tag planen" in the recap takes yesterday\'s cards off the board, once', async ({ page, context }) => {
       await seedNewDayBoard(context, { tasks: newDayBackTasks(), lastNewDay: null })
       await page.goto('/tasks')
       await expect(planButton(page)).toBeFocused()
@@ -1501,7 +1501,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
   })
 
   /**
-   * #711: the one-time note at the top of "Alle Aufgaben" after "Tag neu planen": what the step is for and when to go to "Heute".
+   * #711: the one-time note at the top of "Alle Aufgaben" after "Neuen Tag planen": what the step is for and when to go to "Heute".
    * Seen when closed or when the user goes on to "Heute"; a persisted flag, so it never returns.
    */
   test.describe('the one-time note on "Alle" (#711)', () => {
@@ -1516,7 +1516,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
       }
     })
 
-    test('through the recap\'s "Tag neu planen": the note shows above the panels with its copy; "Schließen" ends it for good, also after a reload; no continue button', async ({ page, context }) => {
+    test('through the recap\'s "Neuen Tag planen": the note shows above the panels with its copy; "Schließen" ends it for good, also after a reload; no continue button', async ({ page, context }) => {
       await seedNewDayBoard(context, { tasks: newDayBackTasks() })
       await page.goto('/tasks')
       await planButton(page).click()
@@ -1547,7 +1547,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
       await expect(planNote(page)).toHaveCount(0)
     })
 
-    test('through the notice\'s "Tag neu planen": the note shows; going on to "Heute" is the answer, it does not come back on "Alle" or after a reload', async ({ page, context }) => {
+    test('through the notice\'s "Neuen Tag planen": the note shows; going on to "Heute" is the answer, it does not come back on "Alle" or after a reload', async ({ page, context }) => {
       await seedNewDayBoard(context, { tasks: boardOnly() })
       await page.goto('/tasks')
       await startButton(page).click()
@@ -1620,7 +1620,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
       expect(await storedSeen(page)).toBe(false)
     })
 
-    test('a user who has seen it once gets none on a later day\'s "Tag neu planen"', async ({ page, context }) => {
+    test('a user who has seen it once gets none on a later day\'s "Neuen Tag planen"', async ({ page, context }) => {
       await seedNewDayBoard(context, { tasks: boardOnly() })
       await seedSeen(context)
       await page.goto('/tasks')
@@ -1725,7 +1725,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
       expect(await storedSeconds(page)).toBeLessThan(1200 + 120)
     })
 
-    test('with "Tag neu planen": the cards go off the board, the time is whole, and "Zeit abziehen" takes exactly that time off the card', async ({ page, context }) => {
+    test('with "Neuen Tag planen": the cards go off the board, the time is whole, and "Zeit abziehen" takes exactly that time off the card', async ({ page, context }) => {
       await openBoard(page, context, 600, 'plan')
       await expect(timeNote(page)).toContainText('Timer lief nach Mitternacht 10 min weiter')
       expect(await storedTask(page, 'nd-now-1')).toMatchObject({ status: 0, notPlanned: true, timeSpentSeconds: 1800 })
@@ -1778,7 +1778,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
   test.describe('390px', () => {
     test.use({ viewport: { width: 390, height: 844 }, hasTouch: true })
 
-    test('the buttons of the recap stack with "Tag neu planen" on top; the notice stacks its actions below the text, 44 px high, and its button starts the day fresh', async ({ page, context }) => {
+    test('the buttons of the recap stack with "Neuen Tag planen" on top; the notice stacks its actions below the text, 44 px high, and its button starts the day fresh', async ({ page, context }) => {
       await seedNewDayBoard(context, { tasks: newDayBackTasks() })
       await page.goto('/tasks')
       const plan = (await planButton(page).boundingBox())!
@@ -1801,7 +1801,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
 })
 
 /**
- * #490: "Tag neu planen" lands on Alle: the curtain lifts onto the planning view, the board never shows Heute or travels
+ * #490: "Neuen Tag planen" lands on Alle: the curtain lifts onto the planning view, the board never shows Heute or travels
  * there beneath it. A frame sampler runs from the click until the curtain is gone and records the board's place, its move
  * flag, the pace on <html> and where the Offen column stands.
  */
@@ -1849,7 +1849,7 @@ test.describe('Recap to Alle (#490)', () => {
     test.describe(`#490 ${name}`, () => {
       test.use(use)
 
-      test('"Tag neu planen": the curtain lifts onto Alle, the board never shows Heute or travels beneath it', async ({ page, context }) => {
+      test('"Neuen Tag planen": the curtain lifts onto Alle, the board never shows Heute or travels beneath it', async ({ page, context }) => {
         await seedNewDayBoard(context, { tasks: newDayBackTasks() })
         await page.goto('/tasks')
         await expect(recap(page)).toBeVisible()
@@ -1882,7 +1882,7 @@ test.describe('Recap to Alle (#490)', () => {
     })
   }
 
-  test('reduced motion: "Tag neu planen" lands on Alle at once, no pace set', async ({ page, context }) => {
+  test('reduced motion: "Neuen Tag planen" lands on Alle at once, no pace set', async ({ page, context }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await seedNewDayBoard(context, { tasks: newDayBackTasks() })
     await page.goto('/tasks')

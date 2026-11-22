@@ -336,7 +336,7 @@ describe('NewDayRecap', () => {
     expect(document.querySelector('[role="switch"]')).toBeNull()
   })
 
-  it('"Tag neu planen" archives the done tasks without a toast', async () => {
+  it('"Neuen Tag planen" archives the done tasks without a toast', async () => {
     await open([doneAt(1, 'a'), task('o', TaskStatus.Open)])
     q('[data-testid="recap-plan"]').click()
     await nextTick()
@@ -374,19 +374,19 @@ describe('NewDayRecap', () => {
     })
     afterEach(() => setCurrentBoardPath('/tasks'))
 
-    it('shows "Tag neu planen" as the primary button and "Überspringen und Board anzeigen" beside it', async () => {
+    it('shows "Neuen Tag planen" as the primary button and "Überspringen und Board anzeigen" beside it', async () => {
       await open([doneAt(1, 'a')])
-      expect(q('[data-testid="recap-plan"]').textContent?.trim()).toBe('Tag neu planen')
+      expect(q('[data-testid="recap-plan"]').textContent?.trim()).toBe('Neuen Tag planen')
       expect(q('[data-testid="recap-plan"]').hasAttribute('data-recap-primary')).toBe(true)
       expect(q('[data-testid="recap-continue"]').textContent?.trim()).toBe('Überspringen und Board anzeigen')
       setTestLocale('en')
       await nextTick()
-      expect(q('[data-testid="recap-plan"]').textContent?.trim()).toBe('Replan the day')
+      expect(q('[data-testid="recap-plan"]').textContent?.trim()).toBe('Plan a new day')
       expect(q('[data-testid="recap-continue"]').textContent?.trim()).toBe('Skip and show the board')
       setTestLocale('de')
     })
 
-    it('"Tag neu planen" leaves the recap, leads to "Alle" and is the fresh start (#387): once, after the recap is left', async () => {
+    it('"Neuen Tag planen" leaves the recap, leads to "Alle" and is the fresh start (#387): once, after the recap is left', async () => {
       await open([doneAt(1, 'a')])
       freshStart.mockImplementationOnce(() => {
         // the recap is left (archive, marker) before the cards move
@@ -459,7 +459,7 @@ describe('NewDayRecap', () => {
     })
   })
 
-  it('moves focus to "Tag neu planen" on open', async () => {
+  it('moves focus to "Neuen Tag planen" on open', async () => {
     await open([doneAt(1, 'a')])
     await new Promise(resolve => requestAnimationFrame(() => resolve(null)))
     expect(document.activeElement).toBe(q('[data-testid="recap-plan"]'))

@@ -95,7 +95,7 @@ export function armGlide(dayKey: string): void {
   glideDay = dayKey
 }
 
-/** The recap's "Tag neu planen" starts the move to "Alle" next: it lifts. No-op under reduced motion. */
+/** The recap's "Neuen Tag planen" starts the move to "Alle" next: it lifts. No-op under reduced motion. */
 export function armLift(): void {
   if (!prefersReducedMotion()) liftAt = Date.now()
 }

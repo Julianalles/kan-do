@@ -32,7 +32,7 @@
     animation: recap-stage-in var(--recap-enter-duration) var(--ease-emphasized) both;
   }
 
-  /* "Tag neu planen" (#433): the photo lifts slower, onto "Alle" that the board already stands on (#490, the board does not move beneath it; the app bar's chip travels on this clock) (NewDayRecap.vue sets data-pace) */
+  /* "Neuen Tag planen" (#433): the photo lifts slower, onto "Alle" that the board already stands on (#490, the board does not move beneath it; the app bar's chip travels on this clock) (NewDayRecap.vue sets data-pace) */
   .recap-stage[data-pace='lift'] {
     --recap-curtain-duration: var(--duration-stage);
   }

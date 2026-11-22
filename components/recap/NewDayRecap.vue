@@ -2,21 +2,21 @@
 @component NewDayRecap
 @kind block
 @category overlay
-@description "Tagesrückblick" (#385, #451, #44, #245, #428): the recap on the first start of a new day, shown as a stage on the welcome photo, behind the app bar, instead of a dialog over the board. The headline and the summary lie on the photo; the two decks (still open, done: Offen → Erledigt like the board) and the controls sit together in one paper sheet under them (#707, reverses #428), the controls at its foot: "Tag neu planen" (primary: the fresh start, which takes yesterday's unfinished cards off the board and archives the done ones, and the way to "Alle") and "Überspringen und Board anzeigen" (leads to the board and keeps it as it is, archives nothing).
+@description "Tagesrückblick" (#385, #451, #44, #245, #428): the recap on the first start of a new day, shown as a stage on the welcome photo, behind the app bar, instead of a dialog over the board. The headline and the summary lie on the photo; the two decks (still open, done: Offen → Erledigt like the board) and the controls sit together in one paper sheet under them (#707, reverses #428), the controls at its foot: "Neuen Tag planen" (primary: the fresh start, which takes yesterday's unfinished cards off the board and archives the done ones, and the way to "Alle") and "Überspringen und Board anzeigen" (leads to the board and keeps it as it is, archives nothing).
 @usage Mounted once in pages/tasks.vue next to DayCloseStage; opened by useNewDayRecap().check() on mount.
 One shell with the day close (#612): the title anchored under the app bar, one 44 rem column with both decks side by side from 768px (one deck with a switcher below), the title above one sheet whose scroller holds the decks and whose footer holds the controls. The page itself never scrolls; only the sheet's scroll area may, on short windows (the sheet shrinks, the title stays); under about 30 rem of height the stage's column scrolls instead (title, content, buttons one after the other), and a card dragged out of a deck is not cut by the sheet (the scroller reaches to the stage's edges).
 @avoid Only the first start of a new day; closing the day is DayCloseStage.
 @responsibility
 - Shell only: headline (the page title, SectionHeader `display`) and summary on the photo, then one paper sheet (`.recap-stage__sheet`) with the decks (body) and the controls (foot) (#707; #428 had the decks on the photo, reversed by user decision of 2026-11-21). The title and summary lie on the photo, so DESIGN.md "The Bright Ground Rule" applies: its tokens must hold AA there (rendered scan)
 - Not modal (#245), teleported to `#recap-stage-host` (app.vue) so the inert board does not take it along and the bar stays above it: a `role="region"` named by the headline, no scrim, no focus trap. The app bar stays usable and sits above the stage (`--z-bar`); the board is `inert` behind it (`pages/tasks.vue`). Going to settings and coming back finds the same recap, because the state lives in `useNewDayRecap`
-- Focus starts on "Tag neu planen"; both buttons and Escape inside the stage call `leave()`: "Tag neu planen" goes to "Alle" first and then starts the day fresh (`useNewDay().freshStart()`, #387; it also arms the one-time note on "Alle", #711: the only thing here that moves a card) and archives yesterday's done tasks (`leave({ archive: true })`), "Überspringen und Board anzeigen" goes to Heute when "Alle" shows and moves and archives nothing (the done tasks stay in Erledigt under the "Gestern erledigt" note, whose "Gesehen" hides them), Escape only dismisses, never navigates, moves and archives nothing; `finishLeave()` after the curtain hands focus to the board
+- Focus starts on "Neuen Tag planen"; both buttons and Escape inside the stage call `leave()`: "Neuen Tag planen" goes to "Alle" first and then starts the day fresh (`useNewDay().freshStart()`, #387; it also arms the one-time note on "Alle", #711: the only thing here that moves a card) and archives yesterday's done tasks (`leave({ archive: true })`), "Überspringen und Board anzeigen" goes to Heute when "Alle" shows and moves and archives nothing (the done tasks stay in Erledigt under the "Gestern erledigt" note, whose "Gesehen" hides them), Escape only dismisses, never navigates, moves and archives nothing; `finishLeave()` after the curtain hands focus to the board
 - The app bar follows the open state (#428): while the recap is open its pill is Rückblick + Statistik (useAppNav), and leaving it turns Rückblick into Alle + Heute.
 - Open as the page mounts (an app start, or back from another page, #427): `pages/tasks.vue` runs the day check in setup and hides the board (`data-recap-cover`) until the recap is left, so the board is never seen before it; the stage fades in over `--duration-stage` (1.3 s, "Dawn", #463, `--recap-enter-duration`) also then, over the paper colour
-- Curtain (assets/css/recap-stage.css): `leave()` runs at once (archive, marker, the board is live), the stage stays mounted while the content fades (200 ms) and only the photo slides up (`--duration-curtain`, 700 ms; "Tag neu planen" lifts it `--duration-stage` onto "Alle", which the board reached at once beneath the covering stage before the curtain started, with no Heute frame and no second slide, `data-pace="lift"`, #433, #490) with a feathered edge; reduced motion: instant. A second click or Escape during the curtain does nothing
+- Curtain (assets/css/recap-stage.css): `leave()` runs at once (archive, marker, the board is live), the stage stays mounted while the content fades (200 ms) and only the photo slides up (`--duration-curtain`, 700 ms; "Neuen Tag planen" lifts it `--duration-stage` onto "Alle", which the board reached at once beneath the covering stage before the curtain started, with no Heute frame and no second slide, `data-pace="lift"`, #433, #490) with a feathered edge; reduced motion: instant. A second click or Escape during the curtain does nothing
 - The photo is the welcome page's (`public/welcome`), decoration only (`alt=""`); until it loads, or if it fails, the layer is the paper colour
 - Phone switcher ("n noch offen" / "n erledigt", a `UTabs` pill: `role="tab"`, `aria-selected`): one RecapDeck mounted at a time, starts on "noch offen" (on "erledigt" when nothing is open, then without a switcher)
 - The decks never change size (RecapDeck), so nothing moves while they are looked at
-- Controls (the sheet's footer under a hairline, #707; the docked footer sheet of #612 is gone): "Überspringen und Board anzeigen" a soft neutral button, "Tag neu planen" solid and without an arrow (the day close's footer, `.recap-stage__actions`); right in a row from `--sm`, stacked and full width on a phone with "Tag neu planen" above "Überspringen und Board anzeigen"; default button size on both (One Height Rule, #424). The halo of the focused primary button waits for the first key or press (`data-quiet-focus`)
+- Controls (the sheet's footer under a hairline, #707; the docked footer sheet of #612 is gone): "Überspringen und Board anzeigen" a soft neutral button, "Neuen Tag planen" solid and without an arrow (the day close's footer, `.recap-stage__actions`); right in a row from `--sm`, stacked and full width on a phone with "Neuen Tag planen" above "Überspringen und Board anzeigen"; default button size on both (One Height Rule, #424). The halo of the focused primary button waits for the first key or press (`data-quiet-focus`)
 -->
 <template>
   <!-- Outside the inert board (<main> in pages/tasks.vue), in app.vue's host: the same stacking context as the app bar, so the bar paints above the photo (#262) -->
@@ -179,7 +179,7 @@ function onKeydown(event: KeyboardEvent) {
 }
 
 /**
- * Focus starts on "Tag neu planen". The stage may not be in the DOM yet: opened as the page mounts (#427) it is teleported
+ * Focus starts on "Neuen Tag planen". The stage may not be in the DOM yet: opened as the page mounts (#427) it is teleported
  * only once the host is there, a few frames after this runs, so it looks again on each frame (up to a second).
  */
 function focusPrimary(framesLeft = 60) {
@@ -195,7 +195,7 @@ const photoLoaded = ref(false)
 const quiet = ref(true)
 /** The curtain is running: `leave()` already closed the recap, the stage stays until the photo is off. */
 const closing = ref(false)
-/** "Tag neu planen" waits for the board to stand on "Alle" before the curtain starts (#490) */
+/** "Neuen Tag planen" waits for the board to stand on "Alle" before the curtain starts (#490) */
 const planning = ref(false)
 const shown = computed(() => (isOpen.value || closing.value) && !!snapshot.value)
 // The app bar's veil steps back while the stage exists, the curtain included (recap-stage.css). An attribute on <html>
@@ -227,7 +227,7 @@ function finishCurtain() {
 }
 
 /**
- * "Tag neu planen" (#356, #387, #428, #490): the board goes to "Alle" first, at once and without a move (the stage covers it, the
+ * "Neuen Tag planen" (#356, #387, #428, #490): the board goes to "Alle" first, at once and without a move (the stage covers it, the
  * board's `lift` pace snaps), so the curtain lifts straight onto the planning view: no Heute frame, no second slide. Only then the
  * recap is left with yesterday's done tasks archived and the day starts fresh: yesterday's unfinished cards leave the board for
  * "Alle Aufgaben". The recap's own decks are a snapshot and do not change under the curtain.

@@ -29,7 +29,7 @@ export function sanitizeSentBack(raw: unknown): SentBack | null {
  * took from Jetzt and Offen (`sentBack`, the first half of the panel "Zuletzt geplant und nicht erledigt" of that one day), the day the
  * notice that offers the fresh start was closed (`noticeClosedDay`), and the open question about the time a Jetzt
  * timer ran on after midnight while the user was away (`timeOffer`, the user's decision of 2026-11-16: nothing is
- * removed silently), and whether the one-time note on "Alle" after "Tag neu planen" was answered (`planNoteSeen`, #711). All additive: data stored before them has none and reads as "no start yet, no group, no
+ * removed silently), and whether the one-time note on "Alle" after "Neuen Tag planen" was answered (`planNoteSeen`, #711). All additive: data stored before them has none and reads as "no start yet, no group, no
  * question". `firstBackDay` and `backNoteClosed` (the one-time note of #356, gone with #387) are no longer read or
  * written: a stored value is ignored.
  *
@@ -57,7 +57,7 @@ export const useDayRecapStore = defineStore('dayRecap', () => {
   /** Local day on which the user closed the notice that offers the fresh start (#387): it stays away that day. */
   const noticeClosedDay = ref<string | null>(null)
   /**
-   * The one-time note on "Alle" after "Tag neu planen" (#711) was answered: closed, or the user went on to "Heute". Once per
+   * The one-time note on "Alle" after "Neuen Tag planen" (#711) was answered: closed, or the user went on to "Heute". Once per
    * user, never per day. Only a literal `true` counts as seen; absent (older data) or malformed reads as not seen.
    */
   const planNoteSeen = ref(false)

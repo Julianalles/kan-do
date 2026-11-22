@@ -1,4 +1,4 @@
 - status:
-  - text: Auf dem Board liegt noch der Plan von gestern. „Tag neu planen“ legt alles, was nicht erledigt ist, zurück nach „Alle Aufgaben“.
-  - button "Tag neu planen"
+  - text: Auf dem Board liegt noch der Plan von gestern. „Neuen Tag planen“ legt alles, was nicht erledigt ist, zurück nach „Alle Aufgaben“.
+  - button "Neuen Tag planen"
   - button "Schließen"

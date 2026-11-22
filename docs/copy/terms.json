@@ -601,6 +601,16 @@
     "note": "The user's own German wording of 2026-11-17 (#428), English by the copy-writer skill; the user's `npm run terms:approve` makes it decided. It replaces \"Tag planen\" on the recap only (entry plan-the-day); since #454 the notice's button reads it as well (the same action gets the same name)."
   },
   {
+    "id": "plan-a-new-day",
+    "concept": "The recap's primary button and the new-day notice's button (#724): the fresh start of the new day, which archives yesterday's done tasks, takes the unfinished ones off the board and leads to \"Alle\". It acknowledges the look back and starts planning a new day, not planning today over again",
+    "de": "Neuen Tag planen",
+    "en": "Plan a new day",
+    "avoidDe": [],
+    "avoidEn": [],
+    "status": "proposed",
+    "note": "The user's own German wording of 2026-11-22 (#724), English by the copy-writer skill; the user's `npm run terms:approve plan-a-new-day` makes it decided. It replaces the decided entry replan-the-day, whose wording read as planning the current day over again; approving this entry drops that one (remove it then). Shown on the recap button, the notice's button and named in the one-time note on Alle (#711)."
+  },
+  {
     "id": "skip-and-show-board",
     "concept": "The recap's secondary button (#428): skips planning, leads to the board and keeps it as it is; archives nothing",
     "de": "Überspringen und Board anzeigen",
