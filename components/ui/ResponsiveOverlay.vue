@@ -10,7 +10,7 @@
 - Provides the frozen choice to hosted content (`useOverlayIsDesktop()`), and passes it to the `#body` and `#footer` slots as `isDesktop`
 - Open/close echo guard: vaul's DrawerRoot emits `update:open` with its current value on mount (page load at 390px, resize across the breakpoint). Only a value that differs from `open` is forwarded; without it a closed drawer reported `false` and a host started a close nobody asked for
 - `after-leave` fires for every variant
-- Focus into the drawer (#566): vaul cancels reka's open auto-focus (to keep the mobile keyboard closed), so the drawer never took focus and reka's trap never engaged. The drawer variant moves focus onto the drawer itself once it is mounted and again when its enter animation ends, unless hosted content already focused something inside (the task add form focuses its title field). The modal and slideover need none: reka focuses them. Hosts do not handle this
+- Focus into the drawer (#566): vaul cancels reka's open auto-focus (to keep the mobile keyboard closed), so the drawer never took focus and reka's trap never engaged. The drawer variant moves focus onto the drawer itself once it is mounted and again when its enter animation ends, unless hosted content already focused something inside (the task add form focuses its title field) or focus has moved on to another layer meanwhile (a picker popover the sheet opened: the late enter-end must not take it back, #722); it takes only focus that is on <body> or still on the element that held it at open (read in the `open` watcher, and in setup for a host that mounts the drawer already open, e.g. a route to a task; that case is moved by `after:enter` alone). The modal and slideover need none: reka focuses them. Hosts do not handle this
 - Browser bar tint (#554): while the drawer variant is open it sets `<meta name="theme-color">` to the sheet white so the phone's browser bars blend into the drawer; closing or unmounting removes the meta, so the browser samples the page again. The modal and slideover never set it
 - Focus handling (Escape guards, focus return) is the host's, handed in as `contentProps`
 -->
@@ -150,16 +150,27 @@ const handleAfterLeave = () => {
   emit('after-leave');
 };
 
-/** Idempotent: does nothing once focus is inside the drawer, so the two triggers below never fight. */
+/** What held focus when the drawer opened (the trigger behind it); read in setup too, for a host that mounts it already open (a route to a task). */
+let focusAtOpen: Element | null = props.open && typeof document !== 'undefined' ? document.activeElement : null;
+
+/**
+ * Idempotent: does nothing once focus is inside the drawer, so the two triggers below never fight. It only takes focus that is
+ * nowhere or still behind the drawer (`<body>`, the element that held it at open): focus that moved on since, e.g. into a popover
+ * the sheet opened (portalled outside the drawer), is not ours to take. The enter animation's end can come late under load, after
+ * the user already opened a picker (#722).
+ */
 const focusIntoDrawer = () => {
   // A frame after Escape the drawer is still in the DOM, leaving: focus belongs to the trigger by then
   if (!props.open) return;
   const drawer = document.querySelector<HTMLElement>('[data-vaul-drawer][role="dialog"]');
-  if (!drawer || drawer.contains(document.activeElement)) return;
+  const active = document.activeElement;
+  if (!drawer || drawer.contains(active)) return;
+  if (active && active !== document.body && active !== focusAtOpen) return;
   drawer.focus({ preventScroll: true });
 };
 
 watch(() => props.open, async (isOpen) => {
+  focusAtOpen = isOpen ? document.activeElement : null;
   // The variant is frozen while open and equals the viewport's at the moment it opens
   if (!isOpen || isDesktop.value) return;
   await nextTick();
