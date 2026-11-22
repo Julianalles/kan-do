@@ -93,6 +93,9 @@ test.describe('Day close stage (#480)', () => {
     await expect(dayCloseCta(page)).toHaveText('Tag abschließen')
     await dayCloseCta(page).click()
     await expect(stage(page)).toBeVisible()
+    // Esc is the stage's own keydown: it only fires once focus has moved into the stage. For a frame or two after the mount focus
+    // sits on <body> (the board went inert), and under load a key pressed then is lost (#723). Wait for the safe exit first.
+    await expect(cancelButton(page)).toBeFocused()
     await page.keyboard.press('Escape')
     await expect(stage(page)).toBeHidden()
     await expect(dayCloseCta(page)).toBeFocused()
