@@ -197,6 +197,29 @@ describe('ResponsiveOverlay', () => {
       expect(document.activeElement).not.toBe(drawer)
     })
 
+    it('does not take focus back from a popover the sheet opened, however late the enter animation ends (#722)', async () => {
+      mountDrawerDom()
+      const wrapper = await mountOverlay({ open: true })
+      // A picker popover is portalled outside the drawer; the user opened it before the enter animation ended
+      const popoverRow = document.createElement('button')
+      document.body.append(popoverRow)
+      popoverRow.focus()
+      wrapper.findComponent(UDrawer).vm.$emit('after:enter')
+      expect(document.activeElement).toBe(popoverRow)
+    })
+
+    it('still takes focus that stayed on the trigger behind the drawer', async () => {
+      const { drawer } = mountDrawerDom()
+      const trigger = document.createElement('button')
+      document.body.prepend(trigger)
+      trigger.focus()
+      const wrapper = await mountOverlay({ open: false })
+      await wrapper.setProps({ open: true })
+      await flushPromises()
+      wrapper.findComponent(UDrawer).vm.$emit('after:enter')
+      expect(document.activeElement).toBe(drawer)
+    })
+
     it('leaves focus alone when hosted content already focused something inside', async () => {
       const { field } = mountDrawerDom()
       const wrapper = await mountOverlay({ open: true })
