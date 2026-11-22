@@ -150,8 +150,8 @@ const handleAfterLeave = () => {
   emit('after-leave');
 };
 
-/** What held focus when the drawer opened (the trigger behind it); null when the host mounted it already open. */
-let focusAtOpen: Element | null = null;
+/** What held focus when the drawer opened (the trigger behind it); read in setup too, for a host that mounts it already open (a route to a task). */
+let focusAtOpen: Element | null = props.open && typeof document !== 'undefined' ? document.activeElement : null;
 
 /**
  * Idempotent: does nothing once focus is inside the drawer, so the two triggers below never fight. It only takes focus that is
