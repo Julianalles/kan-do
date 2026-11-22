@@ -63,7 +63,7 @@ wf_e2e_selection_check() {
     | (cd "$root" && node --disable-warning=ExperimentalWarning scripts/e2e-gate.mjs 2>/dev/null)) || return 0
   [ "$(printf '%s' "$decision" | jq -r '.tier // empty')" ] || return 0
   case "$(printf '%s' "$decision" | jq -r .tier)" in targeted|fast) ;; *) return 0 ;; esac
-  named=" $(grep '^E2E-specs:' "$1" | sed 's/^E2E-specs://' | tr ',' ' ' | tr -s ' ') "
+  named=" $(grep '^E2E-specs:' "$1" | sed 's/^E2E-specs://' | tr '\n\r,' '   ' | tr -s ' ') "
   missing=""
   for spec in $(printf '%s' "$decision" | jq -r '.specs[]'); do
     case "$named" in *" $spec "*) ;; *) missing="$missing $spec" ;; esac
