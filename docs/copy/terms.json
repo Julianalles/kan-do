@@ -608,7 +608,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "The user's own German wording of 2026-11-22 (#724), English by the copy-writer skill; the user's `npm run terms:approve plan-a-new-day` makes it decided. It replaces the decided entry replan-the-day, whose wording read as planning the current day over again; approving this entry drops that one (remove it then). Shown on the recap button, the notice's button and named in the one-time note on Alle (#711)."
+    "note": "The user's own German wording of 2026-11-22 (#724), English by the copy-writer skill; the user's `npm run terms:approve plan-a-new-day` makes it decided. It replaces the decided entry replan-the-day, whose wording read as planning the current day over again; after approving this entry, remove replan-the-day by hand (approve does not drop it). Shown on the recap button, the notice's button and named in the notice's description."
   },
   {
     "id": "skip-and-show-board",
