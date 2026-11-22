@@ -558,7 +558,7 @@ describe('useNewDay: the day check and the fresh start (#387)', () => {
         return { ...context, page }
       }
 
-      it('"Tag neu planen": the recap is left first, the fresh start still takes yesterday\'s cards off the board', () => {
+      it('"Neuen Tag planen": the recap is left first, the fresh start still takes yesterday\'s cards off the board', () => {
         const { tasks, recap, newDay, page } = recapMorning()
         page.leave()
         expect(recap.lastShownDay).toBe(TODAY)
@@ -1296,8 +1296,8 @@ describe('useNewDay: the day check and the fresh start (#387)', () => {
     })
   })
 
-  describe('the one-time note on "Alle" after "Tag neu planen" (#711)', () => {
-    it('is not shown before the user chose "Tag neu planen": the day check, a skipped day and a reload arm nothing', () => {
+  describe('the one-time note on "Alle" after "Neuen Tag planen" (#711)', () => {
+    it('is not shown before the user chose "Neuen Tag planen": the day check, a skipped day and a reload arm nothing', () => {
       const { newDay } = setup()
       expect(newDay.planNoteShown.value).toBe(false)
       newDay.check()

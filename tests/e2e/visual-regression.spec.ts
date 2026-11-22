@@ -1017,7 +1017,7 @@ for (const { size, viewport } of CORE_VIEWPORTS) {
     await expect(page).toHaveScreenshot(`alle-panel-${size}.png`, { animations: 'disabled' })
   })
 
-  test(`alle: the one-time note above the panels after "Tag neu planen" (${size}, #711)`, async ({ context, page }) => {
+  test(`alle: the one-time note above the panels after "Neuen Tag planen" (${size}, #711)`, async ({ context, page }) => {
     await page.setViewportSize(viewport)
     await pinClockToFixedNow(context)
     await seedLocalBoard(context, PANEL_SEED, {}, undefined, { once: true })

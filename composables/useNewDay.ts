@@ -14,7 +14,7 @@
  *   whose board has nothing unfinished as started, and turns the time a Jetzt timer counted after midnight while the
  *   user was away into the question of that day (`timeOffer`) without stopping the timer. Does nothing while the
  *   board is not onboarded, the desktop data status blocks writes (ADR 011) or the day-close dialog is open.
- * - `freshStart()`: the user's click ("Tag neu planen" in the recap, the notice's button). Once per local day (the
+ * - `freshStart()`: the user's click ("Neuen Tag planen" in the recap, the notice's button). Once per local day (the
  *   marker `dayRecap.lastNewDay` is monotonic: a second click and a clock set back move nothing). The Jetzt task
  *   stops its timer and goes to Offen through the shared move path, the Wartet tasks go to Offen through the batch
  *   status path (their writes run one after another), then everything is taken off the board in one store action
@@ -132,7 +132,7 @@ export function useNewDay() {
       // update arrived during the day) it is today, and the first day that can be started fresh is tomorrow. Data
       // from before the fresh start existed whose recap marker is an earlier day gets that day: today stays a day to
       // start fresh by a marker of its own, because leaving the recap moves the recap's marker to today before
-      // "Tag neu planen" runs, and "Direkt zum Board" moves it before the notice looks
+      // "Neuen Tag planen" runs, and "Direkt zum Board" moves it before the notice looks
       recapStore.markNewDay(due ? recapStore.validLastShownDay ?? todayKey : todayKey, [])
     }
     if (due && unfinished.value.length === 0) {
@@ -222,13 +222,13 @@ export function useNewDay() {
   }
 
   /**
-   * The one-time note on "Alle" (#711): the user arrived through "Tag neu planen" in this window and has not answered it yet
+   * The one-time note on "Alle" (#711): the user arrived through "Neuen Tag planen" in this window and has not answered it yet
    * (closed it, or gone on to "Heute"), in this life of the app or an earlier one. Whether "Alle" shows is the caller's.
    */
   const planNoteShown = computed(() => planArrival.value && !recapStore.validPlanNoteSeen)
 
   /**
-   * The user chose "Tag neu planen" without `freshStart()` having anything to start (the recap's button on a board with nothing
+   * The user chose "Neuen Tag planen" without `freshStart()` having anything to start (the recap's button on a board with nothing
    * unfinished: the day check already counted it as started): the note still tells them what "Alle" is for.
    */
   function armPlanNote(): void {

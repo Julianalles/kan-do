@@ -170,8 +170,8 @@
     "yesterdayUnderAll": "Eine Aufgabe von gestern liegt unter {all}. | {n} Aufgaben von gestern liegen unter {all}.",
     "newDayNote": {
       "title": "Auf dem Board liegt noch der Plan von gestern.",
-      "description": "„Tag neu planen“ legt alles, was nicht erledigt ist, zurück nach „Alle Aufgaben“.",
-      "start": "Tag neu planen",
+      "description": "„Neuen Tag planen“ legt alles, was nicht erledigt ist, zurück nach „Alle Aufgaben“.",
+      "start": "Neuen Tag planen",
       "close": "Schließen",
       "started": "Eine Aufgabe liegt jetzt unter „Alle Aufgaben“. | {n} Aufgaben liegen jetzt unter „Alle Aufgaben“."
     },
@@ -1534,7 +1534,7 @@
       "label": "Anzeige wählen"
     },
     "continue": "Überspringen und Board anzeigen",
-    "plan": "Tag neu planen"
+    "plan": "Neuen Tag planen"
   },
   "dayClose": {
     "title": "Tag abschließen",

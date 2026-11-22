@@ -176,7 +176,7 @@ describe('day recap store', () => {
       }
     })
 
-    describe('the one-time note after "Tag neu planen" (#711)', () => {
+    describe('the one-time note after "Neuen Tag planen" (#711)', () => {
       it('starts not seen; markPlanNoteSeen is persisted and stays', async () => {
         const store = useDayRecapStore()
         expect(store.validPlanNoteSeen).toBe(false)

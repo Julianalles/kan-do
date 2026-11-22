@@ -170,8 +170,8 @@
     "yesterdayUnderAll": "One task from yesterday is under {all}. | {n} tasks from yesterday are under {all}.",
     "newDayNote": {
       "title": "The board still shows yesterday's plan.",
-      "description": "“Replan the day” puts everything that isn't done back under “All tasks”.",
-      "start": "Replan the day",
+      "description": "“Plan a new day” puts everything that isn't done back under “All tasks”.",
+      "start": "Plan a new day",
       "close": "Close",
       "started": "One task is now under “All tasks”. | {n} tasks are now under “All tasks”."
     },
@@ -1534,7 +1534,7 @@
       "label": "Choose a deck"
     },
     "continue": "Skip and show the board",
-    "plan": "Replan the day"
+    "plan": "Plan a new day"
   },
   "dayClose": {
     "title": "Close the day",
