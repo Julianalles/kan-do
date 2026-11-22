@@ -51,6 +51,26 @@ wf_deploy_check() {
   case "$state" in success|in_progress|queued|pending) ;; *) echo "deploy not green: file an inbox issue" ;; esac
 }
 
+# The 'E2E-specs:' line must name every spec the gate selects for the PR head (#699: ui-catalog was missed twice, a rule
+# in the profile was not enough). The gate runs on the diff with the PR's own E2E-specs lines removed, so the line cannot
+# satisfy itself; tier full / skip / style and anything the gate cannot answer pass (the merge hook decides those).
+wf_e2e_selection_check() {
+  local root; root=$(git rev-parse --show-toplevel 2>/dev/null)
+  [ -n "$root" ] && [ -f "$root/scripts/e2e-gate.mjs" ] && command -v node >/dev/null && command -v jq >/dev/null || return 0
+  local files decision named missing spec
+  files=$(printf '%s\n' "$2" | jq -R 'select(length > 0) | {path: .}' | jq -s .) || return 0
+  decision=$(jq -n --argjson files "$files" --arg head "$(git rev-parse HEAD 2>/dev/null)" '{files: $files, body: "", baseRefName: "main", headRefOid: $head}' \
+    | (cd "$root" && node --disable-warning=ExperimentalWarning scripts/e2e-gate.mjs 2>/dev/null)) || return 0
+  [ "$(printf '%s' "$decision" | jq -r '.tier // empty')" ] || return 0
+  case "$(printf '%s' "$decision" | jq -r .tier)" in targeted|fast) ;; *) return 0 ;; esac
+  named=" $(grep '^E2E-specs:' "$1" | sed 's/^E2E-specs://' | tr ',' ' ' | tr -s ' ') "
+  missing=""
+  for spec in $(printf '%s' "$decision" | jq -r '.specs[]'); do
+    case "$named" in *" $spec "*) ;; *) missing="$missing $spec" ;; esac
+  done
+  [ -z "$missing" ] || { echo "the 'E2E-specs:' line misses spec(s) the pre-merge gate selects for this diff:$missing. Run them (PORT=<free> npm run test:e2e -- <files>) and add them to the line, or run 'gh pr view <pr> --json files,body,baseRefName,headRefOid | node scripts/e2e-gate.mjs' for the full decision (#699)"; return 1; }
+}
+
 # The pre-merge gate adds the specs on this line to its tier. A diff that touches UI source files also needs the
 # Pattern-check record (#586; rule: .claude/rules/ui-patterns.md): valid `Pattern:` lines, and for a `diverged from`
 # line a `Rule candidate:` line (#587). Skipped, never failed, when git cannot say what the diff touches.
@@ -68,6 +88,7 @@ wf_pr_body_check() {
   fi
   base=$(git merge-base HEAD origin/main 2>/dev/null) || return 0
   local changed; changed=$(git diff --name-only "$base" HEAD 2>/dev/null)
+  wf_e2e_selection_check "$1" "$changed" || return 1
   # Theme and CSS changes (app.config.ts, assets/) are UI too: the design review is a hard gate for them (#342 skipped it).
   printf '%s\n' "$changed" | grep -Eq '^(components/.*\.vue|pages/.*\.vue|layouts/|app\.vue$|app\.config\.ts$|assets/)' || return 0
   local grammar="Pattern grammar (.claude/rules/ui-patterns.md): 'Pattern: <user job> → reused <Element>' | '→ aligned with <Element>' | '→ diverged from <Element>: <reason>' | '→ new (no existing pattern; searched: <terms>)' | 'Pattern: none (<why>)'"

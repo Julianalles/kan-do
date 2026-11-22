@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { blockingIssues, matchesForm, termIssues, type TermEntry } from '~/lib/copy-editor/terms'
 import { matchesAvoidForm } from '../../../scripts/copy-terms.mjs'
 import terms from '~/docs/copy/terms.json'
@@ -42,5 +42,32 @@ describe('copy editor term check', () => {
     expect(Array.isArray(terms)).toBe(true)
     // No avoid forms right now (cleared 2026-11-18, re-lock in #478): the real registry only has to be readable.
     expect(Array.isArray(termIssues('Wir haben ein Ticket', 'de', 'x', terms as TermEntry[]))).toBe(true)
+  })
+})
+
+describe('verifyCopyEditor (#700)', () => {
+  it('runs the copy-editor spec and passes on exit 0', async () => {
+    const { verifyCopyEditor, COPY_EDITOR_SPEC } = await import('../../../scripts/copy-terms.mjs')
+    const calls: string[][] = []
+    const verdict = verifyCopyEditor({ run: (args: string[]) => (calls.push(args), 0) })
+    expect(verdict).toMatchObject({ ok: true, skipped: false })
+    expect(calls).toHaveLength(1)
+    expect(calls[0]).toContain(COPY_EDITOR_SPEC)
+  })
+
+  it('fails with a do-not-push message when the spec fails', async () => {
+    const { verifyCopyEditor } = await import('../../../scripts/copy-terms.mjs')
+    const verdict = verifyCopyEditor({ run: () => 1 })
+    expect(verdict.ok).toBe(false)
+    expect(verdict.message).toContain('do NOT push')
+  })
+
+  it('warns loudly and runs nothing when skipped', async () => {
+    const { verifyCopyEditor } = await import('../../../scripts/copy-terms.mjs')
+    const run = vi.fn(() => 0)
+    const verdict = verifyCopyEditor({ skip: true, run })
+    expect(verdict).toMatchObject({ ok: true, skipped: true })
+    expect(verdict.message).toContain('NOT run')
+    expect(run).not.toHaveBeenCalled()
   })
 })

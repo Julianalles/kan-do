@@ -447,13 +447,14 @@ describe('terminology: approve CLI in a scratch copy', () => {
       write('i18n/locales/en.json', { a: { b: 'none' } })
       write('docs/copy/terms.json', [term('timebox', 'Timebox'), term('topic', 'Thema')])
       write('docs/copy/terms.lock.json', {})
-      const run = (...args: string[]) => spawnSync('node', [join(dir, 'scripts/copy-terms.mjs'), ...args], { encoding: 'utf8' })
+      const run = (...args: string[]) => spawnSync('node', [join(dir, 'scripts/copy-terms.mjs'), ...args], { encoding: 'utf8', env: { ...process.env, TERMS_APPROVE_SKIP_E2E: '1' } })
       const lock = () => JSON.parse(readFileSync(join(dir, 'docs/copy/terms.lock.json'), 'utf8')) as Lock
 
       const first = run('approve', 'timebox')
       expect(first.status).toBe(0)
       expect(first.stdout).toContain('1 decided term(s) locked, promoted: timebox')
       expect(first.stdout).toContain('newly locked: timebox')
+      expect(first.stdout).toContain('copy-editor.spec.ts was NOT run')
       expect(first.stdout).toContain('changed: none')
       expect(first.stdout).toContain('timebox: 1 avoid hit(s) in the current locales (build errors when the term sets enforce "hard"')
       expect(first.stdout).toContain('would now report 1 error(s)')
