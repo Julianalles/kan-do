@@ -1,65 +1,25 @@
-# App icon (#263)
+# App icon: paper stack ("Kan / do")
 
-Status: **final icon chosen: artboard 6 of `kan-do-app-icon.vectorcraft`** (`kan-do-icon-final.svg`/`.png`, 1024 px, macOS margin). It is wired into `src-tauri/icons/` (via `cargo tauri icon`) and `public/favicon.svg` + `favicon.ico` (cropped to the rounded square, no margin). The five variants below are the milestone 1 exploration.
+![kan-do app icon](kan-do-icon.png)
 
-![Contact sheet](contact-sheet.png)
+The master is `kan-do-icon.png` (1024 × 1024 px, on the macOS icon grid) with its vector source `kan-do-icon.svg`. Everything in `src-tauri/icons/` and `public/favicon.*` is generated from it.
 
-The contact sheet shows one row per variant: 256 px (scaled down), then 128, 64, 32 and 16 px at real size, then 32 and 16 px magnified 4x. The top block is on a light Dock colour, the bottom block on a dark one.
+## Concept
 
-## Final choice
+A white task card on a stack of paper sheets. The name sits on the card as its title, "Kan" over "do", with a green done check top right. The stack and the check say "task", and the name makes the icon kan-do's own. The forest body gives it a strong Dock presence on light and dark backgrounds. Chosen by the user over four exploration rounds, 2026-11-22. It replaces the yellow icon of #263.
 
-Artboard 6 is not one of the five variants. Read from `kan-do-app-icon.vectorcraft` and `kan-do-icon-final.svg`, it is A1's layout redrawn in yellow:
+## Values
 
-- **Kept from A1:** a 1024 px body, one front sheet with a title bar and a note bar, and two sheets stacked behind it.
-- **Changed:** the body is a yellow gradient (`#F5DA00` to `#FFD000`) instead of Paper; the stacked sheets are white at 60 % (the front sheet 88 %) instead of Rule Line and stone-300; the back sheets show only as slivers at the left and right edge of the body; both bars are yellow instead of Ink Black and Pencil.
-- **Dropped:** the Desk Ink edge, the timebox ring and the C1 check. No Desk Ink or Done Teal is used.
+- **Grid:** 1024 px canvas, body 824 × 824 px at a 100 px margin, corner radius 185 px, soft black drop shadow, y 10, blur 20 (the macOS template).
+- **Body:** linear gradient top to bottom, forest-500 `#2C6940` → forest-800 `#15361F` (`custom-forest`, `assets/css/main.css`), with a white sheen from 16 % at the top to 0 at y 520.
+- **Back sheets:** paper-100 (`#F3EFE6`, the paper canvas `--ui-page-bg`) at 90 % for the sheet directly behind the front card and 65 % for the one furthest back. They are flattened to the solid colours they give over the forest, `#E1E2D6` and `#B4C3B1`, so the sheets do not show through each other. Shadow forest-950 30 %, y 8, blur 22.
+- **Front card:** white, 632 × 472 px at (196, 320), radius 72, shadow forest-950 40 %, y 18, blur 34.
+- **Name:** "Kan" / "do", left-aligned at x 272, size 170 px, line spacing 0.98, ink paper-900 `#17130E`. The font is the app bar brand's: **Fraunces 500**, -0.02em, optical size 18 (`public/fonts/Fraunces-Variable.woff2`, `.app-nav-brand` in `assets/css/app-nav.css`). The letters are outlines in the SVG, so no font is needed.
+- **Check:** a forest-500 disc, r 58, with a white tick (stroke 16, round caps).
+- **Legibility:** "Kan / do" reads from about 48 px. Below that the icon reads as a white card in a green frame.
 
-Why: the user is not satisfied with the matte ink colour of the earlier variants. Artboard 6 is a quick alternative, an interim choice until a planned colour-scheme rework. Yellow is an icon-only exception and never appears in the app UI. Small-size behaviour is in DESIGN.md (`## App icon`).
+## Regenerate
 
-## Files
-
-| File | What |
-|---|---|
-| `kan-do-app-icon.vectorcraft` | VectorCraft source: one 1024 px artboard per variant, named after it |
-| `build_variants.py` | Draws the document headlessly through `vectorcraft-cli run` (120 commands) and exports each artboard |
-| `contact_sheet.sh` | Builds `contact-sheet.png` from the exports (ImageMagick) |
-| `variants/*.svg`, `variants/*.png` | Per-variant export, 1024 × 1024 (the body shadow is an SVG filter) |
-
-To rebuild, copy `build_variants.py` and `contact_sheet.sh` into the VectorCraft automation sandbox, run `python3 -I build_variants.py && sh contact_sheet.sh` there, and copy the results back. The CLI only writes inside its sandbox. Drawn with VectorCraft 0.17.0 (CLI).
-
-## Shared frame
-
-- macOS icon template: 1024 canvas, an 824 px rounded square (radius 185) centred with a 100 px margin, and a soft shadow (Ink Black, 30 %, y 10, blur 22).
-- Colours are DESIGN.md tokens only. Ink is converted from the `--color-custom-ink-*` oklch ramp: 100 `#DCE9FA`, 200 `#BCD3F2`, 300 `#96B7E2`, 500 `#446B9C` (Desk Ink), 700 `#27466D`. Neutrals are Paper `#F5F5F4`, Sheet `#FAFAF9`, Rule Line `#E7E5E4`, stone-300 `#D6D3D1`, Pencil `#A8A29E` and Ink Black `#1C1917`.
-- Flat fills. The only depth is a shadow, the same as the cards in the app.
-
-## Variants
-
-### A1 One Sheet, paper
-The Jetzt card on the desk: one bright sheet with the 2 px ink edge of the current card (#93), a title line, a note line and a timebox ring. Two sheets are stacked neatly behind it. It is the product idea ("one sheet in front of you, the rest stacked to the side") drawn as an object.
-- Tokens: Paper body, white front sheet, Desk Ink edge and ring, Ink Black title, Pencil note, Rule Line and stone-300 behind.
-- Small sizes: weakest on a light Dock. Paper on light grey loses its edge, and at 16 px it becomes a pale blob with a dark line. It would need its own small-size drawing (only the front sheet, a thicker edge).
-
-### A2 One Sheet, ink
-The same scene on a Desk Ink body. "The lamp" is the whole icon, and the sheets are lit by it.
-- Tokens: Desk Ink body, Sheet front card, ink-300/ink-200 stacked sheets, ink-700 title and ring, ink-200 note.
-- Small sizes: holds up well down to 32 px. At 16 px it reads as "a light card on blue", which is enough. It is the most legible scene-based variant.
-
-### B Four Columns, One Lit
-The board itself: four columns (Offen, Jetzt, Wartet, Erledigt) with cards. Only Jetzt holds its single, taller ink card, the WIP-1 rule. Erledigt recedes one step lighter, like done cards in the app.
-- Tokens: Paper body, stone-300 cards, Rule Line done cards, one Desk Ink card.
-- Small sizes: reads as a board from 64 px up. At 32 and 16 px only the ink bar survives, and the grey cards turn to noise. It is also the most generic idea (kanban apps commonly use bars).
-
-### C1 K-check
-A monogram: a squared stem and a check that grows out of it, so the K's arm and leg become a check ("Kan-Do", can do). It is in Sheet on a Desk Ink body.
-- Tokens: Desk Ink body, Sheet glyph.
-- Small sizes: the strongest of the five. It stays a crisp light mark on blue down to 16 px, and it is the most distinctive in a Dock. Open point: the check reads first and the K second, and the letterform would need iteration against Figtree's geometry.
-
-### C2 Timebox ring
-The running timebox ring from the task card, three quarters full, with a check at its centre. This is the one variant with a Done Teal hint (the exploratory exception from shaping).
-- Tokens: Sheet body, ink-100 track, Desk Ink progress, Done Teal (`#4CBDA8`) check.
-- Small sizes: the ring reads down to 32 px. At 16 px the check fades into the ring. Teal next to ink makes two accents, which breaks *The One Lamp Rule* and *Status Is Not Decoration* if the variant wins as it is. An ink check would keep the rules.
-
-## Designer's read
-
-C1 and A2 are the strongest candidates: C1 for recognition at every size, A2 for telling the product story. A hybrid is possible (an A2 front sheet carrying the C1 check as its "title"). Whatever wins needs a small-size version (16/32 px, full bleed, no shadow) for the favicon and the Windows icons in milestone 2.
+1. Edit `kan-do-icon.svg` in a vector editor and export `kan-do-icon.png` at 1024 × 1024. The icon was drawn in VectorCraft from a generator script, which is not in the repo.
+2. App icons: `npm run tauri -- icon "$PWD/docs/design/app-icon/kan-do-icon.png"` (the cargo Tauri CLI; pass an absolute path). It rewrites every file in `src-tauri/icons/` and adds `64x64.png`, `android/` and `ios/`. Delete those three: there is no mobile target, and `tauri.conf.json` lists only `32x32.png`, `128x128.png`, `128x128@2x.png`, `icon.icns` and `icon.ico`.
+3. Favicons: `public/favicon.svg` is the master SVG cropped to the body (`viewBox="100 100 824 824"`). The two embedded raster gradients of the export are replaced by SVG `linearGradient`s with the values above, which keeps the file at about 12 kB. `public/favicon.ico` holds 48, 32 and 16 px, made from the master PNG cropped to the body: `magick kan-do-icon.png -crop 824x824+100+100 +repage -filter Lanczos \( -clone 0 -resize 48x48 \) \( -clone 0 -resize 32x32 \) \( -clone 0 -resize 16x16 \) -delete 0 public/favicon.ico`.
