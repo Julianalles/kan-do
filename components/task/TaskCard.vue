@@ -9,11 +9,11 @@
 - Displays task information: the topic first, the title below it (#584), then the footer (source icon, timebox chip,
   carried-over dots, priority; #471). The activity is not on the card (#584): the sheet, the grouping and the statistics keep it.
 - Shows the timebox as the progress chip (#388) after the source icon, which is absent on a one-source board (#584, #471): a light grey chip with the spent share outside
-  Jetzt, a bar in Jetzt that grows to the right from the chip's own position to the footer's end, over the dots and the priority badge, never over the source icon; the card has no progress ring
+  Jetzt, a bar in Jetzt that spans the whole footer, over the dots and the priority badge; while that bar shows, the source icon is hidden; the card has no progress ring
   (the task sheet keeps its own)
 - Shows the carried-over dots (#99) for not-done cards, with the numeral only past the dot cap (#584)
 - Shows the quiet footer icon of a Reminders task whose place the date explains (#553: put back while Reminders says today, planned by Reminders' date, a series held here), its sentence as the label
-- Shows the source icon at the far left of the footer (#471) on a board with tasks from 2+ sources (#323), one rule for every card, "Alle Aufgaben" included (#609), the cloud "save pending" icon next to it while the task's source cannot sync (#319)
+- Shows the source icon at the far left of the footer (#471) on a board with tasks from 2+ sources (#323), one rule for every card, "Alle Aufgaben" included (#609), except under the full-width Jetzt bar; the cloud "save pending" icon next to it while the task's source cannot sync (#319)
 - Manages task timer functionality (for Progress status)
 - Handles visual states for different task statuses
 - Done (#124): regular sheet, struck toned title, green corner check, and the
@@ -121,8 +121,8 @@
       >
         <!-- Source icon (#323) and the cloud (#319): one unit with a 4px gap, the footer's first item (#471). The icon shows
              only on a board with tasks from 2+ sources (never on the add sheet's draft). The sync button names the source
-             that is the problem; the card shows nothing else about source health. The Jetzt bar spans the whole footer and runs under
-             this unit (#704): the unit sits on top of it. -->
+             that is the problem; the card shows nothing else about source health. The Jetzt bar spans the whole footer (#704) and
+             hides the source icon while it shows; the cloud and the Reminders hint sit on top of it. -->
         <span v-if="showSourceIcon || savePending || remindersHint" ref="sourceEl" class="task-footer-source relative z-10 flex shrink-0 items-center gap-1" data-testid="task-footer-source">
           <TaskSourceIcon v-if="showSourceIcon" :source="task.source" />
           <UIcon
@@ -346,8 +346,9 @@ const { isSavePending } = useSavePending();
 const savePending = computed(() => isSavePending(props.task));
 // Source icon (#323): the board decides, so every card of a mixed board has one (Erledigt too), the draft none
 const tasksStore = useTasksStore();
-// One rule for every card, "Alle Aufgaben" too (#609): a card names its source only where the board has two or more
-const showSourceIcon = computed(() => tasksStore.hasMultipleSources && !props.draft);
+// One rule for every card, "Alle Aufgaben" too (#609): a card names its source only where the board has two or more.
+// The full-width Jetzt bar (#704) hides it: the bar is the footer's one statement while it shows.
+const showSourceIcon = computed(() => tasksStore.hasMultipleSources && !props.draft && !barCoversFooter.value);
 // Reminders plans by date (#553): the footer says why a task is where it is, in the cases the user cannot see
 const remindersHint = props.draft ? computed(() => null) : useRemindersHint(() => props.task);
 const savePendingLabel = computed(() =>

@@ -38,7 +38,7 @@
 - The timer bar keeps a minimum fill (2.5 rem: the icon with its padding), so the last stretch never shows a sliver and the icon stays on the fill; the spent label can still straddle the fill's edge (both sides keep 4.5:1)
 - Accepted: the task sheet's ring still shows the spent share while the Jetzt bar shows the share left (a record next to a timer); the overrun differs from a fresh start by colour only (a "+12 min" label would be new copy, out of scope of #450)
 - Accepted: in Jetzt the bar covers the carry-over dots and priority badge (TaskCard makes the group after the
-  chip inert); the bar spans the whole footer (`--footer-w`) and starts under the source unit (#471, `--source-w`, both set by TaskCard; #704), the icon on top of it; the spring overshoot may poke a few px past the footer padding, inside the card
+  chip inert); the bar spans the whole footer (`--footer-w`) and starts under the source unit (#471, `--source-w`, both set by TaskCard; #704), the cloud or Reminders hint on top of it (the source icon is hidden under the bar); the spring overshoot may poke a few px past the footer padding, inside the card
 -->
 <template>
   <Transition name="chip-pop" :appear="popsOnMount">
@@ -302,7 +302,7 @@ watch(() => props.isNow, (now) => {
 }
 .chip--now:not(.chip--boxless) {
   left: calc(-1 * var(--source-w, 0px));
-  padding-inline-start: calc(0.75rem + var(--source-w, 0px)); /* the clock stays clear of the source icon on top of the bar */
+  padding-inline-start: calc(0.75rem + var(--source-w, 0px)); /* the clock stays clear of the cloud or Reminders hint on top of the bar */
 }
 .chip-slot--armed .chip--now { transition-delay: var(--chip-settle-delay); }
 .chip--now.chip--boxless { width: auto; min-width: 100%; font-size: var(--text-xs); --chip-track: var(--ui-color-primary-100); }
