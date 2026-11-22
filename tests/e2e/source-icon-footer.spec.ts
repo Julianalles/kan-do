@@ -47,13 +47,18 @@ async function box(locator: Locator) {
 }
 
 test.describe('source icon: shown on a mixed board only', () => {
-  test('every card of a mixed board has one, in all four columns, named after its source', async ({ context, page }) => {
+  test('every card of a mixed board has one, in all four columns, named after its source, except under the Jetzt bar', async ({ context, page }) => {
     await seedMixedBoard(context)
     await page.goto('/tasks')
     await expect(card(page, 'local-open-1')).toBeVisible()
 
     for (const t of MIXED_SEED_TASKS) {
       const icon = sourceIcon(card(page, t.id))
+      // The Jetzt card (the stub gives it a timebox) shows the full-width bar, which hides the icon (#704)
+      if (t.id === 'page-2') {
+        await expect(icon, t.id).toHaveCount(0)
+        continue
+      }
       await expect(icon, t.id).toHaveCount(1)
       await expect(icon, t.id).toHaveAttribute('aria-label', t.source === 'local' ? 'Lokal' : 'Notion')
     }
