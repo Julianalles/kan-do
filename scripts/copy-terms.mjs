@@ -22,7 +22,11 @@
  *   `npm run terms:approve`                -> writes the lock from the current decided entries
  *   `npm run terms:approve -- <id> ...`    -> sets those entries to `decided` first, then writes the lock
  *   Both print the ids newly locked, changed and dropped, and how many avoid hits in today's locales turn into errors.
+ *   Both then run `tests/e2e/copy-editor.spec.ts` against the written files (#700: a direct push of an approval turned main
+ *   red because the spec assumed no decided term); a failing spec exits 1 and tells you not to push. `--skip-e2e` (or
+ *   `TERMS_APPROVE_SKIP_E2E=1`) skips it with a warning; `PORT=<free port>` is passed to the run.
  */
+import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { readFileSync, realpathSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -227,8 +231,26 @@ function readLockForReport() {
   }
 }
 
-function main(args) {
-  const [command, ...ids] = args
+export const COPY_EDITOR_SPEC = 'tests/e2e/copy-editor.spec.ts'
+
+/**
+ * The copy-editor E2E spec after an approval (#700). `run` is injectable for tests and returns the exit status.
+ * @returns {{ ok: boolean, skipped: boolean, message: string }}
+ */
+export function verifyCopyEditor({ skip = false, run = defaultRun } = {}) {
+  if (skip) return { ok: true, skipped: true, message: `WARNING: ${COPY_EDITOR_SPEC} was NOT run. Run it before pushing docs/copy/terms*.json: npm run test:e2e -- ${COPY_EDITOR_SPEC}` }
+  const status = run(['run', 'test:e2e', '--', COPY_EDITOR_SPEC, '--reporter=line'])
+  if (status === 0) return { ok: true, skipped: false, message: `${COPY_EDITOR_SPEC} passed against the approved terms` }
+  return { ok: false, skipped: false, message: `${COPY_EDITOR_SPEC} FAILED (exit ${status ?? 'none'}) against the approved terms. terms.json and terms.lock.json are written but do NOT push them: fix the spec (it may assume no decided term) in the same commit, or restore with \`git checkout docs/copy\`.` }
+}
+
+function defaultRun(npmArgs) {
+  return spawnSync('npm', npmArgs, { cwd: ROOT, stdio: 'inherit', env: process.env }).status
+}
+
+function main(rawArgs) {
+  const skip = rawArgs.includes('--skip-e2e') || process.env.TERMS_APPROVE_SKIP_E2E === '1'
+  const [command, ...ids] = rawArgs.filter(arg => arg !== '--skip-e2e')
   if (command !== 'approve') {
     console.error('usage: node scripts/copy-terms.mjs approve [<id> ...]')
     process.exit(1)
@@ -249,6 +271,9 @@ function main(args) {
   }
   const { errors } = checkTerms({ terms, lock, locales })
   if (errors.length > 0) console.log(`  npm run i18n:check would now report ${errors.length} error(s)`)
+  const verdict = verifyCopyEditor({ skip })
+  console.log(verdict.message)
+  if (!verdict.ok) process.exit(1)
 }
 
 /** True when this file is the process entry, also behind a symlinked path. */

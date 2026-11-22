@@ -335,6 +335,15 @@ describe('selectE2e', () => {
     })
   })
 
+  it('runs the scroll bar specs for a task sheet shell change, also in fast mode (#719: #705 went red on main)', () => {
+    for (const file of ['components/task/TaskMorphShell.vue', 'utils/sheetPlacement.ts']) {
+      for (const mode of ['quality', 'fast']) {
+        const result = select({ files: [file], env: { KANDO_TESTING_MODE: mode } })
+        expect(result.specs, `${file} ${mode}`).toEqual(expect.arrayContaining(['scrollbar-shift', 'scrollbar-gutter']))
+      }
+    }
+  })
+
   it('selects smoke + mapped specs for a data settings component', () => {
     const result = select({ files: ['components/settings/DataBackupList.vue'] })
     expect(result.tier).toBe('targeted')
