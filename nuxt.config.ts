@@ -23,6 +23,16 @@ const copyEditor = isDev || process.env.KANDO_COPY_EDITOR === '1' || isDevInstan
 const e2eBuildDir = process.env.KANDO_E2E_BUILD_DIR
 /** Production relay route; its host is also in the desktop CSP `connect-src` (ADR 012). */
 const FEEDBACK_RELAY_PRODUCTION_URL = 'https://kando.julius-wuestefeld.workers.dev/api/feedback'
+// The public web instance (ADR 021), the relay's host. Link previews need an absolute image URL; `SITE_URL` overrides
+// it for another host.
+const SITE_URL = (process.env.SITE_URL || new URL(FEEDBACK_RELAY_PRODUCTION_URL).origin).replace(/\/+$/, '')
+// Install and share metadata (manifest, iOS home screen, link previews): one name and one description for all of
+// them, the same as `public/manifest.webmanifest` (pinned by tests/config/web-manifest.test.ts). The description is
+// the welcome page's tagline (`onboarding.page.tagline`), German like the default locale.
+const APP_NAME = 'Kan-do'
+const APP_DESCRIPTION = 'Das Kanban-Board, mit dem du deine Aufgaben des Tages fokussiert erledigst.'
+// paper-100, the canvas (`--ui-page-bg`); the app has no dark mode (`colorMode: false`), so one value
+const THEME_COLOR = '#f3efe6'
 
 // The /ui manifest (#117): derived from the doc blocks and catalog/, never committed. Only the builds that ship /ui compute it
 // (`nuxi prepare`, typecheck and every production build get `[]`). A broken doc block must not stop `nuxt dev`: the unit tests report it.
@@ -178,12 +188,37 @@ export default defineNuxtConfig({
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1, viewport-fit=cover' },
-        { key: 'description', name: 'description', content: '' },
-        { name: 'format-detection', content: 'telephone=no' }
+        { key: 'description', name: 'description', content: APP_DESCRIPTION },
+        { name: 'format-detection', content: 'telephone=no' },
+        { name: 'theme-color', content: THEME_COLOR },
+        { name: 'application-name', content: APP_NAME },
+        // "Zum Home-Bildschirm" on iOS: full screen, the name under the icon, dark status bar text on the paper canvas
+        { name: 'mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-capable', content: 'yes' },
+        { name: 'apple-mobile-web-app-title', content: APP_NAME },
+        { name: 'apple-mobile-web-app-status-bar-style', content: 'default' },
+        // Link previews (Open Graph, X/Twitter); the share image is the icon on paper, 1200 x 630
+        { property: 'og:type', content: 'website' },
+        { property: 'og:site_name', content: APP_NAME },
+        { property: 'og:title', content: APP_NAME },
+        { property: 'og:description', content: APP_DESCRIPTION },
+        { property: 'og:locale', content: 'de_DE' },
+        { property: 'og:image', content: `${SITE_URL}/og-image.png` },
+        { property: 'og:image:width', content: '1200' },
+        { property: 'og:image:height', content: '630' },
+        { property: 'og:image:alt', content: 'Das Kan-do-Icon: eine Aufgabenkarte mit Häkchen auf einem Papierstapel' },
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:title', content: APP_NAME },
+        { name: 'twitter:description', content: APP_DESCRIPTION },
+        { name: 'twitter:image', content: `${SITE_URL}/og-image.png` }
       ],
       link: [
         { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
-        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico', sizes: '48x48' }
+        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico', sizes: '48x48' },
+        { rel: 'apple-touch-icon', href: '/apple-touch-icon.png', sizes: '180x180' },
+        // `use-credentials`: browsers fetch a manifest without cookies by default, and the public instance's
+        // token gate (ADR 021) answers a request without its cookie with 401, so the app would not be installable
+        { rel: 'manifest', href: '/manifest.webmanifest', crossorigin: 'use-credentials' }
       ]
     }
   },
