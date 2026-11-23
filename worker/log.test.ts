@@ -28,9 +28,9 @@ describe('logWorkerError', () => {
       headers: { authorization: `Bearer ${TOKEN}` },
     })
     error.stack = `TypeError: ${TITLE}\n    at ${TOKEN}`
-    logWorkerError('limiter: could not read the window', error)
+    logWorkerError('gate: could not read the cookie', error)
     const calls = logged(spies)
-    expect(calls).toEqual([['limiter: could not read the window [TypeError]']])
+    expect(calls).toEqual([['gate: could not read the cookie [TypeError]']])
     const text = JSON.stringify(calls)
     for (const secret of [TITLE, TOKEN, 'Bearer', 'authorization', 'example.test']) expect(text).not.toContain(secret)
   })

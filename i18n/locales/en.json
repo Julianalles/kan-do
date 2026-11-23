@@ -1307,7 +1307,8 @@
       "help": "When adding a task, you can choose another storage location, and you can move tasks at any time.",
       "moreHeading": "Connect an app",
       "soon": "coming soon",
-      "macOnly": "Mac app only"
+      "macOnly": "Mac app only",
+      "cloudUnavailable": "not available in public cloud version"
     },
     "row": {
       "default": "Default",
@@ -1325,6 +1326,7 @@
     "status": {
       "local": "Stored on this device",
       "checking": "Checking…",
+      "desktopOnly": "Only available in the desktop app. Your local tasks are kept.",
       "needsAttention": "Check connection",
       "syncedNow": "Synced just now",
       "syncedMinutes": "Synced {n} min ago",
@@ -1376,6 +1378,7 @@
         "confirmNotion": "Set up Notion",
         "reminders": "Apple Reminders",
         "remindersWebOnly": "Mac app only",
+        "notionCloudUnavailable": "Not available in public cloud version",
         "confirmReminders": "Set up with Apple Reminders",
         "confirmRemindersNotion": "Continue with Apple Reminders and Notion",
         "notionHint": "Tasks from a database",

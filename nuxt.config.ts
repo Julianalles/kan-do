@@ -21,6 +21,11 @@ const copyEditor = isDev || process.env.KANDO_COPY_EDITOR === '1' || isDevInstan
 // E2E build (#541): `scripts/e2e-server.mjs` sets this to a directory of its own, so the Playwright build never writes
 // `.nuxt` (a dev server or typecheck may be using it) or `.output` (`npm run generate` for Tauri). Unset for every other command.
 const e2eBuildDir = process.env.KANDO_E2E_BUILD_DIR
+
+// The public web instance (#742, ADR 021 "Local-only"): the Cloudflare build. It offers no Notion (`__PUBLIC_CLOUD__`)
+// and scans in none of these server files (globs relative to `server/`), so no code on it reads a Notion token.
+const isPublicCloud = process.env.NITRO_PRESET === 'cloudflare_module'
+const PUBLIC_CLOUD_IGNORED_ROUTES = ['api/notion/**', 'api/config/notion-key.ts', 'api/dev/**', 'middleware/notion-stub-failure.ts']
 /** Production relay route; its host is also in the desktop CSP `connect-src` (ADR 012). */
 // Keep this a quoted string literal: tests/config/tauri-csp.test.ts reads it from this source with a regex.
 const FEEDBACK_RELAY_PRODUCTION_URL = 'https://kando.julius-wuestefeld.workers.dev/api/feedback'
@@ -275,6 +280,9 @@ export default defineNuxtConfig({
         cloudflare: { deployConfig: false },
         // Cloudflare (#504): the shell is rendered at request time, so a build step needs a copy to hash its inline scripts.
         ...(process.env.NITRO_PRESET === 'cloudflare_module' ? { prerender: { routes: ['/200.html'], crawlLinks: false } } : {}),
+        // The public instance is local-only (#742, ADR 021): its build scans in no route that could receive a Notion token
+        // (the proxy, its stub-failure middleware, the key probe, the dev sandbox config). The Worker answers `/api/notion/*` with 404.
+        ...(isPublicCloud ? { ignore: PUBLIC_CLOUD_IGNORED_ROUTES } : {}),
         ...(e2eBuildDir ? { output: { dir: `${e2eBuildDir}/output` } } : {}),
       },
 
@@ -358,6 +366,8 @@ export default defineNuxtConfig({
       '__UI_MANIFEST__': JSON.stringify(uiManifest()),
       // Allow Notion sentinel token (notion_test_stub) in dev and Vercel preview deployments.
       // Tree-shaken to `false` in production.
+      // The public web instance (#742): the Cloudflare build. Notion shows as not available there; desktop, dev, E2E keep it.
+      '__PUBLIC_CLOUD__': isPublicCloud,
       '__NOTION_STUB_ALLOWED__': process.env.VERCEL_ENV === 'preview'
         || process.env.NOTION_STUB_ENABLED === 'true'
         || process.env.NODE_ENV !== 'production',

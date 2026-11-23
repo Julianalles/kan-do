@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { setActivePinia, createPinia } from 'pinia';
 import { useStatisticsBackfill } from '~/composables/useStatisticsBackfill';
 import { useNotionConfigStore } from '~/store/notionConfig';
@@ -7,6 +7,7 @@ import { useBoardStore } from '~/store/board';
 import { NotionIntegration } from '~/integrations/NotionIntegration';
 import { TaskStatus } from '~/types/taskStatus';
 import type { Task } from '~/types/task';
+import { setPublicCloud } from '../helpers/publicCloud';
 
 // Mock the NotionIntegration
 vi.mock('~/integrations/NotionIntegration', () => ({
@@ -112,6 +113,17 @@ describe('useStatisticsBackfill', () => {
     if (import.meta.client) {
       localStorage.clear();
     }
+  });
+
+  describe('public cloud (#742)', () => {
+    afterEach(() => setPublicCloud(false));
+
+    it('never builds a Notion client, so no token is sent, even with a stored config', async () => {
+      setPublicCloud(true);
+      await backfillComposable.forceBackfill();
+      expect(NotionIntegration).not.toHaveBeenCalled();
+      expect(mockNotionIntegration.getArchivedTasks).not.toHaveBeenCalled();
+    });
   });
 
   describe('hasArchiveStatus', () => {

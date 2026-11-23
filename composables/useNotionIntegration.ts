@@ -7,6 +7,7 @@ import { computed } from 'vue';
 import { NotionIntegration } from '~/integrations/NotionIntegration';
 import { useNotionConfigStore } from '~/store/notionConfig';
 import { LocalizedError } from '~/lib/errorMessages';
+import { isNotionAvailable } from '~/utils/publicCloud';
 
 /**
  * Factory composable for NotionIntegration instances.
@@ -21,7 +22,8 @@ export function useNotionIntegration() {
    * @returns NotionIntegration instance
    */
   const createInstance = (): NotionIntegration => {
-    if (!notionConfig.isConfigured || !notionConfig.config) {
+    // The public cloud never builds a client: a stored token must not reach the server (#742)
+    if (!isNotionAvailable() || !notionConfig.isConfigured || !notionConfig.config) {
       throw new LocalizedError('errors.notionNotConfiguredShort');
     }
 

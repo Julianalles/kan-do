@@ -21,6 +21,7 @@ import type { SourceId } from '~/types/taskSource'
 import { syncToday, useToday } from '~/composables/useToday'
 import { dayHasBegun } from '~/lib/dayBegun'
 import { dayKey } from '~/utils/recapDay'
+import { isNotionAvailable } from '~/utils/publicCloud'
 
 export const useTaskSources = () => {
   const boardStore = useBoardStore()
@@ -35,7 +36,8 @@ export const useTaskSources = () => {
         return new LocalSource(() => tasksStore.tasks.filter((task) => task.source === 'local'))
       case 'notion':
         return new NotionSource({
-          isConfigured: () => useNotionIntegration().isConfigured.value,
+          // Never on the public web instance (#742): a stored Notion source is paused there, so no call can leave the browser
+          isConfigured: () => isNotionAvailable() && useNotionIntegration().isConfigured.value,
           ensureDataSource: async () => {
             if (notionConfig.hasDataSourceSelected) return true
             return await useNotionDataSource().ensureDataSourceConfigured()

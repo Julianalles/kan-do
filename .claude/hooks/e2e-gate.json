@@ -696,7 +696,9 @@
         "utils/sourceCompound.ts",
         "components/settings/LocalStorageDetails.vue",
         "components/settings/DisconnectSourceDialog.vue",
-        "composables/useSourceList.ts"
+        "composables/useSourceList.ts",
+        "utils/publicCloud.ts",
+        "middleware/notion-available.ts"
       ],
       "specs": [
         "sources-settings",

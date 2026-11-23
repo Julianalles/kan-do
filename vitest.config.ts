@@ -4,6 +4,8 @@ import { resolve } from 'path'
 
 export default defineConfig({
   plugins: [vue()],
+  // `__PUBLIC_CLOUD__` (#742): Vitest sets a define as a global, so `setPublicCloud` in `tests/helpers/publicCloud.ts` switches it; off by default
+  define: { __PUBLIC_CLOUD__: false },
   resolve: {
     alias: {
       '@': resolve(__dirname, '.'),

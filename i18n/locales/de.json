@@ -1307,7 +1307,8 @@
       "help": "Beim Hinzufügen kannst du einen anderen Speicherort wählen und du kannst Aufgaben jederzeit verschieben.",
       "moreHeading": "Eine App verbinden",
       "soon": "bald verfügbar",
-      "macOnly": "nur in der Mac-App"
+      "macOnly": "nur in der Mac-App",
+      "cloudUnavailable": "in der öffentlichen Cloud-Version nicht verfügbar"
     },
     "row": {
       "default": "Standard",
@@ -1325,6 +1326,7 @@
     "status": {
       "local": "Auf diesem Gerät gespeichert",
       "checking": "Wird geprüft…",
+      "desktopOnly": "Nur in der Desktop-App verfügbar. Deine lokalen Aufgaben bleiben erhalten.",
       "needsAttention": "Verbindung prüfen",
       "syncedNow": "Synchronisiert gerade eben",
       "syncedMinutes": "Synchronisiert vor {n} Min.",
@@ -1376,6 +1378,7 @@
         "confirmNotion": "Mit Notion einrichten",
         "reminders": "Apple Erinnerungen",
         "remindersWebOnly": "Nur in der Mac-App",
+        "notionCloudUnavailable": "In der öffentlichen Cloud-Version nicht verfügbar",
         "confirmReminders": "Mit Apple Erinnerungen einrichten",
         "confirmRemindersNotion": "Weiter mit Apple Erinnerungen und Notion",
         "notionHint": "Aufgaben aus einer Datenbank",

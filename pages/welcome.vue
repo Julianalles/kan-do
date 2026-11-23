@@ -4,7 +4,7 @@
 @usage Einstiegspunkt für neue Nutzer unter /welcome; ein schon eingerichtetes Board wird von `middleware/welcome-guard.ts` nach /tasks (Heute) geleitet (#561), App zurücksetzen räumt zuerst und erreicht die Seite wieder
 @responsibility
 - Startansicht: Wortmarke „kan-do“ mit Subline (`Subline`) als Seitenkopf über dem Bogen, direkt auf dem Foto, linksbündig mit dem Inhalt des Bogens (gleiche Innenabstände; im Notion-Setup folgt der Kopf dem breiteren Bogen, beide teilen einen Spaltenrahmen); der Bogen hat die kleinere Überschrift (22 px), die Einleitung, einen zweiten Absatz „Du bist erst einmal nur neugierig? …“, „Jetzt starten“ (die einzige gefüllte Schaltfläche, The One Lamp Rule) und „Beispiel anzeigen“ (soft) ab 640 px nebeneinander, darunter gestapelt (#437)
-- „Loslegen“ öffnet Schritt 2 (LocalSetupFlow, kein Dialog, #43): Erinnerungen (in der Web-Version deaktiviert „(nur in der Mac-App)“) und Notion als Checkboxen, Todoist deaktiviert „(kommt später)“; ohne Haken endet er mit Lokal als einziger Verbindung und Standard, mit Haken startet er das Erinnerungen-Setup (RemindersSetupFlow, drei Schritte Zugriff, Listen, Heute, #552) und/oder das Notion-Setup auf dieser Seite (Schienen-Führung, Schritte des WizardController). Erinnerungen allein endet mit Lokal als Standard und Erinnerungen verbunden (nie Standard); sind beide gesetzt, läuft Erinnerungen zuerst (Verbinden-Knopf „Weiter zu Notion“, Erinnerungen ist dann schon verbunden), dann Notion, und das Board öffnet gemischt mit Notion als Standard. Zurück aus einem Setup führt zu Schritt 2, die Haken bleiben
+- In der öffentlichen Cloud-Version (#742) entfällt Schritt 2 (keine App ist verbindbar): „Loslegen“ startet das Board lokal. „Loslegen“ öffnet sonst Schritt 2 (LocalSetupFlow, kein Dialog, #43): Erinnerungen (in der Web-Version deaktiviert „(nur in der Mac-App)“) und Notion als Checkboxen, Todoist deaktiviert „(kommt später)“; ohne Haken endet er mit Lokal als einziger Verbindung und Standard, mit Haken startet er das Erinnerungen-Setup (RemindersSetupFlow, drei Schritte Zugriff, Listen, Heute, #552) und/oder das Notion-Setup auf dieser Seite (Schienen-Führung, Schritte des WizardController). Erinnerungen allein endet mit Lokal als Standard und Erinnerungen verbunden (nie Standard); sind beide gesetzt, läuft Erinnerungen zuerst (Verbinden-Knopf „Weiter zu Notion“, Erinnerungen ist dann schon verbunden), dann Notion, und das Board öffnet gemischt mit Notion als Standard. Zurück aus einem Setup führt zu Schritt 2, die Haken bleiben
 - „Beispiel anzeigen“ öffnet einen eigenen Schritt 2: er sagt, dass ein Zurücksetzen unter Einstellungen › Daten & Speicher Beispiele und Statistik entfernt; „Board ansehen“ endet wie das lokale Setup
 - Der Weg zum Board ist ein Vorhang (#463): die ganze Seite (Foto, Wortmarke, Bogen) gleitet 1,3 s nach oben und blendet dabei aus, mit weichem unterem Rand (Maske), über dem schon fertigen Board (`.welcome-root`, transitions.css): das Board liegt in seinem Endlayout darunter, nichts springt danach; die fliegende Wortmarke lässt die Überschrift des Bogens kurz ausblenden (`data-brand-flying`); reduzierte Bewegung: sofort
 - Startansicht und Setup tauschen als ein Block (eine Transition, Höhe per WAAPI, Breite per CSS); der Tausch gleitet seitwärts (vor: alt nach links hinaus, neu von rechts herein; zurück gespiegelt, 260 ms, #236); reduzierte Bewegung: sofort
@@ -89,7 +89,7 @@
         <p class="mt-3 text-body text-default">{{ t('onboarding.page.curious') }}</p>
         <!-- One filled action: the sheet's only solid green (The One Lamp Rule); the trial is a quiet second way in (#294) -->
         <div class="mt-6 flex flex-col gap-3 sm:flex-row">
-          <UButton color="primary" block class="sm:flex-1" data-testid="welcome-choice-local" @click="openFlow('local')">
+          <UButton color="primary" block class="sm:flex-1" data-testid="welcome-choice-local" @click="startLocal">
             {{ t('onboarding.page.start') }}
           </UButton>
           <UButton color="primary" variant="soft" block class="sm:flex-1" data-testid="welcome-choice-samples" @click="openFlow('samples')">
@@ -128,6 +128,8 @@ import LegalLinks from '~/components/legal/LegalLinks.vue';
 import { useIntegrationManager } from '~/composables/useIntegrationManager';
 import { useFirstRunSources } from '~/composables/useFirstRunSources';
 import { useErrorHandler } from '~/composables/useErrorHandler';
+import { isNotionAvailable } from '~/utils/publicCloud';
+import { useTasksStore } from '~/store/tasks';
 
 // No app bar here (#470): first run, developer pages and the empty redirect page
 definePageMeta({ appNav: false, layout: false, middleware: 'welcome-guard' })
@@ -136,6 +138,7 @@ const { t } = useI18n();
 const { fetchTasks } = useIntegrationManager();
 const { beginLocalDefault, beginNotionAsDefault } = useFirstRunSources();
 const { handleError } = useErrorHandler();
+const tasksStore = useTasksStore();
 const photo = ref<HTMLImageElement | null>(null);
 const photoLoaded = ref(false);
 const brand = ref<InstanceType<typeof SectionHeader> | null>(null);
@@ -186,6 +189,15 @@ function onAfterEnter(el: Element) {
   if (active && active !== document.body) return;
   if (flow.value) (el.querySelector<HTMLElement>('h2') ?? el.querySelector<HTMLElement>('[data-testid="setup-pane"]'))?.focus({ preventScroll: true });
   else el.querySelector<HTMLElement>(`[data-testid="welcome-choice-${lastFlow.value}"]`)?.focus({ preventScroll: true });
+}
+/**
+ * "Loslegen": step 2 offers further apps, and on the public web instance none can be connected (#742, D1), so the step
+ * is skipped there and the board starts local-only. Desktop and every other build keep it.
+ */
+function startLocal() {
+  if (isNotionAvailable()) return openFlow('local');
+  tasksStore.setTasks([]);
+  void handleLocalSetupComplete();
 }
 function openFlow(key: FlowKey) {
   direction.value = 'fwd';

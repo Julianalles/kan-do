@@ -93,9 +93,14 @@ export const useSourceConnections = () => {
     }
   }
 
+  /** In the stored config but not synced by this build (Notion on the public web instance, #742). */
+  const isPaused = (source: IntegrationSourceId): boolean => boardStore.pausedIntegrations.includes(source)
+  /** Connected, or stored and paused: both can be disconnected, which removes the stored config. */
+  const isStored = (source: IntegrationSourceId): boolean => boardStore.isIntegrationConnected(source) || isPaused(source)
+
   /** Reactive: call it inside a `computed`. `null` when the source is not connected. */
   const disconnectPlan = (source: IntegrationSourceId): DisconnectPlan | null => {
-    if (!boardStore.isIntegrationConnected(source)) return null
+    if (!isStored(source)) return null
     const archived = new Set(tasksStore.archivedTaskIds)
     const unsynced = tasksStore.unsyncedOf(source)
     return {
@@ -103,7 +108,8 @@ export const useSourceConnections = () => {
       taskCount: tasksStore.tasks.filter((task) => task.source === source && !archived.has(task.id)).length,
       unsyncedCount: unsynced.taskIds.length + unsynced.pendingDeleteIds.length,
       isDefault: boardStore.defaultSource === source,
-      reachable: !isOffline() && !health.needsAttention(source),
+      // A paused source (#742) cannot be reached from this build: no sync offer
+      reachable: !isPaused(source) && !isOffline() && !health.needsAttention(source),
     }
   }
 
@@ -167,13 +173,13 @@ export const useSourceConnections = () => {
    */
   const disconnectSource = async (source: IntegrationSourceId, options: DisconnectOptions = { syncFirst: false }): Promise<DisconnectResult> => {
     if (busy.has(source)) return { ok: false, reason: 'busy' }
-    if (!boardStore.isIntegrationConnected(source)) return { ok: false, reason: 'not-connected' }
+    if (!isStored(source)) return { ok: false, reason: 'not-connected' }
 
     busy.add(source)
     try {
       stopTimers(source)
 
-      if (options.syncFirst) {
+      if (options.syncFirst && !isPaused(source)) {
         await pushUnsyncedWork(source)
         const left = tasksStore.unsyncedOf(source)
         if (left.taskIds.length > 0 || left.pendingDeleteIds.length > 0) return { ok: false, reason: 'sync-incomplete' }
@@ -192,7 +198,7 @@ export const useSourceConnections = () => {
       return { ok: true, removedTaskCount: removed.length }
     } finally {
       // Fail-closed (or thrown): the source and its Jetzt task stay, so the task keeps counting
-      if (boardStore.isIntegrationConnected(source)) resumeTimers(source)
+      if (isStored(source)) resumeTimers(source)
       busy.delete(source)
     }
   }
