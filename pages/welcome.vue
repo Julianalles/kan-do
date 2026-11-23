@@ -99,7 +99,7 @@
         </div>
         <!-- Web only (#737): the desktop app is the main product; a web visitor gets one quiet link to its releases -->
         <ExternalLink v-if="showAppLink" :href="APP_DOWNLOAD_URL" standalone class="mt-4 inline-block text-sm" data-testid="welcome-app-download">{{ t('onboarding.page.appDownload') }}</ExternalLink>
-        <p class="mt-6 text-xs text-muted">
+        <p class="mt-6 text-xs text-muted" data-testid="welcome-version">
           {{ t('onboarding.page.version') }} {{ $config.public.clientVersion }}
         </p>
         <!-- Impressum, privacy, terms (#745): reachable before anything is set up, on web and desktop -->
@@ -150,9 +150,9 @@ const photoLoaded = ref(false);
 const brand = ref<InstanceType<typeof SectionHeader> | null>(null);
 /** The brand flies to the app bar's brand as the page leaves (desktop, #437) */
 const flyBrand = () => flyBrandToBar(brand.value?.$el as HTMLElement | undefined);
-// A cached or early-loaded photo can finish before hydration: its load event is gone, so check once on mount
 // The link is for web visitors only; the page is client-rendered (ssr: false), so a synchronous check does not shift the layout (#737)
 const showAppLink = !isTauri();
+// A cached or early-loaded photo can finish before hydration: its load event is gone, so check once on mount
 onMounted(() => {
   if (photo.value?.complete && photo.value.naturalWidth > 0) photoLoaded.value = true;
 });

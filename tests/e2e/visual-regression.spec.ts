@@ -396,7 +396,8 @@ test.describe('welcome page (kd#14)', () => {
     // The photo fades in over 700 ms once loaded: wait for the end state, not a timer
     await expect(page.getByTestId('welcome-photo')).toHaveCSS('opacity', '1')
     await settle(page)
-    await expect(page).toHaveScreenshot(name)
+    // The version line changes with every release bump (#732): masked, not baked into the baseline
+    await expect(page).toHaveScreenshot(name, { mask: [page.getByTestId('welcome-version')] })
   }
 
   test('photo and sheet (1280)', async ({ page }) => {
