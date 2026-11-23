@@ -104,6 +104,7 @@ import type { Task } from "~/types/task";
 import { useBoardStore, TIMEBOX_NUDGE_MS } from "~/store/board";
 import { useTasksStore } from "~/store/tasks";
 import { useSheetSpotlight } from "~/composables/useSheetSpotlight";
+import { useTaskSync } from "~/composables/useTaskSync";
 import { TIMEBOX_OFFER_MINUTES } from "~/utils/timeboxOffers";
 import ChoiceChip from "~/components/ui/ChoiceChip.vue";
 
@@ -122,6 +123,7 @@ const PICKED_HOLD_MS = 240;
 const { t } = useI18n();
 const boardStore = useBoardStore();
 const tasksStore = useTasksStore();
+const { editTask } = useTaskSync();
 const { spotlightTaskId } = useSheetSpotlight();
 const questionId = useId();
 
@@ -193,7 +195,8 @@ const pick = (minutes: number) => {
   picked.value = minutes;
   pickTimer = window.setTimeout(() => {
     // A timebox set meanwhile through menu/palette/sheet stays (the watcher above has already ended the nudge)
-    if (!props.task.timeBoxSeconds) tasksStore.updateTask(props.task.id, { timeBoxSeconds: minutes * 60 });
+    // Through the one edit path (#770), so a synced source gets the timebox too
+    if (!props.task.timeBoxSeconds) void editTask(props.task.id, { timeBoxSeconds: minutes * 60 });
     end();
   }, PICKED_HOLD_MS);
 };
