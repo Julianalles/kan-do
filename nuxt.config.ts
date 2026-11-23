@@ -4,6 +4,7 @@ import * as fs from 'fs'
 import { fileURLToPath } from 'node:url'
 import { isDevInstance, removeDevPages, shouldShipDevPages } from './lib/devPages'
 import { buildManifest } from './scripts/ui-manifest.mjs'
+import { PUBLIC_ASSETS } from './worker/public-assets'
 import postcssBreakpoints, { viteBreakpointDefinitions } from './scripts/postcss-breakpoints.mjs'
 
 // reading version to make it available in nuxt context for displaying
@@ -142,7 +143,7 @@ export default defineNuxtConfig({
   // Icon configuration for reliable loading
   icon: {
     // Pre-bundle Phosphor icons to avoid async loading issues
-    collections: ['ph', 'simple-icons'],
+    collections: ['ph'],
     // Use SVG mode for more reliable rendering
     mode: 'svg',
     // Client-side bundle for better reliability with SSR disabled
@@ -226,6 +227,12 @@ export default defineNuxtConfig({
       ]
     }
   },
+
+  // Content type and cache lifetime of the manifest and the icons (#738): one table with the Worker's (`worker/public-assets.ts`).
+  // On Vercel Nitro writes them into the Build Output API config (`vercel.json` `headers` do not reach it); the Worker sets the
+  // same headers itself (Workers assets' `_headers` is skipped while `run_worker_first` is on, ADR 021).
+  routeRules: Object.fromEntries([...PUBLIC_ASSETS].map(([path, asset]) =>
+    [path, { headers: { 'Content-Type': asset.contentType, 'Cache-Control': asset.cacheControl } }])),
 
   // Disable SSR for desktop app
   ssr: false,

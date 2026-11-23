@@ -3,9 +3,9 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   COOKIE_MAX_AGE,
   COOKIE_NAME,
-  PREVIEW_PAGE,
   ROBOTS_TAG,
   handle,
+  previewPage,
   readCookie,
   sha256Hex,
   type GateEnv,
@@ -14,8 +14,14 @@ import {
 const SECRET = 'test-token'
 const SITE = 'https://kando.example.workers.dev'
 
+const ASSET_PATHS = new Set(['/favicon.ico', '/favicon.svg', '/apple-touch-icon.png', '/icon-192.png', '/icon-512.png',
+  '/icon-maskable-192.png', '/icon-maskable-512.png', '/og-image.png', '/manifest.webmanifest'])
+
 function setup(env: GateEnv = { GATE: 'on', GATE_SECRET: SECRET }) {
-  const app = vi.fn(async (_request: Request) => new Response('<p>app</p>', { headers: { 'Content-Type': 'text/html' } }))
+  // Brand assets answer as files (image), everything else as the app's HTML.
+  const app = vi.fn(async (request: Request) => ASSET_PATHS.has(new URL(request.url).pathname)
+    ? new Response('bytes', { headers: { 'Content-Type': 'image/png' } })
+    : new Response('<p>app</p>', { headers: { 'Content-Type': 'text/html' } }))
   const run = (path: string, init: RequestInit & { cookie?: string } = {}) => {
     const { cookie, ...rest } = init
     const headers = new Headers(rest.headers)
@@ -75,19 +81,37 @@ describe('gate on', () => {
 
   it('no cookie: plain private-preview page, 401, the app is never called', async () => {
     const { app, run } = setup()
-    for (const path of ['/', '/tasks', '/_nuxt/entry.js', '/api/notion/ping', '/favicon.svg']) {
+    for (const path of ['/', '/tasks', '/_nuxt/entry.js', '/api/notion/ping', '/fonts/Figtree-VariableFont_wght.woff2']) {
       const res = await run(path)
       expect(res.status).toBe(401)
       expect(res.headers.get('Content-Type')).toContain('text/html')
       expect(res.headers.get('X-Robots-Tag')).toBe(ROBOTS_TAG)
       expect(res.headers.get('Cache-Control')).toBe('no-store')
-      expect(await res.text()).toBe(PREVIEW_PAGE)
+      expect(await res.text()).toBe(previewPage(SITE))
     }
     expect(app).not.toHaveBeenCalled()
   })
 
   it('the preview page loads no script, stylesheet or other asset', () => {
-    expect(PREVIEW_PAGE).not.toMatch(/<script|<link|src=|url\(/i)
+    expect(previewPage(SITE)).not.toMatch(/<script|<link|src=|url\(/i)
+  })
+
+  it('the preview page carries the share tags with an absolute image URL on the request origin (#736)', async () => {
+    const { run } = setup()
+    const page = await (await run('/')).text()
+    for (const tag of [
+      '<meta property="og:title" content="Kan-do">',
+      `<meta property="og:image" content="${SITE}/og-image.png">`,
+      `<meta name="twitter:image" content="${SITE}/og-image.png">`,
+      '<meta property="og:image:width" content="1200">',
+      '<meta property="og:image:height" content="630">',
+      '<meta name="twitter:card" content="summary_large_image">',
+    ]) expect(page).toContain(tag)
+    // another host (a custom domain later) needs no change; the origin is escaped
+    expect(previewPage('https://app.example')).toContain('content="https://app.example/og-image.png"')
+    expect(previewPage('https://a"><script>x</script>')).not.toContain('<script>')
+    // still private: noindex, no app markup
+    expect(page).toContain('<meta name="robots" content="noindex, nofollow">')
   })
 
   it('wrong token, no cookie: 401 and no cookie set', async () => {
@@ -137,6 +161,63 @@ describe('gate on', () => {
   it('a missing GATE var counts as on', async () => {
     const { run } = setup({ GATE_SECRET: SECRET })
     expect((await run('/')).status).toBe(401)
+  })
+})
+
+describe('brand assets are exempt (#736)', () => {
+  const ASSETS = [
+    '/favicon.ico', '/favicon.svg', '/apple-touch-icon.png', '/icon-192.png', '/icon-512.png',
+    '/icon-maskable-192.png', '/icon-maskable-512.png', '/og-image.png', '/manifest.webmanifest',
+  ]
+
+  it('GET and HEAD of a listed file reach the app without cookie, tagged noindex', async () => {
+    const { app, run } = setup()
+    for (const path of ASSETS) {
+      for (const method of ['GET', 'HEAD']) {
+        const res = await run(path, { method })
+        expect(res.status, `${method} ${path}`).toBe(200)
+        expect(res.headers.get('X-Robots-Tag')).toBe(ROBOTS_TAG)
+      }
+    }
+    expect(app).toHaveBeenCalledTimes(ASSETS.length * 2)
+  })
+
+  it('a listed path the build lacks (the app answers HTML or an error) is the 401 page, never the shell', async () => {
+    const html = await handle(new Request(SITE + '/og-image.png'), { GATE: 'on', GATE_SECRET: SECRET }, async () => new Response('<p>app</p>', { headers: { 'Content-Type': 'text/html' } }))
+    expect(html.status).toBe(401)
+    const missing = await handle(new Request(SITE + '/og-image.png'), { GATE: 'on', GATE_SECRET: SECRET }, async () => new Response('nope', { status: 404 }))
+    expect(missing.status).toBe(401)
+  })
+
+  it('ignores a secret parameter: no redirect, no cookie, valid or not', async () => {
+    const { app, run } = setup()
+    for (const secret of [SECRET, 'nope']) {
+      const res = await run(`/og-image.png?secret=${secret}`)
+      expect(res.status).toBe(200)
+      expect(res.headers.get('Set-Cookie')).toBeNull()
+    }
+    expect(app).toHaveBeenCalledTimes(2)
+  })
+
+  it('nothing else is exempt: look-alikes, other cases and encodings, app files and other methods stay 401', async () => {
+    const { app, run } = setup()
+    for (const path of [
+      '/og-image.png/x', '/og-image.png.map', '/og-image.png/', '/OG-IMAGE.PNG', '/og-image%2Epng', '/%6Fg-image.png',
+      '/x/og-image.png', '//og-image.png', '/_nuxt/entry.js', '/', '/tasks', '/200.html', '/api/notion/ping', '/api/feedback',
+      '/favicon.svg/../_nuxt/entry.js', '/favicon.svg/%2e%2e/_nuxt/entry.js', '/manifest.json', '/icon-192.png.gz',
+    ]) {
+      expect((await run(path)).status, path).toBe(401)
+    }
+    for (const method of ['POST', 'PUT', 'DELETE', 'PATCH']) {
+      expect((await run('/og-image.png', { method, body: '{}' })).status, method).toBe(401)
+    }
+    expect(app).not.toHaveBeenCalled()
+  })
+
+  it('the gate off: every request passes, as before', async () => {
+    const { app, run } = setup({ GATE: 'off' })
+    expect((await run('/og-image.png')).headers.get('X-Robots-Tag')).toBeNull()
+    expect(app).toHaveBeenCalledOnce()
   })
 })
 
