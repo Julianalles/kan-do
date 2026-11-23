@@ -175,4 +175,54 @@ describe('useTaskSync clears (#780)', () => {
     expect(clearsOfCall(1)).toEqual({ clears: ['unplanned'] })
     expect(tasksStore.task(created.id)?.pendingSync).toBeUndefined()
   })
+
+  it('a clear that waits for an earlier push is on the marker at once, so a restart meanwhile keeps it', async () => {
+    const tasksStore = useTasksStore()
+    const sync = useTaskSync()
+    const created = await sync.createTask(draft({ timeBoxSeconds: 900 }), 'notion')
+    let release!: () => void
+    notion.updateTask.mockImplementationOnce(async (task) => {
+      await new Promise<void>((resolve) => { release = resolve })
+      return task
+    })
+    const first = sync.editTask(created.id, { priority: 3 })
+    await vi.waitFor(() => expect(release).toBeTypeOf('function'))
+    const second = sync.editTask(created.id, { timeBoxSeconds: null })
+    // the edit's own push still waits: the persisted marker already holds the clear
+    expect(tasksStore.task(created.id)?.pendingSync?.clears).toEqual(['timeBox'])
+    release()
+    await Promise.all([first, second])
+    expect(clearsOfCall(1)).toEqual({ clears: ['timeBox'] })
+  })
+
+  it('a clear made inside a move\'s undo window goes out after the undo', async () => {
+    const tasksStore = useTasksStore()
+    const sync = useTaskSync()
+    const created = await sync.createTask(draft({ timeBoxSeconds: 900, isUnplanned: true }), 'notion')
+    const previous = tasksStore.reassignSource(created.id, 'local')!
+    tasksStore.holdMove(created.id)
+    await sync.editTask(created.id, { timeBoxSeconds: null, isUnplanned: false })
+    tasksStore.releaseMove(created.id)
+    tasksStore.restoreMoveOrigin(created.id, previous)
+    expect(tasksStore.task(created.id)?.pendingSync?.clears).toEqual(['timeBox', 'unplanned'])
+    await sync.syncPendingChanges()
+    expect(clearsOfCall(0)).toEqual({ clears: ['timeBox', 'unplanned'] })
+    expect(tasksStore.task(created.id)?.pendingSync).toBeUndefined()
+  })
+
+  it('a field set again inside the undo window sends no clear after the undo', async () => {
+    const tasksStore = useTasksStore()
+    const sync = useTaskSync()
+    const created = await sync.createTask(draft({ timeBoxSeconds: 900 }), 'notion')
+    const previous = tasksStore.reassignSource(created.id, 'local')!
+    tasksStore.holdMove(created.id)
+    await sync.editTask(created.id, { timeBoxSeconds: null })
+    await sync.editTask(created.id, { timeBoxSeconds: 1800 })
+    tasksStore.releaseMove(created.id)
+    tasksStore.restoreMoveOrigin(created.id, previous)
+    expect(tasksStore.task(created.id)?.pendingSync?.clears).toBeUndefined()
+    await sync.syncPendingChanges()
+    expect(clearsOfCall(0)).toBeUndefined()
+    expect(notion.updateTask.mock.calls[0]![0]).toMatchObject({ timeBoxSeconds: 1800 })
+  })
 })

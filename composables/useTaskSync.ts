@@ -474,8 +474,10 @@ export const useTaskSync = () => {
     const clears = clearsOf(before, updates);
     const operationVersion = tasksStore.incrementTaskOperationVersion(taskId);
     tasksStore.updateTask(taskId, updates);
-    // A field set again needs no clear any more (#780), even when the push that notes it is still waiting
-    tasksStore.noteClears(taskId, { drop: setAgainOf(updates) });
+    // The clear goes onto the marker at once (#780), so a push that waits (an earlier push, a status write) or a move's
+    // undo window cannot lose it to a restart or an undo; with no marker yet the push notes it as it sets one. A
+    // field set again needs no clear any more, even when the push that notes it is still waiting
+    tasksStore.noteClears(taskId, { add: clears, drop: setAgainOf(updates) });
     // A status write of the task still waiting (a stack drop chains them) sends the task as it is by then, the edit
     // with it: the edit's own push goes after it, so it cannot send that write's completion first and the write a
     // second one (#770). It waits outside `pushesInFlight`, which the status write's own push waits on, and again for
