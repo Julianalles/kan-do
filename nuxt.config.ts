@@ -4,6 +4,7 @@ import * as fs from 'fs'
 import { fileURLToPath } from 'node:url'
 import { isDevInstance, removeDevPages, shouldShipDevPages } from './lib/devPages'
 import { buildManifest } from './scripts/ui-manifest.mjs'
+import { PUBLIC_ASSETS } from './worker/public-assets'
 import postcssBreakpoints, { viteBreakpointDefinitions } from './scripts/postcss-breakpoints.mjs'
 
 // reading version to make it available in nuxt context for displaying
@@ -21,6 +22,11 @@ const copyEditor = isDev || process.env.KANDO_COPY_EDITOR === '1' || isDevInstan
 // E2E build (#541): `scripts/e2e-server.mjs` sets this to a directory of its own, so the Playwright build never writes
 // `.nuxt` (a dev server or typecheck may be using it) or `.output` (`npm run generate` for Tauri). Unset for every other command.
 const e2eBuildDir = process.env.KANDO_E2E_BUILD_DIR
+
+// The public web instance (#742, ADR 021 "Local-only"): the Cloudflare build. It offers no Notion (`__PUBLIC_CLOUD__`)
+// and scans in none of these server files (globs relative to `server/`), so no code on it reads a Notion token.
+const isPublicCloud = process.env.NITRO_PRESET === 'cloudflare_module'
+const PUBLIC_CLOUD_IGNORED_ROUTES = ['api/notion/**', 'api/config/notion-key.ts', 'api/dev/**', 'middleware/notion-stub-failure.ts']
 /** Production relay route; its host is also in the desktop CSP `connect-src` (ADR 012). */
 // Keep this a quoted string literal: tests/config/tauri-csp.test.ts reads it from this source with a regex.
 const FEEDBACK_RELAY_PRODUCTION_URL = 'https://kando.julius-wuestefeld.workers.dev/api/feedback'
@@ -137,7 +143,7 @@ export default defineNuxtConfig({
   // Icon configuration for reliable loading
   icon: {
     // Pre-bundle Phosphor icons to avoid async loading issues
-    collections: ['ph', 'simple-icons'],
+    collections: ['ph'],
     // Use SVG mode for more reliable rendering
     mode: 'svg',
     // Client-side bundle for better reliability with SSR disabled
@@ -165,8 +171,6 @@ export default defineNuxtConfig({
         'ph:check-circle',
         'ph:plus',
         'ph:x',
-        'simple-icons:todoist',
-        'simple-icons:notion',
         'ph:desktop',
       ]
     }
@@ -224,6 +228,12 @@ export default defineNuxtConfig({
     }
   },
 
+  // Content type and cache lifetime of the manifest and the icons (#738): one table with the Worker's (`worker/public-assets.ts`).
+  // On Vercel Nitro writes them into the Build Output API config (`vercel.json` `headers` do not reach it); the Worker sets the
+  // same headers itself (Workers assets' `_headers` is skipped while `run_worker_first` is on, ADR 021).
+  routeRules: Object.fromEntries([...PUBLIC_ASSETS].map(([path, asset]) =>
+    [path, { headers: { 'Content-Type': asset.contentType, 'Cache-Control': asset.cacheControl } }])),
+
   // Disable SSR for desktop app
   ssr: false,
 
@@ -277,6 +287,9 @@ export default defineNuxtConfig({
         cloudflare: { deployConfig: false },
         // Cloudflare (#504): the shell is rendered at request time, so a build step needs a copy to hash its inline scripts.
         ...(process.env.NITRO_PRESET === 'cloudflare_module' ? { prerender: { routes: ['/200.html'], crawlLinks: false } } : {}),
+        // The public instance is local-only (#742, ADR 021): its build scans in no route that could receive a Notion token
+        // (the proxy, its stub-failure middleware, the key probe, the dev sandbox config). The Worker answers `/api/notion/*` with 404.
+        ...(isPublicCloud ? { ignore: PUBLIC_CLOUD_IGNORED_ROUTES } : {}),
         ...(e2eBuildDir ? { output: { dir: `${e2eBuildDir}/output` } } : {}),
       },
 
@@ -360,6 +373,8 @@ export default defineNuxtConfig({
       '__UI_MANIFEST__': JSON.stringify(uiManifest()),
       // Allow Notion sentinel token (notion_test_stub) in dev and the E2E build (`NOTION_STUB_ENABLED`).
       // Tree-shaken to `false` in production.
+      // The public web instance (#742): the Cloudflare build. Notion shows as not available there; desktop, dev, E2E keep it.
+      '__PUBLIC_CLOUD__': isPublicCloud,
       '__NOTION_STUB_ALLOWED__': process.env.NOTION_STUB_ENABLED === 'true'
         || process.env.NODE_ENV !== 'production',
     },

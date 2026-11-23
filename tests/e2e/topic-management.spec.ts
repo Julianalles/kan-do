@@ -227,6 +227,9 @@ for (const vp of VIEWPORTS) {
       await page.getByPlaceholder('Thema suchen…').fill('Reisen')
       await page.keyboard.press('Enter')
       await expect(page.getByTestId('task-topic-select')).toContainText('Reisen')
+      // A create closes a single-value picker like a pick (#774): wait for it to shut, then reopen to pick on
+      await expect(page.getByTestId('task-topic-select')).toHaveAttribute('aria-expanded', 'false')
+      await expect(page.getByPlaceholder('Thema suchen…')).toHaveCount(0)
       await page.getByTestId('task-topic-select').click()
       await page.getByPlaceholder('Thema suchen…').fill('Wrk')
       await page.getByRole('option', { name: /Wrk/ }).click()
@@ -608,9 +611,13 @@ test.describe('Notion-owned topics', () => {
       test('a Local topic may be merged into a Notion-owned name', async ({ page }) => {
         await page.goto('/settings/topics')
         await row(page, 'Home').getByTestId('topics-row-button').click()
+        // The editor has opened once it took its own focus on the Name (next frame, #361); the save click waits for that,
+        // and the editor closing says the merge ran before the stored state is read (#729)
+        await expect(editor(page).getByTestId('topic-name-input')).toBeFocused()
         await editor(page).getByTestId('topic-name-input').fill('Backend')
         await expect(editor(page).getByTestId('topic-save')).toHaveText('Zusammenführen')
         await editor(page).getByTestId('topic-save').click()
+        await expect(editor(page)).toHaveCount(0)
         await expect.poll(() => storedTopics(page)).toEqual(expect.arrayContaining([['tm-home', 'Backend'], ['tm-notion', 'Backend']]))
         await expect(row(page, 'Backend')).toContainText('aus Notion')
       })

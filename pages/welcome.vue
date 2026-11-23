@@ -4,7 +4,8 @@
 @usage Einstiegspunkt für neue Nutzer unter /welcome; ein schon eingerichtetes Board wird von `middleware/welcome-guard.ts` nach /tasks (Heute) geleitet (#561), App zurücksetzen räumt zuerst und erreicht die Seite wieder
 @responsibility
 - Startansicht: Wortmarke „kan-do“ mit Subline (`Subline`) als Seitenkopf über dem Bogen, direkt auf dem Foto, linksbündig mit dem Inhalt des Bogens (gleiche Innenabstände; im Notion-Setup folgt der Kopf dem breiteren Bogen, beide teilen einen Spaltenrahmen); der Bogen hat die kleinere Überschrift (22 px), die Einleitung, einen zweiten Absatz „Du bist erst einmal nur neugierig? …“, „Jetzt starten“ (die einzige gefüllte Schaltfläche, The One Lamp Rule) und „Beispiel anzeigen“ (soft) ab 640 px nebeneinander, darunter gestapelt (#437)
-- „Loslegen“ öffnet Schritt 2 (LocalSetupFlow, kein Dialog, #43): Erinnerungen (in der Web-Version deaktiviert „(nur in der Mac-App)“) und Notion als Checkboxen, Todoist deaktiviert „(kommt später)“; ohne Haken endet er mit Lokal als einziger Verbindung und Standard, mit Haken startet er das Erinnerungen-Setup (RemindersSetupFlow, drei Schritte Zugriff, Listen, Heute, #552) und/oder das Notion-Setup auf dieser Seite (Schienen-Führung, Schritte des WizardController). Erinnerungen allein endet mit Lokal als Standard und Erinnerungen verbunden (nie Standard); sind beide gesetzt, läuft Erinnerungen zuerst (Verbinden-Knopf „Weiter zu Notion“, Erinnerungen ist dann schon verbunden), dann Notion, und das Board öffnet gemischt mit Notion als Standard. Zurück aus einem Setup führt zu Schritt 2, die Haken bleiben
+- In der Web-App (#742) entfällt Schritt 2 (keine App ist verbindbar): „Loslegen“ startet das Board lokal. „Loslegen“ öffnet sonst Schritt 2 (LocalSetupFlow, kein Dialog, #43): Erinnerungen (in der Web-Version deaktiviert „(nur in der Mac-App)“) und Notion als Checkboxen, Todoist deaktiviert „(kommt später)“; ohne Haken endet er mit Lokal als einziger Verbindung und Standard, mit Haken startet er das Erinnerungen-Setup (RemindersSetupFlow, drei Schritte Zugriff, Listen, Heute, #552) und/oder das Notion-Setup auf dieser Seite (Schienen-Führung, Schritte des WizardController). Erinnerungen allein endet mit Lokal als Standard und Erinnerungen verbunden (nie Standard); sind beide gesetzt, läuft Erinnerungen zuerst (Verbinden-Knopf „Weiter zu Notion“, Erinnerungen ist dann schon verbunden), dann Notion, und das Board öffnet gemischt mit Notion als Standard. Zurück aus einem Setup führt zu Schritt 2, die Haken bleiben
+- Nur in der Web-App (#737): unter den Schaltflächen ein leiser Textlink „Mac-App herunterladen“ (`ExternalLink`, 44 px Ziel am Telefon) zur Release-Seite (`lib/appDownload.ts`); in der Desktop-App nicht sichtbar, in den Setup-Schritten ebenfalls nicht
 - „Beispiel anzeigen“ öffnet einen eigenen Schritt 2: er sagt, dass ein Zurücksetzen unter Einstellungen › Daten & Speicher Beispiele und Statistik entfernt; „Board ansehen“ endet wie das lokale Setup
 - Der Weg zum Board ist ein Vorhang (#463): die ganze Seite (Foto, Wortmarke, Bogen) gleitet 1,3 s nach oben und blendet dabei aus, mit weichem unterem Rand (Maske), über dem schon fertigen Board (`.welcome-root`, transitions.css): das Board liegt in seinem Endlayout darunter, nichts springt danach; die fliegende Wortmarke lässt die Überschrift des Bogens kurz ausblenden (`data-brand-flying`); reduzierte Bewegung: sofort
 - Startansicht und Setup tauschen als ein Block (eine Transition, Höhe per WAAPI, Breite per CSS); der Tausch gleitet seitwärts (vor: alt nach links hinaus, neu von rechts herein; zurück gespiegelt, 260 ms, #236); reduzierte Bewegung: sofort
@@ -13,7 +14,7 @@
   Quelle in CREDITS.md) füllt die Seite. Wortmarke und Subline stehen direkt darauf, auf der hellen Wand (Kontrast AA,
   DESIGN.md „The Bright Ground Rule“): am Telefon ist das Foto dafür links oben verankert, so dass der Streifen über dem Bogen nur helle
   Wand zeigt (Tasse, Tisch und Pflanze liegen hinter dem Bogen). Mittig ein heller Bogen (Oberfläche und Schatten wie ein
-  Dialog) trägt Überschrift, Antworten, Hinweis und Version. Am Telefon füllt der Bogen die Breite.
+  Dialog) trägt Überschrift, Antworten, Hinweis und Version, darunter die drei rechtlichen Links (`LegalLinks`, #745). Am Telefon füllt der Bogen die Breite.
 - Ab 640 px hängt die Spalte an einer festen Linie über der Seitenmitte statt mittig zu stehen: ein höherer Schritt wächst nach unten, die Wortmarke bleibt beim Tausch an ihrem Platz
 - Beim Abschluss fliegt die Wortmarke auf Desktop in die Wortmarke der App-Leiste (`utils/brandFlight.ts`); am Telefon und bei reduzierter Bewegung blendet nur die Seite aus
 - Das Foto blendet beim Laden ein (ohne Layoutsprung); lädt es nicht, bleibt die Seite auf Papierfarbe, der Bogen unverändert
@@ -85,20 +86,24 @@
         <SectionHeader tag="h1" class="text-balance">
           {{ t('onboarding.page.title') }}
         </SectionHeader>
-        <p class="mt-3 text-body text-default">{{ t('onboarding.page.intro') }}</p>
+        <p class="mt-3 text-body text-default">{{ t(isNotionAvailable() ? 'onboarding.page.intro' : 'onboarding.page.introWeb') }}</p>
         <p class="mt-3 text-body text-default">{{ t('onboarding.page.curious') }}</p>
         <!-- One filled action: the sheet's only solid green (The One Lamp Rule); the trial is a quiet second way in (#294) -->
         <div class="mt-6 flex flex-col gap-3 sm:flex-row">
-          <UButton color="primary" block class="sm:flex-1" data-testid="welcome-choice-local" @click="openFlow('local')">
+          <UButton color="primary" block class="sm:flex-1" data-testid="welcome-choice-local" @click="startLocal">
             {{ t('onboarding.page.start') }}
           </UButton>
           <UButton color="primary" variant="soft" block class="sm:flex-1" data-testid="welcome-choice-samples" @click="openFlow('samples')">
             {{ t('onboarding.page.samples') }}
           </UButton>
         </div>
-        <p class="mt-6 text-xs text-muted">
+        <!-- Web only (#737): the desktop app is the main product; a web visitor gets one quiet link to its releases -->
+        <ExternalLink v-if="showAppLink" :href="APP_DOWNLOAD_URL" standalone class="mt-4 inline-block text-sm" data-testid="welcome-app-download">{{ t('onboarding.page.appDownload') }}</ExternalLink>
+        <p class="mt-6 text-xs text-muted" data-testid="welcome-version">
           {{ t('onboarding.page.version') }} {{ $config.public.clientVersion }}
         </p>
+        <!-- Impressum, privacy, terms (#745): reachable before anything is set up, on web and desktop -->
+        <LegalLinks class="mt-1" />
 
             </template>
           </div>
@@ -113,6 +118,7 @@
 <script setup lang="ts">
 import SectionHeader from '~/components/ui/SectionHeader.vue'
 import Subline from '~/components/ui/Subline.vue'
+import { isNotionAvailable } from '~/utils/publicCloud'
 import { flyBrandToBar } from '~/utils/brandFlight'
 import { MOTION } from '~/lib/motionTokens'
 import { ref, onMounted } from 'vue';
@@ -122,9 +128,14 @@ import SamplesSetupFlow from '~/components/setup/SamplesSetupFlow.vue';
 import NotionSetupFlow from '~/components/setup/NotionSetupFlow.vue';
 import RemindersSetupFlow from '~/components/setup/RemindersSetupFlow.vue';
 import DataStorageNotice from '~/components/settings/DataStorageNotice.vue';
+import ExternalLink from '~/components/ui/ExternalLink.vue';
+import { isTauri } from '~/utils/isTauri';
+import { APP_DOWNLOAD_URL } from '~/lib/appDownload';
+import LegalLinks from '~/components/legal/LegalLinks.vue';
 import { useIntegrationManager } from '~/composables/useIntegrationManager';
 import { useFirstRunSources } from '~/composables/useFirstRunSources';
 import { useErrorHandler } from '~/composables/useErrorHandler';
+import { useTasksStore } from '~/store/tasks';
 
 // No app bar here (#470): first run, developer pages and the empty redirect page
 definePageMeta({ appNav: false, layout: false, middleware: 'welcome-guard' })
@@ -133,11 +144,14 @@ const { t } = useI18n();
 const { fetchTasks } = useIntegrationManager();
 const { beginLocalDefault, beginNotionAsDefault } = useFirstRunSources();
 const { handleError } = useErrorHandler();
+const tasksStore = useTasksStore();
 const photo = ref<HTMLImageElement | null>(null);
 const photoLoaded = ref(false);
 const brand = ref<InstanceType<typeof SectionHeader> | null>(null);
 /** The brand flies to the app bar's brand as the page leaves (desktop, #437) */
 const flyBrand = () => flyBrandToBar(brand.value?.$el as HTMLElement | undefined);
+// The link is for web visitors only; the page is client-rendered (ssr: false), so a synchronous check does not shift the layout (#737)
+const showAppLink = !isTauri();
 // A cached or early-loaded photo can finish before hydration: its load event is gone, so check once on mount
 onMounted(() => {
   if (photo.value?.complete && photo.value.naturalWidth > 0) photoLoaded.value = true;
@@ -183,6 +197,15 @@ function onAfterEnter(el: Element) {
   if (active && active !== document.body) return;
   if (flow.value) (el.querySelector<HTMLElement>('h2') ?? el.querySelector<HTMLElement>('[data-testid="setup-pane"]'))?.focus({ preventScroll: true });
   else el.querySelector<HTMLElement>(`[data-testid="welcome-choice-${lastFlow.value}"]`)?.focus({ preventScroll: true });
+}
+/**
+ * "Loslegen": step 2 offers further apps, and on the public web instance none can be connected (#742, D1), so the step
+ * is skipped there and the board starts local-only. Desktop and every other build keep it.
+ */
+function startLocal() {
+  if (isNotionAvailable()) return openFlow('local');
+  tasksStore.setTasks([]);
+  void handleLocalSetupComplete();
 }
 function openFlow(key: FlowKey) {
   direction.value = 'fwd';

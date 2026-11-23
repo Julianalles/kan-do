@@ -409,6 +409,32 @@ test.describe('The place "Alle" (#354), desktop', () => {
     })).toEqual([0, true])
   })
 
+  test('#758: a task confirmed in the card on "Alle" is stored at once, shows once while the card asks, and is under "Alle Aufgaben" after a reload', async ({ context, page }) => {
+    await seedLocalBoard(context, BOARD, {}, undefined, { once: true })
+    await gotoAll(page)
+    const flow = notPlanned(page).getByTestId('new-card-flow')
+    const stored = () => page.evaluate(() => {
+      const tasks = JSON.parse(localStorage.getItem('tasks-store') ?? '{}').tasks as { id: string, title: string, status: number, notPlanned?: boolean }[]
+      return tasks.find(t => t.title === 'Vor dem Reload') ?? null
+    })
+
+    await page.getByTestId('not-planned-add').click()
+    await expect(page.getByTestId('new-card-title')).toBeFocused()
+    await page.getByTestId('new-card-title').fill('Vor dem Reload')
+    await page.keyboard.press('Enter')
+    await expect(page.getByTestId('new-card-step')).toBeVisible()
+    await expect.poll(async () => (await stored())?.notPlanned).toBe(true)
+    // one card: the flow, not also the task's own card in the list
+    expect(await notPlannedIds(page)).toEqual(['np-1', 'np-2'])
+
+    await page.reload()
+    await expect(flow).toHaveCount(0)
+    const id = (await stored())!.id
+    await expect.poll(() => notPlannedIds(page)).toContain(id)
+    expect(await openIds(page)).toEqual(['open-1', 'open-2'])
+    expect(await stored()).toMatchObject({ status: 0, notPlanned: true })
+  })
+
   test('#567: Esc and back out of the card; a typed title is given back with "Rückgängig"; a blank card closes on a press outside', async ({ context, page }) => {
     await seedLocalBoard(context, BOARD)
     await gotoAll(page)

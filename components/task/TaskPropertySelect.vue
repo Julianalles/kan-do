@@ -32,7 +32,7 @@
     :ui="{ content: 'min-w-52', ...pickerUi }"
     :aria-label="triggerLabel"
     @update:model-value="onUpdate"
-    @create="(item: string) => emit('create', item)"
+    @create="onCreate"
   >
     <template v-if="middleEllipsis && !multiple" #default="{ ui }">
       <span v-if="hasValue" :class="ui.value()" data-private><MiddleEllipsis :text="valueText" /></span>
@@ -169,6 +169,12 @@ const triggerLabel = computed(() => `${props.label}: ${valueText.value}`);
 
 function onUpdate(value: SelectValue) {
   emit('update:modelValue', value);
+}
+
+/** Nuxt UI's create keeps the menu open (`preventDefault`); a single value closes like a pick does (#774) */
+function onCreate(item: string) {
+  emit('create', item);
+  if (!props.multiple) isOpen.value = false;
 }
 
 function onClear() {

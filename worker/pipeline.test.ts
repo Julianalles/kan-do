@@ -3,72 +3,52 @@ import { describe, expect, it, vi } from 'vitest'
 import { COOKIE_NAME, sha256Hex } from './gate'
 import { buildCsp } from './csp'
 import { handleRequest, type WorkerEnv } from './pipeline'
-import { limiterNamespace } from './testing'
 
 const SECRET = 'test-token'
 const SITE = 'https://kando.example.workers.dev'
 const HASHES = [`sha256-${'A'.repeat(43)}=`]
 const CSP = buildCsp(HASHES)
 
-/** Records the order in which gate, origin check, limiter and app see a request. */
-function setup(env: Partial<WorkerEnv> = {}, limitSuccess = true) {
+/** Records whether the app sees a request. */
+function setup(env: Partial<WorkerEnv> = {}) {
   const calls: string[] = []
-  const { namespace: NOTION_LIMITER, hit } = limiterNamespace(limitSuccess)
-  hit.mockImplementation(async () => { calls.push('limit'); return Response.json({ success: limitSuccess }) })
   const app = vi.fn(async () => { calls.push('app'); return new Response('{}') })
-  const full: WorkerEnv = { GATE: 'on', GATE_SECRET: SECRET, NOTION_LIMITER, ...env }
+  const full: WorkerEnv = { GATE: 'on', GATE_SECRET: SECRET, ...env }
   const run = async (path: string, headers: Record<string, string> = {}, gated = true) => {
     const h = new Headers(headers)
     if (gated) h.set('Cookie', `${COOKIE_NAME}=${await sha256Hex(SECRET)}`)
     return handleRequest(new Request(SITE + path, { headers: h }), full, app, HASHES)
   }
-  return { app, calls, run, NOTION_LIMITER }
+  return { app, calls, run }
 }
 
-describe('Worker pipeline: gate, then origin check, then rate limit, then the app', () => {
-  it('through the gate, a same-origin Notion request is limited, then answered by the app', async () => {
+describe('Worker pipeline: gate, then the Notion 404, then the app', () => {
+  it('through the gate, a Notion request is 404 and the app never runs (#742)', async () => {
     const { calls, run } = setup()
-    expect((await run('/api/notion/pages', { Origin: SITE })).status).toBe(200)
-    expect(calls).toEqual(['limit', 'app'])
+    expect((await run('/api/notion/pages', { Origin: SITE, Authorization: 'Bearer secret_x' })).status).toBe(404)
+    expect(calls).toEqual([])
   })
 
-  it('the gate comes first: without the cookie neither origin check nor limiter nor app run', async () => {
-    const { app, calls, run } = setup()
-    const res = await run('/api/notion/pages', { Origin: 'https://evil.example' }, false)
+  it('the gate comes first: without the cookie a Notion request is 401, not 404', async () => {
+    const { app, run } = setup()
+    const res = await run('/api/notion/pages', {}, false)
     expect(res.status).toBe(401)
-    expect(calls).toEqual([])
     expect(app).not.toHaveBeenCalled()
   })
 
-  it('the origin check comes before the limiter: a foreign origin is 403 and uses no quota', async () => {
-    const { calls, run } = setup({}, false)
-    const res = await run('/api/notion/pages', { Origin: 'https://evil.example' })
-    expect(res.status).toBe(403)
-    expect(calls).toEqual([])
-  })
-
-  it('the limiter comes before the app: over the limit is 429 and the app never runs', async () => {
-    const { calls, run } = setup({}, false)
-    const res = await run('/api/notion/pages', { Origin: SITE })
-    expect(res.status).toBe(429)
-    expect(calls).toEqual(['limit'])
-  })
-
-  it('guards run with the gate off too (the public launch)', async () => {
+  it('with the gate off (the public launch) a Notion request is still 404', async () => {
     const { calls, run } = setup({ GATE: 'off' })
-    expect((await run('/api/notion/pages', { Origin: 'https://evil.example' }, false)).status).toBe(403)
-    expect((await run('/api/notion/pages', {}, false)).status).toBe(200)
-    expect(calls).toEqual(['limit', 'app'])
+    expect((await run('/api/notion/pages', {}, false)).status).toBe(404)
+    expect((await run('/tasks', {}, false)).status).toBe(200)
+    expect(calls).toEqual(['app'])
   })
 
-  it('the feedback relay stays exempt from gate, origin check and limiter', async () => {
-    const { calls, NOTION_LIMITER } = setup({}, false)
+  it('the feedback relay stays exempt from the gate', async () => {
     const app = vi.fn(async () => new Response('{}'))
-    const env: WorkerEnv = { GATE: 'on', GATE_SECRET: SECRET, NOTION_LIMITER }
+    const env: WorkerEnv = { GATE: 'on', GATE_SECRET: SECRET }
     const res = await handleRequest(new Request(`${SITE}/api/feedback`, { method: 'POST', headers: { Origin: 'https://evil.example', 'Sec-Fetch-Site': 'cross-site' }, body: '{}' }), env, app, HASHES)
     expect(res.status).toBe(200)
     expect(app).toHaveBeenCalledOnce()
-    expect(calls).toEqual([])
   })
 
   describe('Content Security Policy (#504)', () => {
@@ -95,7 +75,7 @@ describe('Worker pipeline: gate, then origin check, then rate limit, then the ap
     })
 
     it('the app\'s JSON answers carry none', async () => {
-      const res = await run('/api/notion/pages', json)
+      const res = await run('/api/feedback', json)
       expect(res.headers.has('Content-Security-Policy')).toBe(false)
     })
 
@@ -108,14 +88,60 @@ describe('Worker pipeline: gate, then origin check, then rate limit, then the ap
       expect(redirect.headers.has('Content-Security-Policy')).toBe(false)
     })
 
-    it('the guards\' own answers (403, 429) carry none', async () => {
-      const { run: guarded } = setup({}, false)
-      expect((await guarded('/api/notion/pages', { Origin: 'https://evil.example' })).headers.has('Content-Security-Policy')).toBe(false)
-      expect((await guarded('/api/notion/pages', { Origin: SITE })).headers.has('Content-Security-Policy')).toBe(false)
+    it('the Notion 404 carries none', async () => {
+      const { run: guarded } = setup()
+      expect((await guarded('/api/notion/pages')).headers.has('Content-Security-Policy')).toBe(false)
     })
 
     it('a malformed hash list fails the request instead of serving a widened policy', async () => {
       await expect(handleRequest(new Request(SITE + '/'), { GATE: 'off' }, async () => html(), ["'unsafe-inline'"])).rejects.toThrow(/sha256/)
+    })
+  })
+
+  describe('root files and brand assets (#736, #738)', () => {
+    const upstream = () => new Response('bytes', { headers: { 'Content-Type': 'application/octet-stream' } })
+    const call = (path: string, env: Partial<WorkerEnv>, gated: boolean, app: () => Response = upstream) =>
+      sha256Hex(SECRET).then(hash => handleRequest(
+        new Request(SITE + path, { headers: gated ? { Cookie: `${COOKIE_NAME}=${hash}` } : {} }),
+        { GATE: 'on', GATE_SECRET: SECRET, ...env }, async () => app(), HASHES))
+
+    it('gate off: robots.txt, sitemap.xml and security.txt are the Worker\'s own, with no noindex', async () => {
+      for (const path of ['/robots.txt', '/sitemap.xml', '/.well-known/security.txt']) {
+        const res = await call(path, { GATE: 'off' }, false, () => { throw new Error('the app must not run') })
+        expect(res.status, path).toBe(200)
+        expect(res.headers.get('X-Robots-Tag'), path).toBeNull()
+      }
+      expect(await (await call('/robots.txt', { GATE: 'off' }, false)).text()).toContain(`Sitemap: ${SITE}/sitemap.xml`)
+    })
+
+    it('gate on: robots.txt stays disallow-all, the other two are gated, a cookie gets them', async () => {
+      expect(await (await call('/robots.txt', {}, false)).text()).toBe('User-agent: *\nDisallow: /\n')
+      expect((await call('/sitemap.xml', {}, false)).status).toBe(401)
+      expect((await call('/.well-known/security.txt', {}, false)).status).toBe(401)
+      const withCookie = await call('/sitemap.xml', {}, true)
+      expect(withCookie.status).toBe(200)
+      expect(withCookie.headers.get('X-Robots-Tag')).toBe('noindex, nofollow')
+    })
+
+    it('brand assets get their type and cache lifetime, with and without the gate, and need no cookie while it is on', async () => {
+      for (const [env, gated] of [[{}, false], [{}, true], [{ GATE: 'off' }, false]] as const) {
+        const res = await call('/icon-192.png', env, gated)
+        expect(res.status).toBe(200)
+        expect(res.headers.get('Content-Type')).toBe('image/png')
+        expect(res.headers.get('Cache-Control')).toBe('public, max-age=86400')
+        expect(res.headers.has('Content-Security-Policy')).toBe(false)
+      }
+      const manifest = await call('/manifest.webmanifest', {}, false)
+      expect(manifest.headers.get('Content-Type')).toBe('application/manifest+json')
+      expect(manifest.headers.get('Cache-Control')).toBe('public, max-age=3600')
+    })
+
+    it('a listed file missing from the build (the shell answers) is denied, not served as app HTML', async () => {
+      const shell = () => new Response('<!doctype html>', { headers: { 'Content-Type': 'text/html' } })
+      const res = await call('/og-image.png', {}, false, shell)
+      expect(res.status).toBe(401)
+      expect(await res.text()).not.toBe('<!doctype html>')
+      expect((await call('/_nuxt/entry.js', {}, false)).status).toBe(401)
     })
   })
 })

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { buildIssueBody } from '~/lib/feedback/buildIssueBody'
+import { buildIssueBody, previewLines } from '~/lib/feedback/buildIssueBody'
 import type { ElementInfo, IssueBodyInput } from '~/lib/feedback/types'
 
 const element: ElementInfo = {
@@ -102,8 +102,29 @@ describe('screenshot sent through the relay (#268)', () => {
   it('links the image in the private feedback repository, not the public one', () => {
     const path = 'feedback/2026/11/0b6f3c1e-8a55-4d0a-9c1b-2f6f0a4d9e11.png'
     const body = buildIssueBody({ description: 'x', screenshot: { delivery: 'relay', path } })
-    expect(body).toContain(`![Screenshot](https://github.com/jaylouiz/kan-do-feedback/blob/main/${path}?raw=true)`)
+    expect(body).toContain(`![Screenshot](https://github.com/jaylouiz/kan-do-feedback/blob/screenshot/0b6f3c1e-8a55-4d0a-9c1b-2f6f0a4d9e11/${path}?raw=true)`)
+    expect(body).toContain('on `screenshot/0b6f3c1e-8a55-4d0a-9c1b-2f6f0a4d9e11`')
     expect(body).not.toContain('feedback-assets')
     expect(body).not.toContain('github.com/jaylouiz/kan-do/')
+  })
+})
+
+describe('previewLines (#760)', () => {
+  it('lists the description, every context fact and the log as plain values, without Markdown', () => {
+    const preview = previewLines(full)
+    expect(preview.description).toBe('Card is *cut off*\n\n| not a table |')
+    expect(preview.facts.map(f => [f.key, f.value])).toEqual([
+      ['version', '0.1.0'], ['os', 'macOS'], ['route', '/tasks'], ['viewport', '1200×768'], ['locale', 'de'],
+      ['component', 'TaskCard › BoardColumn'], ['selector', '[data-testid="task-card"] > div'], ['testId', 'task-card'],
+      ['boundingBox', '40, 109, 320×132'], ['taskId', 'seed-open-1'],
+    ])
+    expect(preview.log).toEqual({ lines: 2, text: 'line 1\nline 2' })
+  })
+
+  it('carries what the body carries: removed items are absent, an empty description stays empty, the task title is opt-in', () => {
+    expect(previewLines({ description: '  ' })).toEqual({ description: '', facts: [], log: null })
+    expect(previewLines({ ...full, taskTitle: 'Plan' }).facts.at(-1)).toMatchObject({ key: 'taskTitle', value: 'Plan' })
+    const body = buildIssueBody({ ...full, taskTitle: 'Plan' })
+    for (const fact of previewLines({ ...full, taskTitle: 'Plan' }).facts) expect(body).toContain(fact.value)
   })
 })

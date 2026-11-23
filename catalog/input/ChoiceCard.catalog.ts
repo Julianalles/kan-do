@@ -8,11 +8,11 @@ export default {
   alternatives: ['ChoiceChip', 'URadioGroup', 'ListRow'],
   variants: [
     { id: 'go-on', label: 'answer that opens something (arrow)', props: { icon: 'i-ph-desktop' }, slot: { $t: 'onboarding.page.samples' } },
-    { id: 'checkbox', label: 'one of several apps, ticked on its own (square check)', props: { icon: 'i-simple-icons-notion', modelValue: false }, slot: { $t: 'onboarding.flow.local.notion' } },
+    { id: 'checkbox', label: 'one of several apps, ticked on its own (square check)', props: { icon: 'i-ph-notebook', modelValue: false }, slot: { $t: 'onboarding.flow.local.notion' } },
   ],
   states: [
-    { id: 'selected', state: 'selected', props: { icon: 'i-simple-icons-notion', modelValue: true }, slot: { $t: 'onboarding.flow.local.notion' } },
-    { id: 'checkbox-disabled', state: 'disabled', label: 'checkbox card, disabled', props: { icon: 'i-simple-icons-todoist', modelValue: false, disabled: true }, slot: { $t: 'onboarding.flow.local.todoist' } },
+    { id: 'selected', state: 'selected', props: { icon: 'i-ph-notebook', modelValue: true }, slot: { $t: 'onboarding.flow.local.notion' } },
+    { id: 'checkbox-disabled', state: 'disabled', label: 'checkbox card, disabled', props: { icon: 'i-ph-check-square', modelValue: false, disabled: true }, slot: { $t: 'onboarding.flow.local.todoist' } },
     { id: 'disabled', state: 'disabled', props: { icon: 'i-ph-desktop', disabled: true }, slot: { $t: 'onboarding.page.samples' } },
     { id: 'focus', state: 'focus', props: { icon: 'i-ph-desktop' }, slot: { $t: 'onboarding.page.samples' } },
     { id: 'long-text', state: 'long-text', label: 'long German text', props: { icon: 'i-ph-desktop' }, slot: { $t: 'board.dropToComplete' } },

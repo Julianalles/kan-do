@@ -33,7 +33,7 @@ import { ICONS } from '~/lib/icons'
 import { computed, hasInjectionContext, reactive, readonly, ref, shallowRef } from 'vue'
 import { useNuxtApp, useRuntimeConfig, useToast } from '#imports'
 import { translate, getActiveLocale } from '~/lib/i18n'
-import { buildIssueBody } from '~/lib/feedback/buildIssueBody'
+import { buildIssueBody, previewLines } from '~/lib/feedback/buildIssueBody'
 import { buildPrefilledUrl, type PrefilledUrl } from '~/lib/feedback/trimPrefilledUrl'
 import {
   DESCRIPTION_MAX, FEEDBACK_ASSETS_BRANCH, FEEDBACK_REPO, TITLE_MAX,
@@ -191,6 +191,8 @@ const trimmedTitle = computed(() => draft.title.trim())
 const titleValid = computed(() => trimmedTitle.value.length > 0 && trimmedTitle.value.length <= TITLE_MAX)
 const hasDraft = computed(() => !!(trimmedTitle.value || draft.description.trim() || draft.element || flat.value || rawShot.value))
 const body = computed(() => buildIssueBody(issueInput()))
+/** The review step's plain lines (#760): the same content as `body`, without its Markdown. */
+const preview = computed(() => previewLines(issueInput()))
 /** Present token: send through Rust. Anything else: the relay, or the prefilled link when there is no relay. */
 const canSend = computed(() => tokenState.value === 'present')
 const sendRoute = computed<SendRoute>(() => {
@@ -792,6 +794,7 @@ export function useFeedback() {
     hasDraft,
     canUndoDiscard: computed(() => !!discarded.value && !hasDraft.value),
     body,
+    preview,
     prefilled,
     canSend,
     sendRoute,

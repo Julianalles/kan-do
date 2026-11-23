@@ -112,6 +112,10 @@ xattr -dr com.apple.quarantine /Applications/kan-do.app
 
 Updates the app downloads itself are not quarantined. Install into a folder you can write to: a non-writable location makes the update ask for an administrator password.
 
+## Download link
+
+The web app's `/welcome` links to `https://github.com/jaylouiz/kan-do/releases/latest` (`lib/appDownload.ts`, #737), the page of the newest **published** release (drafts are ignored). It is not a direct DMG URL because asset names carry the version (`kan-do_<version>_aarch64.dmg`), so `releases/latest/download/<name>` changes with every release. A stable direct link would need a version-less alias asset (e.g. `kan-do.dmg`) uploaded by `scripts/release.mjs`, plus the new URL in `lib/appDownload.ts`.
+
 ## Verify a release (checklist)
 
 - [ ] `gh release view v<version> --repo jaylouiz/kan-do` lists the dmg, the `.app.tar.gz`, its `.sig` and `latest.json`.

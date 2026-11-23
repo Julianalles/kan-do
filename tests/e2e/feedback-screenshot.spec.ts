@@ -142,8 +142,6 @@ test.describe('Feedback screenshot (desktop, token with Contents)', () => {
     await expect(page.getByTestId('feedback-review-image').locator('canvas')).toHaveAccessibleName('Screenshot, bereit zum Senden')
     await expect(page.getByTestId('feedback-delivery')).toHaveText('Wird mit dem Feedback hochgeladen.')
     const preview = page.getByTestId('feedback-body-preview')
-    await expect(preview).toContainText('![Screenshot](https://github.com/jaylouiz/kan-do/blob/feedback-assets/feedback/')
-    await expect(preview).toContainText('gh api repos/jaylouiz/kan-do/contents/feedback/')
     await page.getByTestId('feedback-include-screenshot').uncheck()
     await expect(preview).not.toContainText('Screenshot')
     await expect(page.getByTestId('feedback-review-image')).toHaveCount(0)
@@ -202,7 +200,6 @@ test.describe('Feedback screenshot (desktop, token with Contents)', () => {
     await expect(page.getByTestId('feedback-problem')).toContainText('Das Bild konnte nicht hochgeladen werden')
     expect((await methods(page)).filter(m => m === 'POST /issues')).toHaveLength(0)
     await expect(page.getByTestId('feedback-delivery')).toContainText('Das Token darf keine Dateien speichern')
-    await expect(page.getByTestId('feedback-body-preview')).toContainText('Screenshot: paste it here (copied to the clipboard).')
     await expect(page.getByTestId('feedback-send')).toHaveText('Ohne Bild senden')
     expect((await stubState(page)).clipboard).toEqual([]) // nothing leaves without the click
 
@@ -285,7 +282,7 @@ test.describe('Feedback screenshot (desktop, no token)', () => {
     expect(shot.path).toMatch(/^feedback\/\d{4}\/\d{2}\/[0-9a-f-]{36}\.png$/)
     // A PNG: the base64 of its magic bytes
     expect(shot.content.startsWith('iVBORw0KGgo')).toBe(true)
-    expect(reports[0]!.body).toContain(`https://github.com/jaylouiz/kan-do-feedback/blob/main/${shot.path}?raw=true`)
+    expect(reports[0]!.body).toContain(`https://github.com/jaylouiz/kan-do-feedback/blob/screenshot/${shot.path.split('/').pop()!.replace('.png', '')}/${shot.path}?raw=true`)
     const state = await stubState(page)
     expect(state.clipboard).toEqual([])
     expect(state.openedUrls).toEqual([])

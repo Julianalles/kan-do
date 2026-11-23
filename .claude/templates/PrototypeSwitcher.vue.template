@@ -42,7 +42,8 @@ function step(key: string, dir: 1 | -1) {
   active.value = key
   const keys = Object.keys(GROUPS[key].labels)
   const i = keys.indexOf(value(key))
-  router.replace({ query: { ...route.query, [key]: keys[(i + dir + keys.length) % keys.length] } })
+  // path from window.location, forced: a route alias (/all for /tasks) would otherwise resolve to the canonical path
+  router.replace({ path: window.location.pathname, query: { ...route.query, [key]: keys[(i + dir + keys.length) % keys.length] }, force: true })
 }
 function onKey(e: KeyboardEvent) {
   const t = e.target as HTMLElement | null

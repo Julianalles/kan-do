@@ -1,10 +1,11 @@
 /**
  * @module feedback/buildIssueBody
  * @description Renders the GitHub issue body of an in-app report (#227). English headings, the
- * user's text verbatim. Items the user removed are absent, never blank. The review step shows this
- * exact string, and the send path posts it unchanged.
+ * user's text verbatim. Items the user removed are absent, never blank. The send path posts this string
+ * unchanged; the review step shows the same content as plain lines (`previewLines`, #760).
  */
-import { FEEDBACK_ASSETS_BRANCH, FEEDBACK_RELAY_BRANCH, FEEDBACK_RELAY_REPO, FEEDBACK_REPO, type IssueBodyInput } from '~/lib/feedback/types'
+import { FEEDBACK_ASSETS_BRANCH, FEEDBACK_RELAY_REPO, FEEDBACK_REPO, type IssueBodyInput } from '~/lib/feedback/types'
+import { relayScreenshotBranch } from '~/lib/feedback/retention'
 
 /** A table cell must stay on one line and must not close the cell early. */
 function cell(value: string): string {
@@ -24,31 +25,53 @@ function fenceFor(text: string): string {
   return '`'.repeat(Math.max(3, longest + 1))
 }
 
-export function contextRows(input: IssueBodyInput, { short = false } = {}): Array<[string, string]> {
-  const rows: Array<[string, string]> = []
+/** One context fact: a stable key (the review step's German label), the raw value, and whether the issue body sets it as code. */
+export interface ContextFact { key: string, value: string, code: boolean, label: string }
+
+/** The context facts in body order; `contextRows` renders them for the issue body, `previewLines` for the review step. */
+export function contextFacts(input: IssueBodyInput, { short = false } = {}): ContextFact[] {
+  const rows: ContextFact[] = []
+  const add = (key: string, label: string, value: string, code = true) => rows.push({ key, label, value, code })
   if (input.versionInfo) {
-    if (input.versionInfo.version) rows.push(['Version', code(input.versionInfo.version)])
-    if (input.versionInfo.os) rows.push(['OS', code(input.versionInfo.os)])
+    if (input.versionInfo.version) add('version', 'Version', input.versionInfo.version)
+    if (input.versionInfo.os) add('os', 'OS', input.versionInfo.os)
   }
   if (input.environment) {
-    rows.push(['Route', code(input.environment.route)])
+    add('route', 'Route', input.environment.route)
     if (!short) {
-      rows.push(['Viewport', `${input.environment.viewport.width}×${input.environment.viewport.height}`])
-      rows.push(['Locale', code(input.environment.locale)])
+      add('viewport', 'Viewport', `${input.environment.viewport.width}×${input.environment.viewport.height}`, false)
+      add('locale', 'Locale', input.environment.locale)
     }
   }
   const el = input.element
   if (el) {
-    if (el.chain.length) rows.push(['Component', code(el.chain.join(' › '))])
+    if (el.chain.length) add('component', 'Component', el.chain.join(' › '))
     if (!short) {
-      rows.push(['Selector', code(el.selector)])
-      if (el.testId) rows.push(['Test id', code(el.testId)])
-      rows.push(['Bounding box', `${el.rect.x}, ${el.rect.y}, ${el.rect.width}×${el.rect.height}`])
+      add('selector', 'Selector', el.selector)
+      if (el.testId) add('testId', 'Test id', el.testId)
+      add('boundingBox', 'Bounding box', `${el.rect.x}, ${el.rect.y}, ${el.rect.width}×${el.rect.height}`, false)
     }
-    if (el.taskId) rows.push(['Task id', code(el.taskId)])
-    if (el.taskId && input.taskTitle) rows.push(['Task title', code(input.taskTitle)])
+    if (el.taskId) add('taskId', 'Task id', el.taskId)
+    if (el.taskId && input.taskTitle) add('taskTitle', 'Task title', input.taskTitle)
   }
   return rows
+}
+
+export function contextRows(input: IssueBodyInput, options: { short?: boolean } = {}): Array<[string, string]> {
+  return contextFacts(input, options).map((fact): [string, string] => [fact.label, fact.code ? code(fact.value) : fact.value])
+}
+
+/**
+ * What the review step shows (#760): the same content the body carries, as plain lines. The body keeps its English
+ * Markdown for the people who read the report; the user reads the description, the context facts and the log as they are.
+ */
+export function previewLines(input: IssueBodyInput): { description: string, facts: ContextFact[], log: { lines: number, text: string } | null } {
+  const log = input.logTail?.trim() ? input.logTail.replace(/\s+$/, '') : null
+  return {
+    description: input.description.trim() ? input.description : '',
+    facts: contextFacts(input),
+    log: log ? { lines: log.split('\n').length, text: log } : null,
+  }
 }
 
 export function contextSection(input: IssueBodyInput, options?: { short?: boolean }): string | null {
@@ -72,8 +95,8 @@ export function screenshotSection(input: IssueBodyInput): string | null {
   const shot = input.screenshot
   if (!shot) return null
   if (shot.delivery === 'clipboard') return 'Screenshot: paste it here (copied to the clipboard).'
-  // Relay (#268): the image lives in the private feedback repository, next to the issue.
-  const [repo, branch] = shot.delivery === 'relay' ? [FEEDBACK_RELAY_REPO, FEEDBACK_RELAY_BRANCH] : [FEEDBACK_REPO, FEEDBACK_ASSETS_BRANCH]
+  // Relay (#268): the image lives in the private feedback repository, on a branch of its own (#744: deletable).
+  const [repo, branch] = shot.delivery === 'relay' ? [FEEDBACK_RELAY_REPO, relayScreenshotBranch(shot.path)] : [FEEDBACK_REPO, FEEDBACK_ASSETS_BRANCH]
   return [
     `![Screenshot](https://github.com/${repo}/blob/${branch}/${shot.path}?raw=true)`,
     '',

@@ -10,11 +10,14 @@ optional element, optional screenshot, automatic context line), the annotate ste
 @responsibility
 - Form: title (required, ≤ 120), description (≤ 4000), "Element auswählen" (hides the dialog while picking), draft discard
 - Screenshot: "Screenshot hinzufügen" hides the dialog while the window is captured, then opens the annotate step
-- Review: the exact issue body and image, each context item removable; the primary action is the only way anything leaves
+- Review: the same content as the issue body, as plain labelled lines (#760), and the image, each context item removable; the primary action is the only way anything leaves
 - Three send routes (useFeedback `sendRoute`): a feedback token whose user may write to the repo sends "Als Issue
   senden" (owner); everyone else sends through the relay, "Feedback senden" (#268: private, no GitHub account, the
   screenshot goes with it); only when there is no relay: "Auf GitHub öffnen" with a prefilled link
-- The relay route says the report goes to the Kan-do developers and is not published; the lines about a public issue
+- The relay route says the report goes to the Kan-do developers and is not published; its review step adds the
+  retention notice above the send button (#744): exactly what is shown is sent, to a private GitHub repository, deleted
+  `FEEDBACK_RETENTION_DAYS` after the issue is closed, deletion on request by e-mail (Impressum link), privacy notice link (`lib/legalLinks.ts`)
+- The lines about a public issue
   and a GitHub account below belong to the other two routes
 - The repository is public: the form says the report becomes a public GitHub issue, and on the browser path (no
   token) that sending needs the user's own GitHub account; the review intro repeats both. After the link opens, a
@@ -197,16 +200,34 @@ v-if="logTail" v-model="draft.include.log" :label="t('feedback.review.itemLog')"
 
         <section>
           <SectionHeader tag="h3" size="label" class="mb-1">{{ previewHeading }}</SectionHeader>
-          <p class="mb-2 text-body text-toned">{{ draft.title.trim() }}</p>
-          <!-- tabindex: a scrollable region must be reachable by keyboard -->
-          <pre
+          <!-- #760: plain labelled lines; the report itself keeps its English Markdown for the people who read it -->
+          <div
             role="region"
             :aria-label="previewHeading"
-            class="max-h-64 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs wrap-break-word whitespace-pre-wrap text-toned"
+            class="max-h-64 overflow-auto rounded-lg bg-muted p-3 text-body text-toned"
             tabindex="0"
             data-selectable
             data-testid="feedback-body-preview"
-          >{{ body }}</pre>
+          >
+          <dl class="space-y-2">
+            <div>
+              <dt class="text-xs font-medium text-muted">{{ t('feedback.review.preview.title') }}</dt>
+              <dd class="wrap-break-word" data-private>{{ draft.title.trim() }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs font-medium text-muted">{{ t('feedback.review.preview.description') }}</dt>
+              <dd class="wrap-break-word whitespace-pre-wrap" data-private>{{ preview.description || t('feedback.review.preview.noDescription') }}</dd>
+            </div>
+            <div v-for="fact in preview.facts" :key="fact.key">
+              <dt class="text-xs font-medium text-muted">{{ t(`feedback.review.preview.${fact.key}`) }}</dt>
+              <dd class="wrap-break-word" :data-private="fact.key === 'taskTitle' || undefined">{{ fact.value }}</dd>
+            </div>
+            <div v-if="preview.log">
+              <dt class="text-xs font-medium text-muted">{{ t('feedback.review.preview.log', { n: preview.log.lines }, preview.log.lines) }}</dt>
+              <dd class="font-mono text-xs wrap-break-word whitespace-pre-wrap">{{ preview.log.text }}</dd>
+            </div>
+          </dl>
+          </div>
         </section>
 
         <!-- Without a token the intro already names the browser path; only a refused token needs its own line -->
@@ -218,6 +239,15 @@ v-if="logTail" v-model="draft.include.log" :label="t('feedback.review.itemLog')"
           {{ t('feedback.fallback.trimmed', { parts: trimmedParts }) }}
         </p>
         <p v-if="fallbackKnown && prefilled.overflow" class="text-body text-toned">{{ t('feedback.fallback.overflow') }}</p>
+
+        <!-- #744: before the relay sends, what goes where, for how long, and how to have it deleted (GDPR Art. 13) -->
+        <p v-if="routeKnown && sendRoute === 'relay'" class="text-body text-toned" data-testid="feedback-retention-notice">
+          <i18n-t keypath="feedback.retention.notice" tag="span" scope="global">
+            <template #period>{{ t('feedback.retention.period', FEEDBACK_RETENTION_DAYS) }}</template>
+            <template #impressum><ExternalLink :href="legalUrl('impressum', locale)">{{ t('feedback.retention.impressum') }}</ExternalLink></template>
+            <template #privacy><ExternalLink :href="legalUrl('privacy', locale)" data-testid="feedback-privacy-link">{{ t('feedback.retention.privacy') }}</ExternalLink></template>
+          </i18n-t>
+        </p>
 
         <UAlert
           v-if="problem"
@@ -288,12 +318,15 @@ import { useFeedback } from '~/composables/useFeedback'
 import FeedbackAnnotator from '~/components/feedback/FeedbackAnnotator.vue'
 import FeedbackImage from '~/components/feedback/FeedbackImage.vue'
 import { FEEDBACK_REPO } from '~/lib/feedback/types'
+import { FEEDBACK_RETENTION_DAYS } from '~/lib/feedback/retention'
+import { legalUrl } from '~/lib/legalLinks'
+import ExternalLink from '~/components/ui/ExternalLink.vue'
 
 defineOptions({ name: 'FeedbackDialog' })
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const {
-  isOpen, step, draft, sending, problem, tokenState, tokenSource, titleValid, hasDraft, canUndoDiscard, body, prefilled, canSend, sendRoute, contextSummary, limits, logTail,
+  isOpen, step, draft, sending, problem, tokenState, tokenSource, titleValid, hasDraft, canUndoDiscard, preview, prefilled, canSend, sendRoute, contextSummary, limits, logTail,
   close, discard, undoDiscard, startPick, onDialogLeft, toReview, toForm, send, sendViaRelay, openInBrowser,
   rawShot, flat, annotations, capturePending, captureFailure, captureAvailable, sendPhase, sendsWithoutImage, screenshotDelivery, clipboardFailed,
   startCapture, toAnnotate, removeScreenshot, finishAnnotate,

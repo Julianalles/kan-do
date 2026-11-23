@@ -167,6 +167,7 @@
       "planAllNamed": "Alle Aufgaben aus „{section}“ für heute einplanen",
       "plannedMany": "Eine Aufgabe ist für heute geplant. | {n} Aufgaben sind für heute geplant."
     },
+    "emptyOpenHint": "Was steht heute an?",
     "yesterdayUnderAll": "Eine Aufgabe von gestern liegt unter {all}. | {n} Aufgaben von gestern liegen unter {all}.",
     "newDayNote": {
       "title": "Auf dem Board liegt noch der Plan von gestern.",
@@ -197,6 +198,7 @@
     "more": "Mehr",
     "moreProblem": "Mehr, Verbindungsproblem",
     "commands": "Schnellaktionen",
+    "feedback": "Feedback senden",
     "moreWithCommands": "Mehr, {commands}",
     "groupPage": "Auf dieser Seite",
     "groupPlaces": "Navigation",
@@ -674,7 +676,10 @@
       "placeholder": "Integrationstoken eingeben",
       "help": "Öffne {link}, um eine neue Integration zu erstellen und das Token zu erhalten.",
       "helpLink": "Notion › Einstellungen › Integrationen › Eigene Integrationen erstellen",
-      "validated": "Token erfolgreich geprüft"
+      "validated": "Token erfolgreich geprüft",
+      "legal": "Mit dem Verbinden stimmst du den {terms} von Kan-do zu. Wie Kan-do mit deinem Token umgeht, steht in den {privacy}.",
+      "legalTerms": "Nutzungsbedingungen",
+      "legalPrivacy": "Datenschutzhinweisen"
     },
     "database": {
       "selectLabel": "Notion-Datenbank auswählen",
@@ -1147,6 +1152,7 @@
         "webConfirm": "Daten ersetzen",
         "webExport": "Exportieren",
         "webBody": "Lade eine Kopie deines Boards herunter oder spiele sie wieder ein. Die Tokens dieses Browsers bleiben erhalten und werden nie exportiert.",
+        "webBodyLocal": "Lade eine Kopie deines Boards herunter oder spiele sie wieder ein.",
         "webNote": "Ersetzt deine aktuellen Daten in diesem Browser. Vorher kannst du eine Sicherung herunterladen. Danach lädt dieser Tab mit den importierten Daten neu.",
         "safetyDownload": "Aktuelle Daten vorher sichern",
         "failedQuota": "Der Import konnte nicht abgeschlossen werden: Im Browser ist kein Platz mehr. Es wurde nichts verändert.",
@@ -1211,7 +1217,11 @@
       "openGithub": "GitHub-Zugriff öffnen",
       "logHeading": "Protokoll",
       "revealLog": "Im Finder zeigen",
-      "checking": "Wird geprüft…"
+      "checking": "Wird geprüft…",
+      "auto": {
+        "label": "Automatisch nach Updates suchen",
+        "help": "Fragt beim Start GitHub nach der neuesten Version. GitHub sieht dabei deine IP-Adresse."
+      }
     },
     "subpages": {
       "data": {
@@ -1221,7 +1231,7 @@
       },
       "updates": {
         "label": "Updates",
-        "description": "Auf neue Version prüfen, Neugikeiten ansehen"
+        "description": "Auf neue Version prüfen, Neuigkeiten ansehen"
       },
       "github": {
         "label": "GitHub-Zugriff",
@@ -1300,7 +1310,8 @@
       "help": "Beim Hinzufügen kannst du einen anderen Speicherort wählen und du kannst Aufgaben jederzeit verschieben.",
       "moreHeading": "Eine App verbinden",
       "soon": "bald verfügbar",
-      "macOnly": "nur in der Mac-App"
+      "macOnly": "nur in der Mac-App",
+      "cloudUnavailable": "nur in der Mac-App"
     },
     "row": {
       "default": "Standard",
@@ -1318,6 +1329,7 @@
     "status": {
       "local": "Auf diesem Gerät gespeichert",
       "checking": "Wird geprüft…",
+      "desktopOnly": "Nur in der Desktop-App verfügbar. Deine lokalen Aufgaben bleiben erhalten.",
       "needsAttention": "Verbindung prüfen",
       "syncedNow": "Synchronisiert gerade eben",
       "syncedMinutes": "Synchronisiert vor {n} Min.",
@@ -1354,6 +1366,8 @@
       "samples": "Beispiel anzeigen",
       "curious": "Nur neugierig? Dann schau dir die App mit Beispielaufgaben an.",
       "intro": "Du kannst Aufgaben lokal auf diesem Gerät speichern und optional Apps wie Notion oder Todoist verbinden.",
+      "introWeb": "Du kannst Aufgaben lokal auf diesem Gerät speichern.",
+      "appDownload": "Mac-App herunterladen",
       "start": "Jetzt starten"
     },
     "flow": {
@@ -1369,6 +1383,7 @@
         "confirmNotion": "Mit Notion einrichten",
         "reminders": "Apple Erinnerungen",
         "remindersWebOnly": "Nur in der Mac-App",
+        "notionCloudUnavailable": "Nur in der Mac-App",
         "confirmReminders": "Mit Apple Erinnerungen einrichten",
         "confirmRemindersNotion": "Weiter mit Apple Erinnerungen und Notion",
         "notionHint": "Aufgaben aus einer Datenbank",
@@ -1614,7 +1629,7 @@
     "discardDraft": "Entwurf löschen",
     "review": {
       "title": "Prüfen und senden",
-      "intro": "Das geht genau so als öffentliches Feedback an {repo}. Vorher verlässt nichts die App.",
+      "intro": "Diese Angaben gehen als öffentliches Feedback an {repo}. Vorher verlässt nichts die App.",
       "contextHeading": "Das wird mitgeschickt",
       "itemElement": "Element: {name}",
       "itemEnvironment": "Route, Fenster, Sprache",
@@ -1639,10 +1654,27 @@
       "uploading": "Bild wird hochgeladen…",
       "creating": "Feedback wird angelegt…",
       "sendWithoutImage": "Ohne Bild senden",
-      "introRelay": "Das geht genau so an die Kan-do-Entwickler und wird nicht veröffentlicht. Vorher verlässt nichts die App.",
+      "introRelay": "Diese Angaben gehen an mich und werden nicht veröffentlicht. Vorher verlässt nichts die App.",
       "previewHeadingRelay": "Text des Feedbacks",
       "sendRelay": "Feedback senden",
-      "sendingRelay": "Feedback wird gesendet…"
+      "sendingRelay": "Feedback wird gesendet…",
+      "preview": {
+        "title": "Titel",
+        "description": "Beschreibung",
+        "noDescription": "Keine Beschreibung.",
+        "version": "Version",
+        "os": "System",
+        "route": "Seite",
+        "viewport": "Fenstergröße",
+        "locale": "Sprache",
+        "component": "Element",
+        "selector": "Selektor",
+        "testId": "Test-ID",
+        "boundingBox": "Position und Größe",
+        "taskId": "Aufgaben-ID",
+        "taskTitle": "Aufgabentitel",
+        "log": "Protokoll, letzte {n} Zeile | Protokoll, letzte {n} Zeilen"
+      }
     },
     "fallback": {
       "rejected": "GitHub hat das Feedback-Token abgelehnt. Das Feedback öffnet Kan-do stattdessen auf GitHub im Browser.",
@@ -1704,8 +1736,14 @@
     "publicAccount": "Zum Absenden brauchst du ein GitHub-Konto.",
     "openedToast": "GitHub ist im Browser geöffnet. Sende das Feedback dort ab.",
     "openedToastImage": "GitHub ist im Browser geöffnet. Füge den Screenshot mit ⌘V ein und sende das Feedback ab.",
-    "private": "Dein Feedback geht direkt an die Kan-do-Entwickler. Es wird nicht veröffentlicht.",
-    "sentRelayToast": "Danke, dein Feedback ist angekommen."
+    "private": "Dein Feedback geht direkt an mich. Es wird nicht veröffentlicht.",
+    "sentRelayToast": "Danke, dein Feedback ist angekommen.",
+    "retention": {
+      "notice": "Gesendet wird genau das, was du hier siehst. Es landet in einem privaten GitHub-Repository und wird {period} nach Abschluss der Bearbeitung gelöscht. Früher löschen lassen: Schreib eine E-Mail an die Adresse im {impressum}. Mehr dazu: {privacy}.",
+      "period": "{n} Tag | {n} Tage",
+      "impressum": "Impressum",
+      "privacy": "Datenschutz"
+    }
   },
   "trash": {
     "title": "Papierkorb",
@@ -1818,5 +1856,13 @@
     "over": "{time} über der Timebox",
     "elapsed": "Bisher gearbeitet: {time}",
     "paused": "pausiert"
+  },
+  "legal": {
+    "heading": "Rechtliches",
+    "impressum": "Impressum",
+    "privacy": "Datenschutz",
+    "terms": "Nutzungsbedingungen",
+    "label": "Rechtliche Hinweise",
+    "noAffiliation": "Notion ist eine Marke von Notion Labs, Inc. Todoist ist eine Marke von Doist. Kan-do ist mit keinem der beiden Unternehmen verbunden."
   }
 }

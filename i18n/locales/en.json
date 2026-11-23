@@ -167,6 +167,7 @@
       "planAllNamed": "Plan all tasks from “{section}” for today",
       "plannedMany": "One task is planned for today. | {n} tasks are planned for today."
     },
+    "emptyOpenHint": "What's on today?",
     "yesterdayUnderAll": "One task from yesterday is under {all}. | {n} tasks from yesterday are under {all}.",
     "newDayNote": {
       "title": "The board still shows yesterday's plan.",
@@ -197,6 +198,7 @@
     "more": "More",
     "moreProblem": "More, connection problem",
     "commands": "Quick actions",
+    "feedback": "Send feedback",
     "moreWithCommands": "More, {commands}",
     "groupPage": "On this page",
     "groupPlaces": "Navigation",
@@ -674,7 +676,10 @@
       "placeholder": "Enter integration token",
       "help": "Open {link} to create a new integration and get the token.",
       "helpLink": "Notion › Settings › Integrations › Create your own integration",
-      "validated": "Token verified successfully"
+      "validated": "Token verified successfully",
+      "legal": "By connecting, you agree to Kan-do's {terms}. How Kan-do handles your token is in the {privacy}.",
+      "legalTerms": "terms of use",
+      "legalPrivacy": "privacy notice"
     },
     "database": {
       "selectLabel": "Select Notion database",
@@ -1147,6 +1152,7 @@
         "webConfirm": "Replace data",
         "webExport": "Export",
         "webBody": "Download or restore a copy of your board. This browser's tokens are kept and never exported.",
+        "webBodyLocal": "Download or restore a copy of your board.",
         "webNote": "Replaces your current data in this browser. You can download a safety copy first. Afterwards this tab reloads with the imported data.",
         "safetyDownload": "Download current data first",
         "failedQuota": "The import couldn't be completed: this browser has no room left. Nothing was changed.",
@@ -1211,7 +1217,11 @@
       "openGithub": "Open GitHub access",
       "logHeading": "Log",
       "revealLog": "Show in Finder",
-      "checking": "Checking…"
+      "checking": "Checking…",
+      "auto": {
+        "label": "Check for updates automatically",
+        "help": "Asks GitHub for the latest version at start-up. GitHub sees your IP address."
+      }
     },
     "subpages": {
       "data": {
@@ -1300,7 +1310,8 @@
       "help": "When adding a task, you can choose another storage location, and you can move tasks at any time.",
       "moreHeading": "Connect an app",
       "soon": "coming soon",
-      "macOnly": "Mac app only"
+      "macOnly": "Mac app only",
+      "cloudUnavailable": "Mac app only"
     },
     "row": {
       "default": "Default",
@@ -1318,6 +1329,7 @@
     "status": {
       "local": "Stored on this device",
       "checking": "Checking…",
+      "desktopOnly": "Only available in the desktop app. Your local tasks are kept.",
       "needsAttention": "Check connection",
       "syncedNow": "Synced just now",
       "syncedMinutes": "Synced {n} min ago",
@@ -1354,6 +1366,8 @@
       "samples": "Show example",
       "curious": "Just curious? Then look around the app with sample tasks.",
       "intro": "You can save tasks locally on this device and, if you like, connect apps such as Notion or Todoist.",
+      "introWeb": "You can save tasks locally on this device.",
+      "appDownload": "Download the Mac app",
       "start": "Get started"
     },
     "flow": {
@@ -1369,6 +1383,7 @@
         "confirmNotion": "Set up Notion",
         "reminders": "Apple Reminders",
         "remindersWebOnly": "Mac app only",
+        "notionCloudUnavailable": "Mac app only",
         "confirmReminders": "Set up with Apple Reminders",
         "confirmRemindersNotion": "Continue with Apple Reminders and Notion",
         "notionHint": "Tasks from a database",
@@ -1614,7 +1629,7 @@
     "discardDraft": "Delete draft",
     "review": {
       "title": "Review and send",
-      "intro": "This goes exactly like this as public feedback to {repo}. Nothing leaves the app before that.",
+      "intro": "These details go as public feedback to {repo}. Nothing leaves the app before that.",
       "contextHeading": "What's sent along",
       "itemElement": "Element: {name}",
       "itemEnvironment": "Route, window, language",
@@ -1639,10 +1654,27 @@
       "uploading": "Uploading image…",
       "creating": "Creating feedback…",
       "sendWithoutImage": "Send without image",
-      "introRelay": "This goes to the Kan-do developers exactly as shown and isn't published. Nothing leaves the app before that.",
+      "introRelay": "These details go to me and aren't published. Nothing leaves the app before that.",
       "previewHeadingRelay": "Feedback text",
       "sendRelay": "Send feedback",
-      "sendingRelay": "Sending feedback…"
+      "sendingRelay": "Sending feedback…",
+      "preview": {
+        "title": "Title",
+        "description": "Description",
+        "noDescription": "No description.",
+        "version": "Version",
+        "os": "System",
+        "route": "Page",
+        "viewport": "Window size",
+        "locale": "Language",
+        "component": "Element",
+        "selector": "Selector",
+        "testId": "Test id",
+        "boundingBox": "Position and size",
+        "taskId": "Task id",
+        "taskTitle": "Task title",
+        "log": "Log, last {n} line | Log, last {n} lines"
+      }
     },
     "fallback": {
       "rejected": "GitHub rejected the feedback token. Kan-do opens the feedback on GitHub in your browser instead.",
@@ -1704,8 +1736,14 @@
     "publicAccount": "Sending it needs a GitHub account.",
     "openedToast": "GitHub is open in your browser. Send the feedback there.",
     "openedToastImage": "GitHub is open in your browser. Paste the screenshot with ⌘V, then send the feedback.",
-    "private": "Your feedback goes straight to the Kan-do developers. It isn't published.",
-    "sentRelayToast": "Thanks, your feedback has arrived."
+    "private": "Your feedback goes straight to me. It isn't published.",
+    "sentRelayToast": "Thanks, your feedback has arrived.",
+    "retention": {
+      "notice": "Exactly what you see here is sent. It goes to a private GitHub repository and is deleted {period} after we've dealt with it. To have it deleted sooner, email the address in the {impressum}. More: {privacy}.",
+      "period": "{n} day | {n} days",
+      "impressum": "legal notice",
+      "privacy": "Privacy"
+    }
   },
   "trash": {
     "title": "Trash",
@@ -1762,7 +1800,7 @@
       "heart": "Health",
       "airplane": "Travel",
       "currency-eur": "Finances",
-      "wrench": "Tools",
+      "wrench": "Tech",
       "lightbulb": "Idea",
       "calendar": "Appointments",
       "users": "Team",
@@ -1818,5 +1856,13 @@
     "over": "{time} over the timebox",
     "elapsed": "Time spent: {time}",
     "paused": "paused"
+  },
+  "legal": {
+    "heading": "Legal",
+    "impressum": "Legal notice",
+    "privacy": "Privacy",
+    "terms": "Terms of use",
+    "label": "Legal information",
+    "noAffiliation": "Notion is a trademark of Notion Labs, Inc. Todoist is a trademark of Doist. Kan-do is not affiliated with either."
   }
 }

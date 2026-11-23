@@ -4,6 +4,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
+import { setPublicCloud } from '../helpers/publicCloud'
 
 const getDatabaseSchema = vi.fn()
 vi.mock('~/composables/useNotionIntegration', () => ({
@@ -32,7 +33,15 @@ describe('usePropertyOptionsSync.fetchSchemaOptions failures (#341)', () => {
     vi.spyOn(console, 'warn').mockImplementation(() => {})
     vi.spyOn(console, 'log').mockImplementation(() => {})
   })
-  afterEach(() => vi.restoreAllMocks())
+  afterEach(() => { vi.restoreAllMocks(); setPublicCloud(false) })
+
+  it('sends nothing on the public cloud, whatever Notion config is stored (#742)', async () => {
+    setPublicCloud(true)
+
+    await usePropertyOptionsSync().fetchSchemaOptions()
+
+    expect(getDatabaseSchema).not.toHaveBeenCalled()
+  })
 
   it('reads the schema without letting the integration report a failure', async () => {
     getDatabaseSchema.mockResolvedValue({})

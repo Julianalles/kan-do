@@ -72,6 +72,19 @@ test.describe('Add task modal — unified calm structure', () => {
     expect((await topic.boundingBox())!.y).toBe(before!.y);
   });
 
+  test('creating a Thema with Enter sets it and closes the picker (#774)', async ({ page }) => {
+    await page.goto('/tasks/add');
+    await expect(page.getByRole('dialog')).toBeVisible();
+
+    const topic = page.getByTestId('add-task-topic-select');
+    await topic.click();
+    const search = page.getByPlaceholder('Thema suchen…');
+    await search.fill('Brandneues Thema');
+    await search.press('Enter');
+    await expect(topic).toContainText('Brandneues Thema');
+    await expect(search).toBeHidden();
+  });
+
   test('a custom row stays mounted and focused while its text is cleared', async ({ page, context }) => {
     await seedNotionBoard(context, SEED, {
       propertyMapping: {

@@ -131,7 +131,7 @@
           </button>
         </UTooltip>
         <template #content>
-          <MorePanel :open="open" @close="open = false" @day-close="closeAndOpenDayClose" @commands="closeAndOpenCommands" />
+          <MorePanel :open="open" @close="open = false" @day-close="closeAndOpenDayClose" @commands="closeAndOpenCommands" @feedback="closeAndOpenFeedback" />
         </template>
       </UPopover>
 
@@ -148,6 +148,8 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useMediaQuery } from '@vueuse/core'
 import { openCommandPalette } from '~/composables/useCommandPalette'
+import { useFeedback } from '~/composables/useFeedback'
+import { openOnBoard } from '~/lib/nativeMenu'
 import MorePanel from '~/components/nav/MorePanel.vue'
 import BoardFocusTrigger from '~/components/board/BoardFocusTrigger.vue'
 import { useAppNav, useLiveRoute, type ThirdItem } from '~/composables/useAppNav'
@@ -170,6 +172,7 @@ const { dragState } = useBoardDragState()
 const { hasFocusJob, chipsOpen } = useBoardFocus()
 /** The topic focus funnel (BoardFocusTrigger) is on screen: on a phone the group makes room for it (#381) */
 const { open: openDayClose, isOpen: dayCloseOpen } = useDayClose()
+const feedback = useFeedback()
 /** No board filter on a screen without a board (#608): day close and the recap hide the funnel, and it returns when the stage closes */
 const funnelAllowed = computed(() => onBoard.value && !dayCloseOpen.value && !recapShown.value)
 const showsFocus = computed(() => funnelAllowed.value && hasFocusJob.value)
@@ -421,6 +424,14 @@ async function closeAndOpenDayClose() {
   await nextTick()
   moreEl.value?.focus({ preventScroll: true })
   openDayClose()
+}
+
+/** Same hand-over for the feedback dialog (#759): it is mounted by the board page, so a row chosen elsewhere goes there first */
+async function closeAndOpenFeedback() {
+  open.value = false
+  await nextTick()
+  moreEl.value?.focus({ preventScroll: true })
+  await openOnBoard({ navigate: path => navigateTo(path), afterRender: () => nextTick() }, () => feedback.open())
 }
 
 /** Same hand-over for the command palette; it refuses to open while another dialog (the closing popover) is in the DOM */

@@ -4,7 +4,7 @@ import { seedLocalBoard } from './helpers/seed'
 import { openMore } from './helpers/appNav'
 import { settleAnimations } from './helpers/settle'
 import {
-  installTauriStub, setInstallFailure, stubState, type UpdateStubOptions, type UpdateStubResult,
+  installTauriStub, persistedStores, setInstallFailure, stubState, type UpdateStubOptions, type UpdateStubResult,
 } from './helpers/tauriStub'
 
 /** #225: version, update check and install against the stubbed IPC (see helpers/tauriStub.ts). */
@@ -264,6 +264,29 @@ test.describe('Updates in the palette and at launch (desktop)', () => {
     await expect(page.getByText('Version 0.2.0 ist verfügbar').first()).toBeVisible()
     await page.getByRole('button', { name: 'Details' }).click()
     await expect(updateDialog(page)).toBeVisible()
+    expect((await stubState(page)).calls.filter(call => call.cmd === 'update_check')).toHaveLength(1)
+  })
+
+  test('"Automatisch nach Updates suchen" off: no launch check after a restart; the button still checks (#746)', async ({ page }) => {
+    await page.clock.install()
+    await installTauriStub(page.context(), { update: { check: { status: 'up-to-date' } } })
+    await page.goto('/settings/updates')
+    const autoSwitch = page.getByTestId('updates-auto-switch')
+    await expect(autoSwitch).toHaveAttribute('aria-checked', 'true')
+    await expect(page.getByTestId('updates-auto-setting')).toContainText('GitHub sieht dabei deine IP-Adresse.')
+    await autoSwitch.click()
+    await expect(autoSwitch).toHaveAttribute('aria-checked', 'false')
+    // The restart reads what was persisted: wait for the write instead of racing the reload (#757)
+    await expect.poll(async () => (await persistedStores(page))['settings-store']?.autoUpdateCheck).toBe(false)
+
+    await page.reload()
+    await expect(page.getByTestId('updates-auto-switch')).toHaveAttribute('aria-checked', 'false')
+    await page.clock.fastForward(11_000)
+    // The launch delay has passed: nothing asked GitHub
+    expect((await stubState(page)).calls.filter(call => call.cmd === 'update_check')).toHaveLength(0)
+
+    await checkButton(page).click()
+    await expect(page.getByTestId('updates-status')).toHaveText('Du hast die neueste Version.')
     expect((await stubState(page)).calls.filter(call => call.cmd === 'update_check')).toHaveLength(1)
   })
 

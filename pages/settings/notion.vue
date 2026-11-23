@@ -7,6 +7,7 @@
 - One tab form with `/settings/topics` (#603): horizontal underline tabs without icons above a full-width panel, in the 672 px column of every settings sibling (it was a vertical icon list in 992 px). The list scrolls sideways inside itself when the tabs do not fit and keeps the active tab in view
 - The setup runs here as a stage (#652, epic #607): without an integration, or with `?setup=connect|repair|settings`, the sheet holds `NotionSetupFlow` (the welcome flow's component on `SetupShell`, no dialog) at 768 px like the welcome sheet (`useSetupStageWidth`). `connect` starts at the intro, `repair` (credentials needed: a broken connection) at the token step with the broken notice, `settings` (a merely degraded connection) at the shorter mapping steps. The stage is decided once on arrival, so the connection the flow saves does not swap the page under its own "verbunden" beat; the sources tab's "Verbinden" and "Verbindung reparieren" navigate here
 - Zurück on the first step ("Zurück zu Einstellungen") and the end of the flow leave to the sources tab (`/settings?tab=sources`; one history step back when the page came from there); the end then connects the source (`connectSource`, the first fetch merges as today) or, for a repair, fetches it, behind the done beat. Nothing is written to the connection before the last step confirms
+- Not on the public web instance (#742): `middleware/notion-available.ts` sends the route to the sources tab
 - Allows direct access to specific settings without wizard flow
 - Manages save/cancel actions per section; the inline database edit pairs a soft "Abbrechen" with a solid "Speichern" (#596)
 - Phone: while tabs hide past the right edge the row fades out there (the cue that it scrolls, #596)
@@ -279,6 +280,7 @@ defineOptions({ name: 'NotionSettingsPage' });
 definePageMeta({
   layout: false,
   titleKey: 'notion.settings.pageTitle',
+  middleware: 'notion-available', // the public web instance offers no Notion (#742): to the sources tab
   pageWidth: 'narrow', // one 672 px column on the app bar's axis, like every settings sibling (#673, #603)
 });
 

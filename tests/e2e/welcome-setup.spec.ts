@@ -75,6 +75,29 @@ test('welcome start: one filled green "Jetzt starten", "Beispiel anzeigen" soft 
   expect(Math.abs(brandBox!.x - titleBox!.x)).toBeLessThan(1)
   await expect(sheet.getByText('kan-do', { exact: true })).toHaveCount(0)
   await expectContrast(page, page.getByText(/Du kannst Aufgaben lokal auf diesem Gerät speichern/), 4.5)
+
+  // #745: the legal pages are one click away before anything is set up
+  await expect(sheet.getByRole('navigation', { name: 'Rechtliche Hinweise' }).getByRole('link')).toHaveText(['Impressum', 'Datenschutz', 'Nutzungsbedingungen'])
+})
+
+test('web welcome links to the latest release; the desktop app does not show it (#737)', async ({ page, baseURL, browser }) => {
+  await page.goto(baseURL! + '/welcome')
+  const link = page.getByTestId('welcome-app-download')
+  await expect(link).toHaveText('Mac-App herunterladen')
+  await expect(link).toHaveAttribute('href', 'https://github.com/jaylouiz/kan-do/releases/latest')
+  await expect(link).toHaveAttribute('target', '_blank')
+
+  // Not a step of the setup
+  await page.getByRole('button', { name: 'Beispiel anzeigen' }).click()
+  await expect(link).toHaveCount(0)
+
+  const ctx = await browser.newContext({ locale: 'de-DE' })
+  const desktop = await ctx.newPage()
+  await installTauriStub(ctx)
+  await desktop.goto(baseURL! + '/welcome')
+  await expect(desktop.getByRole('button', { name: 'Jetzt starten' })).toBeVisible()
+  await expect(desktop.getByTestId('welcome-app-download')).toHaveCount(0)
+  await ctx.close()
 })
 
 test('welcome has no horizontal overflow at 390px, the headline stays within two lines and the sheet is lower than the old three-row one (#294)', async ({ page, baseURL }) => {

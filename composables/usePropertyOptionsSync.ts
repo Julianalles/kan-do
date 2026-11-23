@@ -7,6 +7,7 @@ import { computed } from 'vue';
 import { usePropertyOptionsStore } from '~/store/propertyOptions';
 import { useNotionConfigStore } from '~/store/notionConfig';
 import { useNotionIntegration } from '~/composables/useNotionIntegration';
+import { isNotionAvailable } from '~/utils/publicCloud';
 import { useIntegrationHealthStore } from '~/store/integrationHealth';
 import { classifySyncFailure } from '~/lib/integrationHealth';
 
@@ -23,8 +24,8 @@ export const usePropertyOptionsSync = () => {
    * Non-blocking - doesn't throw errors, records them in the source's health
    */
   const fetchSchemaOptions = async () => {
-    // Only fetch if Notion is configured
-    if (!notionConfigStore.isConfigured || !notionConfigStore.config) {
+    // Only fetch if Notion is configured; a stored config on the public cloud is paused and sends no token (#742)
+    if (!isNotionAvailable() || !notionConfigStore.isConfigured || !notionConfigStore.config) {
       return;
     }
     

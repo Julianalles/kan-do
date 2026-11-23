@@ -374,6 +374,11 @@ test.describe('Notion Setup Stepper', () => {
       const token = flow.getByPlaceholder('Integrationstoken eingeben')
       await expect(token).toBeVisible()
       await expect(flow.getByRole('group', { name: 'Token' })).toBeFocused()
+      // #745: terms and privacy notice where the user connects (Notion Developer Terms § 4.2), no affiliation (§ 5.9)
+      const legal = flow.getByTestId('notion-token-legal')
+      await expect(legal.getByRole('link', { name: 'Nutzungsbedingungen' })).toHaveAttribute('href', /\/kan-do\/nutzungsbedingungen\/$/)
+      await expect(legal.getByRole('link', { name: 'Datenschutzhinweisen' })).toHaveAttribute('href', /\/kan-do\/datenschutz\/$/)
+      await expect(legal).toContainText('Kan-do ist mit keinem der beiden Unternehmen verbunden.')
       await token.fill('secret_typed_token')
 
       await page.getByTestId('setup-back').click() // from the token step back to the intro

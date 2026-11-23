@@ -3,9 +3,9 @@ import { seedNotionBoard } from './helpers/seed'
 
 /**
  * The Notion proxy takes the token only in `Authorization: Bearer` (#503): no request URL carries it (URLs end up
- * in Cloudflare logs and analytics), and one normal board session stays far below the Worker's rate limit of 120
- * requests per minute (`worker/limiter.ts`). The origin check and the limiter themselves are unit-tested
- * in `worker/` (this suite serves the Nitro build, not the Worker).
+ * in server logs), and one normal board session stays at a handful of requests. The public instance has no Notion
+ * proxy since #742 (local-only; its Worker answers `/api/notion/*` with 404, unit-tested in `worker/`); the proxy runs
+ * in dev and the E2E build, which this suite serves.
  */
 
 const column = (page: Page, key: string) => page.locator(`#column-${key}-list`)

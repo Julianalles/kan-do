@@ -501,7 +501,8 @@
       ],
       "specs": [
         "visual-regression",
-        "server-error-page"
+        "server-error-page",
+        "overlay-scrim"
       ]
     },
     {
@@ -653,9 +654,11 @@
       ]
     },
     {
-      "area": "topics: editor, marks, names, styles, settings page",
+      "area": "topics: editor, marks, names, styles, settings page, and the task-sheet pickers that create and pick a topic (#785: #783 changed the create-closes behaviour unseen)",
       "paths": [
         "components/topic/**",
+        "components/task/TaskPropertySelect.vue",
+        "components/task/TopicPropertyPicker.vue",
         "composables/useTopic*",
         "lib/topicStyles.ts",
         "lib/topicNames.ts",
@@ -694,7 +697,9 @@
         "utils/sourceCompound.ts",
         "components/settings/LocalStorageDetails.vue",
         "components/settings/DisconnectSourceDialog.vue",
-        "composables/useSourceList.ts"
+        "composables/useSourceList.ts",
+        "utils/publicCloud.ts",
+        "middleware/notion-available.ts"
       ],
       "specs": [
         "sources-settings",
@@ -980,7 +985,8 @@
         "plugins/whats-new*",
         "plugins/updater*",
         "pages/settings/updates.vue",
-        "types/updater.ts"
+        "types/updater.ts",
+        "components/settings/SettingSwitchRow.vue"
       ],
       "specs": [
         "updates",
@@ -1252,6 +1258,28 @@
       "specs": [
         "hover-answer",
         "phone-hit-areas"
+      ]
+    },
+    {
+      "area": "legal links (#745): the one URL constant and the links on the welcome page, in settings, the feedback notice and the Notion token step",
+      "paths": [
+        "components/legal/**",
+        "lib/legalLinks.ts"
+      ],
+      "specs": [
+        "settings-tabs",
+        "welcome-setup",
+        "feedback",
+        "notion-setup-stepper"
+      ]
+    },
+    {
+      "area": "desktop app download link (#737): the URL constant and the web-only link on the welcome page",
+      "paths": [
+        "lib/appDownload.ts"
+      ],
+      "specs": [
+        "welcome-setup"
       ]
     }
   ]

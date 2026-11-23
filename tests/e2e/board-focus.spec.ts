@@ -161,6 +161,21 @@ test.describe('topic focus placement (#608)', () => {
     expect(heights.some(h => h > 0 && h < full - 4), `the columns moved in one step: ${heights.join(', ')}`).toBe(true)
   })
 
+  test('short lists: the chip row and the pill add no page scrollbar (#740)', async ({ context, page }) => {
+    // Two topics, one card per column: everything fits the viewport on its own
+    await seedLocalBoard(context, TASKS.filter(t => ['run', 'a1', 'b1', 'w1', 'd1'].includes(t.id)), {}, undefined, { once: true })
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    await gotoBoard(page)
+    const overflow = () => page.evaluate(() => document.documentElement.scrollHeight - window.innerHeight)
+    await expect.poll(overflow).toBeLessThanOrEqual(0)
+    await trigger(page).click()
+    await expect(page.getByTestId('focus-bar')).toBeVisible()
+    await expect.poll(overflow).toBeLessThanOrEqual(0)
+    await page.getByTestId('focus-chip').first().click()
+    await expect(page.getByTestId('focus-pill')).toBeVisible()
+    await expect.poll(overflow).toBeLessThanOrEqual(0)
+  })
+
   test('reduced motion: the row is there at once', async ({ context, page }) => {
     await seedLocalBoard(context, TASKS, {}, undefined, { once: true })
     await page.emulateMedia({ reducedMotion: 'reduce' })
