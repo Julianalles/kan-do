@@ -16,6 +16,7 @@
 - Handles visual states for different statuses and empty states
 - `top` slot (Offen on "Alle", #573 case 2): a zero-height sticky host under the app bar for the capacity echo of a line above the window
 - Offen on Heute, empty while tasks of today's group "Gestern geplant" wait under "Alle" (#356): one muted sentence with a link to "Alle"; every other empty column stays blank
+- Offen on Heute with no task in any column (#761): one muted hint line "Was steht heute an?" that is itself a button opening the add slot (the header button's flow); gone while a draft is open, a drag runs or the yesterday note shows
 - Erledigt drop target (#124): a light green wash under the list and a one-line hint while a card
   from another column hovers it
 -->
@@ -119,6 +120,17 @@
           </template>
         </i18n-t>
       </p>
+      <!-- An empty board on Heute (#761): one hint line that is itself the add button, so a first start has a next step -->
+      <UButton
+        v-if="showEmptyHint"
+        color="neutral"
+        variant="link"
+        class="mx-auto flex"
+        data-testid="open-empty-hint"
+        @click="addSlotRef?.open()"
+      >
+        {{ t('board.emptyOpenHint') }}
+      </UButton>
       <!-- Add slot (Open column only, #125, #248): the draft host at the start of the list. It has no box while no draft is
            open (no gap above the first card); the header button opens it. Inside the flex container so gap spacing applies -->
       <add-task-slot
@@ -210,6 +222,11 @@ const props = defineProps({
   yesterdayCount: {
     type: Number,
     default: 0,
+  },
+  /** Offen only (#761): no task in any column of Heute; the empty Offen then asks what is on today. */
+  boardEmpty: {
+    type: Boolean,
+    default: false,
   },
   staticMode: {
     type: Boolean,
@@ -546,6 +563,11 @@ const isEmpty = computed(computeIsEmpty);
 const showYesterdayNote = computed(() =>
   isOpenColumn.value && !props.staticMode && !isAll.value && isEmpty.value && !hasGaps.value
   && !props.isDragging && !(addSlotRef.value?.isDrafting ?? false) && props.yesterdayCount > 0);
+
+/** The hint line of an empty board (#761): where the yesterday note does not show, with the same guards. */
+const showEmptyHint = computed(() =>
+  props.boardEmpty && isOpenColumn.value && !props.staticMode && !isAll.value && isEmpty.value && !hasGaps.value
+  && !props.isDragging && !(addSlotRef.value?.isDrafting ?? false) && !showYesterdayNote.value);
 
 /**
  * Navigates to the task detail view

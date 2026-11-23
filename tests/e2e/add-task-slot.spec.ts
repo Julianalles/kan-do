@@ -527,3 +527,29 @@ test.describe('Add slot, 390px', () => {
     });
   });
 });
+
+/** #761: an empty board asks what is on today in Offen; the line is the add button. */
+test.describe('Empty board hint (#761)', () => {
+  test('shows on an empty board, opens the draft, returns after cancel and is gone with a task', async ({ page, context }) => {
+    await seedLocalBoard(context, []);
+    await page.goto('/tasks');
+    const hint = offen(page).getByTestId('open-empty-hint');
+    await expect(hint).toHaveText('Was steht heute an?');
+
+    await hint.click();
+    await expect(newCard(offen(page))).toBeVisible();
+    await expect(hint).toHaveCount(0);
+
+    await page.keyboard.press('Escape');
+    await expect(newCard(offen(page))).toHaveCount(0);
+    await expect(hint).toBeVisible();
+    await expect(headerAdd(page)).toBeFocused();
+  });
+
+  test('is absent once any column holds a task', async ({ page, context }) => {
+    await seedLocalBoard(context, SEED_TASKS.filter((task) => task.status === 3).slice(0, 1));
+    await page.goto('/tasks');
+    await expect(offen(page)).toBeVisible();
+    await expect(page.getByTestId('open-empty-hint')).toHaveCount(0);
+  });
+});
