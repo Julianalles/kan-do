@@ -15,14 +15,14 @@ vi.mock('vue-router', async () => {
   return { useRoute: () => route.value }
 })
 // The flow itself is covered by NewCardFlow.spec.ts: here it only offers the two ways out, and what it exposes (the typed title, the stored task, #758)
-const flowExposed = vi.hoisted(() => ({ title: '', storedId: null as string | null }))
+const flowExposed = vi.hoisted(() => ({ title: '', holdsTask: false }))
 vi.mock('~/components/board/NewCardFlow.vue', () => ({
   default: {
     name: 'NewCardFlow',
     emits: ['saved', 'cancel'],
     props: ['initialTitle'],
     setup(_: unknown, { expose }: { expose: (exposed: Record<string, unknown>) => void }) {
-      expose({ get title() { return flowExposed.title }, get storedId() { return flowExposed.storedId } })
+      expose({ get title() { return flowExposed.title }, get holdsTask() { return flowExposed.holdsTask } })
     },
     template: '<div data-testid="new-card-flow" :data-initial-title="initialTitle"><button data-testid="flow-cancel" @click="$emit(\'cancel\')" /><button data-testid="flow-cancel-typed" @click="$emit(\'cancel\', { title: \'Tippfehler\' })" /><button data-testid="flow-saved" @click="$emit(\'saved\', \'task-1\')" /></div>',
   },
@@ -177,14 +177,14 @@ describe('AddTaskSlot in-card adding (#649)', () => {
     w.unmount()
   })
 
-  it('#758: the move to "Alle" closes a card whose task is stored without the "Rückgängig" toast; a typed title before the confirm still gets it (#567)', async () => {
+  it('#758: the move to "Alle" closes a card whose task is stored (or being created) without the "Rückgängig" toast; a typed title before the confirm still gets it (#567)', async () => {
     toastAddMock.mockReset()
     setCurrentBoardPath('/tasks')
     const w = renderInCard()
     open(w)
     await nextTick()
     flowExposed.title = 'Schon gespeichert'
-    flowExposed.storedId = 'task-1'
+    flowExposed.holdsTask = true // stored, or its create still running
     setCurrentBoardPath('/all')
     await nextTick()
     await nextTick()
@@ -195,7 +195,7 @@ describe('AddTaskSlot in-card adding (#649)', () => {
     open(w)
     await nextTick()
     flowExposed.title = 'Nur getippt'
-    flowExposed.storedId = null
+    flowExposed.holdsTask = false
     setCurrentBoardPath('/all')
     await nextTick()
     await nextTick()

@@ -101,7 +101,7 @@ const variant = computed(() => (props.status === TaskStatus.Progress ? 'progress
 const route = useRoute();
 const buttonEl = ref<HTMLButtonElement | null>(null);
 const flowOpen = ref(false);
-const flowRef = ref<{ title: string; storedId: string | null } | null>(null);
+const flowRef = ref<{ title: string; holdsTask: boolean } | null>(null);
 trackInCardAdding(flowOpen); // the focus overlay steps aside while the form is up (kd#56)
 /** The title the card opens with: only after "Rückgängig" on a dropped title (#665) */
 const flowTitle = ref<string | undefined>(undefined);
@@ -186,8 +186,8 @@ watch(() => route.path, (path) => {
 // Offen, beside the card of that side (#567): it gives way like a card the sheet takes over, a typed title comes back with "Rückgängig"
 watch(place, (next, prev) => {
   if (next !== 'all' || prev === 'all' || !flowOpen.value) return;
-  // A card whose task is already stored (#758) just closes: the task stays in Offen, nothing to take back
-  if (flowRef.value?.storedId) {
+  // A card whose task is stored or being created (#758) just closes: the task stays in Offen, nothing to take back
+  if (flowRef.value?.holdsTask) {
     void closeFlow();
     return;
   }

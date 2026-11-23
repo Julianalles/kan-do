@@ -749,6 +749,61 @@ describe('NewCardFlow (#649)', () => {
     expect(w.emitted('cancel')).toBeUndefined()
   })
 
+  /** The next create waits until `finish()` (a Notion round trip) */
+  function holdCreate(id: string) {
+    const held = { finish: () => {} }
+    sync.createTask.mockImplementationOnce((draft: Record<string, unknown>, _source: string, options: OnAdd) =>
+      new Promise((done) => { held.finish = () => done(addStored(draft, options, id)) }))
+    return held
+  }
+
+  it('#758: Esc while the first create runs neither cancels nor offers "Rückgängig"; the card goes on to the first question', async () => {
+    const held = holdCreate('local_7')
+    mountFlow()
+    await title().setValue('Unterwegs')
+    await w.get('form').trigger('submit')
+    await nextTick()
+    expect((w.vm as unknown as { holdsTask: boolean }).holdsTask).toBe(true) // the place switch reads it: no "Rückgängig" for a task on its way
+    await title().trigger('keydown', { key: 'Escape' })
+    expect(w.emitted('cancel')).toBeUndefined()
+    held.finish()
+    await flushPromises()
+    expect(stepKey()).toBe('topic')
+    expect(sync.createTask).toHaveBeenCalledTimes(1)
+    expect(inCardTask.value).toBe('local_7')
+  })
+
+  it('#758: a create that lands after the card closed leaves the task visible on the board', async () => {
+    const held = holdCreate('local_8')
+    mountFlow()
+    await title().setValue('Spät')
+    await w.get('form').trigger('submit')
+    await nextTick()
+    w.unmount() // the sheet or the move to "Alle" closed the card during the round trip
+    held.finish()
+    await flushPromises()
+    expect(stored()).toMatchObject({ id: 'local_8', title: 'Spät' })
+    expect(inCardTask.value).toBeNull()
+  })
+
+  it('#758: a card closed between the add and the end of the create clears the hidden id it set', async () => {
+    let land!: () => void
+    sync.createTask.mockImplementationOnce((draft: Record<string, unknown>, _source: string, options: OnAdd) => {
+      addStored(draft, options, 'local_6') // the task is in the store, the create has not returned yet
+      return new Promise((done) => { land = () => done(stored()) })
+    })
+    mountFlow()
+    await title().setValue('Dazwischen')
+    await w.get('form').trigger('submit')
+    await nextTick()
+    expect(inCardTask.value).toBe('local_6')
+    w.unmount()
+    expect(inCardTask.value).toBeNull()
+    land()
+    await flushPromises()
+    expect(inCardTask.value).toBeNull()
+  })
+
   it('#758: a second Enter while the create runs stores one task; finishing twice saves once', async () => {
     let finish!: () => void
     sync.createTask.mockImplementationOnce((draft: Record<string, unknown>, _source: string, options: OnAdd) =>
