@@ -324,6 +324,17 @@ describe('MorePanel: the Mehr panel (#470)', () => {
       expect(off.find('[data-testid="more-day-close"]').exists()).toBe(false)
     })
 
+    it('with no source connected there is no sync footer and Befehle is the last row (#763)', () => {
+      useBoardStore().setSources({ connected: [], default: 'local' })
+      const w = render()
+      expect(w.find('[data-testid="more-sync"]').exists()).toBe(false)
+      expect(w.find('[data-testid="more-sync-status"]').exists()).toBe(false)
+      expect(w.text()).not.toContain('Jetzt synchronisieren')
+      const ids = controls(w).map(el => el.getAttribute('data-testid'))
+      expect(ids.at(-1)).toBe('more-commands')
+      expect(ids).toContain('more-feedback')
+    })
+
     it('Feedback senden is on every page, has no arrow and emits feedback (#759)', async () => {
       for (const path of ['/tasks', '/settings', '/trash', '/statistics']) {
         route.path = path

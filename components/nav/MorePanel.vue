@@ -11,7 +11,7 @@
 - The page the pill shows as its third segment (#583: Einstellungen on /settings*, Papierkorb on /trash*) is not listed here; the row returns when the page leaves the pill. App-Update stays on /settings/updates (a different page). The panel closes on every route change, so a row never appears or disappears while it is open, and the rows are frozen (`open` false) while it fades out, so it keeps its shape (#595)
 - App-Update only in the desktop app (`isTauri()`, absent in the web build, never disabled)
 - Phone: the group-by chips keep their room (invisible, inert) while grouping is off, so turning it on moves nothing under the finger (#602)
-- Sync footer: a failing source shows its worst problem (title, hint, "Verbindung reparieren") above "Jetzt synchronisieren" + last sync; silent while every source is healthy
+- Sync footer: absent while no source is connected (#763: a local-only board has nothing to sync); a failing source shows its worst problem (title, hint, "Verbindung reparieren") above "Jetzt synchronisieren" + last sync; silent while every source is healthy
 - While a sync runs (manual or background) the row's second line reads "Wird synchronisiert…" (spinner from the button's `loading`), so the accessible name carries the state, and a sibling `role="status"` announces it (#647)
 - Desktop only, on every page with the bar (#224): "Befehle" with the palette shortcut hint opens the command palette (U7 of kd#17: the hint was tooltip-only; the palette has no phone entry), always the last row before the sync footer (#748). AppNav closes the panel and returns focus to ⋯ first, like `dayClose`
 - Keyboard: ↑/↓ move focus to the previous/next enabled control (clamped, no wrap), Home/End to the first/last; Tab order and roles stay (a popover, not role=menu)
@@ -159,47 +159,50 @@
       </UButton>
     </template>
 
-    <USeparator class="my-1" />
-    <div class="space-y-2">
-      <div v-if="worstProblem" class="space-y-2 p-2" :data-testid="`sync-problem-${worstProblem.source}`">
-        <p class="flex items-start gap-2 text-sm font-medium text-highlighted">
-          <UIcon :name="PROBLEM_ICONS[worstProblem.status]" class="mt-0.5 size-4 shrink-0" :class="problemTone" aria-hidden="true" />
-          <span>{{ problemTitle(worstProblem) }}</span>
-        </p>
-        <p class="text-body text-muted">{{ problemHint(worstProblem) }}</p>
+    <!-- #763: with no source connected there is nothing to sync (the web app holds local tasks only): no footer -->
+    <template v-if="hasSource">
+      <USeparator class="my-1" />
+      <div class="space-y-2">
+        <div v-if="worstProblem" class="space-y-2 p-2" :data-testid="`sync-problem-${worstProblem.source}`">
+          <p class="flex items-start gap-2 text-sm font-medium text-highlighted">
+            <UIcon :name="PROBLEM_ICONS[worstProblem.status]" class="mt-0.5 size-4 shrink-0" :class="problemTone" aria-hidden="true" />
+            <span>{{ problemTitle(worstProblem) }}</span>
+          </p>
+          <p class="text-body text-muted">{{ problemHint(worstProblem) }}</p>
+          <UButton
+            v-if="repairRouteOf(worstProblem.source)"
+            :to="repairRouteOf(worstProblem.source)!"
+            icon="i-ph-wrench"
+            color="neutral"
+            variant="soft"
+            block
+            :data-testid="`sync-repair-${worstProblem.source}`"
+            @click="emit('close')"
+          >
+            {{ t('board.sync.repair', { source: sourceCompound(integrationLabel(worstProblem.source), locale) }) }}
+          </UButton>
+        </div>
         <UButton
-          v-if="repairRouteOf(worstProblem.source)"
-          :to="repairRouteOf(worstProblem.source)!"
-          icon="i-ph-wrench"
+          icon="i-ph-arrow-clockwise"
           color="neutral"
-          variant="soft"
+          variant="ghost"
           block
-          :data-testid="`sync-repair-${worstProblem.source}`"
-          @click="emit('close')"
+          class="justify-start md:h-auto md:min-h-9"
+          :loading="isLoading"
+          :disabled="isLoading"
+          :aria-busy="isLoading"
+          data-testid="more-sync"
+          @click="resync"
         >
-          {{ t('board.sync.repair', { source: sourceCompound(integrationLabel(worstProblem.source), locale) }) }}
+          <span class="flex flex-col items-start text-left">
+            <span>{{ t('nav.syncNow') }}</span>
+            <span class="text-xs font-normal text-muted">{{ isLoading ? t('nav.syncing') : lastSyncText }}</span>
+          </span>
         </UButton>
       </div>
-      <UButton
-        icon="i-ph-arrow-clockwise"
-        color="neutral"
-        variant="ghost"
-        block
-        class="justify-start md:h-auto md:min-h-9"
-        :loading="isLoading"
-        :disabled="isLoading"
-        :aria-busy="isLoading"
-        data-testid="more-sync"
-        @click="resync"
-      >
-        <span class="flex flex-col items-start text-left">
-          <span>{{ t('nav.syncNow') }}</span>
-          <span class="text-xs font-normal text-muted">{{ isLoading ? t('nav.syncing') : lastSyncText }}</span>
-        </span>
-      </UButton>
-    </div>
-    <!-- A button's children are presentational, so the start of a sync is announced from a live region; it sits outside the footer's space-y stack, else the button is no longer :last-child and gains an 8px bottom margin (#647) -->
-    <p role="status" class="sr-only" data-testid="more-sync-status"><template v-if="isLoading">{{ t('nav.syncing') }}</template></p>
+      <!-- A button's children are presentational, so the start of a sync is announced from a live region; it sits outside the footer's space-y stack, else the button is no longer :last-child and gains an 8px bottom margin (#647) -->
+      <p role="status" class="sr-only" data-testid="more-sync-status"><template v-if="isLoading">{{ t('nav.syncing') }}</template></p>
+    </template>
   </div>
 </template>
 
@@ -284,6 +287,9 @@ function onKeydown(event: KeyboardEvent) {
   event.preventDefault()
   controls[next]?.focus()
 }
+
+/** Sync footer (#763): only while at least one source can sync */
+const hasSource = computed(() => boardStore.connectedIntegrations.length > 0)
 
 const groupingEnabled = computed(() => boardStore.grouping.enabled)
 

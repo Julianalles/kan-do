@@ -54,16 +54,17 @@ test.describe('Feedback (web)', () => {
   test('sends through the relay: private note, exact body, no screenshot offer, quiet toast (#268)', async ({ page }) => {
     const reports = await mockFeedbackRelay(page)
     await openFeedback(page)
-    await expect(page.getByTestId('feedback-private-note')).toHaveText('Dein Feedback geht direkt an die Kan-do-Entwickler. Es wird nicht veröffentlicht.')
+    await expect(page.getByTestId('feedback-private-note')).toHaveText('Dein Feedback geht direkt an mich. Es wird nicht veröffentlicht.')
     await expect(page.getByTestId('feedback-public-note')).toHaveCount(0)
     // The native capture is desktop only
     await expect(page.getByTestId('feedback-screenshot')).toHaveCount(0)
     await pickCard(page, 'seed-open-1')
     await toReview(page)
-    await expect(page.getByTestId('feedback-review-intro')).toContainText('an die Kan-do-Entwickler und wird nicht veröffentlicht')
+    await expect(page.getByTestId('feedback-review-intro')).toContainText('gehen an mich und werden nicht veröffentlicht')
     await expect(page.getByTestId('feedback-include-log')).toHaveCount(0)
     const shown = await page.getByTestId('feedback-body-preview').textContent()
-    expect(shown).toContain('| Version |')
+    expect(shown).toContain('Version')
+    expect(shown).not.toContain('|') // plain labelled lines, no Markdown table (#760)
     // #744: before sending, what goes where, for how long, and how to have it deleted
     const notice = page.getByTestId('feedback-retention-notice')
     await expect(notice).toContainText('privaten GitHub-Repository')
@@ -74,7 +75,9 @@ test.describe('Feedback (web)', () => {
     await page.getByTestId('feedback-send-relay').click()
     await expect(dialog(page)).toBeHidden()
     await expect(page.getByText('Danke, dein Feedback ist angekommen.', { exact: true })).toBeVisible()
-    expect(reports).toEqual([{ title: 'Karte wird abgeschnitten', body: shown }])
+    expect(reports).toHaveLength(1)
+    expect(reports[0]!.title).toBe('Karte wird abgeschnitten')
+    expect(reports[0]!.body).toContain('| Version |') // the report itself keeps its Markdown
   })
 
   test('a rate-limited relay keeps the draft; "Erneut versuchen" sends', async ({ page }) => {
@@ -275,23 +278,23 @@ test.describe('Feedback (desktop)', () => {
     await toReview(page)
 
     const preview = page.getByTestId('feedback-body-preview')
-    await expect(preview).toContainText('## Description')
+    await expect(preview).toContainText('Beschreibung')
+    await expect(preview).not.toContainText('## Description') // plain labelled lines, not raw Markdown (#760)
     await expect(preview).toContainText('Der lange Titel läuft aus der Karte.')
     await expect(preview).toContainText('seed-open-1')
-    await expect(preview).toContainText('| Version |')
+    await expect(preview).toContainText('Version')
     await expect(preview).toContainText('0.1.0') // the real app version from the Tauri app plugin
-    await expect(preview).toContainText('Log (last 1 lines)')
+    await expect(preview).toContainText('Protokoll, letzte 1 Zeile')
     await expect(preview).toContainText('update check: up-to-date')
     await expect(preview).not.toContainText('Konzept ausarbeiten') // the task title is opt-in
 
     await page.getByTestId('feedback-include-log').uncheck()
     await expect(preview).not.toContainText('update check: up-to-date')
     await page.getByTestId('feedback-include-version').uncheck()
-    await expect(preview).not.toContainText('| Version |')
+    await expect(preview).not.toContainText('Version')
     await page.getByTestId('feedback-include-task-title').check()
     await expect(preview).toContainText('Konzept ausarbeiten')
 
-    const body = (await preview.textContent())!
     await page.getByTestId('feedback-send').click()
     await expect(page.getByText('Danke, dein Feedback ist angelegt: #4711.').first()).toBeVisible()
     await expect(dialog(page)).toBeHidden()
@@ -300,7 +303,9 @@ test.describe('Feedback (desktop)', () => {
     expect(calls).toHaveLength(1)
     const [issue] = await githubCalls(page, { method: 'POST', path: '/issues' })
     expect(issue).toMatchObject({ entry: 'github-feedback', method: 'POST', path: '/repos/jaylouiz/kan-do/issues' })
-    expect(issue!.body).toEqual({ title: 'Karte wird abgeschnitten', body: body.trimEnd() + '\n', labels: ['inbox'] })
+    expect(issue!.body).toMatchObject({ title: 'Karte wird abgeschnitten', labels: ['inbox'] })
+    expect(issue!.body!.body).toContain('## Description\n\nDer lange Titel läuft aus der Karte.')
+    expect(issue!.body!.body).toContain('Konzept ausarbeiten')
     const state = await stubState(page)
     // The app's own bootstrap reads the Notion/Todoist tokens; the feedback token is never read.
     expect(state.calls.filter(c => c.cmd === 'secret_get' && c.args.entry === 'github-feedback')).toEqual([])
@@ -442,7 +447,9 @@ test.describe('Feedback without a token (desktop)', () => {
     await page.getByTestId('feedback-send-relay').click()
     await expect(dialog(page)).toBeHidden()
     await expect(page.getByText('Danke, dein Feedback ist angekommen.', { exact: true })).toBeVisible()
-    expect(reports).toEqual([{ title: 'Titel mit Ümläut & Zeichen', body: shown }])
+    expect(reports).toHaveLength(1)
+    expect(reports[0]!.title).toBe('Titel mit Ümläut & Zeichen')
+    expect(shown).toContain('Titel mit Ümläut & Zeichen')
     expect((await stubState(page)).openedUrls).toEqual([])
     expect(await githubCalls(page)).toEqual([])
   })
