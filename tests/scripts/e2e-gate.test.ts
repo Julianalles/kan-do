@@ -140,7 +140,7 @@ describe('selectE2e', () => {
   ])('runs smoke + visual-regression + the server error page spec when the dependency or build config %s changes (#541)', (file) => {
     const result = select({ files: [file] })
     expect(result).toMatchObject({ tier: 'targeted', unmapped: [] })
-    expect(result.specs).toEqual([...new Set([...config.smoke, ...designFor(file), 'visual-regression', 'server-error-page'])].sort())
+    expect(result.specs).toEqual([...new Set([...config.smoke, ...designFor(file), 'visual-regression', 'server-error-page', 'overlay-scrim'])].sort())
   })
 
   // #541: the spec proves server/error-handler.ts still wraps Nuxt's handler (nuxt.config.ts wires it, a Nuxt/Nitro bump can break it)

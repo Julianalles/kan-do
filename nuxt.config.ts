@@ -170,8 +170,6 @@ export default defineNuxtConfig({
         'ph:check-circle',
         'ph:plus',
         'ph:x',
-        'simple-icons:todoist',
-        'simple-icons:notion',
         'ph:desktop',
       ]
     }

@@ -13,7 +13,7 @@
   Quelle in CREDITS.md) füllt die Seite. Wortmarke und Subline stehen direkt darauf, auf der hellen Wand (Kontrast AA,
   DESIGN.md „The Bright Ground Rule“): am Telefon ist das Foto dafür links oben verankert, so dass der Streifen über dem Bogen nur helle
   Wand zeigt (Tasse, Tisch und Pflanze liegen hinter dem Bogen). Mittig ein heller Bogen (Oberfläche und Schatten wie ein
-  Dialog) trägt Überschrift, Antworten, Hinweis und Version. Am Telefon füllt der Bogen die Breite.
+  Dialog) trägt Überschrift, Antworten, Hinweis und Version, darunter die drei rechtlichen Links (`LegalLinks`, #745). Am Telefon füllt der Bogen die Breite.
 - Ab 640 px hängt die Spalte an einer festen Linie über der Seitenmitte statt mittig zu stehen: ein höherer Schritt wächst nach unten, die Wortmarke bleibt beim Tausch an ihrem Platz
 - Beim Abschluss fliegt die Wortmarke auf Desktop in die Wortmarke der App-Leiste (`utils/brandFlight.ts`); am Telefon und bei reduzierter Bewegung blendet nur die Seite aus
 - Das Foto blendet beim Laden ein (ohne Layoutsprung); lädt es nicht, bleibt die Seite auf Papierfarbe, der Bogen unverändert
@@ -99,6 +99,8 @@
         <p class="mt-6 text-xs text-muted">
           {{ t('onboarding.page.version') }} {{ $config.public.clientVersion }}
         </p>
+        <!-- Impressum, privacy, terms (#745): reachable before anything is set up, on web and desktop -->
+        <LegalLinks class="mt-1" />
 
             </template>
           </div>
@@ -122,6 +124,7 @@ import SamplesSetupFlow from '~/components/setup/SamplesSetupFlow.vue';
 import NotionSetupFlow from '~/components/setup/NotionSetupFlow.vue';
 import RemindersSetupFlow from '~/components/setup/RemindersSetupFlow.vue';
 import DataStorageNotice from '~/components/settings/DataStorageNotice.vue';
+import LegalLinks from '~/components/legal/LegalLinks.vue';
 import { useIntegrationManager } from '~/composables/useIntegrationManager';
 import { useFirstRunSources } from '~/composables/useFirstRunSources';
 import { useErrorHandler } from '~/composables/useErrorHandler';

@@ -109,6 +109,16 @@ test.describe('Einstellungen tabs (#691)', () => {
 })
 
 test.describe('Einstellungen tabs, desktop app (#691)', () => {
+  test('System ends with Rechtliches: Impressum, Datenschutz, Nutzungsbedingungen and the no-affiliation line (#745)', async ({ page }) => {
+    await page.goto('/settings?tab=manage')
+    const legal = page.getByTestId('legal-settings')
+    await expect(legal.getByRole('heading', { name: 'Rechtliches', level: 2 })).toBeVisible()
+    const nav = legal.getByRole('navigation', { name: 'Rechtliche Hinweise' })
+    await expect(nav.getByRole('link')).toHaveText(['Impressum', 'Datenschutz', 'Nutzungsbedingungen'])
+    await expect(nav.getByRole('link', { name: 'Impressum' })).toHaveAttribute('href', /^https:\/\/[^/]+\/impressum\/$/)
+    await expect(legal.getByTestId('legal-no-affiliation')).toHaveText('Notion ist eine Marke von Notion Labs, Inc. Todoist ist eine Marke von Doist. Kan-do ist mit keinem der beiden Unternehmen verbunden.')
+  })
+
   test('System also holds Updates and GitHub-Zugriff, each opening its page', async ({ context, page }) => {
     await seedLocalBoard(context)
     await installTauriStub(context)

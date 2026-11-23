@@ -11,7 +11,7 @@
 - Open/close echo guard: vaul's DrawerRoot emits `update:open` with its current value on mount (page load at 390px, resize across the breakpoint). Only a value that differs from `open` is forwarded; without it a closed drawer reported `false` and a host started a close nobody asked for
 - `after-leave` fires for every variant
 - Focus into the drawer (#566): vaul cancels reka's open auto-focus (to keep the mobile keyboard closed), so the drawer never took focus and reka's trap never engaged. The drawer variant moves focus onto the drawer itself once it is mounted and again when its enter animation ends, unless hosted content already focused something inside (the task add form focuses its title field) or focus has moved on to another layer meanwhile (a picker popover the sheet opened: the late enter-end must not take it back, #722); it takes only focus that is on <body> or still on the element that held it at open (read in the `open` watcher, and in setup for a host that mounts the drawer already open, e.g. a route to a task; that case is moved by `after:enter` alone). The modal and slideover need none: reka focuses them. Hosts do not handle this
-- Browser bar tint (#554): while the drawer variant is open it sets `<meta name="theme-color">` to the sheet white so the phone's browser bars blend into the drawer; closing or unmounting removes the meta, so the browser samples the page again. The modal and slideover never set it
+- Browser bar tint (#554): while the drawer variant is open it sets `<meta name="theme-color">` to the sheet white so the phone's browser bars blend into the drawer; closing or unmounting restores the page's own `theme-color` (the static manifest tag, #734; removes the meta when there was none), so the browser samples the page again. The modal and slideover never set it
 - Focus handling (Escape guards, focus return) is the host's, handed in as `contentProps`
 -->
 <template>
@@ -189,24 +189,18 @@ const drawerThemeColor = () => {
 };
 
 const drawerOpen = computed(() => props.open && !isDesktop.value);
-let themeMeta: HTMLMetaElement | null = null;
-
+// The page ships a static `theme-color` (web manifest, #734) that unhead owns: the drawer overrides it through useHead (same name, the later entry wins) and the entry is disposed on close and on unmount, so the page's colour returns. Editing the DOM tag directly is reverted by unhead
+let themeEntry: ReturnType<typeof useHead> | undefined;
 const clearThemeColor = () => {
-  themeMeta?.remove();
-  themeMeta = null;
+  themeEntry?.dispose();
+  themeEntry = undefined;
 };
-
-// Present only while the drawer is open (#554); removed on close and on unmount, so the browser samples the page again
 watch(drawerOpen, (open) => {
   if (!import.meta.client) return;
   clearThemeColor();
-  if (!open) return;
-  themeMeta = document.createElement('meta');
-  themeMeta.name = 'theme-color';
-  themeMeta.content = drawerThemeColor() ?? '';
-  document.head.appendChild(themeMeta);
+  const color = open ? drawerThemeColor() : undefined;
+  if (color) themeEntry = useHead({ meta: [{ name: 'theme-color', content: color }] });
 }, { immediate: true });
-
 onBeforeUnmount(clearThemeColor);
 
 const drawerUi = computed<OverlayUi>(() => ({ container: 'min-h-0 gap-0 overflow-hidden p-0', ...props.mobileUi }));

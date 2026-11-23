@@ -238,7 +238,7 @@ describe('useFeedback screenshot', () => {
       await small.sendViaRelay()
       const sent = JSON.parse(String(fetchMock.mock.calls[0]![1].body))
       expect(sent.screenshot).toEqual({ path, content: Buffer.from(FIXTURE_PNG).toString('base64') })
-      expect(sent.body).toContain(`jaylouiz/kan-do-feedback/blob/main/${path}`)
+      expect(sent.body).toContain(`jaylouiz/kan-do-feedback/blob/screenshot/${path.split('/').pop()!.replace('.png', '')}/${path}`)
       expect(clipboardWrite).not.toHaveBeenCalled()
       expect(requests).toEqual([])
     }

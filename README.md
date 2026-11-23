@@ -48,7 +48,7 @@ The desktop app is the same board in its own window, plus a few desktop-only fea
 
 The first install of an ad-hoc signed build needs a right-click on the app and "Open" once; details in [docs/release.md](docs/release.md) ("First install from the DMG").
 
-The app checks for updates on its own and installs them after asking; no GitHub account or token is needed.
+The app checks for updates on its own and installs them after asking; no GitHub account or token is needed. The check asks GitHub's releases API for the latest version about ten seconds after start-up, so GitHub sees your IP address. To turn it off, open **Settings › System › Updates** and switch off **Check for updates automatically**; **Check for updates** on the same page still checks when you ask.
 
 ### Connecting Notion
 
@@ -63,6 +63,9 @@ No setup needed. Add tasks directly on the board; they are stored on your device
 - Local tasks and settings stay on your device. The desktop app keeps them in a data file in a folder you choose (by default `~/Library/Application Support/io.github.jaylouiz.kan-do/`).
 - The desktop app keeps API tokens in the macOS Keychain, never in the data file.
 - Task text is masked in screenshots attached to in-app feedback.
+- In-app feedback without a GitHub token goes to a private GitHub repository and is deleted 30 days after the issue is closed; the form says so before anything is sent ([docs/feedback-retention.md](docs/feedback-retention.md)).
+- The desktop app's update check contacts GitHub (see above); it can be turned off.
+- Privacy notice: [kan-do privacy notice](https://www.julius-wuestefeld.workers.dev/kan-do/datenschutz/) ([English](https://www.julius-wuestefeld.workers.dev/en/kan-do/privacy/)).
 - Details for the curious: [ADR 007](docs/adr/007-secrets-keychain.md) (secrets) and [ADR 008](docs/adr/008-file-backed-persistence.md) (data file).
 
 ## Build from source
@@ -85,8 +88,23 @@ Notion is optional and configured in the app; `.env.example` lists the variables
 - [PRODUCT.md](PRODUCT.md): who kan-do is for and the principles behind it.
 - [docs/application-purpose.md](docs/application-purpose.md): vision and non-goals.
 
+## Impressum / Legal
+
+- Impressum: [julius-wuestefeld.workers.dev/impressum](https://www.julius-wuestefeld.workers.dev/impressum/) ([Legal notice, English](https://www.julius-wuestefeld.workers.dev/en/legal-notice/))
+- Datenschutzhinweise: [kan-do privacy notice](https://www.julius-wuestefeld.workers.dev/kan-do/datenschutz/) ([English](https://www.julius-wuestefeld.workers.dev/en/kan-do/privacy/))
+- Nutzungsbedingungen: [kan-do terms of use](https://www.julius-wuestefeld.workers.dev/kan-do/nutzungsbedingungen/) ([English](https://www.julius-wuestefeld.workers.dev/en/kan-do/terms/))
+
+The links come from one constant in the app, [`lib/legalLinks.ts`](lib/legalLinks.ts); change them there and here together.
+
+Notion is a trademark of Notion Labs, Inc. Todoist is a trademark of Doist. kan-do is not affiliated with either.
+
 ## License
 
 Kan-do is released under the [MIT License](LICENSE). Copyright (c) 2026 Julius Wüstefeld.
+
+<!-- DRAFT for Julius to review (#745): wording from the legal research (jwue-homepage#94), not legal advice. -->
+**Haftungshinweis (Entwurf).** Kan-do wird unentgeltlich überlassen. Der Urheber haftet nur für Vorsatz und grobe Fahrlässigkeit sowie für arglistig verschwiegene Mängel (§§ 521, 523, 524 BGB). Die Haftung für Schäden aus der Verletzung des Lebens, des Körpers oder der Gesundheit sowie nach dem Produkthaftungsgesetz bleibt unberührt. Im Übrigen gilt der Haftungsausschluss der MIT-Lizenz, soweit das Gesetz ihn zulässt.
+
+**Liability note (draft, English translation; the German text governs).** Kan-do is provided free of charge. The author is liable only for intent and gross negligence and for defects concealed with fraudulent intent (Sections 521, 523, 524 of the German Civil Code). Liability for injury to life, body or health and under the German Product Liability Act remains unaffected. Otherwise the disclaimer of the MIT License applies as far as the law allows.
 
 The interface font is [Figtree](https://github.com/erikdkennedy/figtree) by Erik Kennedy, licensed under the SIL Open Font License 1.1 ([public/fonts/Figtree-OFL.txt](public/fonts/Figtree-OFL.txt)). The heading font is [Fraunces](https://github.com/undercasetype/Fraunces) by Undercase Type, under the same licence ([public/fonts/Fraunces-OFL.txt](public/fonts/Fraunces-OFL.txt)).

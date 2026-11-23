@@ -55,8 +55,8 @@ export interface MoreSourceRow {
 /** Source icons, bundled (ADR 012): neutral ink, no brand colour. */
 export const SOURCE_ICONS: Record<SourceId, string> = {
   local: 'i-ph-desktop',
-  notion: 'i-simple-icons-notion',
-  todoist: 'i-simple-icons-todoist',
+  notion: 'i-ph-notebook',
+  todoist: 'i-ph-check-square',
   reminders: 'i-ph-list-checks',
 }
 

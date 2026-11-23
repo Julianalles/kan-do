@@ -25,7 +25,7 @@
 
     <fieldset class="flex flex-col gap-2" data-testid="local-sources">
       <SectionHeader tag="legend" size="label" class="mb-2">{{ t('onboarding.flow.local.legend') }}</SectionHeader>
-      <ChoiceCard v-model="notion" icon="i-simple-icons-notion" :disabled="!notionAvailable" data-testid="local-source-notion">
+      <ChoiceCard v-model="notion" icon="i-ph-notebook" :disabled="!notionAvailable" data-testid="local-source-notion">
         {{ t('onboarding.flow.local.notion') }}
         <template #hint>{{ notionAvailable ? t('onboarding.flow.local.notionHint') : t('onboarding.flow.local.notionCloudUnavailable') }}</template>
       </ChoiceCard>
@@ -33,7 +33,7 @@
         {{ t('onboarding.flow.local.reminders') }}
         <template #hint>{{ remindersSupported || isDesktop ? t('onboarding.flow.local.remindersHint') : t('onboarding.flow.local.remindersWebOnly') }}</template>
       </ChoiceCard>
-      <ChoiceCard :model-value="false" icon="i-simple-icons-todoist" disabled data-testid="local-source-todoist">
+      <ChoiceCard :model-value="false" icon="i-ph-check-square" disabled data-testid="local-source-todoist">
         {{ t('onboarding.flow.local.todoist') }}
         <template #hint>{{ t('onboarding.flow.local.todoistSoon') }}</template>
       </ChoiceCard>

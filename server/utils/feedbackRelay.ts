@@ -1,10 +1,13 @@
 import { createError, setResponseHeaders } from 'h3'
 import type { H3Event } from 'h3'
+import { relayScreenshotBranch } from '~/lib/feedback/retention'
 
 /**
  * Feedback relay (#268, ADR 010 "Amendment: relay"): the server posts in-app reports as issues into a private
  * repository, so users need no GitHub account and no token ever reaches a client.
  * - The token (`FEEDBACK_GITHUB_TOKEN`) is scoped to the feedback repository only (Issues + Contents: write).
+ * - A screenshot is the only file of its own parentless branch `screenshot/<uuid>` (#744): deleting the branch removes it
+ *   from all reachable history. Retention and cleanup: `lib/feedback/retention.ts`, `docs/feedback-retention.md`.
  * - Abuse bound without extra infrastructure: at most `FEEDBACK_HOURLY_CAP` issues per hour, counted on GitHub.
  * - Open to every origin (desktop webview, web build): there are no cookies or credentials to protect.
  */
@@ -97,6 +100,43 @@ function upstreamFailed(step: string, status: number): never {
   relayError(502, 'GITHUB_ERROR')
 }
 
+/**
+ * blob → tree → parentless commit → branch `screenshot/<uuid>`. Never a commit on the default branch: that image
+ * could only leave the history by rewriting it (#744).
+ */
+async function storeScreenshot(token: string, repo: string, shot: { path: string, content: string }): Promise<void> {
+  const blob = await github(token, 'POST', `/repos/${repo}/git/blobs`, { content: shot.content, encoding: 'base64' })
+  const blobSha = (blob.json as { sha?: unknown } | null)?.sha
+  if (blob.status !== 201 || typeof blobSha !== 'string') upstreamFailed('screenshot blob', blob.status)
+  const tree = await github(token, 'POST', `/repos/${repo}/git/trees`, { tree: [{ path: shot.path, mode: '100644', type: 'blob', sha: blobSha }] })
+  const treeSha = (tree.json as { sha?: unknown } | null)?.sha
+  if (tree.status !== 201 || typeof treeSha !== 'string') upstreamFailed('screenshot tree', tree.status)
+  const branch = relayScreenshotBranch(shot.path)
+  const commit = await github(token, 'POST', `/repos/${repo}/git/commits`, { message: `chore(feedback): ${branch}`, tree: treeSha, parents: [] })
+  const commitSha = (commit.json as { sha?: unknown } | null)?.sha
+  if (commit.status !== 201 || typeof commitSha !== 'string') upstreamFailed('screenshot commit', commit.status)
+  const ref = await github(token, 'POST', `/repos/${repo}/git/refs`, { ref: `refs/heads/${branch}`, sha: commitSha })
+  // 422: the branch is already there. The name holds a fresh uuid per image, so this is the retry of a report whose
+  // issue create failed after the upload: go on to the issue instead of failing every retry.
+  if (ref.status !== 201 && ref.status !== 422) upstreamFailed('screenshot branch', ref.status)
+}
+
+/**
+ * Older desktop apps (v0.15 to v0.21) write `blob/main/<path>` and "on `main`" into the body, but the image is on its own
+ * branch now. Point every reference to the path at that branch, and name the branch when the body does not (an edited
+ * body): the cleanup finds an image through the branch name in its issue body, and an unnamed branch counts as an
+ * orphan that goes 30 days after upload while the issue is still open.
+ */
+export function bodyNamingBranch(body: string, path: string, branch: string): string {
+  const escaped = path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  let out = body
+    .replace(new RegExp(`/blob/[^/\\s]+/${escaped}`, 'g'), `/blob/${branch}/${path}`)
+    .replace(new RegExp(`(\`${escaped}\`) on \`[^\`]+\``, 'g'), `$1 on \`${branch}\``)
+    .replace(new RegExp(`(contents/${escaped}\\?ref=)[^\\s\`]+`, 'g'), `$1${branch}`)
+  if (!out.includes(branch)) out = `${out.replace(/\s+$/, '')}\n\nScreenshot: \`${path}\` on \`${branch}\`\n`
+  return out
+}
+
 /** Cap check, then the screenshot (when there is one), then the issue: a refused report leaves nothing behind. */
 export async function fileReport(report: FeedbackReport, target: { token: string, repo: string }, now = Date.now()): Promise<void> {
   const { token, repo } = target
@@ -106,16 +146,12 @@ export async function fileReport(report: FeedbackReport, target: { token: string
   const lastHour = (recent.json as Array<{ created_at?: string }>).filter(issue => Date.parse(issue.created_at ?? '') >= cutoff)
   if (lastHour.length >= FEEDBACK_HOURLY_CAP) relayError(429, 'FEEDBACK_RATE_LIMITED')
 
+  let body = report.body
   if (report.screenshot) {
-    const put = await github(token, 'PUT', `/repos/${repo}/contents/${report.screenshot.path}`, {
-      message: `chore(feedback): screenshot ${report.screenshot.path.split('/').pop()?.replace('.png', '') ?? ''}`,
-      content: report.screenshot.content,
-    })
-    // 422: the file is already there. The path holds a fresh uuid per image, so this is the retry of a report whose
-    // issue create failed after the upload: go on to the issue instead of failing every retry.
-    if (put.status !== 201 && put.status !== 422) upstreamFailed('screenshot upload', put.status)
+    await storeScreenshot(token, repo, report.screenshot)
+    body = bodyNamingBranch(body, report.screenshot.path, relayScreenshotBranch(report.screenshot.path))
   }
 
-  const issue = await github(token, 'POST', `/repos/${repo}/issues`, { title: report.title, body: report.body, labels: ['inbox'] })
+  const issue = await github(token, 'POST', `/repos/${repo}/issues`, { title: report.title, body, labels: ['inbox'] })
   if (issue.status !== 201) upstreamFailed('issue create', issue.status)
 }

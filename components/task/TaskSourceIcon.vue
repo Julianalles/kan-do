@@ -6,7 +6,7 @@
 @usage <TaskSourceIcon :source="task.source" /> at the start of the TaskCard footer, only on a board that holds tasks from 2+ sources
 @avoid Only on a board with tasks from 2+ sources.
 @responsibility
-- Maps a source to its bundled icon (Local and Reminders `ph`, Notion and Todoist `simple-icons`: no remote fetch, ADR 012)
+- Maps a source to its bundled icon (all `ph`, no remote fetch, ADR 012; never a Notion or Todoist logo: plain-text names only, #745)
 - Names the source for assistive tech ("Lokal", "Notion", "Erinnerungen") and for hover; shows no visible text
 - Is not focusable and not interactive, so it adds no tab stop and is no drag handle
 -->

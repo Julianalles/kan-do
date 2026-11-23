@@ -102,7 +102,8 @@ describe('screenshot sent through the relay (#268)', () => {
   it('links the image in the private feedback repository, not the public one', () => {
     const path = 'feedback/2026/11/0b6f3c1e-8a55-4d0a-9c1b-2f6f0a4d9e11.png'
     const body = buildIssueBody({ description: 'x', screenshot: { delivery: 'relay', path } })
-    expect(body).toContain(`![Screenshot](https://github.com/jaylouiz/kan-do-feedback/blob/main/${path}?raw=true)`)
+    expect(body).toContain(`![Screenshot](https://github.com/jaylouiz/kan-do-feedback/blob/screenshot/0b6f3c1e-8a55-4d0a-9c1b-2f6f0a4d9e11/${path}?raw=true)`)
+    expect(body).toContain('on `screenshot/0b6f3c1e-8a55-4d0a-9c1b-2f6f0a4d9e11`')
     expect(body).not.toContain('feedback-assets')
     expect(body).not.toContain('github.com/jaylouiz/kan-do/')
   })

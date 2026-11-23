@@ -49,7 +49,7 @@ describe('ChoiceCard (kd#178)', () => {
 
   it('with a v-model it is a checkbox card: role checkbox, aria-checked, a square mark with a check, never the radio dot (#651)', async () => {
     const wrapper = mount(ChoiceCard, {
-      props: { icon: 'i-simple-icons-notion', modelValue: false, 'onUpdate:modelValue': (v: boolean | undefined) => wrapper.setProps({ modelValue: v }) },
+      props: { icon: 'i-ph-notebook', modelValue: false, 'onUpdate:modelValue': (v: boolean | undefined) => wrapper.setProps({ modelValue: v }) },
       attrs: { 'data-testid': 'card' },
       slots: { default: 'Notion', hint: 'Aufgaben aus einer Notion-Datenbank' },
     })
@@ -71,7 +71,7 @@ describe('ChoiceCard (kd#178)', () => {
 
   it('a disabled checkbox card cannot be ticked and keeps its reason in the text', async () => {
     const wrapper = mount(ChoiceCard, {
-      props: { icon: 'i-simple-icons-todoist', modelValue: false },
+      props: { icon: 'i-ph-check-square', modelValue: false },
       attrs: { disabled: true },
       slots: { default: 'Todoist', hint: 'Bald verfügbar' },
     })
