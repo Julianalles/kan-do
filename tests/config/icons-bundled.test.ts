@@ -4,14 +4,14 @@ import { join, resolve } from 'node:path'
 import collections from '@iconify/collections/collections.json'
 
 // Icons from a collection that is not bundled are fetched from api.iconify.design at runtime, which
-// the desktop CSP blocks (ADR 012, #228, #261). Only `ph` and `simple-icons` are installed and bundled,
+// the desktop CSP blocks (ADR 012, #228, #261). Only `ph` is installed and bundled (`simple-icons` left with the brand logos, #745, #753),
 // so this is an allow-list: any other collection fails, whatever its name.
 //
 // The scan walks the repo instead of a folder list, so a new top-level folder is covered by default.
 // `nuxt.config.ts` `icon.clientBundle.scan.globInclude` must name the same folders: keep the two in step.
 
 const root = resolve(__dirname, '../..')
-const BUNDLED = ['ph', 'simple-icons']
+const BUNDLED = ['ph']
 // Not app source: dependencies, build output, Rust, tests (their fixtures name foreign icons on purpose),
 // docs and assets. Dot directories (.git, .nuxt, .output, .claude, ...) are skipped as well.
 const SKIP_DIRS = new Set(['node_modules', 'src-tauri', 'tests', 'docs', 'release-notes', 'public'])
@@ -56,7 +56,7 @@ function sourceFiles(dir: string): string[] {
 }
 
 describe('icon collections', () => {
-  it('source only names icons from the bundled collections (ph, simple-icons)', () => {
+  it('source only names icons from the bundled collection (ph)', () => {
     const offenders: string[] = []
     for (const file of sourceFiles(root)) {
       for (const hit of findUnbundledIcons(readFileSync(file, 'utf8'))) offenders.push(`${file.replace(`${root}/`, '')}: ${hit}`)
@@ -74,7 +74,12 @@ describe('icon collections', () => {
   it('accepts the bundled collections', () => {
     expect(findUnbundledIcons('<UIcon name="i-ph-play" class="i-ph-check-square" />')).toEqual([])
     expect(findUnbundledIcons('<UIcon name="i-ph:clock-countdown" />')).toEqual([])
-    expect(findUnbundledIcons("icon: 'ph:play', brand: 'simple-icons:notion'")).toEqual([])
+    expect(findUnbundledIcons("icon: 'ph:play'")).toEqual([])
+  })
+
+  it('catches the removed simple-icons collection (#753)', () => {
+    expect(findUnbundledIcons("icon: 'simple-icons:notion'")).toEqual(["'simple-icons:notion'"])
+    expect(findUnbundledIcons('<UIcon name="i-simple-icons-todoist" />')).toEqual(['i-simple-icons-todoist'])
   })
 
   it('does not trip over words that merely contain "i-"', () => {
