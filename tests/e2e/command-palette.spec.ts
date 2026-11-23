@@ -1,5 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
-import { seedLocalBoard } from './helpers/seed'
+import { seedLocalBoard, seedNotionBoard } from './helpers/seed'
 import { moreButton, morePanel } from './helpers/appNav'
 import { installTauriStub } from './helpers/tauriStub'
 
@@ -366,5 +366,29 @@ test.describe('Command palette off the board (kd#224)', () => {
     await expect(page.getByTestId('welcome-photo')).toBeAttached()
     await page.keyboard.press('ControlOrMeta+k')
     await expect(palette(page)).toHaveCount(0)
+  })
+})
+
+/** #770: a field edit from the palette takes the one edit path, so a Notion task's time box and priority reach Notion */
+test.describe('Command palette on a Notion board', () => {
+  const TITLE = 'Fokusaufgabe vorbereiten' // page-1 in tests/fixtures/notion/tasks.json (Offen)
+
+  test('a time box set from the palette is written to Notion', async ({ context, page }) => {
+    await seedNotionBoard(context)
+    await page.goto('/tasks')
+    await expect(column(page, 'open').getByText(TITLE)).toBeVisible()
+
+    const update = page.waitForRequest(req => req.url().includes('/api/notion/update-task'))
+    await card(page, TITLE).focus()
+    await page.keyboard.press('ControlOrMeta+k')
+    await expect(palette(page)).toBeVisible()
+    await page.keyboard.type('Timebox: 30')
+    await expect(palette(page).locator('[role="option"][data-highlighted]')).toHaveText(/Timebox: 30 Min\./)
+    await page.keyboard.press('Enter')
+    await expect(palette(page)).toBeHidden()
+
+    // The fixture's Timebox is a number property; before #770 the palette wrote the store only and sent nothing
+    const body = (await update).postDataJSON() as { properties: Record<string, unknown> }
+    expect(body.properties.Timebox).toBeDefined()
   })
 })
