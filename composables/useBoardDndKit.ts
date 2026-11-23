@@ -13,6 +13,7 @@ import { useStackExpansion } from '~/composables/useStackExpansion'
 import { deriveGroupKeyForTask, getRenderedTaskOrder, isGroupingActiveFor, shouldTaskBeGrouped } from '~/utils/taskGrouping'
 import { useBoardGrouping } from '~/composables/useBoardGrouping'
 import { useBoardFocus } from '~/composables/useBoardFocus'
+import { withoutInCardTask } from '~/composables/useInCardAdding'
 import { isSortable } from '@dnd-kit/vue/sortable'
 import { isColumnItemNode } from '~/utils/columnItems'
 import { NOT_PLANNED_GROUP, isNotPlannedZone, resolvePlanDrop } from '~/utils/planDrop'
@@ -71,7 +72,8 @@ export function useBoardDndKit() {
    * hidden cards keep their relative order behind the rendered ones when a column is saved.
    */
   function getRenderedTasks(status: TaskStatus) {
-    return applyFocus(status === TaskStatus.Done ? tasksStore.tasksDoneToday : getTasksByStatus(status))
+    // Leaves out the task an in-card flow still asks about, as the board's renderers do (#758)
+    return applyFocus(withoutInCardTask(status === TaskStatus.Done ? tasksStore.tasksDoneToday : getTasksByStatus(status)))
   }
 
   /** The group key a column renders with, or null when it is not grouped (#135). */
@@ -209,7 +211,7 @@ export function useBoardDndKit() {
    */
   function restoreNotPlannedElement(origin: DragOrigin) {
     const { element, list, taskId } = origin
-    const ids = applyFocus(tasksStore.tasksNotPlanned).map(t => t.id)
+    const ids = applyFocus(withoutInCardTask(tasksStore.tasksNotPlanned)).map(t => t.id)
     const idOf = (el: Element) => el.getAttribute('data-not-planned-id')
     const siblings = list ? [...list.children].filter(child => child !== element && idOf(child) !== null) : []
     if (!list || !ids.includes(taskId) || siblings.some(el => idOf(el) === taskId)) {

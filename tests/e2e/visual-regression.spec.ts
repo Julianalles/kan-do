@@ -896,7 +896,8 @@ for (const { size, viewport } of CORE_VIEWPORTS) {
     })
 
     test('saving', async ({ context, page }) => {
-      // A Notion default source: the card rests in `is-saving` while the create call is held
+      // A Notion default source: the title confirm creates the task (#758), and the title step rests in `is-saving` (field
+      // read-only, check off) while the create call is held
       // No Jetzt task at 390, so the board opens on Offen (kd#191): a swipe there would give the refused sync time to mark the source
       // unreachable, and an unreachable source queues the task without the create call this state waits in
       await seedMixedBoard(context, size === '390' ? MIXED_VR_TASKS.filter(task => task.status !== 1) : MIXED_VR_TASKS)
@@ -911,10 +912,10 @@ for (const { size, viewport } of CORE_VIEWPORTS) {
       })
       await page.route('**/api/notion/create-task', (route) => { held.push(route) })
       await openCard(page)
-      await toQuestion(page)
-      // Cmd/Ctrl+Enter saves from any step
-      await page.keyboard.press('ControlOrMeta+Enter')
+      await page.getByTestId('new-card-title').fill('Angebot schreiben')
+      await page.keyboard.press('Enter')
       await expect(page.getByTestId('new-card-flow')).toHaveClass(/is-saving/)
+      await expect(page.getByTestId('new-card-confirm-title')).toBeDisabled()
       await expect.poll(() => held.length).toBe(1)
       await shot(page, `new-card-saving-${size}.png`)
       await page.unroute('**/api/notion/create-task', { behavior: 'ignoreErrors' })
