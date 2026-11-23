@@ -151,10 +151,9 @@ const brand = ref<InstanceType<typeof SectionHeader> | null>(null);
 /** The brand flies to the app bar's brand as the page leaves (desktop, #437) */
 const flyBrand = () => flyBrandToBar(brand.value?.$el as HTMLElement | undefined);
 // A cached or early-loaded photo can finish before hydration: its load event is gone, so check once on mount
-// The link is for web visitors only; set after mount so the server render and the desktop hydration agree (#737)
-const showAppLink = ref(false);
+// The link is for web visitors only; the page is client-rendered (ssr: false), so a synchronous check does not shift the layout (#737)
+const showAppLink = !isTauri();
 onMounted(() => {
-  showAppLink.value = !isTauri();
   if (photo.value?.complete && photo.value.naturalWidth > 0) photoLoaded.value = true;
 });
 /** Which setup is shown in place of the start screen (#43) */
