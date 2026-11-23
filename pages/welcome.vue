@@ -96,7 +96,7 @@
             {{ t('onboarding.page.samples') }}
           </UButton>
         </div>
-        <p class="mt-6 text-xs text-muted">
+        <p class="mt-6 text-xs text-muted" data-testid="welcome-version">
           {{ t('onboarding.page.version') }} {{ $config.public.clientVersion }}
         </p>
         <!-- Impressum, privacy, terms (#745): reachable before anything is set up, on web and desktop -->

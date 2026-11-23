@@ -387,7 +387,7 @@ Command: for each name in `package.json`, `rg -l "['\"]<pkg>" components pages l
 | `@nuxt/test-utils` has no import and no config reference (vitest uses `jsdom`) | `rg '@nuxt/test-utils'` finds `package.json` only | #86 |
 | `prettier` itself is not declared although `.prettierrc` loads `prettier-plugin-tailwindcss` | `package.json` | #86 |
 | Imported, not declared (resolved through another package): `vue-i18n` (app code, 100+ imports), `@vueuse/core` (3), `vue-router` (2), `@internationalized/date` (1), `yaml` (2, tests), `@typescript-eslint/parser` (1, test), `playwright` (1, `scripts/motion-film.mts`) | `rg -oN "from '(@?[a-z][^'./][^']*)'"` per folder minus `package.json` | #86 |
-| `@iconify-json/simple-icons` looks unused by code but is the icon collection of `nuxt.config.ts:58` (`simple-icons:todoist`, `simple-icons:notion`) | used | none |
+| `@iconify-json/simple-icons` was the collection of the Notion and Todoist brand logos; unused since #745 and removed (#753) | removed | none (done) |
 
 ## audit-2026-11 status
 
