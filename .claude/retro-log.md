@@ -388,3 +388,6 @@ Running log of `/workflow-retro` (agent-workflow): the context-size history and 
 | W275 | (re-seen) welcome baselines show app version, red after release | escaped | #732 | 2 | 2026-11-23 | watching: #732 is the mechanism |
 | 2026-11-23 | run_8406e874d686 (4 PRs merged, 5 entries 39 min, 2 escaped/wrong) | not re-measured | CLAUDE.md 15316 B unchanged | issue-workflow +~25 words | - | - | start not measured |
 | 2026-11-23 | run_d27bd92c9833 (wave-1 design, 7 entries 41 min, 0 escaped) | not re-measured | CLAUDE.md unchanged | no prose added | - | - | start not measured |
+| W283 | Review rounds chased ever-narrower Todoist races from one root cause (#781); 2 mediums stayed open, 'deferred' edit denied (25 + 5 min, #770 PR 776) | back-and-forth | orchestrate SKILL.md review route | 1 | 2026-11-23 | fixed 2026-11-23 agent-workflow SKILL.md: open after rounds = held-merge decision, no deferred state; expect no edit-to-deferred attempt |
+| W284 | gate-tier E2E-specs line only checked at gh pr create, after server stopped (4 min, #728); related W266 | missing-instruction | wf_pr_body_check | 1 | 2026-11-23 | watching: the check works, only late; act if seen again |
+| 2026-11-23 | run_ecc66115e993 (6 PRs merged, 4 entries 37 min, 0 escaped) | not re-measured | CLAUDE.md 15316 B unchanged | SKILL.md +1 clause | - | - | start 47192 tokens |
