@@ -1,0 +1,51 @@
+name: Feedback cleanup
+
+# Deletes relayed feedback FEEDBACK_RETENTION_DAYS after its issue was closed (#744, #787): issues and their
+# `screenshot/<uuid>` branches in jaylouiz/kan-do-feedback. Procedure, token and secret: docs/feedback-retention.md.
+# Lives here (not in kan-do-feedback) because the script lives here; the private repo needs no workflow or secret.
+on:
+  schedule:
+    - cron: '17 4 * * 1' # Mondays 04:17 UTC
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: 'Delete (true) or only list what is due (false, dry run)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: feedback-cleanup
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      # The script imports only lib/feedback/retention.ts and the gh CLI: no `npm ci`.
+      - name: Check the token secret
+        env:
+          FEEDBACK_CLEANUP_TOKEN: ${{ secrets.FEEDBACK_CLEANUP_TOKEN }}
+        run: |
+          if [ -z "$FEEDBACK_CLEANUP_TOKEN" ]; then
+            echo "::error title=Secret FEEDBACK_CLEANUP_TOKEN is missing or empty::Add a fine-grained token for jaylouiz/kan-do-feedback as the repository secret FEEDBACK_CLEANUP_TOKEN (permissions: docs/feedback-retention.md). Nothing was deleted."
+            exit 1
+          fi
+      - name: Delete feedback past retention
+        env:
+          GH_TOKEN: ${{ secrets.FEEDBACK_CLEANUP_TOKEN }}
+          # A schedule run has no inputs: it always deletes. A manual run deletes only when `apply` is ticked.
+          APPLY: ${{ github.event_name == 'schedule' || inputs.apply }}
+        run: |
+          if [ "$APPLY" = "true" ]; then
+            npm run feedback:cleanup -- --apply
+          else
+            npm run feedback:cleanup
+          fi

@@ -22,7 +22,9 @@ with a link to the kan-do privacy notice and the Impressum (`lib/legalLinks.ts`)
 
 ## Routine cleanup
 
-Weekly (a monthly run would keep closed feedback up to about 60 days), from a kan-do checkout with the maintainer's `gh` login (deleting issues needs admin rights on the repository):
+A GitHub Action runs it every Monday (`.github/workflows/feedback-cleanup.yml`, #787) and on demand (Actions → "Feedback cleanup" → Run workflow; the manual run is a dry run unless "apply" is ticked). It lives in kan-do because the script does; `kan-do-feedback` needs no workflow and no secret. A weekly run keeps closed feedback at most about 37 days (a monthly one would keep it up to about 60).
+
+The same by hand, from a kan-do checkout with the maintainer's `gh` login:
 
 ```bash
 npm run feedback:cleanup              # dry run: lists what is due
@@ -34,8 +36,17 @@ the screenshot branch its body names, branches first. A `screenshot/*` branch th
 was never created) goes once its commit is older than the period. A branch an open or recently closed issue names stays.
 It touches no other branch and never a pull request.
 
-Not automated yet: a scheduled GitHub Action would need an admin token stored as a secret in `kan-do-feedback`. That is
-the maintainer's call; until then, the weekly run above is the procedure.
+### The token (maintainer sets it up once)
+
+The Action authenticates with the repository secret **`FEEDBACK_CLEANUP_TOKEN`** (kan-do → Settings → Secrets and variables → Actions). A missing or empty secret fails the run with a red error, nothing is deleted.
+
+Create a **fine-grained personal access token** (Settings → Developer settings), owner `jaylouiz`, with:
+
+- Repository access: **Only select repositories** → `jaylouiz/kan-do-feedback`
+- Repository permissions: **Issues: Read and write** (lists issues, `deleteIssue`), **Contents: Read and write** (lists `screenshot/*` refs and their commits, deletes the branches); Metadata: Read (set automatically). Nothing else.
+- An expiry (e.g. 1 year); when it lapses the weekly run goes red, which is the reminder to renew it.
+
+`deleteIssue` needs admin rights on the repository: the token acts as its owner, who is the admin. If the first manual run with "apply" ticked answers `FORBIDDEN` on `deleteIssue`, add **Administration: Read and write** to the token; the other permissions stay.
 
 ## A deletion request (Art. 17)
 
