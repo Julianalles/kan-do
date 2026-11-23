@@ -62,33 +62,38 @@ for (const viewport of [{ name: 'desktop', width: 1280, height: 800 }, { name: '
   })
 }
 
-/** Browser bar tint (#554): the mobile drawer sets `theme-color` to the sheet white while open; the desktop modal never does. */
+/** Browser bar tint (#554): the mobile drawer sets `theme-color` to the sheet white while open and restores the page's tag on close; the desktop modal never touches it. */
 test.describe('theme-color while a drawer is open (#554)', () => {
+  /** The static tag of the web manifest (#734, nuxt.config.ts THEME_COLOR): the drawer overrides it while open, then restores it. */
+  const PAGE_THEME_COLOR = '#f3efe6'
   const themeColor = (page: Page) => page.locator('meta[name="theme-color"]')
 
   test.describe('mobile', () => {
     test.use({ viewport: { width: 390, height: 844 } })
 
-    test('the drawer sets the white theme-color and closing removes it', async ({ page }) => {
+    test('the drawer sets the white theme-color and closing restores the page colour', async ({ page }) => {
       await page.goto('/tasks')
       await expect(page.locator('.task-wrapper').first()).toBeVisible()
-      await expect(themeColor(page)).toHaveCount(0)
+      await expect(themeColor(page)).toHaveCount(1)
+      await expect(themeColor(page)).toHaveAttribute('content', PAGE_THEME_COLOR)
       await page.goto('/tasks/seed-open-1')
       await expect(page.getByRole('dialog')).toBeVisible()
       await expect(themeColor(page)).toHaveAttribute('content', 'rgb(255, 255, 255)')
       await page.keyboard.press('Escape')
       await expect(page.getByRole('dialog')).toBeHidden()
-      await expect(themeColor(page)).toHaveCount(0)
+      await expect(themeColor(page)).toHaveCount(1)
+      await expect(themeColor(page)).toHaveAttribute('content', PAGE_THEME_COLOR)
     })
   })
 
   test.describe('desktop', () => {
     test.use({ viewport: { width: 1280, height: 800 } })
 
-    test('the modal sets no theme-color', async ({ page }) => {
+    test('the modal leaves the page theme-color alone', async ({ page }) => {
       await page.goto('/tasks/seed-open-1')
       await expect(page.getByRole('dialog')).toBeVisible()
-      await expect(themeColor(page)).toHaveCount(0)
+      await expect(themeColor(page)).toHaveCount(1)
+      await expect(themeColor(page)).toHaveAttribute('content', PAGE_THEME_COLOR)
     })
   })
 })
