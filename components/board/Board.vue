@@ -225,7 +225,7 @@ import { usePlanMoves } from "~/composables/usePlanMoves";
 import FocusOverlay from "~/components/board/FocusOverlay.vue";
 import { FOCUS_LEAVE_MS, useFocusOverlay } from "~/composables/useFocusOverlay";
 import { arrivedFromAnotherPage } from "~/lib/routeArrival";
-import { inCardAdding } from "~/composables/useInCardAdding";
+import { inCardAdding, withoutInCardTask } from "~/composables/useInCardAdding";
 import { useOpenLayer } from "~/composables/useOpenLayer";
 import { useNewDayRecap } from "~/composables/useNewDayRecap";
 import { useSettingsStore } from "~/store/settings";
@@ -300,7 +300,8 @@ const { effectiveGroupKey: groupingKey } = useBoardGrouping();
  * Tasks in the Open/Today column.
  */
 const { applyFocus } = useBoardFocus();
-const tasksOpen = computed(() => applyFocus(tasksStore.tasksOpen));
+// The task an in-card flow still asks about shows once, as that flow (#758)
+const tasksOpen = computed(() => applyFocus(withoutInCardTask(tasksStore.tasksOpen)));
 
 /**
  * Tasks in the Progress/Doing column.

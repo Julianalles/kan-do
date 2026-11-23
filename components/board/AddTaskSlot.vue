@@ -9,7 +9,7 @@
 - Offen (#248): renders nothing but the draft. While no draft is open it has no box at all (`display: contents` root, no wrapper), so card positions in the list equal a board without any slot and the list's gap never opens above the first card. The draft card enters at the top: its wrapper animates the row height 0fr to 1fr with opacity, and a negative bottom margin cancels the list gap while closed, so the cards below follow in step (--duration-base = 200ms, --ease-emphasized); cancel leaves just as fast and the cards close up; reduced motion is instant
 - Exposes `open()` (the header button's entry; the in-card flow for `inCard`, `open` emit otherwise) and `isDrafting` (the header button disables itself while it is true: a second click never opens a second card). Cancel and Esc hand focus to `focusFallback` (the header button); a save focuses the saved card (as before)
 - Jetzt: native button named by its visible label, in a regular card's box (width, --task-card-height, card radius); the box never changes size, so layout, hit area and DnD rects stay put. Inside it `.add-task-button-surface` (centred icon + label) is always the full card shape; on pointer devices surface and label appear only while the Jetzt section is hovered or the slot has focus; touch shows the label at rest
-- In-card adding (#649, `inCard`, Offen): `open()` shows NewCardFlow in the slot instead of the sheet. Esc on a typed title also shows a "Rückgängig" toast that reopens the card with it (#665). Esc, a press outside a blank card, the sheet opening cancel it and send focus back (a press on a card cancels a blank one on release; a drag keeps the card, hidden in its place with what was typed, and it takes the focus back after the drop, #248); a save swaps it for the saved card (no fade) and focuses that card; on a phone the page scrolls that card clear of the toast (`revealSavedCard`, #665), making room first when the cards fill the page. Jetzt and every other entry (palette, nav, menu) keep the sheet
+- In-card adding (#649, `inCard`, Offen): `open()` shows NewCardFlow in the slot instead of the sheet. Esc on a typed title also shows a "Rückgängig" toast that reopens the card with it (#665), but only before the first confirm: from then on the task is stored (#758) and every close keeps it (no toast). Esc, a press outside a blank card, the sheet opening cancel it and send focus back (a press on a card cancels a blank one on release; a drag keeps the card, hidden in its place with what was typed, and it takes the focus back after the drop, #248); a save swaps it for the saved card (no fade) and focuses that card; on a phone the page scrolls that card clear of the toast (`revealSavedCard`, #665), making room first when the cards fill the page. Jetzt and every other entry (palette, nav, menu) keep the sheet
 - While the in-card form is open the Jetzt focus overlay steps aside (useInCardAdding, kd#56)
 - Drafting (useTaskDraft holds a draft for this column): the draft card fades in over the Jetzt button, whose label fades out; the button stays mounted but inert, so focus can return to it
 - The Jetzt slot is a raw `<button>` on purpose (#71, audit): a card-shaped target whose box is reserved and held while a draft or a drag runs (`add-task-button`, `data-add-slot`, `inert`), which `UButton ghost block` cannot reproduce
@@ -101,7 +101,7 @@ const variant = computed(() => (props.status === TaskStatus.Progress ? 'progress
 const route = useRoute();
 const buttonEl = ref<HTMLButtonElement | null>(null);
 const flowOpen = ref(false);
-const flowRef = ref<{ title: string } | null>(null);
+const flowRef = ref<{ title: string; storedId: string | null } | null>(null);
 trackInCardAdding(flowOpen); // the focus overlay steps aside while the form is up (kd#56)
 /** The title the card opens with: only after "Rückgängig" on a dropped title (#665) */
 const flowTitle = ref<string | undefined>(undefined);
@@ -186,6 +186,11 @@ watch(() => route.path, (path) => {
 // Offen, beside the card of that side (#567): it gives way like a card the sheet takes over, a typed title comes back with "Rückgängig"
 watch(place, (next, prev) => {
   if (next !== 'all' || prev === 'all' || !flowOpen.value) return;
+  // A card whose task is already stored (#758) just closes: the task stays in Offen, nothing to take back
+  if (flowRef.value?.storedId) {
+    void closeFlow();
+    return;
+  }
   const title = flowRef.value?.title?.trim();
   void closeFlow(title ? { title } : undefined);
 });

@@ -2,21 +2,21 @@
 @component NewCardFlow
 @kind block
 @category input
-@description Guided in-card adding of a task in Offen (#649) and, on the place "Alle", under "Alle Aufgaben" (#567, the task is made not planned, #367): the add slot's box becomes a card that takes the title, then asks Thema and Aktivität (a combobox each), Timebox (pills) and Notiz one after another and saves at the end. No sheet, no route change.
+@description Guided in-card adding of a task in Offen (#649) and, on the place "Alle", under "Alle Aufgaben" (#567, the task is made not planned, #367): the add slot's box becomes a card that takes the title, stores the task when the title is confirmed (#758), then asks Thema and Aktivität (a combobox each), Timebox (pills) and Notiz one after another, each answer an edit of the stored task. No sheet, no route change.
 @usage Mounted by AddTaskSlot (Offen; on "Alle" the slot at the top of BoardNotPlanned) in place of the sheet; emits `saved` with the new task's id, or `cancel`
 @avoid Only in-card adding to Offen or "Alle Aufgaben"; add-and-start in Jetzt, editing and source fields use the sheet's TaskForm.
 @responsibility
-- Local state only (title, topic, activity, timebox, notes, step): it does not use `useTaskDraft`, which belongs to the sheet (draft card, spotlight, /tasks/add); saves through `useTaskSync().createTask` in the default source (`useAddTarget`), steps follow that source's fields (`fieldsForSource`); a step with nothing to offer is skipped
+- Local state (title, topic, activity, timebox, notes, step) mirrors the stored task: it does not use `useTaskDraft`, which belongs to the sheet (draft card, spotlight, /tasks/add). The first title confirm creates the task through `useTaskSync().createTask` in the default source (`useAddTarget`; the check rests during the create, a refused create keeps the title step with the text); every later answer (a pick, a clear, the title confirmed again, the note on finish) is written at once through `useTaskSync().editTask` (#758). While the card asks, the board leaves the task's own card out (`setInCardTask`, `withoutInCardTask`), and the suggestions never learn from it. Steps follow that source's fields (`fieldsForSource`); a step with nothing to offer is skipped
 - The face is the real TaskCard (`draft`), so the saved card and the cue behind the wash match by construction; the topic row exists only once a topic is picked (the title steps down then, as on a card)
 - Title step (no wash): the field is a textarea that grows with the title (#665; Enter confirms, line breaks become spaces, at most as tall as the face's title, which is what the card shows of it (a long title is clamped there), then it scrolls) and stands where the face's title stands: on the card body padding, or below the topic row once a topic is picked (measured from the face, #668: going back with a topic must not overlap it). The face's own title is hidden there, so the field is the only text; it keeps the field's right padding so both wrap alike. The confirm check is centred vertically on the card, on the line where the answer rows of the later steps stand, so the button controls keep one height; the field keeps the check's width clear (accepted: a short title wraps a few characters earlier)
 - Steps (one question at a time, over the card): the card is plain and solid (#434: the veil is `--ui-bg-elevated`, the face's text and topic mark are hidden behind it, the face only sizes the card and is what the save hands over to). Head on the card padding: back left (soft icon button, Esc chip), the question, forward right (soft icon-only button, Enter chip; none on Notiz); the answers under it. Thema and Aktivität are one combobox (`UInputMenu`, #434, below); Timebox keeps its 2×2 grid, `[1] [2] / [3] [··· 4]` (kd#119: 15, 30 and 60 min without a history suggestion; `timeboxStep`), the chips (`ChoiceChip`, the field height, which is also the control height of the whole flow, `--ncf-control-h`) carrying the name and the key cue only. The steps stay as tall as before (kd#178): the face's min-height is derived from the head, two control rows and the room under them (`--ncf-control-h`, `--ncf-grid-top`, `--ncf-grid-bottom`), so the one-row combobox does not make the card jump. Notiz is an input plus a check on the vertical centre; Enter saves. The step slides sideways (140 ms) into the next
 - The card is taller in its steps than in its title phase: going from the title to the first question and back glides its height over `--duration-slow` (`glideHeight`, #610), so the cards below move with it and nothing jumps
 - A pick pulses the veil once (a cue on Notiz); saving lifts the veil and the face becomes the saved card
-- Keys: Enter skips (saves on Notiz), Esc goes back from anywhere, also with the combobox's list open (cancels on the title step; with a typed title the slot offers "Rückgängig" in a toast, #665), Cmd/Ctrl+Enter saves now with what is entered, from any step once there is a title (#665; announced by `aria-keyshortcuts` and the check's title). Timebox: 1/2/3 pick, 4 opens the list (the dots icon). Thema and Aktivität have no number keys (digits are text in the field), and Backspace/Delete only edit text (#434). Key cues sit inside the buttons (generated content, so the accessible name stays the label), fine pointers only. Tab order is the DOM order; every step change moves focus to the step (the combobox's field, Notiz: its input)
-- A press outside cancels only while the title is blank (a press on a card, in Offen or under "Alle Aufgaben", waits for its release, a drag keeps the card); a save error keeps the card where it was (Notiz after Enter) with everything entered; the toast after a save is one row (title and Details, #665) so it stays clear of the saved card at 390 px
+- Keys: Enter skips (saves on Notiz), Esc goes back from anywhere, also with the combobox's list open (cancels on the title step before the first confirm; with a typed title the slot offers "Rückgängig" in a toast, #665; after it, finishes, #758), Cmd/Ctrl+Enter saves now with what is entered, from any step once there is a title (#665; announced by `aria-keyshortcuts` and the check's title). Timebox: 1/2/3 pick, 4 opens the list (the dots icon). Thema and Aktivität have no number keys (digits are text in the field), and Backspace/Delete only edit text (#434). Key cues sit inside the buttons (generated content, so the accessible name stays the label), fine pointers only. Tab order is the DOM order; every step change moves focus to the step (the combobox's field, Notiz: its input)
+- A press outside cancels only while the title is blank (a press on a card, in Offen or under "Alle Aufgaben", waits for its release, a drag keeps the card); once the task is stored no way out deletes it: Esc on the title step finishes like Cmd/Ctrl+Enter, a press outside, the sheet or the move to "Alle" just close the card, and the card closes when its task leaves the store (#758); a create error keeps the card where it was with everything entered; the toast after a save is one row (title and Details, #665) so it stays clear of the saved card at 390 px
 - Thema and Aktivität (#434): a combobox on the step's whole ranked list (`UInputMenu`: type to filter, the list opens below the field on focus and closes on pick, Esc-back and blur, 5 rows, then it scrolls; the cap follows the visual viewport, so the on-screen keyboard never covers it; app.config.ts `inputMenu` holds the field height, the rows (44 px on a phone) and the sheet look). The field shows the step's value; deleting the text or the clear button takes the value away. Enter takes an entry the user walked to with the arrows (the list highlights its first entry by itself, which is no choice); on an empty field it continues without a value; typed text with a match takes an exact match (any case), else the first match, else a "Neu: „text“" row creates it where the source allows free values (`fieldsForSource(...).newValues`: Local any text, Notion without commas and at most 100 characters, so the row shows what is created; Todoist none, then the field only filters). A step with no values at all is still skipped; the sheet creates a first topic. The new value is just a pick: Local derives topics from tasks, Notion creates the select option on the write (`NotionIntegration` writes the property's own type)
 - The dots icon's list (Timebox only): popover from 768 px, drawer below (`NewCardOptionList`); ↑/↓ (wrapping) walk the options, Home/End jump, Enter/Space pick, Esc closes (kd#15; plain buttons with one shared handler, not UDropdownMenu: the drawer has no menu primitive and the key-4 focus flow (#685) stays). Motion is instant under prefers-reduced-motion
-- Accepted: unsaved input is lost when the page is left (the card saves only at the end, as the story asks); activity and note have no place on a card, so only the field and the pulse show them; the combobox's list is a popover over the card below it (a transient overlay, #434)
+- Accepted: a note typed without Enter, or a title changed on the title step without confirming it, is not written when the page is left (only confirmed answers are, #758); activity and note have no place on a card, so only the field and the pulse show them; the combobox's list is a popover over the card below it (a transient overlay, #434)
 -->
 <template>
   <div
@@ -271,6 +271,7 @@ import { useErrorHandler } from '~/composables/useErrorHandler';
 import { isPhoneNow, useIsDesktop } from '~/composables/useIsDesktop';
 import { usePropertyOptionsSync } from '~/composables/usePropertyOptionsSync';
 import { useTaskSync } from '~/composables/useTaskSync';
+import { setInCardTask } from '~/composables/useInCardAdding';
 import { useTimeboxSuggestion } from '~/composables/useTimeboxSuggestion';
 import { useTopicColor } from '~/composables/useTopicColor';
 import { DRAFT_TASK_ID } from '~/composables/useTaskDraft';
@@ -311,7 +312,7 @@ const toast = useToast();
 const tasksStore = useTasksStore();
 const optionsStore = usePropertyOptionsStore();
 const notionConfig = useNotionConfigStore();
-const { createTask } = useTaskSync();
+const { createTask, editTask } = useTaskSync();
 const { defaultSource } = useAddTarget();
 const { colorCodeFor } = useTopicColor();
 const { handleError } = useErrorHandler();
@@ -331,8 +332,10 @@ const faceCard = () => (faceEl.value?.firstElementChild as HTMLElement | null) ?
 const titleTop = ref<string | undefined>(undefined);
 
 const title = ref(props.initialTitle ?? '');
-/** The typed title, for a host that closes the card on its own (AddTaskSlot, a move to "Alle") */
-defineExpose({ title });
+/** The task this card stored when its title was confirmed (#758): the later steps edit it; null before the first confirm */
+const storedId = ref<string | null>(null);
+/** The typed title and the stored task, for a host that closes the card on its own (AddTaskSlot, a move to "Alle") */
+defineExpose({ title, storedId });
 const topic = ref<string | null>(null);
 const activity = ref<string | null>(null);
 const minutes = ref<number | null>(null);
@@ -347,9 +350,11 @@ const saving = ref(false);
 /** The save target and what it can store: the sheet's initial target, so the two flows start alike */
 const fields = computed(() => fieldsForSource(defaultSource.value, notionConfig.config?.propertyMapping));
 
-const topicOptions = computed(() => (fields.value.topic ? topicStep(tasksStore.tasks, optionsStore.getTopicOptions) : null));
+/** The tasks the suggestions learn from: never the one this card stored, so its own answers neither rank nor make a step appear (#758) */
+const otherTasks = computed(() => (storedId.value === null ? tasksStore.tasks : tasksStore.tasks.filter((task) => task.id !== storedId.value)));
+const topicOptions = computed(() => (fields.value.topic ? topicStep(otherTasks.value, optionsStore.getTopicOptions) : null));
 const activityOptions = computed(() =>
-  fields.value.activity ? activityStep(tasksStore.tasks, optionsStore.getActivityOptions, topic.value) : null,
+  fields.value.activity ? activityStep(otherTasks.value, optionsStore.getActivityOptions, topic.value) : null,
 );
 const timeboxOptions = computed(() =>
   fields.value.timebox
@@ -521,7 +526,10 @@ function onMoreCloseAutoFocus(event: Event) {
 }
 
 async function confirmTitle() {
-  if (!title.value.trim()) return;
+  const text = title.value.trim();
+  if (!text || saving.value) return;
+  // Stored the moment the title is confirmed (#758): a reload during the later steps keeps the task
+  if (!(await storeTitle(text))) return;
   // The card is taller in its steps than in its title phase (kd#178): its height glides, the cards below follow (#610)
   await glideHeight(faceCard(), () => {
     direction.value = 'fwd';
@@ -537,10 +545,13 @@ function pick(value: string) {
     topic.value = value;
     // An activity chosen earlier under another topic is a stale pick once the topic changes
     if (activity.value && !activityOptions.value?.all.includes(activity.value)) activity.value = null;
+    writeAnswer({ topic: topic.value, topicColorCode: colorCodeFor(topic.value, defaultSource.value), activity: activity.value });
   } else if (step.value === 'activity') {
     activity.value = value;
+    writeAnswer({ activity: value });
   } else if (step.value === 'timebox') {
     minutes.value = Number(value);
+    writeAnswer({ timeBoxSeconds: minutes.value * 60 });
   }
   picked.value = value;
   moreOpen.value = false;
@@ -571,8 +582,13 @@ const creatable = computed(() => isEntryStep.value ? newValueFor(searchTerm.valu
 
 /** The step's value is taken away: the clear button, or the text deleted down to nothing */
 function clearValue() {
-  if (step.value === 'topic') topic.value = null;
-  else if (step.value === 'activity') activity.value = null;
+  if (step.value === 'topic') {
+    topic.value = null;
+    writeAnswer({ topic: null, topicColorCode: null });
+  } else if (step.value === 'activity') {
+    activity.value = null;
+    writeAnswer({ activity: null });
+  }
 }
 
 /** A pick, or a clear (the clear button) */
@@ -705,7 +721,9 @@ function onKeydown(event: KeyboardEvent) {
   if (moreOpen.value) return;
   if (event.key === 'Escape') {
     event.stopPropagation();
-    if (phase.value === 'title') emit('cancel', title.value.trim() ? { title: title.value.trim() } : undefined);
+    // Once the task is stored, Esc on the title closes the card like a finish: nothing in the card deletes a stored task (#758)
+    if (phase.value === 'title' && storedId.value !== null) void save();
+    else if (phase.value === 'title') emit('cancel', title.value.trim() ? { title: title.value.trim() } : undefined);
     else void goBack();
     return;
   }
@@ -726,27 +744,82 @@ function onKeydown(event: KeyboardEvent) {
   }
 }
 
+/** The task as the card holds it: what the create stores, and what a finish compares the stored task with */
+function draftFields(): Partial<Task> {
+  return {
+    title: title.value.trim(),
+    status: TaskStatus.Open,
+    // The sheet's defaults for what is not asked: Normal (#653)
+    priority: DEFAULT_PRIORITY,
+    topic: fields.value.topic ? topic.value : null,
+    topicColorCode: fields.value.topic ? colorCodeFor(topic.value, defaultSource.value) : null,
+    activity: fields.value.activity ? activity.value : null,
+    notes: notes.value.trim() || null,
+    timeBoxSeconds: fields.value.timebox && minutes.value ? minutes.value * 60 : null,
+    isUnplanned: false,
+    // On the place "Alle" the saved card goes to "Alle Aufgaben" (#367)
+    ...(newTaskStartsNotPlanned() ? { notPlanned: true as const } : {}),
+  };
+}
+
+/** Creates the task with what the card holds; the board leaves its card out from the first render while the card still asks (#758) */
+async function createStored(): Promise<Task> {
+  const created = await createTask(draftFields(), defaultSource.value, { onAdd: (task) => setInCardTask(task.id) });
+  storedId.value = created.id;
+  return created;
+}
+
+/** One answer becomes an edit of the stored task at once (#758), through the sheet's edit path (store, then the push) */
+function writeAnswer(updates: Partial<Task>) {
+  if (storedId.value === null) return;
+  editTask(storedId.value, updates).catch((error: unknown) => handleError(error as Error, 'task_sync'));
+}
+
+/** The first confirm creates the task, a later one (back on the title) edits its title. A refused create keeps the title step with the text */
+async function storeTitle(text: string): Promise<boolean> {
+  if (storedId.value !== null) {
+    if (tasksStore.task(storedId.value)?.title !== text) writeAnswer({ title: text });
+    return true;
+  }
+  saving.value = true; // the field rests while the create runs (a Notion round trip): a second Enter creates nothing
+  try {
+    await createStored();
+    return true;
+  } catch (error) {
+    handleError(error as Error, 'task_create');
+    await nextTick();
+    titleEl.value?.focus({ preventScroll: true });
+    return false;
+  } finally {
+    saving.value = false;
+  }
+}
+
+/** What the card holds that the stored task does not: a title typed on the title step (a blank field keeps the stored one), a confirmed note */
+function unwrittenFields(task: Task): Partial<Task> {
+  const want = draftFields();
+  if (!want.title) want.title = task.title;
+  const changed: Partial<Task> = {};
+  for (const key of ['title', 'topic', 'topicColorCode', 'activity', 'notes', 'timeBoxSeconds'] as const) {
+    if ((want[key] ?? null) !== (task[key] ?? null)) Object.assign(changed, { [key]: want[key] });
+  }
+  return changed;
+}
+
+/** The end of the card (Enter on Notiz, Cmd/Ctrl+Enter, Esc on the title of a stored task): what is not written yet is, then the card hands over to the task's own card */
 async function save() {
   if (saving.value) return;
   saving.value = true; // the wash lifts, controls rest: the face behind becomes the card
   try {
-    const created = await createTask(
-      {
-        title: title.value.trim(),
-        status: TaskStatus.Open,
-        // The sheet's defaults for what is not asked: Normal (#653)
-        priority: DEFAULT_PRIORITY,
-        topic: fields.value.topic ? topic.value : null,
-        topicColorCode: fields.value.topic ? colorCodeFor(topic.value, defaultSource.value) : null,
-        activity: fields.value.activity ? activity.value : null,
-        notes: notes.value.trim() || null,
-        timeBoxSeconds: fields.value.timebox && minutes.value ? minutes.value * 60 : null,
-        isUnplanned: false,
-        // On the place "Alle" the saved card goes to "Alle Aufgaben" (#367)
-        ...(newTaskStartsNotPlanned() ? { notPlanned: true as const } : {}),
-      },
-      defaultSource.value,
-    );
+    const stored = storedId.value === null ? null : tasksStore.task(storedId.value);
+    let created: Task;
+    if (stored) {
+      const changed = unwrittenFields(stored);
+      if (Object.keys(changed).length > 0) writeAnswer(changed);
+      created = stored;
+    } else {
+      created = await createStored();
+    }
     toast.add({
       title: t('board.quickAdd.added'),
       orientation: 'horizontal',
@@ -819,7 +892,14 @@ onMounted(() => {
   revealDraft(rootEl.value, { phone: isPhoneNow(), reducedMotion: prefersReducedMotion() });
 });
 
+// The stored task left the store while the card still asks (deleted elsewhere): the card has nothing left to edit
+watch(() => storedId.value !== null && !tasksStore.task(storedId.value), (gone) => {
+  if (gone && !saving.value) emit('cancel');
+});
+
 onBeforeUnmount(() => {
+  // The board shows the task's own card again (#758)
+  if (storedId.value !== null) setInCardTask(null, storedId.value);
   document.removeEventListener('pointerdown', onPressOutside, true);
   window.visualViewport?.removeEventListener('resize', fitList);
   document.documentElement.style.removeProperty('--combo-list-room');

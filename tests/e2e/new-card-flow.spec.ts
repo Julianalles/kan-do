@@ -8,7 +8,8 @@ import { expectContrast } from './helpers/contrast'
 
 /**
  * #649: the Offen add button turns the slot into a card that takes the title, then asks Thema, Aktivität, Timebox
- * and Notiz one after another and saves at the end. No sheet, no route change.
+ * and Notiz one after another. No sheet, no route change. Since #758 the task is stored when the title is confirmed
+ * and every later answer is an edit of it, so a reload in the middle keeps it.
  */
 
 const offen = (page: Page) => page.locator('#column-open')
@@ -221,7 +222,8 @@ for (const { name, viewport, touch } of [
       await expect(card(page)).toBeVisible()
       await expect(title(page)).toHaveValue('Bleibt stehen')
 
-      // Esc steps back from a later step, keeping what was typed; a second Esc cancels from the title step
+      // Esc steps back from a later step, keeping what was typed; the title confirm stored the task (#758), so a
+      // second Esc on the title step closes the card and the task stays, as its own card
       await title(page).press('Enter')
       await expect(step(page)).toHaveAttribute('data-step', 'topic')
       await page.keyboard.press('Escape')
@@ -229,7 +231,8 @@ for (const { name, viewport, touch } of [
       await expect(title(page)).toHaveValue('Bleibt stehen')
       await page.keyboard.press('Escape')
       await expect(card(page)).toHaveCount(0)
-      expect(await storedTask(page, 'Bleibt stehen')).toBeUndefined()
+      await expect.poll(async () => (await storedTask(page, 'Bleibt stehen'))?.status).toBe(0)
+      await expect(offen(page).locator('.task-wrapper', { hasText: 'Bleibt stehen' })).toHaveCount(1)
     })
 
     test('#668: going back to the title after a topic leaves the title field clear of the topic row', async ({ page }) => {
@@ -349,6 +352,62 @@ for (const { name, viewport, touch } of [
       await page.waitForURL(/\/tasks\/add/)
       await expect(card(page)).toHaveCount(0)
       await expect(page.getByTestId('task-draft-card')).toBeVisible()
+    })
+  })
+}
+
+for (const { name, viewport, touch } of [
+  { name: '1280px', viewport: { width: 1280, height: 900 }, touch: false },
+  { name: '390px', viewport: { width: 390, height: 844 }, touch: true },
+]) {
+  test.describe(`#758: a task confirmed in the card survives a reload, at ${name}`, () => {
+    test.use({ viewport, hasTouch: touch, isMobile: touch })
+
+    test.beforeEach(async ({ context, page }) => {
+      // once: the reload must find what the app stored, not a fresh seed
+      await seedLocalBoard(context, RICH_TASKS, {}, undefined, { once: true })
+      await page.goto('/tasks')
+      await showColumnPage(page, 0) // the board opens on Jetzt while a task sits there (kd#191)
+      await expect(offen(page).locator('.task-wrapper').first()).toBeVisible()
+    })
+
+    const savedCards = (page: Page, text: string) => offen(page).locator('.task-wrapper', { hasText: text })
+
+    test('a reload during the Timebox step keeps the task, which shows once while the card asks', async ({ page }) => {
+      await openCard(page)
+      await confirmTitle(page, 'Überlebt den Reload')
+      // stored at the confirm, but its own card waits until the card ends: one card, not two
+      await expect.poll(async () => (await storedTask(page, 'Überlebt den Reload'))?.status).toBe(0)
+      await expect(savedCards(page, 'Überlebt den Reload')).toHaveCount(0)
+      await combo(page).press('Enter') // Thema skipped
+      await expect(step(page)).toHaveAttribute('data-step', 'activity')
+      await slideEnded(page)
+      await combo(page).press('Enter') // Aktivität skipped
+      await expect(step(page)).toHaveAttribute('data-step', 'timebox')
+
+      await page.reload()
+      await expect(card(page)).toHaveCount(0)
+      await expect(savedCards(page, 'Überlebt den Reload')).toHaveCount(1)
+      expect(await storedTask(page, 'Überlebt den Reload')).toMatchObject({ status: 0, timeBoxSeconds: null, notes: null })
+    })
+
+    test('a reload during the Notiz step keeps the title and every answer given', async ({ page }) => {
+      await openCard(page)
+      await confirmTitle(page, 'Mit Timebox gemerkt')
+      await takeValue(page, 'Marketing')
+      await expect(step(page)).toHaveAttribute('data-step', 'activity')
+      await slideEnded(page)
+      await combo(page).press('Enter') // Aktivität skipped
+      await expect(step(page)).toHaveAttribute('data-step', 'timebox')
+      await slideEnded(page)
+      await page.keyboard.press('2') // 30 min
+      await expect(page.getByTestId('new-card-notes')).toBeFocused()
+      await expect.poll(async () => (await storedTask(page, 'Mit Timebox gemerkt'))?.timeBoxSeconds).toBe(1800)
+
+      await page.reload()
+      await expect(card(page)).toHaveCount(0)
+      await expect(savedCards(page, 'Mit Timebox gemerkt')).toHaveCount(1)
+      expect(await storedTask(page, 'Mit Timebox gemerkt')).toMatchObject({ topic: 'Marketing', timeBoxSeconds: 1800, notes: null })
     })
   })
 }
@@ -779,18 +838,20 @@ test.describe('guided new card: a new value typed into the combobox (kd#16, #434
     await page.goto('/tasks')
     await expect(offen(page).locator('.task-wrapper').first()).toBeVisible()
     await openCard(page)
+    // The title confirm creates the page (#758); the topic picked after it is an edit of that page
+    const created = page.waitForRequest((request) => request.url().includes('/api/notion/create-task') && request.method() === 'POST')
     await confirmTitle(page, 'Neues Thema in Notion')
+    expect(JSON.stringify((await created).postDataJSON())).toContain('Neues Thema in Notion')
     await expect(combo(page)).toBeFocused()
     await combo(page).fill('Garten, Pflege')
     await expect(entries(page).first()).toHaveText('Neu: „Garten Pflege“')
-    const created = page.waitForRequest((request) => request.url().includes('/api/notion/create-task') && request.method() === 'POST')
+    const edited = page.waitForRequest((request) => request.url().includes('/api/notion/update-task') && JSON.stringify(request.postDataJSON()?.properties?.Thema ?? null).includes('Garten'))
     await page.keyboard.press('Enter')
     await expect(step(page)).toHaveAttribute('data-step', 'activity')
     await page.keyboard.press('Enter')
     await page.keyboard.press('Enter')
     await page.keyboard.press('Enter')
-    const properties = (await created).postDataJSON().properties
-    expect(JSON.stringify(properties.Thema)).toContain('Garten Pflege')
+    expect(JSON.stringify((await edited).postDataJSON().properties.Thema)).toContain('Garten Pflege')
     await expect.poll(async () => (await storedTask(page, 'Neues Thema in Notion'))?.topic).toBe('Garten Pflege')
   })
 })

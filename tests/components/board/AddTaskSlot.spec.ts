@@ -5,6 +5,7 @@ import { toastAddMock } from '~/tests/mocks/nuxt-imports'
 import AddTaskSlot from '~/components/board/AddTaskSlot.vue'
 import { useTaskDraft } from '~/composables/useTaskDraft'
 import { TaskStatus } from '~/types/taskStatus'
+import { setCurrentBoardPath } from '~/lib/boardPlace'
 
 // Reactive, so a route change on the mounted slot reaches its watcher
 const route = vi.hoisted(() => ({ value: null as unknown as { path: string } }))
@@ -13,12 +14,16 @@ vi.mock('vue-router', async () => {
   route.value = makeReactive({ path: '/tasks' })
   return { useRoute: () => route.value }
 })
-// The flow itself is covered by NewCardFlow.spec.ts: here it only offers the two ways out
+// The flow itself is covered by NewCardFlow.spec.ts: here it only offers the two ways out, and what it exposes (the typed title, the stored task, #758)
+const flowExposed = vi.hoisted(() => ({ title: '', storedId: null as string | null }))
 vi.mock('~/components/board/NewCardFlow.vue', () => ({
   default: {
     name: 'NewCardFlow',
     emits: ['saved', 'cancel'],
     props: ['initialTitle'],
+    setup(_: unknown, { expose }: { expose: (exposed: Record<string, unknown>) => void }) {
+      expose({ get title() { return flowExposed.title }, get storedId() { return flowExposed.storedId } })
+    },
     template: '<div data-testid="new-card-flow" :data-initial-title="initialTitle"><button data-testid="flow-cancel" @click="$emit(\'cancel\')" /><button data-testid="flow-cancel-typed" @click="$emit(\'cancel\', { title: \'Tippfehler\' })" /><button data-testid="flow-saved" @click="$emit(\'saved\', \'task-1\')" /></div>',
   },
 }))
@@ -169,6 +174,34 @@ describe('AddTaskSlot in-card adding (#649)', () => {
     open(w)
     await nextTick()
     expect(w.find('[data-testid="new-card-flow"]').attributes('data-initial-title')).toBeUndefined()
+    w.unmount()
+  })
+
+  it('#758: the move to "Alle" closes a card whose task is stored without the "Rückgängig" toast; a typed title before the confirm still gets it (#567)', async () => {
+    toastAddMock.mockReset()
+    setCurrentBoardPath('/tasks')
+    const w = renderInCard()
+    open(w)
+    await nextTick()
+    flowExposed.title = 'Schon gespeichert'
+    flowExposed.storedId = 'task-1'
+    setCurrentBoardPath('/all')
+    await nextTick()
+    await nextTick()
+    expect(w.find('[data-testid="new-card-flow"]').exists()).toBe(false)
+    expect(toastAddMock).not.toHaveBeenCalled()
+
+    setCurrentBoardPath('/tasks')
+    open(w)
+    await nextTick()
+    flowExposed.title = 'Nur getippt'
+    flowExposed.storedId = null
+    setCurrentBoardPath('/all')
+    await nextTick()
+    await nextTick()
+    expect(w.find('[data-testid="new-card-flow"]').exists()).toBe(false)
+    expect(toastAddMock).toHaveBeenCalledTimes(1)
+    setCurrentBoardPath('/tasks')
     w.unmount()
   })
 
