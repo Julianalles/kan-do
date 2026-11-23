@@ -114,6 +114,8 @@ const menuItems = computed<DropdownMenuItem[][]>(() => {
   }
   if (props.row.canConfigure) {
     items.push({ label: t('sources.row.settings', { source: sourceCompound(name, locale.value) }), icon: 'i-ph-gear', onSelect: () => emit('openSettings', id) })
+  }
+  if (props.row.canDisconnect) {
     leaving.push({ label: t('sources.row.disconnect'), icon: 'i-ph-plugs', onSelect: () => emit('disconnect', id) })
   }
   return [items, leaving].filter((group) => group.length)

@@ -6,7 +6,7 @@
  * - `connected`: Lokal always, then every connected integration, each with default flag, status line and the
  *   actions it offers
  * - A stored integration this build cannot sync (Notion on the public web instance, #742) is a connected row with the note
- *   "Nur in der Desktop-App verfügbar…" and no action; the stored config is left as it is
+ *   "Nur in der Desktop-App verfügbar…" and "Trennen" as its only action; the stored config is left as it is
  * - `more`: the unconnected Notion (connectable; "in der öffentlichen Cloud-Version nicht verfügbar" there), Todoist (not yet available) and Apple Reminders (connectable on a Mac that supports it, else "nur in der Mac-App", #552)
  * - Status per integration: warning "Verbindung prüfen" when broken or degraded, the last-sync line when
  *   healthy or merely offline, neutral "Wird geprüft…" before a first successful sync
@@ -37,6 +37,8 @@ export interface ConnectedSourceRow {
   repairNeedsCredentials: boolean
   /** "<Source>-Einstellungen" and "Trennen": integrations only (Local has neither) */
   canConfigure: boolean
+  /** "Trennen": every integration, a paused one included (it removes the stored config, #742) */
+  canDisconnect: boolean
 }
 
 export interface MoreSourceRow {
@@ -122,6 +124,7 @@ export function useSourceList(): {
           canRepair: false,
           repairNeedsCredentials: false,
           canConfigure: false,
+          canDisconnect: false,
         }
       }
       // A stored source this build cannot sync (Notion on the public web instance, #742): a note, no action
@@ -135,6 +138,7 @@ export function useSourceList(): {
           canRepair: false,
           repairNeedsCredentials: false,
           canConfigure: false,
+          canDisconnect: true,
         }
       }
       const status = statusOf(id)
@@ -146,6 +150,7 @@ export function useSourceList(): {
         canRepair: status.attention,
         repairNeedsCredentials: status.broken,
         canConfigure: true,
+        canDisconnect: true,
       }
     })
   })

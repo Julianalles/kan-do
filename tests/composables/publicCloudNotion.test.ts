@@ -25,12 +25,13 @@ vi.mock('~/composables/useNotionIntegration', () => ({
   useNotionIntegration: () => ({ isConfigured: { value: true }, createInstance }),
 }))
 vi.mock('~/store/notionConfig', () => ({
-  useNotionConfigStore: () => ({ isConfigured: true, hasDataSourceSelected: true, setNotPlannedLimited: () => {}, config: { token: 't', statusMapping: { archive: null } } }),
+  useNotionConfigStore: () => ({ clearConfig: () => Promise.resolve(true), isConfigured: true, hasDataSourceSelected: true, setNotPlannedLimited: () => {}, config: { token: 't', statusMapping: { archive: null } } }),
 }))
 
 /* eslint-disable import/first -- order-sensitive: mocks must be registered before the SUT is imported */
 import { useIntegrationManager } from '~/composables/useIntegrationManager'
 import { useTaskSources } from '~/composables/useTaskSources'
+import { useSourceConnections } from '~/composables/useSourceConnections'
 import { useSourceList } from '~/composables/useSourceList'
 import { useBoardStore } from '~/store/board'
 import { useTasksStore } from '~/store/tasks'
@@ -110,7 +111,7 @@ describe('Notion on the public web instance (#742)', () => {
     expect(fetchNotion).toHaveBeenCalledOnce()
   })
 
-  it('Speicherorte: the paused Notion row says why and offers nothing; an unconnected Notion is "not available in public cloud version"', () => {
+  it('Speicherorte: the paused Notion row says why and offers only Trennen; an unconnected Notion is "not available in public cloud version"', () => {
     setPublicCloud(true)
     const board = useBoardStore()
     board.setSources({ connected: ['notion'], default: 'notion' })
@@ -119,11 +120,31 @@ describe('Notion on the public web instance (#742)', () => {
     expect(connected.value[0]).toMatchObject({ id: 'local', isDefault: true })
     expect(connected.value[1]).toMatchObject({
       id: 'notion', isDefault: false, statusText: 'Nur in der Desktop-App verfügbar. Deine lokalen Aufgaben bleiben erhalten.',
-      canSetDefault: false, canRepair: false, canConfigure: false,
+      canSetDefault: false, canRepair: false, canConfigure: false, canDisconnect: true,
     })
+    expect(connected.value[0]).toMatchObject({ canDisconnect: false })
     expect(more.value.map((row) => row.id)).not.toContain('notion')
 
     board.setSources({ connected: [], default: 'local' })
     expect(more.value.find((row) => row.id === 'notion')).toMatchObject({ state: 'cloudUnavailable' })
+  })
+
+  it('a paused Notion source can be disconnected: no sync offer, the stored config and its cached tasks go, Local stays', async () => {
+    setPublicCloud(true)
+    const board = useBoardStore()
+    board.setSources({ connected: ['notion'], default: 'notion' })
+    const tasks = useTasksStore()
+    tasks.setTasks([task('l1', 'local'), task('n1', 'notion')])
+    const { disconnectPlan, disconnectSource } = useSourceConnections()
+
+    expect(disconnectPlan('notion')).toMatchObject({ source: 'notion', taskCount: 1, reachable: false })
+    const result = await disconnectSource('notion', { syncFirst: true }) // a sync offer is never made; it must not run
+    expect(result).toMatchObject({ ok: true, removedTaskCount: 1 })
+    expect(fetchNotion).not.toHaveBeenCalled()
+    expect(createInstance).not.toHaveBeenCalled()
+    expect(board.pausedIntegrations).toEqual([])
+    expect(board.boardConfig.sources).toEqual({ connected: [], default: 'local' })
+    expect(tasks.tasks.map((t) => t.id)).toEqual(['l1'])
+    expect(disconnectPlan('notion')).toBeNull()
   })
 })

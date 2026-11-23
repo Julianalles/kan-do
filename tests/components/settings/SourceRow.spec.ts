@@ -5,7 +5,7 @@ import type { ConnectedSourceRow } from '~/composables/useSourceList'
 
 const row = (overrides: Partial<ConnectedSourceRow> = {}): ConnectedSourceRow => ({
   id: 'notion', name: 'Notion', icon: 'i-simple-icons-notion', isDefault: false, statusText: 'Synchronisiert vor 5 Min.',
-  statusTone: 'muted', canSetDefault: true, canRepair: false, canConfigure: true, ...overrides,
+  statusTone: 'muted', canSetDefault: true, canRepair: false, canConfigure: true, canDisconnect: true, ...overrides,
 })
 
 // The menu stub renders its trigger and one button per item, so a test reads and picks the items without the portal
@@ -62,11 +62,18 @@ describe('SourceRow (#324, menu since #333)', () => {
   })
 
   it('Local offers nothing but "Als Standard festlegen" (and no menu button at all when it is the only source)', () => {
-    const local = row({ id: 'local', name: 'Lokal', canConfigure: false, statusText: 'Auf diesem Gerät gespeichert' })
+    const local = row({ id: 'local', name: 'Lokal', canConfigure: false, canDisconnect: false, statusText: 'Auf diesem Gerät gespeichert' })
     const w = render(local)
     expect(items(w).map((i) => i.text())).toEqual(['Als Standard festlegen'])
     const only = render({ ...local, isDefault: true, canSetDefault: false })
     expect(only.findAll('button')).toHaveLength(0)
     expect(only.text()).toContain('Standard')
+  })
+
+  it('a paused source (#742) offers "Trennen" alone, no settings', async () => {
+    const w = render(row({ canSetDefault: false, canConfigure: false }))
+    expect(items(w).map((i) => i.text())).toEqual(['Trennen'])
+    await pick(w, 'Trennen')
+    expect(w.emitted('disconnect')).toEqual([['notion']])
   })
 })
