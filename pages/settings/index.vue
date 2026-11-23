@@ -19,7 +19,7 @@ App-Reset, and on desktop Updates and GitHub-Zugriff; below them a "Rechtliches"
   (`?setup=repair`, so a new token can be entered); a merely degraded one opens it in settings mode (`?setup=settings`); no dialog (#652).
   "Notion-Einstellungen" goes to /settings/notion, "Trennen" opens the disconnect dialog of #320
   (`useSourceConnections` does the work)
-- On the public web instance (#742) Notion reads "in der öffentlichen Cloud-Version nicht verfügbar" there, without a button, and a stored Notion source is a connected row with the note "Nur in der Desktop-App verfügbar…" and no action
+- On the public web instance (#742) Notion reads "nur in der Mac-App" there, without a button, and a stored Notion source is a connected row with the note "Nur in der Desktop-App verfügbar…" and no action
 - "Eine App verbinden": Notion with "Verbinden" while disconnected (opens the Notion setup stage of /settings/notion, `?setup=connect`; the stage connects the source when it ends),
   Erinnerungen with "Verbinden" in the Mac app (it opens /settings/reminders, which runs the setup there; the web build reads "nur in der Mac-App", #552),
   Todoist as "bald verfügbar"
