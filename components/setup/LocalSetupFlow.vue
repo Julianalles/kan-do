@@ -8,7 +8,7 @@
 @responsibility
 - Explains that tasks stay on this device, local tasks are always possible and services can be connected now or later in Einstellungen
 - Lists Notion, Erinnerungen (Apple Reminders, #552) and Todoist as checkbox cards (`ChoiceCard` with `v-model`, #651): the service icon, the name and a one-line description; Erinnerungen has no official icon in the bundled sets, so a list glyph stands in (known trade-off until an asset exists); Todoist is disabled with "Bald verfügbar"; Erinnerungen is enabled only in the Mac app (`useRemindersSupported`), in the web build it is disabled and its line reads "Nur in der Mac-App"
-- Notion is disabled on the public web instance (#742) and its line reads "In der öffentlichen Cloud-Version nicht verfügbar"; a Notion tick carried over from before is ignored there
+- Notion is disabled on the public web instance (#742) and its line reads "Nur in der Mac-App"; a Notion tick carried over from before is ignored there
 - One primary action whose label follows the checkboxes: none checked empties the task store and emits `complete` ("Zum Board"); Notion only emits `connect-notion` ("Mit Notion einrichten"); Erinnerungen emits `connect-reminders` ("Mit Erinnerungen einrichten", with Notion also "Weiter mit Erinnerungen und Notion": the host runs the Reminders setup first, then Notion); the store is left alone for both
 - Back returns to the start view: the shared `BackButton` ("Zurück zur Auswahl")
 - Pattern: first-run setup, diverged from the modal wizard; the apps are choice cards, diverged from the circle checkboxes (the UX decision of #607)

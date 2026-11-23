@@ -1228,7 +1228,7 @@
       },
       "updates": {
         "label": "Updates",
-        "description": "Auf neue Version prüfen, Neugikeiten ansehen"
+        "description": "Auf neue Version prüfen, Neuigkeiten ansehen"
       },
       "github": {
         "label": "GitHub-Zugriff",
@@ -1308,7 +1308,7 @@
       "moreHeading": "Eine App verbinden",
       "soon": "bald verfügbar",
       "macOnly": "nur in der Mac-App",
-      "cloudUnavailable": "in der öffentlichen Cloud-Version nicht verfügbar"
+      "cloudUnavailable": "nur in der Mac-App"
     },
     "row": {
       "default": "Standard",
@@ -1363,6 +1363,7 @@
       "samples": "Beispiel anzeigen",
       "curious": "Nur neugierig? Dann schau dir die App mit Beispielaufgaben an.",
       "intro": "Du kannst Aufgaben lokal auf diesem Gerät speichern und optional Apps wie Notion oder Todoist verbinden.",
+      "introWeb": "Du kannst Aufgaben lokal auf diesem Gerät speichern.",
       "start": "Jetzt starten"
     },
     "flow": {
@@ -1378,7 +1379,7 @@
         "confirmNotion": "Mit Notion einrichten",
         "reminders": "Apple Erinnerungen",
         "remindersWebOnly": "Nur in der Mac-App",
-        "notionCloudUnavailable": "In der öffentlichen Cloud-Version nicht verfügbar",
+        "notionCloudUnavailable": "Nur in der Mac-App",
         "confirmReminders": "Mit Apple Erinnerungen einrichten",
         "confirmRemindersNotion": "Weiter mit Apple Erinnerungen und Notion",
         "notionHint": "Aufgaben aus einer Datenbank",
