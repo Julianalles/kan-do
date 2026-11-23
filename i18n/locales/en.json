@@ -1309,7 +1309,7 @@
       "moreHeading": "Connect an app",
       "soon": "coming soon",
       "macOnly": "Mac app only",
-      "cloudUnavailable": "not available in public cloud version"
+      "cloudUnavailable": "Mac app only"
     },
     "row": {
       "default": "Default",
@@ -1364,6 +1364,7 @@
       "samples": "Show example",
       "curious": "Just curious? Then look around the app with sample tasks.",
       "intro": "You can save tasks locally on this device and, if you like, connect apps such as Notion or Todoist.",
+      "introWeb": "You can save tasks locally on this device.",
       "start": "Get started"
     },
     "flow": {
@@ -1379,7 +1380,7 @@
         "confirmNotion": "Set up Notion",
         "reminders": "Apple Reminders",
         "remindersWebOnly": "Mac app only",
-        "notionCloudUnavailable": "Not available in public cloud version",
+        "notionCloudUnavailable": "Mac app only",
         "confirmReminders": "Set up with Apple Reminders",
         "confirmRemindersNotion": "Continue with Apple Reminders and Notion",
         "notionHint": "Tasks from a database",
@@ -1779,7 +1780,7 @@
       "heart": "Health",
       "airplane": "Travel",
       "currency-eur": "Finances",
-      "wrench": "Tools",
+      "wrench": "Tech",
       "lightbulb": "Idea",
       "calendar": "Appointments",
       "users": "Team",

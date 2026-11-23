@@ -18,6 +18,7 @@ One Markdown file per released version: `release-notes/<X.Y.Z>.md` (plain semver
 - Stage (#693): the notes of a release record its stage as a line `Stage: alpha`, `Stage: beta` or `Stage: stable`, under `## Fixes` (free text, never shown in the app, so the parser needs no change). `npm run release` refuses a file whose stage differs from `--stage` (default `alpha`).
 - Sections: `## Highlights` (required, first) and `## Fixes` (optional, never shown, not validated). Any other `##` heading or content before `## Highlights` is an error.
 - `## Highlights` is **either** the single line `None.` (a release without user-facing highlights, shows no button, only the "updated" toast) **or** has `### de` and `### en`, each with 1 to 5 bullets and **the same number of bullets** in both.
+- The `### en` bullets name UI elements with the **English** UI labels as `i18n/locales/en.json` has them ("Now", "Open", "Waiting", "Today", "Close the day"), never the German ones; `### de` uses the German labels.
 - A bullet is one line: `- **Title.** Text`. The title is bold and ends in a full stop inside the bold run; at least one word of text follows. Plain text otherwise: no HTML, links, images or nested lists. The app renders the text as text, never as Markdown or HTML.
 - Errors are reported with file, line and a hint, e.g. `release-notes/0.3.0.md:7: de has 3 bullets, en has 2`.
 
