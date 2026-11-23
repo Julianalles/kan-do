@@ -33,7 +33,7 @@ test('requirements sections 1-10 hold on one mixed board', async ({ context, pag
   await page.goto('/tasks')
   await expect(card(page, 'Fokusaufgabe vorbereiten')).toBeVisible()
 
-  // 4. Board: a source icon on every card of the mixed board, no source filter, no grouping by source
+  // 4. Board: a source icon on every card of the mixed board except the Jetzt card under its bar, no source filter, no grouping by source
   await expect(page.locator('.task[data-task-id]')).toHaveCount(MIXED_SEED_TASKS.length)
   // The Jetzt card (`page-2`) carries the stub's timebox once the first Notion fetch has merged, and its full-width bar hides
   // the icon (#704): 7 icons before that fetch, 6 after. The count retries until the fetch has landed (#750).
