@@ -147,7 +147,7 @@ App-Reset, and on desktop Updates and GitHub-Zugriff).
                     >
                       {{ t('sources.row.connect') }}
                     </UButton>
-                    <span v-else class="text-sm text-muted">{{ t(MORE_STATE_KEYS[row.state]) }}</span>
+                    <span v-else class="max-w-56 min-w-0 shrink text-end text-sm text-muted">{{ t(MORE_STATE_KEYS[row.state]) }}</span>
                   </ListRow>
                 </ul>
               </template>

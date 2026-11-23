@@ -193,7 +193,7 @@ export const useBoardStore = defineStore("board", () => {
    */
   const connectedIntegrations = computed<IntegrationSourceId[]>(() => (boardConfig.value.sources?.connected ?? []).filter(isSourceAvailable));
 
-  /** Stored integrations this build cannot sync (#742): the Speicherorte page says why and offers to disconnect them. */
+  /** Stored integrations this build cannot sync (#742): the Speicherorte page lists them with a note that says why (no action: the web cannot reach them; the desktop app syncs them again). */
   const pausedIntegrations = computed<IntegrationSourceId[]>(() => (boardConfig.value.sources?.connected ?? []).filter((id) => !isSourceAvailable(id)));
 
   /** Whether an integration is connected as a task source (a paused one is not). Local is always available, so it is not asked here. */
