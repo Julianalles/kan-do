@@ -54,3 +54,7 @@ Delete the branch first: the issue body is where its name is written.
 Before #744 the relay committed images to the default branch. When #744 shipped (2026-11-23) the repository's history
 held none (checked: no commit touches `feedback/`), so no history rewrite was needed. Should one ever be found, removing
 it needs `git filter-repo --path feedback/ --invert-paths` on a mirror clone and a force push.
+
+## Reports from older apps
+
+Desktop apps up to v0.21 write `blob/main/<path>` and "on `main`" into the issue body. The relay rewrites those references to the image's `screenshot/<uuid>` branch before it files the issue (`bodyNamingBranch` in `server/utils/feedbackRelay.ts`), and adds a line naming the branch when the body has none. The cleanup finds an image through that branch name in the issue body, so an open issue keeps its image.

@@ -121,6 +121,22 @@ async function storeScreenshot(token: string, repo: string, shot: { path: string
   if (ref.status !== 201 && ref.status !== 422) upstreamFailed('screenshot branch', ref.status)
 }
 
+/**
+ * Older desktop apps (v0.15 to v0.21) write `blob/main/<path>` and "on `main`" into the body, but the image is on its own
+ * branch now. Point every reference to the path at that branch, and name the branch when the body does not (an edited
+ * body): the cleanup finds an image through the branch name in its issue body, and an unnamed branch counts as an
+ * orphan that goes 30 days after upload while the issue is still open.
+ */
+export function bodyNamingBranch(body: string, path: string, branch: string): string {
+  const escaped = path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  let out = body
+    .replace(new RegExp(`/blob/[^/\\s]+/${escaped}`, 'g'), `/blob/${branch}/${path}`)
+    .replace(new RegExp(`(\`${escaped}\`) on \`[^\`]+\``, 'g'), `$1 on \`${branch}\``)
+    .replace(new RegExp(`(contents/${escaped}\\?ref=)[^\\s\`]+`, 'g'), `$1${branch}`)
+  if (!out.includes(branch)) out = `${out.replace(/\s+$/, '')}\n\nScreenshot: \`${path}\` on \`${branch}\`\n`
+  return out
+}
+
 /** Cap check, then the screenshot (when there is one), then the issue: a refused report leaves nothing behind. */
 export async function fileReport(report: FeedbackReport, target: { token: string, repo: string }, now = Date.now()): Promise<void> {
   const { token, repo } = target
@@ -130,8 +146,12 @@ export async function fileReport(report: FeedbackReport, target: { token: string
   const lastHour = (recent.json as Array<{ created_at?: string }>).filter(issue => Date.parse(issue.created_at ?? '') >= cutoff)
   if (lastHour.length >= FEEDBACK_HOURLY_CAP) relayError(429, 'FEEDBACK_RATE_LIMITED')
 
-  if (report.screenshot) await storeScreenshot(token, repo, report.screenshot)
+  let body = report.body
+  if (report.screenshot) {
+    await storeScreenshot(token, repo, report.screenshot)
+    body = bodyNamingBranch(body, report.screenshot.path, relayScreenshotBranch(report.screenshot.path))
+  }
 
-  const issue = await github(token, 'POST', `/repos/${repo}/issues`, { title: report.title, body: report.body, labels: ['inbox'] })
+  const issue = await github(token, 'POST', `/repos/${repo}/issues`, { title: report.title, body, labels: ['inbox'] })
   if (issue.status !== 201) upstreamFailed('issue create', issue.status)
 }

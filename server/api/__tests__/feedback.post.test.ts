@@ -85,6 +85,24 @@ describe('server/api/feedback.post.ts', () => {
     expect(writes().some(call => call.url.includes('/contents/'))).toBe(false)
   })
 
+  it('rewrites the screenshot link of an older client (blob/main) to the branch the image is on, so the cleanup finds it', async () => {
+    const oldBody = `## Description\n\nx\n\n![Screenshot](https://github.com/jaylouiz/kan-do-feedback/blob/main/${PATH}?raw=true)\n\nPath: \`${PATH}\` on \`main\`\nAgents: \`gh api repos/jaylouiz/kan-do-feedback/contents/${PATH}?ref=main\`\n`
+    const res = await (await request()).post('/api/feedback').send({ title: 'T', body: oldBody, screenshot: { path: PATH, content: PNG } })
+    expect(res.status).toBe(201)
+    const body = (writes().at(-1)!.body as { body: string }).body
+    const branch = 'screenshot/0b6f3c1e-8a55-4d0a-9c1b-2f6f0a4d9e11'
+    expect(body).toContain(`/blob/${branch}/${PATH}?raw=true`)
+    expect(body).toContain(`on \`${branch}\``)
+    expect(body).toContain(`?ref=${branch}`)
+    expect(body).not.toContain('main')
+  })
+
+  it('names the branch in a body that does not mention it at all', async () => {
+    const res = await (await request()).post('/api/feedback').send({ ...REPORT, screenshot: { path: PATH, content: PNG } })
+    expect(res.status).toBe(201)
+    expect((writes().at(-1)!.body as { body: string }).body).toContain('`screenshot/0b6f3c1e-8a55-4d0a-9c1b-2f6f0a4d9e11`')
+  })
+
   it('a retry after a failed issue create finds the screenshot branch already there (422) and still files the issue', async () => {
     stubGithub({ 'POST /repos/jaylouiz/kan-do-feedback/issues': { status: 500 } })
     const first = await (await request()).post('/api/feedback').send({ ...REPORT, screenshot: { path: PATH, content: PNG } })
