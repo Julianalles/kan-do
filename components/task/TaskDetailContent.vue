@@ -410,7 +410,7 @@ const props = withDefaults(defineProps<{
 const tasksStore = useTasksStore();
 const propertyOptionsStore = usePropertyOptionsStore();
 const { calculateSuggestion } = useTimeboxSuggestion();
-const { syncTaskToIntegration, setCompletedDay } = useTaskSync();
+const { editTask, syncTaskToIntegration, setCompletedDay } = useTaskSync();
 const { ensureOptionsAvailable } = usePropertyOptionsSync();
 
 const isMetadataOpen = ref(false);
@@ -461,25 +461,17 @@ const priorityItems = computed(() => [
 // Priority display computed properties
 const priorityValue = computed(() => normalizePriority(task.value?.priority));
 
-// Helper to update and sync
+/**
+ * A field edit goes through the one edit path, `useTaskSync().editTask` (#770): a new operation version, the store,
+ * then the push to the task's own source. The preview (the `/ui` catalog) writes the store only and pushes nothing.
+ */
 function updateAndSync(updates: Partial<Task>) {
   if (!task.value) return;
-
-  // Increment operation version so stale integration responses can't overwrite newer local edits.
-  // This matters especially for Notion bidirectional sync.
-  const operationVersion = tasksStore.incrementTaskOperationVersion(task.value.id);
-
-  // 1. Update local store
-  tasksStore.updateTask(task.value.id, updates);
-
-  // 2. Trigger sync (unless in preview mode)
-  if (!props.isPreview) {
-    // Retrieve the updated task object from store to ensure we have latest state
-    const updatedTask = tasksStore.task(task.value.id);
-    if (updatedTask) {
-      syncTaskToIntegration(updatedTask, undefined, operationVersion);
-    }
+  if (props.isPreview) {
+    tasksStore.updateTask(task.value.id, updates);
+    return;
   }
+  void editTask(task.value.id, updates);
 }
 
 /** Sets the task's total time spent (kd#4); like `updateAndSync`, with the store action that queues the total for the source */
