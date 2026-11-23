@@ -35,6 +35,7 @@ export type Decision =
   | { kind: 'deny' }
   | { kind: 'redirect', location: string, setCookie?: string }
   | { kind: 'serve' }
+  | { kind: 'asset' }
 
 export async function sha256Hex(value: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
@@ -70,7 +71,7 @@ export async function decide(request: Request, env: GateEnv): Promise<Decision> 
   // Checked before the secret: a `secret` parameter on the relay route is ignored, never turned into a redirect.
   if (isFeedbackRequest(request, url)) return { kind: 'serve' }
   // Same precedence for the brand assets (#736): exact paths, read methods only, a `secret` parameter is ignored.
-  if (isPublicAssetRequest(request)) return { kind: 'serve' }
+  if (isPublicAssetRequest(request)) return { kind: 'asset' }
 
   const secret = env.GATE_SECRET
   if (!secret) {
@@ -164,6 +165,19 @@ export async function handle(request: Request, env: GateEnv, app: AppHandler): P
       return denyResponse(new URL(request.url).origin)
     case 'redirect':
       return redirectResponse(decision.location, decision.setCookie)
+    case 'asset': {
+      // A listed file missing from the build falls through to the SPA shell: without the cookie that is app HTML, so deny.
+      const response = await app(request)
+      const type = (response.headers.get('Content-Type') ?? '').toLowerCase()
+      const ok = response.status === 200 || response.status === 206 || response.status === 304
+      if (!ok || type.startsWith('text/html')) {
+        await response.body?.cancel()
+        return denyResponse(new URL(request.url).origin)
+      }
+      const tagged = new Response(response.body, response)
+      tagged.headers.set('X-Robots-Tag', ROBOTS_TAG)
+      return tagged
+    }
     case 'serve': {
       const response = await app(request)
       const tagged = new Response(response.body, response) // the app's headers can be immutable

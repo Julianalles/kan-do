@@ -14,8 +14,14 @@ import {
 const SECRET = 'test-token'
 const SITE = 'https://kando.example.workers.dev'
 
+const ASSET_PATHS = new Set(['/favicon.ico', '/favicon.svg', '/apple-touch-icon.png', '/icon-192.png', '/icon-512.png',
+  '/icon-maskable-192.png', '/icon-maskable-512.png', '/og-image.png', '/manifest.webmanifest'])
+
 function setup(env: GateEnv = { GATE: 'on', GATE_SECRET: SECRET }) {
-  const app = vi.fn(async (_request: Request) => new Response('<p>app</p>', { headers: { 'Content-Type': 'text/html' } }))
+  // Brand assets answer as files (image), everything else as the app's HTML.
+  const app = vi.fn(async (request: Request) => ASSET_PATHS.has(new URL(request.url).pathname)
+    ? new Response('bytes', { headers: { 'Content-Type': 'image/png' } })
+    : new Response('<p>app</p>', { headers: { 'Content-Type': 'text/html' } }))
   const run = (path: string, init: RequestInit & { cookie?: string } = {}) => {
     const { cookie, ...rest } = init
     const headers = new Headers(rest.headers)
@@ -174,6 +180,13 @@ describe('brand assets are exempt (#736)', () => {
       }
     }
     expect(app).toHaveBeenCalledTimes(ASSETS.length * 2)
+  })
+
+  it('a listed path the build lacks (the app answers HTML or an error) is the 401 page, never the shell', async () => {
+    const html = await handle(new Request(SITE + '/og-image.png'), { GATE: 'on', GATE_SECRET: SECRET }, async () => new Response('<p>app</p>', { headers: { 'Content-Type': 'text/html' } }))
+    expect(html.status).toBe(401)
+    const missing = await handle(new Request(SITE + '/og-image.png'), { GATE: 'on', GATE_SECRET: SECRET }, async () => new Response('nope', { status: 404 }))
+    expect(missing.status).toBe(401)
   })
 
   it('ignores a secret parameter: no redirect, no cookie, valid or not', async () => {

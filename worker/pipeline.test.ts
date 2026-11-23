@@ -136,11 +136,11 @@ describe('Worker pipeline: gate, then the Notion 404, then the app', () => {
       expect(manifest.headers.get('Cache-Control')).toBe('public, max-age=3600')
     })
 
-    it('a listed file missing from the build (the shell answers) is not relabelled; app files stay gated', async () => {
+    it('a listed file missing from the build (the shell answers) is denied, not served as app HTML', async () => {
       const shell = () => new Response('<!doctype html>', { headers: { 'Content-Type': 'text/html' } })
       const res = await call('/og-image.png', {}, false, shell)
-      expect(res.headers.get('Content-Type')).toBe('text/html')
-      expect(res.headers.get('Cache-Control')).toBeNull()
+      expect(res.status).toBe(401)
+      expect(await res.text()).not.toBe('<!doctype html>')
       expect((await call('/_nuxt/entry.js', {}, false)).status).toBe(401)
     })
   })
