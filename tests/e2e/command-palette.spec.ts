@@ -387,8 +387,8 @@ test.describe('Command palette on a Notion board', () => {
     await page.keyboard.press('Enter')
     await expect(palette(page)).toBeHidden()
 
-    // The fixture's Timebox is a number property; before #770 the palette wrote the store only and sent nothing
+    // The seed maps Timebox with the default unit (a select of minutes); before #770 the palette wrote the store only and sent nothing
     const body = (await update).postDataJSON() as { properties: Record<string, unknown> }
-    expect(body.properties.Timebox).toBeDefined()
+    expect(body.properties.Timebox).toEqual({ select: { name: '30' } })
   })
 })

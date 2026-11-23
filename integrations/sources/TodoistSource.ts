@@ -82,7 +82,11 @@ export class TodoistSource implements TaskSourceAdapter {
 
   async update(task: Task, change: { previousStatus?: TaskStatus } = {}): Promise<Task | null> {
     const token = this.token()
-    const write = task.status === TaskStatus.Done ? 'complete' : change.previousStatus === TaskStatus.Done ? 'reopen' : null
+    // A Done task pushed for another reason (a priority or time box edit, #770) arrives with `previousStatus` Done: Todoist
+    // already holds it closed, so nothing is written. Unknown (`undefined`) still completes, so no completion is lost
+    const write = task.status === TaskStatus.Done
+      ? (change.previousStatus === TaskStatus.Done ? null : 'complete')
+      : change.previousStatus === TaskStatus.Done ? 'reopen' : null
     if (!write) return null // nothing to write: do not load the SDK chunk (offline it would reject and strand a pendingSync)
     const externalId = externalIdOf(task)
     const todoist = await this.load(token)
