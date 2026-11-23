@@ -450,13 +450,14 @@ export const useTaskSync = () => {
    * Edits fields of a stored task and pushes it to its own source, as the sheet's field edits do: a new operation
    * version (a stale response of an earlier write cannot overwrite the edit), the store at once, then `runSync`
    * (one push per task at a time, the `pendingSync` marker until the source holds it). The in-card flow writes each
-   * answer through this once its task is stored (#758). Resolves like `runSync`; false for an unknown id.
+   * answer through this once its task is stored (#758). Resolves like `runSync`; false for an unknown id. The push is
+   * marked a field edit (#770): with no change outstanding, a source that stores none of these fields writes nothing.
    */
   const editTask = (taskId: string, updates: Partial<Task>): Promise<boolean> => {
     if (!tasksStore.task(taskId)) return Promise.resolve(false);
     const operationVersion = tasksStore.incrementTaskOperationVersion(taskId);
     tasksStore.updateTask(taskId, updates);
-    return runSync(tasksStore.task(taskId)!, undefined, operationVersion);
+    return runSync(tasksStore.task(taskId)!, undefined, operationVersion, true);
   };
 
   /**
@@ -471,9 +472,9 @@ export const useTaskSync = () => {
    * Same as `syncTaskToIntegration`; resolves to whether the source now holds the task: false when the
    * write failed or was not sent because the integration is not set up, true when it went through or the
    * task is Local. The task carries `pendingSync` from before the write until it succeeded (#319); a change
-   * made while the write is in flight keeps the marker.
+   * made while the write is in flight keeps the marker. `fieldEdit`: the push carries a field edit only (`editTask`).
    */
-  const runSync = async (task: Task, previousStatus?: TaskStatus, operationVersion?: number): Promise<boolean> => {
+  const runSync = async (task: Task, previousStatus?: TaskStatus, operationVersion?: number, fieldEdit = false): Promise<boolean> => {
     // Local tasks: no external sync needed, they are persisted via Pinia
     if (task.source === "local") {
       return true;
@@ -500,7 +501,7 @@ export const useTaskSync = () => {
         tasksStore.markPendingSync(target.id);
         return (await commitTaskMove(target.id)) === 'committed';
       }
-      return pushTask(target, previousStatus, operationVersion);
+      return pushTask(target, previousStatus, operationVersion, fieldEdit);
     })();
     pushesInFlight.set(task.id, push);
     try {
@@ -537,7 +538,11 @@ export const useTaskSync = () => {
     tasksStore.pendingTimeUpdates[taskId]?.absolute === true ? { timeEdited: true } : {};
 
   /** One write of a non-Local task; never rejects, a failure goes to `reportPushFailure`. */
-  const pushTask = async (task: Task, previousStatus?: TaskStatus, operationVersion?: number): Promise<boolean> => {
+  const pushTask = async (task: Task, previousStatus?: TaskStatus, operationVersion?: number, fieldEdit = false): Promise<boolean> => {
+    // A field edit of a task with no change outstanding (#770): the source holds everything else, its status too, so a
+    // source that stores none of the edited fields (Todoist) has nothing to write. Read before the marker is set; after
+    // an earlier push of the task, so a completion that failed (its marker stays) is still sent
+    const fieldsOnly = fieldEdit && !tasksStore.task(task.id)?.pendingSync;
     const revision = tasksStore.markPendingSync(task.id, previousStatus === undefined ? undefined : previousStatus === TaskStatus.Done);
     const queuedTime = mapHelpers.has(tasksStore.pendingTimeUpdates, task.id);
     if (queuedTime) tasksStore.markPendingUpdateSyncing(task.id);
@@ -564,6 +569,7 @@ export const useTaskSync = () => {
           previousStatus: heldDone === undefined ? previousStatus : heldDone ? TaskStatus.Done : TaskStatus.Open,
           // A total the user set (kd#4) is written even at 0; the entry lives until the push carried it
           ...timeEditFlag(task.id),
+          ...(fieldsOnly ? { fieldsOnly: true } : {}),
         });
         if (synced) applySyncedTask(task.id, synced, operationVersion, tasksStore.pendingSyncRevision(task.id) !== revision);
         tasksStore.clearPendingSync(task.id, revision, sentDone);
