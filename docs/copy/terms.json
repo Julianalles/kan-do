@@ -759,5 +759,43 @@
     "avoidEn": [],
     "status": "proposed",
     "note": "Proposed in the build of #705 (aria label of the sheet's ⋯ button, `task.detail.menuLabel`). The user's `npm run terms:approve` makes it decided."
+  },
+  {
+    "id": "legal-notice",
+    "concept": "The page with the provider's identity and address (§ 5 DDG, § 18 MStV), on the maintainer's homepage (#745)",
+    "de": "Impressum",
+    "en": "legal notice",
+    "avoidDe": [],
+    "avoidEn": [],
+    "status": "proposed",
+    "note": "#745: link label in Einstellungen › System › Rechtliches, on the welcome page and in the feedback notice. English sentence case inside a sentence, \"Legal notice\" as a label."
+  },
+  {
+    "id": "privacy-notice",
+    "concept": "Kan-do's privacy notice (Art. 13 GDPR), its own page on the maintainer's homepage (#745)",
+    "de": "Datenschutzhinweise",
+    "en": "privacy notice",
+    "avoidDe": [
+      "Datenschutzerklärung"
+    ],
+    "avoidEn": [
+      "privacy policy"
+    ],
+    "status": "proposed",
+    "note": "#745: in a sentence \"Datenschutzhinweise\" / \"privacy notice\"; the short link label in a list of three is \"Datenschutz\" / \"Privacy\"."
+  },
+  {
+    "id": "terms-of-use",
+    "concept": "Kan-do's terms of use, on the maintainer's homepage (#745)",
+    "de": "Nutzungsbedingungen",
+    "en": "terms of use",
+    "avoidDe": [
+      "AGB"
+    ],
+    "avoidEn": [
+      "terms of service"
+    ],
+    "status": "proposed",
+    "note": "#745: link label and the sentence at the Notion token step."
   }
 ]

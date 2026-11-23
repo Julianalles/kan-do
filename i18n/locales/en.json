@@ -674,7 +674,10 @@
       "placeholder": "Enter integration token",
       "help": "Open {link} to create a new integration and get the token.",
       "helpLink": "Notion › Settings › Integrations › Create your own integration",
-      "validated": "Token verified successfully"
+      "validated": "Token verified successfully",
+      "legal": "By connecting, you agree to Kan-do's {terms}. How Kan-do handles your token is in the {privacy}.",
+      "legalTerms": "terms of use",
+      "legalPrivacy": "privacy notice"
     },
     "database": {
       "selectLabel": "Select Notion database",
@@ -1211,7 +1214,11 @@
       "openGithub": "Open GitHub access",
       "logHeading": "Log",
       "revealLog": "Show in Finder",
-      "checking": "Checking…"
+      "checking": "Checking…",
+      "auto": {
+        "label": "Check for updates automatically",
+        "help": "Asks GitHub for the latest version at start-up. GitHub sees your IP address."
+      }
     },
     "subpages": {
       "data": {
@@ -1705,7 +1712,13 @@
     "openedToast": "GitHub is open in your browser. Send the feedback there.",
     "openedToastImage": "GitHub is open in your browser. Paste the screenshot with ⌘V, then send the feedback.",
     "private": "Your feedback goes straight to the Kan-do developers. It isn't published.",
-    "sentRelayToast": "Thanks, your feedback has arrived."
+    "sentRelayToast": "Thanks, your feedback has arrived.",
+    "retention": {
+      "notice": "Exactly what you see here is sent. It goes to a private GitHub repository and is deleted {period} after we've dealt with it. To have it deleted sooner, email the address in the {impressum}. More: {privacy}.",
+      "period": "{n} day | {n} days",
+      "impressum": "legal notice",
+      "privacy": "privacy notice"
+    }
   },
   "trash": {
     "title": "Trash",
@@ -1818,5 +1831,13 @@
     "over": "{time} over the timebox",
     "elapsed": "Time spent: {time}",
     "paused": "paused"
+  },
+  "legal": {
+    "heading": "Legal",
+    "impressum": "Legal notice",
+    "privacy": "Privacy",
+    "terms": "Terms of use",
+    "label": "Legal information",
+    "noAffiliation": "Notion is a trademark of Notion Labs, Inc. Todoist is a trademark of Doist. Kan-do is not affiliated with either."
   }
 }

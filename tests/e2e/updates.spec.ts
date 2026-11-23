@@ -267,6 +267,27 @@ test.describe('Updates in the palette and at launch (desktop)', () => {
     expect((await stubState(page)).calls.filter(call => call.cmd === 'update_check')).toHaveLength(1)
   })
 
+  test('"Automatisch nach Updates suchen" off: no launch check after a restart; the button still checks (#746)', async ({ page }) => {
+    await page.clock.install()
+    await installTauriStub(page.context(), { update: { check: { status: 'up-to-date' } } })
+    await page.goto('/settings/updates')
+    const autoSwitch = page.getByTestId('updates-auto-switch')
+    await expect(autoSwitch).toHaveAttribute('aria-checked', 'true')
+    await expect(page.getByTestId('updates-auto-setting')).toContainText('GitHub sieht dabei deine IP-Adresse.')
+    await autoSwitch.click()
+    await expect(autoSwitch).toHaveAttribute('aria-checked', 'false')
+
+    await page.reload()
+    await expect(page.getByTestId('updates-auto-switch')).toHaveAttribute('aria-checked', 'false')
+    await page.clock.fastForward(11_000)
+    // The launch delay has passed: nothing asked GitHub
+    expect((await stubState(page)).calls.filter(call => call.cmd === 'update_check')).toHaveLength(0)
+
+    await checkButton(page).click()
+    await expect(page.getByTestId('updates-status')).toHaveText('Du hast die neueste Version.')
+    expect((await stubState(page)).calls.filter(call => call.cmd === 'update_check')).toHaveLength(1)
+  })
+
   for (const status of ['up-to-date', 'rate-limited', 'offline', 'rejected', 'error'] as const) {
     test(`the launch check stays silent for "${status}"`, async ({ page }) => {
       await page.clock.install()

@@ -6,6 +6,7 @@ UpdateDialog.
 @usage Command palette "Version & Updates", "Nach Updates suchen" for any outcome but an update or up to date, the start-up toast's dialog
 @responsibility
 - Show the app version and the last check; "Nach Updates suchen" runs one check and opens the dialog when an update exists
+- "Automatisch nach Updates suchen" (#746, `settingsStore.autoUpdateCheck`, default on): a switch row under the version, with the line that GitHub sees the IP address; off stops the launch check (`plugins/updater.client.ts`), the button above still checks by hand. `SettingSwitchRow`, aligned with the Fokus switch row on /settings
 - Explain every outcome in one calm sentence (rejected, offline, no release, rate limit, not configured, error); updates need no token (public releases)
 - Link to /settings/github when the optional token is rejected; reveal the log folder in the Finder
 - Same sub-page pattern as /settings/data and /settings/github: one flat column, no cards; web redirects to /tasks
@@ -51,6 +52,16 @@ UpdateDialog.
         >
           {{ t('settings.updates.details') }}
         </UButton>
+        <!-- #746: the launch check sends the IP address to GitHub; off = only the button above asks -->
+        <SettingSwitchRow
+          id="updates-auto"
+          class="border-t border-default pt-4"
+          :label="t('settings.updates.auto.label')"
+          :help="t('settings.updates.auto.help')"
+          :model-value="settingsStore.autoUpdateCheck"
+          data-testid="updates-auto-setting"
+          @update:model-value="settingsStore.setAutoUpdateCheck"
+        />
       </PageSheet>
 
       <PageSheet tag="section" aria-labelledby="updates-access-heading" class="space-y-3">
@@ -94,6 +105,8 @@ import { useI18n } from 'vue-i18n';
 import { useAppUpdater } from '~/composables/useAppUpdater';
 import { useWhatsNew } from '~/composables/useWhatsNew';
 import { useLocaleFormat } from '~/composables/useLocaleFormat';
+import { useSettingsStore } from '~/store/settings';
+import SettingSwitchRow from '~/components/settings/SettingSwitchRow.vue';
 import type { UpdateErrorReason, UpdateStatus } from '~/types/updater';
 
 defineOptions({ name: 'UpdatesSettingsPage' });
@@ -110,6 +123,7 @@ const { t } = useI18n();
 const { formatDateTime } = useLocaleFormat();
 const updater = useAppUpdater();
 const whatsNew = useWhatsNew();
+const settingsStore = useSettingsStore();
 const { state, update } = updater;
 
 const logPath = ref('');

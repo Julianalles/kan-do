@@ -4,7 +4,8 @@
  * user's text verbatim. Items the user removed are absent, never blank. The review step shows this
  * exact string, and the send path posts it unchanged.
  */
-import { FEEDBACK_ASSETS_BRANCH, FEEDBACK_RELAY_BRANCH, FEEDBACK_RELAY_REPO, FEEDBACK_REPO, type IssueBodyInput } from '~/lib/feedback/types'
+import { FEEDBACK_ASSETS_BRANCH, FEEDBACK_RELAY_REPO, FEEDBACK_REPO, type IssueBodyInput } from '~/lib/feedback/types'
+import { relayScreenshotBranch } from '~/lib/feedback/retention'
 
 /** A table cell must stay on one line and must not close the cell early. */
 function cell(value: string): string {
@@ -72,8 +73,8 @@ export function screenshotSection(input: IssueBodyInput): string | null {
   const shot = input.screenshot
   if (!shot) return null
   if (shot.delivery === 'clipboard') return 'Screenshot: paste it here (copied to the clipboard).'
-  // Relay (#268): the image lives in the private feedback repository, next to the issue.
-  const [repo, branch] = shot.delivery === 'relay' ? [FEEDBACK_RELAY_REPO, FEEDBACK_RELAY_BRANCH] : [FEEDBACK_REPO, FEEDBACK_ASSETS_BRANCH]
+  // Relay (#268): the image lives in the private feedback repository, on a branch of its own (#744: deletable).
+  const [repo, branch] = shot.delivery === 'relay' ? [FEEDBACK_RELAY_REPO, relayScreenshotBranch(shot.path)] : [FEEDBACK_REPO, FEEDBACK_ASSETS_BRANCH]
   return [
     `![Screenshot](https://github.com/${repo}/blob/${branch}/${shot.path}?raw=true)`,
     '',

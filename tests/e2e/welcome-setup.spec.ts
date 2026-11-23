@@ -75,6 +75,9 @@ test('welcome start: one filled green "Jetzt starten", "Beispiel anzeigen" soft 
   expect(Math.abs(brandBox!.x - titleBox!.x)).toBeLessThan(1)
   await expect(sheet.getByText('kan-do', { exact: true })).toHaveCount(0)
   await expectContrast(page, page.getByText(/Du kannst Aufgaben lokal auf diesem Gerät speichern/), 4.5)
+
+  // #745: the legal pages are one click away before anything is set up
+  await expect(sheet.getByRole('navigation', { name: 'Rechtliche Hinweise' }).getByRole('link')).toHaveText(['Impressum', 'Datenschutz', 'Nutzungsbedingungen'])
 })
 
 test('welcome has no horizontal overflow at 390px, the headline stays within two lines and the sheet is lower than the old three-row one (#294)', async ({ page, baseURL }) => {

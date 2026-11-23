@@ -10,6 +10,7 @@
 - Provides feedback on token validity
 - Manages token input state and validation process
 - Offers links to Notion integration setup
+- Under the field (#745): Kan-do's terms of use and privacy notice (Notion Developer Terms § 4.2) and the no-affiliation line (§ 5.9); Notion is named in plain text, no logo
 - No heading of its own: the setup's rail and the dialog's title name the step (#649)
 -->
 <template>
@@ -53,12 +54,21 @@
         </template>
       </UFormField>
     </form>
+    <!-- #745: Notion Developer Terms § 4.2 (our terms and privacy notice where the user connects) and § 5.9 (no affiliation) -->
+    <p class="mt-4 text-sm text-muted" data-testid="notion-token-legal">
+      <i18n-t keypath="notion.token.legal" tag="span" scope="global">
+        <template #terms><ExternalLink :href="legalUrl('terms', locale)">{{ t('notion.token.legalTerms') }}</ExternalLink></template>
+        <template #privacy><ExternalLink :href="legalUrl('privacy', locale)">{{ t('notion.token.legalPrivacy') }}</ExternalLink></template>
+      </i18n-t>
+      {{ t('legal.noAffiliation') }}
+    </p>
   </div>
 </template>
 
 <script setup lang="ts">
 import { nextTick, ref, watch } from "vue";
 import ExternalLink from "~/components/ui/ExternalLink.vue";
+import { legalUrl } from "~/lib/legalLinks";
 import { useI18n } from "vue-i18n";
 import { LocalizedError, getDisplayMessage } from "~/lib/errorMessages";
 import { translate } from "~/lib/i18n";
@@ -88,7 +98,7 @@ const emit = defineEmits<{
   (e: "next"): void;
 }>();
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 
 const token = ref(props.modelValue);
 const isValidating = ref(false);

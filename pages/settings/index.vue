@@ -5,7 +5,7 @@ sized up to read as the page's navigation, #333: `size="xl"`, which the theme dr
 one shown at a time, the active one in the URL as `?tab=board|sources|manage` (default board, unknown value = board):
 Board (the Fokus option and the working hours of the capacity divider, #306), Speicherorte (the former "Aufgaben-Quellen" page, #324: every source with its health, the default
 for new tasks, repair / configure / connect / disconnect) and System (hairline rows to Themen und Aktivitäten, Backup und
-App-Reset, and on desktop Updates and GitHub-Zugriff).
+App-Reset, and on desktop Updates and GitHub-Zugriff; below them a "Rechtliches" sheet with `LegalLinks` and the no-affiliation line for Notion and Todoist, #745).
 `/settings/sources` redirects here.
 @usage Board gear, command palette "Einstellungen", the sync popover's "Verbindung reparieren"
 @responsibility
@@ -168,6 +168,11 @@ App-Reset, and on desktop Updates and GitHub-Zugriff).
             </ListRow>
           </ul>
           </PageSheet>
+          <!-- Rechtliches (#745): the legal pages and the trademark line, web and desktop -->
+          <PageSheet v-if="tab === 'manage'" tag="section" aria-labelledby="legal-settings-heading" class="space-y-3" data-testid="legal-settings">
+            <SectionHeader id="legal-settings-heading" tag="h2">{{ t('legal.heading') }}</SectionHeader>
+            <LegalLinks with-affiliation />
+          </PageSheet>
         </section>
       </div>
 
@@ -194,6 +199,7 @@ import { useSourceList } from '~/composables/useSourceList'
 import { isTauri } from '~/utils/isTauri'
 import { useDataFolder } from '~/composables/useDataFolder'
 import ListRow from '~/components/ui/ListRow.vue'
+import LegalLinks from '~/components/legal/LegalLinks.vue'
 import { ICONS } from '~/lib/icons'
 import { isIntegrationSourceId } from '~/lib/taskSources'
 import type { IntegrationSourceId, SourceId } from '~/types/taskSource'

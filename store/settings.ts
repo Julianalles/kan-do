@@ -13,6 +13,10 @@ import { sanitizeWorkingMinutes } from '~/lib/dayCapacity'
  * Additive like `focusEnabled`: nothing stored means `true`, a stored non-boolean reads as `true` in memory (no write).
  * The window's position is not here: it is machine-local and Rust keeps it (ADR 020).
  *
+ * `autoUpdateCheck` (#746): the desktop app asks GitHub for the latest release about ten seconds after launch (default on).
+ * Off: no automatic request at all (GitHub would see the IP address); "Nach Updates suchen" on /settings/updates still
+ * checks by hand. Additive like `floatingNowEnabled`: nothing stored or a non-boolean reads as `true` (no write).
+ *
  * `workingHoursMinutes` (#306): the working day the user sets for the capacity divider, whole half hours from 1 to
  * 12 h as minutes; `null` = automatic (learned from tracked work). Additive: older data hydrates to `null`, a
  * malformed stored value is dropped in memory by `afterHydrate` (no write; the next mutation persists it).
@@ -30,6 +34,12 @@ export const useSettingsStore = defineStore('settings', () => {
     floatingNowEnabled.value = value
   }
 
+  const autoUpdateCheck = ref(true)
+
+  function setAutoUpdateCheck(value: boolean) {
+    autoUpdateCheck.value = value
+  }
+
   const workingHoursMinutes = ref<number | null>(null)
 
   function setWorkingHoursMinutes(value: number | null) {
@@ -41,16 +51,19 @@ export const useSettingsStore = defineStore('settings', () => {
     setFocusEnabled,
     floatingNowEnabled,
     setFloatingNowEnabled,
+    autoUpdateCheck,
+    setAutoUpdateCheck,
     workingHoursMinutes,
     setWorkingHoursMinutes,
   }
 }, {
   persist: {
     key: 'settings-store',
-    pick: ['focusEnabled', 'floatingNowEnabled', 'workingHoursMinutes'],
-    afterHydrate: (ctx: { store: { workingHoursMinutes: unknown; floatingNowEnabled: unknown } }) => {
+    pick: ['focusEnabled', 'floatingNowEnabled', 'autoUpdateCheck', 'workingHoursMinutes'],
+    afterHydrate: (ctx: { store: { workingHoursMinutes: unknown; floatingNowEnabled: unknown; autoUpdateCheck: unknown } }) => {
       ctx.store.workingHoursMinutes = sanitizeWorkingMinutes(ctx.store.workingHoursMinutes)
       if (typeof ctx.store.floatingNowEnabled !== 'boolean') ctx.store.floatingNowEnabled = true
+      if (typeof ctx.store.autoUpdateCheck !== 'boolean') ctx.store.autoUpdateCheck = true
     },
   },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -63,9 +63,8 @@ export interface IssueBodyInput {
 }
 
 export const FEEDBACK_REPO = 'jaylouiz/kan-do'
-/** Private repository the relay files reports in (#268); must match the server's `FEEDBACK_REPO`. Images sit on its default branch. */
+/** Private repository the relay files reports in (#268); must match the server's `FEEDBACK_REPO`. Each image sits on a branch of its own (`lib/feedback/retention.ts`, #744). */
 export const FEEDBACK_RELAY_REPO = 'jaylouiz/kan-do-feedback'
-export const FEEDBACK_RELAY_BRANCH = 'main'
 /** Orphan branch that holds the report screenshots (ADR 014). Rust only lets the feedback token write here. */
 export const FEEDBACK_ASSETS_BRANCH = 'feedback-assets'
 export const TITLE_MAX = 120

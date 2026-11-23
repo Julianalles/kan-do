@@ -20,10 +20,10 @@ describe('TaskSourceIcon (#323)', () => {
     expect(w.text()).toBe('')
   })
 
-  it('maps each source to a bundled ph / simple-icons icon', () => {
+  it('maps each source to a bundled ph icon, never a brand logo (#745)', () => {
     expect(render('local').attributes('name')).toBe('i-ph-desktop')
-    expect(render('notion').attributes('name')).toBe('i-simple-icons-notion')
-    expect(render('todoist').attributes('name')).toBe('i-simple-icons-todoist')
+    expect(render('notion').attributes('name')).toBe('i-ph-notebook')
+    expect(render('todoist').attributes('name')).toBe('i-ph-check-square')
   })
 
   it('follows the locale', () => {

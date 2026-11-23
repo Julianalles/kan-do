@@ -34,6 +34,15 @@
           "url": "https://github.com/jaylouiz/kan-do/issues/new*"
         },
         {
+          "url": "https://www.julius-wuestefeld.workers.dev/**"
+        },
+        {
+          "url": "https://julius-wuestefeld.de/**"
+        },
+        {
+          "url": "https://www.julius-wuestefeld.de/**"
+        },
+        {
           "url": "x-apple.systempreferences:com.apple.preference.security?Privacy_Reminders"
         }
       ]
