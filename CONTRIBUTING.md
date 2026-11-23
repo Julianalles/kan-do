@@ -114,7 +114,7 @@ npm run verify        # lint:ci + typecheck + design:detect + vitest (run before
 npm run lint          # ESLint (includes Tailwind class rules)
 npm run typecheck     # nuxt typecheck
 npm test              # Vitest unit tests (tests/); e.g. npx vitest tests/store/tasks.test.ts
-npm run build         # also when the PR touches nuxt.config.ts, package.json, app.config.ts, server/ or vercel.json
+npm run build         # also when the PR touches nuxt.config.ts, package.json, app.config.ts or server/
 npm run i18n:check    # de/en locale parity
 npm run design:detect # Impeccable design detector, source scan
 ```
@@ -148,7 +148,7 @@ What a good issue holds (it is fine to file one with only a title; the first des
 - Bugs: name the job the bug breaks; acceptance criteria are the correct behaviour plus a regression check. Tech-only work (refactor, tooling): say what hurts technically and why; acceptance criteria include "user-visible behaviour unchanged".
 - Unclear problem or a destination too big for one session: say so in the issue instead of guessing a solution.
 
-UI work: UX direction is settled in the issue first. Throwaway prototypes live on `proto/<n>-<slug>` branches, are previewed on Vercel, and are never merged. Default acceptance criteria for UI work (empty/loading/error states, 390 px and desktop, i18n keys in both locales, keyboard and screen reader, semantic tokens only, no P0/P1 design findings) are listed in [.claude/issue-workflow.md](.claude/issue-workflow.md).
+UI work: UX direction is settled in the issue first. Throwaway prototypes live on `proto/<n>-<slug>` branches, are shown with screenshots or run locally, and are never merged. Default acceptance criteria for UI work (empty/loading/error states, 390 px and desktop, i18n keys in both locales, keyboard and screen reader, semantic tokens only, no P0/P1 design findings) are listed in [.claude/issue-workflow.md](.claude/issue-workflow.md).
 
 ## Branches, commits and pull requests
 
@@ -190,7 +190,7 @@ Build-time environment variables (read in `nuxt.config.ts`):
 | Variable | Default | Meaning | Example |
 |---|---|---|---|
 | `BASE_URL` | `/` | App base path (trailing slash matters) | `/my-app/` |
-| `NITRO_PRESET` | `static` (`vercel` on Vercel) | Build preset | `node-server` |
+| `NITRO_PRESET` | `static` | Build preset | `node-server` |
 | `NUXT_PUBLIC_FEEDBACK_RELAY_URL` | production relay (`/api/feedback` in dev) | Where the feedback dialog posts reports; empty switches the relay off (a fork should set it empty or to its own relay) | `https://example.org/api/feedback` |
 | `APP_TITLE` | `kan-do` | Browser title | `My Kan-do` |
 | `APP_LANG` | `de` | HTML `lang` attribute | `en` |
@@ -198,8 +198,7 @@ Build-time environment variables (read in `nuxt.config.ts`):
 Scenarios:
 
 - **Static host under a sub-path** (GitHub Pages, Netlify): `BASE_URL=/repo-name/ npm run build`, publish the generated output (Netlify: `dist`). Example: GitHub Pages `username/kan-do` is served at `https://username.github.io/kan-do/` with `BASE_URL=/kan-do/`.
-- **Node server** (Vercel, Railway, any Node host): `BASE_URL=/ NITRO_PRESET=node-server npm run build`, run `node .output/server/index.mjs`. Optional `PORT` (default 3000) and `HOST`.
-- **Vercel** for this repository: `vercel.json` deploys only `main` and `proto/*` branches. On Vercel the preset defaults to `vercel` (server routes run: the Notion and Todoist proxies and the feedback relay `POST /api/feedback`); `NITRO_PRESET` still wins.
+- **Node server** (Railway, Render, any Node host): `BASE_URL=/ NITRO_PRESET=node-server npm run build`, run `node .output/server/index.mjs`. Optional `PORT` (default 3000) and `HOST`.
 - **Cloudflare Workers** (the public instance, [ADR 021](docs/adr/021-public-web-instance-on-cloudflare-workers.md)): `npm run build:cloudflare` builds with the `cloudflare_module` preset and fails if the bundle `wrangler deploy` would upload lacks the gate, `npm run deploy` also runs `wrangler deploy -c wrangler.jsonc` (Worker `kando`). The Worker is token-gated: the secret `GATE_SECRET` lives in Cloudflare, never in the repository; the gate is on by default (`vars.GATE = "on"` in `wrangler.jsonc`, every deploy resets it) and opening it for the public launch is a deliberate change of that line through a PR; for a local `npx wrangler dev` put a dummy `GATE_SECRET` into the git-ignored `.dev.vars`. A push to `main` deploys it through Workers Builds (build command `npm run build:cloudflare`, deploy command `npx wrangler deploy`).
 - **Docker**: a multi-stage or single-stage Node image that runs `RUN BASE_URL=/ NITRO_PRESET=node-server npm run build` and `CMD ["node", ".output/server/index.mjs"]`, `EXPOSE 3000`.
 - **Multiple environments**: keep separate `.env.production` / `.env.staging` files with different `BASE_URL`.

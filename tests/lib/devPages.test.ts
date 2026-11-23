@@ -19,15 +19,15 @@ describe('shouldShipDevPages', () => {
   })
 })
 
-// #246: the dev instance is a Vercel preview of the `dev` branch (or KANDO_DEV_INSTANCE=1): it carries /ui and the copy editor.
+// #246: a dev instance is a build with KANDO_DEV_INSTANCE=1: it carries /ui and the copy editor. Vercel is gone (#747), so its env never counts.
 describe('isDevInstance', () => {
   it('is on for KANDO_DEV_INSTANCE=1 only', () => {
     expect(isDevInstance({ KANDO_DEV_INSTANCE: '1' })).toBe(true)
     for (const other of ['0', 'true', '', undefined]) expect(isDevInstance({ KANDO_DEV_INSTANCE: other })).toBe(false)
   })
 
-  it('is on for the Vercel preview of the dev branch', () => {
-    expect(isDevInstance({ VERCEL_ENV: 'preview', VERCEL_GIT_COMMIT_REF: 'dev' })).toBe(true)
+  it('is off for what was the Vercel preview of the dev branch (#747)', () => {
+    expect(isDevInstance({ VERCEL_ENV: 'preview', VERCEL_GIT_COMMIT_REF: 'dev' })).toBe(false)
   })
 
   it('is off for production, other branches and prototypes', () => {
@@ -39,7 +39,7 @@ describe('isDevInstance', () => {
   })
 
   it('makes a production build ship the dev pages', () => {
-    expect(shouldShipDevPages({ NODE_ENV: 'production', VERCEL_ENV: 'preview', VERCEL_GIT_COMMIT_REF: 'dev' })).toBe(true)
+    expect(shouldShipDevPages({ NODE_ENV: 'production', VERCEL_ENV: 'preview', VERCEL_GIT_COMMIT_REF: 'dev' })).toBe(false)
     expect(shouldShipDevPages({ NODE_ENV: 'production', VERCEL_ENV: 'preview', VERCEL_GIT_COMMIT_REF: 'proto/1-a' })).toBe(false)
   })
 })

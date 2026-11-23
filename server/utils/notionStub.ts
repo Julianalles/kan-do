@@ -28,7 +28,6 @@ export const isNotionStubEnabled = (token?: string): boolean => {
   if (flag === '1' || flag === 'true') return true
   // Guard sentinel token to non-production environments (runtime equivalent of __NOTION_STUB_ALLOWED__)
   const tokenStubAllowed =
-    process.env.VERCEL_ENV === 'preview' ||
     process.env.NOTION_STUB_ENABLED === 'true' ||
     process.env.NODE_ENV !== 'production'
   return tokenStubAllowed && isStubToken(token)

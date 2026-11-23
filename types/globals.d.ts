@@ -3,13 +3,11 @@
  * These are replaced with literal values at build time for tree-shaking.
  */
 
-/** true in dev and Vercel preview deployments; false in production builds */
-
-/** true in dev and Vercel preview deployments; false in production builds */
+/** true in dev and the E2E build (`NOTION_STUB_ENABLED=true`); false in production builds */
 declare const __NOTION_STUB_ALLOWED__: boolean;
 
 /**
- * true in `nuxt dev` and in builds made with KANDO_COPY_EDITOR=1 (scripts/e2e-server.mjs) and in the dev instance (#246, `isDevInstance`); false in every other
+ * true in `nuxt dev` and in builds made with KANDO_COPY_EDITOR=1 (scripts/e2e-server.mjs) and in a dev instance (#246, `isDevInstance`); false in every other
  * build, which drops the live copy editor (#59, `dev-tools/copy-editor/`) from the bundle.
  */
 declare const __COPY_EDITOR__: boolean;
