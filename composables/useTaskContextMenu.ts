@@ -3,7 +3,6 @@ import { useI18n } from "vue-i18n";
 import type { ContextMenuItem } from "@nuxt/ui";
 import type { Task } from "~/types/task";
 import { TaskStatus } from "~/types/taskStatus";
-import { useTasksStore } from "~/store/tasks";
 import { deleteLabelKey, sourceCan, sourceCanCreate, sourceTaskUrl } from "~/lib/taskSources";
 import { getPriorityLabel } from "~/utils/taskStatusMappings";
 import { normalizePriority } from "~/lib/priority";
@@ -36,12 +35,11 @@ export const useTaskContextMenu = (
   task: Ref<Task>,
   menuOptions: UseTaskContextMenuOptions = {}
 ) => {
-  const tasksStore = useTasksStore();
   const { moveOrSwapToStatus, canMoveOrSwapToStatus } = useTaskOperations();
   const { deleteTaskWithUndo } = useTaskDeletion();
   const { targets: moveTargets, move: moveToSource } = useTaskMoveTargets(task);
   const { t } = useI18n();
-  const { createTask } = useTaskSync();
+  const { createTask, editTask } = useTaskSync();
   const { handleError } = useErrorHandler();
   const toast = useToast();
   const { notToday } = usePlanMoves();
@@ -57,9 +55,7 @@ export const useTaskContextMenu = (
    * Toggles the unplanned flag on the task
    */
   const toggleUnplanned = () => {
-    tasksStore.updateTask(task.value.id, {
-      isUnplanned: !task.value.isUnplanned,
-    });
+    void editTask(task.value.id, { isUnplanned: !task.value.isUnplanned });
   };
 
   /**
@@ -75,18 +71,14 @@ export const useTaskContextMenu = (
    * Sets timebox on task
    */
   const setTimebox = (seconds: number | null) => {
-    tasksStore.updateTask(task.value.id, {
-      timeBoxSeconds: seconds,
-    });
+    void editTask(task.value.id, { timeBoxSeconds: seconds });
   };
 
   /**
    * Changes task priority
    */
   const changePriority = (priority: number) => {
-    tasksStore.updateTask(task.value.id, {
-      priority,
-    });
+    void editTask(task.value.id, { priority });
   };
 
   /**

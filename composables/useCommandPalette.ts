@@ -27,6 +27,7 @@ import { useBoardStore } from '~/store/board'
 import { useIntegrationHealthStore } from '~/store/integrationHealth'
 import { useNotionConfigStore } from '~/store/notionConfig'
 import { useTaskOperations } from '~/composables/useTaskOperations'
+import { useTaskSync } from '~/composables/useTaskSync'
 import { useTaskDeletion } from '~/composables/useTaskDeletion'
 import { neighbourCardId } from '~/utils/neighbourCard'
 import { useTaskMove } from '~/composables/useTaskMove'
@@ -268,6 +269,7 @@ export function useCommandPalette() {
   const route = useLiveRoute()
   const { deleteTaskWithUndo } = useTaskDeletion()
   const { moveTaskToSource } = useTaskMove()
+  const { editTask } = useTaskSync()
   const boardStore = useBoardStore()
   const health = useIntegrationHealthStore()
   const notionConfig = useNotionConfigStore()
@@ -334,8 +336,9 @@ export function useCommandPalette() {
     resetApp: run(() => { appReset.open(); void navigateTo('/settings/data') }, { navigates: true }),
     openDetails: id => run(() => { void navigateTo(`${boardBasePath()}/${id}`) }, { navigates: true })(),
     moveTo: (id, status) => run(() => { void moveOrSwapToStatus(id, status) })(),
-    setTimebox: (id, seconds) => run(() => tasksStore.updateTask(id, { timeBoxSeconds: seconds }))(),
-    setPriority: (id, priority) => run(() => tasksStore.updateTask(id, { priority }))(),
+    // Field edits take the one edit path (#770): a synced source gets them too
+    setTimebox: (id, seconds) => run(() => { void editTask(id, { timeBoxSeconds: seconds }) })(),
+    setPriority: (id, priority) => run(() => { void editTask(id, { priority }) })(),
     moveToSource: (id, source) => run(() => { moveTaskToSource(id, source) })(),
     deleteTask: id => run(() => {
       focusedTaskId.value = neighbourCardId(id)

@@ -989,6 +989,15 @@ export class NotionIntegration {
       if (timeWanted && !timeWritable) {
         syncedTask.timeSpentSeconds = task.timeSpentSeconds || 0;
       }
+      // A cleared time box and an unset value-mode "unplanned" flag are not written (see above and writeUnplannedFlag):
+      // what the page reads back is the old value, which would undo the user's edit the moment the push lands (#770).
+      // The local value stays; the next fetch reads the page as it is.
+      if (this.propertyMapping.timeBox && !(task.timeBoxSeconds && task.timeBoxSeconds > 0)) {
+        syncedTask.timeBoxSeconds = task.timeBoxSeconds ?? null;
+      }
+      if (this.propertyMapping.unplanned?.mode === 'value' && !task.isUnplanned) {
+        syncedTask.isUnplanned = false;
+      }
       
       if (import.meta.dev) {
         console.log('[NotionIntegration] Successfully updated and synced task from Notion:', externalId);
