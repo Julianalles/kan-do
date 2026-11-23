@@ -245,21 +245,40 @@ describe('StatsTiles', () => {
     expect(w.findAll('[aria-expanded="true"]')).toHaveLength(0)
   })
 
-  it('an open tile keeps its cell and the natural order; its detail is a sheet after the tiles, named by aria-controls (#610)', async () => {
+  it('an open tile holds its detail inside itself, first and across the row from md, with the DOM order unchanged (#689)', async () => {
     const w = mountIt(StatsTiles, { rhythm: THIN_RHYTHM, review: fullReview() })
     await toggle(w, 4).trigger('click')
     await nextTick()
+    // CSS order only: the node never moves, so focus stays on the toggle
     expect(headings(w)).toEqual(['Wie entwickle ich mich?', 'Wo schätze ich falsch?', 'Wofür nehme ich mir Zeit?'])
-    const detail = w.get('[data-testid="stats-tile-4-detail"]')
+    const tile = w.get('[data-testid="stats-tile-4"]')
+    expect(tile.classes()).toEqual(expect.arrayContaining(['md:order-first', 'md:col-span-3']))
+    expect(w.get('[data-testid="stats-tile-3"]').classes()).not.toContain('md:order-first')
+    // the detail is in the tile, named by aria-controls, and no sheet of its own follows the row
+    const detail = tile.get('[data-testid="stats-tile-4-detail"]')
     expect(toggle(w, 4).attributes('aria-controls')).toBe(detail.attributes('id'))
-    // the sheet follows the whole row of tiles in the DOM, so reading and focus order reach the other tiles first
-    const tiles = w.findAll('[data-testid^="stats-tile-"]').map(el => el.attributes('data-testid'))
-    expect(tiles.indexOf('stats-tile-4-detail')).toBeGreaterThan(tiles.indexOf('stats-tile-4'))
-    expect(w.get('[data-testid="stats-tile-4"]').classes()).not.toContain('md:col-span-6')
+    expect(w.findAll('[data-testid="stats-tile-4-detail"]')).toHaveLength(1)
+    expect(detail.find('[data-testid="stats-split-rows"]').exists()).toBe(true)
     await toggle(w, 4).trigger('click')
     await nextTick()
     expect(w.find('[data-testid="stats-tile-4-detail"]').exists()).toBe(false)
-    expect(headings(w)).toEqual(['Wie entwickle ich mich?', 'Wo schätze ich falsch?', 'Wofür nehme ich mir Zeit?'])
+    expect(tile.classes()).not.toContain('md:order-first')
+  })
+
+  it('the opened trend tile shows the large weekly bars above the week table and not the small ones; closed it shows the small ones (#689)', async () => {
+    const w = mountIt(StatsTiles, { rhythm: THIN_RHYTHM, review: fullReview() })
+    expect(w.findAll('[data-testid="stats-trend-bar"]').length).toBeGreaterThan(0)
+    await toggle(w, 2).trigger('click')
+    await nextTick()
+    const tile = w.get('[data-testid="stats-tile-2"]')
+    const detail = tile.get('[data-testid="stats-tile-2-detail"]')
+    expect(detail.findAll('[data-testid="stats-trend-bar"]').length).toBeGreaterThan(0)
+    expect(tile.findAll('[data-testid="stats-trend-bar"]')).toHaveLength(detail.findAll('[data-testid="stats-trend-bar"]').length)
+    expect(detail.text()).toMatch(/\d+\u00a0%/)
+    expect(detail.find('[data-testid="stats-week-list"]').exists()).toBe(true)
+    await toggle(w, 2).trigger('click')
+    await nextTick()
+    expect(w.findAll('[data-testid="stats-trend-bar"]').length).toBeGreaterThan(0)
   })
 
   it('below md the order stays natural', async () => {

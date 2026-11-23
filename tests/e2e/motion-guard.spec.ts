@@ -30,6 +30,8 @@ const READS_A_STEP_MS = 450
 /** The back button's label changes between the first step ("Zurück zu Einstellungen", "Zurück zur Auswahl") and the later ones ("Zurück"): its box changes width in one frame, a label swap and not a move. */
 const SETUP_BACK_LABEL: AllowedJump = { match: /setup-back/, issue: '#652', why: 'the label of the back button changes with the step, so its width does (not a move)' }
 const SETUP_PAGE_SCROLL: AllowedJump = { match: /flow-root|brand-flight/, issue: '#649', why: 'the pane has no scroll area of its own now, so a tall step makes the page scroll; when the done beat shortens the page the sampler (page y = rect + scrollY) reads the scroll reset as a jump of the pane block and of the fixed brand flight (both glide on screen)' }
+/** The open Statistik tile moves to the first place and spans the row from `md`, the others drop below it (#689): a grid re-lay in one frame, and the page root takes the new height with it. A first glide (transform plus an animated width) ended in a 43 px snap, because the collapsible measures its panel at the starting width. */
+const STATS_TILE_REORDER: AllowedJump = { match: /stats-tile-\d-detail|__nuxt|px-safe\.pt-safe/, issue: '#789', why: 'the open tile spans the row and the others drop to the row below in one frame (no glide yet)' }
 
 /** In-app navigation: the sampler lives in one document, so a flow never reloads the page. */
 const push = (page: Page, path: string) => page.evaluate(path => (window as unknown as { useNuxtApp: () => { $router: { push: (p: string) => Promise<unknown> } } }).useNuxtApp().$router.push(path), path)
@@ -147,6 +149,7 @@ const FLOWS: Flow[] = [
   {
     name: 'Statistik: open a tile, switch to another, open the rhythm tile, close (#610)',
     seed: 'none',
+    jumps: [STATS_TILE_REORDER],
     viewport: { width: 1280, height: 2000 }, // a driver that scrolls its target into view would be read as a jump of the fixed bar; taller than the page with every tile open (1808 px), so the root's height never clamps to the viewport (a glide's last 17 px would read as a 2-frame jump of the root, #666)
     url: '/statistics',
     prepare: async (ctx) => {

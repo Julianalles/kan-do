@@ -272,7 +272,7 @@ test.describe('Statistics Page', () => {
       await expect(toggle(4)).toBeFocused();
       await expect(page.getByTestId('stats-split-rows')).toBeVisible();
 
-      // the open tile keeps its place in reading order (#610: tile b), its detail follows the row of tiles
+      // the DOM and reading order stay as they are while a tile is open (#689: the open tile is first by CSS order only)
       await expect(page.getByRole('heading', { level: 2 })).toHaveText([
         /Es läuft/, /Wie entwickle ich mich\?/, /Wo schätze ich falsch\?/, /Wofür nehme ich mir Zeit\?/, /Wann arbeite ich\?/,
       ]);
@@ -329,7 +329,7 @@ test.describe('Statistics Page', () => {
       await expect(page.getByTestId('stats-table-shown')).toHaveText('26 von 26 angezeigt');
     });
 
-    test('closed tiles hug their content; an open tile stays in its cell and opens its detail below the row (#604, #610)', async ({ page, baseURL }) => {
+    test('closed tiles hug their content; an open tile spans the row first and holds its detail inside itself (#604, #689)', async ({ page, baseURL }) => {
       await page.setViewportSize({ width: 1280, height: 900 });
       await page.goto(`${baseURL}/statistics`);
       const box = async (n: number) => (await page.getByTestId(`stats-tile-${n}`).boundingBox())!;
@@ -343,21 +343,48 @@ test.describe('Statistics Page', () => {
         return tile.scrollHeight - tile.clientHeight;
       }));
       expect(heights.every(h => h <= 1)).toBe(true);
-      // one open (#610, tile b): every tile keeps its cell in the row and its detail is a sheet of its own below the whole row
+      // one open (#689): the tile spans all three columns at the first place and holds its detail; the others follow in the row below
       await page.getByTestId('stats-tile-3-toggle').click();
       await expect(page.getByTestId('stats-tile-3-toggle')).toHaveAttribute('aria-expanded', 'true');
       const detail = page.getByTestId('stats-tile-3-detail');
       await expect(detail).toBeVisible();
-      for (const [n, before] of [[2, a], [3, b], [4, c]] as const) {
-        const after = await box(n);
-        expect(Math.abs(after.x - before.x), `tile ${n} stays in its column`).toBeLessThan(1);
-        expect(Math.abs(after.y - before.y), `tile ${n} stays in its row`).toBeLessThan(1);
-        expect(Math.abs(after.width - before.width), `tile ${n} keeps its span`).toBeLessThan(1);
-      }
-      await expect.poll(async () => (await detail.boundingBox())!.y).toBeGreaterThan(b.y + b.height - 1);
+      await expect.poll(async () => Math.abs((await box(3)).width - (c.x + c.width - a.x))).toBeLessThan(1);
+      const open = await box(3);
+      expect(Math.abs(open.x - a.x), 'the open tile starts at the first column').toBeLessThan(1);
+      expect(Math.abs(open.y - a.y), 'the open tile is in the first row').toBeLessThan(1);
+      // no sheet of its own: the detail sits inside the tile's box
       const sheet = (await detail.boundingBox())!;
-      expect(Math.abs(sheet.x - a.x)).toBeLessThan(1);
-      expect(Math.abs(sheet.x + sheet.width - (c.x + c.width))).toBeLessThan(1);
+      expect(sheet.x).toBeGreaterThanOrEqual(open.x);
+      expect(sheet.x + sheet.width).toBeLessThanOrEqual(open.x + open.width + 1);
+      await expect.poll(async () => {
+        const [tile, panel] = [await box(3), (await detail.boundingBox())!];
+        return tile.y + tile.height - (panel.y + panel.height);
+      }, { message: 'the detail ends inside the tile (the panel opens over its glide)' }).toBeGreaterThanOrEqual(-1);
+      // the others sit below it, in their own order
+      await expect.poll(async () => (await box(2)).y - ((await box(3)).y + (await box(3)).height)).toBeGreaterThan(-1);
+      const [two, four] = [await box(2), await box(4)];
+      expect(two.x).toBeLessThan(four.x);
+      expect(Math.abs(two.y - four.y)).toBeLessThan(1);
+      // closing puts every tile back in its cell
+      await page.getByTestId('stats-tile-3-toggle').click();
+      await expect(page.getByTestId('stats-tile-3-detail')).toHaveCount(0);
+      for (const [n, before] of [[2, a], [3, b], [4, c]] as const) {
+        await expect.poll(async () => {
+          const after = await box(n);
+          return Math.max(Math.abs(after.x - before.x), Math.abs(after.y - before.y), Math.abs(after.width - before.width));
+        }, { message: `tile ${n} returns to its cell` }).toBeLessThan(1);
+      }
+    });
+
+    test('the opened trend tile shows the large weekly bars with percent labels above the week table (#689)', async ({ page, baseURL }) => {
+      await page.goto(`${baseURL}/statistics?open=2`);
+      const detail = page.getByTestId('stats-tile-2-detail');
+      await expect(detail.getByTestId('stats-week-list')).toBeVisible();
+      await expect(detail.getByTestId('stats-trend-bar').first()).toBeVisible();
+      await expect(detail).toContainText(/\d+\u00a0%/);
+      // the bars come before the table in the tile
+      const [bars, table] = [(await detail.getByTestId('stats-trend-bar').first().boundingBox())!, (await detail.getByTestId('stats-week-list').boundingBox())!];
+      expect(bars.y).toBeLessThan(table.y);
     });
 
     test('all completed tasks sit behind one disclosure and keep the drill-down', async ({ page, baseURL }) => {
@@ -482,7 +509,7 @@ test.describe('Statistics Page', () => {
       expect(box!.y + box!.height).toBeGreaterThanOrEqual(843);
     });
 
-    test('one column in the same order, an open tile keeps its place, no horizontal scroll', async ({ page, baseURL }) => {
+    test('one column in the same order, an open tile expands in place, no horizontal scroll', async ({ page, baseURL }) => {
       await seedRecords(page, fullHistory());
       await page.goto(`${baseURL}/statistics`);
       await expect(page.getByTestId('stats-verdict')).toBeVisible();
