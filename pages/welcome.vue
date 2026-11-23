@@ -85,7 +85,7 @@
         <SectionHeader tag="h1" class="text-balance">
           {{ t('onboarding.page.title') }}
         </SectionHeader>
-        <p class="mt-3 text-body text-default">{{ t('onboarding.page.intro') }}</p>
+        <p class="mt-3 text-body text-default">{{ t(isNotionAvailable() ? 'onboarding.page.intro' : 'onboarding.page.introWeb') }}</p>
         <p class="mt-3 text-body text-default">{{ t('onboarding.page.curious') }}</p>
         <!-- One filled action: the sheet's only solid green (The One Lamp Rule); the trial is a quiet second way in (#294) -->
         <div class="mt-6 flex flex-col gap-3 sm:flex-row">
@@ -115,6 +115,7 @@
 <script setup lang="ts">
 import SectionHeader from '~/components/ui/SectionHeader.vue'
 import Subline from '~/components/ui/Subline.vue'
+import { isNotionAvailable } from '~/utils/publicCloud'
 import { flyBrandToBar } from '~/utils/brandFlight'
 import { MOTION } from '~/lib/motionTokens'
 import { ref, onMounted } from 'vue';
@@ -128,7 +129,6 @@ import LegalLinks from '~/components/legal/LegalLinks.vue';
 import { useIntegrationManager } from '~/composables/useIntegrationManager';
 import { useFirstRunSources } from '~/composables/useFirstRunSources';
 import { useErrorHandler } from '~/composables/useErrorHandler';
-import { isNotionAvailable } from '~/utils/publicCloud';
 import { useTasksStore } from '~/store/tasks';
 
 // No app bar here (#470): first run, developer pages and the empty redirect page
