@@ -5,10 +5,14 @@
  *
  * Every request passes through `handle` first (`assets.run_worker_first`), static files included, so nothing of the
  * app reaches a visitor without the token. Exempt: `POST /api/feedback` and its `OPTIONS` preflight (the desktop app
- * posts there without a cookie; the relay has its own hourly cap).
+ * posts there without a cookie; the relay has its own hourly cap), and a `GET`/`HEAD` of the public brand assets
+ * (`public-assets.ts`, #736), so a link-preview crawler gets the share image and a browser the icons and the manifest.
+ * The 401 page carries the share tags for the same crawlers.
  */
 
 import { logWorkerError } from './log'
+import { isPublicAssetRequest } from './public-assets'
+import { shareMeta } from './share'
 
 /** `__Host-` binds the cookie to this exact host, Secure and Path=/. It moves with the instance to a custom domain. */
 export const COOKIE_NAME = '__Host-kd_gate'
@@ -31,6 +35,7 @@ export type Decision =
   | { kind: 'deny' }
   | { kind: 'redirect', location: string, setCookie?: string }
   | { kind: 'serve' }
+  | { kind: 'asset' }
 
 export async function sha256Hex(value: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
@@ -65,6 +70,8 @@ export async function decide(request: Request, env: GateEnv): Promise<Decision> 
   if (url.pathname === '/robots.txt') return { kind: 'robots' }
   // Checked before the secret: a `secret` parameter on the relay route is ignored, never turned into a redirect.
   if (isFeedbackRequest(request, url)) return { kind: 'serve' }
+  // Same precedence for the brand assets (#736): exact paths, read methods only, a `secret` parameter is ignored.
+  if (isPublicAssetRequest(request)) return { kind: 'asset' }
 
   const secret = env.GATE_SECRET
   if (!secret) {
@@ -109,14 +116,16 @@ export function robotsResponse(): Response {
 }
 
 // Self-contained on purpose: this page must not load a single app asset (no script, no stylesheet link, no font).
-// Same wording as the homepage's gate page.
-export const PREVIEW_PAGE = `<!doctype html>
+// Same wording as the homepage's gate page. The share tags (#736) are for link-preview crawlers, which send no cookie.
+export function previewPage(origin: string): string {
+  return `<!doctype html>
 <html lang="de">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title>Private Vorschau · Private preview</title>
+${shareMeta(origin)}
 <style>
   body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: oklch(97.6% 0.008 85);
     color: oklch(21% 0.012 60); font: 1.0625rem/1.5 system-ui, -apple-system, 'Segoe UI', sans-serif; }
@@ -134,9 +143,11 @@ export const PREVIEW_PAGE = `<!doctype html>
 </body>
 </html>
 `
+}
 
-export function denyResponse(): Response {
-  return new Response(PREVIEW_PAGE, {
+/** `origin` is the request's own, so a move to a custom domain needs no change here. */
+export function denyResponse(origin: string): Response {
+  return new Response(previewPage(origin), {
     status: 401,
     headers: noStore({ 'Content-Type': 'text/html; charset=utf-8' }),
   })
@@ -151,9 +162,22 @@ export async function handle(request: Request, env: GateEnv, app: AppHandler): P
     case 'robots':
       return robotsResponse()
     case 'deny':
-      return denyResponse()
+      return denyResponse(new URL(request.url).origin)
     case 'redirect':
       return redirectResponse(decision.location, decision.setCookie)
+    case 'asset': {
+      // A listed file missing from the build falls through to the SPA shell: without the cookie that is app HTML, so deny.
+      const response = await app(request)
+      const type = (response.headers.get('Content-Type') ?? '').toLowerCase()
+      const ok = response.status === 200 || response.status === 206 || response.status === 304
+      if (!ok || type.startsWith('text/html')) {
+        await response.body?.cancel()
+        return denyResponse(new URL(request.url).origin)
+      }
+      const tagged = new Response(response.body, response)
+      tagged.headers.set('X-Robots-Tag', ROBOTS_TAG)
+      return tagged
+    }
     case 'serve': {
       const response = await app(request)
       const tagged = new Response(response.body, response) // the app's headers can be immutable
