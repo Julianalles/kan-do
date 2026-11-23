@@ -6,38 +6,21 @@
 @usage Rendered inside the UPopover of AppNav; reads stores and composables, one prop (`open`, to freeze the route-dependent rows while it fades out)
 @avoid Only the popover behind AppNav's ⋯; the places (Heute, Statistik) are the pill's segments, so no rows for them on any route.
 @responsibility
-- Groups, set apart by hairlines (#431): Befehle (desktop, a group of its own, no heading: the row names itself) -> "Auf dieser Seite" (Karten stapeln + group-by chips, Tag abschließen) -> "Seiten" (Papierkorb (n), Einstellungen, App-Update, each with a trailing arrow) -> sync footer. One heading level, no heading inside a group (DESIGN.md Behaviour, "One heading level in a menu"); each heading names its `section`
+- Groups, set apart by hairlines (#431): "Auf dieser Seite" (Karten stapeln + group-by chips, Tag abschließen) -> "Seiten" (Papierkorb (n), Einstellungen, App-Update, each with a trailing arrow; then "Feedback senden", no arrow: it opens a dialog, #759) -> Befehle (desktop, a group of its own, no heading: the row names itself, #748) -> sync footer. One heading level, no heading inside a group (DESIGN.md Behaviour, "One heading level in a menu"); each heading names its `section`
 - "Auf dieser Seite" exists only while the board is the current place; its "Tag abschließen" is disabled while the new-day recap is open (the two never stand together, #480); "Seiten" and the sync footer on every page
 - The page the pill shows as its third segment (#583: Einstellungen on /settings*, Papierkorb on /trash*) is not listed here; the row returns when the page leaves the pill. App-Update stays on /settings/updates (a different page). The panel closes on every route change, so a row never appears or disappears while it is open, and the rows are frozen (`open` false) while it fades out, so it keeps its shape (#595)
 - App-Update only in the desktop app (`isTauri()`, absent in the web build, never disabled)
 - Phone: the group-by chips keep their room (invisible, inert) while grouping is off, so turning it on moves nothing under the finger (#602)
 - Sync footer: a failing source shows its worst problem (title, hint, "Verbindung reparieren") above "Jetzt synchronisieren" + last sync; silent while every source is healthy
 - While a sync runs (manual or background) the row's second line reads "Wird synchronisiert…" (spinner from the button's `loading`), so the accessible name carries the state, and a sibling `role="status"` announces it (#647)
-- Desktop only, on every page with the bar (#224): "Befehle" with the palette shortcut hint opens the command palette (U7 of kd#17: the hint was tooltip-only; the palette has no phone entry), always the first row. AppNav closes the panel and returns focus to ⋯ first, like `dayClose`
+- Desktop only, on every page with the bar (#224): "Befehle" with the palette shortcut hint opens the command palette (U7 of kd#17: the hint was tooltip-only; the palette has no phone entry), always the last row before the sync footer (#748). AppNav closes the panel and returns focus to ⋯ first, like `dayClose`
 - Keyboard: ↑/↓ move focus to the previous/next enabled control (clamped, no wrap), Home/End to the first/last; Tab order and roles stay (a popover, not role=menu)
+- "Feedback senden" (#759, every width, every page): emits `feedback`; AppNav closes the panel, returns focus to ⋯, goes to the board if needed (the dialog is mounted by the board page), then opens the dialog
 - Emits `close` when a navigation row is chosen and `dayClose` for "Tag abschließen": AppNav closes the panel and returns focus to ⋯ first, then opens the dialog
 - Sync status (moved from DESIGN.md, kd#176): a source that cannot sync puts a status dot on ⋯ (orange for every failing state, #595; the 700 step, and ⋯'s accessible name says "Verbindungsproblem"), and this panel names the worst problem above the resync row with the fix; never a dialog on its own. A healthy sync is silent: no dot, no extra line
 -->
 <template>
   <div ref="panelEl" class="more-panel w-72 max-w-full p-2" data-testid="more-panel" @keydown="onKeydown">
-    <template v-if="!isPhone">
-      <UButton
-        icon="i-ph-command"
-        color="neutral"
-        variant="ghost"
-        block
-        class="justify-start"
-        aria-keyshortcuts="Control+K Meta+K"
-        data-testid="more-commands"
-        @click="emit('commands')"
-      >
-        <span class="flex w-full items-center justify-between gap-2">
-          <span>{{ t('nav.commands') }}</span>
-          <span class="inline-flex items-center gap-0.5" aria-hidden="true"><UKbd value="meta" /><UKbd value="k" /></span>
-        </span>
-      </UButton>
-      <USeparator class="my-1" />
-    </template>
     <template v-if="onBoard">
       <section :aria-labelledby="pageHeadingId">
         <SectionHeader :id="pageHeadingId" tag="h2" size="label" class="px-2 pt-2">{{ t('nav.groupPage') }}</SectionHeader>
@@ -144,7 +127,37 @@
           <UIcon :name="ICONS.goOn" class="size-4 text-muted" aria-hidden="true" />
         </span>
       </UButton>
+      <UButton
+        icon="i-ph-chat-teardrop-text"
+        color="neutral"
+        variant="ghost"
+        block
+        class="justify-start"
+        data-testid="more-feedback"
+        @click="emit('feedback')"
+      >
+        {{ t('nav.feedback') }}
+      </UButton>
     </section>
+
+    <template v-if="!isPhone">
+      <USeparator class="my-1" />
+      <UButton
+        icon="i-ph-command"
+        color="neutral"
+        variant="ghost"
+        block
+        class="justify-start"
+        aria-keyshortcuts="Control+K Meta+K"
+        data-testid="more-commands"
+        @click="emit('commands')"
+      >
+        <span class="flex w-full items-center justify-between gap-2">
+          <span>{{ t('nav.commands') }}</span>
+          <span class="inline-flex items-center gap-0.5" aria-hidden="true"><UKbd value="meta" /><UKbd value="k" /></span>
+        </span>
+      </UButton>
+    </template>
 
     <USeparator class="my-1" />
     <div class="space-y-2">
@@ -216,6 +229,8 @@ const emit = defineEmits<{
   close: []
   /** "Tag abschließen" was chosen: the host closes the panel, returns focus to ⋯, then opens the dialog */
   dayClose: []
+  /** "Feedback senden" was chosen: the host closes the panel, returns focus to ⋯, goes to the board if needed, then opens the dialog */
+  feedback: []
   /** "Befehle" was chosen: the host closes the panel, returns focus to ⋯, then opens the command palette */
   commands: []
 }>()

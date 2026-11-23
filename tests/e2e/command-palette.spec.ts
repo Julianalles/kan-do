@@ -312,14 +312,14 @@ test.describe('Command palette off the board (kd#224)', () => {
     await expect(palette(page).getByRole('option', { name: 'Papierkorb öffnen' })).toBeVisible()
   })
 
-  test('the ⋯ panel offers Befehle off the board, as its first row, and the tooltip teaches the shortcut', async ({ page }) => {
+  test('the ⋯ panel offers Befehle off the board, as its last row above the sync row (#748), and the tooltip teaches the shortcut', async ({ page }) => {
     await page.goto('/statistics')
     await moreButton(page).hover()
     await expect(page.getByRole('tooltip')).toContainText('Schnellaktionen')
     await moreButton(page).click()
     const row = morePanel(page).getByTestId('more-commands')
     await expect(row).toBeVisible()
-    await expect(morePanel(page).getByRole('button').first()).toHaveAttribute('data-testid', 'more-commands')
+    await expect(morePanel(page).getByRole('button').nth(-2)).toHaveAttribute('data-testid', 'more-commands')
     await row.click()
     await expect(palette(page)).toBeVisible()
     await page.keyboard.press('Escape')

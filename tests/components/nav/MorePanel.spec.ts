@@ -310,15 +310,45 @@ describe('MorePanel: the Mehr panel (#470)', () => {
       w.unmount()
     })
 
-    it('Befehle is the first row on every page (#224) and emits commands', async () => {
+    it('Befehle is on every page (#224), the last row above the sync footer (#748), and emits commands', async () => {
       const w = render()
       expect(w.find('[data-testid="more-commands"]').text()).toContain('Schnellaktionen')
+      const ids = controls(w).map(el => el.getAttribute('data-testid'))
+      expect(ids.indexOf('more-commands')).toBe(ids.indexOf('more-sync') - 1)
+      expect(ids.indexOf('more-feedback')).toBeLessThan(ids.indexOf('more-commands'))
       await w.find('[data-testid="more-commands"]').trigger('click')
       expect(w.emitted('commands')).toHaveLength(1)
       route.path = '/trash'
       const off = render()
       expect(off.find('[data-testid="more-commands"]').exists()).toBe(true)
       expect(off.find('[data-testid="more-day-close"]').exists()).toBe(false)
+    })
+
+    it('Feedback senden is on every page, has no arrow and emits feedback (#759)', async () => {
+      for (const path of ['/tasks', '/settings', '/trash', '/statistics']) {
+        route.path = path
+        const w = render()
+        const row = w.find('[data-testid="more-feedback"]')
+        expect(row.text()).toBe('Feedback senden')
+        expect(row.html()).not.toContain('arrow-right')
+        await row.trigger('click')
+        expect(w.emitted('feedback')).toHaveLength(1)
+      }
+    })
+
+    it('Feedback senden stays on a phone, where Befehle is absent (#759)', () => {
+      const original = window.matchMedia
+      window.matchMedia = ((query: string) => ({
+        matches: true, media: query, addEventListener: vi.fn(), removeEventListener: vi.fn(),
+        addListener: vi.fn(), removeListener: vi.fn(), dispatchEvent: vi.fn(), onchange: null,
+      })) as unknown as typeof window.matchMedia
+      try {
+        const w = render()
+        expect(w.find('[data-testid="more-feedback"]').exists()).toBe(true)
+        expect(w.find('[data-testid="more-commands"]').exists()).toBe(false)
+      } finally {
+        window.matchMedia = original
+      }
     })
   })
 })

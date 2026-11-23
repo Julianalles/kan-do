@@ -537,20 +537,39 @@ for (const { label, size } of VIEWPORTS) {
       await page.keyboard.press('Enter')
       await expect(panel).toBeVisible()
       // Opening moves focus inside; the tab order is the row order (no Papierkorb row: it is in the bar).
-      // At 1280 "Schnellaktionen" leads on every page (kd#224); a phone has no keyboard, so no such row.
-      await expect(panel.getByTestId('more-trash')).toHaveCount(0)
+      // Order (#759, #748): Einstellungen, Feedback senden, then at 1280 "Schnellaktionen" (a phone has no keyboard, so no such row), then the sync row.
+      await expect(panel.getByTestId('more-settings')).toBeFocused()
+      await page.keyboard.press('Tab')
+      await expect(panel.getByTestId('more-feedback')).toBeFocused()
+      await page.keyboard.press('Tab')
       if (label === '1280') {
         await expect(panel.getByTestId('more-commands')).toBeFocused()
         await page.keyboard.press('Tab')
       }
-      await expect(panel.getByTestId('more-settings')).toBeFocused()
-      await page.keyboard.press('Tab')
       await expect(panel.getByTestId('more-sync')).toBeFocused()
       await panel.getByTestId('more-settings').focus()
       await page.keyboard.press('Enter')
       await expect(page).toHaveURL(/\/settings$/)
       await expect(morePanel(page)).toBeHidden()
       await expect(thirdItem(page)).toHaveText('Einstellungen')
+    })
+
+    test('Feedback senden in the Mehr panel opens the feedback dialog, also from another page (#759)', async ({ page }) => {
+      await page.goto('/tasks')
+      await expect(page.locator('.board')).toBeVisible()
+      const panel = await openMore(page)
+      await panel.getByTestId('more-feedback').click()
+      await expect(morePanel(page)).toBeHidden()
+      await expect(page.getByTestId('feedback-form')).toBeVisible()
+      await page.keyboard.press('Escape')
+      await expect(page.getByTestId('feedback-form')).toBeHidden()
+      await expect(moreButton(page)).toBeFocused()
+
+      await page.goto('/statistics')
+      await openMore(page)
+      await morePanel(page).getByTestId('more-feedback').click()
+      await expect(page).toHaveURL(/\/tasks/)
+      await expect(page.getByTestId('feedback-form')).toBeVisible()
     })
 
     test('the board tab order on the board starts with the bar (navigation first, no skip link)', async ({ page }) => {
