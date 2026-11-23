@@ -5,6 +5,7 @@
 @responsibility
 - Startansicht: Wortmarke „kan-do“ mit Subline (`Subline`) als Seitenkopf über dem Bogen, direkt auf dem Foto, linksbündig mit dem Inhalt des Bogens (gleiche Innenabstände; im Notion-Setup folgt der Kopf dem breiteren Bogen, beide teilen einen Spaltenrahmen); der Bogen hat die kleinere Überschrift (22 px), die Einleitung, einen zweiten Absatz „Du bist erst einmal nur neugierig? …“, „Jetzt starten“ (die einzige gefüllte Schaltfläche, The One Lamp Rule) und „Beispiel anzeigen“ (soft) ab 640 px nebeneinander, darunter gestapelt (#437)
 - In der Web-App (#742) entfällt Schritt 2 (keine App ist verbindbar): „Loslegen“ startet das Board lokal. „Loslegen“ öffnet sonst Schritt 2 (LocalSetupFlow, kein Dialog, #43): Erinnerungen (in der Web-Version deaktiviert „(nur in der Mac-App)“) und Notion als Checkboxen, Todoist deaktiviert „(kommt später)“; ohne Haken endet er mit Lokal als einziger Verbindung und Standard, mit Haken startet er das Erinnerungen-Setup (RemindersSetupFlow, drei Schritte Zugriff, Listen, Heute, #552) und/oder das Notion-Setup auf dieser Seite (Schienen-Führung, Schritte des WizardController). Erinnerungen allein endet mit Lokal als Standard und Erinnerungen verbunden (nie Standard); sind beide gesetzt, läuft Erinnerungen zuerst (Verbinden-Knopf „Weiter zu Notion“, Erinnerungen ist dann schon verbunden), dann Notion, und das Board öffnet gemischt mit Notion als Standard. Zurück aus einem Setup führt zu Schritt 2, die Haken bleiben
+- Nur in der Web-App (#737): unter den Schaltflächen ein leiser Textlink „Mac-App herunterladen“ (`ExternalLink`, 44 px Ziel am Telefon) zur Release-Seite (`lib/appDownload.ts`); in der Desktop-App nicht sichtbar, in den Setup-Schritten ebenfalls nicht
 - „Beispiel anzeigen“ öffnet einen eigenen Schritt 2: er sagt, dass ein Zurücksetzen unter Einstellungen › Daten & Speicher Beispiele und Statistik entfernt; „Board ansehen“ endet wie das lokale Setup
 - Der Weg zum Board ist ein Vorhang (#463): die ganze Seite (Foto, Wortmarke, Bogen) gleitet 1,3 s nach oben und blendet dabei aus, mit weichem unterem Rand (Maske), über dem schon fertigen Board (`.welcome-root`, transitions.css): das Board liegt in seinem Endlayout darunter, nichts springt danach; die fliegende Wortmarke lässt die Überschrift des Bogens kurz ausblenden (`data-brand-flying`); reduzierte Bewegung: sofort
 - Startansicht und Setup tauschen als ein Block (eine Transition, Höhe per WAAPI, Breite per CSS); der Tausch gleitet seitwärts (vor: alt nach links hinaus, neu von rechts herein; zurück gespiegelt, 260 ms, #236); reduzierte Bewegung: sofort
@@ -96,6 +97,8 @@
             {{ t('onboarding.page.samples') }}
           </UButton>
         </div>
+        <!-- Web only (#737): the desktop app is the main product; a web visitor gets one quiet link to its releases -->
+        <ExternalLink v-if="showAppLink" :href="APP_DOWNLOAD_URL" standalone class="mt-4 inline-block text-sm" data-testid="welcome-app-download">{{ t('onboarding.page.appDownload') }}</ExternalLink>
         <p class="mt-6 text-xs text-muted">
           {{ t('onboarding.page.version') }} {{ $config.public.clientVersion }}
         </p>
@@ -125,6 +128,9 @@ import SamplesSetupFlow from '~/components/setup/SamplesSetupFlow.vue';
 import NotionSetupFlow from '~/components/setup/NotionSetupFlow.vue';
 import RemindersSetupFlow from '~/components/setup/RemindersSetupFlow.vue';
 import DataStorageNotice from '~/components/settings/DataStorageNotice.vue';
+import ExternalLink from '~/components/ui/ExternalLink.vue';
+import { isTauri } from '~/utils/isTauri';
+import { APP_DOWNLOAD_URL } from '~/lib/appDownload';
 import LegalLinks from '~/components/legal/LegalLinks.vue';
 import { useIntegrationManager } from '~/composables/useIntegrationManager';
 import { useFirstRunSources } from '~/composables/useFirstRunSources';
@@ -145,7 +151,10 @@ const brand = ref<InstanceType<typeof SectionHeader> | null>(null);
 /** The brand flies to the app bar's brand as the page leaves (desktop, #437) */
 const flyBrand = () => flyBrandToBar(brand.value?.$el as HTMLElement | undefined);
 // A cached or early-loaded photo can finish before hydration: its load event is gone, so check once on mount
+// The link is for web visitors only; set after mount so the server render and the desktop hydration agree (#737)
+const showAppLink = ref(false);
 onMounted(() => {
+  showAppLink.value = !isTauri();
   if (photo.value?.complete && photo.value.naturalWidth > 0) photoLoaded.value = true;
 });
 /** Which setup is shown in place of the start screen (#43) */
