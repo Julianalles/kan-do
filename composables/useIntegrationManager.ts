@@ -42,7 +42,9 @@ export const useIntegrationManager = () => {
   const sourcesToFetch = (): SourceId[] => {
     const config = boardStore.boardConfig.sources;
     if (!config) return [];
-    return config.connected.length > 0 ? [...config.connected] : ['local'];
+    // A paused integration (Notion on the public web instance, #742) is not fetched; Local takes its place when it was the only one
+    const connected = boardStore.connectedIntegrations;
+    return connected.length > 0 ? [...connected] : ['local'];
   };
 
   /**

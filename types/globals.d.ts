@@ -9,6 +9,12 @@
 declare const __NOTION_STUB_ALLOWED__: boolean;
 
 /**
+ * true in the public web instance's build (`npm run build:cloudflare`, #742): it offers no Notion. False in every other
+ * build (desktop, dev, E2E). Read it through `isPublicCloud()` in `utils/publicCloud.ts`; tests switch it with `setPublicCloud`.
+ */
+declare const __PUBLIC_CLOUD__: boolean;
+
+/**
  * true in `nuxt dev` and in builds made with KANDO_COPY_EDITOR=1 (scripts/e2e-server.mjs) and in the dev instance (#246, `isDevInstance`); false in every other
  * build, which drops the live copy editor (#59, `dev-tools/copy-editor/`) from the bundle.
  */

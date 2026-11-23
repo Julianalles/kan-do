@@ -13,7 +13,7 @@ const workerDir = resolve(__dirname, '../../worker')
 describe('worker/ console use (#540)', () => {
   it('no source file calls `console.` except log.ts: a new log line goes through logWorkerError', () => {
     const sources = readdirSync(workerDir).filter(name => /\.ts$/.test(name) && !/\.test\.ts$/.test(name) && !/\.d\.ts$/.test(name))
-    expect(sources).toContain('limiter.ts') // the scan finds the folder
+    expect(sources).toContain('gate.ts') // the scan finds the folder
     const offenders = sources.filter(name => name !== 'log.ts' && /\bconsole\s*\./.test(readFileSync(join(workerDir, name), 'utf8')))
     expect(offenders).toEqual([])
   })

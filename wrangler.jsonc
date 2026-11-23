@@ -24,14 +24,13 @@
   // the public launch (jwue-homepage#34): change it here, through a PR. The token is the secret GATE_SECRET
   // (the homepage's value, one shared token). Other secrets: FEEDBACK_GITHUB_TOKEN. Never NOTION_KEY.
   "vars": { "GATE": "on" },
-  // Rate limit of the Notion proxy (#508, worker/guards.ts, worker/limiter.ts): 120 requests per 60 s per client IP (an IPv6 by its /64),
-  // counted for `/api/notion/*` only, by one Durable Object per client so the count is exact across isolates and locations. The Workers
-  // Rate Limiting binding of #503 (`ratelimits`) never limited on the live instance (approximate, per-location counts; Free on
-  // workers.dev answered `success: true` for 1200 requests in 28 s), so it is gone. Free needs a SQLite-backed class (`new_sqlite_classes`); the
-  // object checkpoints its window there a few times per window, so an eviction does not reset it, and an alarm at the window's end deletes it (no
-  // client data outlives its window); the object is named by an HMAC of the client key (keyed with GATE_SECRET), never by the IP. A missing or failing binding lets requests through (the guard never blocks by itself).
-  "durable_objects": { "bindings": [{ "name": "NOTION_LIMITER", "class_name": "NotionLimiter" }] },
-  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["NotionLimiter"] }],
+  // No Notion on this instance (#742, ADR 021 "Local-only"): its routes are not in the build and the Worker answers
+  // `/api/notion/*` with 404. The Notion proxy's rate limiter (Durable Object `NotionLimiter`, #508) went with them: v2 deletes
+  // the class and its stored windows. Keep v1: wrangler replays the migration history by tag.
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["NotionLimiter"] },
+    { "tag": "v2", "deleted_classes": ["NotionLimiter"] },
+  ],
   // Workers Logs (#530, #511, epic #279: the Worker stores nothing of the user's). They stay on, so the allow-listed
   // `[server-error] route status code` line (`server/utils/serverLog.ts`) can diagnose an outage, but nothing else of a
   // request persists: invocation logs (URL, Cloudflare request fields) are off and query strings are redacted. Sampling stays

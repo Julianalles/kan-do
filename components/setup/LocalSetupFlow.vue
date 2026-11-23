@@ -8,6 +8,7 @@
 @responsibility
 - Explains that tasks stay on this device, local tasks are always possible and services can be connected now or later in Einstellungen
 - Lists Notion, Erinnerungen (Apple Reminders, #552) and Todoist as checkbox cards (`ChoiceCard` with `v-model`, #651): the service icon, the name and a one-line description; Erinnerungen has no official icon in the bundled sets, so a list glyph stands in (known trade-off until an asset exists); Todoist is disabled with "Bald verfügbar"; Erinnerungen is enabled only in the Mac app (`useRemindersSupported`), in the web build it is disabled and its line reads "Nur in der Mac-App"
+- Notion is disabled on the public web instance (#742) and its line reads "In der öffentlichen Cloud-Version nicht verfügbar"; a Notion tick carried over from before is ignored there
 - One primary action whose label follows the checkboxes: none checked empties the task store and emits `complete` ("Zum Board"); Notion only emits `connect-notion` ("Mit Notion einrichten"); Erinnerungen emits `connect-reminders` ("Mit Erinnerungen einrichten", with Notion also "Weiter mit Erinnerungen und Notion": the host runs the Reminders setup first, then Notion); the store is left alone for both
 - Back returns to the start view: the shared `BackButton` ("Zurück zur Auswahl")
 - Pattern: first-run setup, diverged from the modal wizard; the apps are choice cards, diverged from the circle checkboxes (the UX decision of #607)
@@ -24,9 +25,9 @@
 
     <fieldset class="flex flex-col gap-2" data-testid="local-sources">
       <SectionHeader tag="legend" size="label" class="mb-2">{{ t('onboarding.flow.local.legend') }}</SectionHeader>
-      <ChoiceCard v-model="notion" icon="i-simple-icons-notion" data-testid="local-source-notion">
+      <ChoiceCard v-model="notion" icon="i-simple-icons-notion" :disabled="!notionAvailable" data-testid="local-source-notion">
         {{ t('onboarding.flow.local.notion') }}
-        <template #hint>{{ t('onboarding.flow.local.notionHint') }}</template>
+        <template #hint>{{ notionAvailable ? t('onboarding.flow.local.notionHint') : t('onboarding.flow.local.notionCloudUnavailable') }}</template>
       </ChoiceCard>
       <ChoiceCard v-model="reminders" icon="i-ph-list-checks" :disabled="!remindersSupported" data-testid="local-source-reminders">
         {{ t('onboarding.flow.local.reminders') }}
@@ -48,6 +49,7 @@
 import SectionHeader from '~/components/ui/SectionHeader.vue'
 import { computed, ref } from 'vue';
 import { isTauri } from '~/utils/isTauri';
+import { isNotionAvailable } from '~/utils/publicCloud';
 import { useRemindersSupported } from '~/composables/useRemindersSupported';
 import BackButton from '~/components/ui/BackButton.vue';
 import ChoiceCard from '~/components/ui/ChoiceCard.vue';
@@ -67,17 +69,20 @@ const tasksStore = useTasksStore();
 const headingRef = ref<{ $el: HTMLElement } | null>(null);
 const remindersSupported = useRemindersSupported();
 const isDesktop = isTauri();
+/** The public web instance offers no Notion (#742): the card stays, disabled, and nothing can tick it */
+const notionAvailable = isNotionAvailable();
+const wantsNotion = computed(() => notion.value && notionAvailable);
 
 const confirmLabel = computed(() => {
-  if (reminders.value && remindersSupported.value) return t(notion.value ? 'onboarding.flow.local.confirmRemindersNotion' : 'onboarding.flow.local.confirmReminders');
-  return t(notion.value ? 'onboarding.flow.local.confirmNotion' : 'onboarding.flow.local.confirm');
+  if (reminders.value && remindersSupported.value) return t(wantsNotion.value ? 'onboarding.flow.local.confirmRemindersNotion' : 'onboarding.flow.local.confirmReminders');
+  return t(wantsNotion.value ? 'onboarding.flow.local.confirmNotion' : 'onboarding.flow.local.confirm');
 });
 
 defineExpose({ focusHeading: () => headingRef.value?.$el.focus({ preventScroll: true }) });
 
 function confirm() {
   if (reminders.value && remindersSupported.value) return emit('connect-reminders');
-  if (notion.value) return emit('connect-notion');
+  if (wantsNotion.value) return emit('connect-notion');
   tasksStore.setTasks([]);
   emit('complete');
 }

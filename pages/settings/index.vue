@@ -19,6 +19,7 @@ App-Reset, and on desktop Updates and GitHub-Zugriff).
   (`?setup=repair`, so a new token can be entered); a merely degraded one opens it in settings mode (`?setup=settings`); no dialog (#652).
   "Notion-Einstellungen" goes to /settings/notion, "Trennen" opens the disconnect dialog of #320
   (`useSourceConnections` does the work)
+- On the public web instance (#742) Notion reads "in der öffentlichen Cloud-Version nicht verfügbar" there, without a button, and a stored Notion source is a connected row with the note "Nur in der Desktop-App verfügbar…" and no action
 - "Eine App verbinden": Notion with "Verbinden" while disconnected (opens the Notion setup stage of /settings/notion, `?setup=connect`; the stage connects the source when it ends),
   Erinnerungen with "Verbinden" in the Mac app (it opens /settings/reminders, which runs the setup there; the web build reads "nur in der Mac-App", #552),
   Todoist as "bald verfügbar"
@@ -146,7 +147,7 @@ App-Reset, and on desktop Updates and GitHub-Zugriff).
                     >
                       {{ t('sources.row.connect') }}
                     </UButton>
-                    <span v-else class="text-sm text-muted">{{ t(row.state === 'macOnly' ? 'sources.page.macOnly' : 'sources.page.soon') }}</span>
+                    <span v-else class="text-sm text-muted">{{ t(MORE_STATE_KEYS[row.state]) }}</span>
                   </ListRow>
                 </ul>
               </template>
@@ -190,7 +191,7 @@ import DisconnectSourceDialog from '~/components/settings/DisconnectSourceDialog
 import { useBoardStore } from '~/store/board'
 import { useSettingsStore } from '~/store/settings'
 import { WORKING_MINUTES } from '~/lib/dayCapacity'
-import { useSourceList } from '~/composables/useSourceList'
+import { useSourceList, type MoreSourceRow } from '~/composables/useSourceList'
 import { isTauri } from '~/utils/isTauri'
 import { useDataFolder } from '~/composables/useDataFolder'
 import ListRow from '~/components/ui/ListRow.vue'
@@ -211,6 +212,12 @@ const { t, locale } = useI18n()
 const boardStore = useBoardStore()
 const settingsStore = useSettingsStore()
 const { connected, more } = useSourceList()
+/** The note of a row in "Eine App verbinden" that cannot be connected here */
+const MORE_STATE_KEYS: Record<Exclude<MoreSourceRow['state'], 'connectable'>, string> = {
+  soon: 'sources.page.soon',
+  macOnly: 'sources.page.macOnly',
+  cloudUnavailable: 'sources.page.cloudUnavailable',
+}
 
 // The Keychain and updater pages exist on desktop only.
 const isDesktop = isTauri()

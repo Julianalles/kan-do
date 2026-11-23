@@ -5,7 +5,9 @@
  * @responsibility
  * - `connected`: Lokal always, then every connected integration, each with default flag, status line and the
  *   actions it offers
- * - `more`: the unconnected Notion (connectable), Todoist (not yet available) and Apple Reminders (connectable on a Mac that supports it, else "nur in der Mac-App", #552)
+ * - A stored integration this build cannot sync (Notion on the public web instance, #742) is a connected row with the note
+ *   "Nur in der Desktop-App verfügbar…" and no action; the stored config is left as it is
+ * - `more`: the unconnected Notion (connectable; "in der öffentlichen Cloud-Version nicht verfügbar" there), Todoist (not yet available) and Apple Reminders (connectable on a Mac that supports it, else "nur in der Mac-App", #552)
  * - Status per integration: warning "Verbindung prüfen" when broken or degraded, the last-sync line when
  *   healthy or merely offline, neutral "Wird geprüft…" before a first successful sync
  */
@@ -15,6 +17,7 @@ import { useBoardStore } from '~/store/board'
 import { useIntegrationHealthStore } from '~/store/integrationHealth'
 import { integrationLabel, sourceCanBeDefault } from '~/lib/taskSources'
 import { useRemindersSupported } from '~/composables/useRemindersSupported'
+import { isSourceAvailable } from '~/utils/publicCloud'
 import { INTEGRATION_SOURCE_IDS, type IntegrationSourceId, type SourceId } from '~/types/taskSource'
 
 export type SourceStatusTone = 'muted' | 'warning'
@@ -40,8 +43,11 @@ export interface MoreSourceRow {
   id: IntegrationSourceId
   name: string
   icon: string
-  /** `connectable`: "Verbinden"; `soon`: "bald verfügbar", no button; `macOnly`: "nur in der Mac-App", no button (Reminders on the web) */
-  state: 'connectable' | 'soon' | 'macOnly'
+  /**
+   * `connectable`: "Verbinden"; `soon`: "bald verfügbar", no button; `macOnly`: "nur in der Mac-App", no button (Reminders on the web);
+   * `cloudUnavailable`: "in der öffentlichen Cloud-Version nicht verfügbar", no button (Notion on the public web instance, #742)
+   */
+  state: 'connectable' | 'soon' | 'macOnly' | 'cloudUnavailable'
 }
 
 /** Source icons, bundled (ADR 012): neutral ink, no brand colour. */
@@ -98,7 +104,7 @@ export function useSourceList(): {
 
   const connected = computed<ConnectedSourceRow[]>(() => {
     const defaultId = board.defaultSource ?? 'local'
-    const ids: SourceId[] = ['local', ...board.connectedIntegrations]
+    const ids: SourceId[] = ['local', ...board.connectedIntegrations, ...board.pausedIntegrations]
     return ids.map((id): ConnectedSourceRow => {
       const isDefault = id === defaultId
       const base = {
@@ -112,6 +118,19 @@ export function useSourceList(): {
           ...base,
           name: t('source.name.local'),
           statusText: t('sources.status.local'),
+          statusTone: 'muted',
+          canRepair: false,
+          repairNeedsCredentials: false,
+          canConfigure: false,
+        }
+      }
+      // A stored source this build cannot sync (Notion on the public web instance, #742): a note, no action
+      if (!isSourceAvailable(id)) {
+        return {
+          ...base,
+          canSetDefault: false,
+          name: integrationLabel(id),
+          statusText: t('sources.status.desktopOnly'),
           statusTone: 'muted',
           canRepair: false,
           repairNeedsCredentials: false,
@@ -133,12 +152,14 @@ export function useSourceList(): {
 
   const more = computed<MoreSourceRow[]>(() =>
     INTEGRATION_SOURCE_IDS
-      .filter((id) => !board.isIntegrationConnected(id))
+      .filter((id) => !board.isIntegrationConnected(id) && !board.pausedIntegrations.includes(id))
       .map((id): MoreSourceRow => ({
         id,
         name: integrationLabel(id),
         icon: SOURCE_ICONS[id],
-        state: id === 'reminders' ? (remindersSupported.value ? 'connectable' : 'macOnly') : CONNECTABLE.includes(id) ? 'connectable' : 'soon',
+        state: id === 'reminders'
+          ? (remindersSupported.value ? 'connectable' : 'macOnly')
+          : !isSourceAvailable(id) ? 'cloudUnavailable' : CONNECTABLE.includes(id) ? 'connectable' : 'soon',
       })),
   )
 

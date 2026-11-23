@@ -12,6 +12,7 @@ import { persistOmitFor } from "~/lib/secrets";
 import { useTasksStore } from "~/store/tasks";
 import { normalizeBoardConfig, singleSource, sourceCanBeDefault } from "~/lib/taskSources";
 import { isNotPlanned } from "~/lib/taskPlanning";
+import { isSourceAvailable } from "~/utils/publicCloud";
 import type { SourceId, IntegrationSourceId, TaskSourcesConfig } from "~/types/taskSource";
 
 export interface IUpdateTaskOrderPayload {
@@ -170,8 +171,14 @@ export const useBoardStore = defineStore("board", () => {
     return columns.value.find((el) => el.taskStatus === taskStatus) ?? null;
   });
 
-  /** Where new tasks go; `null` while the user has never onboarded. */
-  const defaultSource = computed<SourceId | null>(() => boardConfig.value.sources?.default ?? null);
+  /**
+   * Where new tasks go; `null` while the user has never onboarded. A stored default this build cannot sync (Notion on the
+   * public web instance, #742) reads as Local; the stored value stays.
+   */
+  const defaultSource = computed<SourceId | null>(() => {
+    const stored = boardConfig.value.sources?.default ?? null;
+    return stored !== null && !isSourceAvailable(stored) ? 'local' : stored;
+  });
 
   /** Whether the user finished onboarding (picked a first source). */
   const isOnboarded = computed(() => boardConfig.value.sources !== null);
@@ -179,12 +186,19 @@ export const useBoardStore = defineStore("board", () => {
   /** A switch to an integration is waiting for its first non-empty fetch (see `markSourceSwitchPending`). */
   const isSourceSwitchPending = computed(() => boardConfig.value.pendingSourceSwitch === true);
 
-  /** The connected integrations, in connection order (Local is implicit and not listed). */
-  const connectedIntegrations = computed<IntegrationSourceId[]>(() => boardConfig.value.sources?.connected ?? []);
+  /**
+   * The connected integrations, in connection order (Local is implicit and not listed). A stored one this build cannot
+   * sync (Notion on the public web instance, #742) is left out: nothing fetches from or writes to it, and it is listed
+   * under `pausedIntegrations` instead. The stored config stays as it is.
+   */
+  const connectedIntegrations = computed<IntegrationSourceId[]>(() => (boardConfig.value.sources?.connected ?? []).filter(isSourceAvailable));
 
-  /** Whether an integration is connected as a task source. Local is always available, so it is not asked here. */
+  /** Stored integrations this build cannot sync (#742): the Speicherorte page says why and offers to disconnect them. */
+  const pausedIntegrations = computed<IntegrationSourceId[]>(() => (boardConfig.value.sources?.connected ?? []).filter((id) => !isSourceAvailable(id)));
+
+  /** Whether an integration is connected as a task source (a paused one is not). Local is always available, so it is not asked here. */
   const isIntegrationConnected = computed(
-    () => (id: IntegrationSourceId) => boardConfig.value.sources?.connected.includes(id) ?? false,
+    () => (id: IntegrationSourceId) => isSourceAvailable(id) && (boardConfig.value.sources?.connected.includes(id) ?? false),
   );
 
   /** The topic the board is focused on right now: null when there is none or it was set on an earlier day. */
@@ -653,6 +667,7 @@ export const useBoardStore = defineStore("board", () => {
     isOnboarded,
     isSourceSwitchPending,
     connectedIntegrations,
+    pausedIntegrations,
     isIntegrationConnected,
     
     // Actions
