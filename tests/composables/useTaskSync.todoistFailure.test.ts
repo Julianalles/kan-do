@@ -134,6 +134,23 @@ describe('useTaskSync with the real TodoistIntegration: a failing status write (
       expect(useTasksStore().task('t1')?.pendingSync).toBeUndefined()
     })
 
+    it('an edit while a chained status write waits (a stack drop) closes the task once', async () => {
+      addTask('t1')
+      const { updateTaskStatus, editTask } = useTaskSync()
+      let release: () => void = () => {}
+      const after = new Promise<void>((resolve) => { release = resolve })
+      const completing = updateTaskStatus({ taskId: 't1', status: TaskStatus.Done, after })
+
+      const editing = editTask('t1', { priority: 3 })
+      await Promise.resolve()
+      expect(sdkCalls).toEqual([]) // the edit does not run ahead of the waiting completion
+      release()
+      await Promise.all([completing, editing])
+      expect(sdkCalls).toEqual(['close:t1'])
+      expect(useTasksStore().task('t1')).toMatchObject({ priority: 3, status: TaskStatus.Done })
+      expect(useTasksStore().task('t1')?.pendingSync).toBeUndefined()
+    })
+
     it('still sends a completion that failed before', async () => {
       addTask('t1')
       failing.add('close:t1')
