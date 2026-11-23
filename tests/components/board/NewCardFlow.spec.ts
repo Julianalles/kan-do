@@ -758,6 +758,7 @@ describe('NewCardFlow (#649)', () => {
     await w.get('form').trigger('submit')
     await nextTick()
     expect(title().attributes('readonly')).toBeDefined() // the field rests while the create runs
+    expect(w.get('[data-testid="new-card-confirm-title"]').attributes('disabled')).toBeDefined() // and so does the check
     await title().trigger('keydown', { key: 'Enter' })
     await w.get('form').trigger('submit')
     expect(sync.createTask).toHaveBeenCalledTimes(1)

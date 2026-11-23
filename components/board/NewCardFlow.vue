@@ -66,7 +66,7 @@
         class="ncf__action ncf__check"
         data-testid="new-card-confirm-title"
         aria-keyshortcuts="Enter"
-        :disabled="!title.trim()"
+        :disabled="!title.trim() || saving"
         :title="t('board.quickAdd.saveNowHint')"
         :aria-label="t('board.quickAdd.confirmTitle')"
       >
