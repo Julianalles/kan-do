@@ -5,6 +5,7 @@ import { useTaskStatisticsStore } from "@/store/taskStatistics";
 import { useBoardStore } from "@/store/board";
 import { useErrorHandler } from '@/composables/useErrorHandler';
 import { translate } from '~/lib/i18n';
+import { isNotionAvailable } from '~/utils/publicCloud';
 
 /**
  * Background job interface for tracking backfill operations
@@ -154,8 +155,8 @@ export const useStatisticsBackfill = () => {
    * @param trigger - The trigger type ('daily', 'config_change', or 'force')
    */
   const executeBackfill = async (trigger: 'daily' | 'config_change' | 'force'): Promise<void> => {
-    // Only run if Notion is configured with archive status
-    if (!notionConfig.isConfigured || !notionConfig.config || !hasArchiveStatus()) {
+    // Only run if Notion is available here (not paused on the public cloud, #742) and configured with archive status
+    if (!isNotionAvailable() || !notionConfig.isConfigured || !notionConfig.config || !hasArchiveStatus()) {
       if (import.meta.dev) {
         console.log('[StatisticsBackfill] Skipping backfill: No archive status configured');
         console.log('[StatisticsBackfill] Config state:', {
