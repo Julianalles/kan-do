@@ -81,10 +81,11 @@ export class TodoistSource implements TaskSourceAdapter {
   }
 
   async update(task: Task, change: { previousStatus?: TaskStatus; fieldsOnly?: boolean } = {}): Promise<Task | null> {
+    // Read first: a missing token fails the push as before, so the source stays marked broken
+    const token = this.token()
     // A priority or time box edit (#770): Todoist stores neither and already holds the done state, so a done task is
     // not closed again (a recurring one would skip an occurrence)
     if (change.fieldsOnly) return null
-    const token = this.token()
     const write = task.status === TaskStatus.Done ? 'complete' : change.previousStatus === TaskStatus.Done ? 'reopen' : null
     if (!write) return null // nothing to write: do not load the SDK chunk (offline it would reject and strand a pendingSync)
     const externalId = externalIdOf(task)

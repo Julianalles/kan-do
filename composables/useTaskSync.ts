@@ -459,15 +459,15 @@ export const useTaskSync = () => {
     tasksStore.updateTask(taskId, updates);
     // A status write of the task still waiting (a stack drop chains them) sends the task as it is by then, the edit
     // with it: the edit's own push goes after it, so it cannot send that write's completion first and the write a
-    // second one (#770). It waits outside `pushesInFlight`, which the status write's own push waits on
-    const statusWrite = statusWritesInFlight.get(taskId)?.promise;
-    if (statusWrite) {
-      return statusWrite.catch(() => undefined).then(() => {
-        const live = tasksStore.task(taskId);
-        return live ? runSync(live, undefined, operationVersion, true) : true;
-      });
-    }
-    return runSync(tasksStore.task(taskId)!, undefined, operationVersion, true);
+    // second one (#770). It waits outside `pushesInFlight`, which the status write's own push waits on, and again for
+    // a status write queued meanwhile
+    if (!statusWritesInFlight.has(taskId)) return runSync(tasksStore.task(taskId)!, undefined, operationVersion, true);
+    return (async () => {
+      let statusWrite: Promise<void> | undefined;
+      while ((statusWrite = statusWritesInFlight.get(taskId)?.promise) !== undefined) await statusWrite.catch(() => undefined);
+      const live = tasksStore.task(taskId);
+      return live ? runSync(live, undefined, operationVersion, true) : true;
+    })();
   };
 
   /**

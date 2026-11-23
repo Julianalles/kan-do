@@ -142,12 +142,26 @@ describe('useTaskSync with the real TodoistIntegration: a failing status write (
       const completing = updateTaskStatus({ taskId: 't1', status: TaskStatus.Done, after })
 
       const editing = editTask('t1', { priority: 3 })
-      await Promise.resolve()
+      await new Promise((resolve) => setTimeout(resolve, 0))
       expect(sdkCalls).toEqual([]) // the edit does not run ahead of the waiting completion
       release()
       await Promise.all([completing, editing])
       expect(sdkCalls).toEqual(['close:t1'])
       expect(useTasksStore().task('t1')).toMatchObject({ priority: 3, status: TaskStatus.Done })
+      expect(useTasksStore().task('t1')?.pendingSync).toBeUndefined()
+    })
+
+    it('an edit waits for a status write queued while it waited: reopen, edit, done again closes once more only', async () => {
+      addTask('t1')
+      const { updateTaskStatus, editTask } = useTaskSync()
+      await updateTaskStatus({ taskId: 't1', status: TaskStatus.Done })
+      sdkCalls.length = 0
+
+      const reopening = updateTaskStatus({ taskId: 't1', status: TaskStatus.Open })
+      const editing = editTask('t1', { priority: 3 })
+      const completing = updateTaskStatus({ taskId: 't1', status: TaskStatus.Done })
+      await Promise.all([reopening, editing, completing])
+      expect(sdkCalls).toEqual(['reopen:t1', 'close:t1'])
       expect(useTasksStore().task('t1')?.pendingSync).toBeUndefined()
     })
 

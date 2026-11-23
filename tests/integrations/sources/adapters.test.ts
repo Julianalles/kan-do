@@ -373,6 +373,14 @@ describe('TodoistSource', () => {
     expect(todoist.reopenTask).toHaveBeenCalledTimes(1)
   })
 
+  it('a field edit (#770) writes nothing, but still fails without a token so the source stays broken', async () => {
+    const source = build()
+    expect(await source.update(todoistTask({ status: TaskStatus.Done }), { previousStatus: TaskStatus.Done, fieldsOnly: true })).toBeNull()
+    expect(todoist.completeTask).not.toHaveBeenCalled()
+    token = null
+    await expect(source.update(todoistTask({ status: TaskStatus.Done }), { fieldsOnly: true })).rejects.toBeInstanceOf(SourceNotConfiguredError)
+  })
+
   it('writes what the task said when the call was made, whatever it says once the integration has loaded (#275)', async () => {
     const source = build()
     // The live store object: a second move changes it while the first write still waits for the import
