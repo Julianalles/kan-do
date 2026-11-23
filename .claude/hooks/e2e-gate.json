@@ -655,9 +655,11 @@
       ]
     },
     {
-      "area": "topics: editor, marks, names, styles, settings page",
+      "area": "topics: editor, marks, names, styles, settings page, and the task-sheet pickers that create and pick a topic (#785: #783 changed the create-closes behaviour unseen)",
       "paths": [
         "components/topic/**",
+        "components/task/TaskPropertySelect.vue",
+        "components/task/TopicPropertyPicker.vue",
         "composables/useTopic*",
         "lib/topicStyles.ts",
         "lib/topicNames.ts",

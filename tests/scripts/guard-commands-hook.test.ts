@@ -391,3 +391,19 @@ describe('guard-commands hook: orca computer targets only a sandbox run', () => 
       expect(hook(command).status).toBe(0)
     })
 })
+
+describe('guard-commands: branch rename in the main checkout', () => {
+  const run = (cwd: string, command: string) => spawnSync('bash', [resolve(root, '.claude/hooks/guard-commands.sh')], {
+    input: JSON.stringify({ tool_input: { command } }), encoding: 'utf8', cwd, env: { ...process.env, CLAUDE_PROJECT_DIR: root },
+  })
+  it('blocks it on main of the main checkout, allows it in a worktree', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'kando-guard-'))
+    const git = (...a: string[]) => spawnSync('git', a, { cwd: dir, encoding: 'utf8' })
+    git('init', '-b', 'main'); git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '--allow-empty', '-m', 'i')
+    expect(run(dir, 'git branch -m fix/1-x').status).toBe(2)
+    const wt = join(dir, 'wt')
+    git('worktree', 'add', '-b', 'tmp', wt)
+    expect(run(wt, 'git branch -m fix/1-x').status).toBe(0)
+    rmSync(dir, { recursive: true, force: true })
+  })
+})

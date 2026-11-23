@@ -227,9 +227,10 @@ for (const vp of VIEWPORTS) {
       await page.getByPlaceholder('Thema suchen…').fill('Reisen')
       await page.keyboard.press('Enter')
       await expect(page.getByTestId('task-topic-select')).toContainText('Reisen')
-      // A create keeps the picker open (Nuxt UI's create item prevents the close): pick on in it. A trigger click here
-      // would toggle it shut, and the search field then only lingered for the exit animation (#728)
-      await expect(page.getByTestId('task-topic-select')).toHaveAttribute('aria-expanded', 'true')
+      // A create closes a single-value picker like a pick (#774): wait for it to shut, then reopen to pick on
+      await expect(page.getByTestId('task-topic-select')).toHaveAttribute('aria-expanded', 'false')
+      await expect(page.getByPlaceholder('Thema suchen…')).toHaveCount(0)
+      await page.getByTestId('task-topic-select').click()
       await page.getByPlaceholder('Thema suchen…').fill('Wrk')
       await page.getByRole('option', { name: /Wrk/ }).click()
       await expect(page.getByTestId('task-topic-select')).toContainText('Wrk')
