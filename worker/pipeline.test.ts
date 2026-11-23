@@ -97,4 +97,51 @@ describe('Worker pipeline: gate, then the Notion 404, then the app', () => {
       await expect(handleRequest(new Request(SITE + '/'), { GATE: 'off' }, async () => html(), ["'unsafe-inline'"])).rejects.toThrow(/sha256/)
     })
   })
+
+  describe('root files and brand assets (#736, #738)', () => {
+    const upstream = () => new Response('bytes', { headers: { 'Content-Type': 'application/octet-stream' } })
+    const call = (path: string, env: Partial<WorkerEnv>, gated: boolean, app: () => Response = upstream) =>
+      sha256Hex(SECRET).then(hash => handleRequest(
+        new Request(SITE + path, { headers: gated ? { Cookie: `${COOKIE_NAME}=${hash}` } : {} }),
+        { GATE: 'on', GATE_SECRET: SECRET, ...env }, async () => app(), HASHES))
+
+    it('gate off: robots.txt, sitemap.xml and security.txt are the Worker\'s own, with no noindex', async () => {
+      for (const path of ['/robots.txt', '/sitemap.xml', '/.well-known/security.txt']) {
+        const res = await call(path, { GATE: 'off' }, false, () => { throw new Error('the app must not run') })
+        expect(res.status, path).toBe(200)
+        expect(res.headers.get('X-Robots-Tag'), path).toBeNull()
+      }
+      expect(await (await call('/robots.txt', { GATE: 'off' }, false)).text()).toContain(`Sitemap: ${SITE}/sitemap.xml`)
+    })
+
+    it('gate on: robots.txt stays disallow-all, the other two are gated, a cookie gets them', async () => {
+      expect(await (await call('/robots.txt', {}, false)).text()).toBe('User-agent: *\nDisallow: /\n')
+      expect((await call('/sitemap.xml', {}, false)).status).toBe(401)
+      expect((await call('/.well-known/security.txt', {}, false)).status).toBe(401)
+      const withCookie = await call('/sitemap.xml', {}, true)
+      expect(withCookie.status).toBe(200)
+      expect(withCookie.headers.get('X-Robots-Tag')).toBe('noindex, nofollow')
+    })
+
+    it('brand assets get their type and cache lifetime, with and without the gate, and need no cookie while it is on', async () => {
+      for (const [env, gated] of [[{}, false], [{}, true], [{ GATE: 'off' }, false]] as const) {
+        const res = await call('/icon-192.png', env, gated)
+        expect(res.status).toBe(200)
+        expect(res.headers.get('Content-Type')).toBe('image/png')
+        expect(res.headers.get('Cache-Control')).toBe('public, max-age=86400')
+        expect(res.headers.has('Content-Security-Policy')).toBe(false)
+      }
+      const manifest = await call('/manifest.webmanifest', {}, false)
+      expect(manifest.headers.get('Content-Type')).toBe('application/manifest+json')
+      expect(manifest.headers.get('Cache-Control')).toBe('public, max-age=3600')
+    })
+
+    it('a listed file missing from the build (the shell answers) is not relabelled; app files stay gated', async () => {
+      const shell = () => new Response('<!doctype html>', { headers: { 'Content-Type': 'text/html' } })
+      const res = await call('/og-image.png', {}, false, shell)
+      expect(res.headers.get('Content-Type')).toBe('text/html')
+      expect(res.headers.get('Cache-Control')).toBeNull()
+      expect((await call('/_nuxt/entry.js', {}, false)).status).toBe(401)
+    })
+  })
 })
