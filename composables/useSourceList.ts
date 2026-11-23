@@ -7,7 +7,7 @@
  *   actions it offers
  * - A stored integration this build cannot sync (Notion on the public web instance, #742) is a connected row with the note
  *   "Nur in der Desktop-App verfügbar…" and "Trennen" as its only action; the stored config is left as it is
- * - `more`: the unconnected Notion (connectable; "nur in der Mac-App" (the web app has no Notion) there), Todoist (not yet available) and Apple Reminders (connectable on a Mac that supports it, else "nur in der Mac-App", #552)
+ * - `more`: the unconnected Notion (connectable; "nur in der Mac-App" (Notion on the web app) there), Todoist (not yet available) and Apple Reminders (connectable on a Mac that supports it, else "nur in der Mac-App", #552)
  * - Status per integration: warning "Verbindung prüfen" when broken or degraded, the last-sync line when
  *   healthy or merely offline, neutral "Wird geprüft…" before a first successful sync
  */
@@ -47,7 +47,7 @@ export interface MoreSourceRow {
   icon: string
   /**
    * `connectable`: "Verbinden"; `soon`: "bald verfügbar", no button; `macOnly`: "nur in der Mac-App", no button (Reminders on the web);
-   * `cloudUnavailable`: "in der öffentlichen Cloud-Version nicht verfügbar", no button (Notion on the public web instance, #742)
+   * `cloudUnavailable`: "nur in der Mac-App", no button (Notion on the public web instance, #742)
    */
   state: 'connectable' | 'soon' | 'macOnly' | 'cloudUnavailable'
 }
