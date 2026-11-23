@@ -502,7 +502,8 @@
       ],
       "specs": [
         "visual-regression",
-        "server-error-page"
+        "server-error-page",
+        "overlay-scrim"
       ]
     },
     {
