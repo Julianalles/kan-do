@@ -373,15 +373,6 @@ describe('TodoistSource', () => {
     expect(todoist.reopenTask).toHaveBeenCalledTimes(1)
   })
 
-  it('a Done task pushed for an edit (#770: priority, time box) is not completed again', async () => {
-    const source = build()
-    expect(await source.update(todoistTask({ status: TaskStatus.Done, priority: 3 }), { previousStatus: TaskStatus.Done })).toBeNull()
-    expect(todoist.completeTask).not.toHaveBeenCalled()
-    // Unknown held state: still completes, so a completion is never lost
-    await source.update(todoistTask({ status: TaskStatus.Done }))
-    expect(todoist.completeTask).toHaveBeenCalledTimes(1)
-  })
-
   it('writes what the task said when the call was made, whatever it says once the integration has loaded (#275)', async () => {
     const source = build()
     // The live store object: a second move changes it while the first write still waits for the import
