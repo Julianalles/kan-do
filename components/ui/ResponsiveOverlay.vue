@@ -198,7 +198,8 @@ const clearThemeColor = () => {
 watch(drawerOpen, (open) => {
   if (!import.meta.client) return;
   clearThemeColor();
-  if (open) themeEntry = useHead({ meta: [{ name: 'theme-color', content: drawerThemeColor() ?? '' }] });
+  const color = open ? drawerThemeColor() : undefined;
+  if (color) themeEntry = useHead({ meta: [{ name: 'theme-color', content: color }] });
 }, { immediate: true });
 onBeforeUnmount(clearThemeColor);
 
