@@ -9,6 +9,7 @@ independent of the data folder and without any credentials. Export writes throug
 @usage <DataExportImport @import="onImport" />
 @avoid Only the export/import section of /settings/data.
 @responsibility
+- Web: the sentence about this browser's tokens shows only while a source is connected (#763)
 - "Exportieren…": save dialog, then the current state; cancel changes nothing
 - "Importieren…": open dialog, validation errors inline (invalid, not a kan-do file, newer schema),
   on success emits the preview for the confirmation modal
@@ -18,7 +19,7 @@ independent of the data folder and without any credentials. Export writes throug
     <SectionHeader id="data-transfer-heading" tag="h2">
       {{ t('settings.data.exportImport.heading') }}
     </SectionHeader>
-    <p class="text-body text-muted">{{ t(desktop ? 'settings.data.exportImport.body' : 'settings.data.exportImport.webBody') }}</p>
+    <p class="text-body text-muted">{{ t(desktop ? 'settings.data.exportImport.body' : hasSource ? 'settings.data.exportImport.webBody' : 'settings.data.exportImport.webBodyLocal') }}</p>
     <div class="flex flex-wrap gap-2">
       <UButton variant="soft" color="neutral" :loading="busy === 'export'" :disabled="busy !== null" data-testid="data-export" @click="onExport">
         {{ t(desktop ? 'settings.data.exportImport.export' : 'settings.data.exportImport.webExport') }}
@@ -51,6 +52,7 @@ import { useI18n } from 'vue-i18n';
 import { useDataFolder, type ImportPreview } from '~/composables/useDataFolder';
 import { useWebDataTransfer } from '~/composables/useWebDataTransfer';
 import { isTauri } from '~/utils/isTauri';
+import { useBoardStore } from '~/store/board';
 
 defineOptions({ name: 'DataExportImport' });
 
@@ -60,6 +62,8 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const desktop = isTauri();
+/** The web note about kept tokens is only true and useful once a source is connected (#763). */
+const hasSource = computed(() => useBoardStore().connectedIntegrations.length > 0);
 // Desktop: native dialogs and the data folder; web: download and file chooser on localStorage (#238).
 const { restoreBlock, exportData, pickImport, describeError } = desktop ? useDataFolder() : useWebDataTransfer();
 

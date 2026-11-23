@@ -198,6 +198,7 @@
     "more": "More",
     "moreProblem": "More, connection problem",
     "commands": "Quick actions",
+    "feedback": "Send feedback",
     "moreWithCommands": "More, {commands}",
     "groupPage": "On this page",
     "groupPlaces": "Navigation",
@@ -1151,6 +1152,7 @@
         "webConfirm": "Replace data",
         "webExport": "Export",
         "webBody": "Download or restore a copy of your board. This browser's tokens are kept and never exported.",
+        "webBodyLocal": "Download or restore a copy of your board.",
         "webNote": "Replaces your current data in this browser. You can download a safety copy first. Afterwards this tab reloads with the imported data.",
         "safetyDownload": "Download current data first",
         "failedQuota": "The import couldn't be completed: this browser has no room left. Nothing was changed.",
@@ -1626,7 +1628,7 @@
     "discardDraft": "Delete draft",
     "review": {
       "title": "Review and send",
-      "intro": "This goes exactly like this as public feedback to {repo}. Nothing leaves the app before that.",
+      "intro": "These details go as public feedback to {repo}. Nothing leaves the app before that.",
       "contextHeading": "What's sent along",
       "itemElement": "Element: {name}",
       "itemEnvironment": "Route, window, language",
@@ -1651,10 +1653,27 @@
       "uploading": "Uploading image…",
       "creating": "Creating feedback…",
       "sendWithoutImage": "Send without image",
-      "introRelay": "This goes to the Kan-do developers exactly as shown and isn't published. Nothing leaves the app before that.",
+      "introRelay": "These details go to me and aren't published. Nothing leaves the app before that.",
       "previewHeadingRelay": "Feedback text",
       "sendRelay": "Send feedback",
-      "sendingRelay": "Sending feedback…"
+      "sendingRelay": "Sending feedback…",
+      "preview": {
+        "title": "Title",
+        "description": "Description",
+        "noDescription": "No description.",
+        "version": "Version",
+        "os": "System",
+        "route": "Page",
+        "viewport": "Window size",
+        "locale": "Language",
+        "component": "Element",
+        "selector": "Selector",
+        "testId": "Test id",
+        "boundingBox": "Position and size",
+        "taskId": "Task id",
+        "taskTitle": "Task title",
+        "log": "Log, last {n} line | Log, last {n} lines"
+      }
     },
     "fallback": {
       "rejected": "GitHub rejected the feedback token. Kan-do opens the feedback on GitHub in your browser instead.",
@@ -1716,13 +1735,13 @@
     "publicAccount": "Sending it needs a GitHub account.",
     "openedToast": "GitHub is open in your browser. Send the feedback there.",
     "openedToastImage": "GitHub is open in your browser. Paste the screenshot with ⌘V, then send the feedback.",
-    "private": "Your feedback goes straight to the Kan-do developers. It isn't published.",
+    "private": "Your feedback goes straight to me. It isn't published.",
     "sentRelayToast": "Thanks, your feedback has arrived.",
     "retention": {
       "notice": "Exactly what you see here is sent. It goes to a private GitHub repository and is deleted {period} after we've dealt with it. To have it deleted sooner, email the address in the {impressum}. More: {privacy}.",
       "period": "{n} day | {n} days",
       "impressum": "legal notice",
-      "privacy": "privacy notice"
+      "privacy": "Privacy"
     }
   },
   "trash": {

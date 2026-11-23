@@ -108,12 +108,12 @@ test.describe('Statistics Page', () => {
     await expect(page.getByText('Wie es läuft und wohin deine Zeit geht')).toHaveCount(0);
   });
 
-  test('has no sync button of its own; sync stays in the Mehr panel (#670)', async ({ page, baseURL }) => {
+  test('has no sync button of its own, and a Local board has no sync row in the Mehr panel (#670, #763)', async ({ page, baseURL }) => {
     await page.goto(`${baseURL}/statistics`);
     await expect(page.getByTestId('stats-verdict')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Archivierte Aufgaben synchronisieren' })).toHaveCount(0);
     await openMore(page);
-    await expect(morePanel(page).getByTestId('more-sync')).toBeVisible();
+    await expect(morePanel(page).getByTestId('more-sync')).toHaveCount(0);
   });
 
   test('should leave the statistics page with the browser back (no back arrow, #470)', async ({ page, baseURL }) => {
