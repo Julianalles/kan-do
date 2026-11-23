@@ -46,7 +46,7 @@ The web deployment on Cloudflare Workers has its own policy, set by the Worker a
 
 - `app.config.ts` `ui.icons` maps **every** Nuxt UI default key (43 in @nuxt/ui 4.12), not only the ones the app uses today; `tests/config/nuxt-ui-icons.test.ts` pins the key list to the installed `@nuxt/ui` version, so a bump forces a review of new keys.
 
-`tests/config/icons-bundled.test.ts` is an allow-list: it fails when any source file in the repo (it walks it; build, test, doc and Rust folders are skipped) names an icon from a collection other than `ph` or `simple-icons`. `nuxt.config.ts` `globInclude` must cover the same folders.
+`tests/config/icons-bundled.test.ts` is an allow-list: it fails when any source file in the repo (it walks it; build, test, doc and Rust folders are skipped) names an icon from a collection other than `ph`. `nuxt.config.ts` `globInclude` must cover the same folders.
 
 ### Known, benign report: the Todoist SDK's `eval` probe
 

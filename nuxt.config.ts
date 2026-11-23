@@ -143,7 +143,7 @@ export default defineNuxtConfig({
   // Icon configuration for reliable loading
   icon: {
     // Pre-bundle Phosphor icons to avoid async loading issues
-    collections: ['ph', 'simple-icons'],
+    collections: ['ph'],
     // Use SVG mode for more reliable rendering
     mode: 'svg',
     // Client-side bundle for better reliability with SSR disabled
