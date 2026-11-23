@@ -197,6 +197,7 @@
     "more": "Mehr",
     "moreProblem": "Mehr, Verbindungsproblem",
     "commands": "Schnellaktionen",
+    "feedback": "Feedback senden",
     "moreWithCommands": "Mehr, {commands}",
     "groupPage": "Auf dieser Seite",
     "groupPlaces": "Navigation",
@@ -1150,6 +1151,7 @@
         "webConfirm": "Daten ersetzen",
         "webExport": "Exportieren",
         "webBody": "Lade eine Kopie deines Boards herunter oder spiele sie wieder ein. Die Tokens dieses Browsers bleiben erhalten und werden nie exportiert.",
+        "webBodyLocal": "Lade eine Kopie deines Boards herunter oder spiele sie wieder ein.",
         "webNote": "Ersetzt deine aktuellen Daten in diesem Browser. Vorher kannst du eine Sicherung herunterladen. Danach lädt dieser Tab mit den importierten Daten neu.",
         "safetyDownload": "Aktuelle Daten vorher sichern",
         "failedQuota": "Der Import konnte nicht abgeschlossen werden: Im Browser ist kein Platz mehr. Es wurde nichts verändert.",
@@ -1625,7 +1627,7 @@
     "discardDraft": "Entwurf löschen",
     "review": {
       "title": "Prüfen und senden",
-      "intro": "Das geht genau so als öffentliches Feedback an {repo}. Vorher verlässt nichts die App.",
+      "intro": "Diese Angaben gehen als öffentliches Feedback an {repo}. Vorher verlässt nichts die App.",
       "contextHeading": "Das wird mitgeschickt",
       "itemElement": "Element: {name}",
       "itemEnvironment": "Route, Fenster, Sprache",
@@ -1650,10 +1652,27 @@
       "uploading": "Bild wird hochgeladen…",
       "creating": "Feedback wird angelegt…",
       "sendWithoutImage": "Ohne Bild senden",
-      "introRelay": "Das geht genau so an die Kan-do-Entwickler und wird nicht veröffentlicht. Vorher verlässt nichts die App.",
+      "introRelay": "Diese Angaben gehen an mich und werden nicht veröffentlicht. Vorher verlässt nichts die App.",
       "previewHeadingRelay": "Text des Feedbacks",
       "sendRelay": "Feedback senden",
-      "sendingRelay": "Feedback wird gesendet…"
+      "sendingRelay": "Feedback wird gesendet…",
+      "preview": {
+        "title": "Titel",
+        "description": "Beschreibung",
+        "noDescription": "Keine Beschreibung.",
+        "version": "Version",
+        "os": "System",
+        "route": "Seite",
+        "viewport": "Fenstergröße",
+        "locale": "Sprache",
+        "component": "Element",
+        "selector": "Selektor",
+        "testId": "Test-ID",
+        "boundingBox": "Position und Größe",
+        "taskId": "Aufgaben-ID",
+        "taskTitle": "Aufgabentitel",
+        "log": "Protokoll, letzte {n} Zeile | Protokoll, letzte {n} Zeilen"
+      }
     },
     "fallback": {
       "rejected": "GitHub hat das Feedback-Token abgelehnt. Das Feedback öffnet Kan-do stattdessen auf GitHub im Browser.",
@@ -1715,13 +1734,13 @@
     "publicAccount": "Zum Absenden brauchst du ein GitHub-Konto.",
     "openedToast": "GitHub ist im Browser geöffnet. Sende das Feedback dort ab.",
     "openedToastImage": "GitHub ist im Browser geöffnet. Füge den Screenshot mit ⌘V ein und sende das Feedback ab.",
-    "private": "Dein Feedback geht direkt an die Kan-do-Entwickler. Es wird nicht veröffentlicht.",
+    "private": "Dein Feedback geht direkt an mich. Es wird nicht veröffentlicht.",
     "sentRelayToast": "Danke, dein Feedback ist angekommen.",
     "retention": {
       "notice": "Gesendet wird genau das, was du hier siehst. Es landet in einem privaten GitHub-Repository und wird {period} nach Abschluss der Bearbeitung gelöscht. Früher löschen lassen: Schreib eine E-Mail an die Adresse im {impressum}. Mehr dazu: {privacy}.",
       "period": "{n} Tag | {n} Tage",
       "impressum": "Impressum",
-      "privacy": "Datenschutzhinweise"
+      "privacy": "Datenschutz"
     }
   },
   "trash": {

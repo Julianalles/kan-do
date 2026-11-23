@@ -1,5 +1,3 @@
-- button "Schnellaktionen"
-- separator
 - region "Auf dieser Seite":
   - heading "Auf dieser Seite" [level=2]
   - switch "Karten stapeln"
@@ -12,6 +10,9 @@
     - /url: /trash
   - link "Einstellungen":
     - /url: /settings
+  - button "Feedback senden"
+- separator
+- button "Schnellaktionen"
 - separator
 - paragraph: "Notion: Verbindung prüfen"
 - paragraph: Der Zugriff wurde abgelehnt, oder das Token fehlt. Änderungen bleiben lokal gespeichert.

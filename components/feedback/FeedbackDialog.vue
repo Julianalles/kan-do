@@ -10,7 +10,7 @@ optional element, optional screenshot, automatic context line), the annotate ste
 @responsibility
 - Form: title (required, ≤ 120), description (≤ 4000), "Element auswählen" (hides the dialog while picking), draft discard
 - Screenshot: "Screenshot hinzufügen" hides the dialog while the window is captured, then opens the annotate step
-- Review: the exact issue body and image, each context item removable; the primary action is the only way anything leaves
+- Review: the same content as the issue body, as plain labelled lines (#760), and the image, each context item removable; the primary action is the only way anything leaves
 - Three send routes (useFeedback `sendRoute`): a feedback token whose user may write to the repo sends "Als Issue
   senden" (owner); everyone else sends through the relay, "Feedback senden" (#268: private, no GitHub account, the
   screenshot goes with it); only when there is no relay: "Auf GitHub öffnen" with a prefilled link
@@ -200,16 +200,34 @@ v-if="logTail" v-model="draft.include.log" :label="t('feedback.review.itemLog')"
 
         <section>
           <SectionHeader tag="h3" size="label" class="mb-1">{{ previewHeading }}</SectionHeader>
-          <p class="mb-2 text-body text-toned">{{ draft.title.trim() }}</p>
-          <!-- tabindex: a scrollable region must be reachable by keyboard -->
-          <pre
+          <!-- #760: plain labelled lines; the report itself keeps its English Markdown for the people who read it -->
+          <div
             role="region"
             :aria-label="previewHeading"
-            class="max-h-64 overflow-auto rounded-lg bg-muted p-3 font-mono text-xs wrap-break-word whitespace-pre-wrap text-toned"
+            class="max-h-64 overflow-auto rounded-lg bg-muted p-3 text-body text-toned"
             tabindex="0"
             data-selectable
             data-testid="feedback-body-preview"
-          >{{ body }}</pre>
+          >
+          <dl class="space-y-2">
+            <div>
+              <dt class="text-xs font-medium text-muted">{{ t('feedback.review.preview.title') }}</dt>
+              <dd class="wrap-break-word" data-private>{{ draft.title.trim() }}</dd>
+            </div>
+            <div>
+              <dt class="text-xs font-medium text-muted">{{ t('feedback.review.preview.description') }}</dt>
+              <dd class="wrap-break-word whitespace-pre-wrap" data-private>{{ preview.description || t('feedback.review.preview.noDescription') }}</dd>
+            </div>
+            <div v-for="fact in preview.facts" :key="fact.key">
+              <dt class="text-xs font-medium text-muted">{{ t(`feedback.review.preview.${fact.key}`) }}</dt>
+              <dd class="wrap-break-word" :data-private="fact.key === 'taskTitle' || undefined">{{ fact.value }}</dd>
+            </div>
+            <div v-if="preview.log">
+              <dt class="text-xs font-medium text-muted">{{ t('feedback.review.preview.log', { n: preview.log.lines }, preview.log.lines) }}</dt>
+              <dd class="font-mono text-xs wrap-break-word whitespace-pre-wrap">{{ preview.log.text }}</dd>
+            </div>
+          </dl>
+          </div>
         </section>
 
         <!-- Without a token the intro already names the browser path; only a refused token needs its own line -->
@@ -308,7 +326,7 @@ defineOptions({ name: 'FeedbackDialog' })
 
 const { t, locale } = useI18n()
 const {
-  isOpen, step, draft, sending, problem, tokenState, tokenSource, titleValid, hasDraft, canUndoDiscard, body, prefilled, canSend, sendRoute, contextSummary, limits, logTail,
+  isOpen, step, draft, sending, problem, tokenState, tokenSource, titleValid, hasDraft, canUndoDiscard, preview, prefilled, canSend, sendRoute, contextSummary, limits, logTail,
   close, discard, undoDiscard, startPick, onDialogLeft, toReview, toForm, send, sendViaRelay, openInBrowser,
   rawShot, flat, annotations, capturePending, captureFailure, captureAvailable, sendPhase, sendsWithoutImage, screenshotDelivery, clipboardFailed,
   startCapture, toAnnotate, removeScreenshot, finishAnnotate,
