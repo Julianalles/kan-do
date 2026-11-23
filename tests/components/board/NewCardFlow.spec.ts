@@ -3,11 +3,15 @@ import { mount, flushPromises, type VueWrapper } from '@vue/test-utils'
 import { nextTick, ref } from 'vue'
 import { toastAddMock } from '~/tests/mocks/nuxt-imports'
 import NewCardFlow from '~/components/board/NewCardFlow.vue'
+import { inCardTask } from '~/composables/useInCardAdding'
 
 vi.mock('nuxt/app', () => ({ navigateTo: vi.fn(), useRoute: () => ({ query: {}, name: 'tasks' }) }))
 
-const tasks = vi.hoisted(() => ({ list: [] as Array<{ topic: string | null; activity: string | null }> }))
-vi.mock('~/store/tasks', () => ({ useTasksStore: () => ({ get tasks() { return tasks.list } }) }))
+type StoredTask = Record<string, unknown> & { id?: string; topic: string | null; activity: string | null }
+const tasks = vi.hoisted(() => ({ list: [] as StoredTask[] }))
+vi.mock('~/store/tasks', () => ({
+  useTasksStore: () => ({ get tasks() { return tasks.list }, task: (id: string) => tasks.list.find((task) => task.id === id) }),
+}))
 const options = vi.hoisted(() => ({ topics: [] as string[], activities: [] as string[] }))
 vi.mock('~/store/propertyOptions', () => ({
   usePropertyOptionsStore: () => ({
@@ -19,8 +23,19 @@ vi.mock('~/store/notionConfig', () => ({ useNotionConfigStore: () => ({ config: 
 
 const target = vi.hoisted(() => ({ source: 'local' as string }))
 vi.mock('~/composables/useAddTarget', () => ({ useAddTarget: () => ({ defaultSource: { get value() { return target.source } } }) }))
-const sync = vi.hoisted(() => ({ createTask: vi.fn() }))
-vi.mock('~/composables/useTaskSync', () => ({ useTaskSync: () => ({ createTask: sync.createTask }) }))
+// A store in memory: the create adds the task (calling `onAdd` first, as useTaskSync does), an edit changes it (#758)
+const sync = vi.hoisted(() => ({ createTask: vi.fn(), editTask: vi.fn(), created: [] as StoredTask[] }))
+vi.mock('~/composables/useTaskSync', () => ({ useTaskSync: () => ({ createTask: sync.createTask, editTask: sync.editTask }) }))
+type OnAdd = { onAdd?: (task: StoredTask) => void } | undefined
+function addStored(draft: Record<string, unknown>, options: OnAdd, id = `local_${sync.created.length + 1}`): StoredTask {
+  const task = { ...draft, id } as StoredTask
+  options?.onAdd?.(task)
+  tasks.list.push(task)
+  sync.created.push(task)
+  return task
+}
+/** The task the card stored last */
+const stored = () => sync.created.at(-1)
 const errors = vi.hoisted(() => ({ handleError: vi.fn() }))
 vi.mock('~/composables/useErrorHandler', () => ({ useErrorHandler: () => errors }))
 vi.mock('~/composables/useTimeboxSuggestion', () => ({ useTimeboxSuggestion: () => ({ calculateSuggestion: () => null }) }))
@@ -81,7 +96,7 @@ const pressOnPanel = (key: string) => w.get('[data-testid="new-card-step"]').tri
 async function confirmTitle(text = 'Angebot schreiben') {
   await title().setValue(text)
   await w.get('form').trigger('submit')
-  await nextTick()
+  await flushPromises() // the create runs before the first question (#758)
 }
 /** A pick advances after a short beat (200 ms, 0 under reduced motion) */
 async function afterPick() {
@@ -111,8 +126,14 @@ beforeEach(() => {
   options.activities = ['Abstimmung', 'Entwicklung', 'Planung']
   target.source = 'local'
   topicColor.colors = { Design: '#6366f1' }
+  sync.created = []
   sync.createTask.mockReset()
-  sync.createTask.mockImplementation(async (draft: Record<string, unknown>) => ({ ...draft, id: 'local_1' }))
+  sync.createTask.mockImplementation(async (draft: Record<string, unknown>, _source: string, options: OnAdd) => addStored(draft, options))
+  sync.editTask.mockReset()
+  sync.editTask.mockImplementation(async (id: string, updates: Record<string, unknown>) => {
+    Object.assign(tasks.list.find((task) => task.id === id)!, updates)
+    return true
+  })
   errors.handleError.mockReset()
   toastAddMock.mockReset()
 })
@@ -153,11 +174,12 @@ describe('NewCardFlow (#649)', () => {
     await w.get('form.ncf__row').trigger('submit')
     await flushPromises()
 
+    // Stored at the title confirm (#758); every answer is an edit of that task
     expect(sync.createTask).toHaveBeenCalledTimes(1)
     const [draft, source] = sync.createTask.mock.calls[0]!
     expect(source).toBe('local')
-    expect(draft).toMatchObject({ title: 'Angebot schreiben', status: 0, topic: 'Design', topicColorCode: '#6366f1', timeBoxSeconds: 1800, notes: 'Mit Preisliste', priority: 2 })
-    expect(draft.activity).toBe('Entwicklung')
+    expect(draft).toMatchObject({ title: 'Angebot schreiben', status: 0, topic: null, activity: null, timeBoxSeconds: null, notes: null, priority: 2 })
+    expect(stored()).toMatchObject({ title: 'Angebot schreiben', status: 0, topic: 'Design', topicColorCode: '#6366f1', activity: 'Entwicklung', timeBoxSeconds: 1800, notes: 'Mit Preisliste', priority: 2 })
     expect(w.emitted('saved')![0]).toEqual(['local_1'])
     expect(toastAddMock).toHaveBeenCalledWith(expect.objectContaining({ title: 'Aufgabe hinzugefügt' }))
     // One row (title and Details): no description line that wraps over the saved card at 390 px (#665)
@@ -174,6 +196,8 @@ describe('NewCardFlow (#649)', () => {
     await w.get('form.ncf__row').trigger('submit')
     await flushPromises()
     expect(sync.createTask.mock.calls[0]![0]).toMatchObject({ topic: null, activity: null, timeBoxSeconds: null, notes: null })
+    expect(sync.editTask).not.toHaveBeenCalled() // nothing was answered, nothing to edit
+    expect(w.emitted('saved')).toHaveLength(1)
   })
 
   it('a held key does not skip through the steps', async () => {
@@ -214,7 +238,7 @@ describe('NewCardFlow (#649)', () => {
     expect(stepKey()).toBe('notes')
     await afterPick() // the pending timer must not advance again from Notiz
     expect(stepKey()).toBe('notes')
-    expect(sync.createTask).not.toHaveBeenCalled()
+    expect(w.emitted('saved')).toBeUndefined()
   })
 
   it('Esc right after a pick goes back and the pending advance does not undo it', async () => {
@@ -229,7 +253,7 @@ describe('NewCardFlow (#649)', () => {
     expect(stepKey()).toBe('topic')
   })
 
-  it('Esc steps back one step keeping the input; on the title step it cancels', async () => {
+  it('Esc steps back one step keeping the input; on the title step of the stored task it finishes and keeps the task (#758)', async () => {
     mountFlow()
     await confirmTitle('Bleibt')
     await pressOnPanel('Enter')
@@ -240,7 +264,11 @@ describe('NewCardFlow (#649)', () => {
     expect(w.find('[data-testid="new-card-step"]').exists()).toBe(false)
     expect((title().element as HTMLInputElement).value).toBe('Bleibt')
     await title().trigger('keydown', { key: 'Escape' })
-    expect(w.emitted('cancel')).toHaveLength(1)
+    await flushPromises()
+    expect(w.emitted('cancel')).toBeUndefined()
+    expect(w.emitted('saved')).toEqual([['local_1']])
+    expect(sync.createTask).toHaveBeenCalledTimes(1)
+    expect(stored()).toMatchObject({ title: 'Bleibt' })
   })
 
   it('#668: the title field follows the face title down under the topic row after Thema and back', async () => {
@@ -343,7 +371,8 @@ describe('NewCardFlow (#649)', () => {
     await flushPromises()
     await afterPick() // the pending advance must not fire a second save
     expect(sync.createTask).toHaveBeenCalledTimes(1)
-    expect(sync.createTask.mock.calls[0]![0]).toMatchObject({ title: 'Mit Thema', topic: 'Design' })
+    expect(stored()).toMatchObject({ title: 'Mit Thema', topic: 'Design' })
+    expect(w.emitted('saved')).toHaveLength(1)
   })
 
   it('#665: a held Cmd/Ctrl+Enter saves once and a failed save keeps the card where it was', async () => {
@@ -384,7 +413,7 @@ describe('NewCardFlow (#649)', () => {
     await pressOnPanel('Enter')
     await w.get('form.ncf__row').trigger('submit')
     await flushPromises()
-    expect(sync.createTask.mock.calls[0]![0]).toMatchObject({ topic: 'Design', topicColorCode: null })
+    expect(stored()).toMatchObject({ topic: 'Design', topicColorCode: null })
   })
 
   it('#434: Thema and Aktivität are a combobox on the whole ranked list, no pills and no number keys; Timebox keeps three pills and the dots icon (key 4, kd#119)', async () => {
@@ -444,18 +473,20 @@ describe('NewCardFlow (#649)', () => {
     await pressOnPanel('Enter')
     await w.get('form.ncf__row').trigger('submit')
     await flushPromises()
-    expect(sync.createTask.mock.calls[0]![0]).toMatchObject({ topic: null })
+    expect(stored()).toMatchObject({ topic: null, topicColorCode: null })
 
-    // the list's clear button resets its model: the step's value goes
+    // the list's clear button resets its model: the step's value goes, from the stored task too (#758)
     w.unmount()
     mountFlow()
     await confirmTitle()
     await pickCombo('Design')
     await afterPick()
     await pressOnPanel('Escape')
+    expect(stored()).toMatchObject({ topic: 'Design' })
     w.findComponent({ name: 'UInputMenu' }).vm.$emit('update:modelValue', null)
     await nextTick()
     expect(w.get('.task-face').attributes('data-topic')).toBeUndefined()
+    expect(stored()).toMatchObject({ topic: null, topicColorCode: null })
   })
 
   it('#434 review: the list toggling the checked row off (undefined) keeps the value and moves on; only null clears', async () => {
@@ -524,7 +555,7 @@ describe('NewCardFlow (#649)', () => {
     await pressOnPanel('Enter')
     await w.get('form.ncf__row').trigger('submit')
     await flushPromises()
-    expect(sync.createTask.mock.calls[0]![0]).toMatchObject({ topic: 'Frisch' })
+    expect(stored()).toMatchObject({ topic: 'Frisch' })
 
     w.unmount()
     mountFlow()
@@ -603,31 +634,107 @@ describe('NewCardFlow (#649)', () => {
     expect(stepKey()).toBe('notes')
   })
 
-  it('a failed save keeps the card on Notiz with everything entered and saves again', async () => {
-    sync.createTask.mockRejectedValueOnce(new Error('offline'))
+  it('#758: a refused create keeps the title step with the text and nothing stored; confirming again creates', async () => {
+    sync.createTask.mockRejectedValueOnce(new Error('rejected'))
     mountFlow()
-    await confirmTitle()
-    await pickCombo('Design')
-    await afterPick()
-    await pickCombo('Planung')
-    await afterPick()
-    await pressOnPanel('1')
-    await afterPick()
-    await w.get('[data-testid="new-card-notes"]').setValue('Bleibt')
-    await w.get('form.ncf__row').trigger('submit')
-    await flushPromises()
+    await confirmTitle('Bleibt')
 
     expect(errors.handleError).toHaveBeenCalledWith(expect.any(Error), 'task_create')
-    expect(w.emitted('saved')).toBeUndefined()
-    expect(stepKey()).toBe('notes')
-    expect((w.get('[data-testid="new-card-notes"]').element as HTMLInputElement).value).toBe('Bleibt')
-    expect(w.get('[data-testid="new-card-save"]').attributes('disabled')).toBeUndefined()
+    expect(w.find('[data-testid="new-card-step"]').exists()).toBe(false)
+    expect((title().element as HTMLTextAreaElement).value).toBe('Bleibt')
+    expect(title().attributes('readonly')).toBeUndefined()
+    expect(sync.created).toHaveLength(0)
+    expect(inCardTask.value).toBeNull()
 
-    await w.get('form.ncf__row').trigger('submit')
+    await w.get('form').trigger('submit')
     await flushPromises()
     expect(sync.createTask).toHaveBeenCalledTimes(2)
-    expect(sync.createTask.mock.calls[1]![0]).toEqual(sync.createTask.mock.calls[0]![0])
+    expect(stepKey()).toBe('topic')
+    expect(stored()).toMatchObject({ title: 'Bleibt' })
+  })
+
+  it('#758: the title confirm stores the task, each answer is an edit at once, and the board hides its card until the card ends', async () => {
+    mountFlow()
+    await confirmTitle('Sofort da')
+    expect(sync.createTask).toHaveBeenCalledTimes(1)
+    expect(stored()).toMatchObject({ id: 'local_1', title: 'Sofort da', topic: null })
+    expect(inCardTask.value).toBe('local_1')
+
+    await pickCombo('Design')
+    expect(sync.editTask).toHaveBeenLastCalledWith('local_1', { topic: 'Design', topicColorCode: '#6366f1', activity: null })
+    await afterPick()
+    await pickCombo('Planung')
+    expect(sync.editTask).toHaveBeenLastCalledWith('local_1', { activity: 'Planung' })
+    await afterPick()
+    await pressOnPanel('3') // 60 min
+    expect(sync.editTask).toHaveBeenLastCalledWith('local_1', { timeBoxSeconds: 3600 })
+    // what a reload now finds: the task with every answer given so far
+    expect(stored()).toMatchObject({ title: 'Sofort da', topic: 'Design', activity: 'Planung', timeBoxSeconds: 3600, notes: null })
+    expect(sync.createTask).toHaveBeenCalledTimes(1)
+    expect(w.emitted('saved')).toBeUndefined()
+
+    w.unmount()
+    expect(inCardTask.value).toBeNull()
+  })
+
+  it('#758: back on the title, a changed title confirmed again edits the same task; unchanged, nothing is written', async () => {
+    mountFlow()
+    await confirmTitle('Erster Titel')
+    await pressOnPanel('Escape')
+    await w.get('form').trigger('submit')
+    await flushPromises()
+    expect(sync.editTask).not.toHaveBeenCalled()
+    await pressOnPanel('Escape')
+    await confirmTitle('Zweiter Titel')
+    expect(sync.createTask).toHaveBeenCalledTimes(1)
+    expect(sync.editTask).toHaveBeenCalledWith('local_1', { title: 'Zweiter Titel' })
+    expect(stepKey()).toBe('topic')
+  })
+
+  it('#758: Esc on the title of a stored task stores a typed title, a blank field keeps the stored one', async () => {
+    mountFlow()
+    await confirmTitle('Alt')
+    await pressOnPanel('Escape')
+    await title().setValue('Neu getippt')
+    await title().trigger('keydown', { key: 'Escape' })
+    await flushPromises()
+    expect(stored()).toMatchObject({ title: 'Neu getippt' })
     expect(w.emitted('saved')).toHaveLength(1)
+    w.unmount()
+
+    mountFlow()
+    await confirmTitle('Bleibt so')
+    await pressOnPanel('Escape')
+    await title().setValue('   ')
+    await title().trigger('keydown', { key: 'Escape' })
+    await flushPromises()
+    expect(stored()).toMatchObject({ title: 'Bleibt so' })
+    expect(w.emitted('cancel')).toBeUndefined()
+    expect(w.emitted('saved')).toHaveLength(1)
+  })
+
+  it('#758: a press outside a stored card whose title was cleared closes it and keeps the task as stored', async () => {
+    mountFlow()
+    await confirmTitle('Gespeichert')
+    await pressOnPanel('Escape')
+    await title().setValue('')
+    document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))
+    expect(w.emitted('cancel')).toEqual([[]])
+    expect(stored()).toMatchObject({ title: 'Gespeichert' })
+    expect(tasks.list).toContain(stored())
+  })
+
+  it('#758: the suggestions never learn from the stored task: its new topic is no entry of the list', async () => {
+    mountFlow()
+    await confirmTitle()
+    await combo().setValue('Frisch')
+    await combo().trigger('keydown', { key: 'Enter' })
+    await afterPick()
+    expect(stored()).toMatchObject({ topic: 'Frisch' })
+    await pressOnPanel('Escape')
+    expect(stepKey()).toBe('topic')
+    expect(comboItems()).not.toContain('Frisch')
+    expect(comboItems()[0]).toBe('Design')
   })
 
   it('a press outside cancels a blank card only', async () => {
@@ -642,19 +749,85 @@ describe('NewCardFlow (#649)', () => {
     expect(w.emitted('cancel')).toBeUndefined()
   })
 
-  it('does not save twice while a save runs', async () => {
-    let resolve!: (task: { id: string }) => void
-    sync.createTask.mockImplementationOnce(() => new Promise((done) => { resolve = done }))
+  /** The next create waits until `finish()` (a Notion round trip) */
+  function holdCreate(id: string) {
+    const held = { finish: () => {} }
+    sync.createTask.mockImplementationOnce((draft: Record<string, unknown>, _source: string, options: OnAdd) =>
+      new Promise((done) => { held.finish = () => done(addStored(draft, options, id)) }))
+    return held
+  }
+
+  it('#758: Esc while the first create runs neither cancels nor offers "Rückgängig"; the card goes on to the first question', async () => {
+    const held = holdCreate('local_7')
     mountFlow()
-    await confirmTitle()
-    await pressOnPanel('Enter')
-    await pressOnPanel('Enter')
-    await pressOnPanel('Enter')
-    await w.get('form.ncf__row').trigger('submit')
-    await w.get('form.ncf__row').trigger('submit')
-    expect(sync.createTask).toHaveBeenCalledTimes(1)
-    resolve({ id: 'local_9' })
+    await title().setValue('Unterwegs')
+    await w.get('form').trigger('submit')
+    await nextTick()
+    expect((w.vm as unknown as { holdsTask: boolean }).holdsTask).toBe(true) // the place switch reads it: no "Rückgängig" for a task on its way
+    await title().trigger('keydown', { key: 'Escape' })
+    expect(w.emitted('cancel')).toBeUndefined()
+    held.finish()
     await flushPromises()
-    expect(w.emitted('saved')).toHaveLength(1)
+    expect(stepKey()).toBe('topic')
+    expect(sync.createTask).toHaveBeenCalledTimes(1)
+    expect(inCardTask.value).toBe('local_7')
+  })
+
+  it('#758: a create that lands after the card closed leaves the task visible on the board', async () => {
+    const held = holdCreate('local_8')
+    mountFlow()
+    await title().setValue('Spät')
+    await w.get('form').trigger('submit')
+    await nextTick()
+    w.unmount() // the sheet or the move to "Alle" closed the card during the round trip
+    held.finish()
+    await flushPromises()
+    expect(stored()).toMatchObject({ id: 'local_8', title: 'Spät' })
+    expect(inCardTask.value).toBeNull()
+  })
+
+  it('#758: a card closed between the add and the end of the create clears the hidden id it set', async () => {
+    let land!: () => void
+    sync.createTask.mockImplementationOnce((draft: Record<string, unknown>, _source: string, options: OnAdd) => {
+      addStored(draft, options, 'local_6') // the task is in the store, the create has not returned yet
+      return new Promise((done) => { land = () => done(stored()) })
+    })
+    mountFlow()
+    await title().setValue('Dazwischen')
+    await w.get('form').trigger('submit')
+    await nextTick()
+    expect(inCardTask.value).toBe('local_6')
+    w.unmount()
+    expect(inCardTask.value).toBeNull()
+    land()
+    await flushPromises()
+    expect(inCardTask.value).toBeNull()
+  })
+
+  it('#758: a second Enter while the create runs stores one task; finishing twice saves once', async () => {
+    let finish!: () => void
+    sync.createTask.mockImplementationOnce((draft: Record<string, unknown>, _source: string, options: OnAdd) =>
+      new Promise((done) => { finish = () => done(addStored(draft, options, 'local_9')) }))
+    mountFlow()
+    await title().setValue('Einmal')
+    await w.get('form').trigger('submit')
+    await nextTick()
+    expect(title().attributes('readonly')).toBeDefined() // the field rests while the create runs
+    expect(w.get('[data-testid="new-card-confirm-title"]').attributes('disabled')).toBeDefined() // and so does the check
+    await title().trigger('keydown', { key: 'Enter' })
+    await w.get('form').trigger('submit')
+    expect(sync.createTask).toHaveBeenCalledTimes(1)
+    finish()
+    await flushPromises()
+    expect(stepKey()).toBe('topic')
+
+    await pressOnPanel('Enter')
+    await pressOnPanel('Enter')
+    await pressOnPanel('Enter')
+    await w.get('form.ncf__row').trigger('submit')
+    await w.get('form.ncf__row').trigger('submit')
+    await flushPromises()
+    expect(sync.createTask).toHaveBeenCalledTimes(1)
+    expect(w.emitted('saved')).toEqual([['local_9']])
   })
 })

@@ -363,9 +363,10 @@ export const useTaskSync = () => {
    * place "Alle" shows): it goes on top of "Alle Aufgaben" instead of into Offen. The marker is set here, after the
    * adapter returned the task. A source that stores planning (#357, `notPlannedHold`: Notion with a "not planned"
    * status mapped) creates the task as not planned there too; for every other source nothing about it is written.
+   * `options.onAdd` runs with the task right before it enters the store, in the same tick (#758).
    * @returns the task as it was added to the store
    */
-  const createTask = async (draftIn: Partial<Task>, source: SourceId): Promise<Task> => {
+  const createTask = async (draftIn: Partial<Task>, source: SourceId, options: { onAdd?: (task: Task) => void } = {}): Promise<Task> => {
     // A source that is read-only in kan-do (#551) never gets a task from here, not even a queued one
     if (source !== 'local' && !sourceCan(source, 'create')) throw new SourceReadOnlyError(source, 'creating a task');
     const { notPlanned: asksNotPlanned, sourceNotPlanned: _held, ...plain } = draftIn;
@@ -417,6 +418,8 @@ export const useTaskSync = () => {
       }
       // A fetch that landed while the create was in flight made a card of the page (#555): this task replaces it
       dropLandedCards(created.source, created.externalId);
+      // In the same tick as the add, so the caller can act before the board first renders the task (#758: the in-card flow hides it)
+      options.onAdd?.(created);
       tasksStore.addTask(created);
     } finally {
       endWrite();
@@ -441,6 +444,19 @@ export const useTaskSync = () => {
       }
     }
     return created;
+  };
+
+  /**
+   * Edits fields of a stored task and pushes it to its own source, as the sheet's field edits do: a new operation
+   * version (a stale response of an earlier write cannot overwrite the edit), the store at once, then `runSync`
+   * (one push per task at a time, the `pendingSync` marker until the source holds it). The in-card flow writes each
+   * answer through this once its task is stored (#758). Resolves like `runSync`; false for an unknown id.
+   */
+  const editTask = (taskId: string, updates: Partial<Task>): Promise<boolean> => {
+    if (!tasksStore.task(taskId)) return Promise.resolve(false);
+    const operationVersion = tasksStore.incrementTaskOperationVersion(taskId);
+    tasksStore.updateTask(taskId, updates);
+    return runSync(tasksStore.task(taskId)!, undefined, operationVersion);
   };
 
   /**
@@ -1345,6 +1361,7 @@ export const useTaskSync = () => {
 
   return {
     createTask,
+    editTask,
     planTask,
     unplanTask,
     planTasks,
