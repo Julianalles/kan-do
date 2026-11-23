@@ -1,12 +1,12 @@
 # kan-do
 
-A calm personal kanban board for today's work. Kan-do is an opinionated focus layer on top of your existing tasks (Notion or tasks kept in the app itself): it shows only what you chose for today, lets you work on one thing at a time, and helps you close the day with fewer things in flight. It is not a second task manager to maintain.
+A calm personal kanban board for today's work. Kan-do is an opinionated focus layer on top of your existing tasks (Notion, Apple Reminders or tasks kept in the app itself): it shows only what you chose for today, lets you work on one thing at a time, and helps you close the day with fewer things in flight. It is not a second task manager to maintain.
 
 It is built for one person managing their own day: short, frequent sessions where you glance, move a card, check a timer and close.
 
-> **Status: alpha.** Though well tested and in daily use by its maintainer, it does not yet keep its promise yet: Notion is the only one you can connect, and that connection still has gaps; Todoist is planned. Also, UI design still has some rough edges and there are frequent partly changes between versions.
+> **Status: beta.** Well tested and in daily use by its maintainer, but not finished: Notion and Apple Reminders (Mac app only) are the sources you can connect, and the Notion connection still has gaps; Todoist is planned. The UI design still has some rough edges, and things change often between versions.
 
-**Platforms:** a macOS desktop app (Apple silicon) and a web app (Nuxt), built from the same code.
+**Platforms:** a macOS desktop app (Apple silicon) and a web app (Nuxt), built from the same code. The public web app keeps local tasks only; Notion and Apple Reminders need the desktop app.
 
 Want to help build kan-do? See [CONTRIBUTING.md](CONTRIBUTING.md).
 
@@ -23,7 +23,7 @@ Want to help build kan-do? See [CONTRIBUTING.md](CONTRIBUTING.md).
 - **Timeboxes and time tracking.** Set a timebox on a task (presets, with an automatic suggestion), run its timer while it is in Now, and see the time spent.
 - **A rhythm for the day.** An optional "Close the day" at the end of the day, and a short recap ("Daily recap") the first time you open the app on a new day. Yesterday's finished tasks are acknowledged before they leave the board.
 - **Statistics.** A statistics page shows how your days went, so you can plan better ones.
-- **Your tasks, your source.** Connect a Notion database or use local tasks, or both side by side on one board. Todoist support is planned and not offered in the app yet.
+- **Your tasks, your source.** Connect a Notion database or Apple Reminders lists (desktop app), or use local tasks, or any mix side by side on one board. Todoist support is planned and not offered in the app yet.
 - **Works offline.** The local copy is authoritative while you have no connection and reconciles when you are back online.
 - **German and English.** The interface is German by default and English when your browser or system prefers it (add `?lang=en` to the address to switch).
 - **Mobile friendly.** The web app works down to phone width.
@@ -36,7 +36,7 @@ Download the latest `.dmg` from the [releases page](https://github.com/jaylouiz/
 
 ### Web app
 
-Run it from source (see [Build from source](#build-from-source)) or deploy it to your own host, then open it in a browser. On first start, the welcome page lets you pick where your tasks come from, or try a sample board.
+The public web app is a local-only version: it keeps your tasks and settings in your browser's storage on this device, and it does not offer Notion or Apple Reminders (both are marked as unavailable there). Back up or move your data with export and import in the data settings. For Notion or Apple Reminders, use the desktop app. You can also run the web app from source (see [Build from source](#build-from-source)) or deploy it to your own host, then open it in a browser. On first start, the welcome page lets you pick where your tasks come from, or try a sample board.
 
 ### macOS desktop app
 
@@ -44,6 +44,7 @@ The desktop app is the same board in its own window, plus a few desktop-only fea
 
 - your data lives in a plain file in a folder you can choose (for example a cloud-synced one), with automatic backups and protection against overwriting newer data;
 - API tokens are stored in the macOS Keychain, not in the data file;
+- Apple Reminders as a task source (see [Apple Reminders](#apple-reminders));
 - a built-in updater: the app checks for new versions, asks you, backs up your data, installs the update and relaunches. After an update it can show you what is new.
 
 The first install of an ad-hoc signed build needs a right-click on the app and "Open" once; details in [docs/release.md](docs/release.md) ("First install from the DMG").
@@ -53,6 +54,10 @@ The app checks for updates on its own and installs them after asking; no GitHub 
 ### Connecting Notion
 
 Notion is optional. From the welcome page, or from the board settings under task sources, choose **Notion** and follow the setup wizard: connect your integration, pick the database, and map its properties to kan-do's status and fields. You can also map extra Notion properties (text, number, select, multi-select, date, checkbox, URL, email, phone) so they show in the task's detail view, and choose the unit (seconds, minutes, hours) for time spent.
+
+### Apple Reminders
+
+Apple Reminders is available in the macOS desktop app only. Choose **Apple Reminders** under task sources, allow access when macOS asks, and pick which of your lists kan-do shows (the Apple Reminders settings change this later). Kan-do reads your reminders and writes back only a changed due date and a completed tick; it does not create, delete or rename reminders.
 
 ### Local tasks
 
