@@ -379,3 +379,8 @@ Running log of `/workflow-retro` (agent-workflow): the context-size history and 
 | W277 | Template literal for FEEDBACK_RELAY_PRODUCTION_URL broke tauri-csp test, which greps nuxt.config source (3 min, PR 734) | missing-instruction | nuxt.config.ts | 1 | 2026-11-22 | fixed 2026-11-22 nuxt.config.ts: comment at the constant; expect no repeat |
 | W7 | (re-seen 2026-11-22) zsh 0-indexed array in an inline loop (2 min) | toil | - | 24 | 2026-11-22 | see W7 above; no new action |
 | 2026-11-22 | retro (PRs 733, 734, 3 entries 8 min, 1 wrong-instruction) | not re-measured | no prose added | - | - | - | comment only |
+
+| W278 | `spec.sh fix --extra` tasks (gate failure, design follow-ups, merge conflict) ignored by 3 fix workers ("no open lines"; 19 min, direct sends needed) | wrong-instruction | agent-workflow task-template.md stage:fix | 1 | 2026-11-23 | fixed 2026-11-23 agent-workflow 92ba1a2 (fix Target names the Notes block as work): expect no "nothing changed" reply to an --extra fix |
+| W279 | Red-main E2E (mixed-board-requirements, 5/5 red) filed as 1-in-5 flake #750; 14 min gate run (20 min) | escaped | issue-workflow.md flake line | 1 | 2026-11-23 | fixed 2026-11-23 issue-workflow.md line 139: repeat-each 5 at low load before calling a flake |
+| W275 | (re-seen) welcome baselines show app version, red after release | escaped | #732 | 2 | 2026-11-23 | watching: #732 is the mechanism |
+| 2026-11-23 | run_8406e874d686 (4 PRs merged, 5 entries 39 min, 2 escaped/wrong) | not re-measured | CLAUDE.md 15316 B unchanged | issue-workflow +~25 words | - | - | start not measured |
