@@ -1271,6 +1271,15 @@
         "feedback",
         "notion-setup-stepper"
       ]
+    },
+    {
+      "area": "desktop app download link (#737): the URL constant and the web-only link on the welcome page",
+      "paths": [
+        "lib/appDownload.ts"
+      ],
+      "specs": [
+        "welcome-setup"
+      ]
     }
   ]
 }
