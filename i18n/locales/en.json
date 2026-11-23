@@ -167,6 +167,7 @@
       "planAllNamed": "Plan all tasks from “{section}” for today",
       "plannedMany": "One task is planned for today. | {n} tasks are planned for today."
     },
+    "emptyOpenHint": "What's on today?",
     "yesterdayUnderAll": "One task from yesterday is under {all}. | {n} tasks from yesterday are under {all}.",
     "newDayNote": {
       "title": "The board still shows yesterday's plan.",

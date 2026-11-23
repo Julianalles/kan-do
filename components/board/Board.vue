@@ -73,6 +73,7 @@
         :tasks="tasksOpen"
         :task-status="TaskStatus.Open"
         :yesterday-count="yesterdayCount"
+        :board-empty="boardEmpty"
         :is-dragging="isDragging"
         :mute-others="false"
         :grouping-enabled="groupingEnabled"
@@ -334,6 +335,10 @@ const { place, isAll } = useBoardPlace();
 const { groupIds: yesterdayIds, waitingIds: yesterdayWaitingIds } = useNewDay();
 const yesterdayCount = computed(() =>
   applyFocus([...yesterdayIds.value, ...yesterdayWaitingIds.value].flatMap(id => tasksStore.task(id) ?? [])).length);
+/** No task in any column of Heute, whatever the topic focus (#761): Offen then offers its first add */
+const boardEmpty = computed(() =>
+  withoutInCardTask(tasksStore.tasksOpen).length + tasksStore.tasksProgress.length + tasksStore.tasksWaiting.length
+  + tasksStore.tasksDoneToday.length === 0);
 const { announcement: planAnnouncement } = usePlanMoves();
 
 /** Strip index of the "Alle Aufgaben" page */
