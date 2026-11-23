@@ -60,3 +60,36 @@ describe('TaskPropertySelect look (#114)', () => {
     expect(mountSelect({ plain: true }, { 'value-leading': icon }).find('[data-testid="leading"]').exists()).toBe(false)
   })
 })
+
+describe('TaskPropertySelect create (#774)', () => {
+  const CreateStub = defineComponent({
+    name: 'USelectMenu',
+    inheritAttrs: false,
+    props: ['open'],
+    emits: ['create', 'update:open'],
+    setup(props, { emit }) {
+      return () => h('button', { 'data-open': String(props.open), onClick: () => emit('create', 'Neu') })
+    },
+  })
+
+  function mountCreate(multiple: boolean) {
+    return mount(TaskPropertySelect, {
+      props: { label: 'Thema', modelValue: multiple ? [] : 'a', items: ['a'], multiple, createItem: true, open: true },
+      global: { stubs: { USelectMenu: CreateStub, UButton: true } },
+    })
+  }
+
+  it('emits create once and closes a single select', async () => {
+    const wrapper = mountCreate(false)
+    await wrapper.get('button').trigger('click')
+    expect(wrapper.emitted('create')).toEqual([['Neu']])
+    expect(wrapper.emitted('update:open')?.at(-1)).toEqual([false])
+  })
+
+  it('keeps a multi select open', async () => {
+    const wrapper = mountCreate(true)
+    await wrapper.get('button').trigger('click')
+    expect(wrapper.emitted('create')).toEqual([['Neu']])
+    expect(wrapper.emitted('update:open')).toBeUndefined()
+  })
+})

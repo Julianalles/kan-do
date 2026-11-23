@@ -1367,6 +1367,7 @@
       "curious": "Just curious? Then look around the app with sample tasks.",
       "intro": "You can save tasks locally on this device and, if you like, connect apps such as Notion or Todoist.",
       "introWeb": "You can save tasks locally on this device.",
+      "appDownload": "Download the Mac app",
       "start": "Get started"
     },
     "flow": {

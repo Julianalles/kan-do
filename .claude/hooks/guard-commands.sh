@@ -12,6 +12,7 @@
 #     `kill $(pgrep ...)` (#629); `orca computer --app` naming the desktop app, or a PID that is not a sandbox run
 #                                       -> never touch the user's production app or steal focus (#623)
 #   - `rm` chained with a git command in one call (kd#203) -> two calls: a chain stops an unattended worker at a permission dialog
+#   - `git branch -m|-M` in the main checkout while it is on `main` -> a worker in a worktree renames its own branch; the main checkout stays on `main`
 # Only real invocations count (start of a command segment, optionally behind VAR=val words): separators inside
 # quotes and heredoc bodies are neutralised first, so a commit message or comment naming a command passes.
 # The analysis is a perl program in its own file next to this hook (guard-commands.pl, #654), so no shell quoting limits what it may contain.
@@ -32,7 +33,7 @@ if ! cmd=$(hook_command "$input"); then
   exit 0
 fi
 case "$cmd" in
-  *pkill*|*killall*|*pgrep*|*tauri*|*release*|*npm*|*copy-terms*|*osascript*|*screencapture*|*orca*|*rm*git*|*git*rm*) ;;
+  *pkill*|*killall*|*pgrep*|*tauri*|*release*|*npm*|*copy-terms*|*osascript*|*screencapture*|*orca*|*rm*git*|*git*rm*|*branch*) ;;
   *) exit 0 ;;
 esac
 

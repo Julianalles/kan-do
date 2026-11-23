@@ -20,6 +20,16 @@
     next;
   }
   for my $s (@segs) {
+    # A no-code lead started in the main checkout renamed `main` to its feature branch and broke the next `git pull`
+    # (retro 2026-11-23): renaming the current branch is for a worktree, never the main checkout on `main`.
+    if ($s =~ /^(?:\S*\/)?git\s+branch\s+-[mM]\b/) {
+      my $b = `git symbolic-ref --short HEAD 2>/dev/null`; $b =~ s{\s+\z}{};
+      my $gd = `git rev-parse --absolute-git-dir 2>/dev/null`; $gd =~ s{\s+\z}{};
+      my $cd = `git rev-parse --path-format=absolute --git-common-dir 2>/dev/null`; $cd =~ s{\s+\z}{};
+      if (($b eq 'main' || $b eq 'master') && $gd ne '' && $gd eq $cd) {
+        print "never rename the branch of the main checkout (it must stay `$b`, the next pull fails otherwise): do the work in a worktree (`git worktree add` or a new Orca workspace), and rename the branch there"; last;
+      }
+    }
     if ($s =~ /^(?:\S*\/)?pkill\b.*nuxt/) {
       print "never pkill nuxt (it kills the user's :3000 server too): stop your own server by its port's PID, `lsof -ti tcp:<port> -sTCP:LISTEN | xargs kill`"; last;
     }
