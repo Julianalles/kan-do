@@ -212,11 +212,11 @@ v-if="logTail" v-model="draft.include.log" :label="t('feedback.review.itemLog')"
           <dl class="space-y-2">
             <div>
               <dt class="text-xs font-medium text-muted">{{ t('feedback.review.preview.title') }}</dt>
-              <dd data-private>{{ draft.title.trim() }}</dd>
+              <dd class="wrap-break-word" data-private>{{ draft.title.trim() }}</dd>
             </div>
             <div>
               <dt class="text-xs font-medium text-muted">{{ t('feedback.review.preview.description') }}</dt>
-              <dd class="whitespace-pre-wrap" data-private>{{ preview.description || t('feedback.review.preview.noDescription') }}</dd>
+              <dd class="wrap-break-word whitespace-pre-wrap" data-private>{{ preview.description || t('feedback.review.preview.noDescription') }}</dd>
             </div>
             <div v-for="fact in preview.facts" :key="fact.key">
               <dt class="text-xs font-medium text-muted">{{ t(`feedback.review.preview.${fact.key}`) }}</dt>
