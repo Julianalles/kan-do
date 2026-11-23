@@ -64,6 +64,12 @@ test.describe('Feedback (web)', () => {
     await expect(page.getByTestId('feedback-include-log')).toHaveCount(0)
     const shown = await page.getByTestId('feedback-body-preview').textContent()
     expect(shown).toContain('| Version |')
+    // #744: before sending, what goes where, for how long, and how to have it deleted
+    const notice = page.getByTestId('feedback-retention-notice')
+    await expect(notice).toContainText('privaten GitHub-Repository')
+    await expect(notice).toContainText('30 Tage nach Abschluss der Bearbeitung gelöscht')
+    await expect(notice.getByRole('link', { name: 'Impressum' })).toHaveAttribute('href', /\/impressum\/$/)
+    await expect(page.getByTestId('feedback-privacy-link')).toHaveAttribute('href', /\/kan-do\/datenschutz\/$/)
 
     await page.getByTestId('feedback-send-relay').click()
     await expect(dialog(page)).toBeHidden()

@@ -230,7 +230,7 @@ describe('buildCommandGroups', () => {
   })
 
   describe('"Speicherort" group (#322)', () => {
-    const notion: MoveTarget = { source: 'notion', name: 'Notion', icon: 'i-simple-icons-notion', hint: '2 Felder gehen verloren', disabled: false }
+    const notion: MoveTarget = { source: 'notion', name: 'Notion', icon: 'i-ph-notebook', hint: '2 Felder gehen verloren', disabled: false }
     const local: MoveTarget = { source: 'local', name: 'Lokal', icon: 'i-ph-desktop', hint: '', disabled: false }
 
     it('sits directly under the column moves, one flat row per target, hint as muted suffix', () => {
@@ -243,7 +243,7 @@ describe('buildCommandGroups', () => {
       expect(rows.map(r => r.id)).toEqual(['move-source-notion', 'move-source-local'])
       expect(rows[0]!.label).toBe('commandPalette.moveToSource{"source":"Notion"}')
       expect(rows[0]!.suffix).toBe('2 Felder gehen verloren')
-      expect(rows[0]!.icon).toBe('i-simple-icons-notion')
+      expect(rows[0]!.icon).toBe('i-ph-notebook')
       expect(rows[1]).not.toHaveProperty('suffix')
       rows[0]!.onSelect()
       expect(a.moveToSource).toHaveBeenCalledWith('a', 'notion')

@@ -28,6 +28,7 @@
     "lint:strict": "eslint . --max-warnings=0",
     "lint:ci": "eslint . --quiet",
     "motion:film": "node scripts/motion-film.mts",
+    "feedback:cleanup": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/feedback-cleanup.mts",
     "perf:audit": "node scripts/perf-audit.mjs",
     "ratchet:lower": "node scripts/lint/ratchets.mjs --update",
     "design:detect": "impeccable detect --quiet components pages layouts assets app.vue",

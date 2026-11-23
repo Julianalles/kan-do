@@ -72,7 +72,7 @@ describe('icon collections', () => {
   })
 
   it('accepts the bundled collections', () => {
-    expect(findUnbundledIcons('<UIcon name="i-ph-play" class="i-simple-icons-todoist" />')).toEqual([])
+    expect(findUnbundledIcons('<UIcon name="i-ph-play" class="i-ph-check-square" />')).toEqual([])
     expect(findUnbundledIcons('<UIcon name="i-ph:clock-countdown" />')).toEqual([])
     expect(findUnbundledIcons("icon: 'ph:play', brand: 'simple-icons:notion'")).toEqual([])
   })

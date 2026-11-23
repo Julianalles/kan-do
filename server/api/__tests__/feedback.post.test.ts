@@ -21,7 +21,7 @@ function stubGithub(answers: Record<string, { status: number, json?: unknown }> 
     const method = init.method ?? 'GET'
     calls.push({ method, url: path, body: init.body ? JSON.parse(String(init.body)) : null, auth: new Headers(init.headers).get('authorization') })
     const key = Object.keys(answers).find(k => `${method} ${path}`.startsWith(k))
-    const answer = key ? answers[key]! : { status: method === 'GET' ? 200 : 201, json: method === 'GET' ? [] : {} }
+    const answer = key ? answers[key]! : { status: method === 'GET' ? 200 : 201, json: method === 'GET' ? [] : { sha: `sha-${calls.length}` } }
     return new Response(JSON.stringify(answer.json ?? {}), { status: answer.status })
   }))
 }
@@ -64,32 +64,49 @@ describe('server/api/feedback.post.ts', () => {
     expect(JSON.stringify(res.body) + JSON.stringify(res.headers)).not.toContain('github_pat_relay')
   })
 
-  it('uploads the screenshot first, then creates the issue', async () => {
+  it('stores the screenshot as the only file of its own parentless branch, then creates the issue (#744)', async () => {
     const res = await (await request()).post('/api/feedback').send({ ...REPORT, screenshot: { path: PATH, content: PNG } })
     expect(res.status).toBe(201)
+    const repo = '/repos/jaylouiz/kan-do-feedback'
     expect(writes().map(call => `${call.method} ${call.url}`)).toEqual([
-      `PUT /repos/jaylouiz/kan-do-feedback/contents/${PATH}`,
-      'POST /repos/jaylouiz/kan-do-feedback/issues',
+      `POST ${repo}/git/blobs`,
+      `POST ${repo}/git/trees`,
+      `POST ${repo}/git/commits`,
+      `POST ${repo}/git/refs`,
+      `POST ${repo}/issues`,
     ])
-    expect(writes()[0]!.body).toMatchObject({ content: PNG })
-    expect(writes()[0]!.body).not.toHaveProperty('branch')
+    const [blob, tree, commit, ref] = writes()
+    expect(blob!.body).toEqual({ content: PNG, encoding: 'base64' })
+    expect(tree!.body).toEqual({ tree: [{ path: PATH, mode: '100644', type: 'blob', sha: 'sha-2' }] })
+    expect(tree!.body).not.toHaveProperty('base_tree')
+    expect(commit!.body).toMatchObject({ tree: 'sha-3', parents: [] })
+    expect(ref!.body).toEqual({ ref: 'refs/heads/screenshot/0b6f3c1e-8a55-4d0a-9c1b-2f6f0a4d9e11', sha: 'sha-4' })
+    // Nothing touches the default branch: no contents API write
+    expect(writes().some(call => call.url.includes('/contents/'))).toBe(false)
   })
 
-  it('a retry after a failed issue create finds the image already uploaded (422) and still files the issue', async () => {
-    stubGithub({ 'POST ': { status: 500 } })
+  it('a retry after a failed issue create finds the screenshot branch already there (422) and still files the issue', async () => {
+    stubGithub({ 'POST /repos/jaylouiz/kan-do-feedback/issues': { status: 500 } })
     const first = await (await request()).post('/api/feedback').send({ ...REPORT, screenshot: { path: PATH, content: PNG } })
     expect(first.status).toBe(502)
-    stubGithub({ 'PUT ': { status: 422, json: { message: 'Invalid request. "sha" wasn\'t supplied.' } } })
+    stubGithub({ 'POST /repos/jaylouiz/kan-do-feedback/git/refs': { status: 422, json: { message: 'Reference already exists' } } })
     const retry = await (await request()).post('/api/feedback').send({ ...REPORT, screenshot: { path: PATH, content: PNG } })
     expect(retry.status).toBe(201)
-    expect(writes().map(call => call.method)).toEqual(['PUT', 'POST'])
+    expect(writes().at(-1)!.url).toBe('/repos/jaylouiz/kan-do-feedback/issues')
   })
 
   it('a failed screenshot upload creates no issue', async () => {
-    stubGithub({ 'PUT ': { status: 403, json: { message: 'Resource not accessible by personal access token' } } })
+    stubGithub({ 'POST /repos/jaylouiz/kan-do-feedback/git/blobs': { status: 403, json: { message: 'Resource not accessible by personal access token' } } })
     const res = await (await request()).post('/api/feedback').send({ ...REPORT, screenshot: { path: PATH, content: PNG } })
     expect(res.status).toBe(502)
-    expect(writes().map(call => call.method)).toEqual(['PUT'])
+    expect(writes().map(call => call.url)).toEqual(['/repos/jaylouiz/kan-do-feedback/git/blobs'])
+  })
+
+  it('a refused branch creates no issue', async () => {
+    stubGithub({ 'POST /repos/jaylouiz/kan-do-feedback/git/refs': { status: 403 } })
+    const res = await (await request()).post('/api/feedback').send({ ...REPORT, screenshot: { path: PATH, content: PNG } })
+    expect(res.status).toBe(502)
+    expect(writes().some(call => call.url.endsWith('/issues'))).toBe(false)
   })
 
   it.each([

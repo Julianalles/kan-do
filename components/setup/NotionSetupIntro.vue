@@ -15,7 +15,7 @@
     <div class="flex items-center justify-center gap-4 rounded-lg bg-elevated px-4 py-6" aria-hidden="true">
       <span class="flex flex-col items-center gap-1 text-xs text-muted">
         <span class="flex size-14 items-center justify-center rounded-lg border border-default bg-default">
-          <UIcon name="i-ph-notion-logo" class="size-6 text-highlighted" />
+          <UIcon name="i-ph-notebook" class="size-6 text-highlighted" />
         </span>
         {{ t('onboarding.flow.notion.intro.diagramNotion') }}
       </span>

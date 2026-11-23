@@ -981,7 +981,8 @@
         "plugins/whats-new*",
         "plugins/updater*",
         "pages/settings/updates.vue",
-        "types/updater.ts"
+        "types/updater.ts",
+        "components/settings/SettingSwitchRow.vue"
       ],
       "specs": [
         "updates",
@@ -1253,6 +1254,19 @@
       "specs": [
         "hover-answer",
         "phone-hit-areas"
+      ]
+    },
+    {
+      "area": "legal links (#745): the one URL constant and the links on the welcome page, in settings, the feedback notice and the Notion token step",
+      "paths": [
+        "components/legal/**",
+        "lib/legalLinks.ts"
+      ],
+      "specs": [
+        "settings-tabs",
+        "welcome-setup",
+        "feedback",
+        "notion-setup-stepper"
       ]
     }
   ]

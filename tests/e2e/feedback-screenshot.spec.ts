@@ -285,7 +285,7 @@ test.describe('Feedback screenshot (desktop, no token)', () => {
     expect(shot.path).toMatch(/^feedback\/\d{4}\/\d{2}\/[0-9a-f-]{36}\.png$/)
     // A PNG: the base64 of its magic bytes
     expect(shot.content.startsWith('iVBORw0KGgo')).toBe(true)
-    expect(reports[0]!.body).toContain(`https://github.com/jaylouiz/kan-do-feedback/blob/main/${shot.path}?raw=true`)
+    expect(reports[0]!.body).toContain(`https://github.com/jaylouiz/kan-do-feedback/blob/screenshot/${shot.path.split('/').pop()!.replace('.png', '')}/${shot.path}?raw=true`)
     const state = await stubState(page)
     expect(state.clipboard).toEqual([])
     expect(state.openedUrls).toEqual([])
