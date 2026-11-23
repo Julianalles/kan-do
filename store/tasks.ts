@@ -1,6 +1,6 @@
 import { defineStore, acceptHMRUpdate  } from "pinia";
 import { ref, computed, type Ref } from "vue";
-import type { CreateUncertain, PendingSync, Task } from "@/types/task";
+import type { CreateUncertain, PendingClear, PendingSync, Task } from "@/types/task";
 import { TaskStatus } from "~/types/taskStatus";
 import { useBoardStore } from "./board";
 import { useTrashStore } from "./trash";
@@ -529,6 +529,20 @@ export const useTasksStore = defineStore("tasks", () => {
   function dropDateWrite(taskId: string): void {
     const marker = tasks.value.find((el) => el.id === taskId)?.pendingSync;
     if (marker?.dateWrite !== undefined) delete marker.dateWrite;
+  }
+
+  /**
+   * The clears a push of the task has to write (#780), noted on its existing marker (`pendingSync.clears`): `add` the
+   * fields the user emptied, `drop` the ones set again or written. Never makes a marker (the push sets it first) and
+   * bumps no revision; an emptied list is removed.
+   */
+  function noteClears(taskId: string, change: { add?: readonly PendingClear[]; drop?: readonly PendingClear[] }): void {
+    const marker = tasks.value.find((el) => el.id === taskId)?.pendingSync;
+    if (!marker) return;
+    const next = (marker.clears ?? []).filter((field) => !change.drop?.includes(field));
+    for (const field of change.add ?? []) if (!next.includes(field)) next.push(field);
+    if (next.length > 0) marker.clears = next;
+    else if (marker.clears !== undefined) delete marker.clears;
   }
 
   /** The revision a push of the task starts from (0 for a marker restored from storage, or none). */
@@ -2040,6 +2054,7 @@ export const useTasksStore = defineStore("tasks", () => {
     markPendingSync,
     markDateWrite,
     dropDateWrite,
+    noteClears,
     pendingSyncRevision,
     clearPendingSync,
     recordPendingSyncFailure,

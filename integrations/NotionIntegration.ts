@@ -1,4 +1,4 @@
-import type { Task, TaskCustomEntry, TaskCustomValue } from "~/types/task";
+import type { PendingClear, Task, TaskCustomEntry, TaskCustomValue } from "~/types/task";
 import { NOT_PLANNED_PAGE_LIMIT } from '~/lib/notionLimits';
 import { TaskStatus } from "~/types/task";
 import type {
@@ -769,9 +769,51 @@ export class NotionIntegration {
           };
         }
       }
-      // Note: When isUnplanned=false, we don't write anything to avoid clearing other values
-      // The read logic (extractUnplannedFlag) handles absence as false
+      // When isUnplanned=false nothing is written here, so an ordinary push never touches the property's other values;
+      // the user's own unset is removed from what the page holds by `updateTask` (`unplannedClearValue`, #780)
     }
+  }
+
+  /**
+   * The empty value of the mapped time box property in its schema type (#780), as the user's "Timebox entfernen" writes
+   * it. Unknown type: the shape the set path writes for the unit (a select for `formatted`, else a number). A type that
+   * cannot be emptied (title, formula, …) gives `null`: nothing is written, a wrong shape would refuse the whole update.
+   */
+  private async timeBoxClearValue(propertyName: string): Promise<{ number: null } | { select: null } | { rich_text: never[] } | { multi_select: never[] } | null> {
+    const type = (await this.schemaPropertyType(propertyName))
+      ?? ((this.propertyMapping.timeBoxUnit ?? 'formatted') === 'formatted' ? 'select' : 'number');
+    switch (type) {
+      case 'number': return { number: null };
+      case 'select': return { select: null };
+      case 'rich_text': return { rich_text: [] };
+      case 'multi_select': return { multi_select: [] };
+      default: return null;
+    }
+  }
+
+  /**
+   * What an unset value-mode "unplanned" flag writes (#780), from the property as the page holds it: a select holding
+   * the match value is emptied, a multi_select loses only the match value (case-insensitive, the other values stay), a
+   * text property is emptied only when its whole text is the match value (what kan-do writes); a longer text is the
+   * user's and stays. `null` when there is nothing to remove or the shape is another.
+   */
+  private unplannedClearValue(held: unknown, matchValue: string): Record<string, unknown> | null {
+    const property = held as { type?: string; select?: { name?: string | null } | null; multi_select?: Array<{ name?: string | null }>; rich_text?: Array<{ plain_text?: string | null; text?: { content?: string | null } | null }> } | undefined;
+    if (!property) return null;
+    const match = matchValue.trim().toLowerCase();
+    const matches = (name: string | null | undefined) => typeof name === 'string' && name.trim().toLowerCase() === match;
+    if (property.select !== undefined && property.type !== 'multi_select') {
+      return matches(property.select?.name) ? { select: null } : null;
+    }
+    if (Array.isArray(property.multi_select)) {
+      const kept = property.multi_select.filter((option) => !matches(option?.name));
+      return kept.length === property.multi_select.length ? null : { multi_select: kept };
+    }
+    if (Array.isArray(property.rich_text) && property.type !== 'title') {
+      const text = property.rich_text.map((part) => part?.plain_text ?? part?.text?.content ?? '').join('');
+      return matches(text) ? { rich_text: [] } : null;
+    }
+    return null;
   }
 
   /**
@@ -827,13 +869,15 @@ export class NotionIntegration {
    * @param task The task to update; Notion is addressed by its `externalId` (the page id), never by `id`
    * @param change `timeEdited`: the user set the total time spent (kd#4), so it is written even at 0 (the property
    *   is cleared). An ordinary push at 0 leaves the property alone, so time another device recorded survives.
+   * @param change `clears`: fields the user emptied that the page may still hold (`pendingSync.clears`, #780). Only these
+   *   are cleared, and only while the task still has the field empty; any other update leaves a value the task lacks alone.
    * @returns The task with properties synced from Notion after the update
    */
-  async updateTask(task: Task, change: { timeEdited?: boolean } = {}): Promise<Task> {
+  async updateTask(task: Task, change: { timeEdited?: boolean; clears?: readonly PendingClear[] } = {}): Promise<Task> {
     const externalId = externalIdOf(task);
     try {
       const statusType = await this.statusPropertyType();
-      const properties: Record<string, { select?: { name: string }; status?: { name: string }; number?: number | null; date?: { start: string } | null }> = {
+      const properties: Record<string, { select?: { name: string } | null; status?: { name: string }; number?: number | null; date?: { start: string } | null; rich_text?: never[]; multi_select?: Array<{ name: string }> }> = {
         [this.propertyMapping.status]: this.statusValue(
           statusType,
           (task.archivedAt && this.statusMapping.archive)
@@ -883,6 +927,10 @@ export class NotionIntegration {
             number: value,
           };
         }
+      } else if (this.propertyMapping.timeBox && change.clears?.includes('timeBox')) {
+        // The user removed the time box (#780): the property's empty value, in its own type
+        const cleared = await this.timeBoxClearValue(this.propertyMapping.timeBox);
+        if (cleared) properties[this.propertyMapping.timeBox] = cleared;
       }
 
       // Add completion date if property is mapped
@@ -934,9 +982,16 @@ export class NotionIntegration {
         mergeMultiSelectProperties.push(this.propertyMapping.unplanned.valuePropertyName);
       }
 
+      // The user unset a value-mode "unplanned" flag (#780): the match value comes out of what the page holds
+      const unplannedMapping = this.propertyMapping.unplanned;
+      const unplannedClear = unplannedMapping?.mode === 'value' && unplannedMapping.valuePropertyName && unplannedMapping.matchValue
+        && !task.isUnplanned && change.clears?.includes('unplanned')
+        ? { propertyName: unplannedMapping.valuePropertyName, matchValue: unplannedMapping.matchValue }
+        : null;
+
       // Handle multi_select merge if needed
       const finalProperties = properties as Record<string, unknown>;
-      if (mergeMultiSelectProperties.length > 0 || needsPriorityCheck || labelProperties.length > 0) {
+      if (mergeMultiSelectProperties.length > 0 || needsPriorityCheck || labelProperties.length > 0 || unplannedClear) {
         // Fetch current page to merge multi_select values and to compare the priority and the labels
         const currentPage = await this.api.getPage(externalId);
         if (this.propertyMapping.topic) {
@@ -965,6 +1020,10 @@ export class NotionIntegration {
             finalProperties[propName] = { multi_select: allOptions };
           }
         }
+        if (unplannedClear) {
+          const cleared = this.unplannedClearValue(currentPage.properties?.[unplannedClear.propertyName], unplannedClear.matchValue);
+          if (cleared) finalProperties[unplannedClear.propertyName] = cleared;
+        }
       }
 
       await this.api.updatePage(externalId, finalProperties);
@@ -989,9 +1048,10 @@ export class NotionIntegration {
       if (timeWanted && !timeWritable) {
         syncedTask.timeSpentSeconds = task.timeSpentSeconds || 0;
       }
-      // A cleared time box and an unset value-mode "unplanned" flag are not written (see above and writeUnplannedFlag):
-      // what the page reads back is the old value, which would undo the user's edit the moment the push lands (#770).
-      // The local value stays; the next fetch reads the page as it is.
+      // An empty time box and an unset value-mode "unplanned" flag are written only as the user's own clear (#780, `clears`),
+      // and not every shape can be emptied (a title, a longer text): what the page reads back may then be the old value,
+      // which would undo the user's edit the moment the push lands (#770). The local value stays; the next fetch reads
+      // the page as it is.
       if (this.propertyMapping.timeBox && !(task.timeBoxSeconds && task.timeBoxSeconds > 0)) {
         syncedTask.timeBoxSeconds = task.timeBoxSeconds ?? null;
       }
