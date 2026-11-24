@@ -1,5 +1,5 @@
 import { test, expect, type Page, type Locator } from '@playwright/test';
-import { seedLocalBoard, SEED_TASKS } from './helpers/seed';
+import { seedLocalBoard, SEED_TASKS, type SeedTask } from './helpers/seed';
 import { hover, pickUp, showColumnPage, dropSettled } from './helpers/dnd';
 import { settleAnimations } from './helpers/settle';
 
@@ -57,6 +57,29 @@ test.describe('Add slot, desktop', () => {
       await page.goto('/tasks');
       await expect(offen(page).locator('.task-wrapper').first()).toBeVisible();
       await parkPointer(page);
+    });
+
+    test('the placeholder has the box of a card; the button covers it on hover and on focus, and it never sits below it (#805)', async ({ page }) => {
+      const placeholder = jetzt(page).getByTestId('jetzt-placeholder');
+      const button = slotButton(jetzt(page));
+      await expect(placeholder).toBeVisible();
+      await expect(placeholder).toHaveCSS('opacity', '1');
+      await expect(button).toHaveCSS('opacity', '0');
+
+      const card = await box(offen(page).locator('.task-wrapper .task').first());
+      const shape = await box(placeholder);
+      expect(Math.abs(shape.width - card.width)).toBeLessThanOrEqual(1);
+      expect(Math.abs(shape.height - card.height)).toBeLessThanOrEqual(1);
+
+      await jetzt(page).hover();
+      await expect(button).toHaveCSS('opacity', '1');
+      await expect(placeholder).toHaveCSS('opacity', '0');
+      expectSameBox(await box(button), shape);
+
+      await parkPointer(page);
+      await expect(placeholder).toHaveCSS('opacity', '1');
+      await button.focus();
+      await expect(placeholder).toHaveCSS('opacity', '0');
     });
 
     test('Offen has one round soft add button in its header, aligned with the cards and centred on the title; no other column has one (#248)', async ({ page }) => {
@@ -506,24 +529,16 @@ test.describe('Add slot, 390px', () => {
       await expect(add).toBeEnabled();
     });
 
-    test('the empty Jetzt tab shows the labelled slot at rest, which morphs on tap', async ({ context, page }) => {
+    test('the empty Jetzt tab shows the card-shaped placeholder and no add button (#805)', async ({ context, page }) => {
       await seedLocalBoard(context, EMPTY_JETZT);
       await page.goto('/tasks');
       await showColumnPage(page, 1);
 
-      const button = slotButton(jetzt(page));
-      await expect(button).toBeInViewport({ ratio: 1 });
-      // Wait for the tab slide to finish before measuring
-      await expect.poll(async () => Math.round((await box(button)).x)).toBe(Math.round(mobileCardX(page.viewportSize()!.width)));
-      await expect(button).toHaveCSS('opacity', '1');
-      await expect(button).toHaveText('Neue Aufgabe sofort starten');
-      await expect(button).toHaveCSS('background-color', 'rgba(0, 0, 0, 0)');
-
-      const before = await box(button);
-      await button.tap();
-      const draft = jetzt(page).getByTestId('task-draft-card').locator('.task');
-      await expect(draft).toBeVisible();
-      expectSameBox(await box(draft), before);
+      const placeholder = jetzt(page).getByTestId('jetzt-placeholder');
+      await expect(placeholder).toBeInViewport({ ratio: 1 });
+      await expect(placeholder).toHaveText('Hier landet, woran du jetzt arbeitest.');
+      await expect(placeholder).toHaveCSS('opacity', '1');
+      await expect(slotButton(jetzt(page))).toBeHidden();
     });
   });
 });
@@ -551,5 +566,27 @@ test.describe('Empty board hint (#761)', () => {
     await page.goto('/tasks');
     await expect(offen(page)).toBeVisible();
     await expect(page.getByTestId('open-empty-hint')).toHaveCount(0);
+  });
+});
+
+/** #802: tasks wait under "Alle" while Heute is empty: a second line leads there. */
+test.describe('Empty board, second line to "Alle" (#802)', () => {
+  const HELD: SeedTask[] = [{ id: 'held-1', title: 'Regal aussuchen', status: 0, priority: 3, timeSpentSeconds: 0, timeBoxSeconds: null, custom: {}, notPlanned: true }];
+
+  test('shows beside the first line when tasks wait under "Alle" and leads there', async ({ page, context }) => {
+    await seedLocalBoard(context, HELD);
+    await page.goto('/tasks');
+    await expect(offen(page).getByTestId('open-empty-hint')).toHaveText('Was steht heute an?');
+    const line = offen(page).getByTestId('open-empty-all-hint');
+    await expect(line).toHaveText('Oder wähle unter Alle aus, was heute dran ist.');
+    await line.getByTestId('open-empty-all-link').click();
+    await expect(page).toHaveURL(/\/all/);
+  });
+
+  test('is absent with nothing under "Alle"', async ({ page, context }) => {
+    await seedLocalBoard(context, []);
+    await page.goto('/tasks');
+    await expect(offen(page).getByTestId('open-empty-hint')).toBeVisible();
+    await expect(page.getByTestId('open-empty-all-hint')).toHaveCount(0);
   });
 });

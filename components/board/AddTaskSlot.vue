@@ -8,7 +8,7 @@
 @responsibility
 - Offen (#248): renders nothing but the draft. While no draft is open it has no box at all (`display: contents` root, no wrapper), so card positions in the list equal a board without any slot and the list's gap never opens above the first card. The draft card enters at the top: its wrapper animates the row height 0fr to 1fr with opacity, and a negative bottom margin cancels the list gap while closed, so the cards below follow in step (--duration-base = 200ms, --ease-emphasized); cancel leaves just as fast and the cards close up; reduced motion is instant
 - Exposes `open()` (the header button's entry; the in-card flow for `inCard`, `open` emit otherwise) and `isDrafting` (the header button disables itself while it is true: a second click never opens a second card). Cancel and Esc hand focus to `focusFallback` (the header button); a save focuses the saved card (as before)
-- Jetzt: native button named by its visible label, in a regular card's box (width, --task-card-height, card radius); the box never changes size, so layout, hit area and DnD rects stay put. Inside it `.add-task-button-surface` (centred icon + label) is always the full card shape; on pointer devices surface and label appear only while the Jetzt section is hovered or the slot has focus; touch shows the label at rest
+- Jetzt: native button named by its visible label, in a regular card's box (width, --task-card-height, card radius); the box never changes size, so layout, hit area and DnD rects stay put. Inside it `.add-task-button-surface` (centred icon + label) is always the full card shape; on pointer devices surface and label appear (covering the empty Jetzt's placeholder, #805) only while the Jetzt section is hovered or the slot has focus; touch has no button, the placeholder shows
 - In-card adding (#649, `inCard`, Offen): `open()` shows NewCardFlow in the slot instead of the sheet. Esc on a typed title also shows a "Rückgängig" toast that reopens the card with it (#665), but only before the first confirm: from then on the task is stored (#758) and every close keeps it (no toast). Esc, a press outside a blank card, the sheet opening cancel it and send focus back (a press on a card cancels a blank one on release; a drag keeps the card, hidden in its place with what was typed, and it takes the focus back after the drop, #248); a save swaps it for the saved card (no fade) and focuses that card; on a phone the page scrolls that card clear of the toast (`revealSavedCard`, #665), making room first when the cards fill the page. Jetzt and every other entry (palette, nav, menu) keep the sheet
 - While the in-card form is open the Jetzt focus overlay steps aside (useInCardAdding, kd#56)
 - Drafting (useTaskDraft holds a draft for this column): the draft card fades in over the Jetzt button, whose label fades out; the button stays mounted but inert, so focus can return to it
@@ -349,7 +349,7 @@ defineExpose({ open, isDrafting });
 
 /* ========================================
  * JETZT: revealed by hovering the Jetzt section (heading + slot, not Wartet) or by focus.
- * Touch has no hover, so the label stays visible at rest there (never an invisible tap target).
+ * Touch has no hover: there the button is not offered (#805) and the empty Jetzt's placeholder shows (BoardColumnProgressContent).
  * ======================================== */
 @media (hover: hover) {
   .add-task-slot--progress .add-task-button {
