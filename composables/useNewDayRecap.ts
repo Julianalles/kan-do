@@ -82,7 +82,7 @@ export function useNewDayRecap() {
   /** Yesterday's unfinished tasks: what a fresh start of today took off the board and is still not done, then the board as it is. */
   function stillOpen(todayKey: string): Task[] {
     const sentBack = recapStore.validSentBack
-    // Today's start took these off the board: the Jetzt and Offen group, then the ones that came out of Wartet. A day close
+    // Today's start took these off the board: the Jetzt and Offen group, then the Wartet ones it took off. A day close
     // of yesterday evening (#480) is such a start: the morning's recap still shows its unfinished tasks
     // the Wartet ones are the close's own (`sentBack.waiting`)
     const backIds = sentBack && sentBack.day === todayKey ? [...sentBack.ids, ...(sentBack.waiting ?? [])] : []

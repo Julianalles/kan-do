@@ -58,7 +58,7 @@ test.describe('Apple Reminders source (#551)', () => {
     const tick = (await remindersCalls(page, 'reminders_set_completed')).at(-1)?.args
     expect(tick).toMatchObject({ id: 'rem-milk', completed: true, occurrenceDate: dayKeyDaysAhead(0), allowedListIds: ['list-home'] })
 
-    await moveTo(page, 'Milch kaufen', 'Heute')
+    await moveTo(page, 'Milch kaufen', 'Offen')
     await expect(column(page, 'open').getByText('Milch kaufen')).toBeVisible()
     await expect.poll(async () => (await stubReminder(page, 'rem-milk'))?.completed).toBeFalsy()
 

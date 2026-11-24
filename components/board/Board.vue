@@ -339,7 +339,7 @@ const tasksDone = computed(() => applyFocus(tasksStore.tasksDoneToday));
 
 const { place, isAll } = useBoardPlace();
 // The tasks today's fresh start took off the board that still wait under "Alle" (#356, #387, #469): Offen says so while it is
-// empty on Heute. The count is the panel's: the Jetzt and Offen group and the tasks taken out of Wartet (`waitingIds` never
+// empty on Heute. The count is the panel's: the Jetzt and Offen group and the Wartet tasks taken off (`waitingIds` never
 // repeats one of `groupIds`). The topic focus applies to it as it does there (a link must not lead to a group that is not shown)
 const { groupIds: yesterdayIds, waitingIds: yesterdayWaitingIds } = useNewDay();
 const yesterdayCount = computed(() =>

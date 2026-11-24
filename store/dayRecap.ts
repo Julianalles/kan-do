@@ -91,7 +91,7 @@ export const useDayRecapStore = defineStore('dayRecap', () => {
 
   /**
    * The day `day` is started: by the user's fresh start, which took `ids` (Jetzt first, then Offen) off the board and
-   * `waiting` out of Wartet (kept apart, like the day close's), or without one (none: the baseline, or a day whose board
+   * `waiting` off today from Wartet, still waiting (kept apart, like the day close's), or without one (none: the baseline, or a day whose board
    * had nothing unfinished). Both lists are that one day's: the panel "Zuletzt geplant und nicht erledigt" reads them for `day` only
    * (#469). No `waiting` field is written when none was taken. Monotonic like `markShown`: a day
    * that is not after the stored one is ignored, so a second click the same day and a clock set back never repeat it.

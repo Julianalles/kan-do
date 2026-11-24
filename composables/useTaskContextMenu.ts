@@ -18,6 +18,7 @@ import { useTaskDeletion } from "~/composables/useTaskDeletion";
 import { useTaskMoveTargets } from "~/composables/useTaskMoveTargets";
 import { boardBasePath } from "~/composables/useBoardPlace";
 import { usePlanMoves } from "~/composables/usePlanMoves";
+import { canBeOffToday, isNotPlanned } from "~/lib/taskPlanning";
 import { PRIORITY_OPTIONS, STATUS_OPTIONS, TIMEBOX_PRESETS } from "~/utils/taskMenuOptions";
 
 export interface UseTaskContextMenuOptions {
@@ -42,20 +43,13 @@ export const useTaskContextMenu = (
   const { createTask, editTask } = useTaskSync();
   const { handleError } = useErrorHandler();
   const toast = useToast();
-  const { notToday } = usePlanMoves();
+  const { notToday, planForToday } = usePlanMoves();
 
   /**
    * Opens task details page
    */
   const openDetails = () => {
     navigateTo(`${boardBasePath()}/${task.value.id}`);
-  };
-
-  /**
-   * Toggles the unplanned flag on the task
-   */
-  const toggleUnplanned = () => {
-    void editTask(task.value.id, { isUnplanned: !task.value.isUnplanned });
   };
 
   /**
@@ -155,10 +149,13 @@ export const useTaskContextMenu = (
       },
     ];
 
-    // "Nicht für heute planen" (#354): an Offen card can leave today's board for "Alle Aufgaben" (on both places: Offen is the
-    // same column). Nothing is deleted and nothing is written to the task's source.
-    if (currentTask.status === TaskStatus.Open) {
-      quickGroup.push({ label: t('task.contextMenu.notToday'), onSelect: () => void notToday(currentTask.id) });
+    // The planning command (#354, #796): a command, never a state. "Für heute einplanen" on a task off today, "Nicht für
+    // heute planen" on a planned one; Offen and Wartet cards only (Jetzt always belongs to today, Erledigt to its day).
+    // Nothing is deleted; a source that stores planning gets the move written by `useTaskSync`.
+    if (canBeOffToday(currentTask.status)) {
+      quickGroup.push(isNotPlanned(currentTask)
+        ? { label: t('task.contextMenu.planForToday'), onSelect: () => void planForToday(currentTask.id) }
+        : { label: t('task.contextMenu.notToday'), onSelect: () => void notToday(currentTask.id) });
     }
 
     // Group 1: Open details
@@ -166,19 +163,6 @@ export const useTaskContextMenu = (
       {
         label: t('task.contextMenu.openDetails'),
         onSelect: openDetails,
-      },
-    ];
-
-    // Group 2: Unplanned toggle (checkbox)
-    const unplannedGroup: ContextMenuItem[] = [
-      {
-        label: currentTask.isUnplanned
-          ? t('task.contextMenu.markPlanned')
-          : t('task.contextMenu.markUnplanned'),
-        type: "checkbox" as const,
-        checked: currentTask.isUnplanned ?? false,
-        onUpdateChecked: () => toggleUnplanned(),
-        onSelect: (e: Event) => e.preventDefault(),
       },
     ];
 
@@ -205,10 +189,10 @@ export const useTaskContextMenu = (
     ];
 
     // Group 4: Priority change submenu
+    // Actions only (#796): the value in force is the disabled entry, as in the status list; it is readable on the card and in the sheet
     const priorityChildren: ContextMenuItem[] = PRIORITY_OPTIONS.map((opt) => ({
       label: getPriorityLabel(opt.priority),
-      type: "checkbox" as const,
-      checked: normalizePriority(currentTask.priority) === opt.priority,
+      disabled: normalizePriority(currentTask.priority) === opt.priority,
       onSelect: () => changePriority(opt.priority),
     }));
 
@@ -223,8 +207,7 @@ export const useTaskContextMenu = (
     const timeboxPresetItems: ContextMenuItem[] = TIMEBOX_PRESETS.map(
       (preset) => ({
         label: t('task.contextMenu.presetMinutes', preset.minutes),
-        type: "checkbox" as const,
-        checked: currentTask.timeBoxSeconds === preset.seconds,
+        disabled: currentTask.timeBoxSeconds === preset.seconds,
         onSelect: () => setTimebox(preset.seconds),
       })
     );
@@ -292,7 +275,6 @@ export const useTaskContextMenu = (
     // Three groups (#602): act now, change a value, copy and delete. A divider per entry grouped nothing.
     const changeGroup: ContextMenuItem[] = [
       ...detailsGroup,
-      ...unplannedGroup,
       ...statusGroup,
       ...priorityGroup,
       ...timeboxGroup,
@@ -308,7 +290,6 @@ export const useTaskContextMenu = (
   return {
     menuItems,
     openDetails,
-    toggleUnplanned,
     changeStatus,
     changePriority,
     setTimebox,

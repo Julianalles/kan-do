@@ -5,7 +5,9 @@
   - button "Aufgabenmenü"
   - text: Status
   - 'button "Status: Offen"'
-  - text: Priorität
+  - text: Heute
+  - switch "Für heute eingeplant" [checked]
+  - text: Für heute eingeplant Priorität
   - 'button "Priorität: Normal"'
   - text: Thema
   - 'button "Thema: Design"'

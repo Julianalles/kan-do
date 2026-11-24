@@ -280,15 +280,25 @@ test.describe('The place "Alle" (#354), desktop', () => {
     await openCard(page, 'open-2').locator('.task').click({ button: 'right' })
     await page.getByRole('menuitem', { name: 'Nicht für heute planen' }).click()
     await expect(openCard(page, 'open-2')).toHaveCount(0)
-    // A card outside Offen has no such entry
-    await page.locator('#column-waiting .task').first().click({ button: 'right' })
-    await expect(page.getByRole('menuitem', { name: 'Als erledigt markieren' })).toBeVisible()
-    await expect(page.getByRole('menuitem', { name: 'Nicht für heute planen' })).toHaveCount(0)
-    await page.keyboard.press('Escape')
-
     await placeLink(page, 'all').click()
     await atRest(page)
     expect(await notPlannedIds(page)).toEqual(['open-2', 'np-1', 'np-2'])
+  })
+
+  test('the card menu of a Wartet card: "Nicht für heute planen" keeps it waiting; every line is an action (#796)', async ({ context, page }) => {
+    await seedLocalBoard(context, BOARD)
+    await page.goto('/tasks')
+    await page.locator('#column-waiting .task').first().click({ button: 'right' })
+    await expect(page.getByRole('menuitem', { name: 'Als erledigt markieren' })).toBeVisible()
+    await expect(page.getByRole('menuitem', { name: 'Für heute einplanen' })).toHaveCount(0)
+    await expect(page.getByRole('menuitemcheckbox')).toHaveCount(0)
+    await expect(page.getByRole('menuitem', { name: 'Als ungeplante Arbeit markieren' })).toHaveCount(0)
+    await page.getByRole('menuitem', { name: 'Nicht für heute planen' }).click()
+    await expect.poll(() => page.evaluate(() => {
+      const tasks = JSON.parse(localStorage.getItem('tasks-store') ?? '{}').tasks as { id: string, status: number, notPlanned?: boolean }[]
+      const found = tasks.find(t => t.id === 'wait-1')
+      return found ? [found.status, found.notPlanned] : null
+    })).toEqual([2, true])
   })
 
   test('a "Alle Aufgaben" card opens its sheet, and closing it returns to "Alle"; the keyboard does both moves', async ({ context, page }) => {
@@ -484,7 +494,7 @@ test.describe('The place "Alle" (#354), desktop', () => {
     expect(await openIds(page)).toEqual(['open-1', 'open-2'])
   })
 
-  test('the sheet of a not-planned task reads "Nicht geplant"; the picker plans it and puts it back (#359)', async ({ context, page }) => {
+  test('the sheet of a task off today: four statuses and the switch "Für heute eingeplant" plan it and put it back (#795)', async ({ context, page }) => {
     await seedLocalBoard(context, BOARD)
     await gotoAll(page)
     const storedNp1 = (from: Page) => from.evaluate(() => {
@@ -493,6 +503,7 @@ test.describe('The place "Alle" (#354), desktop', () => {
       return found ? [found.status, found.notPlanned] : null
     })
     const status = page.getByTestId('task-status-select')
+    const planned = page.getByRole('switch', { name: 'Für heute eingeplant' })
     const choose = async (name: string) => {
       await status.click()
       await page.getByRole('option', { name, exact: true }).click()
@@ -500,43 +511,56 @@ test.describe('The place "Alle" (#354), desktop', () => {
 
     await item(page, 'np-1').locator('.task').click()
     await expect(page).toHaveURL(/\/all\/np-1$/)
-    await expect(status).toHaveAccessibleName('Status: Nicht geplant')
-    // Five choices, in the order of the places
-    await status.click()
-    await expect(page.getByRole('option')).toHaveText(['Nicht geplant', 'Offen', 'Jetzt', 'Wartet', 'Erledigt'])
-    await page.getByRole('option', { name: 'Offen', exact: true }).click()
-
-    // Planned: at the end of Offen, and the sheet stays on the task
+    // Offen, off today: the status reads Offen (never "Nicht geplant") and the switch is off
     await expect(status).toHaveAccessibleName('Status: Offen')
+    await expect(planned).not.toBeChecked()
+    await status.click()
+    await expect(page.getByRole('option')).toHaveText(['Offen', 'Jetzt', 'Wartet', 'Erledigt'])
+    await page.keyboard.press('Escape')
+
+    // On: at the end of Offen, and the sheet stays on the task
+    await planned.click()
+    await expect(planned).toBeChecked()
     await expect(page).toHaveURL(/\/all\/np-1$/)
     await expect.poll(() => openIds(page)).toEqual(['open-1', 'open-2', 'np-1'])
     await expect.poll(() => notPlannedIds(page)).toEqual(['np-2'])
 
-    // Back: on top of "Alle Aufgaben"
-    await choose('Nicht geplant')
-    await expect(status).toHaveAccessibleName('Status: Nicht geplant')
+    // Off: on top of "Alle Aufgaben"
+    await planned.click()
+    await expect(planned).not.toBeChecked()
     await expect.poll(() => notPlannedIds(page)).toEqual(['np-1', 'np-2'])
     await expect.poll(() => openIds(page)).toEqual(['open-1', 'open-2'])
 
-    // Wartet keeps it off today (#793): the picker reads the status, the card stays under "Alle Aufgaben"
+    // Wartet keeps it off today (#793): the status reads Wartet, the switch stays off, the card stays under "Alle Aufgaben"
     await choose('Wartet')
+    await expect(status).toHaveAccessibleName('Status: Wartet')
+    await expect(planned).not.toBeChecked()
+    await expect.poll(() => storedNp1(page)).toEqual([2, true])
+    await expect.poll(() => notPlannedIds(page)).toEqual(['np-1', 'np-2'])
+
+    // Jetzt always belongs to today: starting it plans it; the switch is on and fixed, with its hint
+    await choose('Jetzt')
+    await expect(status).toHaveAccessibleName('Status: Jetzt')
+    await expect(planned).toBeChecked()
+    await expect(planned).toBeDisabled()
+    await expect(page.getByTestId('task-planned-hint')).toHaveText('Jetzt gehört immer zu heute.')
+    await expect.poll(() => notPlannedIds(page)).toEqual(['np-2'])
+
+    // Back to Wartet: it stays planned, and the switch takes it off today without touching the status
+    await choose('Wartet')
+    await expect(planned).toBeChecked()
+    await expect(planned).toBeEnabled()
+    await expect(page.getByTestId('task-planned-hint')).toHaveCount(0)
+    await expect.poll(() => storedNp1(page)).toEqual([2, undefined])
+    await planned.click()
     await expect(status).toHaveAccessibleName('Status: Wartet')
     await expect.poll(() => storedNp1(page)).toEqual([2, true])
     await expect.poll(() => notPlannedIds(page)).toEqual(['np-1', 'np-2'])
 
-    // Jetzt always belongs to today: starting it plans it, and it stays planned in Wartet afterwards
-    await choose('Jetzt')
-    await expect(status).toHaveAccessibleName('Status: Jetzt')
-    await expect.poll(() => notPlannedIds(page)).toEqual(['np-2'])
-    await choose('Wartet')
-    await expect.poll(() => storedNp1(page)).toEqual([2, undefined])
-
-    // And from there straight back: to Offen first, then off today's board
-    await choose('Nicht geplant')
-    await expect(status).toHaveAccessibleName('Status: Nicht geplant')
-    await expect.poll(() => notPlannedIds(page)).toEqual(['np-1', 'np-2'])
-    await expect.poll(() => openIds(page)).toEqual(['open-1', 'open-2'])
-    await expect.poll(() => storedNp1(page)).toEqual([0, true])
+    // Erledigt: the marker plays no part, the row is gone
+    await choose('Erledigt')
+    await expect(status).toHaveAccessibleName('Status: Erledigt')
+    await expect(planned).toHaveCount(0)
   })
 
   test('#567: Offen\'s card opened on Heute gives way on the move to "Alle"; its typed title comes back, one card at a time', async ({ context, page }) => {

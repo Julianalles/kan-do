@@ -6,7 +6,7 @@
 @usage Used by TaskDetailContent; the left of the last line of the desktop sheet (#468), last in the flow on mobile (#386)
 @avoid Only the collapsed metadata section of the task detail.
 @responsibility
-- Quiet collapsible with the source, the creation date and the stable task id, each fact its own element, no separator character (#594); the id stays, #244 made Metadaten the one place it is readable
+- Quiet collapsible with the source, the creation date and the stable task id (and what the host puts in its default slot on a line of its own: the sheet's ad-hoc switch, #796), each fact its own element, no separator character (#594); the id stays, #244 made Metadaten the one place it is readable
 - The chevron sits right beside the label, open or closed: the trigger is as wide as its label, so opening moves nothing (#594); a ghost button that answers the pointer with the neutral fill (DESIGN.md "States", Hover; #592), pulled 8 px left (`-ms-2 px-2`) so the label keeps the content edge
 - The heading is the parent of the toggle button (`h3` > button, #630), so heading navigation reaches the section; the button carries `aria-expanded` and `aria-controls`
 - The host places it: with the action row on the sheet's last line (no hairline, no band), in the flow on mobile (#244)
@@ -39,6 +39,10 @@
             <span data-testid="task-detail-source">{{ source ?? t('task.detail.sourceLocal') }}</span>
             <span>{{ t('task.detail.created', { date: createdAt }) }}</span>
             <span class="select-all">{{ taskId }}</span>
+            <!-- What the host adds under the facts (the ad-hoc switch of the sheet, #796) -->
+            <div v-if="$slots.default" class="basis-full pt-1">
+              <slot />
+            </div>
           </div>
         </template>
       </UCollapsible>

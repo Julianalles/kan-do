@@ -331,8 +331,9 @@ function boardStoreOf(sources: { connected: string[]; default: string }, tasks: 
  * unless the spec opts in with `focus: true`: with a task in Jetzt it would swallow the first tap of every touch
  * spec and dim the board in screenshots and contrast checks.
  */
-export function buildSettingsStore(focus = false) {
-  return { focusEnabled: focus }
+export function buildSettingsStore(focus = false, hints = false) {
+  // `hints` (#800): the intro hints as the welcome setup starts them; a seed without it shows none, like an existing install
+  return { focusEnabled: focus, ...(hints ? { introHints: { on: true, quietDay: null, hints: {} } } : {}) }
 }
 
 /** Carried-over counter entry (#99), as persisted in tasks-store. */
@@ -413,6 +414,8 @@ export function notionStubSessionToken(): string {
 export interface SeedLocalOptions {
   /** Fokus overlay on (the app default); off in seeds unless set, see `buildSettingsStore` (#394). */
   focus?: boolean
+  /** The intro hints on, as after the welcome setup (#800); off in seeds unless set. */
+  hints?: boolean
   /**
    * Seed only on the first load of this tab. `addInitScript` runs on every navigation, so without it
    * a `page.reload()` overwrites the changes the test made. The guard is a sessionStorage flag keyed
@@ -450,7 +453,7 @@ export async function seedLocalBoard(
 ): Promise<void> {
   const board = buildBoardStore('local', tasks, grouping)
   const taskStore = buildTasksStore(tasks, carryOverByTaskId)
-  const settings = buildSettingsStore(options.focus)
+  const settings = buildSettingsStore(options.focus, options.hints)
   const onceKey = options.once ? `e2e-seeded:${hashSeed(JSON.stringify({ board, taskStore, settings }))}` : null
   await context.addInitScript(
     ({ board: b, tasks: t, settings: st, onceKey: key }) => {

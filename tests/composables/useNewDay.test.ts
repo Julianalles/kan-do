@@ -254,9 +254,9 @@ describe('useNewDay: the day check and the fresh start (#387)', () => {
       startFresh(newDay)
       expect(tasks.tasks).toHaveLength(5)
       expect(tasks.task('o1')).toEqual({ ...before, notPlanned: true })
-      // the Jetzt task: Open, not planned, no timer; the Wartet task: Open, not planned; their time is untouched
+      // the Jetzt task: Open, not planned, no timer; the Wartet task: still Wartet, not planned (#794); their time is untouched
       expect(tasks.task('j')).toMatchObject({ status: TaskStatus.Open, notPlanned: true, timerId: null, timeSpentSeconds: 600 })
-      expect(tasks.task('w')).toMatchObject({ status: TaskStatus.Open, notPlanned: true, title: 'Task w' })
+      expect(tasks.task('w')).toMatchObject({ status: TaskStatus.Waiting, notPlanned: true, title: 'Task w' })
       // a Local task has no connection: nothing waits to be pushed
       expect(tasks.tasks.every(t => t.pendingSync === undefined)).toBe(true)
     })
@@ -462,11 +462,20 @@ describe('useNewDay: the day check and the fresh start (#387)', () => {
       expect(tasks.task('stale')).toBeDefined()
     })
 
+    it('a Wartet task that was already off today stays as it is: still Wartet, off today, and not listed as taken off by this start (#794)', () => {
+      const { tasks, newDay } = setup({ tasks: [task('o1', TaskStatus.Open), task('w1', TaskStatus.Waiting, { notPlanned: true }), task('w2', TaskStatus.Waiting)] })
+      expect(startFresh(newDay)).toEqual(['o1', 'w2'])
+      expect(tasks.task('w1')).toMatchObject({ status: TaskStatus.Waiting, notPlanned: true })
+      expect(newDay.waitingIds.value).toEqual(['w2'])
+    })
+
     it('a pick leaves the panel; put back by hand the same day it returns to it, as a group task does', () => {
       const { tasks, newDay } = setup({ tasks: [task('o1', TaskStatus.Open), task('w1', TaskStatus.Waiting), task('w2', TaskStatus.Waiting)] })
       startFresh(newDay)
       tasks.planTask('w1')
-      expect(tasks.tasksOpen.map(t => t.id)).toEqual(['w1'])
+      // planned again it is back in Wartet, not in Offen (#794, #793)
+      expect(tasks.tasksWaiting.map(t => t.id)).toEqual(['w1'])
+      expect(tasks.tasksOpen).toEqual([])
       expect(newDay.waitingIds.value).toEqual(['w2'])
       tasks.unplanTask('w1')
       expect(newDay.waitingIds.value).toEqual(['w1', 'w2'])
@@ -663,7 +672,7 @@ describe('useNewDay: the day check and the fresh start (#387)', () => {
     }
     const lastSent = (id: string) => notion.updateTask.mock.calls.filter(([sent]) => sent.id === id).at(-1)?.[0]
 
-    it('Notion without a "not planned" status: a task from Jetzt or Wartet gets its open status (as "Fertig" writes it), one from Offen gets no write', async () => {
+    it('Notion without a "not planned" status: a task from Jetzt gets its open status (as "Fertig" writes it), one from Offen or Wartet gets no write (#794)', async () => {
       const { tasks, newDay } = connect([
         task('nj', TaskStatus.Progress, { source: 'notion' }), task('no', TaskStatus.Open, { source: 'notion', updatedAt: at(21, 10) }),
         task('nw', TaskStatus.Waiting, { source: 'notion' }),
@@ -672,9 +681,10 @@ describe('useNewDay: the day check and the fresh start (#387)', () => {
       expect(tasks.task('no')!.pendingSync).toBeUndefined()
       expect(tasks.task('no')!.updatedAt).toEqual(at(21, 10))
       await vi.runAllTimersAsync()
-      expect(notion.updateTask.mock.calls.map(([sent]) => sent.id).sort()).toEqual(['nj', 'nw'])
+      expect(notion.updateTask.mock.calls.map(([sent]) => sent.id).sort()).toEqual(['nj'])
       expect(lastSent('nj')).toMatchObject({ status: TaskStatus.Open })
-      expect(lastSent('nw')).toMatchObject({ status: TaskStatus.Open })
+      // the Wartet task keeps its waiting status, here and in Notion
+      expect(tasks.task('nw')).toMatchObject({ status: TaskStatus.Waiting, notPlanned: true })
       // the echo of those writes keeps the marker, and nothing is noted as held "not planned" by Notion
       expect(notPlannedIds()).toEqual(['nj', 'no', 'nw'])
       expect(tasks.tasks.every(t => t.pendingSync === undefined && t.sourceNotPlanned === undefined)).toBe(true)
@@ -690,20 +700,25 @@ describe('useNewDay: the day check and the fresh start (#387)', () => {
         ])
         startFresh(newDay)
         // marked at once: a fetch that lands before the writes keeps the local state
-        for (const id of ['nj', 'no', 'nw']) {
+        for (const id of ['nj', 'no']) {
           expect(tasks.task(id)).toMatchObject({ status: TaskStatus.Open, notPlanned: true, sourceNotPlanned: 'Backlog' })
           expect(tasks.task(id)!.pendingSync).toBeDefined()
         }
+        // a Wartet task is never written as "not planned" (#794): it keeps its status, holds nothing from Notion, waits for no write
+        expect(tasks.task('nw')).toMatchObject({ status: TaskStatus.Waiting, notPlanned: true })
+        expect(tasks.task('nw')!.sourceNotPlanned).toBeUndefined()
+        expect(tasks.task('nw')!.pendingSync).toBeUndefined()
         tasks.mergeTasks('notion', [
           task('nj', TaskStatus.Progress, { source: 'notion' }), task('no', TaskStatus.Open, { source: 'notion' }), task('nw', TaskStatus.Waiting, { source: 'notion' }),
         ])
         expect(notPlannedIds()).toEqual(['nj', 'no', 'nw'])
         await vi.runAllTimersAsync()
         // the last write of every task holds its final state: open, not planned, as "Backlog"
-        for (const id of ['nj', 'no', 'nw']) {
+        for (const id of ['nj', 'no']) {
           expect(lastSent(id)).toMatchObject({ status: TaskStatus.Open, notPlanned: true, sourceNotPlanned: 'Backlog' })
           expect(tasks.task(id)!.pendingSync).toBeUndefined()
         }
+        expect(lastSent('nw')).toBeUndefined()
         // a pick is the user's move too: Notion gets the "today" status back
         notion.updateTask.mockClear()
         useTaskSync().planTask('no')
@@ -797,8 +812,8 @@ describe('useNewDay: the day check and the fresh start (#387)', () => {
       startFresh(newDay)
       expect(stored('j')).toBe(600 + 5 * 60)
       expect(newDay.timeOffer.value).toBeNull()
-      // from Wartet it goes off the board with the rest (#387), its time untouched
-      expect(tasks.task('j')).toMatchObject({ status: TaskStatus.Open, notPlanned: true })
+      // from Wartet it goes off the board with the rest (#387) and stays Wartet (#794), its time untouched
+      expect(tasks.task('j')).toMatchObject({ status: TaskStatus.Waiting, notPlanned: true })
     })
 
     it('several midnights passed: only the time after the last one, the one that starts the day of the pass', () => {

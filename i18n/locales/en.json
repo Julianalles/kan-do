@@ -180,6 +180,13 @@
       "close": "Close",
       "started": "One task is now under “All tasks”. | {n} tasks are now under “All tasks”."
     },
+    "introHint": {
+      "start": {
+        "desktop": "Drag what you're working on now into Now. Now holds one task at a time.",
+        "phone": "What do you start with? Hold the card and drag it to the right edge, into Now. Now holds one task at a time."
+      },
+      "close": "Close"
+    },
     "planNote": {
       "title": "Choose what's on today",
       "description": "The arrow on a card plans it for today. Switch to “Today” once you want to start.",
@@ -301,6 +308,10 @@
       "properties": "Properties",
       "status": "Status",
       "priority": "Priority",
+      "today": "Today",
+      "plannedToday": "Planned for today",
+      "plannedTodayHint": "Now is always part of today.",
+      "adhocSwitch": "Came up on the spot",
       "timeSpent": "Time spent",
       "timeSpentInMinutes": "Time spent in minutes",
       "doneDay": "Done on"
@@ -347,8 +358,6 @@
       "duplicated": "Task duplicated",
       "button": "Task actions",
       "openDetails": "Open details",
-      "markPlanned": "Mark as planned work",
-      "markUnplanned": "Mark as unplanned work",
       "changeStatus": "Change status",
       "changePriority": "Change priority",
       "setTimebox": "Set timebox",
@@ -360,12 +369,13 @@
       "presetMinutes": "{n} minute | {n} minutes",
       "maxReached": "{label} (max. reached)",
       "moveTo": {
-        "open": "Today",
+        "open": "Open",
         "progress": "Now",
         "waiting": "Waiting",
         "done": "Done"
       },
-      "notToday": "Don't plan for today"
+      "notToday": "Don't plan for today",
+      "planForToday": "Plan for today"
     },
     "carryOver": {
       "label": "Planned on {n} days",

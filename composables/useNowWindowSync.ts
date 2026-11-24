@@ -12,7 +12,8 @@
  *   completion path (`moveOrSwapToStatus`), so undo and the writes to a source behave as everywhere else
  * - The paused task stays the pill's task (the "pin": runtime only, a restart drops it) while it sits in Wartet and
  *   Jetzt is empty; resume moves it back to Jetzt (`moveTaskToStatus`, the WIP rule holds by construction). The pin
- *   ends when any card is in Jetzt (the pill follows it), the task leaves Wartet, or the setting is turned off
+ *   ends when any card is in Jetzt (the pill follows it), the task leaves Wartet, is taken off today (the day close and
+ *   the fresh start keep a Wartet task in Wartet, #794) or the setting is turned off
  * - An action whose task is neither the Jetzt task nor the pinned one is ignored
  * - Takes no part in showing the window: Rust decides that from the main window's focus
  */
@@ -24,6 +25,7 @@ import { useTasksStore } from '~/store/tasks'
 import { useTaskOperations } from '~/composables/useTaskOperations'
 import { resumeTaskTimer } from '~/composables/useTaskTimerDriver'
 import { liveTimeSpent } from '~/lib/liveTime'
+import { isNotPlanned } from '~/lib/taskPlanning'
 import { OVERLAY_ACTIONS, OVERLAY_ACTION_EVENT, type NowSnapshot, type OverlayActionPayload } from '~/lib/nowWindow'
 import { TaskStatus } from '~/types/taskStatus'
 
@@ -35,17 +37,17 @@ export function useNowWindowSync(): void {
   const { moveOrSwapToStatus, moveTaskToStatus } = useTaskOperations()
   const { locale } = useI18n()
 
-  /** The task the user paused from the pill (#405); read through `pinned`, which is null once it is not in Wartet */
+  /** The task the user paused from the pill (#405); read through `pinned`, which is null once it is not in Wartet or is taken off today (#794) */
   const pinnedId = ref<string | null>(null)
   const pinned = computed(() => {
     const task = pinnedId.value === null ? null : tasksStore.task(pinnedId.value)
-    return task !== null && task.status === TaskStatus.Waiting ? task : null
+    return task !== null && task.status === TaskStatus.Waiting && !isNotPlanned(task) ? task : null
   })
   const jetzt = computed(() => tasksStore.tasksProgress[0] ?? null)
   /** The Jetzt task, or while Jetzt is empty the paused one */
   const shown = computed(() => jetzt.value ?? pinned.value)
 
-  // The pin ends with its reason: a card in Jetzt, a task that left Wartet, the setting turned off
+  // The pin ends with its reason: a card in Jetzt, a task that left Wartet or was taken off today, the setting turned off
   watch([jetzt, pinned, () => settings.floatingNowEnabled], ([inJetzt, paused, enabled]) => {
     if (pinnedId.value !== null && (inJetzt !== null || paused === null || !enabled)) pinnedId.value = null
   }, { flush: 'sync' })

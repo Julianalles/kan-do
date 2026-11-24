@@ -27,7 +27,7 @@
       - listitem:
         - group "Rückmeldung vom Vermieter":
           - paragraph: Rückmeldung vom Vermieter
-          - text: Hoch
+          - text: Wartet Hoch
         - 'button "Rückmeldung vom Vermieter: für heute einplanen"'
   - heading "Weitere Aufgaben" [level=3]
   - list:

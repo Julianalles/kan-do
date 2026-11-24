@@ -89,7 +89,7 @@ describe('useDayCloseAction.finishDay (#480)', () => {
     dataState.available = false
   })
 
-  it('takes every unfinished task off the board: Jetzt through Offen, Wartet through Offen, Offen as it is; nothing is deleted', () => {
+  it('takes every unfinished task off the board: Jetzt through Offen, Wartet stays Wartet, Offen as it is; nothing is deleted (#794)', () => {
     const { tasks } = setup()
     tasks.setTasks([
       makeTask('p', TaskStatus.Progress, { timeSpentSeconds: 1800, notes: 'n', topic: 'T', timeBoxSeconds: 3600 }),
@@ -104,7 +104,8 @@ describe('useDayCloseAction.finishDay (#480)', () => {
     for (const id of ['p', 'o1', 'o2', 'w']) expect(isNotPlanned(tasks.task(id)!)).toBe(true)
     expect(tasks.tasks).toHaveLength(5)
     expect(tasks.task('p')).toMatchObject({ timeSpentSeconds: 1800, notes: 'n', topic: 'T', timeBoxSeconds: 3600 })
-    expect(tasks.task('w')?.status).toBe(TaskStatus.Open)
+    expect(tasks.task('w')?.status).toBe(TaskStatus.Waiting)
+    expect(tasks.task('p')?.status).toBe(TaskStatus.Open)
     expect(tasks.tasksOpen).toEqual([])
     expect(tasks.tasksProgress).toEqual([])
     expect(tasks.tasksWaiting).toEqual([])
