@@ -66,6 +66,7 @@ import { seedDesktopStores } from '~/lib/dataStorage'
 import { useSourceConnections } from '~/composables/useSourceConnections'
 import type { IntegrationSourceId } from '~/types/taskSource'
 import { isOverlayWindow } from '~/lib/overlayWindow'
+import { MARKER_MODEL } from '~/lib/taskPlanning'
 
 export default defineNuxtPlugin(async (nuxtApp) => {
   if (!__NOTION_STUB_ALLOWED__) return
@@ -170,6 +171,9 @@ export default defineNuxtPlugin(async (nuxtApp) => {
     customPropertyIndexes: {},
     taskOperationVersions: {},
     batchOperationInProgress: false,
+    // The stamp of the marker model (#793): without it the first load reads the seed as data from before and drops
+    // `notPlanned` from a seeded waiting task
+    markerModel: MARKER_MODEL,
     // Carried-over cue (#99): counted through today, so reloading the same day keeps these numbers
     carryOverByTaskId: {
       'seed-open-1': { firstOn: localDateKey(new Date(Date.now() - 5 * 86_400_000)), days: 5, lastOn: localDateKey(), keptAtDays: null },

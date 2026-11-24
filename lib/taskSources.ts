@@ -304,6 +304,17 @@ export function sourceCanBeDefault(source: SourceId): boolean {
   return !NEVER_DEFAULT_SOURCES.includes(source)
 }
 
+/**
+ * Sources whose date is the plan (#553, `TaskSourceAdapter.planningByDate`, which reads this table): their
+ * `Task.sourceNotPlanned` is what the date says, not a status kan-do wrote, so a status write leaves it as it is.
+ */
+const PLANS_BY_DATE_SOURCES: readonly SourceId[] = ['reminders']
+
+/** Whether `source` plans by date (Apple Reminders). The store asks here, the sync layer asks the adapter. */
+export function sourcePlansByDate(source: SourceId): boolean {
+  return PLANS_BY_DATE_SOURCES.includes(source)
+}
+
 /** Whether the add form can create tasks in a source (and a task can be moved into it). */
 export function sourceCanCreate(source: SourceId): boolean {
   return sourceCan(source, 'create')
