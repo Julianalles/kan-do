@@ -9,6 +9,7 @@
 - Renders the task list for "In Progress" tasks
 - Displays the dedicated progress bar for the active task
 - Hosts the add-and-start slot while Jetzt is empty (#125); it morphs into the Jetzt draft card
+- Empty Jetzt shows a card-shaped placeholder (#805): a muted line where the one current task lands, the full box of a card. On a pointer device the add-and-start button covers and replaces it in the same box while the section is hovered or the button has focus; on touch the placeholder stays and the button is not offered (the other ways to add remain). It takes no pointer events, so it is no drop obstacle, and it is gone while dragging, drafting or holding a card or gap
 - Manages specific layout requirements for the progress column
 -->
 <template>
@@ -45,6 +46,14 @@
       <task-deleted-gap v-for="gap in gapsAfter" :key="gap.taskId" :gap="gap" />
       <!-- Droppable sentinel: ensures dnd-kit can accept drops even when the column is empty -->
       <column-drop-zone :task-status="props.taskStatus" :is-empty="isEmpty" />
+    </div>
+
+    <!-- Placeholder of the empty Jetzt (#805): the full shape of a card; the slot's button covers it on hover and focus.
+         No pointer events: the drop zone beneath keeps the whole box -->
+    <div v-if="showPlaceholder" class="jetzt-placeholder-host px-3 md:px-10" aria-hidden="true">
+      <div class="jetzt-placeholder" data-testid="jetzt-placeholder">
+        <span class="jetzt-placeholder-text">{{ t('board.emptyProgressHint') }}</span>
+      </div>
     </div>
 
     <!-- Add-and-start slot (#125), with the task list's inset so it lines up with a card: only while Jetzt is empty and nothing is dragged (WIP 1).
@@ -123,6 +132,9 @@ const isDrafting = computed(() => draftTask.value?.status === TaskStatus.Progres
 /** The slot exists while Jetzt is empty and nothing is dragged, and always while it holds the Jetzt draft. */
 const showSlot = computed(() => (isEmpty.value && !props.isDragging && !hasGaps.value) || isDrafting.value);
 
+/** The card-shaped placeholder (#805): an empty Jetzt that nothing is dragged over and no draft fills. */
+const showPlaceholder = computed(() => isEmpty.value && !props.isDragging && !hasGaps.value && !isDrafting.value);
+
 /**
  * Overlay over the empty list, or in flow below the cards. Latched only while the Jetzt draft is being
  * saved: the saved task can land a render before the draft clears and must not push the draft out of
@@ -185,6 +197,42 @@ if (import.meta.dev) {
   position: absolute;
   inset: 0;
   min-height: 0;
+}
+
+/* Placeholder of the empty Jetzt (#805): the box of a card, under the slot's button, blind to the pointer */
+.jetzt-placeholder-host {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.jetzt-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: min(var(--task-card-width), 100%);
+  max-width: var(--task-card-max-width);
+  min-height: var(--task-card-height);
+  padding: 0.5rem 1rem;
+  border: 1px dashed var(--ui-border-accented);
+  border-radius: var(--task-card-radius);
+  color: var(--ui-text-muted);
+  font-size: var(--text-sm);
+  line-height: var(--lh-snug);
+  text-align: center;
+  transition: opacity var(--add-slot-reveal-duration) var(--ease-standard);
+}
+
+/* The button covers and replaces it: gone while the section is hovered or the button has focus */
+@media (hover: hover) {
+  :global(#column-progress:hover .jetzt-placeholder),
+  .progress-column-content-wrapper:has(.add-task-button:focus) .jetzt-placeholder {
+    opacity: 0;
+  }
 }
 
 /* Overlay wrapper: sits on top of the drop zone, no flex space consumed */

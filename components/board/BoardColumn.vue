@@ -16,7 +16,7 @@
 - Handles visual states for different statuses and empty states
 - `top` slot (Offen on "Alle", #573 case 2): a zero-height sticky host under the app bar for the capacity echo of a line above the window
 - Offen on Heute, empty while tasks of today's group "Gestern geplant" wait under "Alle" (#356): one muted sentence with a link to "Alle"; every other empty column stays blank
-- Offen on Heute with no task in any column (#761): one muted hint line "Was steht heute an?" that is itself a button opening the add slot (the header button's flow); gone while a draft is open, a drag runs or the yesterday note shows
+- Offen on Heute with no task in any column (#761): one muted hint line "Was steht heute an?" that is itself a button opening the add slot (the header button's flow); with tasks waiting under "Alle" (#802) a second muted line below it links there; gone while a draft is open, a drag runs or the yesterday note shows
 - Erledigt drop target (#124): a light green wash under the list and a one-line hint while a card
   from another column hovers it
 -->
@@ -131,6 +131,18 @@
       >
         {{ t('board.emptyOpenHint') }}
       </UButton>
+      <!-- Tasks wait under "Alle" (#802): the other way in, the same kind of link as the yesterday note's -->
+      <p
+        v-if="showEmptyHint && props.tasksUnderAll"
+        class="text-body text-muted"
+        data-testid="open-empty-all-hint"
+      >
+        <i18n-t keypath="board.emptyOpenAll" scope="global">
+          <template #all>
+            <ULink :to="allLocation" data-testid="open-empty-all-link">{{ t('nav.all') }}</ULink>
+          </template>
+        </i18n-t>
+      </p>
       <!-- Add slot (Open column only, #125, #248): the draft host at the start of the list. It has no box while no draft is
            open (no gap above the first card); the header button opens it. Inside the flex container so gap spacing applies -->
       <add-task-slot
@@ -222,6 +234,11 @@ const props = defineProps({
   yesterdayCount: {
     type: Number,
     default: 0,
+  },
+  /** Offen only (#802): tasks wait under "Alle"; the empty board then adds a second line leading there. */
+  tasksUnderAll: {
+    type: Boolean,
+    default: false,
   },
   /** Offen only (#761): no task in any column of Heute; the empty Offen then asks what is on today. */
   boardEmpty: {
