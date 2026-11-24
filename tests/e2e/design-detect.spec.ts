@@ -81,13 +81,13 @@ const SURFACES: Surface[] = [
     },
   },
   {
-    // "Alle" after the fresh start (#469): yesterday's tasks in two panels (#702), the rest plain below them
+    // "Alle" after the fresh start (#469): the tasks of the last planned day in one block (#741), the rest under "Weitere Aufgaben"
     name: 'alle with yesterday\'s panel',
     open: async (page, context) => {
       await seedNewDayBoard(context, { tasks: newDayBackTasks().filter(task => task.status !== 3) })
       await page.goto('/all')
       await page.getByTestId('new-day-note-start').click()
-      await expect(page.getByTestId('not-planned-panel-planned')).toBeVisible()
+      await expect(page.getByTestId('not-planned-panel')).toBeVisible()
     },
   },
   {

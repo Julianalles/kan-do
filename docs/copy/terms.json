@@ -658,7 +658,7 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "User decision on #702 (design round 1, 1B: two panels). Label in the sans label role with a count; the tasks of the same fresh start that came out of Wartet are the term waiting-yesterday."
+    "note": "No longer in the UI since #741 (one block, term from-yesterday). User decision on #702 (design round 1, 1B: two panels). Label in the sans label role with a count; the tasks of the same fresh start that came out of Wartet are the term waiting-yesterday."
   },
   {
     "id": "waiting-yesterday",
@@ -668,7 +668,17 @@
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "Second panel of #702, beside planned-yesterday. English \"Waiting\" is the column name Wartet."
+    "note": "No longer in the UI since #741 (one block, term from-yesterday). Second panel of #702, beside planned-yesterday. English \"Waiting\" is the column name Wartet."
+  },
+  {
+    "id": "from-yesterday",
+    "concept": "The block on top of \"Alle Aufgaben\" for one day: every task that was planned and not done when the board was last left (Jetzt, Offen and Wartet), named by the day they are from (#741, replaces planned-yesterday and waiting-yesterday of #702)",
+    "de": "Von gestern",
+    "en": "From yesterday",
+    "avoidDe": [],
+    "avoidEn": [],
+    "status": "proposed",
+    "note": "User decision on #741 (D2: one block, D3 2B: the title names the day). Forms: \"Von gestern\" the day before, \"Von {weekday}\" 2 to 6 days back (\"Von Samstag\"), \"Vom {date}\" beyond (\"Vom 14. November\"); English \"From yesterday\", \"From {weekday}\", \"From {date}\". A waiting task in it shows the badge \"Wartet\" (column-waiting)."
   },
   {
     "id": "plan-all-for-today",

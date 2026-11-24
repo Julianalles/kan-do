@@ -236,7 +236,7 @@ describe('useNewDay: the day check and the fresh start (#387)', () => {
       expect(tasks.task('d')!.status).toBe(TaskStatus.Done)
       expect(recap.lastNewDay).toBe(TODAY)
       // the group is what came from Jetzt and Offen; what came from Wartet is kept apart, both for this day only
-      expect(recap.sentBack).toEqual({ day: TODAY, ids: ['j', 'o1', 'o2'], waiting: ['w'] })
+      expect(recap.sentBack).toEqual({ day: TODAY, ids: ['j', 'o1', 'o2'], waiting: ['w'], from: '2026-10-21' })
       expect(newDay.groupIds.value).toEqual(['j', 'o1', 'o2'])
       expect(newDay.waitingIds.value).toEqual(['w'])
       expect(isNewDayDue()).toBe(false)
@@ -297,7 +297,7 @@ describe('useNewDay: the day check and the fresh start (#387)', () => {
       resetNewDay()
       newDay.check()
       expect(newDay.freshStart()).toEqual([])
-      expect(recap.sentBack).toEqual({ day: TODAY, ids: ['j', 'o1', 'o2'], waiting: ['w'] })
+      expect(recap.sentBack).toEqual({ day: TODAY, ids: ['j', 'o1', 'o2'], waiting: ['w'], from: '2026-10-21' })
       expect(tasks.tasksOpen.map(t => t.id)).toEqual(['o1'])
     })
 
@@ -323,7 +323,8 @@ describe('useNewDay: the day check and the fresh start (#387)', () => {
       }
       tasks.updateTask('o2', { status: TaskStatus.Waiting, notPlanned: undefined })
       expect(newDay.freshStart()).toEqual(['o1', 'o2'])
-      expect(recap.sentBack).toEqual({ day: '2026-10-24', ids: ['o1'], waiting: ['o2'] })
+      // `from` (#741): the day the board was last planned, the marker this start replaces
+      expect(recap.sentBack).toEqual({ day: '2026-10-24', ids: ['o1'], waiting: ['o2'], from: '2026-10-22' })
       // the earlier leftovers are plain "not planned" tasks now, below today's group and what came from Wartet
       expect(notPlannedIds()).toEqual(['o1', 'o2', 'j', 'w'])
       expect(newDay.groupIds.value).toEqual(['o1'])

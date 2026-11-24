@@ -469,8 +469,11 @@
    more on the arrow's side, so the arrow never covers a letter (#467). A phone and a touch-only device have their own
    corner room (`.task-text--menu` in TaskCard) and no arrow on a card's edge. */
 @media (--desktop) and (hover: hover) {
+  /* The Jetzt card that "Heute" lists on "Alle" (#797) has no arrow, but its text starts on the line of the cards around it */
   .task-wrapper--not-today .task-topic,
-  .task-wrapper--not-today .task-title-text {
+  .task-wrapper--not-today .task-title-text,
+  .task-wrapper[data-today-extra] .task-topic,
+  .task-wrapper[data-today-extra] .task-title-text {
     padding-left: 0.5rem;
   }
 

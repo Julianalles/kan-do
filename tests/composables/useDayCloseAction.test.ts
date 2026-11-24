@@ -117,7 +117,7 @@ describe('useDayCloseAction.finishDay (#480)', () => {
     tasks.setTasks([makeTask('o1', TaskStatus.Open), makeTask('p', TaskStatus.Progress), makeTask('w', TaskStatus.Waiting)])
     closeDay()
     expect(recap.validLastNewDay).toBe(TOMORROW)
-    expect(recap.validSentBack).toEqual({ day: TOMORROW, ids: ['p', 'o1'], waiting: ['w'] })
+    expect(recap.validSentBack).toEqual({ day: TOMORROW, ids: ['p', 'o1'], waiting: ['w'], from: '2026-10-22' })
   })
 
   it('next morning: no new-day notice, the fresh start moves nothing, the group and the Wartet tasks of `sentBack.waiting` are there (marker not overwritten)', () => {
@@ -132,7 +132,7 @@ describe('useDayCloseAction.finishDay (#480)', () => {
     expect(newDay.check()).toBe(true)
     expect(newDay.noticeShown.value).toBe(false)
     expect(newDay.freshStart()).toEqual([])
-    expect(recap.validSentBack).toEqual({ day: TOMORROW, ids: ['p', 'o1'], waiting: ['w'] })
+    expect(recap.validSentBack).toEqual({ day: TOMORROW, ids: ['p', 'o1'], waiting: ['w'], from: '2026-10-22' })
     expect(newDay.groupIds.value).toEqual(['p', 'o1'])
     expect(newDay.waitingIds.value).toEqual(['w'])
   })

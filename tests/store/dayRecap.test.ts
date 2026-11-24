@@ -74,8 +74,35 @@ describe('day recap store', () => {
       expect(store.markNewDay('2026-10-22', ['a'], ['w1', 'w1', 'w2'])).toBe(true)
       expect(store.sentBack).toEqual({ day: '2026-10-22', ids: ['a'], waiting: ['w1', 'w2'] })
       expect(store.markNewDay('2026-10-23', ['b'])).toBe(true)
-      expect(store.sentBack).toEqual({ day: '2026-10-23', ids: ['b'] })
+      expect(store.sentBack).toEqual({ day: '2026-10-23', ids: ['b'], from: '2026-10-22' })
       expect(store.sentBack).not.toHaveProperty('waiting')
+    })
+
+    it('the day the tasks are from is stored with them (#741): a start writes the marker it replaces, a close its own day; none without tasks', () => {
+      const store = useDayRecapStore()
+      // No marker before: no day to name
+      store.markNewDay('2026-10-19', ['a'])
+      expect(store.sentBack).not.toHaveProperty('from')
+      // Days away, then the fresh start: the tasks are from the day the board was last planned
+      store.markNewDay('2026-10-22', ['a'], ['w'])
+      expect(store.validSentBack?.from).toBe('2026-10-19')
+      // A day without anything taken off names no day
+      store.markNewDay('2026-10-23', [])
+      expect(store.sentBack).not.toHaveProperty('from')
+      // The evening's close: its own day, kept by a second close the same evening
+      store.markDayClosed('2026-10-24', ['a'], [], '2026-10-23')
+      expect(store.validSentBack?.from).toBe('2026-10-23')
+      store.markDayClosed('2026-10-24', ['b'], [], '2026-10-24')
+      expect(store.validSentBack).toEqual({ day: '2026-10-24', ids: ['b', 'a'], from: '2026-10-23' })
+      store.markDayClosed('2026-10-25', [], [], '2026-10-24')
+      expect(store.sentBack).not.toHaveProperty('from')
+    })
+
+    it('a stored `from` is read tolerantly: only a day before the block\'s own counts, anything else reads as absent', () => {
+      expect(sanitizeSentBack({ day: '2026-10-24', ids: ['a'], from: '2026-10-21' })).toEqual({ day: '2026-10-24', ids: ['a'], from: '2026-10-21' })
+      for (const from of ['2026-10-24', '2026-10-25', 'gestern', 3, null, {}]) {
+        expect(sanitizeSentBack({ day: '2026-10-24', ids: ['a'], from })).toEqual({ day: '2026-10-24', ids: ['a'] })
+      }
     })
 
     it('markDayClosed keeps the Wartet ids the close took off apart from the group; a second close adds to them, none writes no field, a stored `waiting` is sanitized', () => {

@@ -23,7 +23,7 @@ import { useArchiveDoneTasks } from '~/composables/useArchiveDoneTasks'
 import { useTakeOffBoard } from '~/composables/useTakeOffBoard'
 import { syncToday } from '~/composables/useToday'
 import { dataState } from '~/lib/dataStorage'
-import { nextDayKey } from '~/utils/recapDay'
+import { dayKey, nextDayKey } from '~/utils/recapDay'
 
 /** How long the Erledigt list fades before its tasks are archived (#292): `--duration-base`, mirrored here. */
 export const DONE_LEAVE_MS = 200
@@ -94,7 +94,8 @@ export function useDayCloseAction() {
     dayClose.close()
     archiveDone()
     const { group, fromWaiting } = takeOffBoard()
-    recapStore.markDayClosed(nextDayKey(now), group, fromWaiting)
+    // The day the tasks are from is today: tomorrow's block on "Alle" reads "Von gestern" (#741)
+    recapStore.markDayClosed(nextDayKey(now), group, fromWaiting, dayKey(now))
     return true
   }
 

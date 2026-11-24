@@ -12,6 +12,7 @@
   sortable: it sits next to the sortables, never inside one), anything else as SortableTaskWrapper >
   context menu > TaskCard (the same markup for an ungrouped card, a single-card group and a member of
   an expanded stack)
+- `todayExtra` (#797): the item is a Jetzt or Wartet card that BoardColumn lists in "Heute" on the place "Alle"; it stays a sortable of its own status and its card shows the status badge
 - Has exactly one root element per item (no fragment). dnd-kit moves the dragged wrapper next to its
   target and Vue removes a fragment by walking its anchors: a card that sat in another card's
   fragment would be removed with it (#146). One root node per item keeps the list flat.
@@ -48,11 +49,13 @@
     :stack-index="item.stackIndex"
     :stack-size="item.stackSize"
     :stack-label="item.stackLabel"
+    :today-extra="todayExtra"
   >
     <task-card-context-menu v-if="!staticMode" :task="item.task">
       <task-card
         :task="item.task"
         :muted="item.muted"
+        :status-badge="todayExtra"
         :style="{ '--item-index': item.itemIndex }"
         @open="(id) => emit('open', id)"
       />
@@ -61,6 +64,7 @@
       v-else
       :task="item.task"
       :muted="item.muted"
+      :status-badge="todayExtra"
       :style="{ '--item-index': item.itemIndex }"
     />
   </sortable-task-wrapper>
@@ -84,6 +88,8 @@ const props = defineProps<{
   taskStatus: TaskStatus;
   /** Static boards (no navigation, no context menu) */
   staticMode: boolean;
+  /** A Jetzt or Wartet card listed in "Heute" on the place "Alle" (#797): `taskStatus` is the task's own status, the card names it in a badge */
+  todayExtra?: boolean;
 }>();
 
 const emit = defineEmits<{

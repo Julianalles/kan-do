@@ -49,6 +49,27 @@ export function recapWhen(newest: Date, today: Date): RecapWhen {
   return { kind: 'date', date: newest }
 }
 
+export type BlockWhen = { kind: 'yesterday' } | { kind: 'weekday' | 'date', date: Date }
+
+/** A `YYYY-MM-DD` key as the local date it names (noon, so no daylight-saving change moves it to a neighbour day). */
+export function dateOfDayKey(key: string): Date {
+  const [year, month, day] = key.split('-').map(Number) as [number, number, number]
+  return new Date(year, month - 1, day, 12)
+}
+
+/**
+ * How the block on top of "Alle Aufgaben" names the day its tasks are from (#741, 2B), seen on `day`: the day before
+ * "yesterday", 2 to 6 days back the weekday, 7 and more the date. Without a stored day (older data), a malformed one or
+ * one that is not before `day` (a clock set back) it reads "yesterday".
+ */
+export function blockWhen(from: unknown, day: string): BlockWhen {
+  if (!isValidDayKey(from) || !isValidDayKey(day)) return { kind: 'yesterday' }
+  const date = dateOfDayKey(from)
+  const distance = dayNumber(dateOfDayKey(day)) - dayNumber(date)
+  if (distance <= 1) return { kind: 'yesterday' }
+  return { kind: distance <= 6 ? 'weekday' : 'date', date }
+}
+
 /** "14. Oktober" / "October 14": day and long month, no year. */
 export function dayMonthName(date: Date, locale: AppLocale): string {
   return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long' }).format(date)

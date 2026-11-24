@@ -12,6 +12,7 @@ import { useBoardStore } from '~/store/board'
 import { useBoardDndKit } from '~/composables/useBoardDndKit'
 import { useBoardDragState } from '~/composables/useBoardDragState'
 import { NOT_PLANNED_GROUP } from '~/utils/planDrop'
+import { setCurrentBoardPath } from '~/lib/boardPlace'
 import { sourceOf } from '../helpers/taskSource'
 
 vi.mock('~/composables/useErrorHandler', () => ({
@@ -232,15 +233,146 @@ describe('useBoardDndKit: between "Alle Aufgaben" and Offen (#355)', () => {
     expect(openIds()).toEqual(['o2'])
   })
 
-  it('a card of another column dropped on the side changes nothing', () => {
+  it('a done card dropped on the side changes nothing', () => {
     seed(['h1'], ['o1'])
-    tasksStore.addTask(makeTask({ id: 'w1', status: TaskStatus.Waiting }))
+    tasksStore.addTask(makeTask({ id: 'd1', status: TaskStatus.Done }))
     useBoardStore().reconcileColumnsWithTasks(tasksStore.tasks)
     const kit = useBoardDndKit()
-    const source = { id: 'w1', initialIndex: 0, index: 0, initialGroup: TaskStatus.Waiting, group: TaskStatus.Waiting, element: document.createElement('div') }
+    const source = { id: 'd1', initialIndex: 0, index: 0, initialGroup: TaskStatus.Done, group: TaskStatus.Done, element: document.createElement('div') }
     kit.onDragStart({ operation: { source } })
     kit.onDragEnd({ canceled: false, operation: { source, target: zone } })
-    expect(tasksStore.task('w1')?.status).toBe(TaskStatus.Waiting)
+    expect(tasksStore.task('d1')?.status).toBe(TaskStatus.Done)
     expect(heldIds()).toEqual(['h1'])
+  })
+})
+
+/**
+ * "Heute" on "Alle" lists the Jetzt card and the Wartet cards behind Offen's own (#797), each a sortable of its own status
+ * inside Offen's list. No drop there changes a status.
+ */
+describe('useBoardDndKit: the Jetzt and Wartet cards of "Heute" on "Alle" (#797)', () => {
+  let tasksStore: ReturnType<typeof useTasksStore>
+  let openList: HTMLElement
+  const { dragState } = useBoardDragState()
+
+  /** Offen's list on "Alle": its own cards, then the Jetzt card and the Wartet cards (marked), then the drop zone */
+  const mount = () => {
+    openList = document.createElement('div')
+    openList.setAttribute('data-task-status', String(TaskStatus.Open))
+    const add = (task: Task, extra: boolean) => {
+      const wrapper = document.createElement('div')
+      wrapper.className = 'task-wrapper'
+      wrapper.setAttribute('data-task-id', task.id)
+      if (extra) wrapper.setAttribute('data-today-extra', String(task.status))
+      openList.append(wrapper)
+    }
+    tasksStore.tasksOpen.forEach(task => add(task, false))
+    ;[...tasksStore.tasksProgress, ...tasksStore.tasksWaiting].forEach(task => add(task, true))
+    const dropZone = document.createElement('div')
+    dropZone.className = 'column-drop-zone'
+    openList.append(dropZone)
+    document.body.append(openList)
+  }
+  const seed = () => {
+    ;['o1', 'o2'].forEach(id => tasksStore.addTask(makeTask({ id })))
+    tasksStore.addTask(makeTask({ id: 'p1', status: TaskStatus.Progress }))
+    ;['w1', 'w2', 'w3'].forEach(id => tasksStore.addTask(makeTask({ id, status: TaskStatus.Waiting })))
+    useBoardStore().reconcileColumnsWithTasks(tasksStore.tasks)
+    mount()
+  }
+  const card = (id: string) => openList.querySelector(`[data-task-id="${id}"]`)!
+  const listIds = () => [...openList.children].flatMap(el => el.getAttribute('data-task-id') ?? [])
+  const waitingIds = () => tasksStore.tasksWaiting.map(t => t.id)
+  const pickUp = (id: string, status: TaskStatus, index: number) => {
+    const kit = useBoardDndKit()
+    const source = { id, initialIndex: index, index, initialGroup: status as unknown, group: status as unknown, element: card(id) }
+    kit.onDragStart({ operation: { source } })
+    return { kit, source }
+  }
+  const over = (kit: ReturnType<typeof useBoardDndKit>, source: unknown, target: unknown) => {
+    const preventDefault = vi.fn()
+    kit.onDragOver({ operation: { source, target }, preventDefault })
+    return preventDefault
+  }
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    vi.clearAllMocks()
+    tasksStore = useTasksStore()
+    setCurrentBoardPath('/all')
+  })
+  afterEach(() => {
+    openList.remove()
+    setCurrentBoardPath('/tasks')
+  })
+
+  it('a Wartet card dropped on the side leaves today and keeps Wartet', () => {
+    seed()
+    const { kit, source } = pickUp('w2', TaskStatus.Waiting, 1)
+    kit.onDragEnd({ canceled: false, operation: { source, target: zone } })
+    expect(tasksStore.task('w2')?.status).toBe(TaskStatus.Waiting)
+    expect(tasksStore.tasksNotPlanned.map(t => t.id)).toEqual(['w2'])
+    expect(waitingIds()).toEqual(['w1', 'w3'])
+  })
+
+  it('a Wartet card sorted among the Wartet cards reorders Wartet', () => {
+    seed()
+    const { kit, source } = pickUp('w3', TaskStatus.Waiting, 2)
+    expect(over(kit, source, { id: 'w1', initialGroup: TaskStatus.Waiting, group: TaskStatus.Waiting })).not.toHaveBeenCalled()
+    // dnd-kit's optimistic sort: the node moves in front of w1, the index follows
+    openList.insertBefore(source.element, card('w1'))
+    source.index = 0
+    kit.onDragEnd({ canceled: false, operation: { source, target: null } })
+    expect(waitingIds()).toEqual(['w3', 'w1', 'w2'])
+    expect(tasksStore.tasksOpen.map(t => t.id)).toEqual(['o1', 'o2'])
+  })
+
+  it.each([
+    ['a Wartet card over an Offen card', 'w1', TaskStatus.Waiting, TaskStatus.Open],
+    ['a Wartet card over the Jetzt card', 'w1', TaskStatus.Waiting, TaskStatus.Progress],
+    ['an Offen card over a Wartet card', 'o1', TaskStatus.Open, TaskStatus.Waiting],
+    ['an Offen card over the Jetzt card (no swap on "Alle")', 'o1', TaskStatus.Open, TaskStatus.Progress],
+    ['the Jetzt card over an Offen card', 'p1', TaskStatus.Progress, TaskStatus.Open],
+  ] as const)('%s is not sorted there', (_label, id, from, targetGroup) => {
+    seed()
+    const { kit, source } = pickUp(id, from, 0)
+    const prevented = over(kit, source, { id: 'other', initialGroup: targetGroup, group: targetGroup })
+    expect(prevented).toHaveBeenCalled()
+    expect(dragState.value.swapTaskId).toBeNull()
+    kit.onDragEnd({ canceled: false, operation: { source, target: null } })
+    expect(tasksStore.task(id)?.status).toBe(from)
+  })
+
+  it.each([
+    ['the Jetzt card', 'p1', TaskStatus.Progress],
+    ['a Wartet card', 'w2', TaskStatus.Waiting],
+  ] as const)('%s released on the drop zone of "Heute" keeps its status and its place in the list', (_label, id, from) => {
+    seed()
+    const before = listIds()
+    const { kit, source } = pickUp(id, from, 0)
+    kit.onDragEnd({ canceled: false, operation: { source, target: openZone } })
+    expect(tasksStore.task(id)?.status).toBe(from)
+    expect(listIds()).toEqual(before)
+    expect(waitingIds()).toEqual(['w1', 'w2', 'w3'])
+  })
+
+  it('an Offen card released below the Jetzt and Wartet cards is the last Offen card, and its node goes back in front of them', () => {
+    seed()
+    const { kit, source } = pickUp('o1', TaskStatus.Open, 0)
+    // dnd-kit sorted it behind o2 (the last card of its own status); the pointer went on over the cards below
+    openList.insertBefore(source.element, card('p1'))
+    source.index = 1
+    kit.onDragEnd({ canceled: false, operation: { source, target: openZone } })
+    expect(tasksStore.task('o1')?.status).toBe(TaskStatus.Open)
+    expect(tasksStore.tasksOpen.map(t => t.id)).toEqual(['o2', 'o1'])
+    expect(listIds().slice(-4)).toEqual(['p1', 'w1', 'w2', 'w3'])
+  })
+
+  it('on the place "Heute" the same drop moves the card as ever', () => {
+    seed()
+    setCurrentBoardPath('/tasks')
+    const { kit, source } = pickUp('w1', TaskStatus.Waiting, 0)
+    kit.onDragEnd({ canceled: false, operation: { source, target: openZone } })
+    expect(tasksStore.task('w1')?.status).toBe(TaskStatus.Open)
   })
 })

@@ -43,8 +43,9 @@ const board = (page: Page) => page.locator('.board')
 const notPlanned = (page: Page) => page.getByTestId('not-planned')
 const notPlannedIds = (page: Page) =>
   notPlanned(page).locator('[data-not-planned-id]').evaluateAll(els => els.map(el => el.getAttribute('data-not-planned-id')))
+/** Offen's own cards; the Jetzt and Wartet cards "Heute" lists behind them on "Alle" (#797) are `todayIds` */
 const openIds = (page: Page) =>
-  page.locator('#column-open-list > .task-wrapper').evaluateAll(els => els.map(el => el.getAttribute('data-task-id')))
+  page.locator('#column-open-list > .task-wrapper:not([data-today-extra])').evaluateAll(els => els.map(el => el.getAttribute('data-task-id')))
 const item = (page: Page, id: string) => notPlanned(page).locator(`[data-not-planned-id="${id}"]`)
 const openCard = (page: Page, id: string) => page.locator(`#column-open .task-wrapper[data-task-id="${id}"]`)
 const placeLink = (page: Page, place: 'all' | 'board') => page.getByTestId(`app-nav-place-${place}`)
@@ -715,28 +716,29 @@ test.describe('The place "Alle" (#354), desktop', () => {
   })
 })
 
+// Phone helpers, shared by the phone suites below
+const pageOf = (page: Page) => board(page).getAttribute('data-mobile-page')
+/** The strip rests on the page it reports (a tap aimed before that lands on the sliding page) */
+async function pageAtRest(page: Page) {
+  await atRest(page)
+  await expect.poll(() => board(page).evaluate((el) => {
+    const transform = getComputedStyle(el).transform
+    const x = transform === 'none' ? 0 : new DOMMatrixReadOnly(transform).m41
+    return Math.abs(Math.round(x)) % window.innerWidth
+  })).toBe(0)
+}
+async function swipe(page: Page, direction: 'left' | 'right') {
+  const touch = finger(await page.context().newCDPSession(page), page)
+  // Below the cards: a touch that starts on a card's corner button is the button's, never a swipe
+  await touch.start(direction === 'left' ? 300 : 90, 560)
+  await touch.moveTo(direction === 'left' ? 80 : 310, 570, 12)
+  await touch.end()
+}
+
 test.describe('The place "Alle" (#354), phone', () => {
   test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } })
 
   const dots = (page: Page) => page.locator('[data-testid="page-dots"] .page-dot')
-  const pageOf = (page: Page) => board(page).getAttribute('data-mobile-page')
-  /** The strip rests on the page it reports (a tap aimed before that lands on the sliding page) */
-  async function pageAtRest(page: Page) {
-    await atRest(page)
-    await expect.poll(() => board(page).evaluate((el) => {
-      const transform = getComputedStyle(el).transform
-      const x = transform === 'none' ? 0 : new DOMMatrixReadOnly(transform).m41
-      return Math.abs(Math.round(x)) % window.innerWidth
-    })).toBe(0)
-  }
-  async function swipe(page: Page, direction: 'left' | 'right') {
-    const touch = finger(await page.context().newCDPSession(page), page)
-    // Below the cards: a touch that starts on a card's corner button is the button's, never a swipe
-    await touch.start(direction === 'left' ? 300 : 90, 560)
-    await touch.moveTo(direction === 'left' ? 80 : 310, 570, 12)
-    await touch.end()
-  }
-
   test('"Alle" has two swipe pages and two dots, "Heute" three; a swipe at an edge never leads to the other place', async ({ context, page }) => {
     await seedLocalBoard(context, BOARD)
     await gotoAll(page)
@@ -914,7 +916,7 @@ test.describe('The place "Alle" (#354), phone', () => {
 
 /** Offen's list as the drag shows it: the cards, and the "Alle Aufgaben" item dnd-kit sorted in as the gap */
 const openListIds = (page: Page) =>
-  page.locator('#column-open-list > :is(.task-wrapper, .not-planned__item)').evaluateAll(els =>
+  page.locator('#column-open-list > :is(.task-wrapper:not([data-today-extra]), .not-planned__item)').evaluateAll(els =>
     els.map(el => el.getAttribute('data-task-id') ?? el.getAttribute('data-not-planned-id')))
 const side = (page: Page) => page.locator('#column-not-planned')
 const card = (page: Page, id: string) => item(page, id).locator('.not-planned__card')
@@ -949,7 +951,7 @@ test.describe('Drag between "Alle Aufgaben" and Offen (#355), desktop', () => {
 
     // The last slot too: below the last card
     await pickUp(page, card(page, 'np-1'))
-    const last = (await page.locator('#column-open-list > .task-wrapper').last().boundingBox())!
+    const last = (await page.locator('#column-open-list > .task-wrapper:not([data-today-extra])').last().boundingBox())!
     await page.mouse.move(last.x + last.width / 2, last.y + last.height + 60, { steps: 25 })
     await page.mouse.up()
     await dropSettled(page)
@@ -1243,6 +1245,184 @@ test.describe('"Alle Aufgaben" layout and the marker (#469)', () => {
       expect(box.y).toBeLessThan(cardBox.y + 24)
       const next = (await card(page, 'np-2').boundingBox())!
       expect(Math.round(next.x)).toBe(Math.round(cardBox.x))
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+    })
+  })
+})
+
+/**
+ * #797 (epic #374, 2B): "Heute" on "Alle" lists everything planned for today. The Jetzt card and the Wartet cards follow
+ * Offen's own, each with a status badge; they keep their status whatever a drag does, and a waiting task off today shows
+ * its badge under "Alle Aufgaben".
+ */
+test.describe('"Heute" on "Alle" lists everything planned for today (#797)', () => {
+  const TODAY: SeedTask[] = [
+    held('np-1', 'Angebot kalkulieren'),
+    task({ id: 'np-wait', title: 'Antwort vom Amt', status: 2, notPlanned: true }),
+    open('open-1', 'Rechnung schicken'),
+    open('open-2', 'Pflanzplan zeichnen'),
+    task({ id: 'now-1', title: 'Beet abstecken', status: 1 }),
+    task({ id: 'wait-1', title: 'Rückruf abwarten', status: 2 }),
+    task({ id: 'wait-2', title: 'Lieferung Kies', status: 2 }),
+  ]
+  /** Everything "Heute" lists, top to bottom */
+  const todayIds = (page: Page) =>
+    page.locator('#column-open-list > .task-wrapper').evaluateAll(els => els.map(el => el.getAttribute('data-task-id')))
+  const badgeOf = (page: Page, id: string) => openCard(page, id).getByTestId('task-status-badge')
+  const columnIds = (page: Page, column: 'progress' | 'waiting') =>
+    page.locator(`#column-${column} [data-task-id].task-wrapper`).evaluateAll(els => els.map(el => el.getAttribute('data-task-id')))
+  const stored = (page: Page, id: string) => page.evaluate((taskId) => {
+    const tasks = JSON.parse(localStorage.getItem('tasks-store') ?? '{}').tasks as { id: string, status: number, notPlanned?: boolean }[]
+    const found = tasks.find(t => t.id === taskId)
+    return found ? { status: found.status, notPlanned: found.notPlanned === true } : null
+  }, id)
+
+  test.describe('desktop', () => {
+    test.use({ viewport: { width: 1280, height: 900 } })
+
+    test('Offen cards, then the Jetzt card, then the Wartet cards with their badges; on Heute the column is Offen alone and no card has a badge', async ({ context, page }) => {
+      await seedLocalBoard(context, TODAY)
+      await gotoAll(page)
+      await expect.poll(() => todayIds(page)).toEqual(['open-1', 'open-2', 'now-1', 'wait-1', 'wait-2'])
+      await expect(badgeOf(page, 'now-1')).toHaveText('Jetzt')
+      await expect(badgeOf(page, 'wait-1')).toHaveText('Wartet')
+      await expect(badgeOf(page, 'open-1')).toHaveCount(0)
+      // The Jetzt card is the standard card here: the Jetzt column owns the bar and the question
+      await expect(openCard(page, 'now-1').locator('.task')).not.toHaveAttribute('data-current', '')
+      // A waiting task off today keeps its status and says so under "Alle Aufgaben"; an Offen one says nothing
+      await expect(item(page, 'np-wait').getByTestId('task-status-badge')).toHaveText('Wartet')
+      await expect(item(page, 'np-1').getByTestId('task-status-badge')).toHaveCount(0)
+      // The column is not empty with only such cards, and one card is one node
+      await expect(page.locator('[data-task-id="wait-1"].task-wrapper')).toHaveCount(1)
+      await expect(page.locator('[data-task-id="now-1"].task-wrapper')).toHaveCount(1)
+
+      await toHeute(page).click()
+      await expect(board(page)).toHaveAttribute('data-place', 'today')
+      await atRest(page)
+      await expect(page.locator('#column-open h2')).toHaveText('Offen')
+      await expect.poll(() => todayIds(page)).toEqual(['open-1', 'open-2'])
+      await expect.poll(() => columnIds(page, 'waiting')).toEqual(['wait-1', 'wait-2'])
+      await expect(page.locator('#column-progress .task[data-task-id="now-1"]')).toHaveAttribute('data-current', '')
+      await expect(page.locator('.board').getByTestId('task-status-badge')).toHaveCount(0)
+
+      // and back: the cards are in "Heute" again, once each
+      await placeLink(page, 'all').click()
+      await expect(board(page)).toHaveAttribute('data-place', 'all')
+      await atRest(page)
+      await expect.poll(() => todayIds(page)).toEqual(['open-1', 'open-2', 'now-1', 'wait-1', 'wait-2'])
+      await expect(page.locator('[data-task-id="wait-1"].task-wrapper')).toHaveCount(1)
+    })
+
+    test('a Wartet card dropped on "Alle Aufgaben" leaves today and keeps Wartet; planned again it is back in "Heute", and in Wartet on Heute', async ({ context, page }) => {
+      await seedLocalBoard(context, TODAY)
+      await gotoAll(page)
+      await pickUp(page, openCard(page, 'wait-1'))
+      await hoverSide(page)
+      await expect(side(page)).toHaveClass(/is-drop-target/)
+      await page.mouse.up()
+      await dropSettled(page)
+      await expect.poll(() => todayIds(page)).toEqual(['open-1', 'open-2', 'now-1', 'wait-2'])
+      await expect.poll(async () => (await notPlannedIds(page))[0]).toBe('wait-1')
+      await expect.poll(() => stored(page, 'wait-1')).toEqual({ status: 2, notPlanned: true })
+      await expect(item(page, 'wait-1').getByTestId('task-status-badge')).toHaveText('Wartet')
+
+      await item(page, 'wait-1').hover()
+      await item(page, 'wait-1').getByTestId('not-planned-pick').click()
+      await expect.poll(() => todayIds(page)).toEqual(['open-1', 'open-2', 'now-1', 'wait-2', 'wait-1'])
+      await expect.poll(() => stored(page, 'wait-1')).toEqual({ status: 2, notPlanned: false })
+      await expect(badgeOf(page, 'wait-1')).toHaveText('Wartet')
+
+      // The arrow beside the card does the same as the drop (desktop); the Jetzt card has none
+      await expect(openCard(page, 'now-1').getByTestId('not-today-arrow')).toHaveCount(0)
+      await openCard(page, 'wait-2').hover()
+      await openCard(page, 'wait-2').getByTestId('not-today-arrow').click()
+      await expect.poll(() => stored(page, 'wait-2')).toEqual({ status: 2, notPlanned: true })
+      await expect.poll(() => todayIds(page)).toEqual(['open-1', 'open-2', 'now-1', 'wait-1'])
+
+      await toHeute(page).click()
+      await expect(board(page)).toHaveAttribute('data-place', 'today')
+      await atRest(page)
+      await expect.poll(() => columnIds(page, 'waiting')).toEqual(['wait-1'])
+    })
+
+    test('Wartet cards reorder among themselves, and the Wartet column on Heute shows that order', async ({ context, page }) => {
+      await seedLocalBoard(context, TODAY)
+      await gotoAll(page)
+      await pickUp(page, openCard(page, 'wait-2'))
+      await hover(page, openCard(page, 'wait-1'), { fromTop: 12 })
+      await page.mouse.up()
+      await dropSettled(page)
+      await expect.poll(() => todayIds(page)).toEqual(['open-1', 'open-2', 'now-1', 'wait-2', 'wait-1'])
+      await expect.poll(() => stored(page, 'wait-2')).toEqual({ status: 2, notPlanned: false })
+      await toHeute(page).click()
+      await expect(board(page)).toHaveAttribute('data-place', 'today')
+      await atRest(page)
+      await expect.poll(() => columnIds(page, 'waiting')).toEqual(['wait-2', 'wait-1'])
+    })
+
+    test('no drop on "Alle" changes a status: the Jetzt card always returns, a Wartet card stays out of Offen, an Offen card stays Offen', async ({ context, page }) => {
+      await seedLocalBoard(context, TODAY)
+      await gotoAll(page)
+      const order = ['open-1', 'open-2', 'now-1', 'wait-1', 'wait-2']
+
+      // The Jetzt card over "Alle Aufgaben": the side gives no answer, the card is back where it was
+      await pickUp(page, openCard(page, 'now-1'))
+      const sideBox = (await side(page).boundingBox())!
+      await page.mouse.move(sideBox.x + sideBox.width / 2, sideBox.y + sideBox.height / 2, { steps: 25 })
+      await expect(side(page)).not.toHaveClass(/is-drop-target/)
+      await expect(board(page)).not.toHaveAttribute('data-over-not-planned', '')
+      await page.mouse.up()
+      await dropSettled(page)
+      await expect.poll(() => todayIds(page)).toEqual(order)
+      await expect.poll(() => stored(page, 'now-1')).toEqual({ status: 1, notPlanned: false })
+
+      // The Jetzt card over an Offen card, and a Wartet card over an Offen card: neither is sorted there (the first Wartet
+      // card: on its way up it passes only the Jetzt card, which takes no card either)
+      for (const id of ['now-1', 'wait-1']) {
+        await pickUp(page, openCard(page, id))
+        await hover(page, openCard(page, 'open-1'), { fromTop: 12 })
+        await page.mouse.up()
+        await dropSettled(page)
+        await expect.poll(() => todayIds(page)).toEqual(order)
+      }
+      await expect.poll(() => stored(page, 'wait-1')).toEqual({ status: 2, notPlanned: false })
+      await expect.poll(() => stored(page, 'now-1')).toEqual({ status: 1, notPlanned: false })
+
+      // An Offen card released on a Wartet card stays Offen (no swap with the Jetzt card either)
+      await pickUp(page, openCard(page, 'open-1'))
+      await hover(page, openCard(page, 'now-1'))
+      await hover(page, openCard(page, 'wait-2'))
+      await page.mouse.up()
+      await dropSettled(page)
+      await expect.poll(() => stored(page, 'open-1')).toEqual({ status: 0, notPlanned: false })
+      await expect.poll(() => stored(page, 'now-1')).toEqual({ status: 1, notPlanned: false })
+      await expect.poll(async () => (await todayIds(page)).slice(-3)).toEqual(['now-1', 'wait-1', 'wait-2'])
+      await expect.poll(async () => (await openIds(page)).sort()).toEqual(['open-1', 'open-2'])
+
+      // A "Alle Aufgaben" card released on a Wartet card is planned: the drop is a drop on "Heute"
+      await pickUp(page, card(page, 'np-1'))
+      await hover(page, openCard(page, 'wait-1'))
+      await page.mouse.up()
+      await dropSettled(page)
+      await expect.poll(() => stored(page, 'np-1')).toEqual({ status: 0, notPlanned: false })
+      await expect.poll(async () => (await openIds(page)).at(-1)).toBe('np-1')
+    })
+  })
+
+  test.describe('390', () => {
+    test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } })
+
+    test('the "Heute" page of "Alle" lists the Jetzt and Wartet cards with their badges; the "Alle Aufgaben" page shows the waiting task\'s badge', async ({ context, page }) => {
+      await seedLocalBoard(context, TODAY)
+      await gotoAll(page)
+      await expect(item(page, 'np-wait').getByTestId('task-status-badge')).toHaveText('Wartet')
+      await swipe(page, 'left')
+      await expect.poll(() => pageOf(page)).toBe('1')
+      await pageAtRest(page)
+      await expect.poll(() => todayIds(page)).toEqual(['open-1', 'open-2', 'now-1', 'wait-1', 'wait-2'])
+      await expect(badgeOf(page, 'now-1')).toHaveText('Jetzt')
+      await expect(badgeOf(page, 'wait-2')).toHaveText('Wartet')
+      await expect(badgeOf(page, 'wait-2')).toBeInViewport()
       expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
     })
   })

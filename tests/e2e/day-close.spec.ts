@@ -209,7 +209,7 @@ test.describe('Day close stage (#480)', () => {
     expect(stored.archived).toEqual(['seed-done-1', 'seed-done-2'])
     // Tomorrow is the started day, with the group of the Jetzt and Offen tasks (Jetzt first)
     expect(stored.lastNewDay).toBe(dayKey(1))
-    expect(stored.sentBack).toEqual({ day: dayKey(1), ids: ['seed-progress-1', 'seed-open-1', 'seed-open-2'], waiting: ['seed-waiting-1'] })
+    expect(stored.sentBack).toEqual({ day: dayKey(1), ids: ['seed-progress-1', 'seed-open-1', 'seed-open-2'], waiting: ['seed-waiting-1'], from: dayKey(0) })
     // Focus is never lost to <body>
     await page.waitForTimeout(600)
     expect(await page.evaluate(() => document.activeElement === document.body)).toBe(false)
@@ -221,7 +221,7 @@ test.describe('Day close stage (#480)', () => {
     }
   })
 
-  test('the next morning: the panel "Gestern geplant" is there, no notice, no second fresh start, the recap still lists what was left', async ({ page }) => {
+  test('the next morning: the block "Von gestern" is there, no notice, no second fresh start, the recap still lists what was left', async ({ page }) => {
     await page.goto('/tasks')
     await openDayClose(page)
     await doneButton(page).click()
@@ -242,15 +242,15 @@ test.describe('Day close stage (#480)', () => {
     await expect(page).toHaveURL(/\/all/)
     await expect(page.getByTestId('new-day-note')).toHaveCount(0)
 
-    // Jetzt, Offen and Wartet of the closed day: two panels (#469, #702)
-    await expect(page.getByRole('heading', { level: 3, name: /^Gestern geplant \d+ Aufgaben?$/ })).toBeVisible()
+    // Jetzt, Offen and Wartet of the closed day: one block, named by that day (#469, #741)
+    await expect(page.getByRole('heading', { level: 3, name: /^Von gestern \d+ Aufgaben?$/ })).toBeVisible()
     const group = page.locator('[data-not-planned-id]')
     for (const title of ['Konzept ausarbeiten', 'Dokumentation lesen', 'Review schreiben', 'Blocker klären']) {
       await expect(group.filter({ hasText: title })).toHaveCount(1)
     }
     // The marker is not overwritten by the morning's own checks
     const stored = (await readStored(page))!
-    expect(stored.sentBack).toEqual({ day: dayKey(1), ids: ['seed-progress-1', 'seed-open-1', 'seed-open-2'], waiting: ['seed-waiting-1'] })
+    expect(stored.sentBack).toEqual({ day: dayKey(1), ids: ['seed-progress-1', 'seed-open-1', 'seed-open-2'], waiting: ['seed-waiting-1'], from: dayKey(0) })
     expect(stored.lastNewDay).toBe(dayKey(1))
   })
 

@@ -730,6 +730,8 @@ export interface SeedDayRecapOptions {
   lastShownDay?: string | null
   /** Seed only on the first load of this tab (the recap's own marker must survive a reload). */
   once?: boolean
+  /** The one-time note of "Alle" (#711) was answered before: "Neuen Tag planen" shows none. */
+  planNoteSeen?: boolean
 }
 
 /** Seeds `day-recap-store` via addInitScript. */
@@ -737,7 +739,7 @@ export async function seedDayRecapStore(context: BrowserContext, options: SeedDa
   const lastShownDay = options.lastShownDay === undefined ? dayKeyDaysAgo(2) : options.lastShownDay
   const state = lastShownDay === null
     ? null
-    : { lastShownDay, ...(options.lastNewDay === null ? {} : { lastNewDay: options.lastNewDay ?? lastShownDay }) }
+    : { lastShownDay, ...(options.lastNewDay === null ? {} : { lastNewDay: options.lastNewDay ?? lastShownDay }), ...(options.planNoteSeen ? { planNoteSeen: true } : {}) }
   await context.addInitScript(
     ({ state: s, once }) => {
       if (once) {

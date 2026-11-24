@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dayKey, dayMonthName, isRecapDue, isValidDayKey, nextDayKey, recapWhen } from '~/utils/recapDay'
+import { blockWhen, dateOfDayKey, dayKey, dayMonthName, isRecapDue, isValidDayKey, nextDayKey, recapWhen } from '~/utils/recapDay'
 
 describe('dayKey', () => {
   it('is the local calendar day, zero padded', () => {
@@ -75,5 +75,35 @@ describe('nextDayKey (#480)', () => {
     expect(nextDayKey(new Date(2026, 9, 22, 23, 59))).toBe('2026-10-23')
     expect(nextDayKey(new Date(2026, 9, 31, 21, 0))).toBe('2026-11-01')
     expect(nextDayKey(new Date(2026, 11, 31, 0, 5))).toBe('2027-01-01')
+  })
+})
+
+describe('blockWhen (#741: the title of the block on "Alle")', () => {
+  const DAY = '2026-11-24' // a Tuesday
+
+  it('names the day before "yesterday", 2 to 6 days back the weekday, 7 and more the date', () => {
+    expect(blockWhen('2026-11-23', DAY)).toEqual({ kind: 'yesterday' })
+    const two = blockWhen('2026-11-22', DAY)
+    expect(two.kind).toBe('weekday')
+    expect(two.kind === 'weekday' && dayKey(two.date)).toBe('2026-11-22')
+    expect(blockWhen('2026-11-18', DAY).kind).toBe('weekday')
+    const seven = blockWhen('2026-11-17', DAY)
+    expect(seven.kind).toBe('date')
+    expect(seven.kind === 'date' && dayMonthName(seven.date, 'de')).toBe('17. November')
+    expect(seven.kind === 'date' && dayMonthName(seven.date, 'en')).toBe('November 17')
+    expect(blockWhen('2026-10-14', DAY).kind).toBe('date')
+  })
+
+  it('counts calendar days across a month and a daylight-saving change', () => {
+    expect(blockWhen('2026-10-31', '2026-11-01')).toEqual({ kind: 'yesterday' })
+    expect(blockWhen('2026-10-24', '2026-10-26').kind).toBe('weekday') // the clocks went back on the 25th
+    expect(dayKey(dateOfDayKey('2026-03-29'))).toBe('2026-03-29')
+  })
+
+  it('reads "yesterday" without a stored day, for a malformed one and for one that is not before the block\'s day', () => {
+    for (const from of [undefined, null, '', 'gestern', 20261123, DAY, '2026-11-25']) {
+      expect(blockWhen(from, DAY)).toEqual({ kind: 'yesterday' })
+    }
+    expect(blockWhen('2026-11-20', 'heute')).toEqual({ kind: 'yesterday' })
   })
 })

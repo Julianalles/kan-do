@@ -1,9 +1,12 @@
 - region "Alle Aufgaben":
   - heading "Alle Aufgaben" [level=2]
   - button "Aufgabe hinzufügen"
-  - group "Gestern geplant 3 Aufgaben":
-    - heading "Gestern geplant 3 Aufgaben" [level=3]
-    - button "Alle Aufgaben aus „Gestern geplant“ für heute einplanen": Alle einplanen
+  - status:
+    - paragraph: Wähle aus, was heute dran ist. Wechsle zu „Heute“, sobald du loslegen willst.
+    - button "Schließen"
+  - group /Von \S+ 4 Aufgaben/:
+    - heading /Von \S+ 4 Aufgaben/ [level=3]
+    - button /Alle Aufgaben aus „Von \S+“ für heute einplanen/: Alle einplanen
     - list:
       - listitem:
         - group "Präsentation vorbereiten":
@@ -21,15 +24,12 @@
           - paragraph: Konzept ausarbeiten
           - text: Hoch
         - 'button "Konzept ausarbeiten: für heute einplanen"'
-  - group "Gestern in Wartet 1 Aufgabe":
-    - heading "Gestern in Wartet 1 Aufgabe" [level=3]
-    - button "Alle Aufgaben aus „Gestern in Wartet“ für heute einplanen": Alle einplanen
-    - list:
       - listitem:
         - group "Rückmeldung vom Vermieter":
           - paragraph: Rückmeldung vom Vermieter
           - text: Hoch
         - 'button "Rückmeldung vom Vermieter: für heute einplanen"'
+  - heading "Weitere Aufgaben" [level=3]
   - list:
     - listitem:
       - group "Regal für den Keller aussuchen":

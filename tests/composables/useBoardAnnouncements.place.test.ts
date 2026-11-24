@@ -38,10 +38,12 @@ describe('useBoardAnnouncements: the column name follows the place (#375)', () =
     expect(over(TaskStatus.Open)).toBe('„task-1“ nach Spalte Heute, Position 1 verschoben.')
   })
 
-  it('leaves the other columns alone on both places', () => {
+  it('on "Alle" the Jetzt and Wartet cards stand in "Heute" too (#797); on Heute every column keeps its name', () => {
     setCurrentBoardPath('/all')
-    expect(over(TaskStatus.Waiting)).toBe('„task-1“ nach Spalte Wartet, Position 1 verschoben.')
+    expect(over(TaskStatus.Waiting)).toBe('„task-1“ nach Spalte Heute, Position 1 verschoben.')
+    expect(over(TaskStatus.Progress)).toBe('„task-1“ nach Spalte Heute, Position 1 verschoben.')
     setCurrentBoardPath('/tasks')
+    expect(over(TaskStatus.Waiting)).toBe('„task-1“ nach Spalte Wartet, Position 1 verschoben.')
     expect(over(TaskStatus.Done)).toBe('„task-1“ nach Spalte Erledigt, Position 1 verschoben.')
   })
 })
