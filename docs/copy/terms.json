@@ -827,5 +827,15 @@
     ],
     "status": "proposed",
     "note": "#745: link label and the sentence at the Notion token step."
+  },
+  {
+    "id": "intro-hints",
+    "concept": "The short hints on the board that show the next step of the first days, and the setting that turns them off and on (#725, #804)",
+    "de": "Hinweise zum Einstieg",
+    "en": "getting-started hints",
+    "avoidDe": [],
+    "avoidEn": [],
+    "status": "proposed",
+    "note": "#804: the settings row label. On a hint the link is the verb phrase \"Hinweise ausschalten\" / \"Turn off hints\"; the section that lists their texts is \"Kurz erklärt\" / \"Quick guide\"."
   }
 ]

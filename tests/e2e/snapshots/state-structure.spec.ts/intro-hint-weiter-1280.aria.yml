@@ -1,0 +1,4 @@
+- status:
+  - paragraph: Die Zeit läuft jetzt mit. Ziehe die Karte nach Erledigt, sobald die Aufgabe erledigt ist. Wartest du auf jemanden, ziehe sie nach Wartet.
+  - button "Hinweise ausschalten"
+  - button "Schließen"

@@ -3,9 +3,13 @@
  * "Schließen", and the tolerant reader of the stored record.
  */
 import { describe, it, expect } from 'vitest'
-import { currentIntroHint, freshIntroHints, isIntroHintEnded, needsShownDay, sanitizeIntroHints, type IntroHintsRecord } from '~/lib/introHints'
+import de from '~/i18n/locales/de.json'
+import en from '~/i18n/locales/en.json'
+import { currentIntroHint, freshIntroHints, INTRO_HINT_ORDER, introHintTextKey, isIntroHintEnded, needsShownDay, sanitizeIntroHints, type IntroHintId, type IntroHintsRecord } from '~/lib/introHints'
 
 const due = () => true
+/** Only "Start" has its moment: the rules of one hint, whatever follows it in the order */
+const onlyStart = (id: IntroHintId) => id === 'start'
 const record = (over: Partial<IntroHintsRecord> = {}): IntroHintsRecord => ({ ...freshIntroHints(), ...over })
 
 describe('currentIntroHint', () => {
@@ -30,8 +34,33 @@ describe('currentIntroHint', () => {
 
   it('never returns an answered hint', () => {
     const answered = record({ hints: { start: { answered: true, days: [] } } })
-    expect(currentIntroHint(answered, '2026-11-24', due)).toBeNull()
-    expect(currentIntroHint(answered, '2027-01-01', due)).toBeNull()
+    expect(currentIntroHint(answered, '2026-11-24', onlyStart)).toBeNull()
+    expect(currentIntroHint(answered, '2027-01-01', onlyStart)).toBeNull()
+  })
+})
+
+describe('the order of the hints (#801)', () => {
+  it('is Start, Weiter, Auswahl, Abschluss', () => {
+    expect([...INTRO_HINT_ORDER]).toEqual(['start', 'weiter', 'auswahl', 'abschluss'])
+  })
+
+  it('shows the first due hint that has not ended: "Auswahl" before "Abschluss" when both are due', () => {
+    const bothDue = (id: IntroHintId) => id === 'auswahl' || id === 'abschluss'
+    const answered = { answered: true, days: [] }
+    expect(currentIntroHint(record({ hints: { start: answered, weiter: answered } }), '2026-11-24', bothDue)).toBe('auswahl')
+    expect(currentIntroHint(record({ hints: { start: answered, weiter: answered, auswahl: answered } }), '2026-11-24', bothDue)).toBe('abschluss')
+  })
+
+  it('an ended hint is skipped even while its moment is still there', () => {
+    const answered = { answered: true, days: [] }
+    expect(currentIntroHint(record({ hints: { start: answered } }), '2026-11-24', due)).toBe('weiter')
+  })
+
+  it('reads a record from an older build that holds only "start", and keeps an id this build does not know', () => {
+    const stored = { on: true, quietDay: null, hints: { start: { answered: true, days: [] }, planen: { answered: false, days: [] } } }
+    const read = sanitizeIntroHints(stored)
+    expect(read).toEqual(stored)
+    expect(currentIntroHint(read, '2026-11-24', due)).toBe('weiter')
   })
 })
 
@@ -60,7 +89,7 @@ describe('the three-day rule', () => {
   })
 
   it('an ended hint is not current', () => {
-    expect(currentIntroHint(record({ hints: { start: { answered: false, days } } }), '2026-11-25', due)).toBeNull()
+    expect(currentIntroHint(record({ hints: { start: { answered: false, days } } }), '2026-11-25', onlyStart)).toBeNull()
   })
 })
 
@@ -90,5 +119,25 @@ describe('sanitizeIntroHints', () => {
 
   it('reads malformed hints as none', () => {
     expect(sanitizeIntroHints({ on: true, hints: 'none' })).toEqual({ on: true, quietDay: null, hints: {} })
+  })
+})
+
+describe('introHintTextKey (#804): the help in the settings reads the hints\' own texts', () => {
+  const read = (locale: object, key: string) => key.split('.').reduce<unknown>((node, part) => (node as Record<string, unknown> | undefined)?.[part], locale)
+
+  it.each(INTRO_HINT_ORDER.flatMap((id) => [[id, true], [id, false]] as const))('hint %s has a text in both locales (phone: %s)', (id, phone) => {
+    const key = introHintTextKey(id, phone)
+    expect(typeof read(de, key), `de ${key}`).toBe('string')
+    expect(typeof read(en, key), `en ${key}`).toBe('string')
+  })
+
+  it.each(INTRO_HINT_ORDER)('hint %s has a title in the help section in both locales', (id) => {
+    expect(typeof read(de, `settings.introHints.entries.${id}`)).toBe('string')
+    expect(typeof read(en, `settings.introHints.entries.${id}`)).toBe('string')
+  })
+
+  it('only "Start" has a text per width', () => {
+    expect(introHintTextKey('start', true)).not.toBe(introHintTextKey('start', false))
+    expect(introHintTextKey('weiter', true)).toBe(introHintTextKey('weiter', false))
   })
 })

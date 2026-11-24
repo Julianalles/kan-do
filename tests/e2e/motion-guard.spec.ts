@@ -102,6 +102,7 @@ const FLOWS: Flow[] = [
   {
     name: 'page changes: Heute -> Einstellungen -> Themen -> Einstellungen -> Heute',
     url: '/tasks',
+    viewport: { width: 1280, height: 1500 }, // the settings page is 1113 px tall (Board tab with the hints sheet, #804): in the default 720 px window the page root grows by 393 px in the frame it arrives and shrinks back when it leaves, a root that is as tall as its content and no box that moves (#823); taller than the longest page, the root keeps the window's height (as #666)
     run: async (page) => {
       await openSettings(page)
       await expect(page).toHaveURL(/\/settings/)

@@ -111,4 +111,32 @@ describe('settings-store introHints (#800)', () => {
     store.answerIntroHint('start')
     expect(store.introHints).toEqual({ on: true, quietDay: null, hints: { start: { answered: true, days: [] } } })
   })
+
+  it('#804: turning off keeps the record, survives a reload and shows nothing; "Erneut zeigen" starts from the first', async () => {
+    const { store, backing } = hydrate(undefined)
+    store.startIntroHints()
+    store.answerIntroHint('start')
+    store.markIntroHintShown('weiter', '2026-11-24')
+    store.setIntroHintsOn(false)
+    await vi.waitFor(() => expect(stored(backing)?.on).toBe(false))
+    const reloaded = hydrate(undefined, backing)
+    expect(reloaded.store.introHints).toEqual({ on: false, quietDay: null, hints: { start: { answered: true, days: [] }, weiter: { answered: false, days: ['2026-11-24'] } } })
+    reloaded.store.restartIntroHints()
+    expect(reloaded.store.introHints).toEqual({ on: true, quietDay: null, hints: {} })
+  })
+
+  it.each([['an install from before the hints (null)', undefined], ['hints turned off', { on: false, quietDay: '2026-11-24', hints: { start: { answered: true, days: [] } } }]])(
+    '#804: "Erneut zeigen" from %s gives a fresh record',
+    (_name, initial) => {
+      const { store } = hydrate(initial === undefined ? undefined : { introHints: initial })
+      store.restartIntroHints()
+      expect(store.introHints).toEqual({ on: true, quietDay: null, hints: {} })
+    },
+  )
+
+  it('#804: turning off does nothing before the hints started and never creates the record', () => {
+    const { store } = hydrate(undefined)
+    store.setIntroHintsOn(false)
+    expect(store.introHints).toBeNull()
+  })
 })

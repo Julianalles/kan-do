@@ -57,6 +57,68 @@ test.describe('intro hints (#800)', () => {
     await gotoBoard(page)
     await expect(page.getByTestId('intro-hint-host')).toMatchAriaSnapshot({ name: 'intro-hint-start-390.aria.yml' })
   })
+
+  // #801: the three hints after "Start". Each board starts with its step done, so the hint shows at once.
+  const WITH_JETZT = SEED_TASKS.filter(task => task.status === 0 || task.status === 1)
+  const MANY_OPEN = [...SEED_TASKS.filter(task => task.status === 0), ...fillerTasks(4)].slice(0, 5)
+  const WITH_DONE = SEED_TASKS.filter(task => task.status === 0 || task.id === 'seed-done-1')
+  const answerStart = (page: Page) => page.evaluate(() => {
+    const app = (window as unknown as { useNuxtApp: () => { $pinia: { _s: Map<string, { answerIntroHint: (id: string) => void }> } } }).useNuxtApp()
+    app.$pinia._s.get('settings')!.answerIntroHint('start')
+  })
+
+  test('the hint "Weiter": a status with its text and both links (1280)', async ({ context, page }) => {
+    await seedLocalBoard(context, WITH_JETZT, {}, undefined, { hints: true })
+    await gotoBoard(page)
+    await expect(page.getByTestId('intro-hint')).toHaveAttribute('data-hint', 'weiter')
+    await expect(page.getByTestId('intro-hint-host')).toMatchAriaSnapshot({ name: 'intro-hint-weiter-1280.aria.yml' })
+  })
+
+  test('the hint "Auswahl": its text, the button "Karten stapeln" and both links (1280)', async ({ context, page }) => {
+    await seedLocalBoard(context, MANY_OPEN, {}, undefined, { hints: true })
+    await gotoBoard(page)
+    await answerStart(page)
+    await expect(page.getByTestId('intro-hint')).toHaveAttribute('data-hint', 'auswahl')
+    await expect(page.getByTestId('intro-hint-host')).toMatchAriaSnapshot({ name: 'intro-hint-auswahl-1280.aria.yml' })
+  })
+
+  test('the hint "Auswahl" at 390', async ({ context, page }) => {
+    await page.setViewportSize(MOBILE)
+    await seedLocalBoard(context, MANY_OPEN, {}, undefined, { hints: true })
+    await gotoBoard(page)
+    await answerStart(page)
+    await expect(page.getByTestId('intro-hint')).toHaveAttribute('data-hint', 'auswahl')
+    await expect(page.getByTestId('intro-hint-host')).toMatchAriaSnapshot({ name: 'intro-hint-auswahl-390.aria.yml' })
+  })
+
+  test('the hint "Abschluss" (1280)', async ({ context, page }) => {
+    await seedLocalBoard(context, WITH_DONE, {}, undefined, { hints: true })
+    await gotoBoard(page)
+    await answerStart(page)
+    await expect(page.getByTestId('intro-hint')).toHaveAttribute('data-hint', 'abschluss')
+    await expect(page.getByTestId('intro-hint-host')).toMatchAriaSnapshot({ name: 'intro-hint-abschluss-1280.aria.yml' })
+  })
+
+  // #804: the Board tab's hints sheet in its three states; the entries are the same in each
+  test('Einstellungen, Board: the hints sheet while the hints run (1280)', async ({ context, page }) => {
+    await seedLocalBoard(context, undefined, {}, undefined, { hints: true })
+    await page.goto('/settings')
+    await expect(page.getByTestId('intro-hints-settings')).toMatchAriaSnapshot({ name: 'settings-intro-hints-on-1280.aria.yml' })
+  })
+
+  test('Einstellungen, Board: the hints sheet with the hints off and for an install without them (1280)', async ({ context, page }) => {
+    await seedLocalBoard(context)
+    await page.goto('/settings')
+    await expect(page.getByTestId('intro-hints-toggle')).toHaveText('Erneut zeigen')
+    await expect(page.getByTestId('intro-hints-settings')).toMatchAriaSnapshot({ name: 'settings-intro-hints-off-1280.aria.yml' })
+  })
+
+  test('Einstellungen, Board: the hints sheet at 390', async ({ context, page }) => {
+    await page.setViewportSize(MOBILE)
+    await seedLocalBoard(context, undefined, {}, undefined, { hints: true })
+    await page.goto('/settings')
+    await expect(page.getByTestId('intro-hints-settings')).toMatchAriaSnapshot({ name: 'settings-intro-hints-on-390.aria.yml' })
+  })
 })
 
 test.describe('the place "Alle" (#354)', () => {

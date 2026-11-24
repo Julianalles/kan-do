@@ -39,8 +39,10 @@
       </button>
       <SectionHeader v-else tag="span" class="block">{{ question }}</SectionHeader>
     </h2>
-    <!-- Keyed by the arrangement: opening or closing swaps the stacked summary for the spread one as a new box, whose height the glide eases (#789) -->
-    <div :key="spread ? 'spread' : 'stacked'" data-stats-summary :class="spread ? 'md:flex md:items-center md:justify-between md:gap-10' : ''">
+    <!-- Keyed by the arrangement: opening or closing swaps the stacked summary for the spread one as a new box, whose height the glide eases (#789).
+         `flow-root` keeps the line's top margin inside the box in both arrangements (the spread one is a flex box, which does so anyway): collapsed
+         out of the stacked one, its 12 px were missing from the height the glide starts from, and the tile stepped 12 px in its first frame (#822) -->
+    <div :key="spread ? 'spread' : 'stacked'" data-stats-summary class="flow-root" :class="spread ? 'md:flex md:items-center md:justify-between md:gap-10' : ''">
       <div :class="spread ? 'md:flex-1' : ''">
         <p class="mt-3 text-pretty text-default" data-private>{{ line }}</p>
         <slot name="under-line" />

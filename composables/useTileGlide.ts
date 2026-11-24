@@ -185,30 +185,27 @@ export function useTileGlide() {
       retimed.add(node)
     }
 
+    // Sizes first, places second (#822): a tile's place in the first frame depends on the sizes of the tiles before it in the
+    // layout, and the open tile is first by CSS order while it may come later in the DOM (tile 3 opens above tile 2). So every
+    // width, pin and summary height of the first frame is put in place before any tile reads where it is drawn; read in DOM
+    // order, tile 2 took its place from a tile 3 that was not yet at its first-frame size and started its glide 63 px off
+    const resized = new Map<Element, Box>()
+    for (const tile of tiles) resized.set(tile, rectOf(tile))
     for (const tile of tiles) {
       const was = before.get(tile)!
-      const now = rectOf(tile)
-      const frames: Keyframe[] = [{}, {}]
-      const dx = was.rect.left - now.left
-      const dy = was.rect.top - now.top
-        // Tile 5 sits under the row: it follows the row's height, it is not re-laid by the grid
+      const now = resized.get(tile)!
+      // Tile 5 sits under the row: it follows the row's height, it is not re-laid by the grid
       const inGrid = !!grid && grid.contains(tile)
-        const widthChanged = Math.abs(was.rect.width - now.width) >= 1
-      if (inGrid && (dx || dy)) {
-        frames[0]!.transform = `translate(${dx}px, ${dy}px)`
-        frames[1]!.transform = 'none'
-      }
-      if (inGrid && widthChanged) {
-        frames[0]!.width = `${was.rect.width}px`
-        frames[1]!.width = `${now.width}px`
-        frames[0]!.overflow = 'hidden'
-        frames[1]!.overflow = 'hidden'
+      if (inGrid && Math.abs(was.rect.width - now.width) >= 1) {
         const style = getComputedStyle(tile)
         const pad = parseFloat(style.paddingLeft || '0') + parseFloat(style.paddingRight || '0')
         pin(tile.querySelector<HTMLElement>(SUMMARY), now.width - pad)
         pin(tile.querySelector<HTMLElement>(DETAIL), Math.max(was.rect.width, now.width) - pad)
+        animations.push(tile.animate([
+          { width: `${was.rect.width}px`, overflow: 'hidden' },
+          { width: `${now.width}px`, overflow: 'hidden' },
+        ], options))
       }
-      if (Object.keys(frames[0]!).length) animations.push(tile.animate(frames, options))
 
       // The summary swaps for the other arrangement: a new box, its height takes over from the old one's (no fade: text that is half transparent fails contrast checks that run right after a toggle)
       const summary = tile.querySelector<HTMLElement>(SUMMARY)
@@ -222,6 +219,15 @@ export function useTileGlide() {
 
     if (grid && Math.abs(gridHeight - gridFinal) >= 1) {
       animations.push(grid.animate({ height: [`${gridHeight}px`, `${gridFinal}px`] }, options))
+    }
+
+    for (const tile of tiles) {
+      if (!grid || !grid.contains(tile)) continue
+      const was = before.get(tile)!.rect
+      const now = rectOf(tile)
+      const dx = was.left - now.left
+      const dy = was.top - now.top
+      if (dx || dy) animations.push(tile.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], options))
     }
 
     if (!animations.length) {
