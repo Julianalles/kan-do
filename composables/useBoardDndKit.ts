@@ -16,7 +16,13 @@ import { useBoardFocus } from '~/composables/useBoardFocus'
 import { withoutInCardTask } from '~/composables/useInCardAdding'
 import { isSortable } from '@dnd-kit/vue/sortable'
 import { isColumnItemNode } from '~/utils/columnItems'
-import { NOT_PLANNED_GROUP, isNotPlannedZone, resolvePlanDrop } from '~/utils/planDrop'
+import { NOT_PLANNED_GROUP, isNotPlannedZone, resolvePlanDrop, staysInOwnGroup } from '~/utils/planDrop'
+import { boardPlaceOfPath, currentBoardPath } from '~/lib/boardPlace'
+
+/** The mark of a Jetzt or Wartet card that "Heute" lists on the place "Alle" (#797, SortableTaskWrapper): its value is the card's status */
+const TODAY_EXTRA_ATTR = 'data-today-extra'
+/** The place "Alle" shows: there no drop changes a status (#797) */
+const onAll = (): boolean => boardPlaceOfPath(currentBoardPath.value) === 'all'
 
 /**
  * Central dnd-kit event handler for the board.
@@ -41,6 +47,11 @@ import { NOT_PLANNED_GROUP, isNotPlannedZone, resolvePlanDrop } from '~/utils/pl
  *   an Offen card or stack dropped on the side is taken off today's board (`unplanTask`); a "Alle Aufgaben" card
  *   dropped anywhere else goes back. The rule is `resolvePlanDrop`; these drops never change a status, so the WIP
  *   limit is not in play, and a "Alle Aufgaben" card is kept out of every column but Offen in `onDragOver`
+ * - "Heute" on "Alle" lists everything planned (#797): the Jetzt card and the Wartet cards stand in Offen's list behind its own
+ *   cards, each a sortable of its own status (`data-today-extra`). No drop on "Alle" changes a status: a card is sorted only
+ *   among the cards of its own status (`staysInOwnGroup` in `onDragOver`, re-checked in `onDragEnd`), so a Wartet card
+ *   reorders Wartet, the Jetzt card always returns, and no swap happens there. A Wartet card dropped on the side leaves
+ *   today and keeps Wartet (`resolvePlanDrop`). Such a card's node is put back among the extra cards, never by Offen's order
  */
 
 export function useBoardDndKit() {
@@ -100,6 +111,8 @@ export function useBoardDndKit() {
     status: TaskStatus | undefined
     /** The drag started under "Alle Aufgaben" (#355): `list` is that side's list and `status` is undefined */
     fromNotPlanned: boolean
+    /** The drag started on a Jetzt or Wartet card listed in "Heute" on "Alle" (#797): `list` is Offen's list, `status` the card's own */
+    todayExtra: boolean
   }
   let dragOrigin: DragOrigin | null = null
   /** The stack picked up at drag start (#150): the members it moves are the ones it had then */
@@ -152,8 +165,9 @@ export function useBoardDndKit() {
     return stack ? { key: stack.key, label: stack.label, taskIds: [...stack.taskIds] } : null
   }
 
+  /** A column's own item nodes; never the Jetzt and Wartet cards "Heute" lists behind them on "Alle" (#797) */
   const listItems = (list: Element, except: Element) =>
-    [...list.children].filter(child => child !== except && child.hasAttribute('data-task-id'))
+    [...list.children].filter(child => child !== except && child.hasAttribute('data-task-id') && !child.hasAttribute(TODAY_EXTRA_ATTR))
 
   /**
    * Puts the dragged node back where the column renders its task, or removes it when it renders
@@ -171,6 +185,10 @@ export function useBoardDndKit() {
     if (!origin) return
     if (origin.fromNotPlanned) {
       restoreNotPlannedElement(origin)
+      return
+    }
+    if (origin.todayExtra) {
+      restoreTodayExtraElement(origin)
       return
     }
     const { element, list, taskId, status } = origin
@@ -200,7 +218,31 @@ export function useBoardDndKit() {
       list.insertBefore(element, last.nextSibling)
       return
     }
-    list.insertBefore(element, list.querySelector(':scope > .column-drop-zone'))
+    // The column renders this card only: before the Jetzt and Wartet cards of "Heute" on "Alle" (#797), else before the drop zone
+    list.insertBefore(element, list.querySelector(`:scope > [${TODAY_EXTRA_ATTR}], :scope > .column-drop-zone`))
+  }
+
+  /**
+   * The same for a Jetzt or Wartet card that "Heute" lists on "Alle" (#797): back before the next such card the column
+   * renders (the Jetzt card, then Wartet in its rendered order), else before the drop zone, which follows them. Removed when
+   * the list no longer renders the task there (it left today, the place changed) or Vue already rendered a fresh node.
+   */
+  function restoreTodayExtraElement(origin: DragOrigin) {
+    const { element, list, taskId } = origin
+    const ids = onAll()
+      ? [...tasksStore.tasksProgress, ...getRenderedOrder(TaskStatus.Waiting).rendered].map(t => t.id)
+      : []
+    const siblings = list ? [...list.children].filter(child => child !== element && child.hasAttribute(TODAY_EXTRA_ATTR)) : []
+    const idOf = (el: Element) => el.getAttribute('data-task-id')
+    if (!list || !ids.includes(taskId) || siblings.some(el => idOf(el) === taskId)) {
+      if (element.isConnected) element.remove()
+      return
+    }
+    const laterIds = ids.slice(ids.indexOf(taskId) + 1)
+    const next = laterIds.map(id => siblings.find(el => idOf(el) === id)).find(Boolean)
+      ?? list.querySelector(':scope > .column-drop-zone')
+    if (element.parentNode === list && element.nextElementSibling === next) return
+    list.insertBefore(element, next)
   }
 
   /**
@@ -232,7 +274,20 @@ export function useBoardDndKit() {
   function readNextItemId(element: Element | undefined, status: TaskStatus): string | null | undefined {
     if (element?.parentElement?.getAttribute('data-task-status') !== String(status)) return undefined
     for (let el = element.nextElementSibling; el; el = el.nextElementSibling) {
-      if (isColumnItemNode(el)) return el.getAttribute('data-task-id')
+      // The Jetzt and Wartet cards of "Heute" on "Alle" (#797) follow Offen's own cards and are no slot of Offen's order
+      if (isColumnItemNode(el) && !el.hasAttribute(TODAY_EXTRA_ATTR)) return el.getAttribute('data-task-id')
+    }
+    return null
+  }
+
+  /**
+   * The slot of a Wartet card sorted among the Wartet cards "Heute" lists on "Alle" (#797): the id of the next card of its
+   * status in that list, null at the end. Undefined when the node is not among them.
+   */
+  function readNextExtraId(element: Element | undefined, status: TaskStatus): string | null | undefined {
+    if (!element?.parentElement || !element.hasAttribute(TODAY_EXTRA_ATTR)) return undefined
+    for (let el = element.nextElementSibling; el; el = el.nextElementSibling) {
+      if (el.getAttribute(TODAY_EXTRA_ATTR) === String(status)) return el.getAttribute('data-task-id')
     }
     return null
   }
@@ -323,7 +378,14 @@ export function useBoardDndKit() {
     boardStore.endTimeboxNudge(taskId) // a drag ends the card's nudge (#389)
     const fromNotPlanned = source.group === NOT_PLANNED_GROUP
     dragOrigin = element
-      ? { element, list: element.parentElement, taskId, status: fromNotPlanned ? undefined : source.group as TaskStatus | undefined, fromNotPlanned }
+      ? {
+          element,
+          list: element.parentElement,
+          taskId,
+          status: fromNotPlanned ? undefined : source.group as TaskStatus | undefined,
+          fromNotPlanned,
+          todayExtra: element.hasAttribute(TODAY_EXTRA_ATTR),
+        }
       : null
     dragStack = readStack(source)
     dragManager = (source as { manager?: DragManager }).manager ?? null
@@ -367,7 +429,19 @@ export function useBoardDndKit() {
     const fromNotPlanned = (source as { initialGroup?: unknown }).initialGroup === NOT_PLANNED_GROUP
     // Its own slot under "Alle Aufgaben" is no column
     if ((targetGroup as unknown) === NOT_PLANNED_GROUP) targetGroup = undefined
-    dragState.value.hoverTargetStatus = targetGroup ?? null
+    // On "Alle" every card a drag can reach stands in the column headed "Heute" (#797: the Jetzt and Wartet cards too), so
+    // that is the column the pointer is over, whatever the card's own status
+    const all = onAll()
+    dragState.value.hoverTargetStatus = all && targetGroup !== undefined ? TaskStatus.Open : targetGroup ?? null
+
+    // "Alle" (#797): "Heute" lists the Jetzt and Wartet cards behind Offen's own, and no drop there changes a status. A card is
+    // sorted only among the cards of the status it started in; over any other card it stays where it is (no swap either)
+    if (all && !staysInOwnGroup((source as { initialGroup?: unknown }).initialGroup, targetGroup)) {
+      dragState.value.isDropBlocked = false
+      dragState.value.swapTaskId = null
+      event.preventDefault()
+      return
+    }
 
     // A "Alle Aufgaben" card goes to Offen only (#355). The other columns are out of reach on "Alle" (inert, out of
     // layout); should one be hit all the same, the card must not be sorted into it
@@ -523,10 +597,15 @@ export function useBoardDndKit() {
 
     // Read the previewed slot, then put the node back: whatever the store update below does (or
     // a drop that changes nothing), Vue renders it from the DOM it knows
-    const nextId = tgtStatus === undefined ? undefined : readNextItemId(sortable.element, tgtStatus)
+    const nextId = tgtStatus === undefined
+      ? undefined
+      : origin?.todayExtra ? readNextExtraId(sortable.element, tgtStatus) : readNextItemId(sortable.element, tgtStatus)
     restoreDraggedElement(origin)
 
     if (srcStatus === undefined || tgtStatus === undefined) return
+    // "Alle" (#797): no drop changes a status. `onDragOver` keeps a card among its own, but a drop zone names its column
+    // whatever was hovered last (a Jetzt or Wartet card of "Heute" released below the list)
+    if (srcStatus !== tgtStatus && onAll()) return
 
     // The members this drop moves: the stack as it was at drag start (else as the sortable carries it
     // now), minus those that no longer exist or left the source column meanwhile. A single card is

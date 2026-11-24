@@ -14,9 +14,11 @@
 - Provides header with status information
 - Enables task addition for the Open column (#248): the header's round add button asks the add slot, the draft host at the start of the list, to open; the draft card enters at the top (#125). Cancel returns focus to the header button
 - Handles visual states for different statuses and empty states
+- Offen on "Alle" (#797), headed "Heute": lists everything planned for today. Behind its own cards come the Jetzt card and the Wartet cards (`todayExtras`), each with a status badge and each still a sortable of its own status; the headline counts them and the column is not empty while it holds one. The capacity line, the add slot and the sorting stay on Offen's own cards
 - `top` slot (Offen on "Alle", #573 case 2): a zero-height sticky host under the app bar for the capacity echo of a line above the window
-- Offen on Heute, empty while tasks of today's group "Gestern geplant" wait under "Alle" (#356): one muted sentence with a link to "Alle"; every other empty column stays blank
+- Offen on Heute, empty while tasks of today's block ("Von gestern", #741) wait under "Alle" (#356): one muted sentence with a link to "Alle"; every other empty column stays blank
 - Offen on Heute with no task in any column (#761): one muted hint line "Was steht heute an?" that is itself a button opening the add slot (the header button's flow); with tasks waiting under "Alle" (#802) a second muted line below it links there; gone while a draft is open, a drag runs or the yesterday note shows
+- `list-start` slot: content at the start of the list, above the cards (Board.vue puts BoardPlanNote `column` there for Offen: the one-time note of "Alle" as plain text where the picked tasks land, #741)
 - Erledigt drop target (#124): a light green wash under the list and a one-line hint while a card
   from another column hovers it
 -->
@@ -41,7 +43,7 @@
       :title-fade-key="taskStatus === TaskStatus.Open ? place : undefined"
       :marker="headerMarker"
       :status="taskStatus"
-      :task-count="tasks.length"
+      :task-count="tasks.length + extraItems.length"
       :is-empty="isEmpty && !hasGaps"
       :show-add="showAddButton"
       :add-disabled="addSlotRef?.isDrafting ?? false"
@@ -143,6 +145,8 @@
           </template>
         </i18n-t>
       </p>
+      <!-- The start of the list, above the cards (Offen on "Alle": the one-time planning note, #741) -->
+      <slot name="list-start" />
       <!-- Add slot (Open column only, #125, #248): the draft host at the start of the list. It has no box while no draft is
            open (no gap above the first card); the header button opens it. Inside the flex container so gap spacing applies -->
       <add-task-slot
@@ -166,6 +170,17 @@
         @open="openTask"
         @expand="expandStack"
         @close-stack="closeStack"
+      />
+      <!-- "Heute" on "Alle" (#797): the Jetzt card and the Wartet cards follow Offen's own, each a sortable of its own status
+           with a status badge; one root node per item, like every list item -->
+      <board-column-item
+        v-for="extra in extraItems"
+        :key="extra.item.key"
+        :item="extra.item"
+        :task-status="extra.status"
+        :static-mode="props.staticMode"
+        today-extra
+        @open="openTask"
       />
       <!-- Droppable sentinel: ensures dnd-kit can accept drops even when the column is empty -->
       <column-drop-zone :task-status="taskStatus" :is-empty="isEmpty" />
@@ -200,6 +215,7 @@ import { useBoardPlace } from "~/composables/useBoardPlace";
 import { boardPlaceLocation, openColumnTitleKey } from "~/lib/boardPlace";
 import {
   getGroupLabel,
+  getRenderedTaskOrder,
   getStackKeys,
   groupTasksByKey,
   isGroupingActiveFor,
@@ -239,6 +255,11 @@ const props = defineProps({
   tasksUnderAll: {
     type: Boolean,
     default: false,
+  },
+  /** Offen on "Alle" only (#797): the Jetzt card and the Wartet cards planned for today, listed behind Offen's own cards; empty everywhere else. */
+  todayExtras: {
+    type: Array as PropType<Task[]>,
+    default: () => [],
   },
   /** Offen only (#761): no task in any column of Heute; the empty Offen then asks what is on today. */
   boardEmpty: {
@@ -420,6 +441,37 @@ const baseItems = computed<ColumnItem[]>(() =>
 const { lineAfterKey } = useDayCapacity(baseItems, () => isOpenColumn.value && !props.staticMode);
 const columnItems = computed<ColumnItem[]>(() => withCapacityItem(baseItems.value, lineAfterKey.value));
 
+/**
+ * "Heute" on "Alle" (#797): the Jetzt card, then the Wartet cards in the order the Wartet column renders them (grouped: its
+ * groups kept together), as single cards. Each is a sortable of its own status, indexed among the cards of that status, so a
+ * Wartet card can be sorted among the Wartet cards and nowhere else (`useBoardDndKit`).
+ */
+const extraItems = computed<{ item: ColumnItem; status: TaskStatus }[]>(() => {
+  if (!isOpenColumn.value || props.todayExtras.length === 0) return [];
+  const waitingKey = isGroupingActiveFor(TaskStatus.Waiting, props.groupingEnabled, props.groupingKey) ? props.groupingKey : null;
+  const byStatus = [TaskStatus.Progress, TaskStatus.Waiting].map((status) => {
+    const own = props.todayExtras.filter((task) => task.status === status);
+    return status === TaskStatus.Waiting ? getRenderedTaskOrder(own, waitingKey).rendered : own;
+  });
+  const start = columnItems.value.length;
+  return byStatus.flatMap((own) => own.map((task, sortableIndex) => ({ task, sortableIndex }))).map(({ task, sortableIndex }, at) => ({
+    status: task.status,
+    item: {
+      kind: "card" as const,
+      key: task.id,
+      task,
+      muted: false,
+      itemIndex: start + at,
+      sortableIndex,
+      fromStack: undefined,
+      stackPosition: undefined,
+      stackIndex: undefined,
+      stackSize: undefined,
+      stackLabel: undefined,
+    },
+  }));
+});
+
 // A group that drops below two tasks stops being a stack: forget its expansion. Grouping turned off
 // or switched to another key: forget all of them.
 watch(
@@ -569,7 +621,7 @@ const computedHeadline = computed(computeHeadline);
 /**
  * Whether this column contains no tasks.
  */
-const computeIsEmpty = (): boolean => props.tasks.length < 1;
+const computeIsEmpty = (): boolean => props.tasks.length < 1 && props.todayExtras.length < 1;
 
 const isEmpty = computed(computeIsEmpty);
 

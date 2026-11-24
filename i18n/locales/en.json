@@ -159,8 +159,10 @@
       "dragBack": "“{title}” stays in “All tasks”.",
       "capacityFull": "With this your day is probably full.",
       "capacityBelow": "Your day is probably full. One task is below the line. | Your day is probably full. {n} tasks are below the line.",
-      "panelPlanned": "Planned yesterday",
-      "panelWaiting": "Waiting yesterday",
+      "blockYesterday": "From yesterday",
+      "blockWeekday": "From {weekday}",
+      "blockDate": "From {date}",
+      "others": "More tasks",
       "panelCount": "{n} task | {n} tasks",
       "planAll": "Plan all for today",
       "planAllShort": "Plan all",
@@ -194,8 +196,9 @@
       }
     },
     "planNote": {
-      "title": "Pick what's on for today",
-      "description": "Plan your tasks for today here. Go to “Today” when you want to start.",
+      "title": "Choose what's on today",
+      "description": "The arrow on a card plans it for today. Switch to “Today” once you want to start.",
+      "line": "Choose what's on today. Switch to “Today” once you want to start.",
       "close": "Close"
     },
     "newDayTimeNote": {

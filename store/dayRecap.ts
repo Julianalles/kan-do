@@ -9,15 +9,22 @@ export interface SentBack {
   ids: string[]
   /** Only a day close (#480) writes it: the Wartet tasks it took off the board, the second half of that morning's panel. Absent = none (a fresh start, older data). */
   waiting?: string[]
+  /**
+   * The local day the tasks are from (#741): the block on "Alle" is titled by it ("Von gestern", "Von Samstag"). A fresh
+   * start writes the day the board was last planned (the marker before it), a day close its own day. Absent (older data)
+   * reads as the day before `day`.
+   */
+  from?: string
 }
 
 /** A stored `sentBack` as a trusted value: anything but `{ day: YYYY-MM-DD, ids: string[] }` reads as null. */
 export function sanitizeSentBack(raw: unknown): SentBack | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null
-  const { day, ids, waiting } = raw as { day?: unknown, ids?: unknown, waiting?: unknown }
+  const { day, ids, waiting, from } = raw as { day?: unknown, ids?: unknown, waiting?: unknown, from?: unknown }
   if (!isValidDayKey(day) || !Array.isArray(ids)) return null
   const strings = (list: unknown[]) => list.filter((id): id is string => typeof id === 'string')
-  return { day, ids: strings(ids), ...(Array.isArray(waiting) ? { waiting: strings(waiting) } : {}) }
+  // `from` counts only as a day before the block's own: anything else reads as absent
+  return { day, ids: strings(ids), ...(Array.isArray(waiting) ? { waiting: strings(waiting) } : {}), ...(isValidDayKey(from) && from < day ? { from } : {}) }
 }
 
 /**
@@ -88,6 +95,8 @@ export const useDayRecapStore = defineStore('dayRecap', () => {
    * had nothing unfinished). Both lists are that one day's: the panel "Zuletzt geplant und nicht erledigt" reads them for `day` only
    * (#469). No `waiting` field is written when none was taken. Monotonic like `markShown`: a day
    * that is not after the stored one is ignored, so a second click the same day and a clock set back never repeat it.
+   * With tasks taken off, the day they are from is stored as `from` (#741): the marker this call replaces, i.e. the day the
+   * board was last planned.
    * @returns whether the marker moved
    */
   function markNewDay(day: string, ids: string[], waiting: string[] = []): boolean {
@@ -95,7 +104,8 @@ export const useDayRecapStore = defineStore('dayRecap', () => {
     const current = validLastNewDay.value
     if (current !== null && day <= current) return false
     lastNewDay.value = day
-    sentBack.value = { day, ids: [...ids], ...(waiting.length > 0 ? { waiting: [...new Set(waiting)] } : {}) }
+    const from = current !== null && ids.length + waiting.length > 0 ? { from: current } : {}
+    sentBack.value = { day, ids: [...ids], ...(waiting.length > 0 ? { waiting: [...new Set(waiting)] } : {}), ...from }
     return true
   }
 
@@ -106,9 +116,10 @@ export const useDayRecapStore = defineStore('dayRecap', () => {
    * `markNewDay`, but a second close on the same evening adds its ids in front of the earlier ones instead of being
    * refused; a day before the stored marker (a clock set back) writes nothing. `waiting` (the Wartet tasks the close took off, kept
    * apart from the group) is stored the same way, so the next morning's recap lists only what this evening took off.
+   * `from` (#741) is the day of the close itself, the day the tasks are from; a second close the same evening keeps it.
    * @returns whether the marker or the group changed
    */
-  function markDayClosed(nextDay: string, ids: string[], waiting: string[] = []): boolean {
+  function markDayClosed(nextDay: string, ids: string[], waiting: string[] = [], from?: string): boolean {
     if (!isValidDayKey(nextDay)) return false
     const current = validLastNewDay.value
     if (current !== null && nextDay < current) return false
@@ -116,7 +127,10 @@ export const useDayRecapStore = defineStore('dayRecap', () => {
     const same = earlier && earlier.day === nextDay ? earlier : null
     const allWaiting = [...new Set([...waiting, ...(same?.waiting ?? [])])]
     lastNewDay.value = nextDay
-    sentBack.value = { day: nextDay, ids: [...new Set([...ids, ...(same?.ids ?? [])])], ...(allWaiting.length > 0 ? { waiting: allWaiting } : {}) }
+    // Only with tasks taken off: an empty group has no day to name
+    const taken = ids.length + allWaiting.length + (same?.ids.length ?? 0) > 0
+    const fromDay = same?.from ?? (taken && isValidDayKey(from) && from < nextDay ? from : undefined)
+    sentBack.value = { day: nextDay, ids: [...new Set([...ids, ...(same?.ids ?? [])])], ...(allWaiting.length > 0 ? { waiting: allWaiting } : {}), ...(fromDay ? { from: fromDay } : {}) }
     return true
   }
 

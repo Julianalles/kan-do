@@ -55,6 +55,7 @@ const isPhone = useIsPhone()
 
 const entries = computed(() => [
   ...INTRO_HINT_ORDER.map((id) => ({ id, text: t(introHintTextKey(id, isPhone.value), { more: t('nav.more'), dayClose: t('nav.dayClose') }) })),
-  { id: 'planen', text: t('board.planNote.description') },
+  // The planning note of "Alle" (#741): its desktop sentence, or the one line a phone shows
+  { id: 'planen', text: t(isPhone.value ? 'board.planNote.line' : 'board.planNote.description') },
 ])
 </script>

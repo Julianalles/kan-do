@@ -32,6 +32,9 @@
  *   the panel "Zuletzt geplant und nicht erledigt"; it ends with its day without a write. `waitingIds`: the Wartet tasks that
  *   same start took off today, still waiting (`sentBack.waiting`), the panel's second half, ending with its day too (#469); an
  *   earlier start's Wartet task is a plain "Weitere Aufgaben" task.
+ * - `blockDay` (#741): how the block of those two lists names the day its tasks are from ("Von gestern", "Von Samstag",
+ *   "Vom 14. November"), from `sentBack.from`: the fresh start stores the day the board was last planned (the marker it
+ *   replaces), the day close its own day; without one it reads "yesterday".
  * - `noticeShown` / `closeNotice()`: the notice that offers the fresh start, on a day that has begun in this window,
  *   has not been started fresh, whose notice was not closed, while something unfinished is on the board.
  * - `planNoteShown` / `armPlanNote()` / `answerPlanNote()` (#711): the one-time note on "Alle" about what the step is for. `freshStart()` (the
@@ -58,7 +61,7 @@ import { dataState } from '~/lib/dataStorage'
 import { armGlide } from '~/lib/boardPlace'
 import { isDemoTaskId } from '~/lib/demoIds'
 import { isNotPlanned } from '~/lib/taskPlanning'
-import { dayKey } from '~/utils/recapDay'
+import { blockWhen, dayKey } from '~/utils/recapDay'
 import { begunDay, dueOn, planArrival, resetNewDay } from '~/lib/dayBegun'
 
 export { resetNewDay }
@@ -185,6 +188,12 @@ export function useNewDay() {
     return sentBack && sentBack.day === dayKey(today.value) ? sentBack : null
   })
 
+  /**
+   * How the block on "Alle" names the day its tasks are from (#741): "yesterday", a weekday or a date. Read from today's
+   * `sentBack.from`; without one (older data, nothing taken off) it reads "yesterday".
+   */
+  const blockDay = computed(() => blockWhen(todaysBack.value?.from, dayKey(today.value)))
+
   /** The ids of the tasks that are held as not planned now. */
   const heldIds = computed(() => new Set(tasksStore.tasks.filter(task => isNotPlanned(task)).map(task => task.id)))
 
@@ -277,5 +286,5 @@ export function useNewDay() {
     recapStore.resolveTimeOffer()
   }
 
-  return { check, isDayBegun, freshStart, groupIds, waitingIds, noticeShown, closeNotice, planNoteShown, armPlanNote, answerPlanNote, timeOffer, takeOffTime, keepTime }
+  return { check, isDayBegun, freshStart, groupIds, waitingIds, blockDay, noticeShown, closeNotice, planNoteShown, armPlanNote, answerPlanNote, timeOffer, takeOffTime, keepTime }
 }

@@ -40,6 +40,10 @@
 - `readonly` (#422): the card of a trash entry. Same face, but no task id on the DOM (board selectors never match it), no
   open gesture and no pointer cursor; a card that came back from an undo plays its grow-back (`task--returning`)
 - Phone size (#274): 308 x 140 px at 390px (desktop 288 x 132), the desktop ratio scaled about 10 %; set by the phone block of `--task-card-max-width` / `--task-card-height` in board.css, type unchanged (already the larger phone step, #220)
+- Status badge (#797, `statusBadge`): a card shown outside the column of its status says which status it keeps, as a neutral
+  badge at the end of the footer ("Jetzt", "Wartet", the column names): the Jetzt and Wartet cards in "Heute" on the place
+  "Alle", and a waiting task off today under "Alle Aufgaben". Such a Jetzt card is the standard card (no Jetzt bar, no
+  timebox question, not the focus overlay's card): the Jetzt column owns those. A card in its own column never has it
 - No activity badge on the card: the activity is for grouping and statistics, the task sheet shows it. Cards and stacks in a column sit `--task-list-gap` (0.75rem) apart
 -->
 <template>
@@ -174,6 +178,14 @@
           <TaskCarryOverDots :day="carryOverDay" />
         </div>
         <div class="ml-auto flex shrink-0 items-center gap-1">
+          <!-- The status a card keeps outside its own column (#797): "Heute" on "Alle", a waiting task off today -->
+          <UBadge
+            v-if="statusBadgeLabel"
+            color="neutral"
+            variant="subtle"
+            :label="statusBadgeLabel"
+            data-testid="task-status-badge"
+          />
           <!-- Priority no longer matters once a task is done (#124) -->
           <task-priority-badge
             v-if="isHighPriority && !isDone"
@@ -230,6 +242,8 @@ const props = withDefaults(
     readonly?: boolean;
     /** The host puts its own button in the top-right corner on touch (#354, the pick arrow): title and topic keep the menu button's room */
     cornerRoom?: boolean;
+    /** The card stands outside the column of its status (#797): it names the status in a footer badge and a Jetzt card is the standard card */
+    statusBadge?: boolean;
   }>(),
   {
     muted: false,
@@ -237,6 +251,7 @@ const props = withDefaults(
     draft: false,
     readonly: false,
     cornerRoom: false,
+    statusBadge: false,
   },
 );
 
@@ -329,7 +344,7 @@ const isInProgress = computed(() => props.task.status === TaskStatus.Progress);
 /** The running card a dragged card would swap out (#162): it shows the swap state while the drop would swap */
 const isSwapTarget = computed(() => !props.preview && dragState.value.swapTaskId === props.task.id);
 /** A card in Jetzt, except the floating drag preview: the focus overlay measures it (`data-current`) and its chip is the Jetzt bar (#388) */
-const isCurrent = computed(() => isInProgress.value && !props.preview && !props.draft);
+const isCurrent = computed(() => isInProgress.value && !props.preview && !props.draft && !props.statusBadge);
 /** The nudge layer (#389) is up on this Jetzt card: its own content steps back (hidden, still in the DOM) */
 const isNudged = computed(
   () => isCurrent.value && !props.task.timeBoxSeconds && boardStore.timeboxNudgeTaskId === props.task.id,
@@ -340,6 +355,14 @@ const barCoversFooter = computed(() => isCurrent.value && !!props.task.timeBoxSe
 const isJetztDraft = computed(() => props.draft && isInProgress.value);
 
 const { t } = useI18n();
+
+/** The badge's text (#797): the column name of a Jetzt or Wartet task; Offen and Erledigt cards never carry one */
+const statusBadgeLabel = computed(() => {
+  if (!props.statusBadge) return null;
+  if (props.task.status === TaskStatus.Progress) return t("board.columns.progress");
+  if (props.task.status === TaskStatus.Waiting) return t("board.columns.waiting");
+  return null;
+});
 
 // Cloud icon: unsaved changes while the task's source cannot sync (#319)
 const { isSavePending } = useSavePending();

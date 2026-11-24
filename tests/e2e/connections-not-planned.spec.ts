@@ -90,14 +90,17 @@ test.describe('Todoist: a task seen for the first time starts under "Alle Aufgab
     // under "Alle": only the task from the second page, which kan-do sees for the first time
     await page.goto('/all')
     await expect(notPlanned(page).locator('[data-not-planned-id]')).toHaveText([/Neu aus Todoist/])
-    await expect(column(page, 'open').locator('.task-wrapper')).toHaveText([/Angebot schreiben/, /Rechnung prüfen/])
+    // "Heute" on "Alle" lists everything planned (#797): Offen's own cards, then the Jetzt and the Wartet card with their badges
+    const offen = column(page, 'open').locator('.task-wrapper:not([data-today-extra])')
+    await expect(offen).toHaveText([/Angebot schreiben/, /Rechnung prüfen/])
+    await expect(column(page, 'open').locator('.task-wrapper[data-today-extra]')).toHaveText([/Plan zeichnen.*Jetzt/, /Rückruf abwarten.*Wartet/])
 
     await notPlanned(page).locator('[data-not-planned-id]', { hasText: 'Neu aus Todoist' }).getByTestId('not-planned-pick').click()
-    await expect(column(page, 'open').locator('.task-wrapper')).toHaveText([/Angebot schreiben/, /Rechnung prüfen/, /Neu aus Todoist/])
+    await expect(offen).toHaveText([/Angebot schreiben/, /Rechnung prüfen/, /Neu aus Todoist/])
 
     // the next sync (a reload) moves nothing; nothing was written to Todoist
     await page.reload()
-    await expect(column(page, 'open').locator('.task-wrapper')).toHaveText([/Angebot schreiben/, /Rechnung prüfen/, /Neu aus Todoist/])
+    await expect(offen).toHaveText([/Angebot schreiben/, /Rechnung prüfen/, /Neu aus Todoist/])
     await expect(notPlanned(page).locator('[data-not-planned-id]')).toHaveCount(0)
     // "Alle" shows Offen only: Jetzt and Wartet are checked on Heute
     await goToPlace(page, 'Heute')

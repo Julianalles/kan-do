@@ -11,7 +11,8 @@
 - Drag (#355): a card can be carried onto Offen with the board's own drag (it is planned and lands where it is dropped). The side is one dnd-kit droppable (`data.notPlannedZone`) for a card or stack from Offen: while one is held over it the side shows a wash (no note: the model says it, #609, #581), and the drop takes it off today's board, on top of this list. The cards never make room for one another: no sorting here
 - Pick: a round button per card ("Für heute einplanen", named with the task's title). In the card's top right corner at every width (#469 D2: #467's edge arrow would land on the neighbour card at the 12 px gap), in the soft primary look (primary wash, green arrow; #467); desktop hides it at rest and shows it on hover and keyboard focus, as "Nicht für heute planen" is in the Heute column (#373; it was quiet at rest so a first-time user found it, #354 D1e; a touch-only device keeps it visible); a phone has it always, where a board card has its menu button. The move is `usePlanMoves().planForToday`; keyboard focus goes on to the next card's button
 - Order: `tasksStore.tasksNotPlanned` (put back by hand first, newest first); the topic focus filters it like a column (`useBoardFocus`)
-- A new day (#356, #387, #469, #702): the tasks that were on yesterday's board and are still not planned stand on top in up to two panels (BoardNotPlannedGroup), for that one day only: "Gestern geplant" (the Jetzt and Offen tasks the user's fresh start of today took off the board, `useNewDay().groupIds`, in their board order) and "Gestern in Wartet" (the Wartet tasks it took off today, `waitingIds`, until each is planned again; a task in both shows once, in `groupIds`). Each panel has a sans label with its count and its own button "Alle für heute einplanen" (a phone: below the label row, "Alle einplanen"), which plans every task of the panel as a single pick does (`usePlanAll`: toast with "Rückgängig"; a waiting task lands back in Wartet, #794). A panel with no tasks (also under the topic focus) is not in the DOM. Every other task follows plain, with no headline, a gap of 1.5 rem under the panels. The first panel's label row is the 40 px row under the headline, so its first card stays level with Offen's. Pick, drag and the focus hand-over work across the groups. BoardPlanNote (#711), the one-time note after "Neuen Tag planen" (what the step is for, when to go to "Heute"), stands first in the body, above the panels, until it is closed or the user goes to "Heute"; it shows once per user
+- A new day (#356, #387, #469, #741): the tasks that were planned and not done when the user last left the board, and are still not planned, stand on top in one block (BoardNotPlannedGroup `panel`), for that one day only: the Jetzt and Offen tasks the fresh start (or the evening's day close) took off the board (`useNewDay().groupIds`, in their board order), then the Wartet tasks it took off today (`waitingIds`; they keep waiting, #794). The block is named by the day they are from (`blockDay`: "Von gestern", "Von {weekday}" 2 to 6 days back, "Vom {date}" beyond), with its count and one quiet button "Alle für heute einplanen" (a phone: "Alle einplanen") that plans every task of the block as a single pick does (`usePlanAll`: toast with "Rückgängig"; a waiting task lands back in Wartet, #794). A block with no tasks (also under the topic focus) is not in the DOM. Every other task follows under the label "Weitere Aufgaben", which shows only with the block, a gap of 1.5 rem below it. Pick, drag and the focus hand-over work across both groups. A task whose status is Wartet shows its status badge in the block and in the list (#797)
+- The one-time note after "Neuen Tag planen" (#711, #741): on a phone BoardPlanNote stands first in the body as one line with a close control; on desktop it is in the empty "Heute" column (BoardColumn), not here
 - Limit (#357): when Notion holds more "not planned" pages than a sync loads (`notionConfig.notPlannedLimited`, the most recently edited 500), one muted line under the list says so
 - Empty: one muted note. Nothing held here: "Keine weiteren Aufgaben vorhanden." and the soft button "Aufgabe erstellen" (#367, the user's wording), which opens the card (#567); a task made while "Alle" shows is not planned, so it lands here; a focus without a match: "Keine Aufgaben gefunden."; a board without any task stays blank
 - Many items: the side grows with its cards and the page is the only scroll area on desktop (#609; the capacity echo stays at Offen's foot); on a phone the swipe page scrolls like every column page
@@ -42,12 +43,14 @@
       @add="addTask"
     />
     <!-- The 40 px row every column has under its title (the sorting control's), so the cards start on Offen's line.
-         With a panel the panel's heading is that row (#469): the row has no height then -->
-    <div class="shrink-0" :class="hasPanel ? 'h-0' : 'h-10'" aria-hidden="true" />
+         With the block there is no row, only 16 px of air under the headline: the block brings its own, evenly padded title row
+         (#741), so its first card sits lower -->
+    <div class="shrink-0" :class="hasPanel ? 'h-4 max-md:h-0' : 'h-10'" aria-hidden="true" />
 
     <div v-if="rendered" ref="bodyEl" class="not-planned__body">
-      <!-- The one-time note after "Neuen Tag planen" (#711): first in the body, above the draft host and the panels -->
-      <BoardPlanNote />
+      <!-- The one-time note after "Neuen Tag planen" (#711, #741): on a phone one line first in the body; desktop shows it in the
+           empty "Heute" column (BoardColumn) -->
+      <BoardPlanNote face="line" />
       <!-- The draft host (#567): the Heute flow, in the card, at the top of the list. It has no box while no draft is open -->
       <div class="not-planned__draft">
         <AddTaskSlot
@@ -73,32 +76,31 @@
         </UButton>
       </div>
 
-      <!-- A phone's first panel has 8 px of air under the headline (max-md:mt-2); on desktop it starts at the row's foot, so its
-           first card is level with Offen's -->
-      <!-- On a new day (#356, #387, #469, #702): what was on yesterday's board and is still not planned, in two panels, one per
-           reason a task is here: "Gestern geplant" (Jetzt and Offen of the board) and "Gestern in Wartet" (what the fresh start
-           took off today from Wartet, still waiting). Each has its label, count and "plan all" button, and is not in the DOM while it holds nothing
-           (an empty list says "0 items"). The regular list below has no headline: a gap of the section rhythm separates it -->
+      <!-- On a new day (#741, replaces the two panels of #702): everything that was planned and not done when the user last left
+           the board, in one block named by that day ("Von gestern", "Von Samstag", "Vom 14. November"): the Jetzt and Offen tasks in
+           their board order, then the Wartet tasks taken off today (still waiting: each shows its status badge). One quiet button plans them
+           all. Not in the DOM while it holds nothing (an empty list says "0 items"). A phone's block has 8 px of air under the
+           headline (max-md:mt-4) -->
       <BoardNotPlannedGroup
-        v-if="plannedTasks.length > 0"
+        v-if="hasPanel"
         panel
-        class="max-md:mt-2"
-        :title="t('board.notPlanned.panelPlanned')"
-        :heading-id="plannedHeadingId"
-        :count="plannedTasks.length"
+        class="max-md:mt-4"
+        :title="blockTitle"
+        :heading-id="blockHeadingId"
+        :count="panelTasks.length"
         :action-label="t('board.notPlanned.planAll')"
         :action-short="t('board.notPlanned.planAllShort')"
-        data-testid="not-planned-panel-planned"
-        @add-all="planPanel(plannedTasks.map(task => task.id), $event)"
+        data-testid="not-planned-panel"
+        @add-all="planPanel(panelTasks.map(task => task.id), $event)"
       >
         <TransitionGroup
           tag="ul"
           name="not-planned-item"
           class="not-planned__grid"
-          data-testid="not-planned-list-planned"
+          data-testid="not-planned-list-panel"
         >
           <BoardNotPlannedItem
-            v-for="(task, index) in plannedTasks"
+            v-for="(task, index) in panelTasks"
             :key="task.id"
             :task="task"
             :index="index"
@@ -107,37 +109,12 @@
           />
         </TransitionGroup>
       </BoardNotPlannedGroup>
-      <BoardNotPlannedGroup
-        v-if="waitingTasks.length > 0"
-        panel
-        :class="{ 'max-md:mt-2': plannedTasks.length === 0 }"
-        :title="t('board.notPlanned.panelWaiting')"
-        :heading-id="waitingHeadingId"
-        :count="waitingTasks.length"
-        :action-label="t('board.notPlanned.planAll')"
-        :action-short="t('board.notPlanned.planAllShort')"
-        data-testid="not-planned-panel-waiting"
-        @add-all="planPanel(waitingTasks.map(task => task.id), $event)"
-      >
-        <TransitionGroup
-          tag="ul"
-          name="not-planned-item"
-          class="not-planned__grid"
-          data-testid="not-planned-list-waiting"
-        >
-          <BoardNotPlannedItem
-            v-for="(task, index) in waitingTasks"
-            :key="task.id"
-            :task="task"
-            :index="plannedTasks.length + index"
-            @open="openTask"
-            @pick="pick"
-          />
-        </TransitionGroup>
-      </BoardNotPlannedGroup>
+      <!-- Every other task; labelled "Weitere Aufgaben" only while the block stands above it -->
       <BoardNotPlannedGroup
         v-show="others.length > 0"
         :class="{ 'mt-6': hasPanel }"
+        :title="hasPanel ? t('board.notPlanned.others') : undefined"
+        :heading-id="othersHeadingId"
         data-testid="not-planned-group-others"
       >
         <TransitionGroup
@@ -189,6 +166,9 @@ import { TaskStatus } from '~/types/taskStatus'
 import { useNotionConfigStore } from '~/store/notionConfig'
 import { useBoardStore } from '~/store/board'
 import { NOT_PLANNED_PAGE_LIMIT } from '~/lib/notionLimits'
+import { useLocaleFormat } from '~/composables/useLocaleFormat'
+import { weekdayName } from '~/utils/doneDayLabel'
+import { dayMonthName } from '~/utils/recapDay'
 
 defineOptions({ name: 'BoardNotPlanned' })
 
@@ -231,11 +211,11 @@ const shown = computed(() => applyFocus(held.value))
 /**
  * The groups of "Alle Aufgaben" (#356, #387, #469): the panel of what was on yesterday's board and is still not planned
  * (the Jetzt and Offen tasks today's fresh start took off the board in the order they had, Jetzt first, then the tasks that
- * same start took off today from Wartet, still waiting; the panel ends with its day, so a Wartet task of an earlier start is under "Weitere
+ * same start took off today from Wartet, still waiting, all in one block since #741; the panel ends with its day, so a Wartet task of an earlier start is under "Weitere
  * Aufgaben"; `waitingIds` never repeats a task of `groupIds`), and every other task
  * under "Weitere Aufgaben". Without a panel there is one plain list, as on any other day.
  */
-const { groupIds, waitingIds } = useNewDay()
+const { groupIds, waitingIds, blockDay } = useNewDay()
 const { draftTask } = useTaskDraft()
 const shownById = computed(() => new Map(shown.value.map(task => [task.id, task])))
 const plannedTasks = computed(() => groupIds.value.map(id => shownById.value.get(id)).filter(task => task !== undefined))
@@ -249,8 +229,16 @@ const others = computed(() => {
 })
 /** The cards in the order they are rendered, across the groups */
 const renderedOrder = computed(() => [...panelTasks.value, ...others.value].map(task => task.id))
-const plannedHeadingId = useId()
-const waitingHeadingId = useId()
+const blockHeadingId = useId()
+const othersHeadingId = useId()
+/** The block's title names the day its tasks are from (#741, 2B): "Von gestern", "Von Samstag", "Vom 14. November" */
+const { locale } = useLocaleFormat()
+const blockTitle = computed(() => {
+  const when = blockDay.value
+  if (when.kind === 'weekday') return t('board.notPlanned.blockWeekday', { weekday: weekdayName(when.date, locale.value) })
+  if (when.kind === 'date') return t('board.notPlanned.blockDate', { date: dayMonthName(when.date, locale.value) })
+  return t('board.notPlanned.blockYesterday')
+})
 
 /** kan-do holds a task at all: only then "everything is planned for today" is true; a new board stays blank */
 const hasTasks = computed(() => tasksStore.tasks.length > 0)
@@ -285,9 +273,9 @@ async function pick(id: string, event: MouseEvent) {
 }
 
 /**
- * "Alle für heute einplanen" of a panel. A panel whose tasks all moved leaves the DOM with the button that was focused, so a
- * keyboard user's focus goes on: to the button of the next panel, else to the first card's pick button of the plain list, else
- * to "Aufgabe erstellen" / the add button (the places a single pick hands on to as well).
+ * "Alle für heute einplanen" of the block (#741: every task of it, a waiting one returns to Wartet). A block whose tasks all
+ * moved leaves the DOM with the button that was focused, so a keyboard user's focus goes on: to the first card's pick button
+ * of the list below, else to "Aufgabe erstellen" / the add button (the places a single pick hands on to as well).
  */
 async function planPanel(ids: string[], event: MouseEvent) {
   const button = event.currentTarget as HTMLElement | null
@@ -298,9 +286,10 @@ async function planPanel(ids: string[], event: MouseEvent) {
   // The button is still there (a task of the panel stayed): the focus is where it was
   if (button?.isConnected) return
   const body = bodyEl.value
-  const target = body?.querySelector<HTMLElement>('[data-testid="nps-group-plan-all"]')
-    ?? body?.querySelector<HTMLElement>('[data-testid="not-planned-list-others"] .not-planned__pick')
-    ?? focusFallback()
+  // A pointer click hands on to the card itself: its pick button shows on keyboard focus only (#373), and a focused hidden
+  // button would raise its tooltip over nothing
+  const next = body?.querySelector<HTMLElement>(`[data-testid="not-planned-list-others"] ${event.detail === 0 ? '.not-planned__pick' : '.not-planned__card'}`)
+  const target = next ?? focusFallback()
   target?.focus({ preventScroll: true })
 }
 </script>

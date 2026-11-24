@@ -164,14 +164,14 @@ test.describe('a new day (#356, #387)', () => {
     await settleAnimations(page)
   }
 
-  test('"Alle Aufgaben" after the fresh start: the panels "Gestern geplant" and "Gestern in Wartet" (labelled groups with a button) above the plain list (1280)', async ({ context, page }) => {
+  test('"Alle Aufgaben" after the fresh start: the block of the last planned day (a labelled group with a button) above the list "Weitere Aufgaben" (1280, #741)', async ({ context, page }) => {
     await seedNewDayBoard(context, { tasks: board() })
     await page.goto('/all')
     await startFresh(page)
     await expect(page.getByTestId('not-planned')).toMatchAriaSnapshot({ name: 'not-planned-new-day-groups-1280.aria.yml' })
   })
 
-  test('"Alle Aufgaben" after the fresh start: the panels are named groups on a phone (390)', async ({ context, page }) => {
+  test('"Alle Aufgaben" after the fresh start: the block is a named group on a phone, under the one-line note (390)', async ({ context, page }) => {
     await page.setViewportSize(MOBILE)
     await seedNewDayBoard(context, { tasks: board() })
     await gotoBoard(page)
@@ -179,12 +179,12 @@ test.describe('a new day (#356, #387)', () => {
     await expect(page.getByTestId('not-planned')).toMatchAriaSnapshot({ name: 'not-planned-new-day-groups-390.aria.yml' })
   })
 
-  test('"Alle Aufgaben" after the fresh start: the one-time note stands first, a status region with its "Schließen" (1280, #711)', async ({ context, page }) => {
+  test('"Alle Aufgaben" after the fresh start: the one-time note is a status region in the empty "Heute" column, without a button (1280, #711, #741)', async ({ context, page }) => {
     await seedNewDayBoard(context, { tasks: board() })
     await page.goto('/all')
     await startFresh(page)
-    await expect(page.getByTestId('plan-note')).toMatchAriaSnapshot({ name: 'plan-note-1280.aria.yml' })
-    await expect(page.getByTestId('not-planned')).toMatchAriaSnapshot({ name: 'not-planned-plan-note-1280.aria.yml' })
+    await expect(page.locator('#column-open').getByTestId('plan-note')).toMatchAriaSnapshot({ name: 'plan-note-1280.aria.yml' })
+    await expect(page.getByTestId('not-planned').getByTestId('plan-note')).toHaveCount(0)
   })
 
   test('"Alle Aufgaben" after the fresh start: the one-time note on a phone (390, #711)', async ({ context, page }) => {

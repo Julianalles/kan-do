@@ -6,7 +6,7 @@ import { stackAccessibleName } from '~/utils/stackAccessibleName'
 import { TaskStatus } from '~/types/taskStatus'
 import { canSwapIntoProgress } from '~/utils/wipGuard'
 import { NOT_PLANNED_GROUP, isNotPlannedZone, resolvePlanDrop } from '~/utils/planDrop'
-import { openColumnTitleKey } from '~/lib/boardPlace'
+import { boardPlaceOfPath, currentBoardPath, openColumnTitleKey } from '~/lib/boardPlace'
 
 /** Minimal shapes of the dnd-kit entities the announcements read (avoids `any`). */
 interface AnnouncedStack { key: string, label: string, taskIds: string[] }
@@ -55,7 +55,9 @@ export function useBoardAnnouncements() {
   const columnName = (status: TaskStatus | typeof NOT_PLANNED_GROUP | undefined) => {
     if (status === NOT_PLANNED_GROUP) return translate('board.notPlanned.title')
     // Offen is named as its headline reads on the place that shows (#375): "Heute" on "Alle"
-    const key = status === undefined ? undefined : status === TaskStatus.Open ? openColumnTitleKey() : COLUMN_KEYS[status]
+    // On "Alle" the Jetzt and Wartet cards stand in that column too (#797): a card there is in "Heute"
+    const inOpenColumn = status === TaskStatus.Open || (boardPlaceOfPath(currentBoardPath.value) === 'all' && status !== TaskStatus.Done)
+    const key = status === undefined ? undefined : inOpenColumn ? openColumnTitleKey() : COLUMN_KEYS[status]
     return key ? translate(key) : ''
   }
 

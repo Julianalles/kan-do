@@ -19,7 +19,8 @@ is wrapped in this component so it can be dragged and sorted within/across colum
   wired by aria-describedby (#154). The accessible name stays the task title.
 - Mark a member of an expanded stack with data-from-stack="<group key>" (#147): a click on it is not
   an outside click for the column's expanded stacks
-- "Nicht für heute planen" (#354): on the place "Alle" an Offen card carries a round arrow button centred on its left edge, soft primary (#467; desktop
+- `todayExtra` (#797): a Jetzt or Wartet card that "Heute" lists on the place "Alle" carries `data-today-extra="<status>"`; it is a sortable of its own status inside Offen's list
+- "Nicht für heute planen" (#354): on the place "Alle" an Offen card (and a Wartet card listed in "Heute" there, #797) carries a round arrow button centred on its left edge, soft primary (#467; desktop
   only, shown on hover and keyboard focus, named with the task's title); it takes the card off today's board through
   `usePlanMoves().notToday`. Its click and keys stay out of the card's own handlers and the drag
 -->
@@ -32,7 +33,8 @@ import { useDropMotionClasses } from '~/composables/useDropMotion'
 import { useTaskDeletion } from '~/composables/useTaskDeletion'
 import { findCardElement, neighbourCardId } from '~/utils/neighbourCard'
 import { focusFirstAvailable } from '~/utils/focusRecovery'
-import { TaskStatus } from '~/types/taskStatus'
+import type { TaskStatus } from '~/types/taskStatus'
+import { canBeOffToday } from '~/lib/taskPlanning'
 import { useBoardPlace } from '~/composables/useBoardPlace'
 import { usePlanMoves } from '~/composables/usePlanMoves'
 import { useIsPhone } from '~/composables/useIsDesktop'
@@ -54,6 +56,8 @@ const props = defineProps<{
   stackSize?: number
   /** Readable group name */
   stackLabel?: string
+  /** A Jetzt or Wartet card listed in "Heute" on the place "Alle" (#797): marked on the DOM so the drag tells it from Offen's own cards */
+  todayExtra?: boolean
 }>()
 
 const { t } = useI18n()
@@ -97,7 +101,8 @@ const { deleteTaskWithUndo } = useTaskDeletion()
 const { isAll } = useBoardPlace()
 const { notToday } = usePlanMoves()
 const isPhone = useIsPhone()
-const showNotToday = computed(() => isAll.value && props.taskStatus === TaskStatus.Open && !isPhone.value)
+// A Wartet card listed in "Heute" there (#797) leaves today the same way and keeps Wartet; a Jetzt card always belongs to today
+const showNotToday = computed(() => isAll.value && canBeOffToday(props.taskStatus) && !isPhone.value)
 
 /** Takes the card off today's board. A keyboard user's focus was on the arrow that leaves with it: it goes to the neighbour card. */
 async function putBack(event: MouseEvent) {
@@ -132,6 +137,7 @@ function deleteFocusedCard(event: KeyboardEvent) {
     :data-task-id="taskId"
     :data-from-stack="fromStack"
     :data-stack-position="stackPosition"
+    :data-today-extra="todayExtra ? taskStatus : undefined"
     role="group"
     :aria-label="task?.title"
     :aria-describedby="positionText ? positionId : undefined"

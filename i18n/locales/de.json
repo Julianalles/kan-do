@@ -159,8 +159,10 @@
       "dragBack": "„{title}“ bleibt in „Alle Aufgaben“.",
       "capacityFull": "Damit ist dein Tag vermutlich voll.",
       "capacityBelow": "Dein Tag ist vermutlich voll. Eine Aufgabe liegt unter der Linie. | Dein Tag ist vermutlich voll. {n} Aufgaben liegen unter der Linie.",
-      "panelPlanned": "Gestern geplant",
-      "panelWaiting": "Gestern in Wartet",
+      "blockYesterday": "Von gestern",
+      "blockWeekday": "Von {weekday}",
+      "blockDate": "Vom {date}",
+      "others": "Weitere Aufgaben",
       "panelCount": "{n} Aufgabe | {n} Aufgaben",
       "planAll": "Alle für heute einplanen",
       "planAllShort": "Alle einplanen",
@@ -195,7 +197,8 @@
     },
     "planNote": {
       "title": "Wähle aus, was heute dran ist",
-      "description": "Plane hier die Aufgaben für heute ein. Wechsle zu „Heute“, sobald du loslegen willst.",
+      "description": "Der Pfeil an einer Karte plant sie für heute ein. Wechsle zu „Heute“, sobald du loslegen willst.",
+      "line": "Wähle aus, was heute dran ist. Wechsle zu „Heute“, sobald du loslegen willst.",
       "close": "Schließen"
     },
     "newDayTimeNote": {

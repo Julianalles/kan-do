@@ -16,6 +16,8 @@
   strip's own transform on that timing. `data-place-moving` is set meanwhile; the side out of view is `inert`, and once the move is over it is out of layout (desktop) or hidden (phone), so
   neither pointer, keyboard, reader nor a drag reaches it. The Jetzt focus overlay never shows on "Alle" nor during the move
 - One-off (owner, #351, 2026-11-16): "Alle" and "Heute" show Offen with the same look and vertical position, so the way between them reads as one sideways move of the board; no general rule for other places
+- "Alle", everything planned (#797): while "Alle" rests, Offen (headed "Heute") also lists the Jetzt card and the Wartet cards (`todayExtras`), each with its status badge, and the Jetzt and Wartet
+  columns render no cards; while the strip travels the columns hold them. A task is one card, and one sortable, at any time
 - "Alle", drag (#355): a card is carried between "Alle Aufgaben" and Offen with the board's own drag (useBoardDndKit); `data-over-not-planned` on `.board` while that side is the drop
   target (dnd.css takes the placeholder out of Offen's layout). Phone: the edge scroll and its arrows work on the two pages of "Alle" as on Heute's three
 - "Alle": BoardCapacityDock (the capacity echo) in Offen's footer, and under the app bar for a line above the window (#573), on desktop only, so the capacity element shows with the Today column and never over "Alle Aufgaben" (#566; on a phone Offen's own line is in its list); the two planning moves are announced politely (usePlanMoves)
@@ -75,12 +77,16 @@
         :yesterday-count="yesterdayCount"
         :board-empty="boardEmpty"
         :tasks-under-all="tasksUnderAll"
+        :today-extras="todayExtras"
         :is-dragging="isDragging"
         :mute-others="false"
         :grouping-enabled="groupingEnabled"
         :grouping-key="groupingKey"
       >
         <template v-if="isMobile" #head><BoardFocusBar phone :active="stripPage === 0" /></template>
+        <!-- The one-time note after "Neuen Tag planen" (#711, #741): on desktop it stands in the empty "Heute" column of "Alle",
+             where the picked tasks land, and gives way to the first planned card -->
+        <template v-if="!isMobile" #list-start><BoardPlanNote face="column" /></template>
         <!-- The capacity echo at the foot of Offen on "Alle" (desktop), where Erledigt has "Tag abschließen" -->
         <template v-if="isAll && !isMobile" #top>
           <BoardCapacityDock placement="top" />
@@ -93,7 +99,7 @@
       <div class="column-group-mid" :inert="isAll || undefined">
         <BoardFocusBar v-if="isMobile" phone :active="stripPage === 1" />
         <BoardColumn
-          :tasks="tasksProgress"
+          :tasks="columnProgress"
           :task-status="TaskStatus.Progress"
           :is-dragging="isDragging"
           :mute-others="false"
@@ -101,7 +107,7 @@
           :grouping-key="groupingKey"
         />
         <BoardColumn
-          :tasks="tasksWaiting"
+          :tasks="columnWaiting"
           :task-status="TaskStatus.Waiting"
           :is-dragging="isDragging"
           :mute-others="false"
@@ -186,6 +192,7 @@
         :task="draggingTask"
         :muted="false"
         :corner-room="previewFromNotPlanned"
+        :status-badge="isAll"
         preview
         class="kando-dnd-preview"
       />
@@ -218,6 +225,7 @@ import TaskCard from "~/components/task/TaskCard.vue";
 import TaskStack from "~/components/task/TaskStack.vue";
 import BoardPageDots from "~/components/board/BoardPageDots.vue";
 import BoardNotPlanned from "~/components/board/BoardNotPlanned.vue";
+import BoardPlanNote from "~/components/board/BoardPlanNote.vue";
 import BoardCapacityDock from "~/components/board/BoardCapacityDock.vue";
 import { useBoardPlace } from "~/composables/useBoardPlace";
 import { readPlaceMove, setPlacePace, takePlacePace } from "~/lib/boardPlace";
@@ -343,6 +351,14 @@ const boardEmpty = computed(() =>
 /** Tasks wait under "Alle" (#802): the empty board's second line leads there. Under the topic focus only those shown count. */
 const tasksUnderAll = computed(() => applyFocus(tasksStore.tasksNotPlanned).length > 0);
 const { announcement: planAnnouncement } = usePlanMoves();
+
+// "Heute" on "Alle" lists everything planned for today (#797): while that place rests, the Jetzt card and the Wartet cards are
+// rendered by the Offen column, behind its own cards, and their columns (out of layout there) render none. One card per task at
+// any time: a task is never registered with the drag twice. While the strip travels the columns hold their cards again.
+const showTodayExtras = computed(() => isAll.value && !placeMoving.value);
+const todayExtras = computed(() => (showTodayExtras.value ? [...tasksProgress.value, ...tasksWaiting.value] : []));
+const columnProgress = computed(() => (showTodayExtras.value ? [] : tasksProgress.value));
+const columnWaiting = computed(() => (showTodayExtras.value ? [] : tasksWaiting.value));
 
 /** Strip index of the "Alle Aufgaben" page */
 const NOT_PLANNED_PAGE = -1;
