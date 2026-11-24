@@ -16,10 +16,10 @@
  *   board is not onboarded, the desktop data status blocks writes (ADR 011) or the day-close dialog is open.
  * - `freshStart()`: the user's click ("Neuen Tag planen" in the recap, the notice's button). Once per local day (the
  *   marker `dayRecap.lastNewDay` is monotonic: a second click and a clock set back move nothing). The Jetzt task
- *   stops its timer and goes to Offen through the shared move path, the Wartet tasks go to Offen through the batch
- *   status path (their writes run one after another), then everything is taken off the board in one store action
- *   through `useTaskSync.unplanTasks`, which writes the "not planned" status to a source that stores planning (Notion
- *   with such a status mapped, #357); Local and Todoist get no planning write. Demo tasks stay. That take-off is
+ *   stops its timer and goes to Offen through the shared move path; the Wartet tasks stay Wartet (#794), then
+ *   everything is taken off the board in one store action through `useTaskSync.unplanTasks`, which writes the "not
+ *   planned" status of an Offen task to a source that stores planning (Notion with such a status mapped, #357); a Wartet
+ *   task, Local, Todoist and Reminders get no planning write. Demo tasks stay. That take-off is
  *   `useTakeOffBoard().takeOffBoard()`, shared with the day close (#480), which does the same in the evening and marks
  *   the next day as started (`markDayClosed`): the morning after a close is not due, so it shows no notice and starts nothing. Nothing is deleted;
  *   title, notes, topic, priority, time box, time spent and source are untouched. The board day counted for today is
@@ -29,8 +29,8 @@
  * - `isNewDayDue()`: a local day has passed since the last fresh start (or, before the first one, since the recap's
  *   marker), i.e. today has not been started fresh.
  * - `groupIds`: the Jetzt and Offen tasks of today's fresh start that are still not planned, i.e. the first half of
- *   the panel "Zuletzt geplant und nicht erledigt"; it ends with its day without a write. `waitingIds`: the not-planned tasks that
- *   same start took out of Wartet (`sentBack.waiting`), the panel's second half, ending with its day too (#469); an
+ *   the panel "Zuletzt geplant und nicht erledigt"; it ends with its day without a write. `waitingIds`: the Wartet tasks that
+ *   same start took off today, still waiting (`sentBack.waiting`), the panel's second half, ending with its day too (#469); an
  *   earlier start's Wartet task is a plain "Weitere Aufgaben" task.
  * - `noticeShown` / `closeNotice()`: the notice that offers the fresh start, on a day that has begun in this window,
  *   has not been started fresh, whose notice was not closed, while something unfinished is on the board.
@@ -168,7 +168,7 @@ export function useNewDay() {
     // A check always comes first in the app; a caller without one still loses no question
     askAboutNight(todayKey)
 
-    // The shared take-off (also the day close's): Jetzt through Offen, Wartet through Offen, then off the board
+    // The shared take-off (also the day close's): Jetzt through Offen, Wartet as it is, then off the board
     const { group, sent, fromWaiting } = takeOffBoard()
     // The Wartet ones are this day's too (#469): the panel names them from `sentBack`, so it ends with the day
     recapStore.markNewDay(todayKey, group, fromWaiting)
@@ -195,7 +195,7 @@ export function useNewDay() {
   })
 
   /**
-   * The second half of the panel (#469): the tasks today's fresh start (or the evening's day close) took out of Wartet that
+   * The second half of the panel (#469): the tasks today's fresh start (or the evening's day close) took off today from Wartet (they stay Wartet) that
    * are still not planned, in their order. A Wartet task of an earlier start is a plain "Weitere Aufgaben" task: the panel
    * ends with its day, like `groupIds`. Stored data without `waiting` (before #469) lists none.
    */

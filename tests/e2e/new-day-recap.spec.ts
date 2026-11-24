@@ -1007,14 +1007,14 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await expect(note(page)).toHaveCount(0)
     expect(await storedRecap(page)).toMatchObject({ lastNewDay: dayKeyDaysAgo(0), sentBack: { day: dayKeyDaysAgo(0), ids: ['nd-now-1', 'nd-open-2', 'nd-open-1'] } })
 
-    // the board: nothing unfinished on it; the Jetzt and the Wartet task are Offen tasks that are not planned, with their time
+    // the board: nothing unfinished on it; the Jetzt task is an Offen task that is not planned, with its time; the Wartet task stays Wartet and is not planned (#794)
     await goToPlace(page, 'Heute')
     await expect(page.locator('#column-waiting .task-wrapper')).toHaveCount(0)
     await expect(page.locator('#column-progress .task-wrapper')).toHaveCount(0)
     // the sentence counts the panel's cards: Jetzt, both Offen cards and the Wartet card (#515)
     await expect(sentence(page)).toHaveText('4 Aufgaben von gestern liegen unter Alle.')
     expect(await storedTask(page, 'nd-now-1')).toMatchObject({ status: 0, notPlanned: true, timeSpentSeconds: 1800 })
-    expect(await storedTask(page, 'nd-waiting-1')).toMatchObject({ status: 0, notPlanned: true })
+    expect(await storedTask(page, 'nd-waiting-1')).toMatchObject({ status: 2, notPlanned: true })
 
     // once per day: a reload and a return to the app move nothing again and bring no recap and no notice
     // #416: "Alle" opened by hand keeps the normal pill
@@ -1056,7 +1056,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await expect.poll(() => groupIds(page, 'others')).toEqual(['nd-held-1'])
   })
 
-  test('"Alle für heute einplanen" plans every task of its panel, a waiting task lands in Offen, the toast undoes exactly those (#702)', async ({ page, context }) => {
+  test('"Alle für heute einplanen" plans every task of its panel, a waiting task lands back in Wartet, the toast undoes exactly those (#702, #794)', async ({ page, context }) => {
     await seedNewDayBoard(context, { tasks: newDayBackTasks() })
     await page.goto('/tasks')
     await planButton(page).click()
@@ -1066,14 +1066,18 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     await expect(page.getByTestId('not-planned-panel-waiting')).toBeVisible()
     expect(await openIds(page)).toEqual([])
     await page.getByTestId('not-planned-panel-waiting').getByTestId('nps-group-plan-all').click()
-    await expect.poll(() => openIds(page)).toEqual(['nd-waiting-1'])
     await expect(page.getByTestId('not-planned-panel-waiting')).toHaveCount(0)
+    // planned again it is Wartet, not Offen: Alle shows no Wartet column, so the stored task says where it is
+    expect(await openIds(page)).toEqual([])
+    await expect.poll(async () => (await storedTask(page, 'nd-waiting-1'))?.status).toBe(2)
+    expect(await storedTask(page, 'nd-waiting-1')).not.toHaveProperty('notPlanned')
     await expect(page.getByRole('region', { name: /Benachrichtigungen/ }).getByText('Eine Aufgabe ist für heute geplant.', { exact: true })).toBeVisible()
     // the screen-reader line says the same sentence once for the panel (the last task's title would drop the others)
     await expect(page.getByTestId('plan-announcement')).toHaveText('Eine Aufgabe ist für heute geplant.')
     await page.getByRole('button', { name: 'Rückgängig' }).click()
     await expect.poll(() => openIds(page)).toEqual([])
     await expect.poll(() => groupIds(page, 'panel')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1', 'nd-waiting-1'])
+    expect(await storedTask(page, 'nd-waiting-1')).toMatchObject({ status: 2, notPlanned: true })
     // the other panel: three tasks, one toast
     await page.getByTestId('not-planned-panel-planned').getByTestId('nps-group-plan-all').click()
     await expect.poll(async () => (await openIds(page)).sort()).toEqual(['nd-now-1', 'nd-open-1', 'nd-open-2'])
@@ -1117,15 +1121,15 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     expect(Math.abs(box!.width - card!.width)).toBeLessThanOrEqual(24)
   })
 
-  test('a task from Wartet that is picked again lands in Heute like every pick and leaves its category', async ({ page, context }) => {
+  test('a task from Wartet that is picked again comes back as Wartet and leaves its category (#794)', async ({ page, context }) => {
     await seedNewDayBoard(context, { tasks: newDayBackTasks() })
     await page.goto('/tasks')
     await planButton(page).click()
     await settled(page)
     await side(page).locator('[data-not-planned-id="nd-waiting-1"]').getByTestId('not-planned-pick').click()
-    await expect.poll(() => openIds(page)).toEqual(['nd-waiting-1'])
     await expect.poll(() => groupIds(page, 'panel')).toEqual(['nd-now-1', 'nd-open-2', 'nd-open-1'])
-    expect(await storedTask(page, 'nd-waiting-1')).toMatchObject({ status: 0 })
+    expect(await openIds(page)).toEqual([])
+    expect(await storedTask(page, 'nd-waiting-1')).toMatchObject({ status: 2 })
     expect(await storedTask(page, 'nd-waiting-1')).not.toHaveProperty('notPlanned')
     // "Nicht für heute planen" later puts it back as a task that came from Offen: not into the category
     await page.reload()
@@ -1496,7 +1500,9 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
     // the last card of the first group hands on to the first card below it, and so on
     await expect(pick('nd-waiting-1')).toBeFocused()
     await page.keyboard.press('Enter')
-    await expect.poll(() => openIds(page)).toEqual(['nd-open-1', 'nd-waiting-1'])
+    // the waiting task comes back as Wartet (#794): the Offen column stays as it is
+    await expect.poll(async () => { const task = await storedTask(page, 'nd-waiting-1'); return task?.status === 2 && task.notPlanned === undefined }).toBe(true)
+    expect(await openIds(page)).toEqual(['nd-open-1'])
     await expect(pick('nd-held-1')).toBeFocused()
   })
 

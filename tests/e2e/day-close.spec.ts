@@ -194,7 +194,9 @@ test.describe('Day close stage (#480)', () => {
 
     await expect.poll(async () => (await readStored(page))?.tasks['seed-progress-1']).toMatchObject({ status: 0, notPlanned: true, timerId: null })
     const stored = (await readStored(page))!
-    for (const id of ['seed-open-1', 'seed-open-2', 'seed-waiting-1']) expect(stored.tasks[id]).toMatchObject({ status: 0, notPlanned: true })
+    for (const id of ['seed-open-1', 'seed-open-2']) expect(stored.tasks[id]).toMatchObject({ status: 0, notPlanned: true })
+    // a waiting task keeps waiting (#794)
+    expect(stored.tasks['seed-waiting-1']).toMatchObject({ status: 2, notPlanned: true })
     // Nothing deleted: every task is still there, time and notes untouched, the trash is empty
     expect(Object.keys(stored.tasks).sort()).toEqual(SEED_TASKS.map(task => task.id).sort())
     expect(stored.tasks['seed-progress-1']!.timeSpentSeconds).toBeGreaterThanOrEqual(1800)
