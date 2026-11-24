@@ -202,6 +202,22 @@ describe('useNowWindowSync (#383)', () => {
     expect(syncs().at(-1)?.snapshot).toBeNull()
   })
 
+  it('the pin ends when the paused task is taken off today (day close keeps it in Wartet, #794), and a planned-again task is not shown', async () => {
+    tasks.setTasks([makeTask('a', { status: TaskStatus.Progress })])
+    useTaskTimerDriver().start()
+    await mountSync()
+    fire({ kind: 'toggle-pause', taskId: 'a' })
+    await nextTick(); await flushPromises()
+    expect(syncs().at(-1)?.snapshot).toMatchObject({ taskId: 'a' })
+    tasks.updateTask('a', { notPlanned: true })
+    await nextTick(); await flushPromises()
+    expect(syncs().at(-1)?.snapshot).toBeNull()
+    // planning it again puts it back in Wartet, but the pin is gone: the pill does not bring it back
+    tasks.updateTask('a', { notPlanned: undefined })
+    await nextTick(); await flushPromises()
+    expect(syncs().at(-1)?.snapshot).toBeNull()
+  })
+
   it('the pin ends when the setting is turned off, and a later switch-on shows nothing', async () => {
     tasks.setTasks([makeTask('a', { status: TaskStatus.Progress })])
     useTaskTimerDriver().start()
