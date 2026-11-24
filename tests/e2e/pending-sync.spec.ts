@@ -40,7 +40,7 @@ test.describe('pending-sync marker (#319)', () => {
     await expect(page.locator(CLOUD)).toHaveCount(0)
 
     await blockNotion(page)
-    await moveTo(page, TITLE, 'Warten')
+    await moveTo(page, TITLE, 'Wartet')
 
     await expect(column(page, 'waiting').getByText(TITLE)).toBeVisible() // the change stays local
     await expect(card(page, TITLE).locator(CLOUD)).toBeVisible()
@@ -68,7 +68,7 @@ test.describe('pending-sync marker (#319)', () => {
     await expect(column(page, 'open').getByText(TITLE)).toBeVisible()
 
     await blockNotion(page)
-    await moveTo(page, TITLE, 'Warten')
+    await moveTo(page, TITLE, 'Wartet')
     await expect(card(page, TITLE).locator(CLOUD)).toBeVisible()
 
     await page.reload() // still unreachable
@@ -104,7 +104,7 @@ test.describe('pending-sync marker (#319)', () => {
     await expect(column(page, 'open').getByText(TITLE)).toBeVisible()
 
     const write = page.waitForResponse((res) => res.url().includes('/api/notion/update-task'))
-    await moveTo(page, TITLE, 'Warten')
+    await moveTo(page, TITLE, 'Wartet')
     await write
     await expect(column(page, 'waiting').getByText(TITLE)).toBeVisible()
     await resync(page)
@@ -119,8 +119,8 @@ test.describe('pending-sync marker (#319)', () => {
     await expect(column(page, 'open').getByText('Lokal: Einkauf planen')).toBeVisible()
 
     await blockNotion(page)
-    await moveTo(page, 'Lokal: Einkauf planen', 'Warten')
-    await moveTo(page, TITLE, 'Warten')
+    await moveTo(page, 'Lokal: Einkauf planen', 'Wartet')
+    await moveTo(page, TITLE, 'Wartet')
 
     await expect(card(page, TITLE).locator(CLOUD)).toBeVisible()
     await expect(card(page, 'Lokal: Einkauf planen').locator(CLOUD)).toHaveCount(0)

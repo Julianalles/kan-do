@@ -167,7 +167,7 @@ test.describe('Keyboard: delete the focused card (#579)', () => {
       const details = menu(page).getByRole('menuitem', { name: 'Details öffnen' });
       await expect(details).toBeFocused();
       await page.keyboard.press('ArrowDown');
-      await expect(menu(page).getByRole('menuitemcheckbox').first()).toBeFocused();
+      await expect(menu(page).getByRole('menuitem', { name: 'Status ändern' })).toBeFocused();
       await page.keyboard.press('ArrowUp');
       await expect(details).toBeFocused();
       await page.keyboard.press('Enter');

@@ -202,7 +202,7 @@ test.describe('timebox nudge on a card that lands in Jetzt (desktop)', () => {
     await expect(nudge(page)).toHaveCount(0)
 
     // Out and in again asks again
-    await contextMenuMoveTo(page, PLAIN.title, 'Warten')
+    await contextMenuMoveTo(page, PLAIN.title, 'Wartet')
     await expect(wrapper(page, PLAIN.id)).toBeVisible()
     await contextMenuMoveTo(page, PLAIN.title, 'Jetzt')
     await expect(nudge(page)).toBeVisible()
@@ -213,7 +213,7 @@ test.describe('timebox nudge on a card that lands in Jetzt (desktop)', () => {
     await expect(nudge(page)).toBeVisible()
     await page.locator('.task-wrapper', { hasText: PLAIN.title }).first().click({ button: 'right' })
     await page.getByRole('menuitem', { name: 'Timebox setzen' }).click()
-    await page.getByRole('menuitemcheckbox', { name: '60 Minuten' }).click()
+    await page.getByRole('menuitem', { name: '60 Minuten' }).click()
     await expect(nudge(page)).toHaveCount(0)
     await expect(jetzt(page).locator('.task .chip__box')).toHaveText('1 h')
   })

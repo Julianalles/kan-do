@@ -3,9 +3,9 @@
  * @description Provides status change actions and menu items for a task
  * @responsibility
  * - `changeStatus`: the guarded, swap-aware move into a column
- * - `statusChoice` / `chooseStatus` (#359): the task sheet's picker has a fifth choice, "Nicht geplant". It is not a
- *   `TaskStatus`: a not-planned task is an Open task with the marker (`lib/taskPlanning.ts`), so the choice is mapped
- *   here to the moves that exist ("Für heute einplanen", "Nicht für heute planen", a move into a column)
+ * - `togglePlanned` (#795, epic #374): the task sheet's switch "Für heute eingeplant". The status picker has the four statuses
+ *   only; whether a task is on today's board is the marker beside the status (`lib/taskPlanning.ts`), moved by
+ *   `useTaskSync.planTask` / `unplanTask`
  */
 import { computed } from 'vue';
 import type { Ref } from 'vue';
@@ -13,13 +13,9 @@ import { TaskStatus } from '~/types/taskStatus';
 import type { Task } from '~/types/task';
 import { TASK_STATUS_CONFIG, getStatusLabel } from '~/utils/taskStatusMappings';
 import { useTaskOperations } from '~/composables/useTaskOperations';
-import { usePlanMoves } from '~/composables/usePlanMoves';
-import { useTasksStore } from '~/store/tasks';
-import { isNotPlanned } from '~/lib/taskPlanning';
-
-/** The picker's value for a task that is not planned for today (#359); every other value is a `TaskStatus` */
-export const NOT_PLANNED_CHOICE = 'notPlanned' as const;
-export type StatusChoice = TaskStatus | typeof NOT_PLANNED_CHOICE;
+import { useTaskSync } from '~/composables/useTaskSync';
+import { usePlanToasts } from '~/composables/usePlanToasts';
+import { isNotPlanned, canBeOffToday } from '~/lib/taskPlanning';
 
 export function useTaskStatusActions(task: Ref<Task | null>) {
   const { moveOrSwapToStatus } = useTaskOperations();
@@ -39,50 +35,27 @@ export function useTaskStatusActions(task: Ref<Task | null>) {
     }
   }
 
-  /**
-   * The picker's fifth choice stands for an Offen task off today only. A Wartet task off today (#793) reads as
-   * "Wartet": the picker cannot show a marker beside a status (interim, until #795 replaces the choice by a switch).
-   */
-  const isNotPlannedChoice = (current: Task): boolean => isNotPlanned(current) && current.status === TaskStatus.Open;
+  /** Whether the task is on today's board: a Jetzt task always is, a done task ignores the marker */
+  const isPlannedToday = computed(() => (task.value ? !isNotPlanned(task.value) : true));
 
-  /** What the picker shows: "Nicht geplant" for an Offen task that is not on today's board, else its column */
-  const statusChoice = computed<StatusChoice>(() => {
-    const current = task.value;
-    if (!current) return TaskStatus.Open;
-    return isNotPlannedChoice(current) ? NOT_PLANNED_CHOICE : current.status;
-  });
+  /** Whether the switch can be moved: only an Offen or a Wartet task can be off today (Jetzt is fixed on, Erledigt has no switch) */
+  const canTogglePlanned = computed(() => (task.value ? canBeOffToday(task.value.status) : false));
 
   /**
-   * The picker's choice (#359).
-   * - A column: a not-planned task picked into Offen is planned as by "Für heute einplanen" (end of Offen); every
-   *   other pick is `changeStatus` (Jetzt and Erledigt plan it too; Wartet keeps it off today, and a Wartet task off
-   *   today picked into Offen stays off today, #793: `markerSurvives`).
-   * - "Nicht geplant": an Offen task goes back as by "Nicht für heute planen". From Jetzt, Wartet or Erledigt it first goes to
-   *   Offen by the normal move (the timer stops and keeps its time, a done task is reopened), then back. The move
-   *   sets the status before its upstream write, so the task does not wait in Offen for a slow connection.
+   * The switch "Für heute eingeplant" (#795): on plans the task (it lands at the end of its column), off takes it off today.
+   * The state change and the write to a source that stores planning are `useTaskSync`'s; a source that plans by date
+   * (Apple Reminders) gets its toast as on the board.
    */
-  async function chooseStatus(choice: StatusChoice) {
+  function togglePlanned(planned: boolean) {
     const id = task.value?.id;
-    if (!id) return;
-    const live = () => useTasksStore().task(id);
-    const before = live() ?? task.value;
-    if (!before) return;
-    const { planForToday, notToday } = usePlanMoves();
-
-    if (choice !== NOT_PLANNED_CHOICE) {
-      if (choice === TaskStatus.Open && isNotPlannedChoice(before)) await planForToday(id);
-      else await changeStatus(choice);
-      return;
+    if (!id || !canTogglePlanned.value) return;
+    const { planTask, unplanTask } = useTaskSync();
+    const { afterPlan, afterPutBack } = usePlanToasts();
+    if (planned) {
+      if (planTask(id)) void afterPlan(id);
+    } else if (unplanTask(id)) {
+      void afterPutBack(id);
     }
-    if (isNotPlannedChoice(before)) return;
-    if (before.status === TaskStatus.Open) {
-      await notToday(id);
-      return;
-    }
-    const moved = changeStatus(TaskStatus.Open);
-    if (live()?.status !== TaskStatus.Open) await moved;
-    if (live()?.status === TaskStatus.Open) await notToday(id);
-    await moved;
   }
 
   /**
@@ -124,8 +97,9 @@ export function useTaskStatusActions(task: Ref<Task | null>) {
 
   return {
     changeStatus,
-    statusChoice,
-    chooseStatus,
+    isPlannedToday,
+    canTogglePlanned,
+    togglePlanned,
     statusMenuItems,
   };
 }

@@ -681,6 +681,26 @@
     "note": "Adapts the term plan-for-today (\"Für heute einplanen\"). Short form \"Alle einplanen\" / \"Plan all\" at 390px. The toast says \"{n} Aufgaben sind für heute geplant.\" with \"Rückgängig\"."
   },
   {
+    "id": "planned-today",
+    "concept": "The state of the marker beside the status: the task is part of today's plan (the switch of the task sheet's row \"Heute\", #795)",
+    "de": "Für heute eingeplant",
+    "en": "Planned for today",
+    "avoidDe": [],
+    "avoidEn": [],
+    "status": "proposed",
+    "note": "The state of plan-for-today, as in the epic #374's UI copy table. Beside the switch, while the task is in Jetzt, the hint reads \"Jetzt gehört immer zu heute.\" / \"Now is always part of today.\". The row's label is planning-today."
+  },
+  {
+    "id": "ad-hoc-work",
+    "concept": "The mark of a task that was not planned but came up during the day (task.isUnplanned): the switch in the open Metadaten of the task sheet (#796; the card menu no longer sets it)",
+    "de": "Kam spontan dazu",
+    "en": "Came up on the spot",
+    "avoidDe": [],
+    "avoidEn": [],
+    "status": "proposed",
+    "note": "The line is from the epic #374's copy pass; Ad-hoc work is \"Ungeplant\" / \"Unplanned\" in the statistics (statistics.table.unplanned). Not \"nicht geplant\" (not-planned-state: a task off today)."
+  },
+  {
     "id": "take-off-time",
     "concept": "The question on the app's start or return after a night in which the Jetzt timer ran on while Kan-do was not in focus: take that time off the task again, or keep it (#356, the user's decision of 2026-11-16)",
     "de": "Zeit abziehen / Zeit behalten",
