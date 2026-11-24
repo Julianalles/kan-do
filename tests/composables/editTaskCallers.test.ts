@@ -109,12 +109,6 @@ describe('field edits outside the sheet push to the source (#770)', () => {
       expect(lastPushed().priority).toBe(3)
     })
 
-    it('the "ungeplante Arbeit" toggle is pushed to Notion', async () => {
-      menuItems(notionTask()).find(i => i.label === 'Als ungeplante Arbeit markieren')!.onUpdateChecked!(true)
-      await vi.waitFor(() => expect(notion.updateTask).toHaveBeenCalledTimes(1))
-      expect(lastPushed().isUnplanned).toBe(true)
-    })
-
     it('a refused write leaves the task marked pending', async () => {
       notion.updateTask.mockRejectedValue(new Error('offline'))
       const priority = menuItems(notionTask()).find(i => i.label === 'Priorität ändern')!

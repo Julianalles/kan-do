@@ -41,7 +41,7 @@ const connectNotion = (page: Page) =>
 async function moveToWaiting(page: Page, title: string) {
   await card(page, title).click({ button: 'right' })
   await page.getByRole('menuitem', { name: 'Status ändern' }).click()
-  await page.getByRole('menuitem', { name: 'Warten', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Wartet', exact: true }).click()
 }
 
 /**

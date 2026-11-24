@@ -61,13 +61,17 @@ describe('useTaskContextMenu: status children (#241)', () => {
 
   it('the entry of the current status is disabled; choosing another runs the swap-aware move', () => {
     const children = statusChildren()
-    expect(children.find(i => i.label === 'Heute')!.disabled).toBe(true)
+    expect(children.find(i => i.label === 'Offen')!.disabled).toBe(true)
     children.find(i => i.label === 'Jetzt')!.onSelect!()
     expect(moveOrSwapToStatus).toHaveBeenCalledWith('a', TaskStatus.Progress)
   })
 
+  it('names each status once: Offen, Jetzt, Wartet, Erledigt (#796)', () => {
+    expect(statusChildren().map(i => i.label)).toEqual(['Offen', 'Jetzt', 'Wartet', 'Erledigt'])
+  })
+
   it('choosing the current status moves nothing', () => {
-    statusChildren().find(i => i.label === 'Heute')!.onSelect!()
+    statusChildren().find(i => i.label === 'Offen')!.onSelect!()
     expect(moveOrSwapToStatus).not.toHaveBeenCalled()
   })
 })

@@ -298,6 +298,10 @@
       "properties": "Properties",
       "status": "Status",
       "priority": "Priority",
+      "today": "Today",
+      "plannedToday": "Planned for today",
+      "plannedTodayHint": "Now is always part of today.",
+      "adhocSwitch": "Came up on the spot",
       "timeSpent": "Time spent",
       "timeSpentInMinutes": "Time spent in minutes",
       "doneDay": "Done on"
@@ -344,8 +348,6 @@
       "duplicated": "Task duplicated",
       "button": "Task actions",
       "openDetails": "Open details",
-      "markPlanned": "Mark as planned work",
-      "markUnplanned": "Mark as unplanned work",
       "changeStatus": "Change status",
       "changePriority": "Change priority",
       "setTimebox": "Set timebox",
@@ -357,12 +359,13 @@
       "presetMinutes": "{n} minute | {n} minutes",
       "maxReached": "{label} (max. reached)",
       "moveTo": {
-        "open": "Today",
+        "open": "Open",
         "progress": "Now",
         "waiting": "Waiting",
         "done": "Done"
       },
-      "notToday": "Don't plan for today"
+      "notToday": "Don't plan for today",
+      "planForToday": "Plan for today"
     },
     "carryOver": {
       "label": "Planned on {n} days",

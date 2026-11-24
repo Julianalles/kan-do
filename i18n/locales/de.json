@@ -298,6 +298,10 @@
       "properties": "Eigenschaften",
       "status": "Status",
       "priority": "Priorität",
+      "today": "Heute",
+      "plannedToday": "Für heute eingeplant",
+      "plannedTodayHint": "Jetzt gehört immer zu heute.",
+      "adhocSwitch": "Kam spontan dazu",
       "timeSpent": "Aufgewendete Zeit",
       "timeSpentInMinutes": "Aufgewendete Zeit in Minuten",
       "doneDay": "Erledigt am"
@@ -344,8 +348,6 @@
       "duplicated": "Aufgabe dupliziert",
       "button": "Aktionen für diese Aufgabe",
       "openDetails": "Details öffnen",
-      "markPlanned": "Als geplante Arbeit markieren",
-      "markUnplanned": "Als ungeplante Arbeit markieren",
       "changeStatus": "Status ändern",
       "changePriority": "Priorität ändern",
       "setTimebox": "Timebox setzen",
@@ -357,12 +359,13 @@
       "presetMinutes": "{n} Minute | {n} Minuten",
       "maxReached": "{label} (max. erreicht)",
       "moveTo": {
-        "open": "Heute",
+        "open": "Offen",
         "progress": "Jetzt",
-        "waiting": "Warten",
+        "waiting": "Wartet",
         "done": "Erledigt"
       },
-      "notToday": "Nicht für heute planen"
+      "notToday": "Nicht für heute planen",
+      "planForToday": "Für heute einplanen"
     },
     "carryOver": {
       "label": "An {n} Tagen eingeplant",

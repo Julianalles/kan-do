@@ -17,11 +17,11 @@
   picker's footer ("Bearbeiten" / "Fertig") lists one button row per option, and a row closes the picker and opens the shared
   TopicEditorHost under the property row (#430, #431, #443); topics also get a "Themen verwalten" row
 - Host the carried-over triage block and line (#99); a status change that ends the nudge closes the block and opens the line in place over `--duration-slow`, and the done-day row opens the same way (#610)
-- Status row (#359): five choices in the order of the places, "Nicht geplant" (the state of a task in the column "Alle Aufgaben", #375) first, then Offen, Jetzt, Wartet, Erledigt. A task
-  that is not planned reads "Nicht geplant" (never "Offen", the name of the other column on "Alle"); picking a column plans it,
-  picking "Nicht geplant" takes a task off today's board from any column (`useTaskStatusActions.chooseStatus`)
-- Guard against drift (#161, kd#4): at most six always-visible standard rows (Status, Priorität, Thema, Aktivität, Timebox,
-  Aufgewendete Zeit),
+- Status row: four choices, Offen, Jetzt, Wartet, Erledigt (#795: "Nicht geplant" is no status, #359 is reversed). The row "Heute" under it holds the switch "Für heute eingeplant"
+  (`useTaskStatusActions.togglePlanned`, epic #374): on a Jetzt task it is on and fixed with the hint "Jetzt gehört immer zu heute.", an Erledigt task has no
+  row (the marker plays no part there). The switch "Kam spontan dazu" (ad-hoc work, #796; the card menu no longer has the entry) sits in the open Metadaten, no row of its own
+- Guard against drift (#161, kd#4): the always-visible standard rows are Status, Heute (#795, not on a done task), Priorität, Thema, Aktivität, Timebox,
+  Aufgewendete Zeit,
   no per-row icons, no dividers; more always-visible rows must revisit the layout. Custom properties are not rows of the column on desktop (#705): the frame leaves no room for variable-height rows. There is no hairline in the sheet
 - Done day (kd#131, agent-decided): a done task gets one more row, "Erledigt am", last in the list so no other row moves
   when a task is completed. It is the correction of a task marked done late, not part of completing: a DatePickerField
@@ -118,18 +118,48 @@
 
       <div :class="twoColumn ? '-mx-2 min-h-0 overflow-y-auto overscroll-contain px-2 pb-1' : 'contents'" data-testid="task-detail-rows">
 
-      <!-- 1. Property rows (#161): Status, Priorität, Timebox always; Thema/Aktivität once set -->
+      <!-- 1. Property rows (#161): Status, Heute, Priorität, Timebox, Ungeplant always; Thema/Aktivität once set -->
       <div class="flex flex-col gap-1.5" data-testid="task-property-list">
         <TaskPropertyRow :label="t('task.field.status')">
           <TaskPropertySelect
             :label="t('task.field.status')"
-            :model-value="statusChoice"
+            :model-value="task.status"
             :items="statusItems"
             value-key="value"
             data-testid="task-status-select"
             @update:model-value="onStatusPicked"
           />
         </TaskPropertyRow>
+
+        <!-- Heute (#795): the marker "Für heute eingeplant" beside the status. A done task has no row: the marker plays no part there. The row (and the hint under the switch of a Jetzt task) opens in place over `--duration-slow` (#610), so the rows below never jump; the row's 6 px gap sits inside, the root takes it back while closed, as with the done day -->
+        <UCollapsible :open="task.status !== TaskStatus.Done" class="-mt-1.5">
+          <template #content>
+            <div class="pt-1.5">
+              <TaskPropertyRow :label="t('task.field.today')">
+                <div class="flex min-w-0 flex-col">
+                  <div class="flex min-h-(--field-h) items-center">
+                    <USwitch
+                      :model-value="isPlannedToday"
+                      :label="t('task.field.plannedToday')"
+                      :disabled="isPreview || !canTogglePlanned"
+                      :aria-describedby="task.status === TaskStatus.Progress ? plannedHintId : undefined"
+                      data-testid="task-planned-switch"
+                      @update:model-value="(on: boolean) => togglePlanned(on)"
+                    />
+                  </div>
+                  <UCollapsible :open="task.status === TaskStatus.Progress">
+                    <template #content>
+                      <!-- Under the switch's label, not its track: `ps-11` is the track (36 px) and its gap -->
+                      <p :id="plannedHintId" class="-mt-1.5 pb-1.5 ps-11 text-xs text-muted" data-testid="task-planned-hint">
+                        {{ t('task.field.plannedTodayHint') }}
+                      </p>
+                    </template>
+                  </UCollapsible>
+                </div>
+              </TaskPropertyRow>
+            </div>
+          </template>
+        </UCollapsible>
 
         <TaskPropertyRow :label="t('task.field.priority')">
           <TaskPropertySelect
@@ -323,7 +353,16 @@
         :source="taskSource"
         :created-at="formatDate(task.createdAt)"
         :task-id="task.id"
-      />
+      >
+        <!-- Ad-hoc work (#796): the card menu no longer sets it. A rarely used flag, so it lives with the facts of how the task came to be and not as a row of its own: the rows fit the sheet's frame (design review of #795) -->
+        <USwitch
+          :model-value="task.isUnplanned === true"
+          :label="t('task.field.adhocSwitch')"
+          size="sm"
+          data-testid="task-adhoc-switch"
+          @update:model-value="(on: boolean) => updateAndSync({ isUnplanned: on })"
+        />
+      </TaskDetailMetadata>
     </div>
 
     </div>
@@ -339,8 +378,8 @@ import { useOverlayIsDesktop } from '~/composables/useIsDesktop';
 import { useTaskDetail, formatTaskDuration, applyCustomValue } from '~/composables/useTaskDetail';
 import { useLocaleFormat } from '~/composables/useLocaleFormat';
 import { useI18n } from 'vue-i18n';
-import { TASK_STATUS_CONFIG, NOT_PLANNED_CONFIG, getStatusLabel, getPriorityLabel } from '~/utils/taskStatusMappings';
-import { useTaskStatusActions, NOT_PLANNED_CHOICE, type StatusChoice } from '~/composables/useTaskStatusActions';
+import { TASK_STATUS_CONFIG, getStatusLabel, getPriorityLabel } from '~/utils/taskStatusMappings';
+import { useTaskStatusActions } from '~/composables/useTaskStatusActions';
 import { TaskStatus } from '~/types/taskStatus';
 import SectionHeader from '~/components/ui/SectionHeader.vue';
 import InlineEditable from '~/components/ui/inline/InlineEditable.vue';
@@ -436,17 +475,17 @@ const {
   remainingTimeText,
 } = useTaskDetail(taskIdRef);
 
-const { statusChoice, chooseStatus } = useTaskStatusActions(task);
-const onStatusPicked = (value: unknown) => void chooseStatus(value === NOT_PLANNED_CHOICE ? NOT_PLANNED_CHOICE : Number(value) as TaskStatus);
+const { changeStatus, isPlannedToday, canTogglePlanned, togglePlanned } = useTaskStatusActions(task);
+const onStatusPicked = (value: unknown) => void changeStatus(Number(value) as TaskStatus);
+const plannedHintId = useId();
 const { targets: moveTargets, move: moveToSource } = useTaskMoveTargets(() => (props.isPreview ? null : task.value));
 
 // Desktop sheet (>=768px, #468): two columns. Below that the sheet is a drawer and everything flows in one column.
 // Follows the sheet's frozen variant, not the live query, so a resize while open cannot disagree with the layout the sheet actually shows (#199).
 const twoColumn = useOverlayIsDesktop();
 
-// Five choices in the order of the places (#359): "Nicht geplant" (the state of a task under "Alle Aufgaben") first, as on "Alle", then the four columns
-const statusItems = computed<{ label: string; value: StatusChoice; icon: string }[]>(() => [
-  { label: t(NOT_PLANNED_CONFIG.labelKey), value: NOT_PLANNED_CHOICE, icon: NOT_PLANNED_CONFIG.icon },
+// Four statuses (#795): whether a task is on today's board is the switch of the row "Heute", not a status
+const statusItems = computed<{ label: string; value: TaskStatus; icon: string }[]>(() => [
   ...Object.entries(TASK_STATUS_CONFIG)
     .filter(([status]) => Number(status) !== TaskStatus.Backlog)
     .map(([status, config]) => ({ label: getStatusLabel(Number(status) as TaskStatus), value: Number(status) as TaskStatus, icon: config.icon })),

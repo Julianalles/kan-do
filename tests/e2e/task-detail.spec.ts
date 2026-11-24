@@ -357,8 +357,8 @@ test.describe('Task Detail View', () => {
 
     // properties render as labelled rows without chips or icons
     const list = page.getByTestId('task-property-list');
-    await expect.soft(list.getByTestId('task-property-row'), 'properties render as labelled rows: six rows').toHaveCount(6);
-    for (const label of ['Status', 'Priorität', 'Thema', 'Aktivität', 'Timebox', 'Aufgewendete Zeit']) {
+    await expect.soft(list.getByTestId('task-property-row'), 'properties render as labelled rows: seven rows (Heute, #795)').toHaveCount(7);
+    for (const label of ['Status', 'Heute', 'Priorität', 'Thema', 'Aktivität', 'Timebox', 'Aufgewendete Zeit']) {
       await expect.soft(list.getByText(label, { exact: true }), `properties render as labelled rows: ${label}`).toBeVisible();
     }
     await expect.soft(page.getByTestId('task-status-select'), 'properties render as labelled rows: status name').toHaveAccessibleName('Status: Jetzt');
@@ -437,6 +437,40 @@ test.describe('Task Detail View', () => {
     // rows keep a visible gap
     const rows = await list.getByTestId('task-property-row').evaluateAll((els) => els.map((el) => el.getBoundingClientRect()));
     for (let i = 1; i < rows.length; i++) expect.soft(rows[i].top - rows[i - 1].bottom, `rows ${i - 1} and ${i} keep a gap`).toBeGreaterThanOrEqual(4);
+  });
+
+  test('the sheet holds the switches "Für heute eingeplant" and "Kam spontan dazu": each writes the task, the status stays (#795, #796)', async ({ page, baseURL }) => {
+    await page.goto(`${baseURL}/tasks/test-task-7`);
+    const stored = () => page.evaluate(() => {
+      const tasks = (JSON.parse(localStorage.getItem('tasks-store') ?? '{}') as { tasks?: Array<{ id: string; status: number; notPlanned?: boolean; isUnplanned?: boolean }> }).tasks ?? [];
+      const found = tasks.find((t) => t.id === 'test-task-7');
+      return found ? { status: found.status, notPlanned: found.notPlanned, isUnplanned: found.isUnplanned } : null;
+    });
+    const planned = page.getByRole('switch', { name: 'Für heute eingeplant' });
+    const adHoc = page.getByRole('switch', { name: 'Kam spontan dazu' });
+    await expect(adHoc).toHaveCount(0); // with the Metadaten, closed
+    await expect(planned).toBeChecked();
+    await expect(planned).toBeEnabled();
+    await expect(page.getByTestId('task-planned-hint')).toHaveCount(0);
+
+    // A waiting task leaves today and keeps waiting, then comes back
+    await planned.click();
+    await expect(planned).not.toBeChecked();
+    await expect.poll(stored).toMatchObject({ status: 2, notPlanned: true });
+    await expect(page.getByTestId('task-status-select')).toHaveAccessibleName('Status: Wartet');
+    await planned.click();
+    await expect(planned).toBeChecked();
+    await expect.poll(stored).toMatchObject({ status: 2, notPlanned: undefined });
+
+    // The ad-hoc mark is set and cleared in the open Metadaten; the card menu has no entry for it any more
+    await page.getByRole('button', { name: 'Metadaten' }).click();
+    await expect(adHoc).not.toBeChecked();
+    await adHoc.click();
+    await expect(adHoc).toBeChecked();
+    await expect.poll(stored).toMatchObject({ isUnplanned: true });
+    await adHoc.click();
+    await expect(adHoc).not.toBeChecked();
+    await expect.poll(stored).toMatchObject({ isUnplanned: false });
   });
 
   test('task sheet of an unplanned task without notes, timebox or time: empty notes, unplanned, no time block, the timebox row is the one way in', async ({ page, baseURL }) => {
