@@ -238,6 +238,17 @@ export const useTaskSync = () => {
       tasksStore.updateTask(payload.taskId, updates);
     }
 
+    // A Wartet task off today (#793) moved back to Offen is still off today: a source that stores planning gets its "not
+    // planned" status written (#798, as the put-back of an Offen task does), not `today`. Only from Wartet: an Offen task
+    // that stays off today without a held status (no status mapped when it was put back) stays written as `today` (#357)
+    if (previousState === TaskStatus.Waiting && payload.status === TaskStatus.Open) {
+      const live = tasksStore.task(payload.taskId);
+      const hold = live && live.source !== 'local' && isNotPlanned(live) && live.sourceNotPlanned === undefined
+        ? adapterFor(live.source).notPlannedHold?.() ?? null
+        : null;
+      if (hold !== null) tasksStore.setSourceNotPlanned(payload.taskId, hold);
+    }
+
     // The source does not hold the new status yet: the task carries the marker until a write went through,
     // also while this write waits for an earlier one (#319). The marker notes whether the source holds the task
     // as completed (the status before this change), so a replay after a restart can still reopen it (#344).
