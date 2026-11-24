@@ -61,7 +61,9 @@ export function useIntroHintSteps(): void {
   }
   for (const [id, step] of Object.entries(stateSteps) as Array<[keyof typeof stateSteps, () => boolean]>) {
     watch(
-      () => settings.introHints !== null && step(),
+      // Unanswered and done: a restarted record (#804 "Erneut zeigen") flips this back to true while the step is
+      // still done, so the new record is answered again and the hint does not show with a step that is over.
+      () => settings.introHints !== null && settings.introHints.hints[id]?.answered !== true && step(),
       (done) => { if (done) settings.answerIntroHint(id) },
       { immediate: true },
     )

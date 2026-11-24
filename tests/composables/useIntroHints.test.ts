@@ -240,6 +240,40 @@ describe('the hint "Auswahl" (#801)', () => {
   })
 })
 
+describe('"Erneut zeigen" while a step is already done (#804)', () => {
+  const ended = (settings: ReturnType<typeof useSettingsStore>, ...ids: string[]) => ids.forEach((id) => settings.answerIntroHint(id))
+
+  it('answers "Auswahl" again when stacking is already on, so the hint does not show with a button that changes nothing', async () => {
+    const { hints, settings } = setup(openCards(INTRO_AUSWAHL_MIN_OPEN))
+    const board = useBoardStore()
+    const scope = effectScope()
+    scope.run(() => useIntroHintSteps())
+    board.setGroupingEnabled(true)
+    await nextTick()
+    expect(answered(settings, 'auswahl')).toBe(true)
+    settings.restartIntroHints()
+    ended(settings, 'start', 'weiter')
+    await nextTick()
+    expect(answered(settings, 'auswahl')).toBe(true)
+    expect(hints.current.value).toBeNull()
+    scope.stop()
+  })
+
+  it('answers "Start" again when a card is in Jetzt, so a restart does not bring "Start" back after the card leaves', async () => {
+    const { settings, tasksStore } = setup([task('j', TaskStatus.Progress)])
+    const scope = effectScope()
+    scope.run(() => useIntroHintSteps())
+    await nextTick()
+    expect(answered(settings, 'start')).toBe(true)
+    settings.restartIntroHints()
+    await nextTick()
+    expect(answered(settings, 'start')).toBe(true)
+    tasksStore.setTasks(openCards(2))
+    expect(useIntroHints().current.value).not.toBe('start')
+    scope.stop()
+  })
+})
+
 describe('the hint "Abschluss" (#801)', () => {
   const ended = (settings: ReturnType<typeof useSettingsStore>) => ['start', 'weiter', 'auswahl'].forEach((id) => settings.answerIntroHint(id))
 
