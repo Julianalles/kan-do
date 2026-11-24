@@ -1233,7 +1233,8 @@
         "worker/**",
         "wrangler.jsonc",
         "scripts/check-cloudflare-bundle.mjs",
-        "scripts/csp-hashes.mjs"
+        "scripts/csp-hashes.mjs",
+        "scripts/workers-preview.mjs"
       ],
       "specs": [
         "feedback",

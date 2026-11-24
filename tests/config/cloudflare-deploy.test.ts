@@ -22,7 +22,8 @@ describe('Cloudflare deploy path', () => {
 
   it('the build script clears a stale redirect, writes the CSP hashes and ends in the bundle check; deploy names the config', () => {
     const scripts = JSON.parse(read('package.json')).scripts as Record<string, string>
-    expect(scripts['build:cloudflare']).toMatch(/^rm -rf \.wrangler\/deploy && .*nuxt build && node scripts\/csp-hashes\.mjs && node scripts\/check-cloudflare-bundle\.mjs$/)
+    expect(scripts['build:cloudflare']).toBe('node scripts/workers-preview.mjs build')
+    expect(scripts['build:cloudflare:run']).toMatch(/^rm -rf \.wrangler\/deploy && .*nuxt build && node scripts\/csp-hashes\.mjs && node scripts\/check-cloudflare-bundle\.mjs$/)
     expect(scripts.deploy).toBe('npm run build:cloudflare && wrangler deploy -c wrangler.jsonc')
   })
 

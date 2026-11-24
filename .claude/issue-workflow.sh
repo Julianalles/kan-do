@@ -54,6 +54,29 @@ wf_deploy_check() {
   esac
 }
 
+# Hosted preview of a design prototype (ADR 021 "Prototype previews"): Workers Builds turns every pushed proto/* branch into a
+# gated Worker Preview. cwd: any checkout of kan-do. $1 = the branch. Prints the URL once the build of the pushed head
+# succeeded (waits up to WF_PREVIEW_WAIT s, default 540: call it with a 10-minute Bash timeout); return 1 = no hosted
+# preview (not pushed, failed, still building).
+wf_proto_preview_url() {
+  local sha run i=0 wait=${WF_PREVIEW_WAIT:-540} root
+  root=$(git rev-parse --show-toplevel) || return 1
+  sha=$(git ls-remote origin "refs/heads/$1" | cut -f1)
+  [ -n "$sha" ] || { echo "preview: $1 is not pushed" >&2; return 1; }
+  while :; do
+    run=$(gh api "repos/{owner}/{repo}/commits/$sha/check-runs" --jq '[.check_runs[] | select(.name | startswith("Workers Builds"))][0] | "\(.status) \(.conclusion)"' 2>/dev/null) || run=""
+    case "$run" in
+      "completed success") node "$root/scripts/workers-preview.mjs" url "$1"; return 0 ;;
+      completed*) echo "preview: Workers Builds ${run#completed } for $1 (${sha:0:7})" >&2; return 1 ;;
+    esac
+    [ $((i += 20)) -le "$wait" ] || { echo "preview: Workers Builds not done after ${wait}s for $1 (${sha:0:7})" >&2; return 1; }
+    sleep 20
+  done
+}
+# Removes the Worker Preview of a proto branch (needs `wrangler login` or CLOUDFLARE_API_TOKEN). One that stays is gated,
+# files no feedback, and Workers Free evicts the oldest beyond 100 previews.
+wf_proto_preview_delete() { node "$(git rev-parse --show-toplevel)/scripts/workers-preview.mjs" delete "$1" >/dev/null 2>&1 || { echo "preview of $1 not deleted (wrangler not logged in?)"; return 1; }; }
+
 # The 'E2E-specs:' line must name every spec the gate selects for the PR head (#699: ui-catalog was missed twice, a rule
 # in the profile was not enough). The gate runs on the diff with the PR's own E2E-specs lines removed, so the line cannot
 # satisfy itself; tier full / skip / style and anything the gate cannot answer pass (the merge hook decides those).

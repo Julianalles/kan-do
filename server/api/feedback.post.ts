@@ -1,5 +1,5 @@
 import { defineEventHandler, readBody, setResponseStatus } from 'h3'
-import { fileReport, parseReport, relayError, relayTarget, setCorsHeaders } from '~/server/utils/feedbackRelay'
+import { fileReport, parseReport, relayDryRun, relayError, relayTarget, setCorsHeaders } from '~/server/utils/feedbackRelay'
 
 /**
  * `POST /api/feedback` (#268): files an in-app report as an issue in the private feedback repository.
@@ -15,6 +15,11 @@ export default defineEventHandler(async (event) => {
     return { ok: true }
   }
   const report = parseReport(input)
+  // A prototype preview (FEEDBACK_RELAY=dry-run) never posts into the private repository.
+  if (relayDryRun()) {
+    setResponseStatus(event, 201)
+    return { ok: true, dryRun: true }
+  }
   await fileReport(report, relayTarget())
   setResponseStatus(event, 201)
   return { ok: true }
