@@ -287,4 +287,4 @@ What a check already guarantees is not repeated above. `npm run verify` runs the
 
 ## App icon
 
-A white task card titled "Kan / do" (Fraunces 500, as the app bar brand) with a green done check, on two paper sheets, on a forest body (master and values: `docs/design/app-icon/`; user, 2026-11-22). The full forest surface is an icon-only exception: the app UI keeps green in small doses.
+A white task card with one large green done check and no text, on two paper sheets, on a forest body (master and values: `docs/design/app-icon/`; user, 2026-11-24, replacing the "Kan / do" card of 2026-11-22). The full forest surface is an icon-only exception: the app UI keeps green in small doses.
