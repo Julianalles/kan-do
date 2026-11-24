@@ -6,7 +6,8 @@
  *
  * The record (`settings-store.introHints`):
  * - `null`: the hints never started. Every install from before #800 reads like this and shows no hint, ever.
- * - `on`: whether hints show at all (#804 turns them off and back on; nothing in #800 sets it to false).
+ * - `on`: whether hints show at all (#804: "Hinweise ausschalten" on a hint and "Ausschalten" in the settings set it to false,
+ *   "Erneut zeigen" replaces the whole record with a fresh one).
  * - `quietDay`: the local day "Schließen" was last used. No hint shows for the rest of that day (D3 1A).
  * - `hints[id]`: `answered` (the step was done, or the hint was closed) and `days`, the local days it was on screen
  *   without an answer, at most `INTRO_HINT_MAX_DAYS`. A hint that has its three days ends on the next day; a day
@@ -16,10 +17,25 @@
  */
 import { isValidDayKey } from '~/utils/recapDay'
 
-/** The hints, in the order they take turns. #801 adds `weiter`, `auswahl` and `abschluss` here and nowhere else. */
-export const INTRO_HINT_ORDER = ['start'] as const
+/**
+ * The hints, in the order they take turns (#801: the first one whose moment has come shows, so with four cards in Offen
+ * and one done today "Auswahl" comes before "Abschluss"). "Planen" on "Alle" joins with #803.
+ */
+export const INTRO_HINT_ORDER = ['start', 'weiter', 'auswahl', 'abschluss'] as const
+
+/** "Auswahl" is due with this many cards in Offen (and an empty Jetzt): stacking helps to pick from a long column. */
+export const INTRO_AUSWAHL_MIN_OPEN = 4
 
 export type IntroHintId = (typeof INTRO_HINT_ORDER)[number]
+
+/**
+ * The i18n key of a hint's text (#804): the overlay shows it and the help section in the settings lists it, so the help
+ * can never differ from the hints. Only "Start" has a text per width. The menu names in "Auswahl" and "Abschluss" are
+ * params (`{more}`, `{dayClose}`).
+ */
+export function introHintTextKey(id: IntroHintId, phone: boolean): string {
+  return id === 'start' ? `board.introHint.start.${phone ? 'phone' : 'desktop'}` : `board.introHint.${id}`
+}
 
 /** A hint left unanswered on this many days ends (D3 1A). */
 export const INTRO_HINT_MAX_DAYS = 3

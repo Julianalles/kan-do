@@ -10,7 +10,11 @@
  * - `markShown()` / `shownKey`: the overlay calls it once the hint is on screen; a day is stored once per hint (three days end it)
  * - `useIntroHintSteps()`: the app-wide watcher (AppShell), so doing a hint's step ends the hint whether it was on
  *   screen or not, on any page. Never in the floating Now window: it must not write (ADR 020)
- * - A hint's moment (`INTRO_HINT_DUE`) and its step (`INTRO_HINT_DONE`) read the board as it is; #801 adds entries
+ * - A hint's moment (`INTRO_HINT_DUE`) and its step (`useIntroHintSteps`) read the board as it is: "Start" is due with cards
+ *   in Offen and an empty Jetzt, "Weiter" with a card in Jetzt, "Auswahl" with four or more in Offen and an empty Jetzt,
+ *   "Abschluss" with something done today and an empty Jetzt (#801). Their ends: a card in Jetzt, a card that was in
+ *   Jetzt now in Erledigt or Wartet (a change, not a state: a Wartet card the board starts with ends nothing), cards
+ *   stacked (`grouping.enabled`), the day-close stage opened
  * - Nothing here touches a task or a connection
  */
 import { computed, watch } from 'vue'
@@ -20,35 +24,63 @@ import { useToday } from '~/composables/useToday'
 import { useNewDay } from '~/composables/useNewDay'
 import { useNewDayRecap } from '~/composables/useNewDayRecap'
 import { useDayClose } from '~/composables/useDayClose'
+import { useBoardStore } from '~/store/board'
 import { boardBaseOfPath, boardPlaceOfPath, currentBoardPath } from '~/lib/boardPlace'
-import { currentIntroHint, INTRO_HINT_ORDER, type IntroHintId } from '~/lib/introHints'
+import { currentIntroHint, INTRO_AUSWAHL_MIN_OPEN, type IntroHintId } from '~/lib/introHints'
 import { isOverlayWindow } from '~/lib/overlayWindow'
 import { dayKey } from '~/utils/recapDay'
+import { TaskStatus } from '~/types/taskStatus'
 
 type TasksStore = ReturnType<typeof useTasksStore>
 
 /** When a hint's moment has come. */
 const INTRO_HINT_DUE: Record<IntroHintId, (tasks: TasksStore) => boolean> = {
   start: (tasks) => tasks.tasksOpen.length > 0 && tasks.tasksProgress.length === 0,
+  weiter: (tasks) => tasks.tasksProgress.length > 0,
+  auswahl: (tasks) => tasks.tasksOpen.length >= INTRO_AUSWAHL_MIN_OPEN && tasks.tasksProgress.length === 0,
+  abschluss: (tasks) => tasks.tasksDoneToday.length > 0 && tasks.tasksProgress.length === 0,
 }
 
-/** When a hint's step is done. */
-const INTRO_HINT_DONE: Record<IntroHintId, (tasks: TasksStore) => boolean> = {
-  start: (tasks) => tasks.tasksProgress.length > 0,
-}
-
-/** Started once in AppShell: a step done anywhere in the app ends its hint. */
+/**
+ * Started once in AppShell: a step done anywhere in the app ends its hint, whether it was on screen or not.
+ * "Weiter" is the one step that is a change and not a state: it ends when a card that was in Jetzt is now in Erledigt
+ * or Wartet. Read as a state, a Wartet card the board already starts with (a Notion or Erinnerungen board) would end
+ * the hint unseen for a user who never ran the timer. A card that goes back to Offen ends nothing.
+ */
 export function useIntroHintSteps(): void {
   if (isOverlayWindow()) return
   const settings = useSettingsStore()
   const tasksStore = useTasksStore()
-  for (const id of INTRO_HINT_ORDER) {
+  const boardStore = useBoardStore()
+  const { isOpen: dayCloseOpen } = useDayClose()
+
+  const stateSteps: Record<Exclude<IntroHintId, 'weiter'>, () => boolean> = {
+    start: () => tasksStore.tasksProgress.length > 0,
+    auswahl: () => boardStore.grouping.enabled,
+    abschluss: () => dayCloseOpen.value,
+  }
+  for (const [id, step] of Object.entries(stateSteps) as Array<[keyof typeof stateSteps, () => boolean]>) {
     watch(
-      () => settings.introHints !== null && INTRO_HINT_DONE[id](tasksStore),
+      // Unanswered and done: a restarted record (#804 "Erneut zeigen") flips this back to true while the step is
+      // still done, so the new record is answered again and the hint does not show with a step that is over.
+      () => settings.introHints !== null && settings.introHints.hints[id]?.answered !== true && step(),
       (done) => { if (done) settings.answerIntroHint(id) },
       { immediate: true },
     )
   }
+
+  watch(
+    () => tasksStore.tasksProgress.map((task) => task.id),
+    (now, before) => {
+      if (settings.introHints === null) return
+      const left = before.filter((id) => !now.includes(id))
+      const moved = left.some((id) => {
+        const status = tasksStore.task(id)?.status
+        return status === TaskStatus.Done || status === TaskStatus.Waiting
+      })
+      if (moved) settings.answerIntroHint('weiter')
+    },
+  )
 }
 
 export function useIntroHints() {

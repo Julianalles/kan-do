@@ -697,6 +697,7 @@
         "utils/sourceCompound.ts",
         "components/settings/LocalStorageDetails.vue",
         "components/settings/DisconnectSourceDialog.vue",
+        "components/settings/IntroHintsSheet.vue",
         "composables/useSourceList.ts",
         "utils/publicCloud.ts",
         "middleware/notion-available.ts"
@@ -706,7 +707,8 @@
         "source-connections",
         "tasks-settings",
         "focus-overlay",
-        "settings-tabs"
+        "settings-tabs",
+        "intro-hints"
       ]
     },
     {
@@ -796,6 +798,7 @@
       "paths": [
         "components/board/**",
         "composables/useIntroHints.ts",
+        "composables/useIntroHintsSwitch.ts",
         "lib/introHints.ts",
         "composables/useBoard*",
         "composables/useCarryOver*",

@@ -1,11 +1,12 @@
 import { expect, test, type Page } from '@playwright/test'
-import { seedLocalBoard, SEED_TASKS } from './helpers/seed'
+import { fillerTasks, seedLocalBoard, SEED_TASKS } from './helpers/seed'
 import { callTasksStore, fullTask } from './helpers/store'
-import { goToPlace } from './helpers/appNav'
+import { goToPlace, openDayClose } from './helpers/appNav'
 
 /**
  * The intro hints' base (#800): the welcome setup starts them, one hint shows in the bottom overlay, doing the step
- * or "Schließen" ends it, and a user who did not come through the welcome setup sees none. The rules themselves
+ * or "Schließen" ends it, and a user who did not come through the welcome setup sees none. #801 adds "Weiter", "Auswahl" and
+ * "Abschluss" at the end of this file. The rules themselves
  * (order, three days, quiet day) are unit-tested (`tests/lib/introHints.test.ts`, `tests/composables/useIntroHints.test.ts`).
  */
 
@@ -39,8 +40,11 @@ test('the welcome setup starts the hints: "Start" shows with the first card in O
   await expect.poll(async () => (await record(page))?.hints.start?.days.length).toBe(1)
 
   await callTasksStore(page, { action: 'updateTask', args: ['first', { status: 1 }] })
-  await expect(hint(page)).toHaveCount(0)
+  // "Start" is answered; the card in Jetzt is the moment of "Weiter" (#801)
   await expect.poll(async () => (await record(page))?.hints.start?.answered).toBe(true)
+  await expect(hint(page)).toHaveAttribute('data-hint', 'weiter')
+  await callTasksStore(page, { action: 'updateTask', args: ['first', { status: 0 }] })
+  await expect(hint(page)).toHaveCount(0)
 
   // An ended hint never returns: Jetzt empty again, after a reload too
   await callTasksStore(page, { action: 'updateTask', args: ['first', { status: 0 }] })
@@ -143,4 +147,168 @@ test('desktop: the column button and the end of the board rest a gap above the s
       return footer ? Math.round(sheetTop - (footer.y + footer.height)) : null
     }).toBeGreaterThanOrEqual(15)
   }
+})
+
+// --- #801: "Weiter", "Auswahl", "Abschluss" ----------------------------------------------------------------------
+
+/** What the steps already ended, as if the user had done them: `answerIntroHint` of the settings store, in the running app. */
+async function answerHints(page: Page, ...ids: string[]) {
+  await page.evaluate((hintIds) => {
+    const app = (window as unknown as { useNuxtApp: () => { $pinia: { _s: Map<string, { answerIntroHint: (id: string) => void }> } } }).useNuxtApp()
+    for (const id of hintIds) app.$pinia._s.get('settings')!.answerIntroHint(id)
+  }, ids)
+}
+const groupingEnabled = (page: Page) =>
+  page.evaluate(() => (JSON.parse(localStorage.getItem('board-store') ?? '{}') as { grouping?: { enabled?: boolean } }).grouping?.enabled ?? false)
+
+/** Two in Offen, one in Jetzt: the moment of "Weiter" (a card in Jetzt answers "Start" at once). */
+const WITH_JETZT = SEED_TASKS.filter((task) => task.status === 0 || task.status === 1)
+/** Four in Offen, Jetzt empty: the moment of "Auswahl" once "Start" is answered. */
+const MANY_OPEN = [...SEED_TASKS.filter((task) => task.status === 0), ...fillerTasks(4)].slice(0, 5)
+/** Cards in Offen and one done today, Jetzt empty. */
+const WITH_DONE = SEED_TASKS.filter((task) => task.status === 0 || task.id === 'seed-done-1')
+
+test('"Weiter": shows with a card in Jetzt, ends when the card goes to Wartet, and does not return', async ({ context, page }) => {
+  await seedLocalBoard(context, WITH_JETZT, {}, undefined, { hints: true, once: true })
+  await gotoBoard(page)
+  await expect(hint(page)).toBeVisible()
+  await expect(hint(page)).toHaveAttribute('data-hint', 'weiter')
+  await expect(hint(page)).toContainText('Die Zeit läuft jetzt mit. Ziehe die Karte nach Erledigt')
+  await expect.poll(async () => (await record(page))?.hints.start?.answered).toBe(true)
+
+  await callTasksStore(page, { action: 'updateTask', args: ['seed-progress-1', { status: 2 }] })
+  await expect(hint(page)).toHaveCount(0)
+  await expect.poll(async () => (await record(page))?.hints.weiter?.answered).toBe(true)
+  await page.reload()
+  await expect(page.locator('#column-open')).toBeVisible()
+  await expect(page.locator('.task-wrapper').first()).toBeVisible()
+  await expect(hint(page)).toHaveCount(0)
+})
+
+test('"Weiter" ends unseen when the card goes to Erledigt while a notice hides the hint', async ({ context, page }) => {
+  await seedLocalBoard(context, WITH_JETZT, {}, undefined, { hints: true, once: true })
+  await gotoBoard(page)
+  await expect(hint(page)).toHaveAttribute('data-hint', 'weiter')
+  // Off the board the hint is not shown, and the step is still seen
+  await goToPlace(page, 'Alle')
+  await expect(hint(page)).toHaveCount(0)
+  await callTasksStore(page, { action: 'updateTask', args: ['seed-progress-1', { status: 3, completedAt: new Date().toISOString() }] })
+  await expect.poll(async () => (await record(page))?.hints.weiter?.answered).toBe(true)
+})
+
+test('"Auswahl": shows with four cards in Offen and Jetzt empty; "Karten stapeln" stacks them and ends the hint', async ({ context, page }) => {
+  await seedLocalBoard(context, MANY_OPEN, {}, undefined, { hints: true, once: true })
+  await gotoBoard(page)
+  await expect(hint(page)).toHaveAttribute('data-hint', 'start')
+  await answerHints(page, 'start')
+  await expect(hint(page)).toHaveAttribute('data-hint', 'auswahl')
+  await expect(hint(page)).toContainText('Viel offen? Gestapelt nach Thema oder Priorität wählst du leichter aus. Die Stapel findest du auch unter „Mehr“.')
+  expect(await groupingEnabled(page)).toBe(false)
+
+  await page.getByTestId('intro-hint-stack').click()
+  await expect(hint(page)).toHaveCount(0)
+  await expect.poll(() => groupingEnabled(page)).toBe(true)
+  await expect.poll(async () => (await record(page))?.hints.auswahl?.answered).toBe(true)
+  // The hint is ended for good, and stacking off again brings nothing back
+  await expect(page.locator('[data-task-sheet-return]')).toBeFocused()
+})
+
+test('"Auswahl" is not there with three cards in Offen', async ({ context, page }) => {
+  await seedLocalBoard(context, MANY_OPEN.slice(0, 3), {}, undefined, { hints: true, once: true })
+  await gotoBoard(page)
+  await answerHints(page, 'start')
+  await expect(hint(page)).toHaveCount(0)
+})
+
+test('"Abschluss": shows with something done today and Jetzt empty, and ends when "Tag abschließen" is opened', async ({ context, page }) => {
+  await seedLocalBoard(context, WITH_DONE, {}, undefined, { hints: true, once: true })
+  await gotoBoard(page)
+  await answerHints(page, 'start')
+  await expect(hint(page)).toHaveAttribute('data-hint', 'abschluss')
+  await expect(hint(page)).toContainText('Genug für heute? „Tag abschließen“ zeigt dir, was du geschafft hast und was offen bleibt.')
+
+  await openDayClose(page)
+  await expect(page.getByTestId('day-close-stage')).toBeVisible()
+  await expect(hint(page)).toHaveCount(0)
+  await expect.poll(async () => (await record(page))?.hints.abschluss?.answered).toBe(true)
+  await page.keyboard.press('Escape')
+  await expect(page.getByTestId('day-close-stage')).toHaveCount(0)
+  await expect(hint(page)).toHaveCount(0)
+})
+
+test('two hints are due: "Auswahl" first, and "Schließen" keeps "Abschluss" away for the rest of the day', async ({ context, page }) => {
+  await seedLocalBoard(context, [...MANY_OPEN, ...WITH_DONE.filter((task) => task.status === 3)], {}, undefined, { hints: true, once: true })
+  await gotoBoard(page)
+  await answerHints(page, 'start')
+  await expect(hint(page)).toHaveAttribute('data-hint', 'auswahl')
+  await page.getByTestId('intro-hint-close').click()
+  await expect(hint(page)).toHaveCount(0)
+  // Quiet for the rest of the day, "Abschluss" would be next
+  await page.waitForTimeout(300)
+  await expect(hint(page)).toHaveCount(0)
+})
+
+test('390px: "Karten stapeln" and "Schließen" are 44 px targets, clear of the app bar', async ({ context, page }) => {
+  await page.setViewportSize(MOBILE)
+  await seedLocalBoard(context, MANY_OPEN, {}, undefined, { hints: true, once: true })
+  await gotoBoard(page)
+  await answerHints(page, 'start')
+  await expect(hint(page)).toHaveAttribute('data-hint', 'auswahl')
+  const box = (await hint(page).boundingBox())!
+  const bar = (await page.locator('.app-nav-pill').boundingBox())!
+  expect(box.y + box.height).toBeLessThanOrEqual(bar.y)
+  for (const id of ['intro-hint-stack', 'intro-hint-close']) {
+    const target = (await page.getByTestId(id).boundingBox())!
+    expect(target.height, id).toBeGreaterThanOrEqual(44)
+    expect(target.width, id).toBeGreaterThanOrEqual(44)
+  }
+})
+
+// --- #804: turning the hints off ---------------------------------------------------------------------------------
+
+test('"Hinweise ausschalten" on a hint turns all hints off: a toast says where to read them, and nothing shows afterwards, not after a reload either', async ({ context, page }) => {
+  await seedLocalBoard(context, OPEN_ONLY, {}, undefined, { hints: true, once: true })
+  await gotoBoard(page)
+  await expect(hint(page)).toBeVisible()
+  const off = page.getByTestId('intro-hint-off')
+  await expect(off).toHaveText('Hinweise ausschalten')
+  await off.focus()
+  await page.keyboard.press('Enter')
+
+  await expect(hint(page)).toHaveCount(0)
+  await expect(page.getByTestId('intro-hint-host')).toHaveCount(0)
+  await expect(page.getByText('Hinweise ausgeschaltet', { exact: true })).toBeVisible()
+  await expect(page.getByText('Du kannst sie jederzeit unter Einstellungen, Board nachlesen.', { exact: true })).toBeVisible()
+  await expect(page.locator('[data-task-sheet-return]')).toBeFocused()
+  await expect.poll(async () => (await page.evaluate(() => JSON.parse(localStorage.getItem('settings-store') ?? '{}').introHints?.on))).toBe(false)
+
+  // A later moment shows nothing either
+  await callTasksStore(page, { action: 'updateTask', args: [OPEN_ONLY[0]!.id, { status: 1 }] })
+  await expect(hint(page)).toHaveCount(0)
+  await page.reload()
+  await expect(page.locator('#column-open')).toBeVisible()
+  await expect(hint(page)).toHaveCount(0)
+})
+
+test('"Erneut zeigen" in the settings brings the hints back: "Start" shows again on the board', async ({ context, page }) => {
+  await seedLocalBoard(context, OPEN_ONLY, {}, undefined, { hints: true, once: true })
+  await gotoBoard(page)
+  await page.getByTestId('intro-hint-off').click()
+  await expect(hint(page)).toHaveCount(0)
+  await page.goto('/settings')
+  await page.getByTestId('intro-hints-toggle').click()
+  await goToPlace(page, 'Heute')
+  await expect(hint(page)).toHaveAttribute('data-hint', 'start')
+})
+
+test('390px: the link "Hinweise ausschalten" is a 44 px target and the sheet stays clear of the app bar', async ({ context, page }) => {
+  await page.setViewportSize(MOBILE)
+  await seedLocalBoard(context, OPEN_ONLY, {}, undefined, { hints: true })
+  await gotoBoard(page)
+  await expect(hint(page)).toBeVisible()
+  const off = (await page.getByTestId('intro-hint-off').boundingBox())!
+  expect(off.height).toBeGreaterThanOrEqual(44)
+  const box = (await hint(page).boundingBox())!
+  const bar = (await page.locator('.app-nav-pill').boundingBox())!
+  expect(box.y + box.height).toBeLessThanOrEqual(bar.y)
 })

@@ -1,0 +1,21 @@
+- region "Kurz erklärt":
+  - heading "Kurz erklärt" [level=2]
+  - paragraph: Hinweise zum Einstieg
+  - paragraph: Kurze Hinweise auf dem Board zeigen dir den nächsten Schritt.
+  - button "Ausschalten"
+  - list:
+    - listitem:
+      - heading "Anfangen" [level=3]
+      - paragraph: Womit fängst du an? Halte die Karte und ziehe sie an den rechten Rand, nach Jetzt. In Jetzt liegt immer nur eine Aufgabe.
+    - listitem:
+      - heading "Weitermachen" [level=3]
+      - paragraph: Die Zeit läuft jetzt mit. Ziehe die Karte nach Erledigt, sobald die Aufgabe erledigt ist. Wartest du auf jemanden, ziehe sie nach Wartet.
+    - listitem:
+      - heading "Auswählen" [level=3]
+      - paragraph: Viel offen? Gestapelt nach Thema oder Priorität wählst du leichter aus. Die Stapel findest du auch unter „Mehr“.
+    - listitem:
+      - heading "Tag abschließen" [level=3]
+      - paragraph: Genug für heute? „Tag abschließen“ zeigt dir, was du geschafft hast und was offen bleibt.
+    - listitem:
+      - heading "Planen" [level=3]
+      - paragraph: Plane hier die Aufgaben für heute ein. Wechsle zu „Heute“, sobald du loslegen willst.

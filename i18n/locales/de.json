@@ -183,7 +183,15 @@
         "desktop": "Ziehe nach Jetzt, woran du jetzt arbeitest. In Jetzt liegt immer nur eine Aufgabe.",
         "phone": "Womit fängst du an? Halte die Karte und ziehe sie an den rechten Rand, nach Jetzt. In Jetzt liegt immer nur eine Aufgabe."
       },
-      "close": "Schließen"
+      "weiter": "Die Zeit läuft jetzt mit. Ziehe die Karte nach Erledigt, sobald die Aufgabe erledigt ist. Wartest du auf jemanden, ziehe sie nach Wartet.",
+      "auswahl": "Viel offen? Gestapelt nach Thema oder Priorität wählst du leichter aus. Die Stapel findest du auch unter „{more}“.",
+      "abschluss": "Genug für heute? „{dayClose}“ zeigt dir, was du geschafft hast und was offen bleibt.",
+      "close": "Schließen",
+      "off": "Hinweise ausschalten",
+      "toast": {
+        "title": "Hinweise ausgeschaltet",
+        "description": "Du kannst sie jederzeit unter Einstellungen, Board nachlesen."
+      }
     },
     "planNote": {
       "title": "Wähle aus, was heute dran ist",
@@ -942,6 +950,20 @@
       "label": "Arbeitszeit pro Tag",
       "help": "Der Kapazitätshinweis für heute geplante Aufgaben richtet sich hiernach. „Automatisch“ nutzt deine bisher erfasste Arbeitszeit.",
       "auto": "Automatisch"
+    },
+    "introHints": {
+      "heading": "Kurz erklärt",
+      "label": "Hinweise zum Einstieg",
+      "help": "Kurze Hinweise auf dem Board zeigen dir den nächsten Schritt.",
+      "turnOff": "Ausschalten",
+      "restart": "Erneut zeigen",
+      "entries": {
+        "start": "Anfangen",
+        "weiter": "Weitermachen",
+        "auswahl": "Auswählen",
+        "abschluss": "Tag abschließen",
+        "planen": "Planen"
+      }
     },
     "github": {
       "pageTitle": "GitHub-Zugriff",
