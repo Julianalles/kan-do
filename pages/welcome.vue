@@ -136,6 +136,7 @@ import { useIntegrationManager } from '~/composables/useIntegrationManager';
 import { useFirstRunSources } from '~/composables/useFirstRunSources';
 import { useErrorHandler } from '~/composables/useErrorHandler';
 import { useTasksStore } from '~/store/tasks';
+import { useSettingsStore } from '~/store/settings';
 
 // No app bar here (#470): first run, developer pages and the empty redirect page
 definePageMeta({ appNav: false, layout: false, middleware: 'welcome-guard' })
@@ -145,6 +146,8 @@ const { fetchTasks } = useIntegrationManager();
 const { beginLocalDefault, beginNotionAsDefault } = useFirstRunSources();
 const { handleError } = useErrorHandler();
 const tasksStore = useTasksStore();
+// Every ending of the welcome setup starts the intro hints (#800); nothing else does, so an existing install sees none
+const settingsStore = useSettingsStore();
 const photo = ref<HTMLImageElement | null>(null);
 const photoLoaded = ref(false);
 const brand = ref<InstanceType<typeof SectionHeader> | null>(null);
@@ -230,6 +233,7 @@ const handleLocalSetupComplete = async () => {
   try {
     // Reminders may already be connected (set up, then Back and unticked): it stays, beside Local
     beginLocalDefault();
+    settingsStore.startIntroHints();
     flyBrand();
     await navigateTo('/tasks');
   } catch (error) {
@@ -242,6 +246,8 @@ const handleLocalSetupComplete = async () => {
  * die erste Abfrage gemacht). Mit Notion als nächstem Schritt geht es dorthin, sonst zum Board.
  */
 const handleRemindersSetupComplete = async () => {
+  // The board is set up from here on, also when the Notion step that may follow is left again
+  settingsStore.startIntroHints();
   if (wantNotion.value) {
     openFlow('notion');
     return;
@@ -261,6 +267,7 @@ const handleNotionSetupComplete = async () => {
   try {
     // With Reminders set up first (#552) Notion joins it and the board opens mixed
     beginNotionAsDefault();
+    settingsStore.startIntroHints();
     
     // Try to fetch initial tasks, but don't block navigation if it fails
     try {

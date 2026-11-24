@@ -1,6 +1,7 @@
 import { defineStore, acceptHMRUpdate } from 'pinia'
 import { ref } from 'vue'
 import { sanitizeWorkingMinutes } from '~/lib/dayCapacity'
+import { freshIntroHints, needsShownDay, sanitizeIntroHints, type IntroHintsRecord } from '~/lib/introHints'
 
 /**
  * App-wide preferences (#394). A store of its own, not a slice of `board-store`: settings are not board
@@ -20,6 +21,11 @@ import { sanitizeWorkingMinutes } from '~/lib/dayCapacity'
  * `workingHoursMinutes` (#306): the working day the user sets for the capacity divider, whole half hours from 1 to
  * 12 h as minutes; `null` = automatic (learned from tracked work). Additive: older data hydrates to `null`, a
  * malformed stored value is dropped in memory by `afterHydrate` (no write; the next mutation persists it).
+ *
+ * `introHints` (#800): the record of the intro hints (shape and rules: `lib/introHints.ts`). `null` = the hints never
+ * started, which is every install from before #800: they see no hint. Only the welcome setup starts them
+ * (`startIntroHints`). Additive: nothing stored hydrates to `null`, a malformed value reads as `null` and a malformed
+ * hint entry is dropped in memory (`afterHydrate`, no write). It is the app's own data: never sent to a connection.
  */
 export const useSettingsStore = defineStore('settings', () => {
   const focusEnabled = ref(true)
@@ -46,7 +52,43 @@ export const useSettingsStore = defineStore('settings', () => {
     workingHoursMinutes.value = sanitizeWorkingMinutes(value)
   }
 
+  const introHints = ref<IntroHintsRecord | null>(null)
+
+  /** The welcome setup's ending: the hints start. A record that is already there is kept (answered hints stay answered). */
+  function startIntroHints() {
+    if (introHints.value === null) introHints.value = freshIntroHints()
+  }
+
+  /** The hint `id` is on screen on `day`: stored once per day, at most three days (`needsShownDay`). */
+  function markIntroHintShown(id: string, day: string) {
+    const record = introHints.value
+    if (!record || !needsShownDay(record, id, day)) return
+    const entry = record.hints[id] ?? { answered: false, days: [] }
+    introHints.value = { ...record, hints: { ...record.hints, [id]: { ...entry, days: [...entry.days, day] } } }
+  }
+
+  /** The user did the step of hint `id`: it ends for good, whether it was on screen or not. */
+  function answerIntroHint(id: string) {
+    const record = introHints.value
+    if (!record || record.hints[id]?.answered) return
+    const entry = record.hints[id] ?? { answered: false, days: [] }
+    introHints.value = { ...record, hints: { ...record.hints, [id]: { ...entry, answered: true } } }
+  }
+
+  /** "Schließen": the hint ends, and no other hint shows for the rest of `day`. */
+  function closeIntroHint(id: string, day: string) {
+    const record = introHints.value
+    if (!record) return
+    const entry = record.hints[id] ?? { answered: false, days: [] }
+    introHints.value = { ...record, quietDay: day, hints: { ...record.hints, [id]: { ...entry, answered: true } } }
+  }
+
   return {
+    introHints,
+    startIntroHints,
+    markIntroHintShown,
+    answerIntroHint,
+    closeIntroHint,
     focusEnabled,
     setFocusEnabled,
     floatingNowEnabled,
@@ -59,11 +101,12 @@ export const useSettingsStore = defineStore('settings', () => {
 }, {
   persist: {
     key: 'settings-store',
-    pick: ['focusEnabled', 'floatingNowEnabled', 'autoUpdateCheck', 'workingHoursMinutes'],
-    afterHydrate: (ctx: { store: { workingHoursMinutes: unknown; floatingNowEnabled: unknown; autoUpdateCheck: unknown } }) => {
+    pick: ['focusEnabled', 'floatingNowEnabled', 'autoUpdateCheck', 'workingHoursMinutes', 'introHints'],
+    afterHydrate: (ctx: { store: { workingHoursMinutes: unknown; floatingNowEnabled: unknown; autoUpdateCheck: unknown; introHints: unknown } }) => {
       ctx.store.workingHoursMinutes = sanitizeWorkingMinutes(ctx.store.workingHoursMinutes)
       if (typeof ctx.store.floatingNowEnabled !== 'boolean') ctx.store.floatingNowEnabled = true
       if (typeof ctx.store.autoUpdateCheck !== 'boolean') ctx.store.autoUpdateCheck = true
+      ctx.store.introHints = sanitizeIntroHints(ctx.store.introHints)
     },
   },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
