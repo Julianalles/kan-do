@@ -11,7 +11,7 @@ import type { IBoardConfig } from '~/types/state'
 import { translate } from '~/lib/i18n'
 import type { ErrorContext } from '~/lib/errorMessages'
 import { SOURCE_META } from '~/utils/sourceMeta'
-import type { CreateUncertain, PendingMove, PendingSync, Task } from '~/types/task'
+import type { CreateUncertain, PendingClear, PendingMove, PendingSync, Task } from '~/types/task'
 import {
   INTEGRATION_SOURCE_IDS,
   SOURCE_IDS,
@@ -130,16 +130,32 @@ export function normalizePendingSync(raw: unknown): PendingSync | undefined {
   const doubt = normalizeCreateUncertain(raw.createUncertain)
   // #553: the day a failed date write is retried for; an older `true` or any non-day value reads as none (never writes)
   const dateWrite = typeof raw.dateWrite === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw.dateWrite) ? raw.dateWrite : undefined
+  // #780: the clears a push still has to write; unknown entries are dropped, a malformed value reads as none
+  const clears = normalizeClears(raw.clears)
   const exact = raw.since === since && raw.attempts === attempts && raw.lastError === lastError
     && raw.upstreamDone === upstreamDone && raw.createUncertain === doubt && (doubt === undefined || Object.keys(doubt).length === (doubt.at === undefined ? 2 : 3))
-    && raw.dateWrite === dateWrite
-    && Object.keys(raw).length === 3 + (upstreamDone === undefined ? 0 : 1) + (doubt === undefined ? 0 : 1) + (dateWrite === undefined ? 0 : 1)
+    && raw.dateWrite === dateWrite && raw.clears === clears
+    && Object.keys(raw).length === 3 + (upstreamDone === undefined ? 0 : 1) + (doubt === undefined ? 0 : 1) + (dateWrite === undefined ? 0 : 1) + (clears === undefined ? 0 : 1)
   return exact ? (raw as unknown as PendingSync) : {
     since, attempts, lastError,
     ...(upstreamDone === undefined ? {} : { upstreamDone }),
     ...(doubt === undefined ? {} : { createUncertain: { since: doubt.since, ...(doubt.at === undefined ? {} : { at: doubt.at }), title: doubt.title } }),
     ...(dateWrite === undefined ? {} : { dateWrite }),
+    ...(clears === undefined ? {} : { clears }),
   }
+}
+
+const PENDING_CLEARS: readonly PendingClear[] = ['timeBox', 'unplanned']
+
+/**
+ * The clears a stored marker still has to write (#780): a well-formed list comes back as it is (no write at hydration),
+ * unknown or repeated entries are dropped, anything else (and an empty list) reads as none.
+ */
+function normalizeClears(raw: unknown): PendingClear[] | undefined {
+  if (!Array.isArray(raw)) return undefined
+  const kept = PENDING_CLEARS.filter((field) => raw.includes(field))
+  if (kept.length === 0) return undefined
+  return kept.length === raw.length ? (raw as PendingClear[]) : kept
 }
 
 function normalizePendingMove(raw: unknown): PendingMove | undefined {

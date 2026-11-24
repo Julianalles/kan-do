@@ -348,6 +348,19 @@ describe.skipIf(!enabled).each(['select', 'status'] as const)('NotionIntegration
     const cleared = await integration.updateTask({ ...untouched, timeSpentSeconds: 0 }, { timeEdited: true })
     expect(cleared.timeSpentSeconds).toBe(0)
   })
+  // #780: the user's "Timebox entfernen" empties the Notion number; an ordinary push of a task without a time box leaves it
+  it('a time box the user removed is emptied on the page; a push without the clear leaves it', async () => {
+    const read = async (id: string) => ((await notion.pages.retrieve({ page_id: id })) as unknown as { properties: Record<string, { number?: number | null }> }).properties.Timebox?.number
+    const created = await integration.createTask({ title: `Timebox leeren ${statusType}`, status: TaskStatus.Open, timeBoxSeconds: 1800 })
+    expect(await read(created.id)).toBe(30)
+
+    const untouched = await integration.updateTask({ ...created, timeBoxSeconds: null, status: TaskStatus.Progress })
+    expect(await read(created.id)).toBe(30)
+
+    const cleared = await integration.updateTask({ ...untouched, timeBoxSeconds: null }, { clears: ['timeBox'] })
+    expect(await read(created.id)).toBeNull()
+    expect(cleared.timeBoxSeconds).toBeNull()
+  })
   // #322: the create carries the tracked time; #323: the push that follows keeps the local seconds
   it('a task created with tracked time holds it on the page, and a later push returns the local total', async () => {
     const created = await integration.createTask({ title: `Zeit beim Anlegen ${statusType}`, status: TaskStatus.Open, timeSpentSeconds: 125 })

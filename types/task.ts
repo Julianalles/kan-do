@@ -74,7 +74,17 @@ export interface PendingSync {
    * nothing (the plan was that day's, the user never planned this one). Any other value, an older `true` included, never writes.
    */
   dateWrite?: string;
+  /**
+   * Fields the user emptied that the source still holds (#780): set by `useTaskSync.editTask` when an edit clears a
+   * time box or unsets the ad-hoc marker that held a value, dropped when an edit sets the field again or a push that
+   * carried it went through. Only these push a clear upstream (Notion empties the property); any other push leaves a
+   * value the task lacks alone, so a value kan-do cannot read, or one set at the source since the last fetch, stays.
+   */
+  clears?: PendingClear[];
 }
+
+/** A field whose clear a push has to write (#780). */
+export type PendingClear = 'timeBox' | 'unplanned';
 
 export interface CreateUncertain {
   /** Epoch ms of the first doubtful attempt. */

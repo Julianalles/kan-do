@@ -251,6 +251,20 @@ describe('pendingSync marker (#319)', () => {
     expect(normalizePendingSync({ ...marker, dateWrite: 5 })).toEqual(marker)
   })
 
+  it('keeps clears (#780) without a write, drops unknown entries and reads a malformed value as none', () => {
+    const withClears = { ...marker, clears: ['timeBox', 'unplanned'] }
+    const tasks = [{ id: 'a', source: 'notion', externalId: 'a', pendingSync: withClears }]
+    expect(normalizeTasks(tasks, 'notion')).toBe(tasks)
+    expect(normalizePendingSync(withClears)).toBe(withClears)
+    // a repaired marker keeps the clears: a clear that failed is still written after a restart
+    expect(normalizePendingSync({ since: 5, clears: ['unplanned'] })).toEqual({ since: 5, attempts: 0, lastError: null, clears: ['unplanned'] })
+    expect(normalizePendingSync({ ...marker, clears: ['timeBox', 'title'] })).toEqual({ ...marker, clears: ['timeBox'] })
+    expect(normalizePendingSync({ ...marker, clears: ['timeBox', 'timeBox'] })).toEqual({ ...marker, clears: ['timeBox'] })
+    expect(normalizePendingSync({ ...marker, clears: [] })).toEqual(marker)
+    expect(normalizePendingSync({ ...marker, clears: 'timeBox' })).toEqual(marker)
+    expect(normalizePendingSync({ ...marker, clears: ['priority'] })).toEqual(marker)
+  })
+
   it('repairs a half-written marker so the task still gets pushed', () => {
     const [task] = normalizeTasks([{ id: 'a', source: 'notion', externalId: 'a', pendingSync: { since: 5 } }], 'notion') as Array<{ pendingSync: unknown }>
     expect(task?.pendingSync).toEqual({ since: 5, attempts: 0, lastError: null })

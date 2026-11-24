@@ -1,6 +1,6 @@
 import { defineStore, acceptHMRUpdate  } from "pinia";
 import { ref, computed, type Ref } from "vue";
-import type { CreateUncertain, PendingSync, Task } from "@/types/task";
+import type { CreateUncertain, PendingClear, PendingSync, Task } from "@/types/task";
 import { TaskStatus } from "~/types/taskStatus";
 import { useBoardStore } from "./board";
 import { useTrashStore } from "./trash";
@@ -531,6 +531,33 @@ export const useTasksStore = defineStore("tasks", () => {
     if (marker?.dateWrite !== undefined) delete marker.dateWrite;
   }
 
+  /**
+   * The clears a push of the task has to write (#780), noted on its existing marker (`pendingSync.clears`): `add` the
+   * fields the user emptied, `drop` the ones set again or written. Never makes a marker (the push sets it first) and
+   * bumps no revision; an emptied list is removed.
+   */
+  function noteClears(taskId: string, change: { add?: readonly PendingClear[]; drop?: readonly PendingClear[] }): void {
+    // Inside a move's undo window the marker is the target's: the clears wait for Undo (`restoreMoveOrigin`)
+    if (heldMoves.has(taskId)) {
+      const held = mergeClears(heldClears.get(taskId), change);
+      if (held) heldClears.set(taskId, held);
+      else heldClears.delete(taskId);
+      return;
+    }
+    const marker = tasks.value.find((el) => el.id === taskId)?.pendingSync;
+    if (!marker) return;
+    const next = mergeClears(marker.clears, change);
+    if (next) marker.clears = next;
+    else if (marker.clears !== undefined) delete marker.clears;
+  }
+
+  /** `clears` with `change.drop` taken out and `change.add` put in; undefined when none is left. */
+  function mergeClears(clears: readonly PendingClear[] | undefined, change: { add?: readonly PendingClear[]; drop?: readonly PendingClear[] }): PendingClear[] | undefined {
+    const next = (clears ?? []).filter((field) => !change.drop?.includes(field));
+    for (const field of change.add ?? []) if (!next.includes(field)) next.push(field);
+    return next.length > 0 ? next : undefined;
+  }
+
   /** The revision a push of the task starts from (0 for a marker restored from storage, or none). */
   function pendingSyncRevision(taskId: string): number {
     return pendingSyncRevisions.get(taskId) ?? 0;
@@ -852,6 +879,18 @@ export const useTasksStore = defineStore("tasks", () => {
     // The origin holds the task as it did when it moved, not as the local status says now (#781): a tick inside the
     // undo window or before a rejected create is then written once; a move stored without it reads as "not completed"
     if (!previous || changedInWindow) markPendingSync(taskId, move.fromUpstreamDone ?? false);
+    // A clear made inside the window goes to the origin (#780); a clear the restored marker held for a field set
+    // again inside the window is not written any more
+    const windowClears = heldClears.get(taskId);
+    heldClears.delete(taskId);
+    if (moved.pendingSync) {
+      const next = mergeClears(moved.pendingSync.clears, {
+        drop: [...((moved.timeBoxSeconds ?? 0) > 0 ? ['timeBox' as const] : []), ...(moved.isUnplanned === true ? ['unplanned' as const] : [])],
+        add: windowClears,
+      });
+      if (next) moved.pendingSync.clears = next;
+      else if (moved.pendingSync.clears !== undefined) delete moved.pendingSync.clears;
+    }
     // The origin page of a create in doubt may still land (#538): the marker takes the doubt back, so the next push looks first
     if (move.fromCreateUncertain !== undefined && moved.externalId === null && moved.pendingSync && !moved.pendingSync.createUncertain) {
       moved.pendingSync = { ...moved.pendingSync, createUncertain: move.fromCreateUncertain };
@@ -881,7 +920,9 @@ export const useTasksStore = defineStore("tasks", () => {
   const heldMoves = new Set<string>();
   /** Held moves whose task changed inside the window (not persisted): what Undo must push to the origin. */
   const heldChanged = new Set<string>();
-  const holdMove = (taskId: string): void => { heldMoves.add(taskId); heldChanged.delete(taskId); };
+  /** Clears made inside a held move's window (not persisted, #780): what Undo must write to the origin. */
+  const heldClears = new Map<string, PendingClear[]>();
+  const holdMove = (taskId: string): void => { heldMoves.add(taskId); heldChanged.delete(taskId); heldClears.delete(taskId); };
   /** Ends the hold; the record of changes stays until `restoreMoveOrigin` reads it or the next hold resets it. */
   const releaseMove = (taskId: string): void => { heldMoves.delete(taskId); };
   const isMoveHeld = (taskId: string): boolean => heldMoves.has(taskId);
@@ -2047,6 +2088,7 @@ export const useTasksStore = defineStore("tasks", () => {
     markPendingSync,
     markDateWrite,
     dropDateWrite,
+    noteClears,
     pendingSyncRevision,
     clearPendingSync,
     recordPendingSyncFailure,

@@ -39,6 +39,34 @@ test.describe('Notion stub page state', () => {
   })
 })
 
+test.describe('A removed time box reaches Notion (#780)', () => {
+  const timeboxMenu = async (page: Page) => {
+    await page.locator('.task-wrapper', { hasText: TITLE }).first().click({ button: 'right' })
+    await page.getByRole('menuitem', { name: 'Timebox setzen' }).click()
+  }
+
+  test('"Timebox entfernen" empties the Notion property, and a fresh fetch keeps it empty', async ({ context, page, baseURL }) => {
+    await seedNotionBoard(context)
+    await page.goto(`${baseURL}/tasks`)
+    await expect(column(page, 'open').getByText(TITLE)).toBeVisible()
+
+    await timeboxMenu(page)
+    const write = page.waitForRequest((req) => req.url().includes('/api/notion/update-task') && req.method() !== 'GET')
+    const readBack = page.waitForResponse((res) => res.url().includes('/api/notion/pages?pageId=page-1'))
+    await page.getByRole('menuitem', { name: 'Timebox entfernen' }).click()
+    const sent = (await write).postDataJSON() as { pageId: string; properties: Record<string, unknown> }
+    expect(sent.pageId).toBe('page-1')
+    expect(Object.values(sent.properties.Timebox as Record<string, unknown>)).toEqual([null])
+    await readBack
+
+    // A fresh fetch from the stub reads the page as Notion holds it: no time box, so the menu offers no removal
+    await page.reload()
+    await expect(column(page, 'open').getByText(TITLE)).toBeVisible()
+    await timeboxMenu(page)
+    await expect(page.getByRole('menuitem', { name: 'Timebox entfernen' })).toHaveCount(0)
+  })
+})
+
 test.describe('Custom property the task has no entry for yet (#184)', () => {
   const config = {
     propertyMapping: {
