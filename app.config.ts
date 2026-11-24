@@ -685,8 +685,10 @@ export default defineAppConfig({
     // An outlined white track with a muted-ink thumb (--ui-text-muted, 5.5:1 on the page wash) reads as off; on stays the filled primary track.
     switch: {
       slots: {
-        // On a phone the 32.8 x 16.8 track gets an invisible 44 px hit area (6 px to the sides, inside the 12 px gap a field leaves; 16 px above and below): every switch, no call site repeats it (#592)
-        base: 'relative max-md:after:absolute max-md:after:-inset-x-1.5 max-md:after:-inset-y-4 data-[state=unchecked]:bg-default data-[state=unchecked]:border-(--ui-text-muted)',
+        // On a phone the track gets an invisible 44 px hit area: every switch, no call site repeats it (#592). The pseudo-element is placed from the
+        // padding box, inside the track's 2 px border, so `-inset-x-2` reaches 6 px past the drawn track (inside the 12 px gap a field leaves) and
+        // `-inset-y-4` 14 px above and below: the small track (32 x 18, the sheet's ad-hoc switch) is 44 x 46, the default one (36 x 20) 48 x 48 (#822)
+        base: 'relative max-md:after:absolute max-md:after:-inset-x-2 max-md:after:-inset-y-4 data-[state=unchecked]:bg-default data-[state=unchecked]:border-(--ui-text-muted)',
         thumb: 'shadow-none data-[state=unchecked]:bg-(--ui-text-muted)'
       }
     },

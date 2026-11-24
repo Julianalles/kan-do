@@ -33,7 +33,9 @@
           </template>
         </UButton>
       </SectionHeader>
-      <UCollapsible v-model:open="open">
+      <!-- On a phone the content's clip (the collapsible's overflow) bleeds 6 px to each side and its padding takes them back, so the facts keep the
+           content edge and a switch on its last line keeps its invisible hit area: the clip cut 6 px off the ad-hoc switch's left side (#822) -->
+      <UCollapsible v-model:open="open" :ui="{ content: 'max-md:-mx-1.5 max-md:px-1.5' }">
         <template #content>
           <div :id="contentId" class="flex flex-wrap items-center gap-x-4 gap-y-1 pt-3 text-xs text-muted">
             <span data-testid="task-detail-source">{{ source ?? t('task.detail.sourceLocal') }}</span>
