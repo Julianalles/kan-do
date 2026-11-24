@@ -53,7 +53,7 @@
  * spec cannot import it by its `/_nuxt/` source path, which only exists under Vite dev. It runs inside the Nuxt app
  * context, like the page's own call, and resolves to its `ConnectResult`.
  *
- * Active when __NOTION_STUB_ALLOWED__ is true (dev + Vercel preview + E2E production builds with
+ * Active when __NOTION_STUB_ALLOWED__ is true (dev + E2E production builds with
  * NOTION_STUB_ENABLED=true). Tree-shaken out of fully deployed production builds, hook included.
  */
 

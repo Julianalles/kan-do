@@ -3,9 +3,7 @@
  * These are replaced with literal values at build time for tree-shaking.
  */
 
-/** true in dev and Vercel preview deployments; false in production builds */
-
-/** true in dev and Vercel preview deployments; false in production builds */
+/** true in dev and the E2E build (`NOTION_STUB_ENABLED=true`); false in production builds */
 declare const __NOTION_STUB_ALLOWED__: boolean;
 
 /**
