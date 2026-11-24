@@ -1,0 +1,86 @@
+/**
+ * The intro hint's sheet (#725, base #800): components/board/IntroHintOverlay.vue. Imported by main.css; components layer.
+ *
+ * One sheet floats at the bottom centre of the board page, above the phone's floating app bar. While it stands, the
+ * component writes its height to `--intro-hint-height` on <html>; `--intro-hint-room` below adds the sheet's offset from
+ * the window's edge and a 16px gap, and the rules at the end give the board that room, so no card and no column button
+ * stays under the sheet. The room goes as the fade-out starts (the height is removed; unset, the room is 0).
+ */
+
+:root {
+  /* The sheet's distance from the window's edge on desktop (the phone's is the app bar's, in `.intro-hint`) */
+  --intro-hint-edge: 1.5rem;
+  /* Phone: the page's last box already ends above the app bar, so the sheet's own height and the gap are the room */
+  --intro-hint-room: calc(var(--intro-hint-height) + 1rem);
+}
+
+@media (--desktop) {
+  :root {
+    --intro-hint-room: calc(var(--intro-hint-height) + var(--intro-hint-edge) + 1rem);
+  }
+}
+
+@layer components {
+  .intro-hint {
+    position: fixed;
+    inset-inline: 0;
+    /* Desktop: 24px above the window's edge. Phone: above the floating app bar, like the toaster (mobile-nav.css) */
+    bottom: max(var(--intro-hint-edge), calc(var(--phone-bar-offset) + 0.75rem));
+    z-index: var(--z-hint);
+    display: flex;
+    justify-content: center;
+    padding-inline: max(0.75rem, env(safe-area-inset-left, 0px)) max(0.75rem, env(safe-area-inset-right, 0px));
+    /* Only the sheet is in the way: the strip beside it lets the board through */
+    pointer-events: none;
+  }
+
+  .intro-hint-sheet {
+    pointer-events: auto;
+    width: 100%;
+    max-width: 36rem;
+  }
+
+  /* Opacity only (the AC: it fades in and out) */
+  .intro-hint-enter-active,
+  .intro-hint-leave-active {
+    transition: opacity var(--duration-base) var(--ease-standard);
+  }
+
+  .intro-hint-enter-from,
+  .intro-hint-leave-to {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .intro-hint-enter-active,
+    .intro-hint-leave-active {
+      transition: none;
+    }
+  }
+}
+
+/* Unlayered on purpose, with the board in the selector: these two meet the scoped rules of BoardColumn (`.column-footer`,
+   `bottom: 0`) and ColumnDropZone (`min-height: 80px`), which are unlayered and would win over any layered rule. */
+
+/* Desktop: the page ends above the sheet, so the last card of a column scrolls clear of it, and the columns' sticky
+   buttons ("Tag abschließen", the capacity echo) rest above it at every width (in a narrow window the centred sheet
+   reaches under the outer columns). Guided, so nothing jumps when the hint comes and goes */
+@media (--desktop) {
+  .board-container {
+    padding-bottom: var(--intro-hint-room, 0px);
+    transition: padding-bottom var(--duration-slow) var(--ease-standard);
+  }
+
+  .board .column .column-footer {
+    bottom: var(--intro-hint-room, 0px);
+    transition: bottom var(--duration-slow) var(--ease-standard);
+  }
+}
+
+/* Phone: the cards overflow their list, so a column page's bottom padding adds no scroll room; the drop sentinel is the
+   last box of a page (ColumnDropZone, 80px) and grows by the sheet's height */
+@media (--phone) {
+  .board .task-list .column-drop-zone {
+    min-height: calc(80px + var(--intro-hint-room, 0px));
+  }
+}

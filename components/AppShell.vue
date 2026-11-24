@@ -65,6 +65,7 @@ import { useTaskSync } from "~/composables/useTaskSync";
 import { useTaskTimerDriver } from "~/composables/useTaskTimerDriver";
 import { useNativeMenu } from "~/composables/useNativeMenu";
 import { useNowWindowSync } from "~/composables/useNowWindowSync";
+import { useIntroHintSteps } from "~/composables/useIntroHints";
 import { isTauri } from "~/utils/isTauri";
 import { useTasksStore } from "~/store/tasks";
 import { useTaskStatisticsStore } from "~/store/taskStatistics";
@@ -92,6 +93,8 @@ const timerDriver = useTaskTimerDriver();
 useNativeMenu();
 // Desktop only: the floating Now window (#383); a no-op on the web.
 useNowWindowSync();
+// Intro hints (#800): a step done on any page ends its hint
+useIntroHintSteps();
 // Desktop only: the update dialog is mounted once and opened from the toast, the palette or the page.
 const updater = useAppUpdater();
 const updaterAvailable = updater.available;
