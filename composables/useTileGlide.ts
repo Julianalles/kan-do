@@ -4,7 +4,8 @@ import { MOTION } from '~/lib/motionTokens'
 /**
  * The glide of the Statistik tiles (#789, a sibling of `useBoardGlide`): from `md` an opened tile moves to the first place and
  * spans the row (#689), the others drop to the row below. The change itself is instant and final (CSS `order` and `col-span`);
- * `around(root, change)` reads the boxes, runs `change`, and plays what makes it a glide over `MOTION.placeMs`:
+ * `around(root, change)` reads the boxes, runs `change`, and plays what makes it a glide over `MOTION.placeMs` (longer for a long
+ * travel, `glideDuration`):
  *
  * - a tile that only moves glides by `translate` (a FLIP); a tile that changes its width (the one that opens or closes) also
  *   animates `width` under `overflow: hidden`, so its box grows or shrinks instead of snapping;
@@ -33,6 +34,8 @@ const MD = '(min-width: 768px)'
 
 const running = new Set<Animation>()
 const pinned = new Set<HTMLElement>()
+/** Collapsible contents whose open or close animation runs on the glide's clock until it ends */
+const retimed = new Set<HTMLElement>()
 let onEnd: (() => void) | null = null
 
 /** Ends every running glide at its final state and lets the pinned boxes take their own width again */
@@ -46,6 +49,15 @@ export function cancelTileGlide(): void {
 function unpin(): void {
   for (const el of pinned) el.style.width = ''
   pinned.clear()
+  // A panel's own animation may have started a little after the glide (the collapsible restarts it once it has measured): it
+  // gets its own clock back when it has finished, or it would end early and snap. A glide that started since keeps its clock
+  for (const el of retimed) {
+    const clear = () => { if (!retimed.has(el)) el.style.animationDuration = '' }
+    const playing = typeof el.getAnimations === 'function' ? el.getAnimations() : []
+    if (playing.length) void Promise.allSettled(playing.map(a => a.finished)).then(clear)
+    else el.style.animationDuration = ''
+  }
+  retimed.clear()
 }
 
 function pin(el: HTMLElement | null, width: number): void {
@@ -75,6 +87,20 @@ interface Before {
   /** The detail of a tile that is open now, at the width it is drawn with */
   detail: HTMLElement | null
   detailWidth: number
+}
+
+/**
+ * The fastest frame of a glide (#793 gate): `--ease-standard` peaks at 2.73 times its mean speed, so over a fixed
+ * `--duration-place` the step of a 60 Hz frame grows with the travel (the switch from tile 2 to tile 3 moved the closing tile
+ * 1270 px, 145 px in one frame, which reads as a jump). A glide whose longest travel would step more than `MAX_FRAME_STEP_PX`
+ * takes longer, up to `--duration-curtain`; a short one keeps `--duration-place`.
+ */
+const STANDARD_PEAK = 2.74
+const FRAME_MS = 1000 / 60
+const MAX_FRAME_STEP_PX = 120
+export function glideDuration(travel: number): number {
+  const needed = Math.ceil(travel * STANDARD_PEAK * FRAME_MS / MAX_FRAME_STEP_PX)
+  return Math.min(MOTION.curtainMs, Math.max(MOTION.placeMs, needed))
 }
 
 /** The content node of a collapsible (the detail's parent) carries the open state and the animation */
@@ -125,11 +151,12 @@ export function useTileGlide() {
     for (let i = 0; i < 16 && !tiles.every(measured); i++) await nextTick()
 
     const animations: Animation[] = []
-    const options: KeyframeAnimationOptions = { duration: MOTION.placeMs, easing: MOTION.standard, fill: 'none' }
 
     // The final height of the row: the panels at rest (the one that opens full, the one that closes gone), read with their animation off
     const nodes = tiles.map(tile => tile.querySelector(DETAIL)).filter((d): d is HTMLElement => !!d).map(contentOf).filter((n): n is HTMLElement => !!n)
+    // ...and where every tile ends up then: a tile under a panel that opens rides its growth on top of its own glide
     let gridFinal = gridHeight
+    let final = new Map(tiles.map(tile => [tile, rectOf(tile)] as const))
     if (grid) {
       const saved = nodes.map(n => n.style.cssText)
       for (const node of nodes) {
@@ -137,7 +164,25 @@ export function useTileGlide() {
         if (node.getAttribute('data-state') === 'closed') node.style.display = 'none'
       }
       gridFinal = rectOf(grid).height
+      final = new Map(tiles.map(tile => [tile, rectOf(tile)] as const))
       nodes.forEach((n, i) => { n.style.cssText = saved[i]! })
+    }
+
+    // One duration for every part of the glide, so the tiles, the row and tile 5 stay together: long enough for the longest travel
+    let travel = Math.abs(gridFinal - gridHeight)
+    for (const tile of tiles) {
+      const was = before.get(tile)!.rect
+      const is = final.get(tile)!
+      travel = Math.max(travel, Math.abs(was.left - is.left) + Math.abs(was.width - is.width), Math.abs(was.top - is.top) + Math.abs(was.height - is.height))
+    }
+    const duration = glideDuration(travel)
+    const options: KeyframeAnimationOptions = { duration, easing: MOTION.standard, fill: 'none' }
+    // The panels that open or close run on the same clock (their own is `--duration-slow` on the same curve): a tile below an
+    // opening panel is moved by its layout and by its glide at once, and only on one clock do the two add up to one smooth
+    // path (#793 gate: on two clocks the closing tile under the opening one moved 144 px in one frame)
+    for (const node of nodes) {
+      node.style.animationDuration = `${duration}ms`
+      retimed.add(node)
     }
 
     for (const tile of tiles) {
