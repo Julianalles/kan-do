@@ -15,6 +15,7 @@
 @import "./sheet.css";
 @import "./footer.css";
 @import "./recap-stage.css";
+@import "./intro-hint.css";
 
 @theme static {
   /* Page wash utility — generates `bg-page`, `bg-page/80`, etc.
@@ -335,6 +336,7 @@
     --z-stack-motion: 600; /* the stack (un)collapse layer, above the stack control */
     --z-focus-overlay: 1000; /* the Jetzt focus overlay */
     --z-focus-column: 1100; /* the Jetzt column while the focus overlay is on: lifts above it */
+    --z-hint: 1200; /* the intro hint's sheet (IntroHintOverlay): above the board and the focus overlay, below every sheet and menu */
     --z-overlay: 2100; /* sheet, dialog, drawer and their scrim; the phone edge indicator */
     --z-popover: 2200; /* popover, dropdown, tooltip: above the sheet they open in */
     --z-toast: 2300; /* the toast viewport: above everything */

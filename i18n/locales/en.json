@@ -176,6 +176,13 @@
       "close": "Close",
       "started": "One task is now under “All tasks”. | {n} tasks are now under “All tasks”."
     },
+    "introHint": {
+      "start": {
+        "desktop": "Drag what you're working on now into Now. Now holds one task at a time.",
+        "phone": "What do you start with? Hold the card and drag it to the right edge, into Now. Now holds one task at a time."
+      },
+      "close": "Close"
+    },
     "planNote": {
       "title": "Pick what's on for today",
       "description": "Plan your tasks for today here. Go to “Today” when you want to start.",

@@ -21,6 +21,8 @@
     </div>
 
     <Board />
+    <!-- The intro hints (#800): one at a time, floating at the bottom; never while a notice above is up -->
+    <IntroHintOverlay />
 
     <TaskSheetHost>
       <NuxtPage />
@@ -51,6 +53,7 @@ import { useIntegrationManager } from "~/composables/useIntegrationManager";
 import { useBoardSetup } from "~/composables/useBoardSetup";
 import DataStorageNotice from "~/components/settings/DataStorageNotice.vue";
 import NewDayNote from "~/components/board/NewDayNote.vue";
+import IntroHintOverlay from "~/components/board/IntroHintOverlay.vue";
 import NewDayTimeNote from "~/components/board/NewDayTimeNote.vue";
 import { useRoute, navigateTo } from "nuxt/app";
 import { useSyncValidation, resetSyncValidation } from "~/composables/useSyncValidation";
