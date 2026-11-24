@@ -795,6 +795,8 @@
     {
       "paths": [
         "components/board/**",
+        "composables/useIntroHints.ts",
+        "lib/introHints.ts",
         "composables/useBoard*",
         "composables/useCarryOver*",
         "composables/useDayClose*",
@@ -836,7 +838,8 @@
         "task-draft-card",
         "source-icon-footer",
         "scrollbar-gutter",
-        "visual-regression"
+        "visual-regression",
+        "intro-hints"
       ],
       "fast": [
         "visual-regression"
@@ -1191,7 +1194,8 @@
         "welcome-setup",
         "design-detect",
         "state-structure",
-        "phone-hit-areas"
+        "phone-hit-areas",
+        "intro-hints"
       ],
       "fast": [
         "visual-regression"

@@ -41,6 +41,24 @@ test.describe('empty states', () => {
   })
 })
 
+test.describe('intro hints (#800)', () => {
+  // Cards in Offen, Jetzt empty, hints on as after the welcome setup: the hint "Start" in the bottom overlay
+  const OPEN_ONLY = SEED_TASKS.filter(task => task.status !== 1)
+
+  test('the hint "Start": a status with its text and "Schließen" (1280)', async ({ context, page }) => {
+    await seedLocalBoard(context, OPEN_ONLY, {}, undefined, { hints: true })
+    await gotoBoard(page)
+    await expect(page.getByTestId('intro-hint-host')).toMatchAriaSnapshot({ name: 'intro-hint-start-1280.aria.yml' })
+  })
+
+  test('the hint "Start": the phone text (390)', async ({ context, page }) => {
+    await page.setViewportSize(MOBILE)
+    await seedLocalBoard(context, OPEN_ONLY, {}, undefined, { hints: true })
+    await gotoBoard(page)
+    await expect(page.getByTestId('intro-hint-host')).toMatchAriaSnapshot({ name: 'intro-hint-start-390.aria.yml' })
+  })
+})
+
 test.describe('the place "Alle" (#354)', () => {
   async function gotoAll(page: Page) {
     await page.goto('/all')

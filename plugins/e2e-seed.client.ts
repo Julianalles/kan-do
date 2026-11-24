@@ -37,7 +37,8 @@
  *                   , the trash (trash-store), the topic colours and symbols (topic-styles) and the persisted UI locale (kando-locale)
  *
  * Every mode but `clear` also writes settings-store with the Fokus overlay (#394) OFF, so touch taps and screenshots
- * are not affected; add `&focus=1` to see the overlay (the app default) on a seeded board.
+ * are not affected; add `&focus=1` to see the overlay (the app default) on a seeded board. `&hints=1` (#800) starts the
+ * intro hints as the welcome setup does; without it a seeded board shows none.
  *
  * On desktop (dev), the seeded stores also go into the data file while it is still empty (the first `npm run tauri:dev`
  * launch, #413); a file with data is never touched.
@@ -66,6 +67,7 @@ import { seedDesktopStores } from '~/lib/dataStorage'
 import { useSourceConnections } from '~/composables/useSourceConnections'
 import type { IntegrationSourceId } from '~/types/taskSource'
 import { isOverlayWindow } from '~/lib/overlayWindow'
+import { freshIntroHints } from '~/lib/introHints'
 import { MARKER_MODEL } from '~/lib/taskPlanning'
 
 export default defineNuxtPlugin(async (nuxtApp) => {
@@ -216,8 +218,11 @@ export default defineNuxtPlugin(async (nuxtApp) => {
   // Seeds keep the Fokus overlay off unless asked for (`&focus=1`); the app default is on
   // (the new-day seeds too since #387: their Jetzt card stays on the board until the user starts the day fresh)
   if (['local', 'demo', 'dayclose', 'newday', 'newday-all', 'newday-back', 'newday-notice', 'notion', 'mixed', 'notion-sandbox'].includes(seed)) {
-    localStorage.setItem('settings-store', JSON.stringify({ focusEnabled: url.searchParams.get('focus') === '1' }))
+    // `&hints=1` (#800): the intro hints as the welcome setup starts them; without it a seeded board shows none
+    const introHints = url.searchParams.get('hints') === '1' ? { introHints: freshIntroHints() } : {}
+    localStorage.setItem('settings-store', JSON.stringify({ focusEnabled: url.searchParams.get('focus') === '1', ...introHints }))
     url.searchParams.delete('focus')
+    url.searchParams.delete('hints')
   }
 
   // A seeded board starts with an empty trash (#422), so the dock shows no trash icon until a task is deleted
