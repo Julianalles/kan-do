@@ -2,6 +2,8 @@
 
 Developer glossary. UI wording (preferred terms, forms to avoid, German and English) lives in `docs/copy/terms.json`.
 
+**Status and the planning marker** (#374): a task has one of four statuses, Offen, Jetzt, Wartet and Erledigt (progress), and, beside them, the marker "Für heute eingeplant" (part of today's plan or not; `Task.notPlanned` is its absence). The two are independent: a Wartet task can leave today and keep waiting. Jetzt is always planned and the marker plays no part for Erledigt. "Nicht geplant" is not a status: it names the state of a task that is off today. A new day clears the marker on every open, running and waiting task (a Wartet task stays Wartet). Not "ungeplant" (ad-hoc work, `isUnplanned`).
+
 **Task source** (UI: "Speicherort"): where a task lives. One of Local, Notion, Todoist and Apple Reminders (read-only in kan-do, desktop only). Every task belongs to exactly one task source.
 
 **Task id and external id**: `Task.id` is the app's own identity of a task and never changes (statistics, order, timers and routes use it); `Task.externalId` is the id the task's integration knows it by (the Notion page id), `null` for a Local task. Integrations only ever receive the external id. See ADR 015.

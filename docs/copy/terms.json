@@ -541,6 +541,16 @@
     "note": "The user's wording of 2026-11-16 (#375). Only the headline (and the column's spoken name) on \"Alle\", key board.columns.openPlanning; on the place \"Heute\" the column is headed \"Offen\", and the status is \"Offen\" everywhere (column-open). The same word as the app bar's place \"Heute\" on purpose: both mean today's plan."
   },
   {
+    "id": "planned-for-today",
+    "concept": "The marker of a task that is part of today's plan, beside its status (#374, #793, #795): the task sheet's switch. A task is either planned for today or not, whatever its status (Offen, Wartet; Jetzt is always planned)",
+    "de": "Für heute eingeplant",
+    "en": "Planned for today",
+    "avoidDe": [],
+    "avoidEn": [],
+    "status": "proposed",
+    "note": "Proposed in the UX decision of #374 (D3, 2026-11-24); the user's `npm run terms:approve planned-for-today` makes it decided. The state of the move plan-for-today (\"Für heute einplanen\"), the way \"Offen\" is the state of a task. A marker, not a status: the four statuses are Offen, Jetzt, Wartet, Erledigt, and \"Nicht geplant\" (entry not-planned-state, decided: its concept and note still describe the fifth picker choice of #359 and need the user's update) is no longer a choice of the status picker. Label of the task sheet's switch in the row \"Heute\" (term planning-today)."
+  },
+  {
     "id": "plan-for-today",
     "concept": "The move that puts a not-planned task on today's board, at the end of Offen (#354)",
     "de": "Für heute einplanen",
