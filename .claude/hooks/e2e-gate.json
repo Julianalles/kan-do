@@ -1000,6 +1000,7 @@
         "pages/statistics/**",
         "composables/useStatistics*",
         "composables/useDayEndTracking.ts",
+        "composables/useTileGlide.ts",
         "plugins/statistics-backfill*",
         "utils/statisticsAccuracy.ts",
         "lib/statisticsReview.ts",

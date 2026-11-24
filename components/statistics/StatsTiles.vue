@@ -7,7 +7,7 @@
 @avoid Only under the verdict on the Statistik page.
 @responsibility
 - Own the page state `open: 2 | 3 | 4 | 5 | null` (initial value from the `initialOpen` prop, i.e. `?open=`; never written back, never persisted)
-- An opened tile holds its detail inside itself (#689, reverses #610 tile b): from `md` the open tile of Q2 to Q4 is first and spans all three columns (CSS `order`, so the DOM order stays 2, 3, 4 and a node never moves away from the toggle that has focus), the other tiles follow in the row below; opening a tile scrolls its toggle into view (`block: 'nearest'`, under the app bar; once more when the glide ends, because the old panel collapses above it) and the root sets `overflow-anchor: none`, so the browser's scroll anchoring does not pull the page back while the tile grows; below `md` it expands in place. Each tile's toggle `aria-controls` names its own panel (`UCollapsible` over `--duration-slow`). While Q2 is open its small summary bars are not drawn, the detail shows them large with percent labels above the week table; the rings of Q3 and Q4 stay in the summary, which then puts the line left and the chart right (the open tile spans the row). Tile 5 is full width already, stays last and opens its panel inside itself
+- An opened tile holds its detail inside itself (#689, reverses #610 tile b): from `md` the open tile of Q2 to Q4 is first and spans all three columns (CSS `order`, so the DOM order stays 2, 3, 4 and a node never moves away from the toggle that has focus), the other tiles follow in the row below; opening a tile scrolls its toggle into view (`block: 'nearest'`, under the app bar; once more when the glide ends, because the old panel collapses above it) and the root sets `overflow-anchor: none`, so the browser's scroll anchoring does not pull the page back while the tile grows; below `md` it expands in place. From `md` opening, switching and closing glide over `--duration-place` (#789, `useTileGlide`: the change is instant, the boxes travel from their old place; the open tile animates its width under `overflow: hidden` with its summary and detail held at their final width, so no text re-wraps and the collapsible is measured at the width it ends with; the row's height glides so tile 5 and the page follow; `md:auto-rows-max` keeps the rows from being squeezed by that height); reduced motion has none. Each tile's toggle `aria-controls` names its own panel (`UCollapsible` over `--duration-slow`). While Q2 is open its small summary bars are not drawn, the detail shows them large with percent labels above the week table; the rings of Q3 and Q4 stay in the summary, which then puts the line left and the chart right (the open tile spans the row). Tile 5 is full width already, stays last and opens its panel inside itself
 - Q2 to Q4 stay hidden on an empty review; tile 5 is always shown (its first-run state explains that recording has started, #600)
 - Tile 5 (work rhythm, #600): in its first-run state it has no toggle and no panel
 - Pick each tile's one-line answer; Q3 without any timebox is a plain heading with no toggle
@@ -17,7 +17,7 @@
 <template>
   <!-- overflow-anchor: the browser would otherwise pull the scroll down as the opened tile grows above the tiles it anchors on, undoing the scroll to the toggle (#689) -->
   <div ref="root" class="[overflow-anchor:none]">
-    <div v-if="questionOrder.length" class="mb-4 grid gap-4 md:mb-6 md:grid-cols-3 md:items-start md:gap-6">
+    <div v-if="questionOrder.length" data-stats-grid class="mb-4 grid gap-4 md:mb-6 md:auto-rows-max md:grid-cols-3 md:content-start md:items-start md:gap-6">
       <!-- The open tile is first and spans the row from md, by CSS only: the DOM order stays 2, 3, 4 so a moved node never takes focus from its toggle (#689) -->
       <StatsTile
         v-for="n in questionOrder"
@@ -115,10 +115,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
 import SectionHeader from '~/components/ui/SectionHeader.vue'
 import { useI18n } from 'vue-i18n'
 import { useLocaleFormat } from '~/composables/useLocaleFormat'
+import { cancelTileGlide, useTileGlide } from '~/composables/useTileGlide'
 import { NO_TOPIC, REVIEW, type Review, type UnfinishedTime } from '~/lib/statisticsReview'
 import { RHYTHM, type WorkRhythm } from '~/lib/workRhythm'
 import StatsTile from '~/components/statistics/StatsTile.vue'
@@ -161,18 +162,25 @@ const isOpen = (n: TileNumber): boolean => open.value === n && toggleable(n)
 /** Q2 to Q4 are hidden on an empty review (nothing to compare yet). */
 const questionOrder = computed<QuestionNumber[]>(() => (props.review.state === 'empty' ? [] : [2, 3, 4]))
 
+const glide = useTileGlide()
+onBeforeUnmount(cancelTileGlide)
+
 function toggle(n: TileNumber) {
-  open.value = open.value === n ? null : n
-  if (open.value === n) keepToggleInView(n)
+  const opening = open.value !== n
+  // The change is instant and final; from `md` the tiles glide from their old boxes to the new ones (#789), and the toggle is brought back into view when the glide has ended
+  void glide.around(root.value, () => { open.value = opening ? n : null }, opening ? () => scrollToggleIntoView(n) : undefined)
+  if (opening) keepToggleInView(n)
 }
+
+const scrollToggleIntoView = (n: TileNumber) => root.value?.querySelector(`[data-testid="stats-tile-${n}-toggle"]`)?.scrollIntoView({ block: 'nearest' })
 
 /**
  * The opened tile jumps to the first place by CSS order (from `md`) and the old panel collapses above it (below `md`) while the page stays scrolled:
- * bring the toggle (the focused element) back into view, now and once more when the glide has ended, since the layout above it is only final then (#689).
- * Reduced motion has no glide, the first scroll is enough.
+ * bring the toggle (the focused element) back into view, now and once more when the old panel's collapse has ended, since the layout above it is only final then (#689);
+ * from `md` the glide's own end scrolls once more (#789). Reduced motion has no glide, the first scroll is enough.
  */
 function keepToggleInView(n: TileNumber) {
-  const scroll = () => root.value?.querySelector(`[data-testid="stats-tile-${n}-toggle"]`)?.scrollIntoView({ block: 'nearest' })
+  const scroll = () => scrollToggleIntoView(n)
   void nextTick(scroll)
   const el = root.value
   if (!el) return

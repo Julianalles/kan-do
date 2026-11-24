@@ -9,6 +9,7 @@
 - Heading `<h2>` holding one toggle `<button aria-expanded aria-controls>` with the trailing `DisclosureCaret` (#610: one chevron for every block that opens in place, it replaces the round expand/close button); Enter / Space toggles, Esc closes an open tile
 - A `PageSheet` (kd#180: the one sheet shape, 16 px radius and the resting shadow; no tones) that takes the size its grid cell gives it; the parent decides the cell (the open tile of Q2 to Q4 spans the row, #689); a `wide` tile is always full width and an open tile spans the row (#689); both put their line left and their chart right at `md+` (about 20rem, #600)
 - Summary slot is always shown (the parent may leave the chart out while the detail repeats it). The `detail` slot is every tile's own panel (a `UCollapsible` over `--duration-slow`, no tab stops while closed; `data-testid="stats-tile-<n>-detail"`); `aria-controls` names it. The detail reads as the inside of the pressed tile: one surface, not a second sheet (#689, reverses #610 tile b)
+- Glide hooks (#789): `data-stats-tile` on the sheet, `data-stats-summary` on the line-and-chart block (keyed by the arrangement, stacked or spread, so opening or closing swaps it as a new box whose height the glide eases) and `data-stats-detail` on the panel; `useTileGlide` reads them, nothing else may rely on them
 - Without `toggleable` (no timeboxes at all) the heading is plain text and there is no panel
 - Expose `focus()` so a host can return focus to the toggle
 - Disclosure tile (moved from DESIGN.md, kd#176): closed panels have no tab stops; the toggle row is at least 44px; reduced motion removes any motion. No tile carries a step label
@@ -19,6 +20,7 @@
     :aria-labelledby="headingId"
     :class="wide ? 'md:col-span-6' : ''"
     :data-testid="`stats-tile-${n}`"
+    data-stats-tile
   >
     <h2 :id="headingId" class="m-0">
       <button
@@ -37,7 +39,8 @@
       </button>
       <SectionHeader v-else tag="span" class="block">{{ question }}</SectionHeader>
     </h2>
-    <div :class="spread ? 'md:flex md:items-center md:justify-between md:gap-10' : ''">
+    <!-- Keyed by the arrangement: opening or closing swaps the stacked summary for the spread one as a new box, whose height the glide eases (#789) -->
+    <div :key="spread ? 'spread' : 'stacked'" data-stats-summary :class="spread ? 'md:flex md:items-center md:justify-between md:gap-10' : ''">
       <div :class="spread ? 'md:flex-1' : ''">
         <p class="mt-3 text-pretty text-default" data-private>{{ line }}</p>
         <slot name="under-line" />
@@ -49,7 +52,7 @@
 
     <UCollapsible v-if="toggleable && $slots.detail" :open="open">
       <template #content>
-        <div :id="ownPanelId" class="mt-8 border-t border-default pt-6" :data-testid="`stats-tile-${n}-detail`">
+        <div :id="ownPanelId" class="mt-8 border-t border-default pt-6" :data-testid="`stats-tile-${n}-detail`" data-stats-detail>
           <slot name="detail" />
         </div>
       </template>
