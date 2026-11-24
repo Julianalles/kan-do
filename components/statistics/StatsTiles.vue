@@ -7,7 +7,7 @@
 @avoid Only under the verdict on the Statistik page.
 @responsibility
 - Own the page state `open: 2 | 3 | 4 | 5 | null` (initial value from the `initialOpen` prop, i.e. `?open=`; never written back, never persisted)
-- A tile never changes its column or its place (#610, tile b): the open tile of Q2 to Q4 keeps its three-column cell and the DOM order stays 2, 3, 4; its detail opens as a sheet of its own in a row below the whole row of tiles (under all three on a phone), one `UCollapsible` per question over `--duration-slow`, so switching tiles cross-animates and nothing jumps; the gap below the sheet sits inside the collapsible, where the sheet's shadow is not clipped. The open tile wears a hairline ring, the cue of which tile the sheet belongs to. The tile's toggle `aria-controls` names that sheet. Tile 5 is full width already, stays last and opens its panel inside itself
+- An opened tile holds its detail inside itself (#689, reverses #610 tile b): from `md` the open tile of Q2 to Q4 is first and spans all three columns (CSS `order`, so the DOM order stays 2, 3, 4 and a node never moves away from the toggle that has focus), the other tiles follow in the row below; opening a tile scrolls its toggle into view (`block: 'nearest'`, under the app bar; once more when the glide ends, because the old panel collapses above it) and the root sets `overflow-anchor: none`, so the browser's scroll anchoring does not pull the page back while the tile grows; below `md` it expands in place. Each tile's toggle `aria-controls` names its own panel (`UCollapsible` over `--duration-slow`). While Q2 is open its small summary bars are not drawn, the detail shows them large with percent labels above the week table; the rings of Q3 and Q4 stay in the summary, which then puts the line left and the chart right (the open tile spans the row). Tile 5 is full width already, stays last and opens its panel inside itself
 - Q2 to Q4 stay hidden on an empty review; tile 5 is always shown (its first-run state explains that recording has started, #600)
 - Tile 5 (work rhythm, #600): in its first-run state it has no toggle and no panel
 - Pick each tile's one-line answer; Q3 without any timebox is a plain heading with no toggle
@@ -15,21 +15,24 @@
 - Emit `open-task` when an outlier is chosen
 -->
 <template>
-  <div>
+  <!-- overflow-anchor: the browser would otherwise pull the scroll down as the opened tile grows above the tiles it anchors on, undoing the scroll to the toggle (#689) -->
+  <div ref="root" class="[overflow-anchor:none]">
     <div v-if="questionOrder.length" class="mb-4 grid gap-4 md:mb-6 md:grid-cols-3 md:items-start md:gap-6">
+      <!-- The open tile is first and spans the row from md, by CSS only: the DOM order stays 2, 3, 4 so a moved node never takes focus from its toggle (#689) -->
       <StatsTile
         v-for="n in questionOrder"
         :key="n"
         :n="n"
+        :class="isOpen(n) ? 'md:order-first md:col-span-3' : ''"
         :question="t(`statistics.question.q${n}`)"
         :line="lines[n]"
         :open="isOpen(n)"
         :toggleable="n !== 3 || review.hasTimeboxes"
-        :panel-id="panelId(n)"
         @toggle="toggle(n)"
       >
+        <!-- The summary chart stays unless the detail repeats it: Q2's bars come back large inside the open tile; Q3's and Q4's rings stay (the detail has none) -->
         <template v-if="n === 2">
-          <StatsTrendBars :weeks="review.weeks" />
+          <StatsTrendBars v-if="!isOpen(2)" :weeks="review.weeks" />
         </template>
         <template v-else-if="n === 3">
           <StatsEstimateRing
@@ -49,18 +52,12 @@
             stacked
           />
         </template>
-      </StatsTile>
-    </div>
 
-    <!-- The detail row (tile b of #610): under the whole row of tiles, one collapsible per question so that switching from one tile to another cross-animates and nothing jumps -->
-    <UCollapsible
-      v-for="n in questionOrder"
-      :key="`detail-${n}`"
-      :open="isOpen(n)"
-    >
-      <template #content>
-        <PageSheet :id="panelId(n)" class="mb-4 md:mb-6" :data-testid="`stats-tile-${n}-detail`">
-          <StatsWeekTable v-if="n === 2" :weeks="review.weeks" />
+        <template #detail>
+          <template v-if="n === 2">
+            <StatsTrendBars class="mb-6" :weeks="review.weeks" labelled />
+            <StatsWeekTable :weeks="review.weeks" />
+          </template>
           <div v-else-if="n === 3" class="space-y-8">
             <StatsPatterns :patterns="review.patterns" :empty-text="lines[3]" />
             <StatsOutliers :outliers="review.outliers" @open="(id: string) => emit('open-task', id)" />
@@ -76,9 +73,9 @@
             <p v-if="unfinishedLine" class="text-body text-muted" :class="review.split.taskCount > 0 ? 'mt-1' : ''" data-testid="stats-unfinished">{{ unfinishedLine }}</p>
             <StatsTimeSplit v-if="review.split.taskCount > 0" class="mt-3" :split="review.split" :by="by" mode="rows" />
           </div>
-        </PageSheet>
-      </template>
-    </UCollapsible>
+        </template>
+      </StatsTile>
+    </div>
 
     <StatsTile
       :n="5"
@@ -118,8 +115,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import PageSheet from '~/components/ui/PageSheet.vue'
+import { computed, nextTick, ref } from 'vue'
 import SectionHeader from '~/components/ui/SectionHeader.vue'
 import { useI18n } from 'vue-i18n'
 import { useLocaleFormat } from '~/composables/useLocaleFormat'
@@ -155,6 +151,7 @@ const { t, locale } = useI18n()
 const { formatDuration } = useLocaleFormat()
 
 const open = ref<TileNumber | null>(props.initialOpen === 2 || props.initialOpen === 3 || props.initialOpen === 4 || props.initialOpen === 5 ? props.initialOpen : null)
+const root = ref<HTMLElement | null>(null)
 const by = ref<'topic' | 'activity'>('topic')
 
 const rhythmReady = computed(() => props.rhythm.state === 'normal')
@@ -164,9 +161,25 @@ const isOpen = (n: TileNumber): boolean => open.value === n && toggleable(n)
 /** Q2 to Q4 are hidden on an empty review (nothing to compare yet). */
 const questionOrder = computed<QuestionNumber[]>(() => (props.review.state === 'empty' ? [] : [2, 3, 4]))
 
-const panelId = (n: TileNumber): string => `stats-panel-${n}`
 function toggle(n: TileNumber) {
   open.value = open.value === n ? null : n
+  if (open.value === n) keepToggleInView(n)
+}
+
+/**
+ * The opened tile jumps to the first place by CSS order (from `md`) and the old panel collapses above it (below `md`) while the page stays scrolled:
+ * bring the toggle (the focused element) back into view, now and once more when the glide has ended, since the layout above it is only final then (#689).
+ * Reduced motion has no glide, the first scroll is enough.
+ */
+function keepToggleInView(n: TileNumber) {
+  const scroll = () => root.value?.querySelector(`[data-testid="stats-tile-${n}-toggle"]`)?.scrollIntoView({ block: 'nearest' })
+  void nextTick(scroll)
+  const el = root.value
+  if (!el) return
+  const done = () => { el.removeEventListener('animationend', onEnd); window.clearTimeout(timer) }
+  const onEnd = () => { done(); scroll() }
+  const timer = window.setTimeout(done, 1000)
+  el.addEventListener('animationend', onEnd)
 }
 
 const byItems = computed(() => [
