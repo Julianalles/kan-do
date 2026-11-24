@@ -10,6 +10,8 @@ const tabNames = (page: Page) => page.getByRole('tab').allTextContents()
 
 /** No card in Jetzt: a restarted "Start" is not answered at once by a step that is already done */
 const OPEN_ONLY = SEED_TASKS.filter(task => task.status === 0)
+/** A restarted record: cards in Offen are a planned day, so "Planen" (#803) is answered at once by its step; nothing else is touched */
+const RESTARTED = { on: true, quietDay: null, hints: { planen: { answered: true, days: [] } } }
 const hintsRow = (page: Page) => page.getByTestId('intro-hints-setting')
 const hintsButton = (page: Page) => page.getByTestId('intro-hints-toggle')
 const hintsRecord = (page: Page) =>
@@ -32,7 +34,7 @@ test.describe('Hinweise zum Einstieg in the Board tab (#804)', () => {
 
     await hintsButton(page).click()
     await expect(hintsButton(page)).toHaveText('Ausschalten')
-    await expect.poll(() => hintsRecord(page)).toEqual({ on: true, quietDay: null, hints: {} })
+    await expect.poll(() => hintsRecord(page)).toEqual(RESTARTED)
   })
 
   test('the help lists exactly the intro texts, on or off, with the phone text of "Start" at 390px', async ({ context, page }) => {
@@ -62,7 +64,7 @@ test.describe('Hinweise zum Einstieg in the Board tab (#804)', () => {
     expect(await hintsRecord(page)).toBeNull()
     await expect(hintsButton(page)).toHaveText('Erneut zeigen')
     await hintsButton(page).click()
-    await expect.poll(() => hintsRecord(page)).toEqual({ on: true, quietDay: null, hints: {} })
+    await expect.poll(() => hintsRecord(page)).toEqual(RESTARTED)
     await expect(hintsButton(page)).toHaveText('Ausschalten')
   })
 })

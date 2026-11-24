@@ -312,3 +312,79 @@ test('390px: the link "Hinweise ausschalten" is a 44 px target and the sheet sta
   const bar = (await page.locator('.app-nav-pill').boundingBox())!
   expect(box.y + box.height).toBeLessThanOrEqual(bar.y)
 })
+
+/**
+ * "Planen" (#803): the planning note of "Alle" as a hint. Tasks wait under "Alle", "Heute" is empty: the note shows on the first
+ * visit, by any way; it ends with "Schließen" (quiet for the day) or by going on to "Heute", not by a page off the board.
+ * The rules are unit-tested; the old #711 note (a user without hints) is in `new-day-recap.spec.ts`.
+ */
+const PICK_ONLY = SEED_TASKS.slice(0, 2).map((task) => ({ ...task, status: 0 as const, notPlanned: true as const }))
+const planNote = (page: Page) => page.getByTestId('plan-note')
+const planRecord = (page: Page) =>
+  page.evaluate(() => {
+    const settings = JSON.parse(localStorage.getItem('settings-store') ?? '{}') as { introHints?: { on: boolean, quietDay: string | null, hints: Record<string, { answered: boolean, days: string[] }> } | null }
+    const recap = JSON.parse(localStorage.getItem('day-recap-store') ?? '{}') as { planNoteSeen?: boolean }
+    return { record: settings.introHints ?? null, seen: recap.planNoteSeen === true }
+  })
+
+test('"Planen": the first visit to "Alle" shows the note, a page off the board is no answer, "Heute" ends it for good', async ({ context, page }) => {
+  await seedLocalBoard(context, PICK_ONLY, {}, undefined, { hints: true, once: true })
+  await page.goto('/all')
+  await expect(page.locator('#column-open').getByTestId('plan-note')).toBeVisible()
+  await expect(planNote(page)).toContainText('Wähle aus, was heute dran ist')
+  await expect.poll(async () => (await planRecord(page)).record?.hints.planen?.days.length).toBe(1)
+
+  // Statistik is not "Heute": the note is there again on the way back
+  await goToPlace(page, 'Statistik')
+  await goToPlace(page, 'Alle')
+  await expect(planNote(page)).toBeVisible()
+  expect((await planRecord(page)).seen).toBe(false)
+
+  await goToPlace(page, 'Heute')
+  await expect.poll(async () => (await planRecord(page)).seen).toBe(true)
+  expect((await planRecord(page)).record?.hints.planen?.answered).toBe(true)
+  await goToPlace(page, 'Alle')
+  await expect(planNote(page)).toHaveCount(0)
+})
+
+test('"Planen": "Schließen" ends it, keeps the day quiet and stays away after a reload', async ({ context, page }) => {
+  await seedLocalBoard(context, PICK_ONLY, {}, undefined, { hints: true, once: true })
+  await page.goto('/all')
+  await expect(planNote(page)).toBeVisible()
+  await page.getByTestId('plan-note-close').click()
+  await expect(planNote(page)).toHaveCount(0)
+  await expect(page.locator('[data-task-sheet-return]')).toBeFocused()
+  await expect.poll(async () => (await planRecord(page)).seen).toBe(true)
+  const { record } = await planRecord(page)
+  expect(record?.quietDay).not.toBeNull()
+  expect(record?.hints.planen?.answered).toBe(true)
+  await page.reload()
+  await expect(page.getByTestId('not-planned')).toBeVisible()
+  await expect(planNote(page)).toHaveCount(0)
+})
+
+test('"Planen" at 390: one line with the two links, "Hinweise ausschalten" takes it away with a toast', async ({ context, page }) => {
+  await page.setViewportSize(MOBILE)
+  await seedLocalBoard(context, PICK_ONLY, {}, undefined, { hints: true, once: true })
+  await page.goto('/tasks')
+  await goToPlace(page, 'Alle')
+  await expect(planNote(page)).toHaveText('Wähle aus, was heute dran ist. Wechsle zu „Heute“, sobald du loslegen willst.')
+  for (const id of ['plan-note-off', 'plan-note-close']) {
+    const box = (await page.getByTestId(id).boundingBox())!
+    expect(box.height).toBeGreaterThanOrEqual(44)
+    expect(box.x + box.width).toBeLessThanOrEqual(390)
+  }
+  await page.getByTestId('plan-note-off').click()
+  await expect(planNote(page)).toHaveCount(0)
+  await expect(page.getByText('Hinweise ausgeschaltet', { exact: true })).toBeVisible()
+  await expect.poll(async () => (await planRecord(page)).record?.on).toBe(false)
+})
+
+test('"Planen" stays silent with a card already planned for today or with nothing to pick', async ({ context, page }) => {
+  await seedLocalBoard(context, [...PICK_ONLY, { ...SEED_TASKS[2]!, status: 0 }], {}, undefined, { hints: true })
+  await page.goto('/all')
+  await expect(page.getByTestId('not-planned')).toBeVisible()
+  await expect(planNote(page)).toHaveCount(0)
+  // the card in Offen answered the hint: it does not come back when the card leaves
+  await expect.poll(async () => (await planRecord(page)).record?.hints.planen?.answered).toBe(true)
+})

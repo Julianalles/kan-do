@@ -15,18 +15,23 @@
  *   "Abschluss" with something done today and an empty Jetzt (#801). Their ends: a card in Jetzt, a card that was in
  *   Jetzt now in Erledigt or Wartet (a change, not a state: a Wartet card the board starts with ends nothing), cards
  *   stacked (`grouping.enabled`), the day-close stage opened
+ * - `planDue` (#803): the hint "Planen", the planning note of "Alle" (BoardPlanNote), is due: the hints run, today is not the quiet
+ *   day, it has not ended, the old note was not answered (`dayRecap.planNoteSeen`), no board notice is up and tasks wait under "Alle".
+ *   The place and an empty "Heute" are BoardPlanNote's. Its step is a card planned into Offen or Jetzt (`useIntroHintSteps`)
  * - Nothing here touches a task or a connection
  */
 import { computed, watch } from 'vue'
+import { useDocumentVisibility, useWindowFocus } from '@vueuse/core'
 import { useSettingsStore } from '~/store/settings'
 import { useTasksStore } from '~/store/tasks'
 import { useToday } from '~/composables/useToday'
 import { useNewDay } from '~/composables/useNewDay'
+import { useDayRecapStore } from '~/store/dayRecap'
 import { useNewDayRecap } from '~/composables/useNewDayRecap'
 import { useDayClose } from '~/composables/useDayClose'
 import { useBoardStore } from '~/store/board'
 import { boardBaseOfPath, boardPlaceOfPath, currentBoardPath } from '~/lib/boardPlace'
-import { currentIntroHint, INTRO_AUSWAHL_MIN_OPEN, type IntroHintId } from '~/lib/introHints'
+import { currentIntroHint, INTRO_AUSWAHL_MIN_OPEN, INTRO_PLAN_HINT, isIntroHintLive, type IntroHintId } from '~/lib/introHints'
 import { isOverlayWindow } from '~/lib/overlayWindow'
 import { dayKey } from '~/utils/recapDay'
 import { TaskStatus } from '~/types/taskStatus'
@@ -54,10 +59,12 @@ export function useIntroHintSteps(): void {
   const boardStore = useBoardStore()
   const { isOpen: dayCloseOpen } = useDayClose()
 
-  const stateSteps: Record<Exclude<IntroHintId, 'weiter'>, () => boolean> = {
+  const stateSteps: Record<Exclude<IntroHintId, 'weiter'> | typeof INTRO_PLAN_HINT, () => boolean> = {
     start: () => tasksStore.tasksProgress.length > 0,
     auswahl: () => boardStore.grouping.enabled,
     abschluss: () => dayCloseOpen.value,
+    // "Planen" (#803): a card is planned into Offen or Jetzt. A Wartet card the board starts with ends nothing, like for "Weiter".
+    [INTRO_PLAN_HINT]: () => tasksStore.tasksOpen.length + tasksStore.tasksProgress.length > 0,
   }
   for (const [id, step] of Object.entries(stateSteps) as Array<[keyof typeof stateSteps, () => boolean]>) {
     watch(
@@ -83,9 +90,20 @@ export function useIntroHintSteps(): void {
   )
 }
 
+/**
+ * Somebody can see the page: it is visible and the window is focused. A hidden tab or a window left in the background keeps its
+ * midnight timer running, and a weekend with the app open must not use up a hint's days; the day is stored when the page comes back.
+ */
+export function useHintOnScreen() {
+  const visibility = useDocumentVisibility()
+  const windowFocused = useWindowFocus()
+  return computed(() => visibility.value === 'visible' && windowFocused.value)
+}
+
 export function useIntroHints() {
   const settings = useSettingsStore()
   const tasksStore = useTasksStore()
+  const recapStore = useDayRecapStore()
   const { today } = useToday()
   const { noticeShown, timeOffer } = useNewDay()
   const { isOpen: recapOpen } = useNewDayRecap()
@@ -121,5 +139,12 @@ export function useIntroHints() {
     if (current.value) settings.closeIntroHint(current.value, todayKey.value)
   }
 
-  return { active, current, shownKey, markShown, close }
+  /** "Planen" (#803), without its place: see the header. */
+  const planDue = computed(() =>
+    isIntroHintLive(settings.introHints, INTRO_PLAN_HINT, todayKey.value)
+    && !recapStore.validPlanNoteSeen
+    && !noticeUp.value
+    && tasksStore.tasksNotPlanned.length > 0)
+
+  return { active, current, shownKey, markShown, close, planDue }
 }

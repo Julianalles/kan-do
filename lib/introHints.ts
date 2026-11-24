@@ -14,12 +14,16 @@
  *   away stores nothing, so it does not count.
  *
  * An ended hint never returns by itself: `answered` is never taken back, and `days` only grows.
+ *
+ * "Planen" (#803) is the one hint outside `INTRO_HINT_ORDER`: it belongs to "Alle", where the overlay never shows, so it has
+ * its own id in the same record (`hints.planen`) and the same rules (`isIntroHintLive`).
  */
 import { isValidDayKey } from '~/utils/recapDay'
 
 /**
  * The hints, in the order they take turns (#801: the first one whose moment has come shows, so with four cards in Offen
- * and one done today "Auswahl" comes before "Abschluss"). "Planen" on "Alle" joins with #803.
+ * and one done today "Auswahl" comes before "Abschluss"). "Planen" on "Alle" is not in this list: it is `INTRO_PLAN_HINT`
+ * (#803), a hint of its own place that the overlay never shows.
  */
 export const INTRO_HINT_ORDER = ['start', 'weiter', 'auswahl', 'abschluss'] as const
 
@@ -28,12 +32,16 @@ export const INTRO_AUSWAHL_MIN_OPEN = 4
 
 export type IntroHintId = (typeof INTRO_HINT_ORDER)[number]
 
+/** The hint of the place "Alle" (#803): the planning note, shown by `BoardPlanNote` and not by the overlay. */
+export const INTRO_PLAN_HINT = 'planen'
+
 /**
  * The i18n key of a hint's text (#804): the overlay shows it and the help section in the settings lists it, so the help
- * can never differ from the hints. Only "Start" has a text per width. The menu names in "Auswahl" and "Abschluss" are
- * params (`{more}`, `{dayClose}`).
+ * can never differ from the hints. "Start" has a text per width, and so has "Planen" (#803: the note's sentence on desktop, its
+ * one line on a phone). The menu names in "Auswahl" and "Abschluss" are params (`{more}`, `{dayClose}`).
  */
-export function introHintTextKey(id: IntroHintId, phone: boolean): string {
+export function introHintTextKey(id: IntroHintId | typeof INTRO_PLAN_HINT, phone: boolean): string {
+  if (id === INTRO_PLAN_HINT) return phone ? 'board.planNote.line' : 'board.planNote.description'
   return id === 'start' ? `board.introHint.start.${phone ? 'phone' : 'desktop'}` : `board.introHint.${id}`
 }
 
@@ -90,6 +98,15 @@ export function isIntroHintEnded(entry: IntroHintEntry | undefined, today: strin
 }
 
 /**
+ * The pacing every hint shares: the hints run (a started record, on), today is not the quiet day after a "Schließen", and
+ * the hint `id` has not ended. Whether its moment has come is the caller's.
+ */
+export function isIntroHintLive(record: IntroHintsRecord | null, id: string, today: string): boolean {
+  if (!record || !record.on || record.quietDay === today) return false
+  return !isIntroHintEnded(record.hints[id], today)
+}
+
+/**
  * The one hint to show now, or `null`: the first in the order that has not ended and whose moment has come
  * (`isDue`). None while the hints never started or are off, and none on the day "Schließen" was used.
  */
@@ -98,10 +115,8 @@ export function currentIntroHint(
   today: string,
   isDue: (id: IntroHintId) => boolean,
 ): IntroHintId | null {
-  if (!record || !record.on || record.quietDay === today) return null
   for (const id of INTRO_HINT_ORDER) {
-    if (isIntroHintEnded(record.hints[id], today)) continue
-    if (isDue(id)) return id
+    if (isIntroHintLive(record, id, today) && isDue(id)) return id
   }
   return null
 }

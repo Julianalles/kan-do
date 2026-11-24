@@ -21,6 +21,7 @@ vi.mock('~/composables/useDayClose', () => ({ useDayClose: () => ({ isOpen: dayC
 /* eslint-disable import/first -- order-sensitive: mocks must be registered before the SUT is imported */
 import { useIntroHints, useIntroHintSteps } from '~/composables/useIntroHints'
 import { useSettingsStore } from '~/store/settings'
+import { useDayRecapStore } from '~/store/dayRecap'
 import { useTasksStore } from '~/store/tasks'
 import { useBoardStore } from '~/store/board'
 import { setCurrentBoardPath } from '~/lib/boardPlace'
@@ -321,5 +322,72 @@ describe('several hints are due together (#801)', () => {
     expect(day).toBeTruthy()
     settings.introHints!.quietDay = '2000-01-01' // the next day: no longer quiet
     expect(hints.current.value).toBe('abschluss')
+  })
+})
+
+describe('the hint "Planen" (#803): the planning note of "Alle"', () => {
+  const notPlanned = (id: string): Task => ({ ...task(id, TaskStatus.Open), notPlanned: true } as Task)
+
+  it('is due with tasks to pick under "Alle", for a user of the hints, on any place', () => {
+    const { hints } = setup([notPlanned('a')])
+    expect(hints.planDue.value).toBe(true)
+    setCurrentBoardPath('/all')
+    expect(hints.planDue.value).toBe(true)
+  })
+
+  it('is not due with nothing to pick, for a user without hints, with hints off, or on the quiet day', () => {
+    expect(setup([task('a', TaskStatus.Open)]).hints.planDue.value).toBe(false)
+    setActivePinia(createPinia())
+    expect(setup([notPlanned('a')], false).hints.planDue.value).toBe(false)
+    setActivePinia(createPinia())
+    const { hints, settings } = setup([notPlanned('a')])
+    settings.setIntroHintsOn(false)
+    expect(hints.planDue.value).toBe(false)
+    settings.setIntroHintsOn(true)
+    settings.closeIntroHint('start', dayKey(new Date()))
+    expect(hints.planDue.value).toBe(false)
+  })
+
+  it.each([
+    ['the fresh-start notice', () => { noticeShown.value = true }],
+    ['the question about time after midnight', () => { timeOffer.value = { taskId: 'a' } }],
+    ['the recap', () => { recapOpen.value = true }],
+    ['the day close', () => { dayCloseOpen.value = true }],
+  ])('waits while %s is up', (_name, raise) => {
+    const { hints } = setup([notPlanned('a')])
+    raise()
+    expect(hints.planDue.value).toBe(false)
+  })
+
+  it('is never due once the old note was answered (the #711 flag keeps counting) or the hint ended', () => {
+    const { hints, settings } = setup([notPlanned('a')])
+    settings.answerIntroHint('planen')
+    expect(hints.planDue.value).toBe(false)
+    setActivePinia(createPinia())
+    const again = setup([notPlanned('a')])
+    useDayRecapStore().markPlanNoteSeen()
+    expect(again.hints.planDue.value).toBe(false)
+  })
+
+  it('is never the overlay\'s hint, and the overlay\'s hints never show on "Alle": two hints are not up together', () => {
+    const { hints } = setup([notPlanned('a'), task('b', TaskStatus.Open)])
+    expect(hints.current.value).toBe('start')
+    setCurrentBoardPath('/all')
+    expect(hints.current.value).toBeNull()
+    expect(hints.planDue.value).toBe(true)
+  })
+
+  it('ends with a card planned into Offen or Jetzt, on screen or not; a Wartet card ends nothing', async () => {
+    const { settings, tasksStore } = setup([notPlanned('a')])
+    const scope = effectScope()
+    scope.run(() => useIntroHintSteps())
+    expect(settings.introHints?.hints.planen).toBeUndefined()
+    tasksStore.setTasks([notPlanned('a'), task('w', TaskStatus.Waiting)])
+    await nextTick()
+    expect(settings.introHints?.hints.planen).toBeUndefined()
+    tasksStore.setTasks([task('a', TaskStatus.Open), task('w', TaskStatus.Waiting)])
+    await nextTick()
+    expect(settings.introHints?.hints.planen?.answered).toBe(true)
+    scope.stop()
   })
 })
