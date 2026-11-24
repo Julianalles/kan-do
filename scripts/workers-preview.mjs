@@ -11,7 +11,8 @@
  *   node scripts/workers-preview.mjs preview          the dashboard's preview command (`npm run preview:cloudflare`):
  *                                                     `wrangler preview` under the name of `previewName`, `proto/*` only
  *   node scripts/workers-preview.mjs url <branch>     the preview URL of a branch (agent-workflow's design rounds)
- *   node scripts/workers-preview.mjs delete <branch>  `wrangler preview delete` (needs `wrangler login` or CLOUDFLARE_API_TOKEN)
+ *   node scripts/workers-preview.mjs delete <branch>  `wrangler preview delete` (needs `wrangler login` or CLOUDFLARE_API_TOKEN);
+ *                                                     a preview that does not exist counts as deleted
  *
  * The preview name is set here, not left to Cloudflare's branch handling: it must be a DNS label together with the Worker
  * name (`<name>-kando` at most 63 characters), and agents must be able to compute the URL without asking Cloudflare.
@@ -44,6 +45,11 @@ export function previewName(branch) {
   if (name.length <= MAX_NAME) return name
   const hash = createHash('sha1').update(branch).digest('hex').slice(0, 6)
   return `${name.slice(0, MAX_NAME - hash.length - 1).replace(/-+$/, '')}-${hash}`
+}
+
+/** Does wrangler's output say the preview does not exist? */
+export function isNotFound(output) {
+  return /\b10025\b|not found|does not exist/i.test(output)
 }
 
 export function previewUrl(branch) {
@@ -91,9 +97,17 @@ function main() {
       if (!arg) break
       console.log(previewUrl(arg))
       return
-    case 'delete':
+    case 'delete': {
       if (!arg) break
-      return run('npx', ['wrangler', 'preview', 'delete', '--name', previewName(arg), '--skip-confirmation', '-c', 'wrangler.jsonc'], root)
+      const args = ['wrangler', 'preview', 'delete', '--name', previewName(arg), '--skip-confirmation', '-c', 'wrangler.jsonc']
+      const result = spawnSync('npx', args, { cwd: root, encoding: 'utf8' })
+      const output = `${result.stdout ?? ''}${result.stderr ?? ''}`
+      if (result.status === 0) return say(`deleted the preview ${previewName(arg)}`)
+      // Idempotent: the cleanup hook and agent-workflow's sweep may both try; 10025 is Cloudflare's "not found".
+      if (isNotFound(output)) return say(`no preview ${previewName(arg)} (already deleted)`)
+      process.stderr.write(output)
+      process.exit(result.status ?? 1)
+    }
   }
   console.error('usage: workers-preview.mjs build | preview | url <branch> | delete <branch>')
   process.exit(64)

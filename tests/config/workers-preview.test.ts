@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { MAX_NAME, SUBDOMAIN, WORKER, branchKind, previewName, previewUrl } from '../../scripts/workers-preview.mjs'
+import { MAX_NAME, SUBDOMAIN, WORKER, branchKind, isNotFound, previewName, previewUrl } from '../../scripts/workers-preview.mjs'
 
 // ADR 021 "Prototype previews": `proto/*` branches get a gated Worker Preview, other branches no Workers Builds build.
 // A preview only reaches Cloudflare on a real push, so its config and its name rules are pinned here.
@@ -55,5 +55,12 @@ describe('previewName', () => {
     expect(`${previewName(a)}-${WORKER}`.length).toBeLessThanOrEqual(63)
     expect(previewName(a)).not.toBe(previewName(b))
     expect(previewName(`proto/900-${'a'.repeat(MAX_NAME - 10)}`)).toBe(`proto-900-${'a'.repeat(MAX_NAME - 10)}`)
+  })
+})
+
+describe('isNotFound', () => {
+  it('reads an already deleted preview as done, an auth failure not', () => {
+    expect(isNotFound('✘ [ERROR] A request to the Cloudflare API failed. Preview not found [code: 10025]')).toBe(true)
+    expect(isNotFound('✘ [ERROR] You are not authenticated. Please run `wrangler login`.')).toBe(false)
   })
 })
