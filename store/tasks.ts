@@ -496,8 +496,10 @@ export const useTasksStore = defineStore("tasks", () => {
    * Notes that the task has changes the source does not hold yet: sets its `pendingSync` marker (once, the
    * first change keeps `since`) and returns the revision a write must hand back to `clearPendingSync`.
    * A Local task has no upstream and never gets one (0). `upstreamDone` (whether the source holds the task as
-   * completed) is taken by a new marker and by an older one that lacks it; an existing answer stays, as the
-   * source has not changed since.
+   * completed) is the one record of it (#781) and the marker always carries it from here: a new marker takes the
+   * argument, else the local status (a task without a marker is held in its local status: every status change marks
+   * it before any write); an older one that lacks it (stored before #344) takes the argument, else "not completed",
+   * so its done state is written once more; an existing answer stays, as the source has not changed since.
    */
   function markPendingSync(taskId: string, upstreamDone?: boolean): number {
     const target = tasks.value.find((el) => el.id === taskId);
@@ -506,10 +508,8 @@ export const useTasksStore = defineStore("tasks", () => {
     pendingSyncRevisions.set(taskId, revision);
     const now = Date.now();
     writtenAt.set(taskId, now);
-    if (!target.pendingSync) target.pendingSync = { since: now, attempts: 0, lastError: null };
-    if (target.pendingSync.upstreamDone === undefined) {
-      target.pendingSync.upstreamDone = upstreamDone ?? target.status === TaskStatus.Done;
-    }
+    if (!target.pendingSync) target.pendingSync = { since: now, attempts: 0, lastError: null, upstreamDone: upstreamDone ?? target.status === TaskStatus.Done };
+    else if (target.pendingSync.upstreamDone === undefined) target.pendingSync.upstreamDone = upstreamDone ?? false;
     return revision;
   }
 

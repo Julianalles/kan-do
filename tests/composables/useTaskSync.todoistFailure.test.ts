@@ -82,7 +82,7 @@ describe('useTaskSync with the real TodoistIntegration: a failing status write (
     expect(handleErrorMock).toHaveBeenCalledWith(expect.stringContaining('Todoist'), 'task_sync', { source: 'todoist' })
   })
 
-  it('still sends the close after a failed reopen: upstream is still done', async () => {
+  it('does not close again after a failed reopen: upstream is still done (#781)', async () => {
     addTask('t1')
     useTasksStore().updateTask('t1', { status: TaskStatus.Done })
     failing.add('reopen:t1')
@@ -92,7 +92,9 @@ describe('useTaskSync with the real TodoistIntegration: a failing status write (
     const completion = updateTaskStatus({ taskId: 't1', status: TaskStatus.Done })
     await Promise.all([reopening, completion])
 
-    expect(sdkCalls).toEqual(['reopen:t1', 'close:t1'])
+    // Todoist never left Done: a second close would move a recurring task on by one more occurrence
+    expect(sdkCalls).toEqual(['reopen:t1'])
+    expect(useTasksStore().task('t1')?.pendingSync).toBeUndefined()
     expect(handleErrorMock).toHaveBeenCalledTimes(1)
     expect(handleErrorMock).toHaveBeenCalledWith(expect.stringContaining('Todoist'), 'task_sync', { source: 'todoist' })
   })

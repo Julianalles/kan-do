@@ -355,6 +355,18 @@ describe('TodoistSource', () => {
     expect(await source.fetchActive()).toEqual([])
   })
 
+  it('restore of a done task (#781): completed by the create, no marker; held open, a marker that says so', async () => {
+    const done = todoistTask({ id: 'td-1', status: TaskStatus.Done })
+    todoist.createTask.mockResolvedValueOnce(todoistTask({ id: 'td-9', externalId: 'td-9', status: TaskStatus.Done }))
+    const completed = await build().restore(done)
+    expect(completed).toMatchObject({ status: TaskStatus.Done, externalId: 'td-9' })
+    expect(completed.pendingSync).toBeUndefined()
+
+    todoist.createTask.mockResolvedValueOnce(todoistTask({ id: 'td-8', externalId: 'td-8', status: TaskStatus.Open }))
+    const heldOpen = await build().restore(done)
+    expect(heldOpen).toMatchObject({ status: TaskStatus.Done, externalId: 'td-8', pendingSync: { attempts: 0, lastError: null, upstreamDone: false } })
+  })
+
   it('restore (#422) rejects without a token', async () => {
     token = null
     await expect(build().restore(todoistTask())).rejects.toBeInstanceOf(SourceNotConfiguredError)
@@ -373,12 +385,25 @@ describe('TodoistSource', () => {
     expect(todoist.reopenTask).toHaveBeenCalledTimes(1)
   })
 
-  it('a field edit (#770) writes nothing, but still fails without a token so the source stays broken', async () => {
+  it.each([
+    // task status, what Todoist holds, the write (#781: only a change of the done state writes)
+    [TaskStatus.Done, TaskStatus.Open, 'complete'],
+    [TaskStatus.Done, TaskStatus.Done, null],
+    [TaskStatus.Done, undefined, null],
+    [TaskStatus.Open, TaskStatus.Done, 'reopen'],
+    [TaskStatus.Waiting, TaskStatus.Done, 'reopen'],
+    [TaskStatus.Open, TaskStatus.Open, null],
+    [TaskStatus.Open, undefined, null],
+  ] as const)('a %s task Todoist holds as %s writes %s (#781)', async (status, held, write) => {
     const source = build()
-    expect(await source.update(todoistTask({ status: TaskStatus.Done }), { previousStatus: TaskStatus.Done, fieldsOnly: true })).toBeNull()
-    expect(todoist.completeTask).not.toHaveBeenCalled()
+    expect(await source.update(todoistTask({ status }), held === undefined ? {} : { previousStatus: held })).toBeNull()
+    expect(todoist.completeTask).toHaveBeenCalledTimes(write === 'complete' ? 1 : 0)
+    expect(todoist.reopenTask).toHaveBeenCalledTimes(write === 'reopen' ? 1 : 0)
+  })
+
+  it('a push of a done task Todoist holds as done still fails without a token, so the source stays broken', async () => {
     token = null
-    await expect(source.update(todoistTask({ status: TaskStatus.Done }), { fieldsOnly: true })).rejects.toBeInstanceOf(SourceNotConfiguredError)
+    await expect(build().update(todoistTask({ status: TaskStatus.Done }), { previousStatus: TaskStatus.Done })).rejects.toBeInstanceOf(SourceNotConfiguredError)
   })
 
   it('writes what the task said when the call was made, whatever it says once the integration has loaded (#275)', async () => {

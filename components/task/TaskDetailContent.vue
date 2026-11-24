@@ -483,7 +483,7 @@ function setTimeSpentAndSync(seconds: number) {
   useDayRecapStore().resolveTimeOffer(task.value.id);
   if (!props.isPreview) {
     const updatedTask = tasksStore.task(task.value.id);
-    if (updatedTask) syncTaskToIntegration(updatedTask, undefined, operationVersion);
+    if (updatedTask) syncTaskToIntegration(updatedTask, operationVersion);
   }
 }
 

@@ -76,13 +76,11 @@ export const RATE_LIMIT_WINDOW_MS = 60_000;
 const rateLimitsByStore = new WeakMap<object, Map<SourceId, number>>();
 
 /**
- * One queued or running status write. `upstream` is the status the task's source holds once the
- * write has run (what it sent, or what it held before when the write sent nothing or failed); the
- * next write of the task derives "was it Done upstream?" from it, not from the local status.
+ * One queued or running status write. What the source holds is not kept here: the task's `pendingSync` marker is
+ * the one record of it (#781), set before the write waits and updated by every push that lands meanwhile.
  */
 interface StatusWrite {
   promise: Promise<void>;
-  upstream: TaskStatus | undefined;
 }
 
 /**
@@ -277,19 +275,16 @@ export const useTaskSync = () => {
     const lock = tasksStore.lockTaskStatus(payload.taskId);
     const earlier = statusWritesInFlight.get(payload.taskId);
     const waitFor = [payload.after, earlier?.promise].filter((p) => p !== undefined);
-    const entry: StatusWrite = { promise: Promise.resolve(), upstream: undefined };
+    const entry: StatusWrite = { promise: Promise.resolve() };
     entry.promise = (async () => {
       if (waitFor.length > 0) await Promise.allSettled(waitFor);
-      // What the source holds now: after the earlier write of this task, else the status before this move
-      const upstreamBefore = earlier ? earlier.upstream ?? previousState : previousState;
-      entry.upstream = upstreamBefore;
       const current = tasksStore.task(payload.taskId);
       if (!current) return;
       // The marker is set above and stays: the push after the window sends the status (#529)
       if (payload.holdWhenRateLimited && isRateLimited(current.source)) return;
-      const sentStatus = current.status; // `current` is live: read before the await
-      const synced = await runSync(current, upstreamBefore, operationVersion);
-      if (synced) entry.upstream = sentStatus;
+      // What the source holds comes from the marker, not from this move's `previousState`: a push that ran while this
+      // write waited (an edit, a done day, a retry) may already have sent the new status (#781)
+      await runSync(current, operationVersion);
     })();
     statusWritesInFlight.set(payload.taskId, entry);
     try {
@@ -323,7 +318,7 @@ export const useTaskSync = () => {
     if (!statisticsStore.setCompletionDate(taskId, completedAt)) {
       statisticsStore.syncExistingDoneTasks([updated], tasksStore.archivedTaskIds);
     }
-    void runSync(updated, undefined, operationVersion);
+    void runSync(updated, operationVersion);
     return completedAt;
   };
 
@@ -450,23 +445,23 @@ export const useTaskSync = () => {
    * Edits fields of a stored task and pushes it to its own source, as the sheet's field edits do: a new operation
    * version (a stale response of an earlier write cannot overwrite the edit), the store at once, then `runSync`
    * (one push per task at a time, the `pendingSync` marker until the source holds it). The in-card flow writes each
-   * answer through this once its task is stored (#758). Resolves like `runSync`; false for an unknown id. The push is
-   * marked a field edit (#770): with no change outstanding, a source that stores none of these fields writes nothing.
+   * answer through this once its task is stored (#758). Resolves like `runSync`; false for an unknown id. A source
+   * that stores none of these fields and only the done state (Todoist) writes nothing for it (#781: its adapter writes
+   * only a change of the done state the marker records).
    */
   const editTask = (taskId: string, updates: Partial<Task>): Promise<boolean> => {
     if (!tasksStore.task(taskId)) return Promise.resolve(false);
     const operationVersion = tasksStore.incrementTaskOperationVersion(taskId);
     tasksStore.updateTask(taskId, updates);
     // A status write of the task still waiting (a stack drop chains them) sends the task as it is by then, the edit
-    // with it: the edit's own push goes after it, so it cannot send that write's completion first and the write a
-    // second one (#770). It waits outside `pushesInFlight`, which the status write's own push waits on, and again for
+    // with it: the edit's own push goes after it (#770), so the status write's own push sends the change. It waits outside `pushesInFlight`, which the status write's own push waits on, and again for
     // a status write queued meanwhile
-    if (!statusWritesInFlight.has(taskId)) return runSync(tasksStore.task(taskId)!, undefined, operationVersion, true);
+    if (!statusWritesInFlight.has(taskId)) return runSync(tasksStore.task(taskId)!, operationVersion);
     return (async () => {
       let statusWrite: Promise<void> | undefined;
       while ((statusWrite = statusWritesInFlight.get(taskId)?.promise) !== undefined) await statusWrite.catch(() => undefined);
       const live = tasksStore.task(taskId);
-      return live ? runSync(live, undefined, operationVersion, true) : true;
+      return live ? runSync(live, operationVersion) : true;
     })();
   };
 
@@ -474,17 +469,17 @@ export const useTaskSync = () => {
    * Syncs a task to the adapter of its own source
    * Local tasks have no upstream - they are already persisted via Pinia
    */
-  const syncTaskToIntegration = async (task: Task, previousStatus?: TaskStatus, operationVersion?: number): Promise<void> => {
-    await runSync(task, previousStatus, operationVersion);
+  const syncTaskToIntegration = async (task: Task, operationVersion?: number): Promise<void> => {
+    await runSync(task, operationVersion);
   };
 
   /**
    * Same as `syncTaskToIntegration`; resolves to whether the source now holds the task: false when the
    * write failed or was not sent because the integration is not set up, true when it went through or the
    * task is Local. The task carries `pendingSync` from before the write until it succeeded (#319); a change
-   * made while the write is in flight keeps the marker. `fieldEdit`: the push carries a field edit only (`editTask`).
+   * made while the write is in flight keeps the marker.
    */
-  const runSync = async (task: Task, previousStatus?: TaskStatus, operationVersion?: number, fieldEdit = false): Promise<boolean> => {
+  const runSync = async (task: Task, operationVersion?: number): Promise<boolean> => {
     // Local tasks: no external sync needed, they are persisted via Pinia
     if (task.source === "local") {
       return true;
@@ -511,7 +506,7 @@ export const useTaskSync = () => {
         tasksStore.markPendingSync(target.id);
         return (await commitTaskMove(target.id)) === 'committed';
       }
-      return pushTask(target, previousStatus, operationVersion, fieldEdit);
+      return pushTask(target, operationVersion);
     })();
     pushesInFlight.set(task.id, push);
     try {
@@ -548,12 +543,10 @@ export const useTaskSync = () => {
     tasksStore.pendingTimeUpdates[taskId]?.absolute === true ? { timeEdited: true } : {};
 
   /** One write of a non-Local task; never rejects, a failure goes to `reportPushFailure`. */
-  const pushTask = async (task: Task, previousStatus?: TaskStatus, operationVersion?: number, fieldEdit = false): Promise<boolean> => {
-    // A field edit of a task with no change outstanding (#770): the source holds everything else, its status too, so a
-    // source that stores none of the edited fields (Todoist) has nothing to write. Read before the marker is set; after
-    // an earlier push of the task, so a completion that failed (its marker stays) is still sent
-    const fieldsOnly = fieldEdit && !tasksStore.task(task.id)?.pendingSync;
-    const revision = tasksStore.markPendingSync(task.id, previousStatus === undefined ? undefined : previousStatus === TaskStatus.Done);
+  const pushTask = async (task: Task, operationVersion?: number): Promise<boolean> => {
+    // The marker records what the source holds (#781): a status change sets it before any write, so a task without one
+    // is held in its local status, and a new marker takes that
+    const revision = tasksStore.markPendingSync(task.id);
     const queuedTime = mapHelpers.has(tasksStore.pendingTimeUpdates, task.id);
     if (queuedTime) tasksStore.markPendingUpdateSyncing(task.id);
     let createAttemptedAt = 0;
@@ -571,15 +564,14 @@ export const useTaskSync = () => {
         forgetDroppedCards(tasksStore.completeCreate(task.id, created, revision));
         applySyncedTask(task.id, created, operationVersion, timeSuperseded);
       } else {
-        // What the source holds comes from the marker (it survives a restart), else from the caller (#344).
-        // `Open` only stands for "not completed" here.
+        // What the source holds comes from the marker (it survives a restart, #344; `markPendingSync` above always
+        // leaves the answer). `Open` only stands for "not completed" here.
         const heldDone = tasksStore.task(task.id)?.pendingSync?.upstreamDone;
         const sentDone = task.status === TaskStatus.Done;
         const synced = await adapter.update(task, {
-          previousStatus: heldDone === undefined ? previousStatus : heldDone ? TaskStatus.Done : TaskStatus.Open,
+          ...(heldDone === undefined ? {} : { previousStatus: heldDone ? TaskStatus.Done : TaskStatus.Open }),
           // A total the user set (kd#4) is written even at 0; the entry lives until the push carried it
           ...timeEditFlag(task.id),
-          ...(fieldsOnly ? { fieldsOnly: true } : {}),
         });
         if (synced) applySyncedTask(task.id, synced, operationVersion, tasksStore.pendingSyncRevision(task.id) !== revision);
         tasksStore.clearPendingSync(task.id, revision, sentDone);
