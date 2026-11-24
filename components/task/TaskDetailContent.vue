@@ -137,7 +137,8 @@
             <div class="pt-1.5">
               <TaskPropertyRow :label="t('task.field.today')">
                 <div class="flex min-w-0 flex-col">
-                  <div class="flex min-h-(--field-h) items-center">
+                  <!-- While the hint is open its line closes up under the switch (`-mb-1.5` here: a negative margin on the hint itself is cut by the collapsible's overflow) -->
+                  <div class="flex min-h-(--field-h) items-center" :class="{ '-mb-1.5': task.status === TaskStatus.Progress }">
                     <USwitch
                       :model-value="isPlannedToday"
                       :label="t('task.field.plannedToday')"
@@ -150,7 +151,7 @@
                   <UCollapsible :open="task.status === TaskStatus.Progress">
                     <template #content>
                       <!-- Under the switch's label, not its track: `ps-11` is the track (36 px) and its gap -->
-                      <p :id="plannedHintId" class="-mt-1.5 pb-1.5 ps-11 text-xs text-muted" data-testid="task-planned-hint">
+                      <p :id="plannedHintId" class="pb-1.5 ps-11 text-xs text-muted" data-testid="task-planned-hint">
                         {{ t('task.field.plannedTodayHint') }}
                       </p>
                     </template>
