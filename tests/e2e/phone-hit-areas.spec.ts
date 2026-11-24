@@ -94,6 +94,13 @@ const SCREENS: Array<{ name: string, seed?: (context: BrowserContext) => Promise
       await page.goto('/tasks/seed-open-1')
       await page.getByRole('button', { name: /Metadaten/i }).click()
       await page.getByRole('button', { name: /Titel/ }).click()
+      // The ad-hoc switch (#796) is the last line of the open Metadaten, under the fold at 844 px: a finger scrolls to it first. Measured cut by
+      // the viewport's edge, its centre lay off screen and the probe could not see its hit area (#822); scrolled in, it is measured whole
+      const adHoc = page.getByTestId('task-adhoc-switch')
+      await expect(adHoc).toBeVisible()
+      await adHoc.evaluate(el => el.scrollIntoView({ block: 'center' }))
+      // in view with the 16 px its hit area reaches below the track (the sheet scrolls only as far as its end)
+      await expect.poll(() => adHoc.evaluate(el => el.getBoundingClientRect().bottom + 16 <= window.innerHeight)).toBe(true)
     },
   },
   {
