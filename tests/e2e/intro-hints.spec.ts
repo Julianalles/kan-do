@@ -40,8 +40,11 @@ test('the welcome setup starts the hints: "Start" shows with the first card in O
   await expect.poll(async () => (await record(page))?.hints.start?.days.length).toBe(1)
 
   await callTasksStore(page, { action: 'updateTask', args: ['first', { status: 1 }] })
-  await expect(hint(page)).toHaveCount(0)
+  // "Start" is answered; the card in Jetzt is the moment of "Weiter" (#801)
   await expect.poll(async () => (await record(page))?.hints.start?.answered).toBe(true)
+  await expect(hint(page)).toHaveAttribute('data-hint', 'weiter')
+  await callTasksStore(page, { action: 'updateTask', args: ['first', { status: 0 }] })
+  await expect(hint(page)).toHaveCount(0)
 
   // An ended hint never returns: Jetzt empty again, after a reload too
   await callTasksStore(page, { action: 'updateTask', args: ['first', { status: 0 }] })
@@ -233,7 +236,7 @@ test('"Abschluss": shows with something done today and Jetzt empty, and ends whe
   await expect(hint(page)).toHaveCount(0)
 })
 
-test('two hints are due: "Auswahl" first, "Abschluss" after "Schließen" on a later day', async ({ context, page }) => {
+test('two hints are due: "Auswahl" first, and "Schließen" keeps "Abschluss" away for the rest of the day', async ({ context, page }) => {
   await seedLocalBoard(context, [...MANY_OPEN, ...WITH_DONE.filter((task) => task.status === 3)], {}, undefined, { hints: true, once: true })
   await gotoBoard(page)
   await answerHints(page, 'start')
@@ -259,4 +262,53 @@ test('390px: "Karten stapeln" and "Schließen" are 44 px targets, clear of the a
     expect(target.height, id).toBeGreaterThanOrEqual(44)
     expect(target.width, id).toBeGreaterThanOrEqual(44)
   }
+})
+
+// --- #804: turning the hints off ---------------------------------------------------------------------------------
+
+test('"Hinweise ausschalten" on a hint turns all hints off: a toast says where to read them, and nothing shows afterwards, not after a reload either', async ({ context, page }) => {
+  await seedLocalBoard(context, OPEN_ONLY, {}, undefined, { hints: true, once: true })
+  await gotoBoard(page)
+  await expect(hint(page)).toBeVisible()
+  const off = page.getByTestId('intro-hint-off')
+  await expect(off).toHaveText('Hinweise ausschalten')
+  await off.focus()
+  await page.keyboard.press('Enter')
+
+  await expect(hint(page)).toHaveCount(0)
+  await expect(page.getByTestId('intro-hint-host')).toHaveCount(0)
+  await expect(page.getByText('Hinweise ausgeschaltet', { exact: true })).toBeVisible()
+  await expect(page.getByText('Du kannst sie jederzeit unter Einstellungen, Board nachlesen.')).toBeVisible()
+  await expect(page.locator('[data-task-sheet-return]')).toBeFocused()
+  await expect.poll(async () => (await page.evaluate(() => JSON.parse(localStorage.getItem('settings-store') ?? '{}').introHints?.on))).toBe(false)
+
+  // A later moment shows nothing either
+  await callTasksStore(page, { action: 'updateTask', args: [OPEN_ONLY[0]!.id, { status: 1 }] })
+  await expect(hint(page)).toHaveCount(0)
+  await page.reload()
+  await expect(page.locator('#column-open')).toBeVisible()
+  await expect(hint(page)).toHaveCount(0)
+})
+
+test('"Erneut zeigen" in the settings brings the hints back: "Start" shows again on the board', async ({ context, page }) => {
+  await seedLocalBoard(context, OPEN_ONLY, {}, undefined, { hints: true, once: true })
+  await gotoBoard(page)
+  await page.getByTestId('intro-hint-off').click()
+  await expect(hint(page)).toHaveCount(0)
+  await page.goto('/settings')
+  await page.getByTestId('intro-hints-toggle').click()
+  await goToPlace(page, 'Heute')
+  await expect(hint(page)).toHaveAttribute('data-hint', 'start')
+})
+
+test('390px: the link "Hinweise ausschalten" is a 44 px target and the sheet stays clear of the app bar', async ({ context, page }) => {
+  await page.setViewportSize(MOBILE)
+  await seedLocalBoard(context, OPEN_ONLY, {}, undefined, { hints: true })
+  await gotoBoard(page)
+  await expect(hint(page)).toBeVisible()
+  const off = (await page.getByTestId('intro-hint-off').boundingBox())!
+  expect(off.height).toBeGreaterThanOrEqual(44)
+  const box = (await hint(page).boundingBox())!
+  const bar = (await page.locator('.app-nav-pill').boundingBox())!
+  expect(box.y + box.height).toBeLessThanOrEqual(bar.y)
 })

@@ -186,7 +186,12 @@
       "weiter": "The timer is running. Drag the card to Done once the task is done. Waiting on someone? Drag it to Waiting.",
       "auswahl": "A lot open? Stacked by topic or priority, picking is easier. You'll also find stacks under “{more}”.",
       "abschluss": "Enough for today? “{dayClose}” shows what you got done and what stays open.",
-      "close": "Close"
+      "close": "Close",
+      "off": "Turn off hints",
+      "toast": {
+        "title": "Hints turned off",
+        "description": "You can read them any time under Settings, Board."
+      }
     },
     "planNote": {
       "title": "Pick what's on for today",
@@ -945,6 +950,20 @@
       "label": "Working hours per day",
       "help": "The capacity hint for tasks planned for today is based on this. “Automatic” uses the working hours you've tracked so far.",
       "auto": "Automatic"
+    },
+    "introHints": {
+      "heading": "Quick guide",
+      "label": "Getting-started hints",
+      "help": "Short hints on the board show you the next step.",
+      "turnOff": "Turn off",
+      "restart": "Show again",
+      "entries": {
+        "start": "Getting started",
+        "weiter": "Carrying on",
+        "auswahl": "Choosing",
+        "abschluss": "Closing the day",
+        "planen": "Planning"
+      }
     },
     "github": {
       "pageTitle": "GitHub access",

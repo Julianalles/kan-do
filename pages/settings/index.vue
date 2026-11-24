@@ -25,7 +25,8 @@ App-Reset, and on desktop Updates and GitHub-Zugriff; below them a "Rechtliches"
   Todoist as "bald verfügbar"
 - "System": `ListRow` link rows (`to`, kd#179; #683 sizing), every sub-page has one; a tab click `router.replace`s the query, so back from a sub-page returns to the tab it was opened from
 - "Arbeitszeit pro Tag" (#306): a `USelect` under the Fokus row in the same sheet, hairline between the rows; "Automatisch" (the default: the day length is learned from tracked work) or 1-12 h in 30 min steps (`settingsStore.workingHoursMinutes`, minutes, null = automatic); the divider moves at once. Phone: label and help above, the select full width. Pattern: aligned with the Fokus switch row (label, help, control on the right)
-- Known trade-off: the Board tab holds two rows only, Fokus and Arbeitszeit (accepted by the UX decision)
+- "Hinweise zum Einstieg" (#804): the second sheet of the Board tab, `IntroHintsSheet` ("Kurz erklärt": the row that turns the intro hints off or on again, and the help with their texts); a sheet per concern (#333)
+- Known trade-off: the Board tab holds Fokus and Arbeitszeit in one sheet and the hints in a second, a sheet per concern (#333)
 - No visible page header (#670): the app bar's third segment reads "Einstellungen"; the layout keeps the title as an sr-only h1
 - Same sub-page pattern as /settings/updates: one flat column, no cards
 -->
@@ -52,7 +53,8 @@ App-Reset, and on desktop Updates and GitHub-Zugriff; below them a "Rechtliches"
         >
           <p class="text-body text-muted" data-testid="settings-tab-lead">{{ t(`settings.tabs.lead.${tab === 'manage' && !isDesktop ? 'manageWeb' : tab}`) }}</p>
 
-          <PageSheet v-if="tab === 'board'" tag="section" data-testid="focus-settings" aria-labelledby="board-settings-heading">
+          <template v-if="tab === 'board'">
+          <PageSheet tag="section" data-testid="focus-settings" aria-labelledby="board-settings-heading">
             <SectionHeader id="board-settings-heading" tag="h2" class="pb-4">{{ t('settings.tabs.heading.board') }}</SectionHeader>
             <div class="flex items-center gap-4 pb-6">
               <div class="min-w-0 flex-1">
@@ -97,6 +99,9 @@ App-Reset, and on desktop Updates and GitHub-Zugriff; below them a "Rechtliches"
               />
             </div>
           </PageSheet>
+
+          <IntroHintsSheet />
+          </template>
 
           <template v-else-if="tab === 'sources'">
             <PageSheet tag="section" aria-labelledby="sources-connected-heading" class="space-y-1" data-testid="sources-sheet">
@@ -195,6 +200,7 @@ import LocalStorageDetails from '~/components/settings/LocalStorageDetails.vue'
 import DisconnectSourceDialog from '~/components/settings/DisconnectSourceDialog.vue'
 import { useBoardStore } from '~/store/board'
 import { useSettingsStore } from '~/store/settings'
+import IntroHintsSheet from '~/components/settings/IntroHintsSheet.vue'
 import { WORKING_MINUTES } from '~/lib/dayCapacity'
 import { useSourceList, type MoreSourceRow } from '~/composables/useSourceList'
 import { isTauri } from '~/utils/isTauri'

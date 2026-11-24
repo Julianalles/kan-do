@@ -26,6 +26,8 @@ import { freshIntroHints, needsShownDay, sanitizeIntroHints, type IntroHintsReco
  * started, which is every install from before #800: they see no hint. Only the welcome setup starts them
  * (`startIntroHints`). Additive: nothing stored hydrates to `null`, a malformed value reads as `null` and a malformed
  * hint entry is dropped in memory (`afterHydrate`, no write). It is the app's own data: never sent to a connection.
+ * #804: `setIntroHintsOn(false)` turns the hints off (the record stays), `restartIntroHints()` replaces it with a fresh one
+ * (also from `null`); the settings' row "Hinweise zum Einstieg" and the link on a hint use them.
  */
 export const useSettingsStore = defineStore('settings', () => {
   const focusEnabled = ref(true)
@@ -83,9 +85,23 @@ export const useSettingsStore = defineStore('settings', () => {
     introHints.value = { ...record, quietDay: day, hints: { ...record.hints, [id]: { ...entry, answered: true } } }
   }
 
+  /** "Hinweise ausschalten" (on a hint or in the settings): no hint shows; the record (answered hints, days) is kept. */
+  function setIntroHintsOn(on: boolean) {
+    const record = introHints.value
+    if (!record || record.on === on) return
+    introHints.value = { ...record, on }
+  }
+
+  /** "Erneut zeigen" (#804): all hints start again from the first. Also for an install from before #800, which has no record. */
+  function restartIntroHints() {
+    introHints.value = freshIntroHints()
+  }
+
   return {
     introHints,
     startIntroHints,
+    setIntroHintsOn,
+    restartIntroHints,
     markIntroHintShown,
     answerIntroHint,
     closeIntroHint,

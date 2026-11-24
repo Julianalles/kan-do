@@ -141,7 +141,7 @@ describe('useIntroHintSteps: doing the step ends the hint', () => {
   })
 })
 
-const done = (id: string, completedAt = Date.now()): Task => ({ ...task(id, TaskStatus.Done), completedAt } as Task)
+const done = (id: string, completedAt = new Date()): Task => ({ ...task(id, TaskStatus.Done), completedAt } as Task)
 const openCards = (n: number) => Array.from({ length: n }, (_, i) => task(`o${i}`, TaskStatus.Open))
 const answered = (settings: ReturnType<typeof useSettingsStore>, id: string) => settings.introHints?.hints[id]?.answered
 
@@ -255,7 +255,7 @@ describe('the hint "Abschluss" (#801)', () => {
     expect(none.hints.current.value).toBeNull()
     none.tasksStore.setTasks([done('d'), task('j', TaskStatus.Progress)])
     expect(none.hints.current.value).toBeNull() // a card in Jetzt: not the moment of "Abschluss"
-    none.tasksStore.setTasks([done('old', Date.now() - 3 * 86_400_000)])
+    none.tasksStore.setTasks([done('old', new Date(Date.now() - 3 * 86_400_000))])
     expect(none.hints.current.value).toBeNull()
   })
 

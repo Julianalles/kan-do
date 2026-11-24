@@ -3,7 +3,9 @@
  * "Schließen", and the tolerant reader of the stored record.
  */
 import { describe, it, expect } from 'vitest'
-import { currentIntroHint, freshIntroHints, INTRO_HINT_ORDER, isIntroHintEnded, needsShownDay, sanitizeIntroHints, type IntroHintId, type IntroHintsRecord } from '~/lib/introHints'
+import de from '~/i18n/locales/de.json'
+import en from '~/i18n/locales/en.json'
+import { currentIntroHint, freshIntroHints, INTRO_HINT_ORDER, introHintTextKey, isIntroHintEnded, needsShownDay, sanitizeIntroHints, type IntroHintId, type IntroHintsRecord } from '~/lib/introHints'
 
 const due = () => true
 /** Only "Start" has its moment: the rules of one hint, whatever follows it in the order */
@@ -117,5 +119,25 @@ describe('sanitizeIntroHints', () => {
 
   it('reads malformed hints as none', () => {
     expect(sanitizeIntroHints({ on: true, hints: 'none' })).toEqual({ on: true, quietDay: null, hints: {} })
+  })
+})
+
+describe('introHintTextKey (#804): the help in the settings reads the hints\' own texts', () => {
+  const read = (locale: object, key: string) => key.split('.').reduce<unknown>((node, part) => (node as Record<string, unknown> | undefined)?.[part], locale)
+
+  it.each(INTRO_HINT_ORDER.flatMap((id) => [[id, true], [id, false]] as const))('hint %s has a text in both locales (phone: %s)', (id, phone) => {
+    const key = introHintTextKey(id, phone)
+    expect(typeof read(de, key), `de ${key}`).toBe('string')
+    expect(typeof read(en, key), `en ${key}`).toBe('string')
+  })
+
+  it.each(INTRO_HINT_ORDER)('hint %s has a title in the help section in both locales', (id) => {
+    expect(typeof read(de, `settings.introHints.entries.${id}`)).toBe('string')
+    expect(typeof read(en, `settings.introHints.entries.${id}`)).toBe('string')
+  })
+
+  it('only "Start" has a text per width', () => {
+    expect(introHintTextKey('start', true)).not.toBe(introHintTextKey('start', false))
+    expect(introHintTextKey('weiter', true)).toBe(introHintTextKey('weiter', false))
   })
 })
