@@ -412,3 +412,5 @@ recurred 2026-11-24 (run_d27bd92c9833: #725 8 min, restart rule existed) -> issu
 | W296 | App icon sources live in design-archive, repo README said 'not in repo' (4 min) | rediscovery | docs/design/app-icon/README.md | 1 | 2026-11-24 | fixed 2026-11-24 README: archive path named |
 | W284 | (re-seen) E2E-specs line stale at gh pr create (3 min, #742) | missing-instruction | wf_pr_body_check | 2 | 2026-11-24 | accepted: the body check names the missing specs and refuses, the retry is one call |
 | 2026-11-24 | run ledgers 742/744/main/Icon-Iteration (8 entries 49 min, 2 escaped/wrong) | not re-measured | CLAUDE.md 15319 B | +1 clause issue-workflow | - | - | start not measured |
+| W297 | PR body 'After' image linked blob/<slash branch>/..., broken after merge; user spotted it (2 min, #811) | escaped | issue-workflow.md PR screenshots line | 1 | 2026-11-24 | fixed 2026-11-24 issue-workflow.md: clause forbids blob/<branch> image links, --attach is the one route; expect no broken PR image |
+| 2026-11-24 | ledger Icon-Iteration (1 entry 2 min, 1 escaped) | not re-measured | CLAUDE.md unchanged | +1 clause issue-workflow | - | - | start not measured |

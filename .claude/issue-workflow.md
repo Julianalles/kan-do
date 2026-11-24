@@ -147,7 +147,7 @@ Changes here are expensive or fragile; they raise the tech-check rating and get 
 
 ## Pull requests
 
-- screenshots: `gh pr create --attach '<scratchpad>.png#alt'` with `![alt](<same path, without #alt>)` in the body file (gh ≥ 2.99; absolute paths in both: paths inside a `--body-file` resolve against the file's own directory, so a relative mismatch leaves the local line and appends a second copy); never commit screenshots or open a screenshot branch. Later: `gh pr edit <n> --body-file <f> --attach <path>`
+- screenshots: `gh pr create --attach '<scratchpad>.png#alt'` with `![alt](<same path, without #alt>)` in the body file (gh ≥ 2.99; absolute paths in both: paths inside a `--body-file` resolve against the file's own directory, so a relative mismatch leaves the local line and appends a second copy); never commit screenshots, open a screenshot branch or link `blob/<branch>/…` image URLs (a slash branch breaks, and any branch link dies after merge; #811). Later: `gh pr edit <n> --body-file <f> --attach <path>`
 - issue comments with images: `gh issue comment <n> --body-file <f> --attach <path>`
 - required in body (the guard hook checks `Closes`, attribution, `E2E-specs:` and the `Pattern:` lines): ACs as a checklist with evidence, the `E2E-specs: a b c` line, `Pattern:` lines when the diff touches UI source files ("Pattern check"), `## Review` (orchestrated runs: the lead template), the design review's findings (P0/P1 fixed or why not, P2/P3 listed) (UI), 1-3 result screenshots (UI), `inbox` issues filed, anything left out
 
