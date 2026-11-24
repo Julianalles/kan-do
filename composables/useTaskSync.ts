@@ -18,7 +18,7 @@ import { useTrashStore } from '~/store/trash';
 import type { TrashEntry } from '~/types/trash';
 import { completedAtForDay } from '~/lib/doneDay';
 import { isWritesFrozen } from '~/lib/dataStorage';
-import { inStatus, isNotPlanned } from '~/lib/taskPlanning';
+import { canBeOffToday, inStatus, isNotPlanned } from '~/lib/taskPlanning';
 
 /** Where a source's setup problems are reported (the context picks the localized message). */
 const setupContextOf = (source: IntegrationSourceId) => SETUP_ERROR_CONTEXTS[source];
@@ -419,7 +419,7 @@ export const useTaskSync = () => {
         }
       }
 
-      // Only an Open task can be not planned (`isNotPlanned`): add-and-start (Jetzt) stays on the board
+      // Only a task created in Offen starts not planned: add-and-start (Jetzt) stays on the board
       notPlanned = asksNotPlanned === true && created.status === TaskStatus.Open;
       if (notPlanned) created = { ...created, notPlanned: true, ...(hold !== null ? { sourceNotPlanned: hold } : {}) };
       else {
@@ -1286,6 +1286,17 @@ export const useTaskSync = () => {
       const task = tasksStore.task(taskId);
       if (!task || task.source === 'local') continue;
       const adapter = adapterFor(task.source);
+      // A waiting task's plan and put-back stay kan-do's (#793, #374 4A and 5A): its source keeps the waiting status
+      // (or knows none), so nothing is written; only an Open task's planning reaches a source. A source that plans by date
+      // still notes what the date says now (local, no write) and a put-back takes back a date write not yet sent, as for an
+      // Open task: the next fetch then compares with the answer the user's choice was made under
+      if (task.status !== TaskStatus.Open) {
+        if (adapter.planningByDate === true && canBeOffToday(task.status)) {
+          if (back) tasksStore.dropDateWrite(taskId);
+          noteHeldByDate(taskId);
+        }
+        continue;
+      }
       if (adapter.planningByDate === true) {
         if (back) tasksStore.dropDateWrite(taskId);
         // The plan the source cannot hold stays kan-do's: what the source delivers for the date is noted as it is now, so the

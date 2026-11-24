@@ -478,6 +478,8 @@ export function useBoardDndKit() {
         const taskId = String(id)
         if (!planTask(taskId)) return
         void afterPlan(taskId)
+        // A waiting task off today (#793) is planned and keeps Wartet: it lands at the end of that column, never in Offen's order
+        if (tasksStore.task(taskId)?.status !== TaskStatus.Open) return
         // Not in Offen's list: the drop went on the column's drop zone, below the cards
         saveRenderedOrder(TaskStatus.Open, [taskId], { nextId: slotNextId === undefined ? null : slotNextId, index: 0, downward: false })
         if (import.meta.dev) console.log('[DnD] plan', { taskId, before: slotNextId })

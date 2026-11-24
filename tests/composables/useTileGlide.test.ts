@@ -120,6 +120,42 @@ describe('useTileGlide.around', () => {
     expect(recorded.find(r => r.target === t.grid)!.keyframes).toEqual({ height: ['400px', '524px'] })
   })
 
+  // Gate of PR 809: switching from tile 2 to tile 3 moved the closing tile 1270 px in 400 ms, 145 px in its fastest frame
+  it('a long travel lengthens the glide so its fastest frame stays under 120 px, at most to --duration-curtain; every part shares it', async () => {
+    const t = tiles()
+    const long = (dy: number) => () => {
+      open(t)
+      place(t.b.tile, 0, dy, 300, 200)
+    }
+    const durations = () => new Set(recorded.map(r => r.options.duration))
+
+    await useTileGlide().around(t.root, long(1270))
+    const [duration] = [...durations()]
+    expect(durations().size).toBe(1)
+    expect(duration).toBeGreaterThan(MOTION.placeMs)
+    expect(duration).toBeLessThan(MOTION.curtainMs)
+    // The peak speed of --ease-standard is 2.73 times the mean: 1270 px over the duration, in a 60 Hz frame
+    expect(1270 * 2.74 * (1000 / 60) / (duration as number)).toBeLessThanOrEqual(120)
+
+    cancelTileGlide()
+    recorded.length = 0
+    place(t.a.tile, 0, 0, 300, 200)
+    place(t.b.tile, 350, 0, 300, 200)
+    place(t.grid, 0, 0, 1000, 400)
+    await useTileGlide().around(t.root, long(5000))
+    expect([...durations()]).toEqual([MOTION.curtainMs])
+  })
+
+  it('runs the panels that open or close on the glide\'s clock, and gives them their own back when it has ended', async () => {
+    const t = tiles()
+    const content = node({ 'data-state': 'open' }, t.a.tile)
+    node({ 'data-stats-detail': '' }, content)
+    await useTileGlide().around(t.root, () => open(t))
+    expect(content.style.animationDuration).toBe(`${MOTION.placeMs}ms`)
+    for (const r of recorded) r.finish()
+    expect(content.style.animationDuration).toBe('')
+  })
+
   it('pins the summary of the tile that changes width, and lets go of it when the glide has ended', async () => {
     const t = tiles()
     const done = vi.fn()

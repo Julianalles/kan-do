@@ -365,6 +365,9 @@ export function buildTasksStore(
     customPropertyIndexes: {},
     taskOperationVersions: {},
     batchOperationInProgress: false,
+    // The stamp of the marker model (#793, `MARKER_MODEL` in lib/taskPlanning.ts): a snapshot without it loads as data
+    // from before, and its first load drops `notPlanned` from a waiting task
+    markerModel: 2,
   }
 }
 
