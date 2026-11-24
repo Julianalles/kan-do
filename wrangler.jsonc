@@ -11,9 +11,10 @@
   // `Buffer` in the feedback relay, `process.env` filled from vars and secrets.
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
-  // Version URLs stay off: they run a version with the production vars and secrets (FEEDBACK_GITHUB_TOKEN included), and
-  // every uploaded version would get one. Design prototypes use Worker Previews instead (the `previews` block below).
-  "preview_urls": false,
+  // On: one switch (the workers.dev subdomain's `previews_enabled`) gives Worker Previews their URL and Version URLs theirs.
+  // Prototypes reach Cloudflare only as Worker Previews (`previews` block below: no production secret); a Version URL only
+  // ever shows a version `wrangler deploy` uploaded from main, i.e. production code and secrets on another host, gated alike.
+  "preview_urls": true,
   // Nitro's built handler: the output of `npm run build:cloudflare`.
   "alias": { "#nitro-server": "./.output/server/index.mjs" },
   "assets": {

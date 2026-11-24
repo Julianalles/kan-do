@@ -49,7 +49,7 @@ export function previewName(branch) {
 
 /** Does wrangler's output say the preview does not exist? */
 export function isNotFound(output) {
-  return /\b10025\b|not found|does not exist/i.test(output)
+  return /\[code: 10025\]|preview[^\n]*(not found|does not exist)/i.test(output)
 }
 
 export function previewUrl(branch) {

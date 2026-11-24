@@ -12,10 +12,12 @@ const read = (relative: string) => readFileSync(resolve(root, relative), 'utf8')
 const wrangler = () => JSON.parse(read('wrangler.jsonc').replace(/^\s*\/\/.*$/gm, '').replace(/,(\s*[}\]])/g, '$1'))
 
 describe('Worker Previews config', () => {
-  it('a preview keeps the gate on and the feedback relay in dry-run; Version URLs (production secrets) stay off', () => {
+  it('a preview keeps the gate on and the feedback relay in dry-run, and has a workers.dev URL', () => {
     const config = wrangler()
     expect(config.previews.vars).toEqual({ GATE: 'on', FEEDBACK_RELAY: 'dry-run' })
-    expect(config.preview_urls).toBe(false)
+    // wrangler 4.156 shows a Worker Preview no URL ("no active URLs") unless preview_urls is on
+    expect(config.preview_urls).toBe(true)
+    expect(config.workers_dev).toBe(true)
     expect(config.vars).not.toHaveProperty('FEEDBACK_RELAY')
   })
 
@@ -59,8 +61,9 @@ describe('previewName', () => {
 })
 
 describe('isNotFound', () => {
-  it('reads an already deleted preview as done, an auth failure not', () => {
+  it('reads an already deleted preview as done; an auth failure or a missing Worker not', () => {
     expect(isNotFound('✘ [ERROR] A request to the Cloudflare API failed. Preview not found [code: 10025]')).toBe(true)
     expect(isNotFound('✘ [ERROR] You are not authenticated. Please run `wrangler login`.')).toBe(false)
+    expect(isNotFound('✘ [ERROR] Worker not found [code: 10007]')).toBe(false)
   })
 })
