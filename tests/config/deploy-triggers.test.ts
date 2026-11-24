@@ -1,21 +1,22 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { parse } from 'yaml'
 
-// Guards for the deploy and CI triggers: Vercel deploys only `main`, `proto/*` and `dev` (#355, #246); GitHub Actions runs
+// Guards for the deploy and CI triggers: no Vercel deployment any more (#747, the public instance is the Cloudflare Worker,
+// ADR 021); GitHub Actions runs
 // `quality` on pull requests and pushes to main with a read-only token and no secrets, and pins third-party
 // actions by commit SHA. All of it only shows its faults on a real push, so the shape is pinned here.
 
 const root = resolve(__dirname, '../..')
 const read = (relative: string) => readFileSync(resolve(root, relative), 'utf8')
 
-describe('vercel.json', () => {
-  it('limits Git deployments to main, proto/** and dev (#246) and holds nothing else', () => {
-    expect(JSON.parse(read('vercel.json'))).toEqual({
-      $schema: 'https://openapi.vercel.sh/vercel.json',
-      git: { deploymentEnabled: { '**': false, 'main': true, 'proto/**': true, 'dev': true } },
-    })
+describe('Vercel (#747)', () => {
+  it('is gone: no vercel.json and no Vercel preset or env in the build config', () => {
+    expect(existsSync(resolve(root, 'vercel.json'))).toBe(false)
+    const config = read('nuxt.config.ts')
+    expect(config).not.toMatch(/process\.env\.VERCEL|'vercel'/)
+    expect(JSON.parse(read('package.json')).scripts['deploy:dev']).toBeUndefined()
   })
 })
 

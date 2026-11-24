@@ -130,7 +130,7 @@ The issue body is the single current spec; comments hold the history. `inbox` is
 
 ## CI
 
-`.github/workflows/ci.yml`: a PR runs `quality` only (lint, typecheck, Vitest); a push to `main` and a manual run (`gh workflow run ci.yml`) also run every E2E spec. No merge waits for remote CI (owner decision 2026-11-12, alpha phase); a red `main` run means a merge broke something: fix forward. The local gate stays: `npm run verify` before opening a PR, `npm run build` when the PR touches `nuxt.config.ts`, `package.json`, `app.config.ts`, `server/` or `vercel.json`, the `E2E-specs: a b c` line in the PR body, and the pre-merge hook's tiered E2E run on `gh pr merge` (`.claude/rules/e2e-gate.md`). Vercel deploys `main` and `proto/*`; `main` also deploys to Cloudflare (ADR 021). Workflow detail: `.claude/rules/ci.md`.
+`.github/workflows/ci.yml`: a PR runs `quality` only (lint, typecheck, Vitest); a push to `main` and a manual run (`gh workflow run ci.yml`) also run every E2E spec. No merge waits for remote CI (owner decision 2026-11-12, alpha phase); a red `main` run means a merge broke something: fix forward. The local gate stays: `npm run verify` before opening a PR, `npm run build` when the PR touches `nuxt.config.ts`, `package.json`, `app.config.ts` or `server/`, the `E2E-specs: a b c` line in the PR body, and the pre-merge hook's tiered E2E run on `gh pr merge` (`.claude/rules/e2e-gate.md`). `main` deploys to Cloudflare (ADR 021); there is no Vercel deployment and no branch preview (#747). Workflow detail: `.claude/rules/ci.md`.
 
 ## Cloud sessions
 
