@@ -27,7 +27,7 @@ test.describe('Hinweise zum Einstieg in the Board tab (#804)', () => {
     await expect(hintsButton(page)).toHaveText('Erneut zeigen')
     // The toast confirms it and says where the intros are read
     await expect(page.getByText('Hinweise ausgeschaltet', { exact: true })).toBeVisible()
-    await expect(page.getByText('Du kannst sie jederzeit unter Einstellungen, Board nachlesen.')).toBeVisible()
+    await expect(page.getByText('Du kannst sie jederzeit unter Einstellungen, Board nachlesen.', { exact: true })).toBeVisible()
     await expect.poll(async () => (await hintsRecord(page) as { on: boolean }).on).toBe(false)
 
     await hintsButton(page).click()

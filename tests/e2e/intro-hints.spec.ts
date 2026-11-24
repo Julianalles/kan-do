@@ -278,7 +278,7 @@ test('"Hinweise ausschalten" on a hint turns all hints off: a toast says where t
   await expect(hint(page)).toHaveCount(0)
   await expect(page.getByTestId('intro-hint-host')).toHaveCount(0)
   await expect(page.getByText('Hinweise ausgeschaltet', { exact: true })).toBeVisible()
-  await expect(page.getByText('Du kannst sie jederzeit unter Einstellungen, Board nachlesen.')).toBeVisible()
+  await expect(page.getByText('Du kannst sie jederzeit unter Einstellungen, Board nachlesen.', { exact: true })).toBeVisible()
   await expect(page.locator('[data-task-sheet-return]')).toBeFocused()
   await expect.poll(async () => (await page.evaluate(() => JSON.parse(localStorage.getItem('settings-store') ?? '{}').introHints?.on))).toBe(false)
 
