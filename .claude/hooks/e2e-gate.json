@@ -497,8 +497,7 @@
         "nuxt.config.ts",
         "scripts/postcss-breakpoints.mjs",
         "app.config.ts",
-        "lib/icons.ts",
-        "vercel.json"
+        "lib/icons.ts"
       ],
       "specs": [
         "visual-regression",

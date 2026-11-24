@@ -10,17 +10,13 @@
 /** Files below `pages/` that exist only for development. */
 export const DEV_ONLY_PAGE_FILES = ['pages/ui.vue', 'pages/error-test.vue'] as const
 
-/** The Vercel preview branch that is the dev instance (#246); `vercel.json` deploys it, `npm run deploy:dev` updates it. */
-export const DEV_INSTANCE_BRANCH = 'dev'
-
 /**
- * Whether this build is the dev instance (#246): the Vercel Preview of the `dev` branch (Vercel sets `VERCEL_ENV` and
- * `VERCEL_GIT_COMMIT_REF` at build time), or any build with `KANDO_DEV_INSTANCE=1`. It carries `/ui` and the live copy
- * editor like the E2E build. Production (`main`) and `proto/*` previews are not dev instances.
+ * Whether this build is a dev instance (#246): a build made with `KANDO_DEV_INSTANCE=1`. It carries `/ui` and the live
+ * copy editor like the E2E build. (The hosted dev instance was the Vercel Preview of the `dev` branch; Vercel is shut
+ * down since #747, so no hosted build sets it.)
  */
 export function isDevInstance(env: Record<string, string | undefined>): boolean {
   return env.KANDO_DEV_INSTANCE === '1'
-    || (env.VERCEL_ENV === 'preview' && env.VERCEL_GIT_COMMIT_REF === DEV_INSTANCE_BRANCH)
 }
 
 /**

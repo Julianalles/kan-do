@@ -24,7 +24,7 @@ const FORMER_FULL_FILES = [
   'components/board/SortableTaskWrapper.vue', 'components/board/ColumnDropZone.vue', 'components/task/TaskStack.vue', 'integrations/NotionIntegration.ts',
   'server/api/notion/tasks.get.ts', 'lib/dataStorage.ts', 'lib/taskSources.ts', 'lib/taskDates.ts', 'lib/secrets.ts', 'utils/dataFile/exportImport.ts',
   'src-tauri/src/data_file.rs', 'tests/e2e/snapshots/visual-regression.spec.ts/board.png', 'tests/e2e/helpers/seed.ts', 'tests/e2e/playwright.config.ts',
-  'tests/e2e/global-setup.ts', 'app.config.ts', 'assets/css/board.css', 'nuxt.config.ts', 'package.json', 'package-lock.json', 'vercel.json',
+  'tests/e2e/global-setup.ts', 'app.config.ts', 'assets/css/board.css', 'nuxt.config.ts', 'package.json', 'package-lock.json',
   'plugins/00.data-storage.client.ts', 'plugins/pinia.ts', 'plugins/e2e-seed.client.ts', 'plugins/secrets.client.ts', 'types/dataFile.ts', 'types/store/x.ts',
   'types/task.ts', 'types/taskSource.ts', 'types/taskPosition.ts', 'types/state.ts', 'types/pendingTimeUpdate.ts', 'utils/mapHelpers.ts', 'lib/dataBackendTauri.ts',
   'lib/dataStatus.ts', 'lib/secretsBootstrap.ts', 'lib/integrationHealth.ts',
@@ -136,7 +136,7 @@ describe('selectE2e', () => {
   })
 
   it.each([
-    'package.json', 'package-lock.json', 'nuxt.config.ts', 'vercel.json',
+    'package.json', 'package-lock.json', 'nuxt.config.ts',
   ])('runs smoke + visual-regression + the server error page spec when the dependency or build config %s changes (#541)', (file) => {
     const result = select({ files: [file] })
     expect(result).toMatchObject({ tier: 'targeted', unmapped: [] })
