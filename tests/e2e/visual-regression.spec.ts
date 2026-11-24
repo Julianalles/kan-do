@@ -1071,13 +1071,13 @@ for (const { size, viewport } of CORE_VIEWPORTS) {
     await page.getByTestId('stats-tile-2-toggle').click()
     await expect(page.getByTestId('stats-tile-2-toggle')).toHaveAttribute('aria-expanded', 'true')
     await page.mouse.move(0, 0)
+    // The floating app bar lands at a different height in a full-page capture from run to run (301 px at 390), and a
+    // mask box moves with it over different content (#829): hide the bar instead. A style tag, since the screenshot's
+    // `style` option left the bar painted in this test.
+    await page.addStyleTag({ content: '[data-testid="app-nav"] { visibility: hidden !important; }' })
+    await expect(page.getByTestId('app-nav')).toBeHidden()
     await settle(page)
-    await expect(page).toHaveScreenshot(`statistics-${size}.png`, {
-      animations: 'disabled',
-      fullPage: true,
-      // The floating app bar lands at a different height in a full-page capture from run to run (301 px at 390)
-      mask: [page.getByTestId('app-nav')],
-    })
+    await expect(page).toHaveScreenshot(`statistics-${size}.png`, { animations: 'disabled', fullPage: true })
   })
 }
 

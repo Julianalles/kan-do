@@ -352,8 +352,11 @@ test.describe('error states', () => {
     await gotoBoard(page)
     await expect(page.locator('#column-open-list').getByText('Fokusaufgabe vorbereiten')).toBeVisible()
 
-    await page.route('**/api/notion/**', route => route.abort('connectionrefused'))
+    // The card is seeded into the store, so it shows before the first Notion fetch answered (#808): cut the routes
+    // only once a sync has succeeded, or the label reads "Noch nicht aktualisiert".
     const panel = await openMore(page)
+    await expect(panel.getByTestId('more-sync')).toContainText('Gerade aktualisiert')
+    await page.route('**/api/notion/**', route => route.abort('connectionrefused'))
     await panel.getByTestId('more-sync').click()
     await expect(panel.getByTestId('sync-problem-notion')).toBeVisible()
     await expect(panel).toMatchAriaSnapshot({ name: 'sync-offline-more-panel.aria.yml' })

@@ -170,7 +170,9 @@ test.describe('Einstellungen tabs (#691)', () => {
 })
 
 test.describe('Einstellungen tabs, desktop app (#691)', () => {
-  test('System ends with Rechtliches: Impressum, Datenschutz, Nutzungsbedingungen and the no-affiliation line (#745)', async ({ page }) => {
+  test('System ends with Rechtliches: Impressum, Datenschutz, Nutzungsbedingungen and the no-affiliation line (#745)', async ({ context, page }) => {
+    // Without a board the settings page redirects to /welcome (#821)
+    await seedLocalBoard(context)
     await page.goto('/settings?tab=manage')
     const legal = page.getByTestId('legal-settings')
     await expect(legal.getByRole('heading', { name: 'Rechtliches', level: 2 })).toBeVisible()
