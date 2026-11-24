@@ -344,6 +344,13 @@ describe('selectE2e', () => {
     }
   })
 
+  it('keeps the phone hit areas and the motion guard in fast mode for task, settings and intro hint files (#822, #823: #818 and #820 went red on main)', () => {
+    for (const [file, spec] of [['components/task/TaskDetailMetadata.vue', 'phone-hit-areas'], ['components/board/IntroHintOverlay.vue', 'motion-guard'], ['components/settings/IntroHintsSheet.vue', 'motion-guard']]) {
+      const result = select({ files: [file], env: { KANDO_TESTING_MODE: 'fast' } })
+      expect(result.specs, file).toContain(spec)
+    }
+  })
+
   it('selects smoke + mapped specs for a data settings component', () => {
     const result = select({ files: ['components/settings/DataBackupList.vue'] })
     expect(result.tier).toBe('targeted')

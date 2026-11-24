@@ -1262,11 +1262,40 @@
         "components/board/BoardColumn.vue",
         "assets/css/app-nav.css",
         "assets/css/transitions.css",
-        "assets/css/sheet.css"
+        "assets/css/sheet.css",
+        "components/task/**"
       ],
       "specs": [
         "hover-answer",
         "phone-hit-areas"
+      ],
+      "fast": [
+        "phone-hit-areas"
+      ]
+    },
+    {
+      "area": "motion guard (kd#600, #820, #818 lesson): per-frame jumps and reduced motion on the welcome, board, Statistik, settings and topics flows; an overlay at load (intro hints), a tile, a sheet or a page transition moves a box the guard measures, and `fast` drops non-risk rules, so the rule keeps it in `fast`",
+      "paths": [
+        "components/board/**",
+        "components/statistics/**",
+        "components/setup/**",
+        "components/topic/**",
+        "components/task/**",
+        "pages/**",
+        "assets/css/intro-hint.css",
+        "assets/css/transitions.css",
+        "composables/useIntroHints.ts",
+        "composables/useIntroHintsSwitch.ts",
+        "composables/useRemindersHint.ts",
+        "lib/introHints.ts",
+        "lib/remindersHint.ts",
+        "components/settings/IntroHintsSheet.vue"
+      ],
+      "specs": [
+        "motion-guard"
+      ],
+      "fast": [
+        "motion-guard"
       ]
     },
     {
