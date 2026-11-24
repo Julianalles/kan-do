@@ -98,7 +98,11 @@ describe('several tasks at once (#356)', () => {
     const offable = [TaskStatus.Open, TaskStatus.Waiting]
     for (const before of all) for (const after of all) {
       expect(markerSurvives(before, after)).toBe(offable.includes(before) && offable.includes(after))
-      expect(sourceHoldSurvives(before, after)).toBe(before === TaskStatus.Open && after === TaskStatus.Open)
+      for (const source of ['local', 'notion', 'todoist'] as const) {
+        expect(sourceHoldSurvives(source, before, after)).toBe(before === TaskStatus.Open && after === TaskStatus.Open)
+      }
+      // A source that plans by date holds the date's answer, which no status write moves: it goes with the marker
+      expect(sourceHoldSurvives('reminders', before, after)).toBe(markerSurvives(before, after))
     }
     const store = useTasksStore()
     store.setTasks([makeTask('a', { notPlanned: true }), makeTask('b', { notPlanned: true }), makeTask('c', { notPlanned: true, source: 'notion' })])

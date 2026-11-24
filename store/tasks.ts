@@ -485,8 +485,9 @@ export const useTasksStore = defineStore("tasks", () => {
       // "Not planned" (#353, #793) stays only between Offen and Wartet: Jetzt always belongs to today, and so does a
       // task that comes back from Erledigt (a marker an older app version left there never hides it).
       // What the source held it as (#357) stays only Open to Open: the write of any other status tells the source the column
+      // (a source that plans by date keeps it with the marker: no status write moves the date, `sourceHoldSurvives`)
       if (!markerSurvives(statusBefore, task.status) && task.notPlanned !== undefined) delete task.notPlanned;
-      if (!sourceHoldSurvives(statusBefore, task.status) && task.sourceNotPlanned !== undefined) delete task.sourceNotPlanned;
+      if (!sourceHoldSurvives(task.source, statusBefore, task.status) && task.sourceNotPlanned !== undefined) delete task.sourceNotPlanned;
       // A completion time written by anything but the user's correction (reopening, completing again, an undo)
       // is no longer the corrected one (kd#131)
       if ('completedAt' in updates && !('completedAtCorrected' in updates)) delete task.completedAtCorrected;
@@ -1891,9 +1892,9 @@ export const useTasksStore = defineStore("tasks", () => {
       const currentTask = newTasks[i];
       if (currentTask && taskIdsSet.has(currentTask.id)) {
         const task: Task = { ...currentTask, status };
-        // "Not planned" survives between Offen and Wartet (#793), what the source held it as (#357) only Open -> Open, as in `updateTask`
+        // "Not planned" survives between Offen and Wartet (#793), what the source held it as (#357) by `sourceHoldSurvives`, as in `updateTask`
         if (!markerSurvives(currentTask.status, status)) delete task.notPlanned;
-        if (!sourceHoldSurvives(currentTask.status, status)) delete task.sourceNotPlanned;
+        if (!sourceHoldSurvives(currentTask.source, currentTask.status, status)) delete task.sourceNotPlanned;
 
         // Track completion timestamp when moved to Done
         if (status === TaskStatus.Done && currentTask.status !== TaskStatus.Done) {

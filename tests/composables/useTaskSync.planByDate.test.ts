@@ -151,6 +151,42 @@ describe('plan and put-back of a source that plans by date (#553)', () => {
     expect(store.task('w')).toMatchObject({ status: TaskStatus.Waiting, notPlanned: true })
   })
 
+  // Review of PR 809: what the date says is noted locally on a waiting reminder too (no write), so the next fetch compares
+  // against the answer the user's choice was made under
+  it('a waiting reminder\'s put-back and plan note what its date says now, write nothing and queue no date write (#793)', async () => {
+    const store = useTasksStore()
+    store.setTasks([
+      reminder('tomorrow', '2026-11-25', { status: TaskStatus.Waiting, notPlanned: undefined, sourceNotPlanned: undefined }),
+      reminder('today', TODAY, { status: TaskStatus.Waiting, notPlanned: undefined, sourceNotPlanned: 'not-today' }),
+    ])
+    const sync = useTaskSync()
+    // Put back while the date is not today: held as not today, so the fetch on its due day plans it again
+    expect(sync.unplanTask('tomorrow')).toBe(true)
+    expect(store.task('tomorrow')).toMatchObject({ notPlanned: true, sourceNotPlanned: 'not-today' })
+    // Put back while the date is today: a stale value goes, so the next fetch (today, the same answer) leaves the put-back alone
+    expect(sync.unplanTask('today')).toBe(true)
+    expect(store.task('today')!.sourceNotPlanned).toBeUndefined()
+    store.mergeTasks('reminders', [{ ...store.task('today')!, notPlanned: undefined }], { planningByDate: true })
+    expect(isNotPlanned(store.task('today')!)).toBe(true)
+    // Planned again: no date write, the held value is what the date says
+    expect(sync.planTask('today')).toBe(true)
+    await sync.whenPlanWritten('today')
+    expect(store.task('today')!.sourceNotPlanned).toBeUndefined()
+    expect(store.task('today')!.pendingSync).toBeUndefined()
+    expect(update).not.toHaveBeenCalled()
+  })
+
+  it('a date write the plan of an Offen reminder queued is taken back when the task, now waiting, is put back (#793)', () => {
+    const store = useTasksStore()
+    store.setTasks([reminder('a', '2026-11-25')])
+    const sync = useTaskSync()
+    store.markDateWrite('a', TODAY)
+    store.planTask('a')
+    store.updateTask('a', { status: TaskStatus.Waiting })
+    sync.unplanTask('a')
+    expect(store.task('a')!.pendingSync?.dateWrite).toBeUndefined()
+  })
+
   it('plan, put back, plan in quick succession: one write, later plans are no-op successes', async () => {
     const store = useTasksStore()
     store.setTasks([reminder('a', '2026-11-25')])

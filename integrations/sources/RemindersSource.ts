@@ -20,7 +20,7 @@
 import type { Task } from '~/types/task'
 import type { IntegrationHealth } from '~/types/integration'
 import { TaskStatus } from '~/types/taskStatus'
-import { SOURCE_CAPABILITIES, externalIdOf } from '~/lib/taskSources'
+import { SOURCE_CAPABILITIES, externalIdOf, sourcePlansByDate } from '~/lib/taskSources'
 import {
   RemindersError,
   remindersAccessStatus,
@@ -104,7 +104,7 @@ export class RemindersSource implements TaskSourceAdapter {
   readonly keepsKanDoFields = true
   readonly capabilities = SOURCE_CAPABILITIES.reminders!
   /** The date is the plan (#553): see `TaskSourceAdapter.planningByDate`. */
-  readonly planningByDate = true
+  readonly planningByDate = sourcePlansByDate('reminders')
 
   constructor(private readonly deps: RemindersSourceDeps) {}
 

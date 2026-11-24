@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useTasksStore } from '~/store/tasks'
-import { isNotPlanned } from '~/lib/taskPlanning'
+import { inStatus, isNotPlanned } from '~/lib/taskPlanning'
 import type { Task } from '~/types/task'
 import { TaskStatus } from '~/types/taskStatus'
 
@@ -192,6 +192,48 @@ describe('mergeTasks of a source that plans by date (#553)', () => {
       store.mergeTasks('reminders', [delivered('a', TODAY)], BY_DATE)
       expect(store.task('a')!.reminders?.wrote).toBeUndefined()
     })
+  })
+})
+
+// Review of PR 809: a status write tells Reminders nothing about the date, so what the date said survives Offen <-> Wartet with
+// the marker; the fetch on the due day then plans the task, whatever column it waits in
+describe('a reminder off today that changes column (#793)', () => {
+  beforeEach(() => setActivePinia(createPinia()))
+
+  const offTodayInWartet = (move: (store: ReturnType<typeof useTasksStore>) => void) => {
+    const store = useTasksStore()
+    store.mergeTasks('reminders', [delivered('a', '2026-11-20')], BY_DATE)
+    expect(isNotPlanned(store.task('a')!)).toBe(true)
+    move(store)
+    expect(store.task('a')).toMatchObject({ status: TaskStatus.Waiting, notPlanned: true, sourceNotPlanned: 'not-today' })
+    // The next fetch is on its due day: the date says today now, so the task comes onto the board, in Wartet
+    store.mergeTasks('reminders', [{ ...delivered('a', TODAY), status: TaskStatus.Open }], BY_DATE)
+    expect(isNotPlanned(store.task('a')!)).toBe(false)
+    expect(store.tasksWaiting.map(t => t.id)).toEqual(['a'])
+  }
+
+  it('moved Offen -> Wartet by the single write keeps the held value and joins the board on its due day', () => {
+    offTodayInWartet(store => store.updateTask('a', { status: TaskStatus.Waiting }))
+  })
+
+  it('moved Offen -> Wartet by the batch write keeps the held value and joins the board on its due day', () => {
+    offTodayInWartet(store => store.batchUpdateTaskStatus(['a'], TaskStatus.Waiting))
+  })
+
+  it('a snapshot put into Wartet or Offen keeps the held value; into Jetzt it goes with the marker', () => {
+    const held = { ...delivered('a', '2026-11-20'), notPlanned: true as const }
+    expect(inStatus(held, TaskStatus.Waiting)).toMatchObject({ notPlanned: true, sourceNotPlanned: 'not-today' })
+    expect(inStatus({ ...held, status: TaskStatus.Waiting }, TaskStatus.Open)).toMatchObject({ notPlanned: true, sourceNotPlanned: 'not-today' })
+    expect(inStatus(held, TaskStatus.Progress)).not.toHaveProperty('sourceNotPlanned')
+  })
+
+  it('moved on to Jetzt or Erledigt the held value goes with the marker: the planned card has none, as after a plan', () => {
+    const store = useTasksStore()
+    store.mergeTasks('reminders', [delivered('a', '2026-11-20'), delivered('b', '2026-11-20')], BY_DATE)
+    store.updateTask('a', { status: TaskStatus.Waiting })
+    store.updateTask('a', { status: TaskStatus.Progress })
+    store.batchUpdateTaskStatus(['b'], TaskStatus.Done)
+    for (const id of ['a', 'b']) expect(store.task(id)).not.toHaveProperty('sourceNotPlanned')
   })
 })
 

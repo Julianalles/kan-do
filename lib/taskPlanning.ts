@@ -11,6 +11,8 @@
  */
 import type { Task } from '~/types/task'
 import { TaskStatus } from '~/types/taskStatus'
+import type { SourceId } from '~/types/taskSource'
+import { sourcePlansByDate } from '~/lib/taskSources'
 
 /** Whether a task in `status` can be off today: Offen and Wartet. Jetzt always belongs to today, Erledigt to its done day. */
 export function canBeOffToday(status: TaskStatus): boolean {
@@ -40,8 +42,14 @@ export function markerSurvives(before: TaskStatus, after: TaskStatus): boolean {
  * that was Open and stays Open. The write of any other status tells the source the column, so it no longer holds the
  * task as not planned (an Offen task off today moved to Wartet is written with its waiting status), and a later
  * put-back must write again.
+ *
+ * A source that plans by date (#553, `sourcePlansByDate`: Reminders) holds no status for planning: the value is what the
+ * date said, and no status write changes the date. It survives with the marker (`markerSurvives`, #793), so a reminder off
+ * today moved to Wartet still joins the board on its due day; a move to Jetzt or Erledigt plans the task, and a planned
+ * card holds no value, as after the user's plan.
  */
-export function sourceHoldSurvives(before: TaskStatus, after: TaskStatus): boolean {
+export function sourceHoldSurvives(source: SourceId, before: TaskStatus, after: TaskStatus): boolean {
+  if (sourcePlansByDate(source)) return markerSurvives(before, after)
   return before === TaskStatus.Open && after === TaskStatus.Open
 }
 
@@ -50,13 +58,13 @@ export function sourceHoldSurvives(before: TaskStatus, after: TaskStatus): boole
  * only by `markerSurvives`: a snapshot from Jetzt or Erledigt may carry a stale one (an older app version moved the
  * task on), and in Offen that marker would hide the task (#354).
  */
-export function inStatus<T extends Pick<Task, 'notPlanned' | 'sourceNotPlanned' | 'status'>>(task: T, status: TaskStatus): T {
+export function inStatus<T extends Pick<Task, 'notPlanned' | 'sourceNotPlanned' | 'status' | 'source'>>(task: T, status: TaskStatus): T {
   const { notPlanned, sourceNotPlanned, ...rest } = task
   return {
     ...rest,
     status,
     ...(markerSurvives(task.status, status) && notPlanned === true ? { notPlanned: true as const } : {}),
-    ...(sourceHoldSurvives(task.status, status) && sourceNotPlanned !== undefined ? { sourceNotPlanned } : {}),
+    ...(sourceHoldSurvives(task.source, task.status, status) && sourceNotPlanned !== undefined ? { sourceNotPlanned } : {}),
   } as T
 }
 
