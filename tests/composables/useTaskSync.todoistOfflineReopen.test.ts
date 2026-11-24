@@ -112,7 +112,7 @@ describe('Todoist: a status change made while the source was unreachable is repl
     expect(useTasksStore().task('t1')?.pendingSync).toBeUndefined()
   })
 
-  it('Done -> Offen -> Done while unreachable: the replay completes, it does not reopen', async () => {
+  it('Done -> Offen -> Done while unreachable: Todoist still holds it done, so the replay sends nothing (#781)', async () => {
     addTask('t1', TaskStatus.Done)
     unreachable = true
     await useTaskSync().updateTaskStatus({ taskId: 't1', status: TaskStatus.Open })
@@ -120,7 +120,9 @@ describe('Todoist: a status change made while the source was unreachable is repl
     unreachable = false
     await useTaskSync().syncPendingChanges()
 
-    expect(sdkCalls).toEqual(['close:t1'])
+    // Neither a reopen nor a second close (a recurring task would skip an occurrence); the marker is settled
+    expect(sdkCalls).toEqual([])
+    expect(useTasksStore().task('t1')?.pendingSync).toBeUndefined()
   })
 
   it('Offen -> Done -> Offen while unreachable: the source never held Done, so the replay sends no reopen', async () => {

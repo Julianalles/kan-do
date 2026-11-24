@@ -50,6 +50,22 @@ describe('pendingSync marker in the tasks store', () => {
     expect(store.task('a')?.pendingSync?.upstreamDone).toBe(false) // ...and notes what the push left upstream
   })
 
+  it('a new marker takes the local status as held; one stored before #344 without the note reads "not completed" (#781)', () => {
+    const store = useTasksStore()
+    store.addTask(task('fresh', { status: TaskStatus.Done }))
+    store.addTask(task('legacy', { status: TaskStatus.Done, pendingSync: { since: 1, attempts: 3, lastError: 'Failed to fetch' } }))
+    store.addTask(task('told', { status: TaskStatus.Done, pendingSync: { since: 1, attempts: 3, lastError: 'Failed to fetch' } }))
+
+    store.markPendingSync('fresh')
+    store.markPendingSync('legacy')
+    store.markPendingSync('told', true)
+
+    // A task without a marker is held in its local status; an old marker cannot tell, so its done state is sent once more
+    expect(store.task('fresh')?.pendingSync?.upstreamDone).toBe(true)
+    expect(store.task('legacy')?.pendingSync).toEqual({ since: 1, attempts: 3, lastError: 'Failed to fetch', upstreamDone: false })
+    expect(store.task('told')?.pendingSync?.upstreamDone).toBe(true)
+  })
+
   it('never marks a Local task: nothing upstream can lag behind', () => {
     const store = useTasksStore()
     store.addTask(task('l', { source: 'local', externalId: null }))

@@ -316,6 +316,14 @@ describe('pendingSync marker (#319)', () => {
     expect(normalizeTasks(tasks, 'local')).toBe(tasks)
   })
 
+  it('keeps the origin\'s held done state of a move through the read and drops a malformed one (#781)', () => {
+    const pendingMove = { fromSource: 'todoist', fromExternalId: 'T', toSource: 'local', fromUpstreamDone: false }
+    const tasks = [{ id: 'm', source: 'local', externalId: null, pendingMove }]
+    expect(normalizeTasks(tasks, 'local')).toBe(tasks)
+    const [bad] = normalizeTasks([{ ...tasks[0], pendingMove: { ...pendingMove, fromUpstreamDone: 'yes' } }], 'local') as Array<{ pendingMove: Record<string, unknown> }>
+    expect(bad?.pendingMove).toEqual({ fromSource: 'todoist', fromExternalId: 'T', toSource: 'local' })
+  })
+
   it('keeps a valid move next to its marker', () => {
     const pendingMove = { fromSource: 'local', fromExternalId: null, toSource: 'notion' }
     const tasks = [{ id: 'm', source: 'notion', externalId: 'm', pendingSync: marker, pendingMove }]

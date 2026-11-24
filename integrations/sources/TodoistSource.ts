@@ -80,13 +80,16 @@ export class TodoistSource implements TaskSourceAdapter {
     return Promise.reject(new Error('Creating tasks in Todoist is not supported'))
   }
 
-  async update(task: Task, change: { previousStatus?: TaskStatus; fieldsOnly?: boolean } = {}): Promise<Task | null> {
+  async update(task: Task, change: { previousStatus?: TaskStatus } = {}): Promise<Task | null> {
     // Read first: a missing token fails the push as before, so the source stays marked broken
     const token = this.token()
-    // A priority or time box edit (#770): Todoist stores neither and already holds the done state, so a done task is
-    // not closed again (a recurring one would skip an occurrence)
-    if (change.fieldsOnly) return null
-    const write = task.status === TaskStatus.Done ? 'complete' : change.previousStatus === TaskStatus.Done ? 'reopen' : null
+    // Todoist stores only the done state: only a change of it writes (#781). A done task pushed for another reason (a
+    // priority, time box, done day or time edit, a retry after the completion landed) arrives with `previousStatus`
+    // Done and is not closed again, since a recurring task would skip an occurrence; an unknown held state writes nothing
+    const held = change.previousStatus
+    const write = task.status === TaskStatus.Done
+      ? (held !== undefined && held !== TaskStatus.Done ? 'complete' : null)
+      : held === TaskStatus.Done ? 'reopen' : null
     if (!write) return null // nothing to write: do not load the SDK chunk (offline it would reject and strand a pendingSync)
     const externalId = externalIdOf(task)
     const todoist = await this.load(token)
@@ -101,12 +104,25 @@ export class TodoistSource implements TaskSourceAdapter {
     await (await this.load(token)).deleteTask(externalId)
   }
 
-  /** Todoist deleted the task for good: restoring creates it anew (new `externalId`, the app `id` stays). */
+  /**
+   * Todoist deleted the task for good: restoring creates it anew (new `externalId`, the app `id` stays). A done task
+   * whose completion failed after the create (Todoist holds it open) keeps its status and comes back with a marker that
+   * says so, so the next push completes it once (#781).
+   */
   async restore(task: Task): Promise<Task> {
     const token = this.token()
     const snapshot = { ...task }
     const created = await (await this.load(token)).createTask(snapshot)
-    return { ...snapshot, ...created, id: snapshot.id, source: 'todoist', externalId: created.externalId ?? created.id }
+    const heldOpen = snapshot.status === TaskStatus.Done && created.status !== TaskStatus.Done
+    return {
+      ...snapshot,
+      ...created,
+      id: snapshot.id,
+      source: 'todoist',
+      externalId: created.externalId ?? created.id,
+      status: snapshot.status,
+      ...(heldOpen ? { pendingSync: { since: Date.now(), attempts: 0, lastError: null, upstreamDone: false } } : {}),
+    }
   }
 
   archivesAsStatus(): boolean {

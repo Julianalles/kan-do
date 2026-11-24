@@ -180,17 +180,18 @@ export interface TaskSourceAdapter {
   removeLanded?(doubt: CreateUncertain, ctx: CreateContext): Promise<void>
 
   /**
-   * Writes the task's current state upstream. `change.previousStatus` is the status the source held before
-   * (Todoist completes, or reopens when it was `Done`; `useTaskSync` takes it from the task's `pendingSync.upstreamDone`
-   * when there is one, so a replay after a restart reopens too, #344). Resolves to the task as the source now holds it (Notion), or
-   * `null` when the source returns nothing to merge back (Todoist, Local). `change.timeEdited`: the user set the
-   * task's total time spent (kd#4), so a source that stores time writes it even at 0 (Notion clears the property).
-   * `change.fieldsOnly`: a field edit of a task with no change outstanding (#770), so the source already holds its
-   * status; Todoist, which stores only the done state, writes nothing. `change.clears`: fields the user emptied
-   * (`pendingSync.clears`, #780) that the source still holds; Notion writes the clear only for these and only while the
-   * task still has the field empty, so no other push empties a source value.
+   * Writes the task's current state upstream. `change.previousStatus` is the status the source holds (Done or Open:
+   * `useTaskSync` takes it from the task's `pendingSync.upstreamDone`, the one record of it, so a replay after a restart
+   * reopens too, #344). A source that stores only the done state (Todoist, Reminders) writes only when it differs from
+   * the task's (#781): completes when the task is Done and the source holds it open, reopens when it is not Done and the
+   * source holds it done, writes nothing otherwise and when `previousStatus` is absent. Resolves to the task as the
+   * source now holds it (Notion), or `null` when the source returns nothing to merge back (Todoist, Local).
+   * `change.timeEdited`: the user set the task's total time spent (kd#4), so a source that stores time writes it even
+   * at 0 (Notion clears the property). `change.clears`: fields the user emptied (`pendingSync.clears`, #780) that the
+   * source still holds; Notion writes the clear only for these and only while the task still has the field empty, so no
+   * other push empties a source value.
    */
-  update(task: Task, change?: { previousStatus?: TaskStatus; timeEdited?: boolean; fieldsOnly?: boolean; clears?: readonly PendingClear[] }): Promise<Task | null>
+  update(task: Task, change?: { previousStatus?: TaskStatus; timeEdited?: boolean; clears?: readonly PendingClear[] }): Promise<Task | null>
 
   /** Removes the task upstream: Notion archives the page, Todoist deletes the task, Local has nothing upstream. */
   remove(task: Task): Promise<void>

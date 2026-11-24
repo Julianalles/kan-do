@@ -162,15 +162,20 @@ function normalizePendingMove(raw: unknown): PendingMove | undefined {
   if (!isRecord(raw) || !isSourceId(raw.fromSource) || !isSourceId(raw.toSource)) return undefined
   const fromExternalId = typeof raw.fromExternalId === 'string' ? raw.fromExternalId : null
   const fromSourceNotPlanned = typeof raw.fromSourceNotPlanned === 'string' ? raw.fromSourceNotPlanned : undefined
+  // #781: what the origin held the task as; a malformed value reads as none ("not completed" on the way back)
+  const fromUpstreamDone = typeof raw.fromUpstreamDone === 'boolean' ? raw.fromUpstreamDone : undefined
   // #538: the doubt of an origin create is kept only while the origin page has no id; a malformed value reads as none
   const held = fromExternalId === null ? normalizeCreateUncertain(raw.fromCreateUncertain) : undefined
   const doubt = held === undefined ? undefined : { since: held.since, ...(held.at === undefined ? {} : { at: held.at }), title: held.title }
   const exact = raw.fromExternalId === fromExternalId && raw.fromSourceNotPlanned === fromSourceNotPlanned
+    && raw.fromUpstreamDone === fromUpstreamDone
     && (doubt === undefined || held === undefined ? raw.fromCreateUncertain === undefined : (held === raw.fromCreateUncertain && Object.keys(held).length === Object.keys(doubt).length))
     && Object.keys(raw).length === 3 + (fromSourceNotPlanned === undefined ? 0 : 1) + (doubt === undefined ? 0 : 1)
+      + (fromUpstreamDone === undefined ? 0 : 1)
   return exact ? (raw as unknown as PendingMove) : {
     fromSource: raw.fromSource, fromExternalId, toSource: raw.toSource,
     ...(fromSourceNotPlanned === undefined ? {} : { fromSourceNotPlanned }),
+    ...(fromUpstreamDone === undefined ? {} : { fromUpstreamDone }),
     ...(doubt === undefined ? {} : { fromCreateUncertain: doubt }),
   }
 }

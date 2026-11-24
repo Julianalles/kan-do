@@ -334,7 +334,7 @@ describe('TodoistIntegration timeouts (#159)', () => {
       addTaskMock.mockResolvedValue({ id: 'new-1' })
       closeTaskMock.mockResolvedValue(true)
       const created = await new TodoistIntegration('token').createTask({ ...done })
-      expect(created).toMatchObject({ id: 'new-1', externalId: 'new-1', source: 'todoist' })
+      expect(created).toMatchObject({ id: 'new-1', externalId: 'new-1', source: 'todoist', status: TaskStatus.Done })
       expect(closeTaskMock).toHaveBeenCalledWith('new-1')
     })
 
@@ -343,7 +343,8 @@ describe('TodoistIntegration timeouts (#159)', () => {
       addTaskMock.mockResolvedValue({ id: 'new-1' })
       closeTaskMock.mockRejectedValue(new Error('network'))
       const created = await new TodoistIntegration('token').createTask({ ...done })
-      expect(created).toMatchObject({ externalId: 'new-1', source: 'todoist' })
+      // The status Todoist holds (#781): the adapter turns it into a pending completion
+      expect(created).toMatchObject({ externalId: 'new-1', source: 'todoist', status: TaskStatus.Open })
       expect(addTaskMock).toHaveBeenCalledTimes(1)
     })
 

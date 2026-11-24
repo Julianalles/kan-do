@@ -188,7 +188,8 @@ export class TodoistIntegration {
 
   /**
    * Creates the task in Todoist for a restore from kan-do's trash (#422): due today; the time box as `<n>min` label, the project by the task's topic. A task that was done is completed
-   * right after; if only that fails the created task is still returned (the next push corrects the status).
+   * right after; if only that fails the created task is still returned with the status Todoist holds (Open), which the
+   * adapter turns into a pending completion (`TodoistSource.restore`, #781).
    * Resolves to the new task (its Todoist id as `externalId`). Throws when the task could not be created.
    */
   async createTask(task: Task): Promise<Task> {
@@ -210,15 +211,18 @@ export class TodoistIntegration {
       throw new Error(`Todoist: ${original}`, { cause: error });
     }
     const todoistId = created.id.toString();
+    let heldOpen = false;
     if (task.status === TaskStatus.Done) {
       try {
         await this.completeTask(todoistId);
       } catch (error) {
-        // The task exists now: rejecting would make a retry create a second one. The next push corrects the status.
+        // The task exists now: rejecting would make a retry create a second one. The status says what Todoist holds
+        // (open), so the caller can have the next push complete it (#781)
+        heldOpen = true;
         if (import.meta.dev) console.warn('Todoist restore: the task was created but not completed', error);
       }
     }
-    return { ...task, id: todoistId, externalId: todoistId, source: 'todoist' };
+    return { ...task, id: todoistId, externalId: todoistId, source: 'todoist', ...(heldOpen ? { status: TaskStatus.Open } : {}) };
   }
 
   /**
