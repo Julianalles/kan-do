@@ -74,6 +74,7 @@
         :task-status="TaskStatus.Open"
         :yesterday-count="yesterdayCount"
         :board-empty="boardEmpty"
+        :tasks-under-all="tasksUnderAll"
         :is-dragging="isDragging"
         :mute-others="false"
         :grouping-enabled="groupingEnabled"
@@ -339,6 +340,8 @@ const yesterdayCount = computed(() =>
 const boardEmpty = computed(() =>
   withoutInCardTask(tasksStore.tasksOpen).length + tasksStore.tasksProgress.length + tasksStore.tasksWaiting.length
   + tasksStore.tasksDoneToday.length === 0);
+/** Tasks wait under "Alle" (#802): the empty board's second line leads there. Under the topic focus only those shown count. */
+const tasksUnderAll = computed(() => applyFocus(tasksStore.tasksNotPlanned).length > 0);
 const { announcement: planAnnouncement } = usePlanMoves();
 
 /** Strip index of the "Alle Aufgaben" page */

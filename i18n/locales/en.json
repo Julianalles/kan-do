@@ -168,6 +168,8 @@
       "plannedMany": "One task is planned for today. | {n} tasks are planned for today."
     },
     "emptyOpenHint": "What's on today?",
+    "emptyOpenAll": "Or pick what's on for today under {all}.",
+    "emptyProgressHint": "What you're working on now lands here.",
     "yesterdayUnderAll": "One task from yesterday is under {all}. | {n} tasks from yesterday are under {all}.",
     "newDayNote": {
       "title": "The board still shows yesterday's plan.",
