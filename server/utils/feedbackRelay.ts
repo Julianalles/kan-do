@@ -63,6 +63,14 @@ export function parseReport(input: unknown): FeedbackReport {
   return report
 }
 
+/**
+ * A Worker Preview of a prototype (`previews.vars` in wrangler.jsonc, ADR 021 "Prototype previews") sets
+ * `FEEDBACK_RELAY=dry-run`: the route validates the report and answers as usual, but files nothing in the private repository.
+ */
+export function relayDryRun(env: Record<string, string | undefined> = process.env): boolean {
+  return env.FEEDBACK_RELAY?.trim() === 'dry-run'
+}
+
 export function relayTarget(env: Record<string, string | undefined> = process.env): { token: string, repo: string } {
   const token = env.FEEDBACK_GITHUB_TOKEN?.trim()
   if (!token) relayError(503, 'FEEDBACK_NOT_CONFIGURED')

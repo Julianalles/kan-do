@@ -1,6 +1,7 @@
 // Worker `kando` (#279, #502, ADR 021): the public web instance on Cloudflare Workers Free, behind the secret-launch gate.
 // Deploy: Workers Builds runs `npm run build:cloudflare` (fails when the bundle lacks the gate), then `npx wrangler deploy`, on every push
-// to main; by hand `npm run deploy` does both. Nitro's own wrangler config stays off (`cloudflare.deployConfig` in nuxt.config.ts).
+// to main; by hand `npm run deploy` does both. A `proto/*` branch gets a gated Worker Preview (`npm run preview:cloudflare`), any
+// other branch builds nothing (`scripts/workers-preview.mjs`). Nitro's own wrangler config stays off (`cloudflare.deployConfig`).
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "kando",
@@ -10,6 +11,8 @@
   // `Buffer` in the feedback relay, `process.env` filled from vars and secrets.
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
+  // Version URLs stay off: they run a version with the production vars and secrets (FEEDBACK_GITHUB_TOKEN included), and
+  // every uploaded version would get one. Design prototypes use Worker Previews instead (the `previews` block below).
   "preview_urls": false,
   // Nitro's built handler: the output of `npm run build:cloudflare`.
   "alias": { "#nitro-server": "./.output/server/index.mjs" },
@@ -24,6 +27,10 @@
   // the public launch (jwue-homepage#34): change it here, through a PR. The token is the secret GATE_SECRET
   // (the homepage's value, one shared token). Other secrets: FEEDBACK_GITHUB_TOKEN. Never NOTION_KEY.
   "vars": { "GATE": "on" },
+  // Worker Previews of `proto/*` branches (ADR 021 "Prototype previews", `npm run preview:cloudflare`): a preview inherits
+  // no production var or secret, only these vars and the dashboard's Preview base config (there: GATE_SECRET, never
+  // FEEDBACK_GITHUB_TOKEN). The gate stays on; the feedback relay validates a report and files nothing (FEEDBACK_RELAY).
+  "previews": { "vars": { "GATE": "on", "FEEDBACK_RELAY": "dry-run" } },
   // No Notion on this instance (#742, ADR 021 "Local-only"): its routes are not in the build and the Worker answers
   // `/api/notion/*` with 404. The Notion proxy's rate limiter (Durable Object `NotionLimiter`, #508) went with them: v2 deletes
   // the class and its stored windows. Keep v1: wrangler replays the migration history by tag.

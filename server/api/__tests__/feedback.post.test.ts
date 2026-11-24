@@ -50,6 +50,16 @@ describe('server/api/feedback.post.ts', () => {
     vi.restoreAllMocks()
   })
 
+  it('a prototype preview (FEEDBACK_RELAY=dry-run) validates the report but calls GitHub not at all, even with a token', async () => {
+    vi.stubEnv('FEEDBACK_RELAY', 'dry-run')
+    const res = await (await request()).post('/api/feedback').send(REPORT)
+    expect(res.status).toBe(201)
+    expect(res.body).toEqual({ ok: true, dryRun: true })
+    expect(calls).toEqual([])
+    const bad = await (await request()).post('/api/feedback').send({ title: '', body: 'x' })
+    expect(bad.status).toBe(400)
+  })
+
   it('files the report as an inbox issue in the private repository and tells the client nothing about it', async () => {
     const res = await (await request()).post('/api/feedback').send(REPORT)
     expect(res.status).toBe(201)

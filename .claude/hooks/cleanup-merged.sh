@@ -154,6 +154,8 @@ if [ -n "$CLOSED" ]; then
     if git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
       run git push --quiet origin --delete "$branch" || { skipped+=("$branch (remote delete failed)"); continue; }
     fi
+    # Its Worker Preview (ADR 021 "Prototype previews"); one left behind stays gated and is evicted at Workers Free's cap.
+    run node scripts/workers-preview.mjs delete "$branch" || skipped+=("$branch preview (wrangler preview delete failed: not logged in?)")
     removed+=("$branch")
   done <<< "$PROTOS"
 fi
