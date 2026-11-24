@@ -16,8 +16,14 @@
  */
 import { isValidDayKey } from '~/utils/recapDay'
 
-/** The hints, in the order they take turns. #801 adds `weiter`, `auswahl` and `abschluss` here and nowhere else. */
-export const INTRO_HINT_ORDER = ['start'] as const
+/**
+ * The hints, in the order they take turns (#801: the first one whose moment has come shows, so with four cards in Offen
+ * and one done today "Auswahl" comes before "Abschluss"). "Planen" on "Alle" joins with #803.
+ */
+export const INTRO_HINT_ORDER = ['start', 'weiter', 'auswahl', 'abschluss'] as const
+
+/** "Auswahl" is due with this many cards in Offen (and an empty Jetzt): stacking helps to pick from a long column. */
+export const INTRO_AUSWAHL_MIN_OPEN = 4
 
 export type IntroHintId = (typeof INTRO_HINT_ORDER)[number]
 

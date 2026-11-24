@@ -183,6 +183,9 @@
         "desktop": "Drag what you're working on now into Now. Now holds one task at a time.",
         "phone": "What do you start with? Hold the card and drag it to the right edge, into Now. Now holds one task at a time."
       },
+      "weiter": "The timer is running. Drag the card to Done once the task is done. Waiting on someone? Drag it to Waiting.",
+      "auswahl": "A lot open? Stacked by topic or priority, picking is easier. You'll also find stacks under “{more}”.",
+      "abschluss": "Enough for today? “{dayClose}” shows what you got done and what stays open.",
       "close": "Close"
     },
     "planNote": {
