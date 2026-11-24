@@ -199,42 +199,6 @@ if (import.meta.dev) {
   min-height: 0;
 }
 
-/* Placeholder of the empty Jetzt (#805): the box of a card, under the slot's button, blind to the pointer */
-.jetzt-placeholder-host {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-}
-
-.jetzt-placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-sizing: border-box;
-  width: min(var(--task-card-width), 100%);
-  max-width: var(--task-card-max-width);
-  min-height: var(--task-card-height);
-  padding: 0.5rem 1rem;
-  border: 1px dashed var(--ui-border-accented);
-  border-radius: var(--task-card-radius);
-  color: var(--ui-text-muted);
-  font-size: var(--text-sm);
-  line-height: var(--lh-snug);
-  text-align: center;
-  transition: opacity var(--add-slot-reveal-duration) var(--ease-standard);
-}
-
-/* The button covers and replaces it: gone while the section is hovered or the button has focus */
-@media (hover: hover) {
-  :global(#column-progress:hover .jetzt-placeholder),
-  .progress-column-content-wrapper:has(.add-task-button:focus) .jetzt-placeholder {
-    opacity: 0;
-  }
-}
-
 /* Overlay wrapper: sits on top of the drop zone, no flex space consumed */
 .add-task-slot-overlay {
   position: absolute;

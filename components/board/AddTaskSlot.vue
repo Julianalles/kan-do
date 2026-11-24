@@ -367,13 +367,6 @@ defineExpose({ open, isDrafting });
   }
 }
 
-/* Touch (#805): no hover to reveal the button, so the empty Jetzt shows its placeholder instead and offers no button */
-@media (hover: none) {
-  .add-task-slot--progress .add-task-button {
-    display: none;
-  }
-}
-
 @media (--phone) {
   /* Mobile cards are --task-card-height tall (8.75rem, #274; TaskCard): the Jetzt slot keeps a card's box there too */
   .add-task-slot--progress,
