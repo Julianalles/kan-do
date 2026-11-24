@@ -33,7 +33,7 @@ const spent = async (page: Page, id = JETZT_ID) => {
 const live1sIntervals = (page: Page) => page.evaluate(() => (window as unknown as { __live1s: Set<number> }).__live1s.size)
 const card = (page: Page, title: string) => page.locator('.task-wrapper', { hasText: title }).first()
 
-async function moveTo(page: Page, title: string, column: 'Jetzt' | 'Warten' | 'Erledigt') {
+async function moveTo(page: Page, title: string, column: 'Jetzt' | 'Wartet' | 'Erledigt') {
   await card(page, title).click({ button: 'right' })
   await page.getByRole('menuitem', { name: 'Status ändern' }).click()
   await page.getByRole('menuitem', { name: column, exact: true }).click()
@@ -110,7 +110,7 @@ test.describe('Jetzt timer lifecycle (#352)', () => {
     await elapse(page, 130_000)
     await expect.poll(async () => { const [session] = await sessions(); return session ? session.end - session.start : 0 }).toBeGreaterThanOrEqual(120_000)
 
-    await moveTo(page, JETZT_TITLE, 'Warten')
+    await moveTo(page, JETZT_TITLE, 'Wartet')
     await expect.poll(() => live1sIntervals(page)).toBe(0)
     const closed = (await sessions())[0]!
     await elapse(page, 130_000)
@@ -174,7 +174,7 @@ test.describe('Jetzt timer lifecycle (#352)', () => {
     await page.goto('/tasks')
     await expect.poll(() => live1sIntervals(page)).toBe(1)
 
-    await moveTo(page, JETZT_TITLE, 'Warten')
+    await moveTo(page, JETZT_TITLE, 'Wartet')
     await expect.poll(async () => (await storedTask(page))?.status).toBe(2)
     await expect.poll(async () => (await storedTask(page))?.timerId).toBeNull()
     expect(await live1sIntervals(page)).toBe(0)

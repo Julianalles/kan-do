@@ -72,7 +72,7 @@ test.describe('Undo toast after completing a task', () => {
 
   test('no toast for moves that are not completions', async ({ page, baseURL }) => {
     await page.goto(`${baseURL}/tasks`)
-    await contextMenuMoveTo(page, 'Dokumentation lesen', 'Warten')
+    await contextMenuMoveTo(page, 'Dokumentation lesen', 'Wartet')
     await expect(column(page, 'waiting').getByText('Dokumentation lesen')).toBeVisible()
     await expect(page.getByRole('button', { name: 'Rückgängig', includeHidden: true })).toHaveCount(0)
   })

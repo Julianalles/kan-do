@@ -28,7 +28,7 @@ test('a Notion session sends the token in a header only, and uses a fraction of 
   const readBack = page.waitForResponse((res) => res.url().includes('/api/notion/pages?pageId=page-1'))
   await page.locator('.task-wrapper', { hasText: TITLE }).first().click({ button: 'right' })
   await page.getByRole('menuitem', { name: 'Status ändern' }).click()
-  await page.getByRole('menuitem', { name: 'Warten', exact: true }).click()
+  await page.getByRole('menuitem', { name: 'Wartet', exact: true }).click()
   await readBack
   await expect(column(page, 'waiting').getByText(TITLE)).toBeVisible()
 

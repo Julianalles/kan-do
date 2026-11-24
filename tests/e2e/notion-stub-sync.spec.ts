@@ -23,7 +23,7 @@ test.describe('Notion stub page state', () => {
     await expect(column(page, 'open').getByText(TITLE)).toBeVisible()
 
     const readBack = page.waitForResponse((res) => res.url().includes('/api/notion/pages?pageId=page-1'))
-    await moveTo(page, TITLE, 'Warten')
+    await moveTo(page, TITLE, 'Wartet')
     await readBack
     await expect(column(page, 'waiting').getByText(TITLE)).toBeVisible()
     await expect(column(page, 'open').getByText(TITLE)).toHaveCount(0)
