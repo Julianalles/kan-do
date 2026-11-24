@@ -4,7 +4,7 @@
 @category feedback
 @description The intro hints' place (#725, base #800): one hint at a time in a sheet that floats at the bottom centre of the board page, above the phone's app bar. A hint says what the next step of the day is at the moment that step is due ("Start": drag a card to Jetzt; "Weiter": the timer runs, drag the card on; "Auswahl": stack a long Offen; "Abschluss": close the day), and goes when the user does the step or closes it.
 @usage <IntroHintOverlay /> once in pages/tasks.vue, after the board. Its styles are `assets/css/intro-hint.css`. Which hint shows, the pacing and what ends it live in `useIntroHints` and `lib/introHints.ts`; the record is `settings-store.introHints`. A new hint adds its id, its moment and its copy there and a text here, never a second overlay.
-@avoid Not a notice about the board's state (NewDayNote, NewDayTimeNote: they sit above the board and come first), not a toast (it has no timer and never vanishes while it is read), not a dialog or a tour step anchored at an element, and not the one-time note on "Alle" (BoardPlanNote, which #803 turns into a hint). Never two at once, never on "Alle" or under an open task sheet, never for a user who did not come through the welcome setup.
+@avoid Not a notice about the board's state (NewDayNote, NewDayTimeNote: they sit above the board and come first), not a toast (it has no timer and never vanishes while it is read), not a dialog or a tour step anchored at an element, and not the planning note on "Alle" (BoardPlanNote: the hint "Planen", #803, which has its own place and shares this overlay's record and rules). Never two at once, never on "Alle" or under an open task sheet, never for a user who did not come through the welcome setup.
 @responsibility
 - One white sheet with the overlay shadow (DESIGN.md "The Sheets Cast Shadows Rule"), 16 px corners like every sheet, the tip icon in the primary (the hint's one accent, a recorded use of the green: user's direction #725, "stick out as a special sheet"), the hint's text and the links "Hinweise ausschalten" and "Schließen"; diverged from the in-column notice look on the user's direction (#725, 2026-11-24): it stands out as its own sheet, built from the same tokens
 - `role="status"` on the host, which is mounted before the hint (while the user's hints are on): the text is announced politely when the hint arrives; it takes no focus and traps none
@@ -62,8 +62,8 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppConfig } from 'nuxt/app'
-import { useDocumentVisibility, useResizeObserver, useWindowFocus } from '@vueuse/core'
-import { useIntroHints } from '~/composables/useIntroHints'
+import { useResizeObserver } from '@vueuse/core'
+import { useHintOnScreen, useIntroHints } from '~/composables/useIntroHints'
 import { useIsPhone } from '~/composables/useIsDesktop'
 import { useBoardGrouping } from '~/composables/useBoardGrouping'
 import { useIntroHintsSwitch } from '~/composables/useIntroHintsSwitch'
@@ -89,9 +89,7 @@ const text = computed(() => {
 // On screen: the day counts for this hint (once per day; the store ignores a repeat). Also when the day changes under a hint that stays up.
 // Only while somebody can see it: a hidden tab or a window left in the background keeps its midnight timer running, and a
 // weekend with the app open must not use up the hint's days. The day is stored when the page comes back.
-const visibility = useDocumentVisibility()
-const windowFocused = useWindowFocus()
-const seen = computed(() => visibility.value === 'visible' && windowFocused.value)
+const seen = useHintOnScreen()
 watch([shownKey, seen], () => { if (current.value && seen.value) markShown(current.value) }, { immediate: true })
 
 /** The sheet's height for the scroll areas it floats over; `--intro-hint-room` (intro-hint.css) adds the sheet's offset and the gap. */

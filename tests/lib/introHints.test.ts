@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest'
 import de from '~/i18n/locales/de.json'
 import en from '~/i18n/locales/en.json'
-import { currentIntroHint, freshIntroHints, INTRO_HINT_ORDER, introHintTextKey, isIntroHintEnded, needsShownDay, sanitizeIntroHints, type IntroHintId, type IntroHintsRecord } from '~/lib/introHints'
+import { currentIntroHint, freshIntroHints, INTRO_HINT_ORDER, INTRO_PLAN_HINT, introHintTextKey, isIntroHintEnded, isIntroHintLive, needsShownDay, sanitizeIntroHints, type IntroHintId, type IntroHintsRecord } from '~/lib/introHints'
 
 const due = () => true
 /** Only "Start" has its moment: the rules of one hint, whatever follows it in the order */
@@ -139,5 +139,43 @@ describe('introHintTextKey (#804): the help in the settings reads the hints\' ow
   it('only "Start" has a text per width', () => {
     expect(introHintTextKey('start', true)).not.toBe(introHintTextKey('start', false))
     expect(introHintTextKey('weiter', true)).toBe(introHintTextKey('weiter', false))
+  })
+})
+
+describe('the hint "Planen" (#803): a hint of "Alle" outside the overlay\'s order', () => {
+  const day = '2026-11-25'
+  const entry = (days: string[], answered = false) => ({ answered, days })
+
+  it('is not in the overlay\'s order, so the overlay never returns it', () => {
+    expect(INTRO_HINT_ORDER).not.toContain(INTRO_PLAN_HINT)
+    expect(currentIntroHint(record(), day, due)).not.toBe(INTRO_PLAN_HINT)
+  })
+
+  it('is live for a started record that has no entry for it (a record from before #803)', () => {
+    expect(isIntroHintLive(record(), INTRO_PLAN_HINT, day)).toBe(true)
+  })
+
+  it.each([
+    ['never started', null],
+    ['turned off', record({ on: false })],
+    ['the quiet day after a "Schließen"', record({ quietDay: day })],
+    ['answered', record({ hints: { planen: entry([], true) } })],
+    ['unanswered on three earlier days', record({ hints: { planen: entry(['2026-11-20', '2026-11-21', '2026-11-22']) } })],
+  ])('is not live: %s', (_name, rec) => {
+    expect(isIntroHintLive(rec, INTRO_PLAN_HINT, day)).toBe(false)
+  })
+
+  it('is live on its third day and on a quiet day of an earlier date', () => {
+    expect(isIntroHintLive(record({ hints: { planen: entry(['2026-11-23', '2026-11-24', day]) } }), INTRO_PLAN_HINT, day)).toBe(true)
+    expect(isIntroHintLive(record({ quietDay: '2026-11-24' }), INTRO_PLAN_HINT, day)).toBe(true)
+  })
+
+  it('has its text per width, in both locales', () => {
+    expect(introHintTextKey(INTRO_PLAN_HINT, true)).not.toBe(introHintTextKey(INTRO_PLAN_HINT, false))
+    for (const phone of [true, false]) {
+      const key = introHintTextKey(INTRO_PLAN_HINT, phone)
+      expect(typeof key.split('.').reduce<unknown>((node, part) => (node as Record<string, unknown> | undefined)?.[part], de), `de ${key}`).toBe('string')
+      expect(typeof key.split('.').reduce<unknown>((node, part) => (node as Record<string, unknown> | undefined)?.[part], en), `en ${key}`).toBe('string')
+    }
   })
 })
