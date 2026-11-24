@@ -524,6 +524,20 @@ test.describe('Statistics Page', () => {
       expect(box!.y + box!.height).toBeGreaterThanOrEqual(843);
     });
 
+    test('switching tiles while the old panel is tall keeps the new toggle in view (#689)', async ({ page, baseURL }) => {
+      await seedRecords(page, fullHistory());
+      await page.goto(`${baseURL}/statistics?open=2`);
+      const toggle = (n: number) => page.getByTestId(`stats-tile-${n}-toggle`);
+      await expect(page.getByTestId('stats-week-list')).toBeVisible();
+      await toggle(3).scrollIntoViewIfNeeded();
+      await toggle(3).click();
+      await expect(toggle(3)).toHaveAttribute('aria-expanded', 'true');
+      await expect(page.getByTestId('stats-tile-2-detail')).toHaveCount(0); // the old panel is gone: the layout is final
+      const box = await toggle(3).boundingBox();
+      expect(box!.y, 'on screen (the phone bar sits at the bottom, nothing at the top)').toBeGreaterThanOrEqual(0);
+      expect(box!.y + box!.height).toBeLessThanOrEqual(844);
+    });
+
     test('one column in the same order, an open tile expands in place, no horizontal scroll', async ({ page, baseURL }) => {
       await seedRecords(page, fullHistory());
       await page.goto(`${baseURL}/statistics`);

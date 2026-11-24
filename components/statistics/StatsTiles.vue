@@ -163,8 +163,23 @@ const questionOrder = computed<QuestionNumber[]>(() => (props.review.state === '
 
 function toggle(n: TileNumber) {
   open.value = open.value === n ? null : n
-  // The opened tile jumps to the first place by CSS order while the page stays scrolled: bring its toggle (the focused element) back into view (#689)
-  if (open.value === n && n !== 5) void nextTick(() => grid.value?.querySelector(`[data-testid="stats-tile-${n}-toggle"]`)?.scrollIntoView({ block: 'nearest' }))
+  if (open.value === n && n !== 5) keepToggleInView(n)
+}
+
+/**
+ * The opened tile jumps to the first place by CSS order (from `md`) and the old panel collapses above it (below `md`) while the page stays scrolled:
+ * bring the toggle (the focused element) back into view, now and once more when the glide has ended, since the layout above it is only final then (#689).
+ * Reduced motion has no glide, the first scroll is enough.
+ */
+function keepToggleInView(n: TileNumber) {
+  const scroll = () => grid.value?.querySelector(`[data-testid="stats-tile-${n}-toggle"]`)?.scrollIntoView({ block: 'nearest' })
+  void nextTick(scroll)
+  const root = grid.value
+  if (!root) return
+  const done = () => { root.removeEventListener('animationend', onEnd); window.clearTimeout(timer) }
+  const onEnd = () => { done(); scroll() }
+  const timer = window.setTimeout(done, 1000)
+  root.addEventListener('animationend', onEnd)
 }
 
 const byItems = computed(() => [
