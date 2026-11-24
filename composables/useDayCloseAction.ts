@@ -6,8 +6,8 @@
  * - today's done tasks and the earlier unacknowledged ones are archived through the shared archive path after the Erledigt
  *   list's short fade (#292, `DONE_LEAVE_MS`, none under reduced motion) and remembered for the next morning's recap;
  * - every unfinished task leaves today's board for "Alle" through the shared take-off (`useTakeOffBoard`, the fresh start's own
- *   code: Jetzt stops its timer and goes through Offen, Wartet goes through Offen, Offen and Jetzt form the group; a source
- *   that stores planning gets its "not planned" status written now). Nothing is deleted; time, notes and the board day count
+ *   code: Jetzt stops its timer and goes through Offen, Wartet stays Wartet (#794), Offen and Jetzt form the group; a source
+ *   that stores planning gets its "not planned" status written for an Offen task now, a Wartet task writes nothing). Nothing is deleted; time, notes and the board day count
  *   stay (the cards were on the board today: `takeBackCarryOver` stays the fresh start's);
  * - the next local day is marked as started with the group (`dayRecap.markDayClosed`), so the next morning has no notice and no
  *   second fresh start and shows the first half of the panel "Zuletzt geplant und nicht erledigt" that one day.

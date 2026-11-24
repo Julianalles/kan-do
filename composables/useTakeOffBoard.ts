@@ -5,10 +5,11 @@
  * what "not planned" means for a task (its timer, its column, its connection) is decided once.
  * @responsibility
  * - Jetzt tasks stop their timer and go to Offen through the shared move path (the stop writes the collected seconds
- *   first); a refused move leaves the task in Jetzt and its timer running again. Wartet tasks go to Offen through the
- *   batch status path (their writes run one after another). Then every task that is Offen is taken off the board in one
- *   store action through `useTaskSync.unplanTasks`, which writes the "not planned" status to a source that stores
- *   planning (Notion with such a status mapped, #357); Local and Todoist get no planning write. Demo tasks stay.
+ *   first); a refused move leaves the task in Jetzt and its timer running again. Wartet tasks keep their status
+ *   (#794: the marker is a thing of its own, #793). Then every Offen and Wartet task is taken off the board in one
+ *   store action through `useTaskSync.unplanTasks`, which writes the "not planned" status of an Offen task to a source
+ *   that stores planning (Notion with such a status mapped, #357); a Wartet task, and Local, Todoist and Reminders,
+ *   get no planning write. Demo tasks stay.
  * - Synchronous: every local change has happened when it returns; only the writes to the tasks' connections run on.
  * - Moves nothing else and decides nothing about days: the caller writes its own marker (`markNewDay`,
  *   `markDayClosed`) and the carry-over bookkeeping; it must be called with writes allowed and the day close closed
@@ -26,14 +27,14 @@ export interface TakenOffBoard {
   group: string[]
   /** Every task taken off the board, the Wartet ones included (they are not in `group`). */
   sent: string[]
-  /** The tasks taken off from Wartet: kept in the panel after them until each is planned again. */
+  /** The Wartet tasks taken off (they stay Wartet): kept in the panel after the group until each is planned again. */
   fromWaiting: string[]
 }
 
 export function useTakeOffBoard() {
   const tasksStore = useTasksStore()
   const { moveTaskToStatus } = useTaskOperations()
-  const { unplanTasks, updateTaskStatuses } = useTaskSync()
+  const { unplanTasks } = useTaskSync()
 
   /** What taking off would move: Jetzt, Offen and Wartet without the demo tasks, in that order. */
   function unfinished() {
@@ -55,11 +56,11 @@ export function useTakeOffBoard() {
     for (const task of tasksStore.tasksOpen) {
       if (!isDemoTaskId(task.id) && !group.includes(task.id)) group.push(task.id)
     }
-    // Wartet is reset too (#387): Offen locally at once, the writes to a connection one after another
+    // Wartet keeps its status (#794, epic #374): the marker alone takes a waiting task off today, and `unplanTasks`
+    // writes nothing to any connection for it (#793)
     const waiting = tasksStore.tasksWaiting.filter(task => !isDemoTaskId(task.id)).map(task => task.id)
-    if (waiting.length > 0) void updateTaskStatuses(waiting, TaskStatus.Open).catch(() => {})
 
-    // The user's own move: a source that stores planning gets its "not planned" status written (#357)
+    // The user's own move: a source that stores planning gets its "not planned" status written for an Offen task (#357)
     const sent = unplanTasks([...group, ...waiting])
     const fromWaiting = waiting.filter(id => sent.includes(id))
     return { group: group.filter(id => sent.includes(id)), sent, fromWaiting }
