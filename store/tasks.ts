@@ -14,7 +14,7 @@ import type { SortField, SortDirection } from "~/types/state";
 import { mapHelpers, setHelpers } from "~/utils/mapHelpers";
 import type { CarryOverEntry } from "~/utils/carryOver";
 import { advanceCarryOverEntry, createCarryOverEntry, localDateKey } from "~/utils/carryOver";
-import { isNotPlanned, markerSurvives } from "~/lib/taskPlanning";
+import { MARKER_MODEL, canBeOffToday, dropStaleMarkers, isNotPlanned, markerSurvives, sourceHoldSurvives } from "~/lib/taskPlanning";
 import { isValidDayKey } from "~/utils/recapDay";
 import { isKnownSource } from "~/utils/sourceMeta";
 import type { IntegrationSourceId, SourceId } from "~/types/taskSource";
@@ -229,10 +229,27 @@ const createTasksByStatusGetter = (status: TaskStatus, tasks: Ref<Task[]>) => co
   const order = column?.taskOrder ?? [];
   const sorting = column?.sorting;
   
-  // A task that is not planned for today (#353) is in no column; only an Open task can be one
+  // A task that is not planned for today (#353) is in no column; an Offen or a Wartet task can be one (#793)
   const filtered = tasks.value.filter((task: Task) => task.status === status && !isNotPlanned(task));
   return sortTasks(filtered, sorting, order);
 });
+
+/** `dropStaleMarkers` for the task snapshots of pending deletes; the input record itself when nothing changed. */
+function dropStaleDeleteMarkers<T>(pending: Record<string, T>): Record<string, T> {
+  let changed = false;
+  const next: Record<string, T> = {};
+  for (const [key, entry] of Object.entries(pending)) {
+    const task = (entry as { task?: unknown } | null)?.task;
+    const [cleaned] = dropStaleMarkers([task]);
+    if (cleaned === task) {
+      next[key] = entry;
+      continue;
+    }
+    changed = true;
+    next[key] = { ...entry, task: cleaned } as T;
+  }
+  return changed ? next : pending;
+}
 
 export const useTasksStore = defineStore("tasks", () => {
   // State
@@ -257,6 +274,13 @@ export const useTasksStore = defineStore("tasks", () => {
    * `validAfterMidnight`.
    */
   const afterMidnight = ref<AfterMidnightCount | null>(null);
+  /**
+   * The stamp of the marker model the stored tasks follow (#793): `MARKER_MODEL` once `notPlanned` counts on a Wartet
+   * task too. Data stored before has none: `beforeHydrate` clears it, the stored value comes back if there is one, and
+   * `afterHydrate` drops the stale markers of unstamped data once (`dropStaleMarkers`) and sets it. Additive; anything
+   * but the current value reads as none.
+   */
+  const markerModel = ref<number>(MARKER_MODEL);
   const validAfterMidnight = computed(() => sanitizeAfterMidnight(afterMidnight.value));
   /**
    * Transient (never persisted): the local day whose check already took the note (`settleAfterMidnight`). A tick that
@@ -458,13 +482,11 @@ export const useTasksStore = defineStore("tasks", () => {
       const wasInDone = task.status === TaskStatus.Done;
       const statusBefore = task.status;
       Object.assign(task, updates);
-      // "Not planned" (#353) exists only for a task that stays Open: any other status, before or after the
-      // change, puts the task on the board (a marker an older app version left on a moved task never hides it).
-      // What the source held it as (#357) ends with it: the write of this status tells the source the column
-      if (!markerSurvives(statusBefore, task.status)) {
-        if (task.notPlanned !== undefined) delete task.notPlanned;
-        if (task.sourceNotPlanned !== undefined) delete task.sourceNotPlanned;
-      }
+      // "Not planned" (#353, #793) stays only between Offen and Wartet: Jetzt always belongs to today, and so does a
+      // task that comes back from Erledigt (a marker an older app version left there never hides it).
+      // What the source held it as (#357) stays only Open to Open: the write of any other status tells the source the column
+      if (!markerSurvives(statusBefore, task.status) && task.notPlanned !== undefined) delete task.notPlanned;
+      if (!sourceHoldSurvives(statusBefore, task.status) && task.sourceNotPlanned !== undefined) delete task.sourceNotPlanned;
       // A completion time written by anything but the user's correction (reopening, completing again, an undo)
       // is no longer the corrected one (kd#131)
       if ('completedAt' in updates && !('completedAtCorrected' in updates)) delete task.completedAtCorrected;
@@ -945,8 +967,8 @@ export const useTasksStore = defineStore("tasks", () => {
   }
 
   /**
-   * Plans a task for today (#353): drops its `notPlanned` marker, so it shows in Offen, at the end of the column's
-   * stored order. Nothing else about the task changes (no `updatedAt`, no `pendingSync`: no connection holds the
+   * Plans a task for today (#353): drops its `notPlanned` marker, so it shows in the column of its status (Offen, or
+   * Wartet for a waiting task, #793), at the end of the column's stored order. Nothing else about the task changes (no `updatedAt`, no `pendingSync`: no connection holds the
    * marker). Returns whether the task was not planned before.
    */
   function planTask(taskId: string): boolean {
@@ -954,23 +976,26 @@ export const useTasksStore = defineStore("tasks", () => {
   }
 
   /**
-   * Plans several tasks at once (#356, "Alle wieder einplanen"): they land at the end of Offen in the order given,
-   * with one reconcile for the whole list. Ids that are unknown or already planned are skipped.
+   * Plans several tasks at once (#356, "Alle wieder einplanen"): they land at the end of their column (Offen, or Wartet
+   * for a waiting task, #793) in the order given, with one reconcile for the whole list. Ids that are unknown or already planned are skipped.
    * @returns the ids that were planned
    */
   function planTasks(taskIds: readonly string[]): string[] {
     const planned: string[] = [];
+    const waiting: string[] = [];
     for (const taskId of taskIds) {
       const target = tasks.value.find((el) => el.id === taskId);
       if (!target || !isNotPlanned(target) || planned.includes(taskId)) continue;
       delete target.notPlanned;
       planned.push(taskId);
+      if (target.status === TaskStatus.Waiting) waiting.push(taskId);
     }
     if (planned.length === 0) return planned;
     const boardStore = useBoardStore();
-    // The reconcile appends in stored order: put the list at the end of Offen in the order asked for
+    // The reconcile appends in stored order: put the list at the end of its column in the order asked for
     boardStore.reconcileColumnsWithTasks(tasks.value);
-    boardStore.moveToEndOfColumn(TaskStatus.Open, planned);
+    boardStore.moveToEndOfColumn(TaskStatus.Open, planned.filter(id => !waiting.includes(id)));
+    if (waiting.length > 0) boardStore.moveToEndOfColumn(TaskStatus.Waiting, waiting);
     return planned;
   }
 
@@ -988,25 +1013,25 @@ export const useTasksStore = defineStore("tasks", () => {
   }
 
   /**
-   * "Don't plan for today" (#353): takes an Offen task off the board. It stays in `tasks` with its time, notes, topic,
-   * priority, timebox, source and carried-over count, leaves Offen's order and goes to the top of "Alle Aufgaben" (#354). Only an Open task can be taken
-   * off: any other status is refused (`false`), as is a task that is already not planned.
+   * "Don't plan for today" (#353): takes an Offen or a Wartet task (#793) off the board. It stays in `tasks` with its status, time, notes, topic,
+   * priority, timebox, source and carried-over count, leaves its column's order and goes to the top of "Alle Aufgaben" (#354). Only an Open or a
+   * Waiting task can be taken off: Jetzt and Erledigt are refused (`false`), as is a task that is already not planned.
    */
   function unplanTask(taskId: string): boolean {
     return unplanTasks([taskId]).length > 0;
   }
 
   /**
-   * Takes several Offen tasks off the board at once (#356; #387: the fresh start the user triggers): they go to the top of "Nicht
+   * Takes several Offen or Wartet tasks off the board at once (#356; #387: the fresh start the user triggers): they go to the top of "Nicht
    * geplant" in the order given, with one reconcile for the whole list. The rule per task is `unplanTask`'s: only
-   * an Open task that is still planned; every other id is skipped. Nothing else about a task changes.
+   * an Open or a Waiting task that is still planned; every other id is skipped. Nothing else about a task changes.
    * @returns the ids that were taken off
    */
   function unplanTasks(taskIds: readonly string[]): string[] {
     const taken: string[] = [];
     for (const taskId of taskIds) {
       const target = tasks.value.find((el) => el.id === taskId);
-      if (!target || target.status !== TaskStatus.Open || isNotPlanned(target)) continue;
+      if (!target || !canBeOffToday(target.status) || isNotPlanned(target)) continue;
       target.notPlanned = true;
       taken.push(taskId);
     }
@@ -1540,7 +1565,7 @@ export const useTasksStore = defineStore("tasks", () => {
         }
 
         // "Not planned" (#353) is kan-do's own state: the held task's marker stays, but only while the task is still
-        // Open after the merge (the source moved it on: it is on the board). A source with a planning state of its
+        // Offen or Wartet after the merge (#793; the source moved it to Jetzt or Erledigt: it is on the board). A source with a planning state of its
         // own (#357) moves the task only when that state changed there since the last fetch: it holds the task as
         // not planned now and did not before, or the other way round (which "not planned" status it is does not
         // matter: Backlog to Someday is no move). The same answer as last time leaves kan-do's marker alone, so a
@@ -1551,11 +1576,11 @@ export const useTasksStore = defineStore("tasks", () => {
         if (heldNow === undefined) delete mergedTask.sourceNotPlanned;
         // A source that plans by date (#553) never takes a planned card off the board: the date moved in Reminders (or
         // yesterday's board, while the day has not begun) leaves the card where it is, and the held value stays unset
-        const leavesBoard = options.planningByDate === true && heldBefore === undefined && heldNow !== undefined && existingTask.notPlanned !== true;
+        const leavesBoard = options.planningByDate === true && heldBefore === undefined && heldNow !== undefined && !isNotPlanned(existingTask);
         if (leavesBoard) delete mergedTask.sourceNotPlanned;
         const sourceMoved = !leavesBoard && (heldBefore !== undefined) !== (heldNow !== undefined);
         const notPlannedNow = sourceMoved
-          ? heldNow !== undefined && mergedTask.status === TaskStatus.Open
+          ? heldNow !== undefined && canBeOffToday(mergedTask.status)
           : existingTask.notPlanned === true && markerSurvives(existingTask.status, mergedTask.status);
         if (notPlannedNow) mergedTask.notPlanned = true;
         else delete mergedTask.notPlanned;
@@ -1866,11 +1891,9 @@ export const useTasksStore = defineStore("tasks", () => {
       const currentTask = newTasks[i];
       if (currentTask && taskIdsSet.has(currentTask.id)) {
         const task: Task = { ...currentTask, status };
-        // "Not planned" (#353) only survives Open -> Open, and what the source held it as (#357) with it, as in `updateTask`
-        if (!markerSurvives(currentTask.status, status)) {
-          delete task.notPlanned;
-          delete task.sourceNotPlanned;
-        }
+        // "Not planned" survives between Offen and Wartet (#793), what the source held it as (#357) only Open -> Open, as in `updateTask`
+        if (!markerSurvives(currentTask.status, status)) delete task.notPlanned;
+        if (!sourceHoldSurvives(currentTask.status, status)) delete task.sourceNotPlanned;
 
         // Track completion timestamp when moved to Done
         if (status === TaskStatus.Done && currentTask.status !== TaskStatus.Done) {
@@ -2061,6 +2084,7 @@ export const useTasksStore = defineStore("tasks", () => {
     carryOverByTaskId,
     pendingDeletes,
     afterMidnight,
+    markerModel,
     
     // Getters
     validAfterMidnight,
@@ -2165,7 +2189,17 @@ export const useTasksStore = defineStore("tasks", () => {
 }, {
   persist: {
     key: 'tasks-store',
-    afterHydrate: (ctx: { store: { tasks: Task[]; pendingDeletes?: Record<string, PendingTaskDelete>; lastSyncTimestamp?: Date | null; pendingTimeUpdates?: Record<string, PendingTimeUpdate>; $persist: () => void } }) => {
+    // Unstamped until the stored state says otherwise (#793): `afterHydrate` then knows data from before the marker counted on Wartet
+    beforeHydrate: (ctx: { store: { markerModel: unknown } }) => {
+      ctx.store.markerModel = 0;
+    },
+    afterHydrate: (ctx: { store: { tasks: Task[]; pendingDeletes?: Record<string, PendingTaskDelete>; lastSyncTimestamp?: Date | null; pendingTimeUpdates?: Record<string, PendingTimeUpdate>; markerModel: unknown; $persist: () => void } }) => {
+      // Data without the stamp (#793) is from before `notPlanned` counted on a Wartet task: a marker it left on a Jetzt,
+      // Wartet or Erledigt task had no effect and goes, once, so no card leaves the board with the update. The stamp is
+      // set in memory; it is written with the clean-up below or with the next mutation (#273)
+      const unstamped = ctx.store.markerModel !== MARKER_MODEL;
+      ctx.store.markerModel = MARKER_MODEL;
+
       // Storage holds ISO strings; the types say Date (#376). Reviving is not a stored-shape change, so it
       // stays out of `changed` below and never writes by itself (#273). It runs on every hydrate, also
       // when no task came back: the sync time and the pending time updates live outside the tasks.
@@ -2187,8 +2221,10 @@ export const useTasksStore = defineStore("tasks", () => {
       // Tasks saved before sources existed belong to the board's only source of that time (D2). The
       // board store hydrated first (it was just created above), so its sources are already mapped.
       const fallback = legacyTaskSource(boardStore.boardConfig.sources);
-      const normalizedTasks = normalizeTasks(restoredTasks ?? [], fallback);
-      const normalizedDeletes = normalizePendingDeletes(ctx.store.pendingDeletes ?? {}, fallback);
+      const sourcedTasks = normalizeTasks(restoredTasks ?? [], fallback);
+      const sourcedDeletes = normalizePendingDeletes(ctx.store.pendingDeletes ?? {}, fallback);
+      const normalizedTasks = unstamped ? dropStaleMarkers(sourcedTasks) : sourcedTasks;
+      const normalizedDeletes = unstamped ? dropStaleDeleteMarkers(sourcedDeletes) : sourcedDeletes;
       const changed = normalizedTasks !== (restoredTasks ?? []) || normalizedDeletes !== (ctx.store.pendingDeletes ?? {});
       const tasks = reviveTaskDates(normalizedTasks);
       const pendingDeletes = revivePendingDeletes(normalizedDeletes);

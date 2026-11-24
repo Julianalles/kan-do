@@ -18,10 +18,9 @@ import { usePlanMoves } from '~/composables/usePlanMoves'
 import { PLAN_TOAST_MS } from '~/composables/usePlanToasts'
 import { useTaskSync } from '~/composables/useTaskSync'
 import { useTasksStore } from '~/store/tasks'
-import { isNotPlanned } from '~/lib/taskPlanning'
+import { canBeOffToday, isNotPlanned } from '~/lib/taskPlanning'
 import { translate } from '~/lib/i18n'
 import { ICONS } from '~/lib/icons'
-import { TaskStatus } from '~/types/taskStatus'
 import { useToast } from '#imports'
 
 export function usePlanAll() {
@@ -39,8 +38,8 @@ export function usePlanAll() {
     // One after another: the date writes go to the source in the order planned
     for (const id of ids) {
       const task = tasksStore.task(id)
-      // Still planned and still in Offen: a task moved on since keeps its date, as it keeps its place
-      if (!task || task.status !== TaskStatus.Open || isNotPlanned(task)) continue
+      // Still planned and still in Offen or Wartet (#793): a task moved on since keeps its date, as it keeps its place
+      if (!task || !canBeOffToday(task.status) || isNotPlanned(task)) continue
       if (await restorePlannedDate(id)) back.push(id)
     }
     // A task moved on while the dates were restored is refused by `unplanTasks` itself

@@ -136,6 +136,21 @@ describe('plan and put-back of a source that plans by date (#553)', () => {
     expect(isNotPlanned(store.task('a')!)).toBe(true)
   })
 
+  it('a waiting reminder planned for today gets no date write and no marker; taken off again, nothing either (#793)', async () => {
+    const store = useTasksStore()
+    store.setTasks([reminder('w', '2026-11-25', { status: TaskStatus.Waiting })])
+    const sync = useTaskSync()
+    expect(sync.planTask('w')).toBe(true)
+    await sync.whenPlanWritten('w')
+    expect(update).not.toHaveBeenCalled()
+    expect(store.task('w')).toMatchObject({ status: TaskStatus.Waiting, sourceNotPlanned: 'not-today' })
+    expect(store.task('w')!.pendingSync).toBeUndefined()
+    expect(isNotPlanned(store.task('w')!)).toBe(false)
+    expect(sync.unplanTask('w')).toBe(true)
+    expect(update).not.toHaveBeenCalled()
+    expect(store.task('w')).toMatchObject({ status: TaskStatus.Waiting, notPlanned: true })
+  })
+
   it('plan, put back, plan in quick succession: one write, later plans are no-op successes', async () => {
     const store = useTasksStore()
     store.setTasks([reminder('a', '2026-11-25')])

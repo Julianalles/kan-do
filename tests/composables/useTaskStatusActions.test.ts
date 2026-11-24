@@ -207,7 +207,24 @@ describe('useTaskStatusActions', () => {
       expect(updateTaskStatusMock).not.toHaveBeenCalled()
     })
 
-    it.each([TaskStatus.Progress, TaskStatus.Waiting, TaskStatus.Done])('Nicht geplant → status %s is the normal move, which plans it', async (status) => {
+    it('Nicht geplant → Wartet is the normal move and keeps the task off today; the picker then reads "Wartet" (#793)', async () => {
+      const store = useTasksStore()
+      const actions = stored({ notPlanned: true })
+      await actions.chooseStatus(TaskStatus.Waiting)
+      expect(updateTaskStatusMock).toHaveBeenCalledWith('abc', TaskStatus.Waiting)
+      expect(planForTodayMock).not.toHaveBeenCalled()
+      expect(store.task('abc')).toMatchObject({ status: TaskStatus.Waiting, notPlanned: true })
+    })
+
+    it('a Wartet task off today reads as "Wartet"; picked into Offen it is moved, not planned (#793)', async () => {
+      const actions = stored({ notPlanned: true, status: TaskStatus.Waiting })
+      expect(actions.statusChoice.value).toBe(TaskStatus.Waiting)
+      await actions.chooseStatus(TaskStatus.Open)
+      expect(updateTaskStatusMock).toHaveBeenCalledWith('abc', TaskStatus.Open)
+      expect(planForTodayMock).not.toHaveBeenCalled()
+    })
+
+    it.each([TaskStatus.Progress, TaskStatus.Done])('Nicht geplant → status %s is the normal move, which plans it', async (status) => {
       const store = useTasksStore()
       await stored({ notPlanned: true }).chooseStatus(status)
       expect(updateTaskStatusMock).toHaveBeenCalledWith('abc', status)

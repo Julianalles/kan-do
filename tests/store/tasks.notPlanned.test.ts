@@ -1,13 +1,13 @@
 /**
  * #353: a task can be held without being on today's board. `Task.notPlanned` is kan-do's own marker (absent =
- * planned, valid only while the status is Open): the columns, the column order and the carried-over count leave
+ * planned, valid while the status is Open or Waiting, #793): the columns, the column order and the carried-over count leave
  * such a task out, the two moves put it on and take it off, and a merge keeps the marker of a task it already holds.
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useTasksStore } from '~/store/tasks'
 import { useBoardStore } from '~/store/board'
-import { inStatus, isNotPlanned, markerSurvives, plannedTasks } from '~/lib/taskPlanning'
+import { dropStaleMarkers, inStatus, isNotPlanned, markerSurvives, plannedTasks, sourceHoldSurvives } from '~/lib/taskPlanning'
 import type { Task } from '~/types/task'
 import type { SourceId } from '~/types/taskSource'
 import { TaskStatus } from '~/types/taskStatus'
@@ -27,10 +27,12 @@ function makeTask(id: string, overrides: Partial<Task> = {}): Task {
 }
 
 describe('isNotPlanned: the single reader of the marker (#353)', () => {
-  it('is true only for the marker `true` on an Open task', () => {
+  it('is true only for the marker `true` on an Open or a Waiting task (#793)', () => {
     expect(isNotPlanned(makeTask('a', { notPlanned: true }))).toBe(true)
+    expect(isNotPlanned(makeTask('a', { notPlanned: true, status: TaskStatus.Waiting }))).toBe(true)
     expect(isNotPlanned(makeTask('a'))).toBe(false)
-    for (const status of [TaskStatus.Progress, TaskStatus.Waiting, TaskStatus.Done]) {
+    expect(isNotPlanned(makeTask('a', { status: TaskStatus.Waiting }))).toBe(false)
+    for (const status of [TaskStatus.Progress, TaskStatus.Done]) {
       expect(isNotPlanned(makeTask('a', { notPlanned: true, status }))).toBe(false)
     }
   })
@@ -53,11 +55,11 @@ describe('several tasks at once (#356)', () => {
   it('unplanTasks takes Open tasks off the board in the order given, on top of "Alle Aufgaben", with one reconcile', () => {
     const store = useTasksStore()
     const board = useBoardStore()
-    store.setTasks([makeTask('a'), makeTask('b'), makeTask('c'), makeTask('old', { notPlanned: true }), makeTask('w', { status: TaskStatus.Waiting })])
+    store.setTasks([makeTask('a'), makeTask('b'), makeTask('c'), makeTask('old', { notPlanned: true }), makeTask('w', { status: TaskStatus.Progress })])
     board.reconcileColumnsWithTasks(store.tasks)
     board.noteNotPlanned('old')
     const reconcile = vi.spyOn(board, 'reconcileColumnsWithTasks')
-    // unknown ids, a task in another column, one already not planned and a repeat are skipped
+    // unknown ids, a task in Jetzt, one already not planned and a repeat are skipped
     expect(store.unplanTasks(['c', 'a', 'w', 'old', 'nope', 'c'])).toEqual(['c', 'a'])
     expect(reconcile).toHaveBeenCalledTimes(1)
     expect(store.tasksNotPlanned.map(t => t.id)).toEqual(['c', 'a', 'old'])
@@ -91,14 +93,16 @@ describe('several tasks at once (#356)', () => {
     expect(store.planTask('a')).toBe(false)
   })
 
-  it('markerSurvives is the one rule of every status write: only Open to Open keeps the marker', () => {
+  it('markerSurvives is the one rule of every status write: only between Offen and Wartet the marker stays (#793)', () => {
     const all = [TaskStatus.Open, TaskStatus.Progress, TaskStatus.Waiting, TaskStatus.Done]
+    const offable = [TaskStatus.Open, TaskStatus.Waiting]
     for (const before of all) for (const after of all) {
-      expect(markerSurvives(before, after)).toBe(before === TaskStatus.Open && after === TaskStatus.Open)
+      expect(markerSurvives(before, after)).toBe(offable.includes(before) && offable.includes(after))
+      expect(sourceHoldSurvives(before, after)).toBe(before === TaskStatus.Open && after === TaskStatus.Open)
     }
     const store = useTasksStore()
     store.setTasks([makeTask('a', { notPlanned: true }), makeTask('b', { notPlanned: true }), makeTask('c', { notPlanned: true, source: 'notion' })])
-    store.updateTask('a', { status: TaskStatus.Waiting })
+    store.updateTask('a', { status: TaskStatus.Done })
     store.batchUpdateTaskStatus(['b'], TaskStatus.Progress)
     store.mergeTasks('notion', [makeTask('c', { source: 'notion', status: TaskStatus.Done })])
     expect(store.tasks.some(t => 'notPlanned' in t)).toBe(false)
@@ -106,9 +110,16 @@ describe('several tasks at once (#356)', () => {
 })
 
 describe('inStatus: a snapshot put into another column (#354)', () => {
-  it('keeps the marker only on a task that was Open and stays Open', () => {
+  it('keeps the marker between Offen and Wartet only, and what the source holds only Open to Open (#793)', () => {
     expect(inStatus(makeTask('a', { notPlanned: true }), TaskStatus.Open).notPlanned).toBe(true)
-    expect('notPlanned' in inStatus(makeTask('a', { notPlanned: true }), TaskStatus.Waiting)).toBe(false)
+    const waiting = inStatus(makeTask('a', { notPlanned: true, sourceNotPlanned: 'Backlog' }), TaskStatus.Waiting)
+    expect(waiting.notPlanned).toBe(true)
+    expect('sourceNotPlanned' in waiting).toBe(false)
+    expect(inStatus(makeTask('a', { notPlanned: true, status: TaskStatus.Waiting }), TaskStatus.Open).notPlanned).toBe(true)
+    for (const status of [TaskStatus.Progress, TaskStatus.Done]) {
+      expect('notPlanned' in inStatus(makeTask('a', { notPlanned: true }), status)).toBe(false)
+      expect('notPlanned' in inStatus(makeTask('a', { notPlanned: true, status }), TaskStatus.Waiting)).toBe(false)
+    }
   })
 
   it('drops a stale marker of a Jetzt snapshot that returns to Offen, so the task is not hidden', () => {
@@ -187,12 +198,12 @@ describe('tasks store: a task that is not planned for today (#353)', () => {
       expect(offen()).toEqual(['c', 'b', 'a'])
     })
 
-    it('"not today" is refused outside Offen, for an unknown id and for a task that is already off', () => {
+    it('"not today" is refused in Jetzt and Erledigt, for an unknown id and for a task that is already off', () => {
       store.setTasks([
-        makeTask('p', { status: TaskStatus.Progress }), makeTask('w', { status: TaskStatus.Waiting }),
+        makeTask('p', { status: TaskStatus.Progress }),
         makeTask('d', { status: TaskStatus.Done }), makeTask('o', { notPlanned: true }),
       ])
-      for (const id of ['p', 'w', 'd', 'o', 'missing']) expect(store.unplanTask(id)).toBe(false)
+      for (const id of ['p', 'd', 'o', 'missing']) expect(store.unplanTask(id)).toBe(false)
       expect(store.tasks.filter(t => t.notPlanned).map(t => t.id)).toEqual(['o'])
       expect(store.tasksProgress.map(t => t.id)).toEqual(['p'])
     })
@@ -241,7 +252,7 @@ describe('tasks store: a task that is not planned for today (#353)', () => {
     it('the batch status update follows the same rule', () => {
       vi.useFakeTimers()
       store.setTasks([makeTask('a', { notPlanned: true }), makeTask('b', { notPlanned: true, status: TaskStatus.Done })])
-      store.batchUpdateTaskStatus(['a'], TaskStatus.Waiting)
+      store.batchUpdateTaskStatus(['a'], TaskStatus.Progress)
       store.batchUpdateTaskStatus(['b'], TaskStatus.Open)
       expect(store.tasks.some(t => 'notPlanned' in t)).toBe(false)
       vi.runAllTimers()
@@ -300,8 +311,8 @@ describe('tasks store: a task that is not planned for today (#353)', () => {
       expect(store.task('l')?.notPlanned).toBe(true)
     })
 
-    it('a stale marker on a held task that is not Open does not take a re-opened task off the board', () => {
-      store.setTasks([held({ notPlanned: true, status: TaskStatus.Waiting })])
+    it('a stale marker on a held done task does not take a re-opened task off the board', () => {
+      store.setTasks([held({ notPlanned: true, status: TaskStatus.Done })])
       store.mergeTasks(source, [fetched({ status: TaskStatus.Open })])
       expect(offen()).toEqual(['x'])
     })
@@ -406,10 +417,200 @@ describe('tasks store: a task that is not planned for today (#353)', () => {
       store.setTasks([makeTask('a'), makeTask('b'), makeTask('c')])
       store.unplanTask('a')
       store.unplanTask('b')
-      store.updateTask('a', { status: TaskStatus.Waiting })
+      store.updateTask('a', { status: TaskStatus.Progress })
       store.removeTask('b')
       board.reconcileColumnsWithTasks(store.tasks)
       expect(board.notPlannedOrder).toEqual([])
     })
+  })
+})
+
+describe('the marker on a waiting task (#793)', () => {
+  let store: ReturnType<typeof useTasksStore>
+  let board: ReturnType<typeof useBoardStore>
+  const ids = (list: readonly Task[]) => list.map(t => t.id)
+  const order = (status: TaskStatus) => board.columnByTaskStatus(status)?.taskOrder ?? []
+
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    store = useTasksStore()
+    board = useBoardStore()
+  })
+
+  it('a Wartet task can be taken off today and planned again: it keeps Wartet and returns to the end of that column', () => {
+    store.setTasks([makeTask('o'), makeTask('w1', { status: TaskStatus.Waiting }), makeTask('w2', { status: TaskStatus.Waiting })])
+    board.reconcileColumnsWithTasks(store.tasks)
+
+    expect(store.unplanTask('w1')).toBe(true)
+    expect(store.task('w1')).toMatchObject({ status: TaskStatus.Waiting, notPlanned: true })
+    expect(ids(store.tasksWaiting)).toEqual(['w2'])
+    expect(order(TaskStatus.Waiting)).toEqual(['w2'])
+    expect(ids(store.tasksNotPlanned)).toEqual(['w1'])
+    expect(board.notPlannedOrder).toEqual(['w1'])
+
+    expect(store.planTask('w1')).toBe(true)
+    expect(store.task('w1')?.status).toBe(TaskStatus.Waiting)
+    expect('notPlanned' in store.task('w1')!).toBe(false)
+    expect(ids(store.tasksWaiting).sort()).toEqual(['w1', 'w2'])
+    expect(order(TaskStatus.Waiting)).toEqual(['w2', 'w1'])
+    expect(order(TaskStatus.Open)).toEqual(['o'])
+    expect(board.notPlannedOrder).toEqual([])
+  })
+
+  it('planTasks sorts a mixed list into Offen and Wartet, each in the order given', () => {
+    store.setTasks([
+      makeTask('o'), makeTask('w', { status: TaskStatus.Waiting }),
+      makeTask('a', { notPlanned: true }), makeTask('b', { notPlanned: true, status: TaskStatus.Waiting }),
+      makeTask('c', { notPlanned: true }), makeTask('d', { notPlanned: true, status: TaskStatus.Waiting }),
+    ])
+    board.reconcileColumnsWithTasks(store.tasks)
+    expect(store.planTasks(['d', 'c', 'b', 'a'])).toEqual(['d', 'c', 'b', 'a'])
+    expect(order(TaskStatus.Open)).toEqual(['o', 'c', 'a'])
+    expect(order(TaskStatus.Waiting)).toEqual(['w', 'd', 'b'])
+  })
+
+  it('a task off today stays off today between Offen and Wartet, through the single and the batch write', () => {
+    vi.useFakeTimers()
+    store.setTasks([makeTask('a', { notPlanned: true }), makeTask('b', { notPlanned: true })])
+    store.updateTask('a', { status: TaskStatus.Waiting })
+    expect(store.task('a')).toMatchObject({ status: TaskStatus.Waiting, notPlanned: true })
+    store.updateTask('a', { status: TaskStatus.Open })
+    expect(store.task('a')).toMatchObject({ status: TaskStatus.Open, notPlanned: true })
+    store.batchUpdateTaskStatus(['b'], TaskStatus.Waiting)
+    vi.runAllTimers()
+    store.batchUpdateTaskStatus(['b'], TaskStatus.Open)
+    vi.runAllTimers()
+    expect(store.task('b')).toMatchObject({ status: TaskStatus.Open, notPlanned: true })
+    expect(ids(store.tasksOpen)).toEqual([])
+    expect(ids(store.tasksWaiting)).toEqual([])
+    vi.useRealTimers()
+  })
+
+  it('starting a task that is off today plans it, from Offen and from Wartet; it stays planned afterwards', () => {
+    for (const from of [TaskStatus.Open, TaskStatus.Waiting]) {
+      store.setTasks([makeTask('a', { notPlanned: true, status: from })])
+      store.updateTask('a', { status: TaskStatus.Progress })
+      expect('notPlanned' in store.task('a')!).toBe(false)
+      expect(ids(store.tasksProgress)).toEqual(['a'])
+      store.updateTask('a', { status: TaskStatus.Waiting })
+      expect(ids(store.tasksWaiting)).toEqual(['a'])
+    }
+  })
+
+  it('a done task ignores the marker, and Erledigt back to Offen or Wartet plans the task', () => {
+    for (const back of [TaskStatus.Open, TaskStatus.Waiting]) {
+      store.setTasks([makeTask('a', { notPlanned: true, status: TaskStatus.Waiting })])
+      store.updateTask('a', { status: TaskStatus.Done })
+      expect(ids(store.tasksDone)).toEqual(['a'])
+      expect('notPlanned' in store.task('a')!).toBe(false)
+      store.updateTask('a', { status: back })
+      expect(isNotPlanned(store.task('a')!)).toBe(false)
+      expect(ids(store.tasksNotPlanned)).toEqual([])
+    }
+  })
+
+  it('what the source holds ends when an Offen task off today goes to Wartet, so the next fetch sees no move', () => {
+    store.setTasks([makeTask('n', { source: 'notion', notPlanned: true, sourceNotPlanned: 'Backlog' })])
+    store.updateTask('n', { status: TaskStatus.Waiting })
+    expect(store.task('n')).toMatchObject({ status: TaskStatus.Waiting, notPlanned: true })
+    expect('sourceNotPlanned' in store.task('n')!).toBe(false)
+    // The source answers with the waiting status it was written: the marker stays, sync after sync
+    store.mergeTasks('notion', [makeTask('n', { source: 'notion', status: TaskStatus.Waiting })])
+    store.mergeTasks('notion', [makeTask('n', { source: 'notion', status: TaskStatus.Waiting })])
+    expect(store.task('n')).toMatchObject({ status: TaskStatus.Waiting, notPlanned: true })
+  })
+
+  describe('a sync changes the marker only when the source\'s own planning changed', () => {
+    const held = (overrides: Partial<Task> = {}) => makeTask('x', { source: 'notion', status: TaskStatus.Waiting, ...overrides })
+    const fetched = (overrides: Partial<Task> = {}) => makeTask('x', { source: 'notion', status: TaskStatus.Waiting, ...overrides })
+
+    it('keeps a Wartet task off today, and keeps a planned one planned', () => {
+      store.setTasks([held({ notPlanned: true })])
+      store.mergeTasks('notion', [fetched({ title: 'renamed' })])
+      expect(store.task('x')).toMatchObject({ notPlanned: true, title: 'renamed' })
+      store.setTasks([held()])
+      store.mergeTasks('notion', [fetched()])
+      expect('notPlanned' in store.task('x')!).toBe(false)
+    })
+
+    it('keeps the marker when the source moves the task between Offen and Wartet, drops it for Jetzt and Erledigt', () => {
+      store.setTasks([held({ notPlanned: true })])
+      store.mergeTasks('notion', [fetched({ status: TaskStatus.Open })])
+      expect(store.task('x')).toMatchObject({ status: TaskStatus.Open, notPlanned: true })
+      store.mergeTasks('notion', [fetched({ status: TaskStatus.Waiting })])
+      expect(store.task('x')).toMatchObject({ status: TaskStatus.Waiting, notPlanned: true })
+      store.mergeTasks('notion', [fetched({ status: TaskStatus.Progress })])
+      expect('notPlanned' in store.task('x')!).toBe(false)
+      store.setTasks([held({ notPlanned: true })])
+      store.mergeTasks('notion', [fetched({ status: TaskStatus.Done })])
+      expect('notPlanned' in store.task('x')!).toBe(false)
+    })
+
+    it('Notion moved the task out of a "not planned" status into its waiting one: planned and waiting', () => {
+      store.setTasks([held({ status: TaskStatus.Open, notPlanned: true, sourceNotPlanned: 'Backlog' })])
+      store.mergeTasks('notion', [fetched()])
+      expect(store.task('x')?.status).toBe(TaskStatus.Waiting)
+      expect('notPlanned' in store.task('x')!).toBe(false)
+    })
+
+    it('Notion moved a planned waiting task into a "not planned" status: Offen, off today', () => {
+      store.setTasks([held()])
+      store.mergeTasks('notion', [fetched({ status: TaskStatus.Open, sourceNotPlanned: 'Backlog' })])
+      expect(store.task('x')).toMatchObject({ status: TaskStatus.Open, notPlanned: true, sourceNotPlanned: 'Backlog' })
+    })
+
+    it('a source that knows only open and done (Todoist) leaves a Wartet task off today as it is', () => {
+      store.setTasks([makeTask('t', { source: 'todoist', status: TaskStatus.Waiting, notPlanned: true })])
+      store.mergeTasks('todoist', [makeTask('t', { source: 'todoist', status: TaskStatus.Open })], { holdsOnlyOpenDone: true, startsNotPlanned: true })
+      expect(store.task('t')).toMatchObject({ status: TaskStatus.Waiting, notPlanned: true })
+    })
+
+    it('a source that plans by date keeps a Wartet task off today while its date is not today, and follows the date to today', () => {
+      const options = { holdsOnlyOpenDone: true, planningByDate: true, keepsKanDoFields: true }
+      const reminder = (overrides: Partial<Task> = {}) => makeTask('r', { source: 'reminders', status: TaskStatus.Open, ...overrides })
+      store.setTasks([reminder({ status: TaskStatus.Waiting, notPlanned: true })])
+      store.mergeTasks('reminders', [reminder({ sourceNotPlanned: 'not-today' })], options)
+      expect(store.task('r')).toMatchObject({ status: TaskStatus.Waiting, notPlanned: true, sourceNotPlanned: 'not-today' })
+      store.mergeTasks('reminders', [reminder({ sourceNotPlanned: 'not-today' })], options)
+      expect(store.task('r')).toMatchObject({ status: TaskStatus.Waiting, notPlanned: true })
+      // The reminder's date changed to today: the source's own planning changed
+      store.mergeTasks('reminders', [reminder()], options)
+      expect(store.task('r')?.status).toBe(TaskStatus.Waiting)
+      expect('notPlanned' in store.task('r')!).toBe(false)
+    })
+
+    it('a planned Wartet task of such a source never leaves the board by a fetch', () => {
+      const options = { holdsOnlyOpenDone: true, planningByDate: true, keepsKanDoFields: true }
+      store.setTasks([makeTask('r', { source: 'reminders', status: TaskStatus.Waiting })])
+      store.mergeTasks('reminders', [makeTask('r', { source: 'reminders', sourceNotPlanned: 'not-today' })], options)
+      expect(store.task('r')?.status).toBe(TaskStatus.Waiting)
+      expect('notPlanned' in store.task('r')!).toBe(false)
+    })
+  })
+})
+
+describe('dropStaleMarkers: the first load of data stored before #793', () => {
+  it('drops the field from Jetzt, Wartet and Erledigt tasks only, whatever its value', () => {
+    const tasks = [
+      { id: 'o', status: TaskStatus.Open, notPlanned: true },
+      { id: 'o2', status: TaskStatus.Open, notPlanned: false },
+      { id: 'p', status: TaskStatus.Progress, notPlanned: true },
+      { id: 'w', status: TaskStatus.Waiting, notPlanned: true, title: 'kept' },
+      { id: 'd', status: TaskStatus.Done, notPlanned: 'true' },
+      { id: 'plain', status: TaskStatus.Waiting },
+    ]
+    expect(dropStaleMarkers(tasks)).toEqual([
+      { id: 'o', status: TaskStatus.Open, notPlanned: true },
+      { id: 'o2', status: TaskStatus.Open, notPlanned: false },
+      { id: 'p', status: TaskStatus.Progress },
+      { id: 'w', status: TaskStatus.Waiting, title: 'kept' },
+      { id: 'd', status: TaskStatus.Done },
+      { id: 'plain', status: TaskStatus.Waiting },
+    ])
+  })
+
+  it('returns the input itself when nothing changed, and passes anything that is no task through', () => {
+    const clean = [{ id: 'o', status: TaskStatus.Open, notPlanned: true }, { id: 'w', status: TaskStatus.Waiting }, null, 'x']
+    expect(dropStaleMarkers(clean)).toBe(clean)
   })
 })

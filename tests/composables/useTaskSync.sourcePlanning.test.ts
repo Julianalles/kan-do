@@ -121,6 +121,29 @@ describe('plan and put-back are written to a source that stores planning (#357)'
     expect(isNotPlanned(store.task('t1')!)).toBe(false)
   })
 
+  it('a waiting task taken off today and planned again is written to no source (#793)', async () => {
+    const store = useTasksStore()
+    const waiting = { status: TaskStatus.Waiting }
+    store.setTasks([task('n1', 'notion', waiting), task('l1', 'local', waiting), task('t1', 'todoist', waiting)])
+    const sync = useTaskSync()
+
+    expect(sync.unplanTasks(['n1', 'l1', 't1'])).toEqual(['n1', 'l1', 't1'])
+    for (const id of ['n1', 'l1', 't1']) {
+      expect(store.task(id)).toMatchObject({ status: TaskStatus.Waiting, notPlanned: true })
+      expect(store.task(id)!.pendingSync).toBeUndefined()
+      expect(store.task(id)!.sourceNotPlanned).toBeUndefined()
+    }
+    expect(sync.planTasks(['n1', 'l1', 't1'])).toEqual(['n1', 'l1', 't1'])
+    for (const id of ['n1', 'l1', 't1']) {
+      expect(store.task(id)!.status).toBe(TaskStatus.Waiting)
+      expect(isNotPlanned(store.task(id)!)).toBe(false)
+      expect(store.task(id)!.pendingSync).toBeUndefined()
+    }
+    await settle()
+    expect(sentToNotion()).toEqual([])
+    expect(notion.updateTask).not.toHaveBeenCalled()
+  })
+
   it('a task Notion holds in its second "not planned" status keeps it across plan-free edits and is written as today when planned', async () => {
     const store = useTasksStore()
     store.setTasks([task('n2', 'notion', { notPlanned: true, sourceNotPlanned: 'Irgendwann' })])

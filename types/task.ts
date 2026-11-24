@@ -160,7 +160,8 @@ interface Task {
   isUnplanned?: boolean;
   /**
    * The task is not planned for today: it is held by kan-do but in no column of the board (#353). Absent =
-   * planned, so data stored before #353 loads as it was. Valid only while `status` is Open; read it through
+   * planned ("Für heute eingeplant"), so data stored before #353 loads as it was. Valid while `status` is Open or
+   * Waiting (#793: a waiting task can leave today and keep waiting); Jetzt is always planned and Erledigt ignores it. Read it through
    * `isNotPlanned()` (`lib/taskPlanning.ts`), never directly. kan-do's own state: a fetch never carries it, and
    * `mergeTasks` keeps it for a task it already holds unless the source's own planning state changed
    * (`sourceNotPlanned`, #357). Not `isUnplanned` (ad-hoc work).

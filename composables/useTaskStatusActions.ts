@@ -39,17 +39,24 @@ export function useTaskStatusActions(task: Ref<Task | null>) {
     }
   }
 
-  /** What the picker shows: "Nicht geplant" for a task that is not on today's board, else its column */
+  /**
+   * The picker's fifth choice stands for an Offen task off today only. A Wartet task off today (#793) reads as
+   * "Wartet": the picker cannot show a marker beside a status (interim, until #795 replaces the choice by a switch).
+   */
+  const isNotPlannedChoice = (current: Task): boolean => isNotPlanned(current) && current.status === TaskStatus.Open;
+
+  /** What the picker shows: "Nicht geplant" for an Offen task that is not on today's board, else its column */
   const statusChoice = computed<StatusChoice>(() => {
     const current = task.value;
     if (!current) return TaskStatus.Open;
-    return isNotPlanned(current) ? NOT_PLANNED_CHOICE : current.status;
+    return isNotPlannedChoice(current) ? NOT_PLANNED_CHOICE : current.status;
   });
 
   /**
    * The picker's choice (#359).
    * - A column: a not-planned task picked into Offen is planned as by "Für heute einplanen" (end of Offen); every
-   *   other pick is `changeStatus` (leaving Open drops the marker, so Jetzt, Wartet and Erledigt plan it too).
+   *   other pick is `changeStatus` (Jetzt and Erledigt plan it too; Wartet keeps it off today, and a Wartet task off
+   *   today picked into Offen stays off today, #793: `markerSurvives`).
    * - "Nicht geplant": an Offen task goes back as by "Nicht für heute planen". From Jetzt, Wartet or Erledigt it first goes to
    *   Offen by the normal move (the timer stops and keeps its time, a done task is reopened), then back. The move
    *   sets the status before its upstream write, so the task does not wait in Offen for a slow connection.
@@ -63,11 +70,11 @@ export function useTaskStatusActions(task: Ref<Task | null>) {
     const { planForToday, notToday } = usePlanMoves();
 
     if (choice !== NOT_PLANNED_CHOICE) {
-      if (choice === TaskStatus.Open && isNotPlanned(before)) await planForToday(id);
+      if (choice === TaskStatus.Open && isNotPlannedChoice(before)) await planForToday(id);
       else await changeStatus(choice);
       return;
     }
-    if (isNotPlanned(before)) return;
+    if (isNotPlannedChoice(before)) return;
     if (before.status === TaskStatus.Open) {
       await notToday(id);
       return;

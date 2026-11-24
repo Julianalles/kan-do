@@ -64,6 +64,14 @@ describe('buildExport', () => {
     if (parsed.ok) expect(JSON.parse(parsed.text).stores['tasks-store'].tasks).toEqual(tasks)
   })
 
+  it('carries the marker of a waiting task and the stamp that makes it count through export and import (#793)', () => {
+    const store = { tasks: [{ id: 'w', status: 2, notPlanned: true }, { id: 'o', status: 0, notPlanned: true }, { id: 'p', status: 2 }], markerModel: 2 }
+    const built = buildExport({ stores: { 'tasks-store': store }, deviceId: 'device-1', appVersion: '0.1.0' }, now)
+    const parsed = parseImport(built.text)
+    expect(parsed).toMatchObject({ ok: true, taskCount: 3 })
+    if (parsed.ok) expect(JSON.parse(parsed.text).stores['tasks-store']).toEqual(store)
+  })
+
   it('carries the new day\'s state through export and import unchanged (#356)', () => {
     const stores = {
       'tasks-store': { tasks: [{ id: 'a', status: 0, notPlanned: true }], afterMidnight: { taskId: 'a', day: '2026-10-22', seconds: 40 } },

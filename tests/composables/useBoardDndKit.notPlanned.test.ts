@@ -122,6 +122,23 @@ describe('useBoardDndKit: between "Alle Aufgaben" and Offen (#355)', () => {
     expect(dragState.value.fromNotPlanned).toBe(false)
   })
 
+  it('a waiting card off today dropped in Offen is planned and keeps Wartet: no slot in Offen\'s order (#793)', () => {
+    tasksStore.addTask(makeTask({ id: 'w1', status: TaskStatus.Waiting, notPlanned: true }))
+    tasksStore.addTask(makeTask({ id: 'w0', status: TaskStatus.Waiting }))
+    seed([], ['o1', 'o2'])
+    const board = useBoardStore()
+    const { kit, source } = pickUpHeld('w1')
+    sortInto(source, 'o1')
+
+    kit.onDragEnd({ canceled: false, operation: { source, target: source } })
+
+    expect(heldIds()).toEqual([])
+    expect(tasksStore.task('w1')?.status).toBe(TaskStatus.Waiting)
+    expect(openIds()).toEqual(['o1', 'o2'])
+    expect(board.columnByTaskStatus(TaskStatus.Open)?.taskOrder).toEqual(['o1', 'o2'])
+    expect(board.columnByTaskStatus(TaskStatus.Waiting)?.taskOrder).toEqual(['w0', 'w1'])
+  })
+
   it('a drop on the drop zone of Offen plans the card at the end', () => {
     seed(['h1'], ['o1', 'o2'])
     const { kit, source } = pickUpHeld('h1')

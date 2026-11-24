@@ -177,7 +177,6 @@ describe.each(['web', 'desktop'] as const)('hydrating stored dates (#376, %s)', 
           storedTask({ ...open, id: 'off', externalId: 'off', notPlanned: true, timeSpentSeconds: 420, notes: 'kept' }),
           storedTask({ ...open, id: 'bad-false', externalId: 'bad-false', notPlanned: false }),
           storedTask({ ...open, id: 'bad-string', externalId: 'bad-string', notPlanned: 'true' }),
-          storedTask({ id: 'stale-done', externalId: 'stale-done', notPlanned: true }),
         ],
         pendingDeletes: {},
       }),
@@ -186,8 +185,97 @@ describe.each(['web', 'desktop'] as const)('hydrating stored dates (#376, %s)', 
     expect(tasks.tasksNotPlanned.map(task => task.id)).toEqual(['off'])
     expect(tasks.task('off')).toMatchObject({ timeSpentSeconds: 420, notes: 'kept', source: 'notion' })
     expect(tasks.tasksOpen.map(task => task.id)).toEqual(['on', 'bad-false', 'bad-string'])
-    expect(tasks.tasksDone.map(task => task.id)).toEqual(['stale-done'])
     expect(setCalls().filter(call => call !== 'set:board-store')).toEqual([])
+  })
+
+  describe('the first load of data stored before the marker counted on Wartet (#793)', () => {
+    const at = (status: number, id: string, extra: Record<string, unknown> = {}) =>
+      storedTask({ status, completedAt: null, archivedAt: null, id, externalId: id, ...extra })
+    /** Old data: an Offen task off today, and markers that had no effect on a Jetzt, a Wartet and an Erledigt task. */
+    const oldTasks = () => [
+      at(0, 'open'), at(0, 'off', { notPlanned: true }),
+      at(1, 'jetzt', { notPlanned: true }), at(2, 'wartet', { notPlanned: true, notes: 'kept' }), at(3, 'done', { notPlanned: true }),
+      at(2, 'wartet-plain'),
+    ]
+    const storedNow = () => JSON.parse(localStorage.getItem('tasks-store') ?? '{}') as { tasks?: Array<Record<string, unknown>>; markerModel?: unknown }
+
+    it('drops the field from Jetzt, Wartet and Erledigt tasks only: the board and "Alle Aufgaben" look as before, and it is written once', async () => {
+      const { tasks, setCalls } = await freshPinia(mode, { 'board-store': BOARD, 'tasks-store': storedTasksStore({ tasks: oldTasks(), pendingDeletes: {} }) })
+      expect(tasks.tasksNotPlanned.map(task => task.id)).toEqual(['off'])
+      expect(tasks.tasksOpen.map(task => task.id)).toEqual(['open'])
+      expect(tasks.tasksProgress.map(task => task.id)).toEqual(['jetzt'])
+      expect(tasks.tasksWaiting.map(task => task.id).sort()).toEqual(['wartet', 'wartet-plain'])
+      expect(tasks.tasksDone.map(task => task.id)).toEqual(['done'])
+      expect(tasks.tasks.filter(task => 'notPlanned' in task).map(task => task.id)).toEqual(['off'])
+      expect(tasks.task('wartet')).toMatchObject({ notes: 'kept', status: 2 })
+      expect(tasks.markerModel).toBe(2)
+      if (mode === 'desktop') expect(setCalls()).toContain('set:tasks-store')
+      else {
+        expect(storedNow().markerModel).toBe(2)
+        expect(storedNow().tasks?.filter(task => 'notPlanned' in task).map(task => task.id)).toEqual(['off'])
+      }
+    })
+
+    it('cleans the task snapshot of a pending delete too', async () => {
+      const { tasks } = await freshPinia(mode, {
+        'board-store': BOARD,
+        'tasks-store': storedTasksStore({
+          tasks: [at(0, 'open')],
+          pendingDeletes: {
+            gone: { taskId: 'gone', carryOver: null, state: 'waiting', requestedAt: 1, task: at(2, 'gone', { notPlanned: true }) },
+            off: { taskId: 'off', carryOver: null, state: 'waiting', requestedAt: 1, task: at(0, 'off', { notPlanned: true }) },
+          },
+        }),
+      })
+      expect('notPlanned' in tasks.pendingDeletes.gone!.task).toBe(false)
+      expect(tasks.pendingDeletes.off!.task.notPlanned).toBe(true)
+    })
+
+    it('old data without a stale marker gets the stamp in memory and no write; the next mutation carries it', async () => {
+      const { tasks, setCalls } = await freshPinia(mode, {
+        'board-store': BOARD,
+        'tasks-store': storedTasksStore({ tasks: [at(0, 'open'), at(0, 'off', { notPlanned: true }), at(2, 'wartet')], pendingDeletes: {} }),
+      })
+      expect(tasks.markerModel).toBe(2)
+      expect(setCalls().filter(call => call !== 'set:board-store')).toEqual([])
+      if (mode === 'web') expect(storedNow().markerModel).toBeUndefined()
+
+      // The first Wartet task taken off today is stored together with the stamp, so the next load keeps it
+      expect(tasks.unplanTask('wartet')).toBe(true)
+      await nextTick()
+      if (mode === 'desktop') expect(setCalls()).toContain('set:tasks-store')
+      else {
+        expect(storedNow().markerModel).toBe(2)
+        expect(storedNow().tasks?.find(task => task.id === 'wartet')).toMatchObject({ status: 2, notPlanned: true })
+      }
+    })
+
+    it('stamped data keeps the marker of a Wartet task across a restart and writes nothing', async () => {
+      const { tasks, setCalls } = await freshPinia(mode, {
+        'board-store': BOARD,
+        'tasks-store': storedTasksStore({ tasks: [at(0, 'open'), at(2, 'wartet', { notPlanned: true }), at(2, 'wartet-on')], pendingDeletes: {}, markerModel: 2 }),
+      })
+      expect(tasks.tasksNotPlanned.map(task => task.id)).toEqual(['wartet'])
+      expect(tasks.tasksWaiting.map(task => task.id)).toEqual(['wartet-on'])
+      expect(tasks.task('wartet')).toMatchObject({ status: 2, notPlanned: true })
+      expect(setCalls().filter(call => call !== 'set:board-store')).toEqual([])
+    })
+
+    it.each([[1], ['2'], [null], [true], [{}]])('a malformed stamp (%j) reads as none', async (markerModel) => {
+      const { tasks } = await freshPinia(mode, {
+        'board-store': BOARD,
+        'tasks-store': storedTasksStore({ tasks: [at(2, 'wartet', { notPlanned: true })], pendingDeletes: {}, markerModel }),
+      })
+      expect(tasks.tasksWaiting.map(task => task.id)).toEqual(['wartet'])
+      expect(tasks.markerModel).toBe(2)
+    })
+
+    it('nothing stored: the stamp is set and nothing is written', async () => {
+      const { tasks, setCalls } = await freshPinia(mode, {})
+      expect(tasks.markerModel).toBe(2)
+      expect(setCalls()).toEqual([])
+      if (mode === 'web') expect(localStorage.getItem('tasks-store')).toBeNull()
+    })
   })
 
   it('revives the completion records of the statistics store', async () => {
