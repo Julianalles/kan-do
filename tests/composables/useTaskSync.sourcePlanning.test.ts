@@ -144,6 +144,68 @@ describe('plan and put-back are written to a source that stores planning (#357)'
     expect(notion.updateTask).not.toHaveBeenCalled()
   })
 
+  // #798: the way of a task off today between Offen and Wartet, as Notion sees it
+  it('Offen off today moved to Wartet writes the waiting status; back to Offen writes the mapped "not planned" status (#798)', async () => {
+    const store = useTasksStore()
+    store.setTasks([task('n1', 'notion')])
+    const sync = useTaskSync()
+    sync.unplanTask('n1')
+    await settle()
+    sent.length = 0
+
+    await sync.updateTaskStatus({ taskId: 'n1', status: TaskStatus.Waiting })
+    await settle()
+    // marker kept, status written, nothing held as "not planned": the page is no longer in a "not planned" status
+    expect(sentToNotion()).toEqual([['n1', true, undefined]])
+    expect(store.task('n1')).toMatchObject({ status: TaskStatus.Waiting, notPlanned: true })
+
+    await sync.updateTaskStatus({ taskId: 'n1', status: TaskStatus.Open })
+    await settle()
+    expect(sentToNotion().at(-1)).toEqual(['n1', true, 'Backlog'])
+    // Notion answers what kan-do holds: the next fetch moves nothing
+    store.mergeTasks('notion', [task('n1', 'notion', { sourceNotPlanned: 'Backlog' })])
+    expect(isNotPlanned(store.task('n1')!)).toBe(true)
+  })
+
+  it('a Wartet task off today moved to Offen is written as today when no "not planned" status is mapped (#798)', async () => {
+    delete mapping.notPlanned
+    const store = useTasksStore()
+    store.setTasks([task('n1', 'notion', { status: TaskStatus.Waiting, notPlanned: true })])
+    const sync = useTaskSync()
+    await sync.updateTaskStatus({ taskId: 'n1', status: TaskStatus.Open })
+    await settle()
+    expect(sentToNotion().at(-1)).toEqual(['n1', true, undefined])
+    expect(store.task('n1')!.sourceNotPlanned).toBeUndefined()
+  })
+
+  it('a fetch leaves a waiting task off today alone while Notion keeps its waiting status, and moves it when the status moves into "not planned" (#798)', () => {
+    const store = useTasksStore()
+    store.setTasks([task('n1', 'notion', { status: TaskStatus.Waiting, notPlanned: true })])
+    store.mergeTasks('notion', [task('n1', 'notion', { status: TaskStatus.Waiting })])
+    expect(store.task('n1')).toMatchObject({ status: TaskStatus.Waiting, notPlanned: true })
+    store.mergeTasks('notion', [task('n1', 'notion', { status: TaskStatus.Open, sourceNotPlanned: 'Backlog' })])
+    expect(store.task('n1')).toMatchObject({ status: TaskStatus.Open, notPlanned: true, sourceNotPlanned: 'Backlog' })
+    // and out of it: planned again, the marker goes
+    store.mergeTasks('notion', [task('n1', 'notion', { status: TaskStatus.Waiting })])
+    expect(isNotPlanned(store.task('n1')!)).toBe(false)
+  })
+
+  it('Todoist: taking a task off today, planning it and moving it Offen, Wartet, Offen writes nothing for the marker (#798)', async () => {
+    const store = useTasksStore()
+    store.setTasks([task('t1', 'todoist'), task('t2', 'todoist', { status: TaskStatus.Waiting })])
+    const sync = useTaskSync()
+    sync.unplanTasks(['t1', 't2'])
+    sync.planTasks(['t1', 't2'])
+    sync.unplanTasks(['t1', 't2'])
+    for (const id of ['t1', 't2']) {
+      expect(store.task(id)!.pendingSync).toBeUndefined()
+      expect(store.task(id)!.sourceNotPlanned).toBeUndefined()
+    }
+    await sync.updateTaskStatus({ taskId: 't2', status: TaskStatus.Open })
+    expect(store.task('t2')).toMatchObject({ status: TaskStatus.Open, notPlanned: true })
+    expect(store.task('t2')!.sourceNotPlanned).toBeUndefined()
+  })
+
   it('a task Notion holds in its second "not planned" status keeps it across plan-free edits and is written as today when planned', async () => {
     const store = useTasksStore()
     store.setTasks([task('n2', 'notion', { notPlanned: true, sourceNotPlanned: 'Irgendwann' })])
