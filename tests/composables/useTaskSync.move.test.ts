@@ -283,7 +283,7 @@ describe('useTaskSync: committing a move (#322)', () => {
     expect(await commitTaskMove('n1')).toBe('queued')
 
     expect(tasksStore.task('n1')).toMatchObject({ source: 'todoist', externalId: 'todoist-page-1' })
-    expect(tasksStore.task('n1')?.pendingMove).toEqual({ fromSource: 'notion', fromExternalId: 'page-1', toSource: 'todoist' })
+    expect(tasksStore.task('n1')?.pendingMove).toEqual({ fromSource: 'notion', fromExternalId: 'page-1', toSource: 'todoist', fromUpstreamDone: false })
     // The origin page is still returned by a fetch of its source: it is not shown a second time
     tasksStore.mergeTasks('notion', [makeTask({ id: 'page-1', source: 'notion', externalId: 'page-1' })])
     expect(tasksStore.tasks.map((t) => t.id)).toEqual(['n1'])

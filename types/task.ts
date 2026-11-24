@@ -100,6 +100,12 @@ export interface PendingMove {
    * archives it (or a fetch hands it over and it becomes `fromExternalId`), and an undo puts it back on the marker.
    */
   fromCreateUncertain?: CreateUncertain;
+  /**
+   * Whether the origin held the task as completed when it moved (#781): its marker's `upstreamDone`, else the local
+   * status. The marker of the way back (undo, rejected create) takes it, so a status changed meanwhile is written once.
+   * Present only for an integration origin; a move stored without it reads as "not completed".
+   */
+  fromUpstreamDone?: boolean;
 }
 
 interface Task {

@@ -213,4 +213,23 @@ describe('Todoist: a done task is never closed a second time (#781)', () => {
     await sync.syncPendingChanges()
     expect(sdkCalls).toEqual(['close:t1'])
   })
+
+  it('a tick inside a move\'s undo window, then Undo: the next push closes the task once', async () => {
+    addTask('t1', TaskStatus.Open)
+    const store = useTasksStore()
+    const sync = useTaskSync()
+    // What `useTaskMove` does: the move is local at once and held for the toast; Undo puts it back
+    const previous = store.reassignSource('t1', 'local')!
+    store.holdMove('t1')
+    await sync.updateTaskStatus({ taskId: 't1', status: TaskStatus.Done })
+    store.releaseMove('t1')
+    store.restoreMoveOrigin('t1', previous)
+    expect(store.task('t1')).toMatchObject({ source: 'todoist', externalId: 't1', pendingSync: { upstreamDone: false } })
+
+    await sync.syncPendingChanges()
+    await sync.editTask('t1', { priority: 3 })
+    await sync.syncPendingChanges()
+    expect(sdkCalls).toEqual(['close:t1'])
+    expect(store.task('t1')?.pendingSync).toBeUndefined()
+  })
 })

@@ -99,7 +99,7 @@ describe('moving a Notion task whose create is in doubt (#538)', () => {
     tasksStore.setTasks([inDoubt('a')])
     move('a', 'todoist')
     const moved = tasksStore.task('a')!
-    expect(moved.pendingMove).toEqual({ fromSource: 'notion', fromExternalId: null, toSource: 'todoist', fromCreateUncertain: DOUBT })
+    expect(moved.pendingMove).toEqual({ fromSource: 'notion', fromExternalId: null, toSource: 'todoist', fromCreateUncertain: DOUBT, fromUpstreamDone: false })
     expect(moved.externalId).toBeNull()
   })
 

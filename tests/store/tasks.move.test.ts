@@ -111,6 +111,64 @@ describe('tasks store: moving a task between sources (#322)', () => {
       expect(store.task('n')?.pendingSync).toMatchObject({ attempts: 0 })
     })
 
+    // #781 review: the marker the way back makes records what the origin holds, never the local status
+    it('a Todoist task ticked Done inside the undo window comes back held open, so the next push closes it', () => {
+      store.setTasks([makeTask({ id: 't', source: 'todoist', externalId: 'td-1' })])
+      const previous = store.reassignSource('t', 'local')!
+      store.holdMove('t')
+      store.updateTask('t', { status: TaskStatus.Done })
+
+      store.restoreMoveOrigin('t', previous)
+
+      expect(store.task('t')?.pendingSync).toMatchObject({ upstreamDone: false })
+    })
+
+    it('a done Todoist task reopened inside the undo window comes back held done, so the next push reopens it', () => {
+      store.setTasks([makeTask({ id: 't', source: 'todoist', externalId: 'td-1', status: TaskStatus.Done })])
+      const previous = store.reassignSource('t', 'local')!
+      store.holdMove('t')
+      store.updateTask('t', { status: TaskStatus.Open })
+
+      store.restoreMoveOrigin('t', previous)
+
+      expect(store.task('t')?.pendingSync).toMatchObject({ upstreamDone: true })
+    })
+
+    it('a rejected create puts back what the origin held, also when the task was ticked Done meanwhile', () => {
+      store.setTasks([makeTask({ id: 't', source: 'todoist', externalId: 'td-1' })])
+      store.reassignSource('t', 'notion')
+      store.updateTask('t', { status: TaskStatus.Done })
+
+      store.restoreMoveOrigin('t')
+
+      expect(store.task('t')?.pendingSync).toMatchObject({ upstreamDone: false })
+    })
+
+    it('the origin\'s held state comes from its marker when the task had one', () => {
+      store.setTasks([makeTask({
+        id: 't', source: 'todoist', externalId: 'td-1', status: TaskStatus.Done,
+        pendingSync: { since: 5, attempts: 1, lastError: 'boom', upstreamDone: false },
+      })])
+      store.reassignSource('t', 'notion')
+
+      store.restoreMoveOrigin('t')
+
+      expect(store.task('t')?.pendingMove).toBeUndefined()
+      expect(store.task('t')?.pendingSync).toMatchObject({ upstreamDone: false })
+    })
+
+    it('a move stored without the origin\'s held state reads it as "not completed", as a legacy marker does', () => {
+      store.setTasks([makeTask({
+        id: 't', source: 'notion', externalId: null, status: TaskStatus.Done,
+        pendingSync: { since: 5, attempts: 0, lastError: null, upstreamDone: false },
+        pendingMove: { fromSource: 'todoist', fromExternalId: 'td-1', toSource: 'notion' },
+      })])
+
+      store.restoreMoveOrigin('t')
+
+      expect(store.task('t')).toMatchObject({ source: 'todoist', externalId: 'td-1', pendingSync: { upstreamDone: false } })
+    })
+
     it('does nothing for a task without an outstanding move', () => {
       store.setTasks([makeTask({ id: 'a' })])
       store.restoreMoveOrigin('a')

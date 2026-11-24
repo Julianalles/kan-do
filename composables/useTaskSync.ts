@@ -454,8 +454,8 @@ export const useTaskSync = () => {
     const operationVersion = tasksStore.incrementTaskOperationVersion(taskId);
     tasksStore.updateTask(taskId, updates);
     // A status write of the task still waiting (a stack drop chains them) sends the task as it is by then, the edit
-    // with it: the edit's own push goes after it (#770), so the status write's own push sends the change. It waits outside `pushesInFlight`, which the status write's own push waits on, and again for
-    // a status write queued meanwhile
+    // with it, so the edit's own push goes after it (#770). It waits outside `pushesInFlight` (the status write's own
+    // push waits on that) and again for a status write queued meanwhile
     if (!statusWritesInFlight.has(taskId)) return runSync(tasksStore.task(taskId)!, operationVersion);
     return (async () => {
       let statusWrite: Promise<void> | undefined;

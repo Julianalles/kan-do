@@ -808,6 +808,11 @@ export const useTasksStore = defineStore("tasks", () => {
       toSource: target,
       ...(originDoubt !== undefined ? { fromCreateUncertain: originDoubt } : {}),
       ...(moving.sourceNotPlanned !== undefined ? { fromSourceNotPlanned: moving.sourceNotPlanned } : {}),
+      // What the origin holds the task as (#781): the marker's record (a legacy one without it: "not completed", as
+      // `markPendingSync` reads it), else the local status; the way back writes a status changed meanwhile from it
+      ...(moving.source !== 'local'
+        ? { fromUpstreamDone: moving.pendingSync ? (moving.pendingSync.upstreamDone ?? false) : moving.status === TaskStatus.Done }
+        : {}),
     };
     moving.source = target;
     moving.externalId = null;
@@ -844,7 +849,9 @@ export const useTasksStore = defineStore("tasks", () => {
     incrementTaskOperationVersion(taskId);
     const changedInWindow = heldChanged.delete(taskId);
     if (previous?.pendingSync) moved.pendingSync = previous.pendingSync;
-    if (!previous || changedInWindow) markPendingSync(taskId);
+    // The origin holds the task as it did when it moved, not as the local status says now (#781): a tick inside the
+    // undo window or before a rejected create is then written once; a move stored without it reads as "not completed"
+    if (!previous || changedInWindow) markPendingSync(taskId, move.fromUpstreamDone ?? false);
     // The origin page of a create in doubt may still land (#538): the marker takes the doubt back, so the next push looks first
     if (move.fromCreateUncertain !== undefined && moved.externalId === null && moved.pendingSync && !moved.pendingSync.createUncertain) {
       moved.pendingSync = { ...moved.pendingSync, createUncertain: move.fromCreateUncertain };
