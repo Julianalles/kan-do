@@ -2,16 +2,30 @@
  * The intro hint's sheet (#725, base #800): components/board/IntroHintOverlay.vue. Imported by main.css; components layer.
  *
  * One sheet floats at the bottom centre of the board page, above the phone's floating app bar. While it stands, the
- * component writes its height plus the gap to `--intro-hint-room` on <html>; the rules at the end give the board that
- * room, so no card and no column button stays under the sheet. The room goes as the fade-out starts.
+ * component writes its height to `--intro-hint-height` on <html>; `--intro-hint-room` below adds the sheet's offset from
+ * the window's edge and a 16px gap, and the rules at the end give the board that room, so no card and no column button
+ * stays under the sheet. The room goes as the fade-out starts (the height is removed; unset, the room is 0).
  */
+
+:root {
+  /* The sheet's distance from the window's edge on desktop (the phone's is the app bar's, in `.intro-hint`) */
+  --intro-hint-edge: 1.5rem;
+  /* Phone: the page's last box already ends above the app bar, so the sheet's own height and the gap are the room */
+  --intro-hint-room: calc(var(--intro-hint-height) + 1rem);
+}
+
+@media (--desktop) {
+  :root {
+    --intro-hint-room: calc(var(--intro-hint-height) + var(--intro-hint-edge) + 1rem);
+  }
+}
 
 @layer components {
   .intro-hint {
     position: fixed;
     inset-inline: 0;
     /* Desktop: 24px above the window's edge. Phone: above the floating app bar, like the toaster (mobile-nav.css) */
-    bottom: max(1.5rem, calc(var(--phone-bar-offset) + 0.75rem));
+    bottom: max(var(--intro-hint-edge), calc(var(--phone-bar-offset) + 0.75rem));
     z-index: var(--z-hint);
     display: flex;
     justify-content: center;

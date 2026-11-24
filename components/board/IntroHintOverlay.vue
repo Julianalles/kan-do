@@ -8,11 +8,11 @@
 @responsibility
 - One white sheet with the overlay shadow (DESIGN.md "The Sheets Cast Shadows Rule"), 16 px corners like every sheet, the tip icon in the primary (the hint's one accent, a recorded use of the green: user's direction #725, "stick out as a special sheet"), the hint's text and the link "Schließen"; diverged from the in-column notice look on the user's direction (#725, 2026-11-24): it stands out as its own sheet, built from the same tokens
 - `role="status"` on the host, which is mounted before the hint (while the user's hints are on): the text is announced politely when the hint arrives; it takes no focus and traps none
-- Place: fixed at the bottom centre, 24 px above the window's edge on desktop, above the floating app bar on a phone (`--phone-bar-offset`, like the toaster); only the sheet takes pointer events, the strip beside it lets the board through. While it stands, `--intro-hint-room` on <html> holds its height: a phone's column pages (ColumnDropZone, the last box of a page) and the desktop board (board.css) end above the sheet, and the desktop columns' sticky buttons rest above it (BoardColumn); the room goes as the fade-out starts, so sheet and board move together
+- Place: fixed at the bottom centre, 24 px above the window's edge on desktop, above the floating app bar on a phone (`--phone-bar-offset`, like the toaster); only the sheet takes pointer events, the strip beside it lets the board through. While it stands, `--intro-hint-height` on <html> holds its height and `--intro-hint-room` (intro-hint.css: height + its offset from the window's edge + a 16 px gap) is the room: a phone's column pages (ColumnDropZone, the last box of a page) and the desktop board (board.css) end above the sheet, and the desktop columns' sticky buttons rest above it (BoardColumn); the room goes as the fade-out starts, so sheet and board move together
 - Layer `--z-hint`: above the board and the Jetzt focus overlay, below every sheet, dialog, menu and toast; a toast may cover it for its few seconds (accepted, #800)
-- Text per pointer: the desktop text names the drag to Jetzt, the phone text the hold and the drag to the right edge
+- Text per width: the desktop text names the drag to Jetzt, the phone text (`useIsPhone`) the hold and the drag to the right edge
 - It fades in and out over `--duration-base` (opacity only, none under reduced motion)
-- A day is stored for the hint once it is on screen (`markShown`); "Schließen" ends it and keeps the rest of the day quiet, and keyboard focus goes to the board region when the focused link leaves, never to `<body>`
+- A day is stored for the hint once it is on screen and somebody can see it (`markShown`: page visible and window focused; the day is stored when the page comes back); "Schließen" ends it and keeps the rest of the day quiet, and keyboard focus goes to the board region when the focused link leaves, never to `<body>`
 -->
 <template>
   <!-- The status region is there before its text (a region inserted already filled is not announced everywhere); only for a
@@ -43,7 +43,7 @@
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAppConfig } from 'nuxt/app'
-import { useResizeObserver } from '@vueuse/core'
+import { useDocumentVisibility, useResizeObserver, useWindowFocus } from '@vueuse/core'
 import { useIntroHints } from '~/composables/useIntroHints'
 import { useIsPhone } from '~/composables/useIsDesktop'
 import { focusFirstAvailable } from '~/utils/focusRecovery'
@@ -58,16 +58,21 @@ const sheet = ref<HTMLElement | null>(null)
 
 const text = computed(() => (current.value ? t(`board.introHint.${current.value}.${isPhone.value ? 'phone' : 'desktop'}`) : ''))
 
-// On screen: the day counts for this hint (once per day; the store ignores a repeat). Also when the day changes under a hint that stays up
-watch(shownKey, () => { if (current.value) markShown(current.value) }, { immediate: true })
+// On screen: the day counts for this hint (once per day; the store ignores a repeat). Also when the day changes under a hint that stays up.
+// Only while somebody can see it: a hidden tab or a window left in the background keeps its midnight timer running, and a
+// weekend with the app open must not use up the hint's days. The day is stored when the page comes back.
+const visibility = useDocumentVisibility()
+const windowFocused = useWindowFocus()
+const seen = computed(() => visibility.value === 'visible' && windowFocused.value)
+watch([shownKey, seen], () => { if (current.value && seen.value) markShown(current.value) }, { immediate: true })
 
-/** The room the sheet takes above its bottom offset, for the scroll areas it floats over. */
-const ROOM = '--intro-hint-room'
+/** The sheet's height for the scroll areas it floats over; `--intro-hint-room` (intro-hint.css) adds the sheet's offset and the gap. */
+const HEIGHT = '--intro-hint-height'
 useResizeObserver(sheet, ([entry]) => {
-  if (entry) document.documentElement.style.setProperty(ROOM, `${Math.ceil(entry.target.getBoundingClientRect().height) + 16}px`)
+  if (entry) document.documentElement.style.setProperty(HEIGHT, `${Math.ceil(entry.target.getBoundingClientRect().height)}px`)
 })
 function clearRoom() {
-  document.documentElement.style.removeProperty(ROOM)
+  document.documentElement.style.removeProperty(HEIGHT)
 }
 onBeforeUnmount(clearRoom)
 

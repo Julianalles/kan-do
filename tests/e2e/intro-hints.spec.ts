@@ -108,3 +108,39 @@ test('390px: the phone text, centred above the app bar, clear of it; "Schließen
   expect(close.height).toBeGreaterThanOrEqual(44)
   expect(close.width).toBeGreaterThanOrEqual(44)
 })
+
+test('a hidden page does not use up a day: the day is stored when the page is visible again', async ({ context, page }) => {
+  // A tab in the background (or a desktop window left behind) still runs the midnight timer; only a seen hint counts
+  await context.addInitScript(() => {
+    let state: DocumentVisibilityState = 'hidden'
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => state })
+    ;(window as unknown as { __setVisibility: (value: DocumentVisibilityState) => void }).__setVisibility = (value) => {
+      state = value
+      document.dispatchEvent(new Event('visibilitychange'))
+    }
+  })
+  await seedLocalBoard(context, OPEN_ONLY, {}, undefined, { hints: true, once: true })
+  await gotoBoard(page)
+  await expect(hint(page)).toBeVisible()
+  // Give a wrongly stored day time to show up
+  await page.waitForTimeout(500)
+  expect((await record(page))?.hints.start?.days ?? []).toHaveLength(0)
+
+  await page.evaluate(() => (window as unknown as { __setVisibility: (value: string) => void }).__setVisibility('visible'))
+  await expect.poll(async () => (await record(page))?.hints.start?.days.length).toBe(1)
+})
+
+test('desktop: the column button and the end of the board rest a gap above the sheet, in a wide and a narrow window', async ({ context, page }) => {
+  await seedLocalBoard(context, OPEN_ONLY, {}, undefined, { hints: true })
+  for (const size of [{ width: 1280, height: 720 }, { width: 800, height: 720 }]) {
+    await page.setViewportSize(size)
+    await gotoBoard(page)
+    await expect(hint(page)).toBeVisible()
+    // The fade and the guided move of the buttons have settled
+    await expect.poll(async () => {
+      const sheetTop = (await hint(page).boundingBox())!.y
+      const footer = (await page.locator('#column-done .column-footer').first().boundingBox())
+      return footer ? Math.round(sheetTop - (footer.y + footer.height)) : null
+    }).toBeGreaterThanOrEqual(15)
+  }
+})
