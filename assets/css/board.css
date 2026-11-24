@@ -551,7 +551,7 @@
 
 /* Touch (#805): no hover to reveal the Jetzt add button, so the empty Jetzt shows its placeholder and offers no button */
 @media (hover: none) {
-  .add-task-slot--progress .add-task-button {
+  #column-progress .add-task-slot--progress .add-task-button {
     display: none;
   }
 }
