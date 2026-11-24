@@ -310,6 +310,21 @@ test.describe('Statistics Page', () => {
       }).toBe(true);
     });
 
+    test('opening the rhythm tile after an open Q2 keeps its toggle below the app bar (#689)', async ({ page, baseURL }) => {
+      await page.setViewportSize({ width: 1280, height: 800 });
+      await seedRecords(page, fullHistory(), { workSessions: weekdaySessions() });
+      await page.goto(`${baseURL}/statistics?open=2`);
+      const toggle = page.getByTestId('stats-tile-5-toggle');
+      await expect(page.getByTestId('stats-tile-2-detail')).toBeVisible();
+      await toggle.scrollIntoViewIfNeeded();
+      await toggle.click();
+      await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+      await expect.poll(async () => {
+        const box = await toggle.boundingBox();
+        return box !== null && box.y >= 56 && box.y + box.height <= 800;
+      }).toBe(true);
+    });
+
     test('Q4 switches between topic and activity', async ({ page, baseURL }) => {
       await page.goto(`${baseURL}/statistics?open=4`);
       const rows = page.getByTestId('stats-split-rows');

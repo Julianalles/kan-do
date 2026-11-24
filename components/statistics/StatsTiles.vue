@@ -16,8 +16,8 @@
 -->
 <template>
   <!-- overflow-anchor: the browser would otherwise pull the scroll down as the opened tile grows above the tiles it anchors on, undoing the scroll to the toggle (#689) -->
-  <div class="[overflow-anchor:none]">
-    <div v-if="questionOrder.length" ref="grid" class="mb-4 grid gap-4 md:mb-6 md:grid-cols-3 md:items-start md:gap-6">
+  <div ref="root" class="[overflow-anchor:none]">
+    <div v-if="questionOrder.length" class="mb-4 grid gap-4 md:mb-6 md:grid-cols-3 md:items-start md:gap-6">
       <!-- The open tile is first and spans the row from md, by CSS only: the DOM order stays 2, 3, 4 so a moved node never takes focus from its toggle (#689) -->
       <StatsTile
         v-for="n in questionOrder"
@@ -151,7 +151,7 @@ const { t, locale } = useI18n()
 const { formatDuration } = useLocaleFormat()
 
 const open = ref<TileNumber | null>(props.initialOpen === 2 || props.initialOpen === 3 || props.initialOpen === 4 || props.initialOpen === 5 ? props.initialOpen : null)
-const grid = ref<HTMLElement | null>(null)
+const root = ref<HTMLElement | null>(null)
 const by = ref<'topic' | 'activity'>('topic')
 
 const rhythmReady = computed(() => props.rhythm.state === 'normal')
@@ -163,7 +163,7 @@ const questionOrder = computed<QuestionNumber[]>(() => (props.review.state === '
 
 function toggle(n: TileNumber) {
   open.value = open.value === n ? null : n
-  if (open.value === n && n !== 5) keepToggleInView(n)
+  if (open.value === n) keepToggleInView(n)
 }
 
 /**
@@ -172,14 +172,14 @@ function toggle(n: TileNumber) {
  * Reduced motion has no glide, the first scroll is enough.
  */
 function keepToggleInView(n: TileNumber) {
-  const scroll = () => grid.value?.querySelector(`[data-testid="stats-tile-${n}-toggle"]`)?.scrollIntoView({ block: 'nearest' })
+  const scroll = () => root.value?.querySelector(`[data-testid="stats-tile-${n}-toggle"]`)?.scrollIntoView({ block: 'nearest' })
   void nextTick(scroll)
-  const root = grid.value
-  if (!root) return
-  const done = () => { root.removeEventListener('animationend', onEnd); window.clearTimeout(timer) }
+  const el = root.value
+  if (!el) return
+  const done = () => { el.removeEventListener('animationend', onEnd); window.clearTimeout(timer) }
   const onEnd = () => { done(); scroll() }
   const timer = window.setTimeout(done, 1000)
-  root.addEventListener('animationend', onEnd)
+  el.addEventListener('animationend', onEnd)
 }
 
 const byItems = computed(() => [
