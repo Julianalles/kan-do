@@ -178,6 +178,13 @@
       "close": "Schließen",
       "started": "Eine Aufgabe liegt jetzt unter „Alle Aufgaben“. | {n} Aufgaben liegen jetzt unter „Alle Aufgaben“."
     },
+    "introHint": {
+      "start": {
+        "desktop": "Ziehe nach Jetzt, woran du jetzt arbeitest. In Jetzt liegt immer nur eine Aufgabe.",
+        "phone": "Womit fängst du an? Halte die Karte und ziehe sie an den rechten Rand, nach Jetzt. In Jetzt liegt immer nur eine Aufgabe."
+      },
+      "close": "Schließen"
+    },
     "planNote": {
       "title": "Wähle aus, was heute dran ist",
       "description": "Plane hier die Aufgaben für heute ein. Wechsle zu „Heute“, sobald du loslegen willst.",
