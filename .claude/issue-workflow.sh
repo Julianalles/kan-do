@@ -23,7 +23,7 @@ WF_CHECKS_TSV="$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/nu
 
 # cwd: the PR worktree (base merged in).
 wf_verify() { npm run verify; }
-wf_build_needed() { git diff --name-only "$1"...HEAD | grep -Eq '^(nuxt\.config\.ts|package\.json|app\.config\.ts|server/|vercel\.json)'; }
+wf_build_needed() { git diff --name-only "$1"...HEAD | grep -Eq '^(nuxt\.config\.ts|package\.json|app\.config\.ts|server/)'; }
 wf_build() { npm run build; }
 # every prep: a UI diff runs tests/config (ratchets, lock-in); fix workers' `vitest --changed` misses them (main red after PR 712)
 wf_prep_check() { if git diff --name-only "$1"...HEAD | grep -Eq '\.(vue|css)$|^app\.config\.ts$'; then npx vitest run tests/config; fi; }
@@ -40,15 +40,18 @@ wf_after_merge() {
   .claude/hooks/cleanup-merged.sh
 }
 
-# Vercel Production deployment of main (cwd: main checkout, after the fast-forward); not green -> file an inbox issue.
+# Cloudflare Workers Builds deploy of main (ADR 021; the Vercel deployment is gone, #747), read from its GitHub check run
+# "Workers Builds: kando" on origin/main (cwd: main checkout, after the fast-forward); not green -> file an inbox issue.
 wf_deploy_check() {
-  local dep sha state
-  dep=$(gh api 'repos/{owner}/{repo}/deployments?environment=Production&per_page=1' --jq '.[0] | "\(.id) \(.sha)"') || { echo "deploy: lookup failed"; return 0; }
-  sha=${dep#* }
-  if [ "$sha" != "$(git rev-parse origin/main)" ]; then echo "deploy: Production not started yet for main (latest ${sha:0:7}); check again later"; return 0; fi
-  state=$(gh api "repos/{owner}/{repo}/deployments/${dep%% *}/statuses" --jq '.[0].state // "pending"')
-  echo "deploy: Production $state"
-  case "$state" in success|in_progress|queued|pending) ;; *) echo "deploy not green: file an inbox issue" ;; esac
+  local sha run
+  sha=$(git rev-parse origin/main)
+  run=$(gh api "repos/{owner}/{repo}/commits/$sha/check-runs" --jq '[.check_runs[] | select(.name | startswith("Workers Builds"))][0] | "\(.status) \(.conclusion)"') || { echo "deploy: lookup failed"; return 0; }
+  case "$run" in
+    "null null"|"") echo "deploy: Workers Builds not started yet for main (${sha:0:7}); check again later" ;;
+    "completed success") echo "deploy: Workers Builds success" ;;
+    completed*) echo "deploy: Workers Builds ${run#completed }"; echo "deploy not green: file an inbox issue" ;;
+    *) echo "deploy: Workers Builds ${run%% *}" ;;
+  esac
 }
 
 # The 'E2E-specs:' line must name every spec the gate selects for the PR head (#699: ui-catalog was missed twice, a rule

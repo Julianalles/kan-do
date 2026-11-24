@@ -16,7 +16,7 @@ const isDev = process.env.NODE_ENV !== 'production'
 const CLAUDE_DIR = `${fileURLToPath(new URL('./.claude', import.meta.url))}/**`
 
 // Live copy editor (#59): in `nuxt dev`, and in the E2E build (scripts/e2e-server.mjs sets the flag so the specs can
-// drive it) and in the dev instance (#246, a Vercel preview of `dev`). Every other build gets `false`, which drops `dev-tools/copy-editor/` from the bundle.
+// drive it) and in a dev instance (#246, `KANDO_DEV_INSTANCE=1`). Every other build gets `false`, which drops `dev-tools/copy-editor/` from the bundle.
 const copyEditor = isDev || process.env.KANDO_COPY_EDITOR === '1' || isDevInstance(process.env)
 
 // E2E build (#541): `scripts/e2e-server.mjs` sets this to a directory of its own, so the Playwright build never writes
@@ -278,9 +278,9 @@ export default defineNuxtConfig({
         ],
       } as Record<string, unknown>
     : {
-        // On Vercel the server routes run (Notion and Todoist proxies, the feedback relay, #268); every other
-        // build stays static unless NITRO_PRESET says otherwise.
-        preset: process.env.NITRO_PRESET || (process.env.VERCEL ? 'vercel' : 'static'),
+        // Static unless NITRO_PRESET says otherwise: the Cloudflare Worker (`build:cloudflare`, ADR 021) and the E2E server
+        // build set it. (The Vercel deployment and its `vercel` preset are gone, #747.)
+        preset: process.env.NITRO_PRESET || 'static',
         // Cloudflare (#502, ADR 021): the Worker is `worker/index.ts` (the gate) as wrangler.jsonc says. Under Workers
         // Builds (`WORKERS_CI=1`) Nitro would turn this on by itself, write `.output/server/wrangler.json` and redirect
         // `wrangler deploy` to it through `.wrangler/deploy/config.json`: Nitro's bare handler, no gate, would go live.
@@ -371,12 +371,11 @@ export default defineNuxtConfig({
     define: {
       '__COPY_EDITOR__': copyEditor,
       '__UI_MANIFEST__': JSON.stringify(uiManifest()),
-      // Allow Notion sentinel token (notion_test_stub) in dev and Vercel preview deployments.
+      // Allow Notion sentinel token (notion_test_stub) in dev and the E2E build (`NOTION_STUB_ENABLED`).
       // Tree-shaken to `false` in production.
       // The public web instance (#742): the Cloudflare build. Notion shows as not available there; desktop, dev, E2E keep it.
       '__PUBLIC_CLOUD__': isPublicCloud,
-      '__NOTION_STUB_ALLOWED__': process.env.VERCEL_ENV === 'preview'
-        || process.env.NOTION_STUB_ENABLED === 'true'
+      '__NOTION_STUB_ALLOWED__': process.env.NOTION_STUB_ENABLED === 'true'
         || process.env.NODE_ENV !== 'production',
     },
   },
