@@ -25,7 +25,7 @@
         v-if="toggleable"
         ref="button"
         type="button"
-        class="group flex min-h-11 w-full items-start justify-between gap-4 text-left focus-ring"
+        class="group flex min-h-11 w-full scroll-mt-[calc(var(--app-bar-offset-top)+var(--app-bar-veil-hang)+1rem)] items-start justify-between gap-4 text-left focus-ring"
         :aria-expanded="open"
         :aria-controls="ownPanelId"
         :data-testid="`stats-tile-${n}-toggle`"

@@ -295,6 +295,21 @@ test.describe('Statistics Page', () => {
       ]);
     });
 
+    test('switching to a lower tile keeps its toggle in view although the tile moves to the first place (#689)', async ({ page, baseURL }) => {
+      await page.setViewportSize({ width: 1280, height: 700 });
+      await page.goto(`${baseURL}/statistics?open=3`);
+      const toggle = (n: number) => page.getByTestId(`stats-tile-${n}-toggle`);
+      await expect(page.getByTestId('stats-tile-3-detail')).toBeVisible();
+      await toggle(4).scrollIntoViewIfNeeded();
+      await toggle(4).click();
+      await expect(toggle(4)).toHaveAttribute('aria-expanded', 'true');
+      await expect(toggle(4)).toBeFocused();
+      await expect.poll(async () => {
+        const box = await toggle(4).boundingBox();
+        return box !== null && box.y >= 56 && box.y + box.height <= 700; // below the floating app bar
+      }).toBe(true);
+    });
+
     test('Q4 switches between topic and activity', async ({ page, baseURL }) => {
       await page.goto(`${baseURL}/statistics?open=4`);
       const rows = page.getByTestId('stats-split-rows');
