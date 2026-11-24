@@ -3,7 +3,7 @@
  * @description Thin adapter over `NotionIntegration`. The class is created per call from the current
  * Notion config (`useNotionIntegration`), so a changed config is picked up without a new adapter.
  */
-import type { CreateUncertain, Task } from '~/types/task'
+import type { CreateUncertain, PendingClear, Task } from '~/types/task'
 import type { IntegrationHealth } from '~/types/integration'
 import type { NotionIntegration } from '~/integrations/NotionIntegration'
 import { externalIdOf, sourceSyncsTime } from '~/lib/taskSources'
@@ -131,8 +131,12 @@ export class NotionSource implements TaskSourceAdapter {
     }
   }
 
-  async update(task: Task, change: { timeEdited?: boolean } = {}): Promise<Task | null> {
-    return change.timeEdited ? this.instance().updateTask(task, { timeEdited: true }) : this.instance().updateTask(task)
+  async update(task: Task, change: { timeEdited?: boolean; clears?: readonly PendingClear[] } = {}): Promise<Task | null> {
+    const passed = {
+      ...(change.timeEdited ? { timeEdited: true } : {}),
+      ...(change.clears && change.clears.length > 0 ? { clears: change.clears } : {}),
+    }
+    return Object.keys(passed).length > 0 ? this.instance().updateTask(task, passed) : this.instance().updateTask(task)
   }
 
   async remove(task: Task): Promise<void> {

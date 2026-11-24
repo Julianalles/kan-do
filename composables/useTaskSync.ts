@@ -1,5 +1,5 @@
 import { TaskStatus } from "~/types/taskStatus";
-import type { CreateUncertain, Task } from "@/types/task";
+import type { CreateUncertain, PendingClear, Task } from "@/types/task";
 import { useTaskSources } from '~/composables/useTaskSources';
 import { SourceNotConfiguredError, SourceReadOnlyError } from '~/integrations/sources/types';
 import { useTasksStore } from "~/store/tasks";
@@ -22,6 +22,21 @@ import { inStatus, isNotPlanned } from '~/lib/taskPlanning';
 
 /** Where a source's setup problems are reported (the context picks the localized message). */
 const setupContextOf = (source: IntegrationSourceId) => SETUP_ERROR_CONTEXTS[source];
+
+/**
+ * The fields an edit empties that held a value (#780): the time box and the ad-hoc marker. Only these clears are
+ * written to a source; a field that was already empty (a value the source holds but kan-do could not read) is not one.
+ */
+const clearsOf = (before: Task, updates: Partial<Task>): PendingClear[] => [
+  ...('timeBoxSeconds' in updates && (before.timeBoxSeconds ?? 0) > 0 && !((updates.timeBoxSeconds ?? 0) > 0) ? ['timeBox' as const] : []),
+  ...('isUnplanned' in updates && before.isUnplanned === true && updates.isUnplanned !== true ? ['unplanned' as const] : []),
+];
+
+/** The fields (of an edit, or of a task) that hold a value, so no clear of them is to be written (#780). */
+const setAgainOf = (fields: Partial<Task>): PendingClear[] => [
+  ...((fields.timeBoxSeconds ?? 0) > 0 ? ['timeBox' as const] : []),
+  ...(fields.isUnplanned === true ? ['unplanned' as const] : []),
+];
 
 /** Outcome of committing a pending delete upstream (#99). */
 export type DeleteCommitResult = 'committed' | 'queued' | 'restored' | 'skipped';
@@ -454,19 +469,25 @@ export const useTaskSync = () => {
    * marked a field edit (#770): with no change outstanding, a source that stores none of these fields writes nothing.
    */
   const editTask = (taskId: string, updates: Partial<Task>): Promise<boolean> => {
-    if (!tasksStore.task(taskId)) return Promise.resolve(false);
+    const before = tasksStore.task(taskId);
+    if (!before) return Promise.resolve(false);
+    const clears = clearsOf(before, updates);
     const operationVersion = tasksStore.incrementTaskOperationVersion(taskId);
     tasksStore.updateTask(taskId, updates);
+    // The clear goes onto the marker at once (#780), so a push that waits (an earlier push, a status write) or a move's
+    // undo window cannot lose it to a restart or an undo; with no marker yet the push notes it as it sets one. A
+    // field set again needs no clear any more, even when the push that notes it is still waiting
+    tasksStore.noteClears(taskId, { add: clears, drop: setAgainOf(updates) });
     // A status write of the task still waiting (a stack drop chains them) sends the task as it is by then, the edit
     // with it: the edit's own push goes after it, so it cannot send that write's completion first and the write a
     // second one (#770). It waits outside `pushesInFlight`, which the status write's own push waits on, and again for
     // a status write queued meanwhile
-    if (!statusWritesInFlight.has(taskId)) return runSync(tasksStore.task(taskId)!, undefined, operationVersion, true);
+    if (!statusWritesInFlight.has(taskId)) return runSync(tasksStore.task(taskId)!, undefined, operationVersion, true, clears);
     return (async () => {
       let statusWrite: Promise<void> | undefined;
       while ((statusWrite = statusWritesInFlight.get(taskId)?.promise) !== undefined) await statusWrite.catch(() => undefined);
       const live = tasksStore.task(taskId);
-      return live ? runSync(live, undefined, operationVersion, true) : true;
+      return live ? runSync(live, undefined, operationVersion, true, clears) : true;
     })();
   };
 
@@ -484,7 +505,7 @@ export const useTaskSync = () => {
    * task is Local. The task carries `pendingSync` from before the write until it succeeded (#319); a change
    * made while the write is in flight keeps the marker. `fieldEdit`: the push carries a field edit only (`editTask`).
    */
-  const runSync = async (task: Task, previousStatus?: TaskStatus, operationVersion?: number, fieldEdit = false): Promise<boolean> => {
+  const runSync = async (task: Task, previousStatus?: TaskStatus, operationVersion?: number, fieldEdit = false, clears: readonly PendingClear[] = []): Promise<boolean> => {
     // Local tasks: no external sync needed, they are persisted via Pinia
     if (task.source === "local") {
       return true;
@@ -511,7 +532,7 @@ export const useTaskSync = () => {
         tasksStore.markPendingSync(target.id);
         return (await commitTaskMove(target.id)) === 'committed';
       }
-      return pushTask(target, previousStatus, operationVersion, fieldEdit);
+      return pushTask(target, previousStatus, operationVersion, fieldEdit, clears);
     })();
     pushesInFlight.set(task.id, push);
     try {
@@ -547,13 +568,23 @@ export const useTaskSync = () => {
   const timeEditFlag = (taskId: string): { timeEdited?: true } =>
     tasksStore.pendingTimeUpdates[taskId]?.absolute === true ? { timeEdited: true } : {};
 
+  /** `clears` for a write whose marker holds fields the user emptied (#780); empty otherwise. */
+  const clearFlag = (taskId: string): { clears?: PendingClear[] } => {
+    const clears = tasksStore.task(taskId)?.pendingSync?.clears;
+    return clears && clears.length > 0 ? { clears: [...clears] } : {};
+  };
+
   /** One write of a non-Local task; never rejects, a failure goes to `reportPushFailure`. */
-  const pushTask = async (task: Task, previousStatus?: TaskStatus, operationVersion?: number, fieldEdit = false): Promise<boolean> => {
+  const pushTask = async (task: Task, previousStatus?: TaskStatus, operationVersion?: number, fieldEdit = false, clears: readonly PendingClear[] = []): Promise<boolean> => {
     // A field edit of a task with no change outstanding (#770): the source holds everything else, its status too, so a
     // source that stores none of the edited fields (Todoist) has nothing to write. Read before the marker is set; after
     // an earlier push of the task, so a completion that failed (its marker stays) is still sent
     const fieldsOnly = fieldEdit && !tasksStore.task(task.id)?.pendingSync;
     const revision = tasksStore.markPendingSync(task.id, previousStatus === undefined ? undefined : previousStatus === TaskStatus.Done);
+    // The user's clears go onto the marker (#780), so a failed write, an offline edit or a restart still sends them;
+    // one the task no longer shows empty (set again while this push waited) is left out
+    const live = tasksStore.task(task.id);
+    if (live) tasksStore.noteClears(task.id, { add: clears.filter((field) => !setAgainOf(live).includes(field)) });
     const queuedTime = mapHelpers.has(tasksStore.pendingTimeUpdates, task.id);
     if (queuedTime) tasksStore.markPendingUpdateSyncing(task.id);
     let createAttemptedAt = 0;
@@ -575,13 +606,17 @@ export const useTaskSync = () => {
         // `Open` only stands for "not completed" here.
         const heldDone = tasksStore.task(task.id)?.pendingSync?.upstreamDone;
         const sentDone = task.status === TaskStatus.Done;
+        const carried = clearFlag(task.id);
         const synced = await adapter.update(task, {
           previousStatus: heldDone === undefined ? previousStatus : heldDone ? TaskStatus.Done : TaskStatus.Open,
           // A total the user set (kd#4) is written even at 0; the entry lives until the push carried it
           ...timeEditFlag(task.id),
+          ...carried,
           ...(fieldsOnly ? { fieldsOnly: true } : {}),
         });
         if (synced) applySyncedTask(task.id, synced, operationVersion, tasksStore.pendingSyncRevision(task.id) !== revision);
+        // Written: a marker that stays for a newer change must not send these clears again (#780)
+        if (carried.clears) tasksStore.noteClears(task.id, { drop: carried.clears });
         tasksStore.clearPendingSync(task.id, revision, sentDone);
       }
       restoreSourceAfterPush(task.source);
@@ -734,7 +769,9 @@ export const useTaskSync = () => {
         try {
           // update returns the synced task with the source's current state
           // The write drops the queued time entry, so it has to carry a user-set total (kd#4)
-          const syncedTask = await adapter.update(task, timeEditFlag(taskId));
+          const carried = clearFlag(taskId);
+          const syncedTask = await adapter.update(task, { ...timeEditFlag(taskId), ...carried });
+          if (carried.clears) tasksStore.noteClears(taskId, { drop: carried.clears });
           tasksStore.clearPendingSync(taskId, revision);
           restoreSourceAfterPush(source);
           if (!syncedTask) continue;
