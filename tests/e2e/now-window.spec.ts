@@ -90,49 +90,85 @@ test.describe('the pill window (/overlay)', () => {
     await expect(fill).not.toHaveClass(/is-gliding/)
   })
 
-  test('the light is 280 x 42 pt with a straight, soft edge that holds at any share, and only transform moves it (#703)', async ({ context, page }) => {
+  test('the light is 280 x 42 pt with a soft end in the layer itself, and only transform moves it (#703, #812)', async ({ context, page }) => {
     await openPill(context, page, snap({ spentSeconds: 860 }))
     const box = (await pill(page).boundingBox())!
     expect([box.width, box.height]).toEqual([280, 42])
     const fill = page.getByTestId('now-fill')
-    // the layer is as wide as the pill and slid left by the time gone: its right end is the visible edge, at share x width
+    // the layer is wider than the pill by the 92 px falloff and slid left by the time gone; half of the falloff stays in the pill at the end
+    const FALL = 92, WAY = 280 + FALL / 2
     const edgeAt = async () => fill.evaluate(el => { const r = el.getBoundingClientRect(); return { width: r.width, right: r.right - el.parentElement!.getBoundingClientRect().left } })
     let edge = await edgeAt()
-    expect(edge.width).toBeCloseTo(280, 0)
-    expect(edge.right).toBeCloseTo(280 * (640 / 1500), 0)
-    // a share narrower than the corner radius (21 px): still the same layer, only moved; no round cap of its own
+    expect(edge.width).toBeCloseTo(280 + FALL, 0)
+    expect(edge.right).toBeCloseTo(280 + FALL - (1 - 640 / 1500) * WAY, 0)
+    // no mask on the moving layer: the falloff is in the gradient (the mask showed a hard cut in the desktop webview)
+    expect(await fill.evaluate(el => getComputedStyle(el).maskImage)).toBe('none')
+    // nearly no time left: still the same layer, only moved, with half of the falloff in the pill; no round cap of its own
     await emitTauriEvent(page, NOW_EVENT, snap({ spentSeconds: 1495, at: Date.now() }))
     await expect(page.getByTestId('now-time')).toHaveText('0:05')
     edge = await edgeAt()
-    expect(edge.width).toBeCloseTo(280, 0)
-    expect(edge.right).toBeLessThan(21)
+    expect(edge.width).toBeCloseTo(280 + FALL, 0)
+    expect(edge.right).toBeGreaterThan(FALL / 2)
+    expect(edge.right).toBeLessThan(FALL / 2 + 2)
     expect(await fill.evaluate(el => getComputedStyle(el).borderRadius)).toBe('0px')
-    // the breathing band moves opacity and transform only
-    const band = await page.locator('.now-edge').evaluate(el => el.getAnimations().flatMap(a => ((a.effect as KeyframeEffect).getKeyframes()).flatMap(k => Object.keys(k))).filter(k => !['offset', 'easing', 'composite', 'computedOffset'].includes(k)))
-    expect([...new Set(band)].sort()).toEqual(['opacity', 'transform'])
+    // over the timebox the light is full: the falloff starts at the pill's right cap
+    await emitTauriEvent(page, NOW_EVENT, snap({ spentSeconds: 1630, at: Date.now() }))
+    await expect(page.getByTestId('now-time')).toHaveText('+2:10')
+    expect((await edgeAt()).right).toBeCloseTo(280 + FALL, 0)
+    // the glint moves opacity and transform only (it travels only while the task runs)
+    await emitTauriEvent(page, NOW_EVENT, snap({ running: true, at: Date.now() }))
+    await expect.poll(() => page.getByTestId('now-glint').evaluate(el => el.getAnimations().length)).toBe(1)
+    const glint = await page.getByTestId('now-glint').evaluate(el => el.getAnimations().flatMap(a => ((a.effect as KeyframeEffect).getKeyframes()).flatMap(k => Object.keys(k))).filter(k => !['offset', 'easing', 'composite', 'computedOffset'].includes(k)))
+    expect([...new Set(glint)].sort()).toEqual(['opacity', 'transform'])
   })
 
-  test('the band breathes while it runs and holds still while paused (#703)', async ({ context, page }) => {
+  /** Where the glint's box sits, relative to the light it travels in */
+  const glintAt = (page: Page) => page.getByTestId('now-glint').evaluate(el => el.getBoundingClientRect().left - el.parentElement!.getBoundingClientRect().left)
+
+  test('the glint travels from the soft end toward the start while the task runs and rests while paused (#812)', async ({ context, page }) => {
     await openPill(context, page, snap({ running: true }))
-    const state = () => page.locator('.now-edge').evaluate(el => el.getAnimations().map(a => a.playState))
+    const glint = page.getByTestId('now-glint')
+    const state = () => glint.evaluate(el => el.getAnimations().map(a => a.playState))
     await expect.poll(state).toEqual(['running'])
+    // seeked, not raced: at the start it sits in the soft end, 3 s in it has moved left (toward the light's start)
+    const seek = (ms: number) => glint.evaluate((el, t) => { const a = el.getAnimations()[0]!; a.pause(); a.currentTime = t }, ms)
+    await seek(0)
+    const start = await glintAt(page)
+    await seek(3000)
+    expect(await glintAt(page)).toBeLessThan(start - 40)
+    // the loop is 9 s and the glint is gone for the rest of it
+    await seek(5000)
+    expect(Number(await glint.evaluate(el => getComputedStyle(el).opacity))).toBe(0)
+    expect(await glint.evaluate(el => (el.getAnimations()[0]!.effect as KeyframeEffect).getTiming().duration)).toBe(9000)
+    // paused: no animation, a faint fixed highlight in the light
     await emitTauriEvent(page, NOW_EVENT, snap({ running: false, at: Date.now() }))
     await expect(pill(page)).toHaveClass(/is-paused/)
-    await expect.poll(state).toEqual(['paused'])
+    await expect.poll(state).toEqual([])
+    expect(Number(await glint.evaluate(el => getComputedStyle(el).opacity))).toBeCloseTo(0.4, 2)
+    const rest = await glintAt(page)
+    await page.waitForTimeout(600)
+    expect(await glintAt(page)).toBe(rest)
+    // resumed: it travels again
+    await emitTauriEvent(page, NOW_EVENT, snap({ running: true, at: Date.now() }))
+    await expect.poll(state).toEqual(['running'])
   })
 
-  test('with reduced motion the band rests at mid brightness and the light does not glide (#703)', async ({ context, page }) => {
+  test('with reduced motion the glint rests as a fixed highlight and the light does not glide (#703, #812)', async ({ context, page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' })
     await openPill(context, page, snap({ running: true }))
-    const edge = page.locator('.now-edge')
-    await expect.poll(() => edge.evaluate(el => Number(getComputedStyle(el).opacity))).toBeCloseTo(0.7, 1)
-    expect(await edge.evaluate(el => getComputedStyle(el).transform)).toBe('none')
-    // paused is no different: no animation sits at its first keyframe (0.35)
+    const glint = page.getByTestId('now-glint')
+    await expect.poll(() => glint.evaluate(el => Number(getComputedStyle(el).opacity))).toBeCloseTo(0.4, 2)
+    expect(await glint.evaluate(el => el.getAnimations().length)).toBe(0)
+    // it stays put (its place follows the light's share, a fraction of a pixel per tick)
+    const rest = await glintAt(page)
+    await page.waitForTimeout(600)
+    expect(Math.abs(await glintAt(page) - rest)).toBeLessThan(0.5)
+    // paused is no different
     await emitTauriEvent(page, NOW_EVENT, snap({ running: false, at: Date.now() }))
     await expect(pill(page)).toHaveClass(/is-paused/)
-    expect(await edge.evaluate(el => el.getAnimations().length)).toBe(0)
-    expect(Number(await edge.evaluate(el => getComputedStyle(el).opacity))).toBeCloseTo(0.7, 1)
-    await emitTauriEvent(page, NOW_EVENT, snap({ spentSeconds: 861, at: Date.now() }))
+    expect(await glint.evaluate(el => el.getAnimations().length)).toBe(0)
+    expect(Number(await glint.evaluate(el => getComputedStyle(el).opacity))).toBeCloseTo(0.4, 2)
+    await emitTauriEvent(page, NOW_EVENT, snap({ running: true, spentSeconds: 861, at: Date.now() }))
     expect(await page.getByTestId('now-fill').evaluate(el => getComputedStyle(el).transitionDuration)).toBe('0s')
   })
 
@@ -152,11 +188,11 @@ test.describe('the pill window (/overlay)', () => {
     for (const id of ['now-pause', 'now-done']) expect((await page.getByTestId(id).boundingBox())!.width).toBeGreaterThanOrEqual(28)
   })
 
-  // The light is under the title and the time: text 4.5:1, glyphs 3:1 in every state, on a light and a dark stand-in backdrop, with the band at its brightest.
-  // The real glass is a manual check (`desktop-verify`); the backdrop here is a mid wallpaper tone.
+  // The light is under the title and the time: text 4.5:1, glyphs 3:1 in every state, on a light and a dark stand-in backdrop, with the glint at its
+  // brightest right behind what is measured. The real glass is a manual check (`desktop-verify`); the backdrop here is a mid wallpaper tone.
   for (const scheme of ['light', 'dark'] as const) {
-    test(`text and glyphs keep their contrast over the light in every state, ${scheme} (#703)`, async ({ browser }) => {
-      const states: Record<string, Partial<Snap>> = { running: {}, paused: { running: false }, warning: { spentSeconds: 1300 }, narrow: { spentSeconds: 1400 }, over: { spentSeconds: 1630 } }
+    test(`text and glyphs keep their contrast over the light and the glint in every state, ${scheme} (#703, #812)`, async ({ browser }) => {
+      const states: Record<string, Partial<Snap>> = { running: {}, full: { spentSeconds: 0 }, paused: { running: false }, warning: { spentSeconds: 1300 }, narrow: { spentSeconds: 1400 }, over: { spentSeconds: 1630 } }
       for (const [name, extra] of Object.entries(states)) {
         const context = await browser.newContext({ colorScheme: scheme, locale: 'de-DE' })
         try {
@@ -166,13 +202,25 @@ test.describe('the pill window (/overlay)', () => {
           await page.goto('/overlay')
           await expect(pill(page)).toBeVisible()
           await page.addStyleTag({ content: `html,body{background:${scheme === 'light' ? '#cfd8e8' : '#26364f'} !important}` })
-          // The band at its brightest, still: the keyframe's peak (opacity 1, shifted 4 px) set by CSS. A paused animation does not hold: `measureContrast` screenshots with `animations: 'disabled'`, which cancels an infinite one and would leave the band at its base opacity.
-          await page.addStyleTag({ content: '.now-edge{animation:none !important;opacity:1 !important;transform:translateX(-4px) !important}' })
+          // The glint at its brightest (the keyframes' peak, opacity 1), still, and centred behind the measured element: set by CSS, because
+          // `measureContrast` screenshots with `animations: 'disabled'`, which cancels an infinite animation. Paused, it stays the resting highlight.
+          const glintOver = async (id: string) => {
+            if (name === 'paused') return
+            await page.addStyleTag({ content: '.now-glint{animation:none !important;opacity:1 !important;transform:translateX(var(--test-glint-x, 0px)) !important}' })
+            await page.evaluate((testId) => {
+              const glint = document.querySelector<HTMLElement>('[data-testid="now-glint"]')!
+              glint.style.setProperty('--test-glint-x', '0px')
+              const g = glint.getBoundingClientRect(), t = document.querySelector(`[data-testid="${testId}"]`)!.getBoundingClientRect()
+              glint.style.setProperty('--test-glint-x', `${(t.left + t.width / 2) - (g.left + g.width / 2)}px`)
+            }, id)
+          }
           for (const id of ['now-title', 'now-time']) {
+            await glintOver(id)
             const { ratio } = await measureContrast(page, page.getByTestId(id))
             expect(ratio, `${scheme} ${name} ${id}`).toBeGreaterThanOrEqual(name === 'paused' && id === 'now-time' ? 3 : 4.5)
           }
           for (const id of ['now-pause', 'now-done']) {
+            await glintOver(id)
             const { ratio } = await measureContrast(page, page.getByTestId(id).locator('svg'))
             expect(ratio, `${scheme} ${name} ${id}`).toBeGreaterThanOrEqual(3)
           }
@@ -187,7 +235,8 @@ test.describe('the pill window (/overlay)', () => {
     await openPill(context, page, snap({ timeBoxSeconds: null, spentSeconds: 125, running: true }))
     await expect(page.getByTestId('now-title')).toBeVisible()
     await expect(page.getByTestId('now-fill')).toHaveCount(0)
-    await expect(pill(page)).not.toHaveClass(/is-warning/)
+    await expect(page.locator('.now-tint')).toHaveCount(0)
+    await expect(pill(page)).not.toHaveClass(/is-warning|has-light/)
     const first = await page.getByTestId('now-time').innerText()
     expect(first).toMatch(/^2:\d{2}$/)
     await expect.poll(() => page.getByTestId('now-time').innerText(), { timeout: 5000 }).not.toBe(first)
