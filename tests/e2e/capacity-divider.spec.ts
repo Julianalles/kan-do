@@ -294,9 +294,19 @@ test.describe('"Heute" on "Alle" and the capacity line (#817)', () => {
         await dropSettled(page)
         await expect.poll(() => layout(page)).toBe(expected)
 
-        // Picked up and released where it was. Pressed near its top: the foot echo of the line, shown while the canceled
-        // drag pushed the line below the window, stays until the next scroll and covers the card's centre on "Alle"
-        await pickUp(page, card(page, id), { at: { x: 20, y: 20 } })
+        // The canceled drag pushed the line below the window and showed the foot echo (#834): it is measured again at the
+        // end of the drag, so it does not cover the card's centre (and the press below starts a drag)
+        await expect(page.getByTestId('capacity-echo')).toHaveCount(0)
+        const centre = await card(page, id).boundingBox()
+        expect(centre).not.toBeNull()
+        const hit = await page.evaluate(
+          ({ x, y }) => document.elementFromPoint(x, y)?.closest('.task-wrapper')?.getAttribute('data-task-id') ?? null,
+          { x: centre!.x + centre!.width / 2, y: centre!.y + centre!.height / 2 },
+        )
+        expect(hit).toBe(id)
+
+        // Picked up and released where it was, pressed at its centre
+        await pickUp(page, card(page, id))
         await page.mouse.up()
         await dropSettled(page)
         await expect.poll(() => layout(page)).toBe(expected)
