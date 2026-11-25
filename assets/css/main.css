@@ -313,7 +313,7 @@
     /* The card's one resting shadow. Hover changes the sheet's fill, never the shadow (kd#225), so nothing interpolates
        a shadow geometry: WebKit (the desktop app) draws that in whole-pixel steps (kd#128). */
     --shadow-task: 0 0 0 1px rgb(var(--shadow-color) / 0.07), 0 2px 3px 0 rgb(var(--shadow-color) / 0.1), 0 10px 22px -6px rgb(var(--shadow-color) / 0.2);
-    --shadow-task-drag-elevated: 0 0 0 1px rgb(var(--shadow-color) / 0.07), 0 26px 48px -12px rgb(var(--shadow-color) / 0.38); /* in the hand; the pick-up grows it on the preview itself (dnd.css) */
+    --shadow-task-drag-elevated: 0 0 0 1px rgb(var(--shadow-color) / 0.07), 0 14px 26px -10px rgb(var(--shadow-color) / 0.3); /* in the hand; the pick-up grows it on the preview itself (dnd.css) */
     --shadow-task-lifted: 0 14px 38px color-mix(in oklab, var(--focus-dusk) 20%, transparent); /* the Jetzt card while the focus overlay is on (#394) */
     --shadow-stack-collapsed: drop-shadow(0 1px 1px rgb(var(--shadow-color) / 0.08)) drop-shadow(0 2px 3px rgb(var(--shadow-color) / 0.07));
     --shadow-stack-hover: drop-shadow(0 2px 2px rgb(var(--shadow-color) / 0.09)) drop-shadow(0 5px 8px rgb(var(--shadow-color) / 0.08));
@@ -405,7 +405,7 @@
    the root's `--shadow-task-drag-elevated` is fixed at lift 1. Keep the numbers in step with that token. */
 @layer components {
   .kando-dnd-preview {
-    --shadow-task-drag-elevated: 0 0 0 1px rgb(var(--shadow-color) / 0.07), 0 calc(26px * var(--dnd-lift)) calc(48px * var(--dnd-lift)) -12px rgb(var(--shadow-color) / calc(0.38 * var(--dnd-lift)));
+    --shadow-task-drag-elevated: 0 0 0 1px rgb(var(--shadow-color) / 0.07), 0 calc(14px * var(--dnd-lift)) calc(26px * var(--dnd-lift)) -10px rgb(var(--shadow-color) / calc(0.3 * var(--dnd-lift)));
   }
 }
 

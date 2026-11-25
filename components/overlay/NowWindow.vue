@@ -2,7 +2,7 @@
 @component NowWindow
 @kind block
 @category display
-@description The floating Now window (#383, #436, #565): a pill of system glass with the Jetzt task's title, its time and the pause and done buttons on one centre line, and coloured light in the glass behind them that drains to the left with the time left and fades out in a long, soft end with a bloom, a glint crossing it now and then while the task runs; it floats over every other window, Kan-do's own included
+@description The floating Now window (#383, #436, #565): a pill of system glass with the Jetzt task's title, its time and the pause and done buttons on one centre line, and coloured light in the glass behind them that drains to the left with the time left and fades out in a long, soft end with a bloom, a glint (a wide soft oval, #848) crossing it now and then while the task runs; it floats over every other window, Kan-do's own included
 @usage Only inside the pill window's own route (`pages/overlay.vue`, a second Tauri window); never on the board
 @avoid Not a control surface of the board: it shows one task and offers pause/resume, done and "open Kan-do", nothing else
 @responsibility
@@ -191,6 +191,7 @@ function onOpen(): void {
   --now-b1: 30%;
   --now-b2: 25%;
   --now-b3: 10%;
+  --now-b4: 3%;
   --now-bloom: 0.8; /* the bloom at the light's end */
   --now-rim-light: 45%; /* the light gathered in the bevel's lower rim */
   --now-glint: 92%; /* the glint, and its small bright core */
@@ -210,8 +211,9 @@ function onOpen(): void {
     --now-b1: 18%;
     --now-b2: 12%;
     --now-b3: 5%;
+    --now-b4: 1.5%;
     --now-bloom: 0.3;
-    --now-glint: 20%;
+    --now-glint: 16%;
     --now-shine: 6%;
     --now-rim-hi: color-mix(in srgb, CanvasText 60%, transparent);
     --now-rim-lo: color-mix(in srgb, Canvas 55%, transparent);
@@ -287,7 +289,11 @@ function onOpen(): void {
     color-mix(in srgb, var(--now-light) var(--now-b1), transparent) calc(100% - var(--now-fall)),
     color-mix(in srgb, var(--now-light-hi) var(--now-b2), transparent) calc(100% - var(--now-fall) * 0.62),
     color-mix(in srgb, var(--now-light-hi) var(--now-b3), transparent) calc(100% - var(--now-fall) * 0.28),
-    transparent 100%
+    color-mix(in srgb, var(--now-light-hi) var(--now-b4), transparent) calc(100% - var(--now-fall) * 0.14),
+    /* Clear a little before the layer's own edge, in the light's hue (not `transparent`, which is black): WKWebView showed the
+       layer's right edge as a hard step (#848), so the layer must hold no colour where it ends */
+    color-mix(in srgb, var(--now-light-hi) 0%, transparent) calc(100% - 12px),
+    color-mix(in srgb, var(--now-light-hi) 0%, transparent) 100%
   );
 }
 /* The bloom where the light ends */
@@ -315,7 +321,7 @@ function onOpen(): void {
   top: 0;
   bottom: 0;
   right: calc(var(--now-fall) * 0.3);
-  width: 84px;
+  width: 140px; /* wide enough to read as a reflection, not a dot (#848) */
   opacity: 0;
   background:
     radial-gradient(22% 30% at 50% 50%, color-mix(in srgb, var(--now-core) var(--now-shine), transparent), transparent),

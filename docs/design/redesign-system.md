@@ -64,7 +64,7 @@ Twelve rendered sizes become eight. Line heights: `--lh-tight` 1.15, `--lh-snug`
 |---|---|---|
 | `--shadow-task` | `0 0 0 1px rgb(c / 0.07), 0 2px 3px 0 rgb(c / 0.1), 0 10px 22px -6px rgb(c / 0.2), 0 22px 40px -12px rgb(c / 0)` | cards, page sheets, stacks (as a filter) |
 | `--shadow-task-hover` | the same four layers: `0.07, 0.06, 0.14, 0.3` | a card under the pointer |
-| `--shadow-task-drag-elevated` | `0 0 0 1px rgb(c / 0.07), 0 26px 48px -12px rgb(c / 0.38)` | the dragged card |
+| `--shadow-task-drag-elevated` | `0 0 0 1px rgb(c / 0.07), 0 14px 26px -10px rgb(c / 0.3)` | the dragged card |
 | `--shadow-sheet` | `-18px 0 44px -6px rgb(c / 0.26), -2px 0 8px rgb(c / 0.12)` | the task sheet on desktop |
 | `--shadow-overlay` | `0 22px 50px -8px rgb(c / 0.32), 0 3px 10px rgb(c / 0.14)` | dialogs; new: menus, popovers, toasts (today Nuxt UI's defaults in Tailwind's black) |
 | the nav pill | `0 0 0 1px rgb(c / 0.07), 0 2px 3px rgb(c / 0.1), 0 8px 18px -6px rgb(c / 0.2)` | the app bar's pills, the named exception |
