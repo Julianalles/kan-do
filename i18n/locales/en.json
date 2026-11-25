@@ -973,6 +973,15 @@
       "help": "The capacity hint for tasks planned for today is based on this. “Automatic” uses the working hours you've tracked so far.",
       "auto": "Automatic"
     },
+    "display": {
+      "heading": "Appearance"
+    },
+    "uiScale": {
+      "label": "Display size",
+      "help": "Makes everything in Kan-do larger or smaller.",
+      "helpDesktop": "Makes everything in Kan-do larger or smaller. {key} + Plus and {key} + Minus do the same.",
+      "standard": "{percent} (default)"
+    },
     "introHints": {
       "heading": "Quick guide",
       "label": "Getting-started hints",

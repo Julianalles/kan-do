@@ -5,14 +5,18 @@
  * web build keeps the browser's own scrolling. Same detection as everywhere else: `isTauri()`. Also keeps the
  * window draggable while a full-screen layer covers the drag strip (`lib/windowDrag.ts`). In a production build it
  * also cancels the browser's context menu (#370, `lib/nativeContextMenu.ts`) and the reload, print and zoom shortcuts
- * (#398, `lib/nativeShortcuts.ts`); dev builds keep them for Inspect and HMR. Links and images cannot be dragged out
+ * (#398, `lib/nativeShortcuts.ts`); dev builds keep them for Inspect and HMR. The zoom chords (Cmd/Ctrl with +, - and 0)
+ * step the setting "Größe der Anzeige" instead (#845), in every build. Links and images cannot be dragged out
  * of the window (#398; `-webkit-user-drag` in `assets/css/utilities.css`, the `dragstart` listener is the fallback).
  */
 import { isTauri } from '~/utils/isTauri'
 import { isLayerDragStart } from '~/lib/windowDrag'
 import { shouldBlockContextMenu } from '~/lib/nativeContextMenu'
 import { isApplePlatform } from '~/composables/usePlatformShortcut'
-import { isBrowserShortcut } from '~/lib/nativeShortcuts'
+import { isBrowserShortcut, zoomShortcut } from '~/lib/nativeShortcuts'
+import { isOverlayWindow } from '~/lib/overlayWindow'
+import { stepUiScale } from '~/lib/uiScale'
+import { useSettingsStore } from '~/store/settings'
 
 export default defineNuxtPlugin(() => {
   if (!isTauri()) return
@@ -43,11 +47,22 @@ export default defineNuxtPlugin(() => {
     document.addEventListener('contextmenu', (event) => {
       if (shouldBlockContextMenu(event.target, window.getSelection())) event.preventDefault()
     })
-    // No reload, print or page zoom either (#398): the window is not a browser tab. Never stops propagation, so the app's
-    // own chords still arrive.
-    const mac = isApplePlatform()
-    document.addEventListener('keydown', (event) => {
-      if (isBrowserShortcut(event, mac)) event.preventDefault()
-    })
   }
+
+  // Reload, print and the webview's page zoom are not the app's (#398): the window is not a browser tab. Cancelled in a
+  // production build only (dev keeps reload for HMR); never stops propagation, so the app's own chords still arrive.
+  // The zoom chords step the setting "Größe der Anzeige" instead (#845), in dev builds too. The floating Now window
+  // has no settings and never scales: there the chord is only cancelled.
+  const mac = isApplePlatform()
+  document.addEventListener('keydown', (event) => {
+    const zoom = zoomShortcut(event, mac)
+    if (zoom) {
+      event.preventDefault()
+      if (isOverlayWindow()) return
+      const settingsStore = useSettingsStore()
+      settingsStore.setUiScale(stepUiScale(settingsStore.uiScale, zoom))
+      return
+    }
+    if (!import.meta.dev && isBrowserShortcut(event, mac)) event.preventDefault()
+  })
 })

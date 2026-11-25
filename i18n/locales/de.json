@@ -973,6 +973,15 @@
       "help": "Der Kapazitätshinweis für heute geplante Aufgaben richtet sich hiernach. „Automatisch“ nutzt deine bisher erfasste Arbeitszeit.",
       "auto": "Automatisch"
     },
+    "display": {
+      "heading": "Darstellung"
+    },
+    "uiScale": {
+      "label": "Größe der Anzeige",
+      "help": "Macht alles in Kan-do größer oder kleiner.",
+      "helpDesktop": "Macht alles in Kan-do größer oder kleiner. Das geht auch mit {key} + Plus und {key} + Minus.",
+      "standard": "{percent} (Standard)"
+    },
     "introHints": {
       "heading": "Kurz erklärt",
       "label": "Hinweise zum Einstieg",

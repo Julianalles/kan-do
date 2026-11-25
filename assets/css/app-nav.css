@@ -44,6 +44,15 @@
   }
 }
 
+/* Desktop app: the window's traffic lights sit in this row at a fixed place (tauri.conf.json `trafficLightPosition`),
+   so the row keeps its 3.5rem of the 100 % step when the setting "Größe der Anzeige" scales the root font size
+   (#845, `--ui-scale` from plugins/ui-scale.client.ts): the pills stay on the lights' centre line. */
+@media (--desktop) {
+  html[data-shell="desktop"] {
+    --app-bar-offset-top: calc(3.5rem / var(--ui-scale, 1));
+  }
+}
+
 @media (--phone) {
   :root {
     --app-bar-offset-top: 0px;
@@ -429,6 +438,68 @@
 
     .app-nav.has-third .app-nav-third-label {
       padding-inline: 0.375rem;
+    }
+
+    /* "Größe der Anzeige" above 100 % (#845): the phone bar keeps its 100 % size. It is already at touch size and four
+       segments fill a 390px screen, so a larger bar would push ⋯ off the edge. `--nav-fit` is the step above 1 (1 at
+       100 % and below, where the bar scales down with everything else); every length that sets the bar's width or
+       height is divided by it. The same values as above, in the same order. */
+    .app-nav {
+      --nav-fit: max(1, var(--ui-scale, 1));
+    }
+
+    .app-nav-group {
+      --nav-group-gap: calc(0.5rem / var(--nav-fit));
+    }
+
+    .app-nav-pill,
+    .app-nav-more {
+      height: calc(3.25rem / var(--nav-fit));
+    }
+
+    .app-nav-pill {
+      padding: calc(0.1875rem / var(--nav-fit));
+    }
+
+    .app-nav-more {
+      width: calc(3.25rem / var(--nav-fit));
+    }
+
+    .app-nav-more-icon {
+      width: calc(1.25rem / var(--nav-fit));
+      height: calc(1.25rem / var(--nav-fit));
+    }
+
+    .app-nav-indicator {
+      top: calc(0.1875rem / var(--nav-fit));
+      bottom: calc(0.1875rem / var(--nav-fit));
+    }
+
+    .app-nav-place {
+      min-height: calc(2.75rem / var(--nav-fit));
+      min-width: calc(2.75rem / var(--nav-fit));
+      padding-inline: calc(0.625rem / var(--nav-fit));
+      font-size: calc(var(--text-title) / var(--nav-fit));
+    }
+
+    .app-nav-third-label {
+      padding-inline: calc(0.75rem / var(--nav-fit));
+    }
+
+    .app-nav.has-third .app-nav-group {
+      --nav-group-gap: calc(0.375rem / var(--nav-fit));
+    }
+
+    .app-nav.has-third .app-nav-place {
+      padding-inline: calc(0.25rem / var(--nav-fit));
+    }
+
+    .app-nav.has-third .app-nav-third-link {
+      padding-inline: 0;
+    }
+
+    .app-nav.has-third .app-nav-third-label {
+      padding-inline: calc(0.375rem / var(--nav-fit));
     }
 
     /* While a card is dragged the bar fades out and takes no pointer, so no drop target is covered */

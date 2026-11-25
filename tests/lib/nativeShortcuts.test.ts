@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isBrowserShortcut } from '~/lib/nativeShortcuts'
+import { isBrowserShortcut, zoomShortcut } from '~/lib/nativeShortcuts'
 
 // #398: the production desktop app swallows reload, print and page zoom, and nothing else. The shortcut modifier is Cmd on
 // macOS and Ctrl elsewhere; on macOS the Ctrl chords are Cocoa text bindings (Ctrl+P moves up a line) and pass through.
@@ -61,5 +61,43 @@ describe('isBrowserShortcut: macOS text bindings', () => {
 
   it('still cancels Cmd+P, Cmd+R and Cmd+= there', () => {
     for (const key of ['p', 'r', '=']) expect(isBrowserShortcut(chord({ key }, 'meta'), true), key).toBe(true)
+  })
+})
+
+// #845: the zoom chords step the setting "Größe der Anzeige"; the key decides, the physical key is the fallback.
+describe.each([['macOS', mac], ['Windows/Linux', pc]])('zoomShortcut on %s', (_name, platform) => {
+  const zoom = (c: Chord, mod: 'meta' | 'ctrl' | 'none' = platform.mod) => zoomShortcut(chord(c, mod), platform.mac)
+
+  it('reads mod with + or = as larger, with - as smaller, with 0 as reset', () => {
+    for (const key of ['+', '=']) expect(zoom({ key }), key).toBe('in')
+    for (const key of ['-', '_']) expect(zoom({ key }), key).toBe('out')
+    expect(zoom({ key: '0' })).toBe('reset')
+  })
+
+  it('falls back to the physical key, numpad included', () => {
+    for (const code of ['Equal', 'NumpadAdd']) expect(zoom({ key: 'Unidentified', code }), code).toBe('in')
+    for (const code of ['Minus', 'NumpadSubtract']) expect(zoom({ key: 'Unidentified', code }), code).toBe('out')
+    for (const code of ['Digit0', 'Numpad0']) expect(zoom({ key: 'Unidentified', code }), code).toBe('reset')
+  })
+
+  it('lets the key win over the physical key (a layout with - on another key)', () => {
+    expect(zoom({ key: '-', code: 'Slash' })).toBe('out')
+    expect(zoom({ key: '+', code: 'BracketRight' })).toBe('in')
+    expect(zoom({ key: '+', code: 'Minus' })).toBe('in')
+  })
+
+  it('is nothing with Alt held: AltGr is Ctrl+Alt on Windows/Linux and types } or \\ on a German layout', () => {
+    for (const c of [{ key: '}', code: 'Digit0' }, { key: '\\', code: 'Minus' }, { key: '+', code: 'Equal' }, { key: '0' }]) {
+      expect(zoom({ ...c, altKey: true }), c.key).toBeNull()
+      expect(isBrowserShortcut(chord({ ...c, altKey: true }, platform.mod), platform.mac), c.key).toBe(false)
+    }
+  })
+
+  it('is nothing without the modifier, with the other platform\'s modifier, or for another key', () => {
+    for (const key of ['+', '=', '-', '0']) {
+      expect(zoom({ key }, 'none'), key).toBeNull()
+      expect(zoom({ key }, platform.other), key).toBeNull()
+    }
+    for (const key of ['r', 'p', '1', 'toString', 'constructor', 'Enter']) expect(zoom({ key }), key).toBeNull()
   })
 })
