@@ -87,6 +87,40 @@ test.describe('pending-sync marker (#319)', () => {
     await expect(column(page, 'waiting').getByText(TITLE)).toBeVisible() // Notion holds it now
   })
 
+  test('an unreachable Notion is told once, with the changes kept, however many actions fail (#851)', async ({ context, page, baseURL }) => {
+    await seedMixedBoard(context)
+    // Counts every toast of the outage that enters the page (a toast is an `li` of the toaster), also one that has closed again by the check
+    await context.addInitScript(() => {
+      const w = window as unknown as { __unreachableToasts: number }
+      w.__unreachableToasts = 0
+      new MutationObserver((mutations) => {
+        for (const m of mutations) {
+          m.addedNodes.forEach((node) => {
+            if (node instanceof Element && node.matches('li') && node.textContent?.includes('ist gerade nicht erreichbar')) w.__unreachableToasts++
+          })
+        }
+      }).observe(document, { childList: true, subtree: true })
+    })
+    await page.goto(`${baseURL}/tasks`)
+    await expect(column(page, 'open').getByText(TITLE)).toBeVisible()
+
+    await blockNotion(page)
+    await moveTo(page, TITLE, 'Wartet')
+    const toast = page.getByText('Notion ist gerade nicht erreichbar', { exact: true })
+    await expect(toast).toBeVisible()
+    await expect(page.getByText('Deine Änderungen bleiben gespeichert und werden synchronisiert, sobald Notion wieder erreichbar ist.', { exact: true })).toBeVisible()
+
+    // Later than the error handler's 3 s window for identical messages: a second failing action is a new report
+    await page.waitForTimeout(3200)
+    await moveTo(page, 'Blocker klären', 'Offen')
+    await expect(column(page, 'open').getByText('Blocker klären')).toBeVisible()
+    await expect(card(page, 'Blocker klären').locator(CLOUD)).toBeVisible()
+    await expect.poll(async () => (await storedTask(page, 'page-3'))?.pendingSync?.attempts ?? 0).toBeGreaterThan(0)
+
+    expect(await page.evaluate(() => (window as unknown as { __unreachableToasts: number }).__unreachableToasts)).toBe(1)
+    await expect(page.getByText('Fehler', { exact: true })).toHaveCount(0)
+  })
+
   test('a healthy sync never flashes the cloud', async ({ context, page, baseURL }) => {
     await seedMixedBoard(context)
     await context.addInitScript(() => {

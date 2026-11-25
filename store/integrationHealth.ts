@@ -38,9 +38,33 @@ export const useIntegrationHealthStore = defineStore('integrationHealth', () => 
   /** The connected sources that cannot sync, worst first (#319). */
   const problemsOf = (connected: readonly IntegrationSourceId[]): SourceProblem[] => sourceProblems(sources.value, connected)
 
+  // The sources whose current outage the user was told about (#851). In memory only and not part of the state, so
+  // nothing of it is persisted: after a restart an outage that is still on may be told once more.
+  const outageTold = new Set<IntegrationSourceId>()
+
   // Actions
   function set(source: IntegrationSourceId, patch: Partial<SourceHealth>) {
+    const before = sources.value[source].status
     sources.value[source] = { ...sources.value[source], ...patch }
+    // The source came back, was disconnected or is connected afresh: its next outage is a new one. A source that
+    // was healthy all along (a 5xx on writes while fetches work) keeps its told state until a write goes through.
+    const after = sources.value[source].status
+    if (after === 'unconfigured' || (after === 'healthy' && before !== 'healthy')) outageTold.delete(source)
+  }
+
+  /**
+   * Notes that the user is told about the source's outage now. Answers whether this is the first time in this
+   * outage: `true` shows the one toast (`useUnreachableNotice`), `false` stays quiet (#851).
+   */
+  function tellOutageOnce(source: IntegrationSourceId): boolean {
+    if (outageTold.has(source)) return false
+    outageTold.add(source)
+    return true
+  }
+
+  /** The source answered (a write went through): a later failure is a new outage and is told again (#851). */
+  function noteReachable(source: IntegrationSourceId) {
+    outageTold.delete(source)
   }
 
   function markBroken(source: IntegrationSourceId, reason?: string) {
@@ -110,6 +134,8 @@ export const useIntegrationHealthStore = defineStore('integrationHealth', () => 
     resetSource,
     recordSuccessfulSync,
     recordFailure,
+    tellOutageOnce,
+    noteReachable,
   }
 }, {
   persist: {
