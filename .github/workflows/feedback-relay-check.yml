@@ -1,0 +1,44 @@
+name: Feedback relay check
+
+# Finds a production Worker without its FEEDBACK_GITHUB_TOKEN secret before a user does (#852): one empty probe a day to
+# `POST /api/feedback` (400 = configured, 503 FEEDBACK_NOT_CONFIGURED = secret missing; the probe is never filed).
+# A red run is the notice: GitHub mails it to the owner. Setting the secret is the owner's step (ADR 010 "Amendment: relay").
+# No secret and no token here: the probe is public, and so is this log.
+on:
+  schedule:
+    - cron: '43 5 * * *' # daily 05:43 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: feedback-relay-check
+  cancel-in-progress: false
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      # The script is plain Node: no `npm ci`.
+      - name: Probe the relay
+        run: |
+          status=0
+          line=$(node scripts/feedback-relay-check.mjs) || status=$?
+          echo "$line"
+          case "$status" in
+            0) ;;
+            1)
+              echo "::error title=Worker secret FEEDBACK_GITHUB_TOKEN is missing or empty::The production Worker kando answers 503 FEEDBACK_NOT_CONFIGURED: in-app feedback falls back to the GitHub link for every user. Set the secret on the Worker (docs/adr/010-in-app-feedback.md, Amendment: relay)."
+              exit 1
+              ;;
+            *)
+              echo "::error title=Feedback relay check inconclusive::The relay answered neither 400 nor 503 FEEDBACK_NOT_CONFIGURED to the empty probe (see the line above). Rerun; if it stays, the Worker or its route is down."
+              exit 1
+              ;;
+          esac

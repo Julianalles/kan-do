@@ -193,6 +193,44 @@ describe('server/api/feedback.post.ts', () => {
     expect(calls).toEqual([])
   })
 
+  // #852: the configuration is checked before the report, so an empty probe tells a missing token from a healthy relay.
+  it.each([
+    ['an empty probe', {}],
+    ['an invalid report', { title: '' }],
+    ['a filled honeypot', { ...REPORT, website: 'https://spam.example' }],
+  ])('without a token %s answers 503 FEEDBACK_NOT_CONFIGURED too, and logs the one allow-listed line', async (_label, body) => {
+    vi.stubEnv('FEEDBACK_GITHUB_TOKEN', '')
+    const res = await (await request()).post('/api/feedback').send(body)
+    expect(res.status).toBe(503)
+    expect(res.body?.data?.error).toBe('FEEDBACK_NOT_CONFIGURED')
+    expect(calls).toEqual([])
+    expect(vi.mocked(console.error).mock.calls).toEqual([['[server-error] route=/api/feedback status=503 code=FEEDBACK_NOT_CONFIGURED']])
+  })
+
+  it('a malformed FEEDBACK_REPO answers the empty probe with 503 as well', async () => {
+    vi.stubEnv('FEEDBACK_REPO', 'not a repo')
+    const res = await (await request()).post('/api/feedback').send({})
+    expect(res.status).toBe(503)
+    expect(res.body?.data?.error).toBe('FEEDBACK_NOT_CONFIGURED')
+  })
+
+  it('with a token the empty probe answers 400 INVALID_REPORT, files nothing and logs nothing', async () => {
+    const res = await (await request()).post('/api/feedback').send({})
+    expect(res.status).toBe(400)
+    expect(res.body?.data?.error).toMatch(/^INVALID_/)
+    expect(calls).toEqual([])
+    expect(console.error).not.toHaveBeenCalled()
+  })
+
+  it('a prototype preview without a token still answers a valid report with the dry-run 201', async () => {
+    vi.stubEnv('FEEDBACK_GITHUB_TOKEN', '')
+    vi.stubEnv('FEEDBACK_RELAY', 'dry-run')
+    const res = await (await request()).post('/api/feedback').send(REPORT)
+    expect(res.status).toBe(201)
+    expect(res.body).toEqual({ ok: true, dryRun: true })
+    expect(calls).toEqual([])
+  })
+
   it.each([
     ['the issue list fails', { 'GET ': { status: 401, json: { message: 'Bad credentials' } } }],
     ['the issue create fails', { 'POST ': { status: 500 } }],

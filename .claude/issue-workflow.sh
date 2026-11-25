@@ -42,6 +42,7 @@ wf_after_merge() {
 
 # Cloudflare Workers Builds deploy of main (ADR 021; the Vercel deployment is gone, #747), read from its GitHub check run
 # "Workers Builds: kando" on origin/main (cwd: main checkout, after the fast-forward); not green -> file an inbox issue.
+# Then the feedback relay's state (wf_relay_check below).
 wf_deploy_check() {
   local sha run
   sha=$(git rev-parse origin/main)
@@ -52,6 +53,20 @@ wf_deploy_check() {
     completed*) echo "deploy: Workers Builds ${run#completed }"; echo "deploy not green: file an inbox issue" ;;
     *) echo "deploy: Workers Builds ${run%% *}" ;;
   esac
+  wf_relay_check
+}
+
+# Feedback relay of the production Worker (#852): one empty probe (never filed) tells a missing FEEDBACK_GITHUB_TOKEN
+# secret from a healthy relay. Prints one line, always returns 0. Setting the secret is the user's step: an agent never
+# runs `wrangler secret put` and never deploys by hand.
+wf_relay_check() {
+  local root line rc=0
+  root=$(git rev-parse --show-toplevel) || return 0
+  [ -f "$root/scripts/feedback-relay-check.mjs" ] || return 0
+  line=$(node "$root/scripts/feedback-relay-check.mjs" 2>/dev/null) || rc=$?
+  echo "${line:-feedback relay: check did not run}"
+  if [ "$rc" -eq 1 ]; then echo "feedback relay not configured: tell the user (the Worker secret is theirs to set) and file an inbox issue unless one is open"; fi
+  return 0
 }
 
 # Hosted preview of a design prototype (ADR 021 "Prototype previews"): Workers Builds turns every pushed proto/* branch into a

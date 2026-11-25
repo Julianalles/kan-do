@@ -26,7 +26,8 @@
   },
   // GATE: on in every fresh deploy; this line is the single source (the dashboard value is reset by each deploy). "off" opens the app for
   // the public launch (jwue-homepage#34): change it here, through a PR. The token is the secret GATE_SECRET
-  // (the homepage's value, one shared token). Other secrets: FEEDBACK_GITHUB_TOKEN. Never NOTION_KEY.
+  // (the homepage's value, one shared token). Other secrets: FEEDBACK_GITHUB_TOKEN (missing = the relay answers 503;
+  // `npm run feedback:check` and the daily workflow "Feedback relay check" find it, #852). Never NOTION_KEY.
   "vars": { "GATE": "on" },
   // Worker Previews of `proto/*` branches (ADR 021 "Prototype previews", `npm run preview:cloudflare`): a preview inherits
   // no production var or secret, only these vars and the dashboard's Preview base config (there: GATE_SECRET, never
