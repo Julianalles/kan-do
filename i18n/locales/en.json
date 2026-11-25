@@ -18,7 +18,7 @@
     "pageHeading": "Today",
     "columns": {
       "open": "Open",
-      "openPlanning": "Today",
+      "openPlanning": "For today",
       "progress": "Now",
       "waiting": "Waiting",
       "done": "Done"
@@ -197,8 +197,8 @@
     },
     "planNote": {
       "title": "Choose what's on today",
-      "description": "The arrow on a card plans it for today. Switch to “Today” once you want to start.",
-      "line": "Choose what's on today. Switch to “Today” once you want to start.",
+      "description": "The arrow on a card plans it for today. When you are ready to start, switch to “Today” in the navigation.",
+      "line": "Choose what's on today. When you are ready to start, switch to “Today” in the navigation.",
       "close": "Close"
     },
     "newDayTimeNote": {

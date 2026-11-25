@@ -553,6 +553,16 @@
     "note": "The user's wording of 2026-11-16 (#375). Only the headline (and the column's spoken name) on \"Alle\", key board.columns.openPlanning; on the place \"Heute\" the column is headed \"Offen\", and the status is \"Offen\" everywhere (column-open). The same word as the app bar's place \"Heute\" on purpose: both mean today's plan."
   },
   {
+    "id": "planning-for-today",
+    "concept": "The headline of the Offen column on the place \"Alle\" (#840), replacing the approved wording of planning-today (\"Heute\"): the same word as the app bar's place \"Heute\" made the plan note ambiguous. Echoes the card action \"Für heute einplanen\"",
+    "de": "Für heute",
+    "en": "For today",
+    "avoidDe": [],
+    "avoidEn": [],
+    "status": "proposed",
+    "note": "User decision D1 on #840 (2026-11-25), key board.columns.openPlanning. Awaits approval; on approval planning-today is retired in favour of this term."
+  },
+  {
     "id": "planned-for-today",
     "concept": "The marker of a task that is part of today's plan, beside its status (#374, #793, #795): the task sheet's switch. A task is either planned for today or not, whatever its status (Offen, Wartet; Jetzt is always planned)",
     "de": "Für heute eingeplant",

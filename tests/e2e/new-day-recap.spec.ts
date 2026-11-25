@@ -1542,7 +1542,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
       await expect(planNote(page)).toBeVisible()
       await expect(planNote(page)).toHaveAttribute('role', 'status')
       await expect(planNote(page)).toContainText('Wähle aus, was heute dran ist')
-      await expect(planNote(page)).toContainText('Der Pfeil an einer Karte plant sie für heute ein. Wechsle zu „Heute“, sobald du loslegen willst.')
+      await expect(planNote(page)).toContainText('Der Pfeil an einer Karte plant sie für heute ein. Sobald du loslegen willst, wechsle in der Navigation zu „Heute“.')
       // it stands where the picked tasks land, not above the block, and it is no box and has no button
       await expect(page.locator('#column-open').getByTestId('plan-note')).toBeVisible()
       await expect(side(page).getByTestId('plan-note')).toHaveCount(0)
@@ -1671,7 +1671,7 @@ test.describe('A new day starts fresh on the user\'s click (#387)', () => {
       await settled(page)
       await goToPlace(page, 'Alle')
       await expect(planNote(page)).toHaveCount(1)
-      await expect(planNote(page)).toHaveText('Wähle aus, was heute dran ist. Wechsle zu „Heute“, sobald du loslegen willst.')
+      await expect(planNote(page)).toHaveText('Wähle aus, was heute dran ist. Sobald du loslegen willst, wechsle in der Navigation zu „Heute“.')
       const close = page.getByTestId('plan-note-close')
       await expect(close).toHaveAccessibleName('Schließen')
       const [noteBox, button, panelBox] = [await planNote(page).boundingBox(), await close.boundingBox(), await block(page).boundingBox()]

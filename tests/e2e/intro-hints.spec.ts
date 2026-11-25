@@ -368,7 +368,7 @@ test('"Planen" at 390: one line with the two links, "Hinweise ausschalten" takes
   await seedLocalBoard(context, PICK_ONLY, {}, undefined, { hints: true, once: true })
   await page.goto('/tasks')
   await goToPlace(page, 'Alle')
-  await expect(planNote(page)).toHaveText('Wähle aus, was heute dran ist. Wechsle zu „Heute“, sobald du loslegen willst.')
+  await expect(planNote(page)).toHaveText('Wähle aus, was heute dran ist. Sobald du loslegen willst, wechsle in der Navigation zu „Heute“.')
   for (const id of ['plan-note-off', 'plan-note-close']) {
     const box = (await page.getByTestId(id).boundingBox())!
     expect(box.height).toBeGreaterThanOrEqual(44)
