@@ -33,7 +33,7 @@ export interface SourceCapabilities {
   create: boolean
   /** A task can be deleted at the source: the card menu's and the sheet's "Löschen". */
   remove: boolean
-  /** A task of the source can be moved to another one ("Verschieben nach …"). */
+  /** A task of the source can be moved to another one ("Verschieben zu …"). */
   moveOut: boolean
   /** Title, notes, Thema and Aktivität can be edited in kan-do (a source that owns them, Reminders, shows them as text). */
   editText: boolean
