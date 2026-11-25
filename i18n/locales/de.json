@@ -171,7 +171,7 @@
     },
     "emptyOpenHint": "Was steht heute an?",
     "emptyOpenAll": "Oder wähle unter {all} aus, was heute dran ist.",
-    "emptyProgressHint": "Hier landet, woran du jetzt arbeitest.",
+    "emptyProgressHint": "Verschiebe hierhin, woran du jetzt arbeitest.",
     "yesterdayUnderAll": "Eine Aufgabe von gestern liegt unter {all}. | {n} Aufgaben von gestern liegen unter {all}.",
     "newDayNote": {
       "title": "Auf dem Board liegt noch der Plan von gestern.",

@@ -536,7 +536,7 @@ test.describe('Add slot, 390px', () => {
 
       const placeholder = jetzt(page).getByTestId('jetzt-placeholder');
       await expect(placeholder).toBeInViewport({ ratio: 1 });
-      await expect(placeholder).toHaveText('Hier landet, woran du jetzt arbeitest.');
+      await expect(placeholder).toHaveText('Verschiebe hierhin, woran du jetzt arbeitest.');
       await expect(placeholder).toHaveCSS('opacity', '1');
       await expect(slotButton(jetzt(page))).toBeHidden();
     });
