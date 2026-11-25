@@ -11,6 +11,7 @@
 - One button: the label "Kapazität" and the sentence are its name; `show` asks the host to bring the real line into view
 - Same tone as the line: `error-700` for the wave and the label only, the sentence muted; a page-coloured backing with a soft upper edge, because it lies over the cards at the column's foot: a card's width plus 1 rem each side and no space below it (#573 case 1, #609), so a card under it is hidden fully and the text is not pressed to an edge
 - `placement="top"` (#573 case 2): the mirror of the foot echo, the sentence above the wave, the backing fading at its lower edge, the caret turned up, no space above it; shown only while the line lies above the window
+- Measures again when a board drag ends: a cancel or a drop in place moves nothing the scroll or line watchers see, and the dragged node had pushed the line out of view (#834)
 - Fades in and out (none under reduced motion)
 -->
 <template>
@@ -51,6 +52,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, useId, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useBoardDragState } from '~/composables/useBoardDragState'
 import { useOpenCapacityLine } from '~/composables/useOpenCapacityLine'
 
 defineOptions({ name: 'BoardCapacityEcho' })
@@ -67,6 +69,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 const { line } = useOpenCapacityLine()
+const { dragState } = useBoardDragState()
 const patternId = `capacity-echo-wave-${useId()}`
 
 /** Room at the window's foot the sticky footer covers: a line under it does not count as in view */
@@ -103,6 +106,11 @@ onBeforeUnmount(() => {
 })
 // The line moved (a card planned, put back or reordered): look again once the list has rendered
 watch(() => [line.value.full, line.value.below], schedule, { flush: 'post' })
+// A drag moves the dragged node away from the line and a cancel or a drop in place puts it back without a scroll or a
+// change of the line (#834): look again when the drag is over, or the echo stays over the cards until the next scroll
+watch(() => dragState.value.isDragging, (dragging) => {
+  if (!dragging) schedule()
+}, { flush: 'post' })
 
 const shown = computed(() => line.value.full && lineSide.value === (placement === 'top' ? 'above' : 'below'))
 const sentence = computed(() =>
