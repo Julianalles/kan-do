@@ -3,9 +3,10 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { join, resolve, matchesGlob } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import GateProgressReporter from '../../scripts/e2e-gate-reporter.mjs'
 import {
-  bodySpecNames, fastReleaseSpecs, changedTextStrings, isStyleOnlyVue, listCataloguedComponents, listSpecs, localeStrings, parsePr, readE2eSources, selectE2e, specsImportingHelpers, specsMentioning,
-  testIdStrings, vueStyleJudge,
+  bodySpecNames, fastReleaseSpecs, changedTextStrings, isStyleOnlyVue, listCataloguedComponents, listSpecs, localeStrings, parseProgress, parsePr, readE2eSources, resumeArgs, selectE2e, specsImportingHelpers,
+  specsMentioning, testIdStrings, vueStyleJudge,
 } from '../../scripts/e2e-gate.mjs'
 import {
   dirtyOutside, e2eArgs, e2eRefusal, findFreePort, parseSummary, satisfyingStamps, stampKey, stampPath,
@@ -812,6 +813,106 @@ describe('stamps and run arguments', () => {
 
   it('asks the OS for a free port', async () => {
     expect(await findFreePort()).toBeGreaterThan(0)
+  })
+})
+
+describe('progress of a gate run (#830)', () => {
+  const begin = (counts: Record<string, number>) => JSON.stringify({ begin: counts })
+  const ok = (spec: string, id: string) => JSON.stringify({ ok: spec, id })
+
+  it('counts a spec file as passed only when every test of it ended as expected', () => {
+    const text = [begin({ a: 2, b: 1, c: 1 }), ok('a', 'a1'), ok('b', 'b1'), ok('a', 'a1')].join('\n')
+    expect(parseProgress(text)).toEqual(['b']) // a: the same test twice is still one of two
+    expect(parseProgress(`${text}\n${ok('a', 'a2')}\n`)).toEqual(['a', 'b'])
+  })
+
+  it('ignores a line cut off by a killed run, other shapes, and specs without a count', () => {
+    const text = [begin({ a: 1 }), ok('a', 'a1'), ok('x', 'x1'), '{"ok":"b","id":', 'not json', '{"begin":{"z":0}}', ok('z', 'z1'), '{"ok":1,"id":2}'].join('\n')
+    expect(parseProgress(text)).toEqual(['a'])
+    expect(parseProgress('')).toEqual([])
+  })
+
+  it('keeps the counts of an earlier run when a resumed run begins with the rest only', () => {
+    const text = [begin({ a: 1, b: 2 }), ok('a', 'a1'), ok('b', 'b1'), begin({ b: 2 }), ok('b', 'b2')].join('\n')
+    expect(parseProgress(text)).toEqual(['a', 'b'])
+  })
+
+  const decision = { specs: ['a', 'b', 'c'], args: ['--reporter=line', '--retries=1', '--workers=2', 'tests/e2e/a.spec.ts', 'tests/e2e/b.spec.ts', 'tests/e2e/c.spec.ts'] }
+
+  it('runs only the spec files that have not passed, with the decision\'s flags and the progress reporter', () => {
+    expect(resumeArgs(decision, ['b', 'zz'], '/r/rep.mjs')).toEqual({
+      done: ['b'],
+      rest: ['a', 'c'],
+      args: ['--reporter=line,/r/rep.mjs', '--retries=1', '--workers=2', 'tests/e2e/a.spec.ts', 'tests/e2e/c.spec.ts'],
+    })
+  })
+
+  it('keeps the decision\'s own args without progress, also the whole suite of a full tier', () => {
+    expect(resumeArgs(decision, [], '/r/rep.mjs').args).toEqual(['--reporter=line,/r/rep.mjs', ...decision.args.slice(1)])
+    expect(resumeArgs(decision, []).args).toEqual(decision.args)
+    const full = { specs: ['a', 'b'], args: ['--reporter=line', '--retries=1'] }
+    expect(resumeArgs(full, []).args).toEqual(['--reporter=line', '--retries=1'])
+    expect(resumeArgs(full, ['a']).args).toEqual(['--reporter=line', '--retries=1', 'tests/e2e/b.spec.ts'])
+  })
+
+  it('leaves nothing to run when every spec file passed (the hook must not start the whole suite then)', () => {
+    expect(resumeArgs(decision, ['a', 'b', 'c'])).toMatchObject({ done: ['a', 'b', 'c'], rest: [] })
+  })
+
+  it('CLI: reads the decision from stdin and a missing progress file as none', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'kando-gate-progress-'))
+    const cli = (file: string) => JSON.parse(execFileSync('node', [resolve(root, 'scripts/e2e-gate.mjs'), 'run-args', file, '/r/rep.mjs'], { input: JSON.stringify(decision), encoding: 'utf8' }))
+    expect(cli(join(dir, 'none.progress'))).toMatchObject({ done: [], rest: ['a', 'b', 'c'] })
+    writeFileSync(join(dir, 'x.progress'), [begin({ a: 1, b: 1 }), ok('a', 'a1')].join('\n'))
+    expect(cli(join(dir, 'x.progress'))).toMatchObject({ done: ['a'], rest: ['b', 'c'] })
+    rmSync(dir, { recursive: true })
+  })
+
+  describe('the reporter', () => {
+    const test = (file: string, expectedStatus = 'passed') => ({ id: `${file}-1`, location: { file }, expectedStatus })
+    const record = (events: (r: InstanceType<typeof GateProgressReporter>) => void) => {
+      const dir = mkdtempSync(join(tmpdir(), 'kando-gate-reporter-'))
+      const out = join(dir, 'p.progress')
+      process.env.E2E_GATE_PROGRESS = out
+      try {
+        events(new GateProgressReporter())
+      } finally {
+        delete process.env.E2E_GATE_PROGRESS
+      }
+      const text = (() => {
+        try {
+          return readFileSync(out, 'utf8')
+        } catch {
+          return ''
+        }
+      })()
+      rmSync(dir, { recursive: true })
+      return text
+    }
+
+    it('writes the counts per spec file and each attempt that ended as expected', () => {
+      const text = record((r) => {
+        r.onBegin({}, { allTests: () => [test('/w/tests/e2e/a.spec.ts'), test('/w/tests/e2e/a.spec.ts'), test('/w/tests/e2e/b.spec.ts')] })
+        r.onTestEnd(test('/w/tests/e2e/a.spec.ts'), { status: 'failed' }) // a retry follows
+        r.onTestEnd(test('/w/tests/e2e/a.spec.ts'), { status: 'passed' })
+        r.onTestEnd(test('/w/tests/e2e/b.spec.ts'), { status: 'interrupted' }) // killed by the watchdog
+        r.onTestEnd(test('/w/tests/e2e/b.spec.ts'), { status: 'skipped' }) // did not run after a serial failure
+        r.onTestEnd(test('/w/tests/e2e/b.spec.ts', 'skipped'), { status: 'skipped' }) // test.skip()
+        r.onTestEnd(test('/w/tests/e2e/b.spec.ts', 'failed'), { status: 'failed' }) // test.fail()
+      })
+      expect(text.trim().split('\n').map(line => JSON.parse(line))).toEqual([
+        { begin: { a: 2, b: 1 } },
+        { ok: 'a', id: '/w/tests/e2e/a.spec.ts-1' },
+        { ok: 'b', id: '/w/tests/e2e/b.spec.ts-1' },
+        { ok: 'b', id: '/w/tests/e2e/b.spec.ts-1' },
+      ])
+    })
+
+    it('records nothing without E2E_GATE_PROGRESS and prints nothing', () => {
+      const r = new GateProgressReporter()
+      expect(r.printsToStdio()).toBe(false)
+      expect(() => r.onBegin({}, { allTests: () => [test('/w/a.spec.ts')] })).not.toThrow()
+    })
   })
 })
 

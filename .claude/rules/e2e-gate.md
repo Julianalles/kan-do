@@ -1,6 +1,7 @@
 ---
 paths:
   - "scripts/e2e-gate.mjs"
+  - "scripts/e2e-gate-reporter.mjs"
   - ".claude/hooks/e2e-*"
   - "scripts/e2e-server.mjs"
   - "scripts/ci-e2e-plan.mjs"
@@ -13,5 +14,7 @@ The pre-merge hook `.claude/hooks/e2e-before-merge.sh` picks a tier per PR (`scr
 The hook gates this repository only (kd#205): a merge that names another repository (`-R/--repo`, a full PR URL, the REST path `repos/<owner>/<repo>/pulls/<n>/merge`, `GH_REPO`) passes untouched, because that repository has its own merge rule. "This repository" is the `origin` of `CLAUDE_PROJECT_DIR`; a PR URL wins over `-R` (as in gh), a merge that names no repository resolves as before, and anything that does not read as a literal `[HOST/]OWNER/REPO` (a variable, no origin) stays gated or is refused. The tests pose as a checkout through `project(repo)` in `tests/scripts/e2e-before-merge-hook.test.ts`.
 
 The hook serves the run on a port from `.claude/hooks/e2e-port.sh` (3200-3899, skipping Chromium's blocked ports such as 3659 and ports already listening, #349).
+
+One gate run per machine (#830): the hook takes a lock in the git common dir (`kando-e2e-gate.lock/`, shared by every worktree) before Playwright starts; a second merge waits up to `E2E_GATE_LOCK_WAIT_SECONDS` (default 300 s, at most half the hook timeout), then blocks as `GATE BUSY` (checks.tsv result `busy`, no run, nothing failed) naming the holder's PR; retry it when that run ends. A lock whose owner process is gone (PID dead, or reused by another process: the owner file keeps the start time) is taken over. Lock wait and run stay a minute below the hook timeout (`HOOK_TIMEOUT` in the hook equals the `timeout` in `.claude/settings.json`; a test checks). The run adds `scripts/e2e-gate-reporter.mjs` to `--reporter`, which records each test that ended as expected in `kando-e2e-pass/<sha>.<key>.progress`; after a timeout or a failure the next run of the same head and spec list runs only the spec files not yet passed (`run-args` in `scripts/e2e-gate.mjs`, from the hook's own checkout), and a pass removes the progress. The checks.tsv row of a resumed run counts the spec files it ran.
 
 `visual-regression.spec.ts` is skipped in CI (macOS-rendered baselines, `test.skip` on `CI`), so a green CI run says nothing about it; the local gate runs it in both modes for board, task and shared UI changes, style-only PRs and changed baselines (#684: #676 merged with stale baselines, #682, because `fast` dropped the non-risk rules and the style tier never selected it). A new non-risk map rule that lists it needs `fast: ["visual-regression"]` (a test checks). A UI PR that moves visible pixels still runs the spec on its own and commits the regenerated PNGs.

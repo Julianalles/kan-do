@@ -1,5 +1,5 @@
-import { execFileSync, spawnSync } from 'node:child_process'
-import { chmodSync, copyFileSync, cpSync, existsSync, mkdtempSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from 'node:fs'
+import { execFileSync, spawn, spawnSync } from 'node:child_process'
+import { chmodSync, copyFileSync, cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, realpathSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
@@ -1079,4 +1079,173 @@ describe('e2e-before-merge hook without jq (kd#2)', () => {
       expect(run(path, command).status, command).toBe(0)
     }
   })
+})
+
+// The run itself (#830): one gate run per machine (a lock in the git common dir) and the progress a retry resumes from. A
+// checkout with one commit poses as the PR head, a fake gh answers for it, and a fake npm plays the Playwright run: it logs its
+// arguments, records the first FAKE_PASS spec files as passed in E2E_GATE_PROGRESS (as the reporter would), then passes,
+// fails or hangs (FAKE_NPM).
+describe('e2e-before-merge hook: gate lock and progress (#830)', () => {
+  const fakeNpm = [
+    '#!/bin/bash',
+    'echo "$*" >> "$FAKE_NPM_LOG"',
+    'specs=(); for a in "$@"; do case $a in *.spec.ts) n=${a##*/}; specs+=("${n%.spec.ts}") ;; esac; done',
+    'if [ -n "$E2E_GATE_PROGRESS" ]; then',
+    '  printf \'{"begin":{%s}}\\n\' "$(for s in "${specs[@]}"; do printf \'"%s":1,\' "$s"; done | sed \'s/,$//\')" >> "$E2E_GATE_PROGRESS"',
+    '  i=0; for s in "${specs[@]}"; do',
+    '    [ "${FAKE_PASS:-all}" != all ] && [ "$i" -ge "$FAKE_PASS" ] && break',
+    '    printf \'{"ok":"%s","id":"%s-1"}\\n\' "$s" "$s" >> "$E2E_GATE_PROGRESS"; i=$((i + 1))',
+    '  done',
+    'fi',
+    'case $FAKE_NPM in sleep) sleep 60 ;; fail) exit 1 ;; esac',
+    '',
+  ].join('\n')
+
+  const setup = () => {
+    const dir = realpathSync(mkdtempSync(join(tmpdir(), 'kando-hook-run-')))
+    const git = (...args: string[]) => execFileSync('git', ['-C', dir, ...args], { encoding: 'utf8' }).trim()
+    git('init', '-q')
+    git('remote', 'add', 'origin', 'https://github.com/o/r.git')
+    cpSync(join(root, 'scripts'), join(dir, 'scripts'), { recursive: true })
+    for (const entry of ['.claude', 'tests', 'package.json', 'node_modules']) symlinkSync(join(root, entry), join(dir, entry))
+    git('-c', 'user.name=t', '-c', 'user.email=t@t', 'commit', '-q', '--allow-empty', '-m', `head ${dir}`)
+    const sha = git('rev-parse', 'HEAD')
+    const bin = mkdtempSync(join(tmpdir(), 'kando-hook-run-bin-'))
+    writeFileSync(join(bin, 'gh'), [
+      '#!/bin/sh',
+      'case "$*" in',
+      '  *pulls/77/files*) echo scripts/e2e-gate.mjs ;;',
+      `  *pulls/77*) echo '{"head":{"sha":"${sha}"},"base":{"ref":"main"},"body":"Gate change."}' ;;`,
+      '  *) exit 1 ;;',
+      'esac',
+      '',
+    ].join('\n'))
+    writeFileSync(join(bin, 'npm'), fakeNpm)
+    chmodSync(join(bin, 'gh'), 0o755)
+    chmodSync(join(bin, 'npm'), 0o755)
+    const npmLog = join(bin, 'npm.log')
+    const lockDir = join(dir, '.git', 'kando-e2e-gate.lock')
+    const stampDir = join(dir, '.git', 'kando-e2e-pass')
+    const run = (env: Record<string, string> = {}) => spawnSync('bash', [resolve(root, '.claude/hooks/e2e-before-merge.sh')], {
+      input: JSON.stringify({ tool_input: { command: 'gh pr merge 77 --merge' } }),
+      encoding: 'utf8',
+      env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, CLAUDE_PROJECT_DIR: dir, GH_REPO: 'o/r', KANDO_TESTING_MODE: 'quality', E2E_GATE: '', FAKE_NPM_LOG: npmLog, ...env },
+    })
+    const npmCalls = () => (existsSync(npmLog) ? readFileSync(npmLog, 'utf8').trim().split('\n') : [])
+    const specsOf = (call = '') => call.split(' ').filter(arg => arg.endsWith('.spec.ts'))
+    const ledgerRows = () => readFileSync(ledger, 'utf8').split('\n').filter(row => row.includes(sha)).map(row => row.split('\t'))
+    return { dir, sha, run, npmCalls, specsOf, lockDir, stampDir, ledgerRows }
+  }
+  /** A live process that holds the lock, as another gate's hook would. */
+  const holdLock = (lockDir: string, owner?: (pid: number, started: string) => string) => {
+    const child = spawn('sleep', ['60'], { stdio: 'ignore' })
+    const pid = child.pid!
+    const started = execFileSync('ps', ['-o', 'lstart=', '-p', String(pid)], { encoding: 'utf8' }).trim()
+    mkdirSync(lockDir)
+    writeFileSync(join(lockDir, 'owner'), owner ? owner(pid, started) : `${pid}\t${started}\t55\tfeedc0ffee1234567\t118\t${Math.floor(Date.now() / 1000) - 600}\n`)
+    return child
+  }
+
+  it('keeps the hook timeout in step with .claude/settings.json', () => {
+    const settings = JSON.parse(readFileSync(join(root, '.claude/settings.json'), 'utf8')) as { hooks: Record<string, { hooks: { command: string, timeout?: number }[] }[]> }
+    const entry = Object.values(settings.hooks).flat().flatMap(group => group.hooks).find(h => h.command.includes('e2e-before-merge.sh'))
+    const hookText = readFileSync(join(root, '.claude/hooks/e2e-before-merge.sh'), 'utf8')
+    expect(entry?.timeout).toBe(Number(/^HOOK_TIMEOUT=(\d+)$/m.exec(hookText)?.[1]))
+  })
+
+  it('runs with the progress reporter, stamps the head, removes its progress and releases the lock', () => {
+    const t = setup()
+    const result = t.run()
+    expect(result.status, result.stderr).toBe(0)
+    expect(t.npmCalls()).toHaveLength(1)
+    expect(t.npmCalls()[0]).toContain(`--reporter=line,${join(root, 'scripts/e2e-gate-reporter.mjs')}`)
+    expect(existsSync(t.lockDir)).toBe(false)
+    const stamps = readdirSync(t.stampDir)
+    expect(stamps.filter(name => name.startsWith(`${t.sha}.`) && !name.endsWith('.progress'))).toHaveLength(1)
+    expect(stamps.filter(name => name.endsWith('.progress'))).toEqual([])
+    expect(t.ledgerRows().at(-1)?.[6]).toBe('pass')
+  }, 30_000)
+
+  it('blocks as busy without running while another gate run holds the lock', () => {
+    const t = setup()
+    const holder = holdLock(t.lockDir)
+    try {
+      const result = t.run({ E2E_GATE_LOCK_WAIT_SECONDS: '0' })
+      expect(result.status).toBe(2)
+      expect(result.stderr).toContain('GATE BUSY')
+      expect(result.stderr).toContain('PR #55, head feedc0ffee12, 118 spec files, running for 10 min')
+      expect(t.npmCalls()).toEqual([])
+      expect(existsSync(join(t.lockDir, 'owner'))).toBe(true) // the holder's lock stays
+      expect(t.ledgerRows().at(-1)?.[6]).toBe('busy')
+    } finally {
+      holder.kill()
+    }
+  }, 30_000)
+
+  it('waits for the running gate and runs once its lock is released', () => {
+    const t = setup()
+    const holder = holdLock(t.lockDir)
+    const release = spawn('sh', ['-c', `sleep 2; rm -f '${t.lockDir}/owner'; rmdir '${t.lockDir}'`], { stdio: 'ignore' })
+    try {
+      const result = t.run({ E2E_GATE_LOCK_WAIT_SECONDS: '30' })
+      expect(result.status, result.stderr).toBe(0)
+      expect(result.stderr).toContain('waiting up to 30 s for the running E2E gate (PR #55')
+      expect(t.npmCalls()).toHaveLength(1)
+    } finally {
+      holder.kill()
+      release.kill()
+    }
+  }, 30_000)
+
+  it('takes over a lock whose owner is gone, also one whose PID now belongs to another process', () => {
+    for (const owner of [
+      (_pid: number, started: string) => `999999\t${started}\t55\tfeed\t3\t0\n`, // no such process
+      (pid: number) => `${pid}\tMon Jan  1 00:00:00 2024\t55\tfeed\t3\t0\n`, // a live PID, but not the process that took the lock
+    ]) {
+      const t = setup()
+      const holder = holdLock(t.lockDir, owner)
+      try {
+        const result = t.run({ E2E_GATE_LOCK_WAIT_SECONDS: '0' })
+        expect(result.status, result.stderr).toBe(0)
+        expect(result.stderr).toContain('took over a stale E2E gate lock')
+        expect(existsSync(t.lockDir)).toBe(false)
+      } finally {
+        holder.kill()
+      }
+    }
+  }, 30_000)
+
+  it('after a failure releases the lock and keeps progress; the retry runs only the rest', () => {
+    const t = setup()
+    const failed = t.run({ FAKE_NPM: 'fail', FAKE_PASS: '2' })
+    expect(failed.status).toBe(2)
+    expect(existsSync(t.lockDir)).toBe(false)
+    const all = t.specsOf(t.npmCalls()[0])
+    expect(all.length).toBeGreaterThan(3)
+    expect(failed.stderr).toContain(`Progress is kept: 2 of ${all.length} spec files have passed`)
+    const retry = t.run()
+    expect(retry.status, retry.stderr).toBe(0)
+    expect(retry.stderr).toContain(`resuming: 2 of ${all.length} spec files already passed`)
+    expect(t.specsOf(t.npmCalls()[1])).toEqual(all.slice(2))
+    expect(readdirSync(t.stampDir).filter(name => name.endsWith('.progress'))).toEqual([])
+  }, 30_000)
+
+  it('after a timeout keeps what passed before the kill; a retry that has nothing left passes without a run', () => {
+    const t = setup()
+    const timedOut = t.run({ FAKE_NPM: 'sleep', FAKE_PASS: '3', E2E_GATE_BUDGET_SECONDS: '1' })
+    expect(timedOut.status).toBe(2)
+    expect(timedOut.stderr).toContain('E2E TIMEOUT')
+    const all = t.specsOf(t.npmCalls()[0])
+    expect(timedOut.stderr).toContain(`Progress is kept: 3 of ${all.length} spec files`)
+    expect(t.ledgerRows().at(-1)?.[6]).toBe('timeout')
+    expect(existsSync(t.lockDir)).toBe(false)
+
+    const failedRest = t.run({ FAKE_NPM: 'fail' }) // every remaining spec passes, the run still exits 1
+    expect(failedRest.status).toBe(2)
+    expect(t.specsOf(t.npmCalls()[1])).toEqual(all.slice(3))
+    const done = t.run()
+    expect(done.status, done.stderr).toBe(0)
+    expect(done.stderr).toContain(`all ${all.length} spec files already passed`)
+    expect(t.npmCalls()).toHaveLength(2)
+  }, 30_000)
 })
