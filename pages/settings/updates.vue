@@ -7,8 +7,8 @@ UpdateDialog.
 @responsibility
 - Show the app version and the last check; "Nach Updates suchen" runs one check and opens the dialog when an update exists
 - "Automatisch nach Updates suchen" (#746, `settingsStore.autoUpdateCheck`, default on): a switch row under the version, with the line that GitHub sees the IP address; off stops the launch check (`plugins/updater.client.ts`), the button above still checks by hand. `SettingSwitchRow`, aligned with the Fokus switch row on /settings
-- Explain every outcome in one calm sentence (rejected, offline, no release, rate limit, not configured, error); updates need no token (public releases)
-- Link to /settings/github when the optional token is rejected; reveal the log folder in the Finder
+- Explain every outcome in one calm sentence (rejected, offline, no release, rate limit, not configured, error); updates need no token (public releases), so the page has no token section (#843)
+- Link to /settings/github under the status only when the optional token is rejected; reveal the log folder in the Finder
 - Same sub-page pattern as /settings/data and /settings/github: one flat column, no cards; web redirects to /tasks
 -->
 <template>
@@ -43,6 +43,17 @@ UpdateDialog.
           <p v-if="statusLine" class="text-sm" :class="statusClass" data-testid="updates-status">{{ statusLine }}</p>
           <p class="text-sm text-muted" data-testid="updates-last-checked">{{ lastCheckedLine }}</p>
         </div>
+        <!-- #843: no token section; only a rejected token (a technical matter) points to the GitHub access page -->
+        <UButton
+          v-if="offersGithubLink"
+          to="/settings/github"
+          variant="soft"
+          color="neutral"
+          icon="i-ph-key"
+          data-testid="updates-open-github"
+        >
+          {{ t('settings.updates.openGithub') }}
+        </UButton>
         <UButton
           v-if="update"
           variant="soft"
@@ -62,23 +73,6 @@ UpdateDialog.
           data-testid="updates-auto-setting"
           @update:model-value="settingsStore.setAutoUpdateCheck"
         />
-      </PageSheet>
-
-      <PageSheet tag="section" aria-labelledby="updates-access-heading" class="space-y-3">
-        <SectionHeader id="updates-access-heading" tag="h2">
-          {{ t('settings.updates.accessHeading') }}
-        </SectionHeader>
-        <p class="text-body text-muted">{{ t('settings.updates.accessBody') }}</p>
-        <UButton
-          v-if="offersGithubLink"
-          to="/settings/github"
-          variant="soft"
-          color="neutral"
-          icon="i-ph-key"
-          data-testid="updates-open-github"
-        >
-          {{ t('settings.updates.openGithub') }}
-        </UButton>
       </PageSheet>
 
       <PageSheet tag="section" aria-labelledby="updates-log-heading" class="space-y-3">

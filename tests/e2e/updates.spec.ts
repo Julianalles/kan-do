@@ -70,6 +70,9 @@ test.describe('Updates page (desktop)', () => {
     await expect(page.getByTestId('updates-version')).toHaveText('Kan-do 0.1.0')
     await expect(page.getByTestId('updates-last-checked')).toHaveText('Noch nicht geprüft.')
     await expect(page.getByTestId('updates-status')).toHaveCount(0)
+    // #843: no token section; the GitHub link shows only for a rejected token
+    await expect(page.getByRole('heading', { name: 'Token' })).toHaveCount(0)
+    await expect(page.getByTestId('updates-open-github')).toHaveCount(0)
     await expect(page.getByTestId('updates-log-path')).toHaveText('/Users/test/Library/Logs/io.github.jaylouiz.kan-do')
     await page.getByTestId('updates-log-reveal').click()
     await expect.poll(async () => (await stubState(page)).calls.some(call => call.cmd === 'log_reveal')).toBe(true)
