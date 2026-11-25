@@ -20,10 +20,10 @@ npm run typecheck     # nuxt typecheck (run before merging)
 
 # Impeccable detector: source scan and rendered scan (contrast, undersized text); one URL: IMPECCABLE_BROWSER=<repo chromium> npx impeccable detect <url> (running dev server)
 npm run design:detect   # source; also runs in `npm run verify` and the Stop hook
-PORT=3101 npm run test:e2e -- tests/e2e/design-detect.spec.ts tests/e2e/state-structure.spec.ts   # rendered matrix + ARIA state snapshots (pre-merge gate on UI paths)
+PORT=<free port> npm run test:e2e -- tests/e2e/design-detect.spec.ts tests/e2e/state-structure.spec.ts   # rendered matrix + ARIA state snapshots (pre-merge gate on UI paths)
 
 # Visual regression baselines (after intentional UI changes); recorded from the production build, never against a dev server
-PORT=3101 npm run test:e2e -- tests/e2e/visual-regression.spec.ts --update-snapshots   # PORT = a free port, never :3000 beside a dev server
+PORT=<free port> npm run test:e2e -- tests/e2e/visual-regression.spec.ts --update-snapshots   # PORT = a free port, never :3000 beside a dev server
 # Then commit the updated PNGs in tests/e2e/snapshots/
 ```
 
