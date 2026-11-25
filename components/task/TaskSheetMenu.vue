@@ -61,7 +61,7 @@ const groups = computed<DropdownMenuItem[][]>(() => {
       label: t('task.contextMenu.moveToSource'),
       icon: 'i-ph-swap',
       children: props.moveTargets.map(target => ({
-        label: target.name,
+        label: target.menuName,
         icon: target.icon,
         ...(target.hint ? { description: target.hint } : {}),
         disabled: target.disabled,

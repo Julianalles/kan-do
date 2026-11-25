@@ -242,7 +242,7 @@ export const useTaskContextMenu = (
       {
         label: t('task.contextMenu.moveToSource'),
         children: moveTargets.value.map((target): ContextMenuItem => ({
-          label: target.name,
+          label: target.menuName,
           ...(target.hint ? { description: target.hint } : {}),
           disabled: target.disabled,
           onSelect: () => { moveToSource(target.source); },

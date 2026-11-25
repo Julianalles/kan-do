@@ -1,5 +1,5 @@
 /**
- * #322: the "Verschieben nach …" group of the card context menu. It sits in its own group between "Timebox
+ * #322: the "Verschieben zu …" group of the card context menu. It sits in its own group between "Timebox
  * setzen" and "Löschen", offers one child per other connected source with the hint as the child's second line, and
  * is absent when only one source is connected. #296 adds a quick group on top and a copy group before "Löschen".
  */
@@ -48,7 +48,7 @@ describe('useTaskContextMenu: move to another source (#322)', () => {
   it('Local only: no entry in any group', () => {
     useBoardStore().setSources({ connected: [], default: 'local' })
     const groups = groupsOf(makeTask())
-    expect(groups.flat().some(i => i.label === 'Verschieben nach …')).toBe(false)
+    expect(groups.flat().some(i => i.label === 'Verschieben zu …')).toBe(false)
     expect(groups).toHaveLength(3)
   })
 
@@ -56,7 +56,7 @@ describe('useTaskContextMenu: move to another source (#322)', () => {
     useBoardStore().setSources({ connected: ['notion'], default: 'local' })
     const groups = groupsOf(makeTask())
     const labels = groups[1]!.map(i => i.label)
-    expect(labels.indexOf('Verschieben nach …')).toBe(labels.indexOf('Timebox setzen') + 1)
+    expect(labels.indexOf('Verschieben zu …')).toBe(labels.indexOf('Timebox setzen') + 1)
     expect(groups[2]![0]!.label).toBe('Titel kopieren')
     expect(groups.at(-1)!.at(-1)!.label).toBe('Löschen')
   })
@@ -71,7 +71,7 @@ describe('useTaskContextMenu: move to another source (#322)', () => {
 
   it('offers every other source (not the current one) with name and the hint as second line, no icon (#338)', () => {
     useBoardStore().setSources({ connected: ['notion'], default: 'local' })
-    const entry = groupsOf(makeTask({ priority: 3, topic: 'x' })).flat().find(i => i.label === 'Verschieben nach …')!
+    const entry = groupsOf(makeTask({ priority: 3, topic: 'x' })).flat().find(i => i.label === 'Verschieben zu …')!
     expect(entry.children).toHaveLength(1)
     expect(entry.children![0]).toMatchObject({ label: 'Notion', disabled: false })
     expect(entry.children![0]!.icon).toBeUndefined()
@@ -81,15 +81,15 @@ describe('useTaskContextMenu: move to another source (#322)', () => {
 
   it('from Notion the Local child is offered, and a child without anything to say has no description', () => {
     useBoardStore().setSources({ connected: ['notion'], default: 'local' })
-    const entry = groupsOf(makeTask({ source: 'notion', externalId: 'p1' })).flat().find(i => i.label === 'Verschieben nach …')!
-    expect(entry.children!.map(c => c.label)).toEqual(['Lokal'])
+    const entry = groupsOf(makeTask({ source: 'notion', externalId: 'p1' })).flat().find(i => i.label === 'Verschieben zu …')!
+    expect(entry.children!.map(c => c.label)).toEqual(['lokalem Speicher'])
     expect(entry.children![0]).not.toHaveProperty('description')
   })
 
   it('a target that needs attention says so; selecting a child moves the task', () => {
     useBoardStore().setSources({ connected: ['notion'], default: 'local' })
     useIntegrationHealthStore().recordFailure('notion', Object.assign(new Error('Network error'), { statusCode: 0 }))
-    const entry = groupsOf(makeTask()).flat().find(i => i.label === 'Verschieben nach …')!
+    const entry = groupsOf(makeTask()).flat().find(i => i.label === 'Verschieben zu …')!
     expect(entry.children![0]!.description).toBe('Verbindung prüfen. Wird später gespeichert.')
     entry.children![0]!.onSelect!()
     expect(moveTaskToSource).toHaveBeenCalledWith('a', 'notion')
@@ -100,6 +100,8 @@ describe('useTaskContextMenu: move to another source (#322)', () => {
     useBoardStore().setSources({ connected: ['notion'], default: 'local' })
     const entry = groupsOf(makeTask({ priority: 3 })).flat().find(i => i.label === 'Move to …')!
     expect(entry.children![0]!.description).toBe('1 field is lost.')
+    const fromNotion = groupsOf(makeTask({ source: 'notion', externalId: 'p1' })).flat().find(i => i.label === 'Move to …')!
+    expect(fromNotion.children!.map(c => c.label)).toEqual(['Local'])
   })
 
   it('is disabled with "Wird gespeichert" while a move is outstanding', () => {
@@ -107,7 +109,7 @@ describe('useTaskContextMenu: move to another source (#322)', () => {
     const entry = groupsOf(makeTask({
       source: 'notion', externalId: null, pendingSync: { since: 1, attempts: 0, lastError: null },
       pendingMove: { fromSource: 'local', fromExternalId: null, toSource: 'notion' },
-    })).flat().find(i => i.label === 'Verschieben nach …')!
-    expect(entry.children![0]).toMatchObject({ label: 'Lokal', disabled: true, description: 'Wird gespeichert.' })
+    })).flat().find(i => i.label === 'Verschieben zu …')!
+    expect(entry.children![0]).toMatchObject({ label: 'lokalem Speicher', disabled: true, description: 'Wird gespeichert.' })
   })
 })

@@ -101,8 +101,8 @@ test('requirements sections 1-10 hold on one mixed board', async ({ context, pag
 
   // 3. Move: a Notion task goes to Local from the card menu, keeps its column, and Undo brings it back
   await card(page, 'Blocker klären').click({ button: 'right' })
-  await page.getByRole('menuitem', { name: 'Verschieben nach …' }).click()
-  await page.getByRole('menuitem', { name: /^Lokal/ }).click()
+  await page.getByRole('menuitem', { name: 'Verschieben zu …' }).click()
+  await page.getByRole('menuitem', { name: /^lokalem Speicher/ }).click()
   await expect.poll(async () => (await storedTask(page, 'Blocker klären'))?.source).toBe('local')
   await expect(column(page, 'waiting').getByText('Blocker klären')).toBeVisible()
   await page.getByRole('button', { name: 'Rückgängig', includeHidden: true }).last().click()

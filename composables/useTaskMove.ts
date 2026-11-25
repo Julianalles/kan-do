@@ -75,7 +75,7 @@ export function useTaskMove() {
     const toastId = `move-task-${taskId}`
     toast.add({
       id: toastId,
-      title: translate('task.move.done', { source: sourceName(target) }),
+      title: translate(SOURCE_META[target].moveDoneKey),
       description: shortTitle(tasksStore.task(taskId)?.title ?? ''),
       icon: SOURCE_META[target].icon,
       color: 'neutral',
