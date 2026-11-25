@@ -224,7 +224,7 @@ export function useBoardDndKit() {
 
   /**
    * The same for a Jetzt or Wartet card that "Heute" lists on "Alle" (#797): back before the next such card the column
-   * renders (the Jetzt card, then Wartet in its rendered order), else before the drop zone, which follows them. Removed when
+   * renders (the Jetzt card, then Wartet in its rendered order), else behind the last of them, else above the capacity line or before the drop zone. Removed when
    * the list no longer renders the task there (it left today, the place changed) or Vue already rendered a fresh node.
    */
   function restoreTodayExtraElement(origin: DragOrigin) {
@@ -239,8 +239,10 @@ export function useBoardDndKit() {
       return
     }
     const laterIds = ids.slice(ids.indexOf(taskId) + 1)
+    // Behind the last such card, else where the extras stand when there are none: above the capacity line (#817), else before the drop zone
+    const lastExtra = siblings[siblings.length - 1]
     const next = laterIds.map(id => siblings.find(el => idOf(el) === id)).find(Boolean)
-      ?? list.querySelector(':scope > .column-drop-zone')
+      ?? (lastExtra ? lastExtra.nextElementSibling : list.querySelector(':scope > [data-testid="capacity-divider"], :scope > .column-drop-zone'))
     if (element.parentNode === list && element.nextElementSibling === next) return
     list.insertBefore(element, next)
   }

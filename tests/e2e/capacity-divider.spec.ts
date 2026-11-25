@@ -215,3 +215,60 @@ test.describe('Capacity divider in Offen (#132)', () => {
     expect(await count(page.locator('#column-done-list'))).toBe(0)
   })
 })
+
+/**
+ * #817: "Heute" on "Alle" lists the Jetzt and Wartet cards behind Offen's own, and the line counts their time first, so
+ * on a full day they stand above it. The ids of the list top to bottom, the line as `|`, the extras by their own ids.
+ */
+test.describe('"Heute" on "Alle" and the capacity line (#817)', () => {
+  const nowCard = task({ id: 'now', title: 'Jetzt', status: 1, timeBoxSeconds: hours(2) })
+  const w1 = task({ id: 'w1', title: 'Wartet 1', status: 2, timeBoxSeconds: hours(2) })
+  const w2 = task({ id: 'w2', title: 'Wartet 2', status: 2 })
+  /** 2 h + 2 h + 0.5 h used, a 1 h and b 0.5 h fill the 6 h day */
+  const FULL: SeedTask[] = [nowCard, w1, w2, open('a', 1), open('b', null), open('c', null), open('d', 1)]
+
+  async function gotoAll(page: Page) {
+    await page.goto('/all')
+    await expect(page.locator('.board')).toHaveAttribute('data-place', 'all')
+    await expect(card(page, 'a')).toBeVisible()
+    await settleAnimations(page)
+  }
+
+  test('on a full day the Jetzt and Wartet cards stand above the line, behind the cards that fit; Offen on Heute is unchanged', async ({ context, page }) => {
+    await seedLocalBoard(context, FULL)
+    await gotoAll(page)
+    await expect.poll(() => layout(page)).toBe('a b now w1 w2 | c d')
+    // each is still the one card of its task
+    await expect(page.locator('[data-task-id="now"].task-wrapper')).toHaveCount(1)
+    await expect(card(page, 'w1').getByTestId('task-status-badge')).toHaveText('Wartet')
+    await page.getByTestId('app-nav-place-board').click()
+    await expect(page.locator('.board')).toHaveAttribute('data-place', 'today')
+    await settleAnimations(page)
+    await expect.poll(() => layout(page)).toBe('a b | c d')
+  })
+
+  test('on a day that is not full there is no line and the order stays Offen, Jetzt, Wartet', async ({ context, page }) => {
+    await seedLocalBoard(context, [nowCard, w1, open('a', 1), open('b', null)])
+    await gotoAll(page)
+    // 2 + 2 + 1 + 0.5 = 5.5 h: it fits
+    await expect.poll(() => layout(page)).toBe('a b now w1')
+    await expect(divider(page)).toHaveCount(0)
+  })
+
+  test('sorting keeps the extras above the line: a Wartet card among the Wartet cards, an Offen card across the line', async ({ context, page }) => {
+    await seedLocalBoard(context, FULL)
+    await gotoAll(page)
+    await pickUp(page, card(page, 'w2'))
+    await hover(page, card(page, 'w1'), { fromTop: 10 })
+    await page.mouse.up()
+    await dropSettled(page)
+    await expect.poll(() => layout(page)).toBe('a b now w2 w1 | c d')
+
+    // c above a: 4.5 + 0.5 + 1 = 6 h, the line moves behind a and the extras with it
+    await pickUp(page, card(page, 'c'))
+    await hover(page, card(page, 'a'), { fromTop: 10 })
+    await page.mouse.up()
+    await dropSettled(page)
+    await expect.poll(() => layout(page)).toBe('c a now w2 w1 | b d')
+  })
+})

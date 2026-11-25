@@ -14,7 +14,7 @@
 - Provides header with status information
 - Enables task addition for the Open column (#248): the header's round add button asks the add slot, the draft host at the start of the list, to open; the draft card enters at the top (#125). Cancel returns focus to the header button
 - Handles visual states for different statuses and empty states
-- Offen on "Alle" (#797), headed "Heute": lists everything planned for today. Behind its own cards come the Jetzt card and the Wartet cards (`todayExtras`), each with a status badge and each still a sortable of its own status; the headline counts them and the column is not empty while it holds one. The capacity line, the add slot and the sorting stay on Offen's own cards
+- Offen on "Alle" (#797), headed "Heute": lists everything planned for today. Behind its own cards come the Jetzt card and the Wartet cards (`todayExtras`; on a full day they stand above the capacity line, whose count their time is part of, #817), each with a status badge and each still a sortable of its own status; the headline counts them and the column is not empty while it holds one. The capacity line (below the extras, #817), the add slot and the sorting stay on Offen's own cards
 - `top` slot (Offen on "Alle", #573 case 2): a zero-height sticky host under the app bar for the capacity echo of a line above the window
 - Offen on Heute, empty while tasks of today's block ("Von gestern", #741) wait under "Alle" (#356): one muted sentence with a link to "Alle"; every other empty column stays blank
 - Offen on Heute with no task in any column (#761): one muted hint line "Was steht heute an?" that is itself a button opening the add slot (the header button's flow); with tasks waiting under "Alle" (#802) a second muted line below it links there; gone while a draft is open, a drag runs or the yesterday note shows
@@ -160,27 +160,20 @@
         :focus-fallback="() => headerRef?.addButtonEl() ?? null"
       />
       <!-- One flat list of items: ungrouped cards, then (grouped) a collapsed stack or the cards of an
-           expanded one in its place (#147), or (ungrouped mode) every task in order -->
+           expanded one in its place (#147), or (ungrouped mode) every task in order. "Heute" on "Alle" (#797, #817) adds the
+           Jetzt card and the Wartet cards, each a sortable of its own status with a status badge: behind Offen's own cards,
+           above the capacity line when the day is full (their time is counted first). One list, one key per item, so a card
+           that the line moves across keeps its node; one root node per item, like every list item -->
       <board-column-item
-        v-for="item in columnItems"
-        :key="item.key"
-        :item="item"
-        :task-status="taskStatus"
+        v-for="entry in listEntries"
+        :key="entry.item.key"
+        :item="entry.item"
+        :task-status="entry.status"
         :static-mode="props.staticMode"
+        :today-extra="entry.todayExtra"
         @open="openTask"
         @expand="expandStack"
         @close-stack="closeStack"
-      />
-      <!-- "Heute" on "Alle" (#797): the Jetzt card and the Wartet cards follow Offen's own, each a sortable of its own status
-           with a status badge; one root node per item, like every list item -->
-      <board-column-item
-        v-for="extra in extraItems"
-        :key="extra.item.key"
-        :item="extra.item"
-        :task-status="extra.status"
-        :static-mode="props.staticMode"
-        today-extra
-        @open="openTask"
       />
       <!-- Droppable sentinel: ensures dnd-kit can accept drops even when the column is empty -->
       <column-drop-zone :task-status="taskStatus" :is-empty="isEmpty" />
@@ -441,6 +434,12 @@ const baseItems = computed<ColumnItem[]>(() =>
 const { lineAfterKey } = useDayCapacity(baseItems, () => isOpenColumn.value && !props.staticMode);
 const columnItems = computed<ColumnItem[]>(() => withCapacityItem(baseItems.value, lineAfterKey.value));
 
+/** Where "Heute" on "Alle" stands them (#817): behind Offen's own cards, and above the capacity line when the day is full */
+const extrasAt = computed(() => {
+  const at = columnItems.value.findIndex((item) => item.kind === "capacity");
+  return at === -1 ? columnItems.value.length : at;
+});
+
 /**
  * "Heute" on "Alle" (#797): the Jetzt card, then the Wartet cards in the order the Wartet column renders them (grouped: its
  * groups kept together), as single cards. Each is a sortable of its own status, indexed among the cards of that status, so a
@@ -453,7 +452,7 @@ const extraItems = computed<{ item: ColumnItem; status: TaskStatus }[]>(() => {
     const own = props.todayExtras.filter((task) => task.status === status);
     return status === TaskStatus.Waiting ? getRenderedTaskOrder(own, waitingKey).rendered : own;
   });
-  const start = columnItems.value.length;
+  const start = extrasAt.value;
   return byStatus.flatMap((own) => own.map((task, sortableIndex) => ({ task, sortableIndex }))).map(({ task, sortableIndex }, at) => ({
     status: task.status,
     item: {
@@ -470,6 +469,17 @@ const extraItems = computed<{ item: ColumnItem; status: TaskStatus }[]>(() => {
       stackLabel: undefined,
     },
   }));
+});
+
+/** What the list renders, top to bottom: Offen's items up to the line, the extras of "Alle", the line and what follows it (#817) */
+const listEntries = computed<{ item: ColumnItem; status: TaskStatus; todayExtra: boolean }[]>(() => {
+  const own = (item: ColumnItem) => ({ item, status: props.taskStatus, todayExtra: false });
+  const shift = extraItems.value.length;
+  return [
+    ...columnItems.value.slice(0, extrasAt.value).map(own),
+    ...extraItems.value.map((extra) => ({ item: extra.item, status: extra.status, todayExtra: true })),
+    ...columnItems.value.slice(extrasAt.value).map((item) => own(shift === 0 ? item : { ...item, itemIndex: item.itemIndex + shift })),
+  ];
 });
 
 // A group that drops below two tasks stops being a stack: forget its expansion. Grouping turned off
