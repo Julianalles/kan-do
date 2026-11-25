@@ -1266,8 +1266,6 @@
           "unknown": "Die Update-Prüfung konnte nicht abgeschlossen werden."
         }
       },
-      "accessHeading": "Token",
-      "accessBody": "Updates brauchen kein Token. Ein GitHub-Token (nur Lesen) ist optional und hebt nur das Anfragelimit von GitHub an.",
       "openGithub": "GitHub-Zugriff öffnen",
       "logHeading": "Protokoll",
       "revealLog": "Im Finder zeigen",

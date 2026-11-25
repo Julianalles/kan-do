@@ -125,6 +125,12 @@ html[data-shell="desktop"] * {
   overscroll-behavior: none;
 }
 
+/* A scroller that only scrolls sideways (the statistics table, #844) must hand the wheel's vertical part to the page: `none` above
+   also stops chaining, so the page froze under the pointer. The page itself keeps `none` (no bounce at its ends). */
+html[data-shell="desktop"] [data-scroll-chain-y] {
+  overscroll-behavior-y: auto;
+}
+
 /* Desktop app (#370): chrome is inert text, content stays selectable, as in a native app. A double click on a tab, button or
    column name used to highlight its label like page text. Everything under the desktop marker is `user-select: none`; the
    allow-list is text entry (input, textarea, contenteditable) and anything marked `data-selectable` (task title and notes,
