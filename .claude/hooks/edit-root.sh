@@ -36,6 +36,43 @@ kando_record_root() {
 }
 kando_recorded_roots() { [ -f "$(kando_roots_file "$1")" ] && sort -u "$(kando_roots_file "$1")"; return 0; }
 
+# --- Turn snapshot: the Stop hooks skip a checkout the turn left unchanged ------------------------------------------
+# A chat-only turn in a dirty tree (an uncommitted lockfile, another session's leftovers) ran the full Stop checks on
+# every reply. turn-start.sh (UserPromptSubmit) records each checkout's state; at Stop an unchanged checkout is skipped.
+# State, not recorded edits: it also sees what the per-edit hooks miss (a JSON or lockfile written by Bash, a merge).
+
+# kando_tree_inputs <root>: what the checks read: commit, uncommitted diff, untracked files (content hashes).
+# verify.sh hashes it plus the testing mode into its pass fingerprint.
+kando_tree_inputs() {
+  (
+    cd "$1" || exit 0
+    git rev-parse HEAD
+    git diff HEAD
+    git ls-files --others --exclude-standard -z | xargs -0 shasum 2>/dev/null
+  ) 2>/dev/null
+}
+kando_tree_state() { kando_tree_inputs "$1" | shasum | cut -c1-12; }
+kando_turn_file() { printf '%s/kando-turn-%s\n' "${TMPDIR:-/tmp}" "${1:-unknown}"; }
+
+# kando_snapshot_turn <session> <root>...: replaces the session's turn snapshot with one `root<TAB>state` line per root.
+kando_snapshot_turn() {
+  local session=$1 file tmp root
+  shift
+  file=$(kando_turn_file "$session")
+  tmp="$file.$$"
+  for root in "$@"; do printf '%s\t%s\n' "$root" "$(kando_tree_state "$root")"; done >"$tmp" && mv -f "$tmp" "$file"
+}
+
+# kando_turn_unchanged <session> <root>: success when <root> is in the snapshot and its state still matches. No
+# snapshot (hook not installed, a checkout first touched this turn) is a change: the checks run.
+kando_turn_unchanged() {
+  local file want
+  file=$(kando_turn_file "$1")
+  [ -f "$file" ] || return 1
+  want=$(awk -F'\t' -v r="$2" '$1 == r { print $2 }' "$file")
+  [ -n "$want" ] && [ "$want" = "$(kando_tree_state "$2")" ]
+}
+
 # --- Files an Edit, Write or Bash tool call changed (#650) ---------------------------------------------------------
 # `PostToolUse` matching `Edit|Write` never fires for `sed -i`, a heredoc or a script run through Bash, so the per-edit
 # hooks are also registered for `Bash` and ask here which files the command touched. `FileChanged` cannot do this job:

@@ -60,6 +60,7 @@ case "$event" in
     context=""
     while IFS= read -r root; do
       [ -n "$root" ] && [ "$root" != "$main" ] && [ -d "$root" ] || continue
+      kando_turn_unchanged "$session_id" "$root" && continue
       part=$(run_hook "$root" "$(hook_retarget "$input" "$root")")
       [ -n "$part" ] && context="${context:+$context
 

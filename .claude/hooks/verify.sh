@@ -48,6 +48,9 @@ verify_root() {
   # Prototype branches (proto/*, /design-gh-issue) are throwaway and never merged.
   case "$branch" in proto/*) return 0 ;; esac
 
+  # This turn changed nothing here (turn-start.sh snapshot): a chat-only reply, also in a dirty tree, is not verified.
+  kando_turn_unchanged "$session_id" "$root" && return 0
+
   # Nothing to verify: clean tree and no commits ahead of origin/main.
   ahead=$(git rev-list --count origin/main..HEAD 2>/dev/null || echo 0)
   if [ -z "$(git status --porcelain)" ] && [ "$ahead" = "0" ]; then
@@ -72,7 +75,7 @@ verify_root() {
   # repeated a pass): when this branch's last verify row is a pass with the same fingerprint, nothing changed since
   # that pass, so the checks are skipped and a `skip` row is logged.
   local fp last
-  fp=$({ git rev-parse HEAD; git diff HEAD; git ls-files --others --exclude-standard -z | xargs -0 shasum 2>/dev/null; echo "$mode"; } 2>/dev/null | shasum | cut -c1-12)
+  fp=$({ kando_tree_inputs "$PWD"; echo "$mode"; } 2>/dev/null | shasum | cut -c1-12)
   last=$(awk -F'\t' -v b="${branch:--}" '$2 == "verify" && $3 == b { r = $7 "\t" $9 } END { print r }' \
     "$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null)/agent-ledgers/checks.tsv" 2>/dev/null)
   if [ "$last" = "pass"$'\t'"$fp" ]; then
