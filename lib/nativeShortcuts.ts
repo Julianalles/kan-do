@@ -24,7 +24,8 @@ const ZOOM_BY_CODE: Record<string, UiScaleDirection> = {
  * for a layout whose key value is something else. `mac` picks the modifier as in `isBrowserShortcut`.
  */
 export function zoomShortcut(event: KeyChord, mac: boolean): UiScaleDirection | null {
-  if (!(mac ? event.metaKey : event.ctrlKey)) return null
+  // Alt held: AltGr reports Ctrl+Alt on Windows/Linux and types `}` or `\` on a German layout; leave it to the text field.
+  if (event.altKey || !(mac ? event.metaKey : event.ctrlKey)) return null
   return (Object.hasOwn(ZOOM_BY_KEY, event.key) ? ZOOM_BY_KEY[event.key] : undefined)
     ?? (Object.hasOwn(ZOOM_BY_CODE, event.code) ? ZOOM_BY_CODE[event.code] : undefined)
     ?? null

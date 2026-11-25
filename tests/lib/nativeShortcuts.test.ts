@@ -86,6 +86,13 @@ describe.each([['macOS', mac], ['Windows/Linux', pc]])('zoomShortcut on %s', (_n
     expect(zoom({ key: '+', code: 'Minus' })).toBe('in')
   })
 
+  it('is nothing with Alt held: AltGr is Ctrl+Alt on Windows/Linux and types } or \\ on a German layout', () => {
+    for (const c of [{ key: '}', code: 'Digit0' }, { key: '\\', code: 'Minus' }, { key: '+', code: 'Equal' }, { key: '0' }]) {
+      expect(zoom({ ...c, altKey: true }), c.key).toBeNull()
+      expect(isBrowserShortcut(chord({ ...c, altKey: true }, platform.mod), platform.mac), c.key).toBe(false)
+    }
+  })
+
   it('is nothing without the modifier, with the other platform\'s modifier, or for another key', () => {
     for (const key of ['+', '=', '-', '0']) {
       expect(zoom({ key }, 'none'), key).toBeNull()
