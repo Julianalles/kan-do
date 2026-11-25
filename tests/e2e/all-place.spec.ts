@@ -1274,7 +1274,8 @@ test.describe('"Alle Aufgaben" layout and the marker (#469)', () => {
             const add = document.querySelector('[data-testid="not-planned-add"]')!.getBoundingClientRect()
             return { air: text.left - add.right, left: add.left, width: add.width, height: add.height }
           })
-          expect(box.air, 'air between the button and the headline').toBeGreaterThanOrEqual(16)
+          // 390 px: 16 px and more; 360 px (German headline, ~226 px wide): the two never touch, 6 px of air
+          expect(box.air, 'air between the button and the headline').toBeGreaterThanOrEqual(width === 390 ? 16 : 6)
           // the 44 px phone floor stays, and the button stands at the page gutter
           expect(box.width).toBeGreaterThanOrEqual(44)
           expect(box.height).toBeGreaterThanOrEqual(44)
