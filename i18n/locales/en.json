@@ -667,6 +667,8 @@
     "taskUpdateFailed": "Task couldn't be updated.",
     "networkError": "Network error. Check your internet connection.",
     "networkOffline": "Offline mode. The app keeps trying to sync.",
+    "sourceUnreachableTitle": "{source} can't be reached right now",
+    "sourceUnreachable": "Your changes stay saved and sync as soon as {source} is reachable again.",
     "apiError": "API error. Try again later.",
     "default": "An unexpected error occurred. Try again.",
     "notionNotConfiguredShort": "Notion isn't set up",

@@ -28,6 +28,12 @@
           "url": "https://www.notion.so/my-integrations"
         },
         {
+          "url": "https://www.notion.so/*"
+        },
+        {
+          "url": "https://app.todoist.com/app/*"
+        },
+        {
           "url": "https://github.com/jaylouiz/kan-do/issues/*"
         },
         {
