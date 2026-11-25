@@ -16,7 +16,7 @@
 - Handles visual states for different statuses and empty states
 - Offen on "Alle" (#797), headed "Heute": lists everything planned for today. Behind its own cards come the Jetzt card and the Wartet cards (`todayExtras`; on a full day they stand above the capacity line, whose count their time is part of, #817), each with a status badge and each still a sortable of its own status; the headline counts them and the column is not empty while it holds one. The capacity line (below the extras, #817), the add slot and the sorting stay on Offen's own cards
 - `top` slot (Offen on "Alle", #573 case 2): a zero-height sticky host under the app bar for the capacity echo of a line above the window
-- Offen on Heute, empty while tasks of today's block ("Von gestern", #741) wait under "Alle" (#356): one muted sentence with a link to "Alle"; every other empty column stays blank
+- Offen on Heute, empty while tasks of today's block ("Von gestern", #741) wait under "Alle" (#356): one muted sentence with a link to "Alle"; the guides below and the empty Jetzt placeholder are the only other exceptions, every other empty column stays blank
 - Offen on Heute with no task in any column (#761): one muted hint line "Was steht heute an?" that is itself a button opening the add slot (the header button's flow); with tasks waiting under "Alle" (#802) a second muted line below it links there; gone while a draft is open, a drag runs or the yesterday note shows
 - `list-start` slot: content at the start of the list, above the cards (Board.vue puts BoardPlanNote `column` there for Offen: the one-time note of "Alle" as plain text where the picked tasks land, #741)
 - Erledigt drop target (#124): a light green wash under the list and a one-line hint while a card
