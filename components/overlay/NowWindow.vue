@@ -289,10 +289,10 @@ function onOpen(): void {
     color-mix(in srgb, var(--now-light) var(--now-b1), transparent) calc(100% - var(--now-fall)),
     color-mix(in srgb, var(--now-light-hi) var(--now-b2), transparent) calc(100% - var(--now-fall) * 0.62),
     color-mix(in srgb, var(--now-light-hi) var(--now-b3), transparent) calc(100% - var(--now-fall) * 0.28),
-    color-mix(in srgb, var(--now-light-hi) var(--now-b4), transparent) calc(100% - var(--now-fall) * 0.14),
-    /* Clear a little before the layer's own edge, in the light's hue (not `transparent`, which is black): WKWebView showed the
-       layer's right edge as a hard step (#848), so the layer must hold no colour where it ends */
-    color-mix(in srgb, var(--now-light-hi) 0%, transparent) calc(100% - 12px),
+    color-mix(in srgb, var(--now-light-hi) var(--now-b4), transparent) calc(100% - var(--now-fall) * 0.2),
+    /* Clear a little before the layer's own edge, in the light's hue: WKWebView showed the layer's right edge as a hard step
+       (#848), so the layer must hold no colour where it ends. The last ramp is ~13px wide (0.2 to 0.06 of the falloff), no new step */
+    color-mix(in srgb, var(--now-light-hi) 0%, transparent) calc(100% - var(--now-fall) * 0.06),
     color-mix(in srgb, var(--now-light-hi) 0%, transparent) 100%
   );
 }
