@@ -1274,8 +1274,8 @@ test.describe('"Alle Aufgaben" layout and the marker (#469)', () => {
             const add = document.querySelector('[data-testid="not-planned-add"]')!.getBoundingClientRect()
             return { air: text.left - add.right, left: add.left, width: add.width, height: add.height }
           })
-          // 390 px: 16 px and more; 360 px (German headline, ~226 px wide): the two never touch, 6 px of air
-          expect(box.air, 'air between the button and the headline').toBeGreaterThanOrEqual(width === 390 ? 16 : 6)
+          // 16 px and more at both widths: at 360 px the German headline (~226 px wide) moves right as far as it must (#836)
+          expect(box.air, 'air between the button and the headline').toBeGreaterThanOrEqual(16)
           // the 44 px phone floor stays, and the button stands at the page gutter
           expect(box.width).toBeGreaterThanOrEqual(44)
           expect(box.height).toBeGreaterThanOrEqual(44)
@@ -1283,6 +1283,33 @@ test.describe('"Alle Aufgaben" layout and the marker (#469)', () => {
         })
       }
     }
+
+    test('a wider headline font still keeps 16 px of air to the add button at 360 px, and a short headline stays centred (#836)', async ({ context, page }) => {
+      await page.setViewportSize({ width: 360, height: 844 })
+      await seedLocalBoard(context, MANY)
+      await page.goto('/all?lang=de')
+      await expect(board(page)).toHaveAttribute('data-place', 'all')
+      await atRest(page)
+      // CI's Linux fonts render the headline wider than the Mac's: widen it on purpose, the layout must not depend on the font
+      await page.addStyleTag({ content: '#column-not-planned h2 { letter-spacing: 0.02em !important }' })
+      const air = await page.evaluate(() => {
+        const range = document.createRange()
+        range.selectNodeContents(document.querySelector('#column-not-planned h2')!.firstElementChild!)
+        return range.getBoundingClientRect().left - document.querySelector('[data-testid="not-planned-add"]')!.getBoundingClientRect().right
+      })
+      expect(air, 'air between the button and the widened headline').toBeGreaterThanOrEqual(16)
+      // Offen's headline has no button to clear: it stays centred on the page
+      await toHeute(page).click()
+      await atRest(page)
+      const centre = await page.evaluate(() => {
+        const range = document.createRange()
+        range.selectNodeContents(document.querySelector('#column-open h2')!.firstElementChild!)
+        const r = range.getBoundingClientRect()
+        const col = document.querySelector('#column-open')!.getBoundingClientRect()
+        return { text: r.left + r.width / 2, column: col.left + col.width / 2 }
+      })
+      expect(Math.abs(centre.text - centre.column)).toBeLessThan(1)
+    })
 
     test('one column; the pick arrow is always there, in the card\'s top right corner, and nothing scrolls sideways', async ({ context, page }) => {
       await seedLocalBoard(context, MANY)
