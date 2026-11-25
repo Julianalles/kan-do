@@ -20,12 +20,13 @@
   disabled, so the header never shifts. `addButtonEl()` lets the column return focus after a cancel. Same look as the
   stack header's close button (ghost UButton, `--fill-on-canvas` fill by CSS, 32px, 44px on touch)
 - `addAway` (#609): the button fades out for `--duration-base` (200 ms) and (`opacity-0`, the transition is the button's own) and is `inert` (out of the tab order, the pointer and the reader's tree), keeping its box, so the title never shifts and the fade back in is the same. "Alle Aufgaben" sets it while its empty note offers "Aufgabe erstellen"; none under reduced motion
+- `--title-clear` (#836, #816): a host sets it to the add button's right edge plus 16 px of air. Two empty flex items stand beside the title, equal while it is unset (the title stays centred), and the left one never gets narrower than it, so on a narrow phone the title moves right by the missing amount only, whatever font renders
 - `titleSuffix` (#660): Wartet's "?" while the column is empty. A zero-width inline-block after the word, so the title box and its centring never change when it comes or goes; the heading's `aria-label` keeps the name "Wartet?"
 -->
 <template>
   <div
     :class="['column-header', { 'waiting-header': isWaiting, empty: isEmpty }]"
-    class="relative flex items-center justify-center"
+    class="relative flex items-center justify-center before:min-w-(--title-clear) before:flex-1 before:basis-0 before:content-[''] after:flex-1 after:basis-0 after:content-['']"
   >
     <h2
       class="font-display"
