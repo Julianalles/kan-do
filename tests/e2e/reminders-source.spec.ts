@@ -131,7 +131,7 @@ test.describe('Apple Reminders source (#551)', () => {
     expect(await remindersCalls(page, 'reminders_fetch')).toHaveLength(fetchesBefore)
   })
 
-  test('read-only: no "Löschen" and no "Verschieben nach …" in the card menu, title and notes are text in the sheet, "Speichern in" does not offer it', async ({ context, page }) => {
+  test('read-only: no "Löschen" and no "Verschieben zu …" in the card menu, title and notes are text in the sheet, "Speichern in" does not offer it', async ({ context, page }) => {
     await seedRemindersBoard(context)
     await page.goto('/tasks')
     await expect(column(page, 'open').getByText('Milch kaufen')).toBeVisible()
@@ -139,7 +139,7 @@ test.describe('Apple Reminders source (#551)', () => {
     await card(page, 'Milch kaufen').click({ button: 'right' })
     await expect(page.getByRole('menuitem', { name: 'Status ändern' })).toBeVisible()
     await expect(page.getByRole('menuitem', { name: /^Löschen/ })).toHaveCount(0)
-    await expect(page.getByRole('menuitem', { name: 'Verschieben nach …' })).toHaveCount(0)
+    await expect(page.getByRole('menuitem', { name: 'Verschieben zu …' })).toHaveCount(0)
     await expect(page.getByRole('menuitem', { name: 'Duplizieren' })).toHaveCount(0)
     await page.keyboard.press('Escape')
 

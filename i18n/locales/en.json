@@ -277,7 +277,6 @@
     "createNew": "Create new task",
     "fallbackTitle": "Task",
     "move": {
-      "done": "Moved to {source}",
       "failed": "Move failed",
       "failedDescription": "“{title}” stays in {source}.",
       "retry": "Try again",
@@ -433,6 +432,24 @@
       "notion": "Notion",
       "todoist": "Todoist",
       "reminders": "Apple Reminders"
+    },
+    "moveTarget": {
+      "local": "to local storage",
+      "notion": "to Notion",
+      "todoist": "to Todoist",
+      "reminders": "to Apple Reminders"
+    },
+    "moveMenuName": {
+      "local": "Local",
+      "notion": "Notion",
+      "todoist": "Todoist",
+      "reminders": "Apple Reminders"
+    },
+    "moveDone": {
+      "local": "Moved to local storage",
+      "notion": "Moved to Notion",
+      "todoist": "Moved to Todoist",
+      "reminders": "Moved to Apple Reminders"
     }
   },
   "statistics": {
@@ -1539,7 +1556,7 @@
     "groupMove": "Move: {title}",
     "groupSource": "Storage location",
     "moveTo": "Move to {column}",
-    "moveToSource": "Move to {source}",
+    "moveToSource": "Move {target}",
     "progressFull": "Now taken",
     "setPriority": "Priority: {priority}",
     "setTimebox": "Timebox: {minutes} min",

@@ -61,7 +61,7 @@ const SEED_WITHOUT_JETZT = MIXED_SEED_TASKS.filter((task) => task.id !== 'page-2
 
 async function openCardMenu(page: Page, title: string) {
   await card(page, title).click({ button: 'right' })
-  await page.getByRole('menuitem', { name: 'Verschieben nach …' }).click()
+  await page.getByRole('menuitem', { name: 'Verschieben zu …' }).click()
 }
 
 async function moveViaContextMenu(page: Page, title: string, target: string) {
@@ -85,12 +85,12 @@ test.describe('Move a task between sources (#322)', () => {
 
     // 1. Move and undo inside the window
     await moveViaContextMenu(page, TITLE, 'Notion')
-    await expect(toastText(page, 'Nach Notion verschoben')).toBeVisible()
+    await expect(toastText(page, 'Zu Notion verschoben')).toBeVisible()
     await expect(column(page, 'open').getByText(TITLE)).toHaveCount(1)
     await expect.poll(openTitles).toEqual(orderBefore)
     await expect.poll(async () => (await storedTask(page, 'local-open-1'))?.source).toBe('notion')
     await page.getByRole('button', { name: 'Rückgängig' }).click()
-    await expect(toastText(page, 'Nach Notion verschoben')).toHaveCount(0)
+    await expect(toastText(page, 'Zu Notion verschoben')).toHaveCount(0)
     await expect.poll(async () => (await storedTask(page, 'local-open-1'))?.source).toBe('local')
     expect(await storedTask(page, 'local-open-1')).toMatchObject({ externalId: null })
     expect((await storedTask(page, 'local-open-1'))?.pendingMove).toBeUndefined()
@@ -119,7 +119,7 @@ test.describe('Move a task between sources (#322)', () => {
     expect((await storedTask(page, 'local-open-1'))?.createdAt).toBe(before?.createdAt)
 
     // 3. Back to Local: the Notion page is archived, the card stays
-    await moveViaContextMenu(page, TITLE, 'Lokal')
+    await moveViaContextMenu(page, TITLE, 'lokalem Speicher')
     await elapseWindow(page)
     await expect.poll(() => archives.length).toBe(1)
     await expect.poll(async () => (await storedTask(page, 'local-open-1'))?.pendingMove).toBeUndefined()
@@ -141,8 +141,8 @@ test.describe('Move a task between sources (#322)', () => {
 
     // A Notion task has Local as its only target; Local holds everything
     await card(page, NOTION_TITLE).click({ button: 'right' })
-    await page.getByRole('menuitem', { name: 'Verschieben nach …' }).click()
-    const items = page.getByRole('menuitem', { name: /^Lokal/ })
+    await page.getByRole('menuitem', { name: 'Verschieben zu …' }).click()
+    const items = page.getByRole('menuitem', { name: /^lokalem Speicher/ })
     await expect(items).toBeVisible()
     await expect(items).not.toContainText('verloren')
     await expect(page.getByRole('menuitem', { name: /^Notion/ })).toHaveCount(0)
@@ -154,14 +154,14 @@ test.describe('Move a task between sources (#322)', () => {
     await expect(first).toBeVisible()
     await first.click({ button: 'right' })
     await expect(page.getByRole('menuitem', { name: 'Timebox setzen' })).toBeVisible()
-    await expect(page.getByRole('menuitem', { name: 'Verschieben nach …' })).toHaveCount(0)
+    await expect(page.getByRole('menuitem', { name: 'Verschieben zu …' })).toHaveCount(0)
     await page.keyboard.press('Escape')
 
     await first.focus()
     await page.keyboard.press('ControlOrMeta+k')
     await expect(palette(page)).toBeVisible()
     await expect(palette(page).getByText('Verschieben in „Erledigt“')).toBeVisible()
-    await expect(palette(page).getByText(/Verschieben nach (Notion|Lokal|Todoist)/)).toHaveCount(0)
+    await expect(palette(page).getByText(/Verschieben (zu Notion|zum lokalen Speicher|zu Todoist)/)).toHaveCount(0)
   })
 
   test('detail sheet button moves the task; the card keeps its place', async ({ context, page, baseURL }) => {
@@ -171,15 +171,15 @@ test.describe('Move a task between sources (#322)', () => {
     await page.goto(`${baseURL}/tasks/local-open-1`)
     await expect(page.getByRole('dialog')).toBeVisible()
 
-    await (await openTaskMenu(page, 'Verschieben nach …')).click()
+    await (await openTaskMenu(page, 'Verschieben zu …')).click()
     await page.getByRole('menuitem', { name: /^Notion/ }).click()
 
-    await expect(toastText(page, 'Nach Notion verschoben')).toBeVisible()
+    await expect(toastText(page, 'Zu Notion verschoben')).toBeVisible()
     await elapseWindow(page)
     await expect.poll(() => creates.length).toBe(1)
     await expect.poll(async () => (await storedTask(page, 'local-open-1'))?.source).toBe('notion')
-    await (await openTaskMenu(page, 'Verschieben nach …')).click()
-    await expect(page.getByRole('menuitem', { name: /^Lokal/ })).toBeVisible()
+    await (await openTaskMenu(page, 'Verschieben zu …')).click()
+    await expect(page.getByRole('menuitem', { name: /^lokalem Speicher/ })).toBeVisible()
     await expect(page.getByRole('menuitem', { name: /^Notion/ })).toHaveCount(0)
   })
 
@@ -196,15 +196,15 @@ test.describe('Move a task between sources (#322)', () => {
     // Typed keys go to whatever holds focus: wait for the modal to hand it to the search field
     await expect(palette(page).getByPlaceholder('Befehl suchen…')).toBeFocused()
     await expect(palette(page).getByText('Speicherort', { exact: true })).toBeVisible()
-    await expect(palette(page).getByRole('option', { name: /Verschieben nach Lokal/ })).toHaveCount(0)
-    await page.keyboard.type('Verschieben nach Notion')
+    await expect(palette(page).getByRole('option', { name: /Verschieben zum lokalen Speicher/ })).toHaveCount(0)
+    await page.keyboard.type('Verschieben zu Notion')
     // Enter runs the highlighted row: wait until the filter has settled on the Notion move
-    await expect(palette(page).getByRole('option', { name: /Verschieben nach Notion/ })).toHaveAttribute('data-highlighted', '')
+    await expect(palette(page).getByRole('option', { name: /Verschieben zu Notion/ })).toHaveAttribute('data-highlighted', '')
     await page.keyboard.press('Enter')
 
     await expect(palette(page)).toBeHidden()
     await expect(target).toBeFocused()
-    await expect(toastText(page, 'Nach Notion verschoben')).toBeVisible()
+    await expect(toastText(page, 'Zu Notion verschoben')).toBeVisible()
     // Phase 1 of the move is local and immediate. The upstream create waits for the 5 s undo window; the specs above
     // and below cover it.
     await expect.poll(async () => (await storedTask(page, 'local-open-1'))?.source).toBe('notion')
@@ -276,7 +276,7 @@ test.describe('Move a task between sources (#322)', () => {
     expect(archives).toHaveLength(0)
 
     await page.getByRole('button', { name: 'Erneut versuchen' }).click()
-    await expect(toastText(page, 'Nach Notion verschoben')).toBeVisible()
+    await expect(toastText(page, 'Zu Notion verschoben')).toBeVisible()
   })
 
   test('a refused page (5xx): no failure toast, the card is in Notion with the cloud, nothing deleted', async ({ context, page, baseURL }) => {
@@ -295,8 +295,8 @@ test.describe('Move a task between sources (#322)', () => {
     expect(await storedTask(page, 'local-open-1')).toMatchObject({ source: 'notion', externalId: null, pendingMove: { fromSource: 'local' } })
     // While the move is unfinished the entry is disabled with its reason
     await card(page, TITLE).click({ button: 'right' })
-    await page.getByRole('menuitem', { name: 'Verschieben nach …' }).click()
-    const entry = page.getByRole('menuitem', { name: /^Lokal/ })
+    await page.getByRole('menuitem', { name: 'Verschieben zu …' }).click()
+    const entry = page.getByRole('menuitem', { name: /^lokalem Speicher/ })
     await expect(entry).toHaveAttribute('aria-disabled', 'true')
     await expect(entry).toContainText('Wird gespeichert')
     expect(archives).toHaveLength(0)
@@ -308,8 +308,8 @@ test.describe('Move a task between sources (#322)', () => {
     await page.goto(`${baseURL}/tasks`)
     await expect(card(page, NOTION_TITLE)).toBeVisible()
 
-    await moveViaContextMenu(page, NOTION_TITLE, 'Lokal')
-    await expect(toastText(page, 'Nach Lokal verschoben')).toBeVisible()
+    await moveViaContextMenu(page, NOTION_TITLE, 'lokalem Speicher')
+    await expect(toastText(page, 'Zum lokalen Speicher verschoben')).toBeVisible()
     await expect.poll(async () => (await storedTask(page, 'page-1'))?.pendingMove?.fromExternalId).toBe('page-1')
     await page.reload()
 
@@ -329,7 +329,7 @@ test.describe('Move a task between sources (#322)', () => {
     await page.goto(`${baseURL}/tasks`)
     await expect(card(page, NOTION_TITLE)).toBeVisible()
 
-    await moveViaContextMenu(page, NOTION_TITLE, 'Lokal')
+    await moveViaContextMenu(page, NOTION_TITLE, 'lokalem Speicher')
     await card(page, NOTION_TITLE).click({ button: 'right' })
     await page.getByRole('menuitem', { name: 'Löschen' }).click()
     await expect(page.locator('.task-gap')).toContainText('Im Papierkorb')

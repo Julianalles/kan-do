@@ -128,7 +128,7 @@ describe('a Reminders task is read-only through every useTaskSync entry point (#
     expectNoWritesBeyondUpdate()
   })
 
-  it('"Verschieben nach": a Reminders task has no entry, and Reminders is never a target of another task', () => {
+  it('"Verschieben zu": a Reminders task has no entry, and Reminders is never a target of another task', () => {
     const t = (key: string) => key
     const base = { t, connected: ['reminders', 'notion'] as const, notionMapping: null, needsAttention: () => false }
     expect(buildMoveTargets({ ...base, task: reminder('r1') })).toEqual([])

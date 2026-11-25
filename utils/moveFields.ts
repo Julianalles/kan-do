@@ -1,7 +1,7 @@
 /**
  * @module utils/moveFields
  * @description Which fields of a task a move to another source cannot take along (#322). The count shows as
- * the hint of a "Verschieben nach …" entry; the names are never listed. Pure: callers pass the Notion property
+ * the hint of a "Verschieben zu …" entry; the names are never listed. Pure: callers pass the Notion property
  * mapping. Title, notes, status, position, created date always move, and a Local task holds every field except
  * Notion's custom properties.
  */

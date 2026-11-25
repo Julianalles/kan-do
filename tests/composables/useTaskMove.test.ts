@@ -76,12 +76,12 @@ describe('useTaskMove (#322)', () => {
     vi.restoreAllMocks()
   })
 
-  it('moves at once, shows "Nach Notion verschoben" with Rückgängig, and creates upstream only after the window', async () => {
+  it('moves at once, shows "Zu Notion verschoben" with Rückgängig, and creates upstream only after the window', async () => {
     const { moveTaskToSource } = useTaskMove()
 
     expect(moveTaskToSource('a', 'notion')).toBe(true)
     expect(tasksStore.task('a')).toMatchObject({ source: 'notion', externalId: null })
-    expect(lastToast()).toMatchObject({ id: 'move-task-a', title: 'Nach Notion verschoben', description: 'Rückruf Frau Meyer' })
+    expect(lastToast()).toMatchObject({ id: 'move-task-a', title: 'Zu Notion verschoben', description: 'Rückruf Frau Meyer' })
     expect(lastToast().actions[0]).toMatchObject({ label: 'Rückgängig', closeOnClick: false })
 
     vi.advanceTimersByTime(MOVE_UNDO_WINDOW_MS - 1)
@@ -100,6 +100,7 @@ describe('useTaskMove (#322)', () => {
     const { moveTaskToSource } = useTaskMove()
     moveTaskToSource('n', 'local')
     expect(tasksStore.task('n')).toMatchObject({ source: 'local', externalId: null })
+    expect(lastToast().title).toBe('Zum lokalen Speicher verschoben')
 
     lastToast().actions[0]!.onClick()
     expect(tasksStore.task('n')).toMatchObject({ source: 'notion', externalId: 'page-n' })
@@ -306,7 +307,7 @@ describe('useTaskMove (#322)', () => {
     toastAddMock.mockClear()
     retry.onClick()
     // The retry is a new move with its own undo toast and window
-    expect(lastToast()).toMatchObject({ id: 'move-task-a', title: 'Nach Notion verschoben' })
+    expect(lastToast()).toMatchObject({ id: 'move-task-a', title: 'Zu Notion verschoben' })
     expect(tasksStore.task('a')).toMatchObject({ source: 'notion', externalId: null })
     vi.advanceTimersByTime(MOVE_UNDO_WINDOW_MS)
     await flushPromises()

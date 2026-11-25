@@ -1,6 +1,6 @@
 /**
  * @composable useTaskMoveTargets
- * @description The "Verschieben nach …" entries of one task (#322): the other connected sources with their
+ * @description The "Verschieben zu …" entries of one task (#322): the other connected sources with their
  * icon, name and hint. The card context menu, the detail dropdown and the command palette only render this
  * list, so the three surfaces never disagree. `buildMoveTargets` is pure (unit-testable); the composable wires
  * it to the stores.
@@ -25,6 +25,10 @@ export interface MoveTarget {
   source: SourceId
   /** Display name ("Lokal", "Notion") */
   name: string
+  /** Child label under "Verschieben zu …" ("lokalem Speicher", "Notion") (#841) */
+  menuName: string
+  /** Target phrase of the command palette row ("zum lokalen Speicher", "zu Notion") (#841) */
+  targetPhrase: string
   icon: string
   /** Muted second line; empty when there is nothing to say */
   hint: string
@@ -62,7 +66,16 @@ export function buildMoveTargets({ t, task, connected, notionMapping, needsAtten
         if (lost > 0) hints.push(t('task.move.hintLost', lost))
         if (isIntegrationSourceId(source) && needsAttention(source)) hints.push(t('task.move.hintAttention'))
       }
-      return { source, name: t(SOURCE_META[source].nameKey), icon: SOURCE_META[source].icon, hint: hints.join(' '), disabled: pending }
+      const meta = SOURCE_META[source]
+      return {
+        source,
+        name: t(meta.nameKey),
+        menuName: t(meta.moveMenuNameKey),
+        targetPhrase: t(meta.moveTargetKey),
+        icon: meta.icon,
+        hint: hints.join(' '),
+        disabled: pending,
+      }
     })
 }
 

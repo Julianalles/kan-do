@@ -277,7 +277,6 @@
     "createNew": "Neue Aufgabe erstellen",
     "fallbackTitle": "Aufgabe",
     "move": {
-      "done": "Nach {source} verschoben",
       "failed": "Verschieben fehlgeschlagen",
       "failedDescription": "„{title}“ bleibt in {source}.",
       "retry": "Erneut versuchen",
@@ -369,7 +368,7 @@
       "changeStatus": "Status ändern",
       "changePriority": "Priorität ändern",
       "setTimebox": "Timebox setzen",
-      "moveToSource": "Verschieben nach …",
+      "moveToSource": "Verschieben zu …",
       "customTime": "Eigene Zeit…",
       "removeTimebox": "Timebox entfernen",
       "customPrompt": "Gib eine eigene Timebox in Minuten ein.",
@@ -433,6 +432,24 @@
       "notion": "Notion",
       "todoist": "Todoist",
       "reminders": "Apple Erinnerungen"
+    },
+    "moveTarget": {
+      "local": "zum lokalen Speicher",
+      "notion": "zu Notion",
+      "todoist": "zu Todoist",
+      "reminders": "zu Apple Erinnerungen"
+    },
+    "moveMenuName": {
+      "local": "lokalem Speicher",
+      "notion": "Notion",
+      "todoist": "Todoist",
+      "reminders": "Apple Erinnerungen"
+    },
+    "moveDone": {
+      "local": "Zum lokalen Speicher verschoben",
+      "notion": "Zu Notion verschoben",
+      "todoist": "Zu Todoist verschoben",
+      "reminders": "Zu Apple Erinnerungen verschoben"
     }
   },
   "statistics": {
@@ -1539,7 +1556,7 @@
     "groupMove": "Verschieben: {title}",
     "groupSource": "Speicherort",
     "moveTo": "Verschieben in „{column}“",
-    "moveToSource": "Verschieben nach {source}",
+    "moveToSource": "Verschieben {target}",
     "progressFull": "Jetzt belegt",
     "setPriority": "Priorität: {priority}",
     "setTimebox": "Timebox: {minutes} Min.",

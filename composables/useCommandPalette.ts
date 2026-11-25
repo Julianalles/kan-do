@@ -155,7 +155,7 @@ export function buildCommandGroups({ t, task, canMove, moveTargets = [], current
         label: t('commandPalette.groupSource'),
         items: moveTargets.map((target): CommandPaletteItem => ({
           id: `move-source-${target.source}`,
-          label: t('commandPalette.moveToSource', { source: target.name }),
+          label: t('commandPalette.moveToSource', { target: target.targetPhrase }),
           icon: target.icon,
           disabled: target.disabled,
           ...(target.hint ? { suffix: target.hint } : {}),
