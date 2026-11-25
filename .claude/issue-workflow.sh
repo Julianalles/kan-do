@@ -68,6 +68,8 @@ wf_proto_preview_url() {
     case "$run" in
       "completed success") node "$root/scripts/workers-preview.mjs" url "$1"; return 0 ;;
       completed*) echo "preview: Workers Builds ${run#completed } for $1 (${sha:0:7})" >&2; return 1 ;;
+      # no Workers Builds check run for the head after 60 s: none is coming (dashboard steps not done), skip the 540 s wait
+      "null null"|"") [ "$i" -lt 60 ] || { echo "preview: no Workers Builds check run for $1 (${sha:0:7}), not configured?" >&2; return 1; } ;;
     esac
     [ $((i += 20)) -le "$wait" ] || { echo "preview: Workers Builds not done after ${wait}s for $1 (${sha:0:7})" >&2; return 1; }
     sleep 20
