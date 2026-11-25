@@ -86,7 +86,7 @@ describe('useTaskSync with the real TodoistIntegration: a request that times out
     // Completion timed out (not acknowledged): upstream is still open, so nothing is reopened
     expect(sdkCalls).toEqual(['close:t1'])
     expect(handleErrorMock).toHaveBeenCalledTimes(1)
-    expect(handleErrorMock).toHaveBeenCalledWith(expect.stringContaining('timeout'), 'task_sync', { source: 'todoist' })
+    expect(handleErrorMock).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('timeout') }), 'task_sync', { source: 'todoist' })
   })
 
   it('reports a timed-out reopen once through the sync error path', async () => {
@@ -99,7 +99,7 @@ describe('useTaskSync with the real TodoistIntegration: a request that times out
 
     expect(sdkCalls).toEqual(['reopen:t1'])
     expect(handleErrorMock).toHaveBeenCalledTimes(1)
-    expect(handleErrorMock).toHaveBeenCalledWith(expect.stringContaining('timeout'), 'task_sync', { source: 'todoist' })
+    expect(handleErrorMock).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('timeout') }), 'task_sync', { source: 'todoist' })
   })
 
   it('queues a timed-out delete for the next reconnect instead of restoring the task', async () => {

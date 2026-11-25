@@ -64,7 +64,7 @@ describe('useTaskSync with the real TodoistIntegration: a failing status write (
     await useTaskSync().updateTaskStatus({ taskId: 't1', status: TaskStatus.Done })
 
     expect(handleErrorMock).toHaveBeenCalledTimes(1)
-    expect(handleErrorMock).toHaveBeenCalledWith(expect.stringContaining('Todoist: HTTP 500'), 'task_sync', { source: 'todoist' })
+    expect(handleErrorMock).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('Todoist: HTTP 500') }), 'task_sync', { source: 'todoist' })
     expect(useTasksStore().task('t1')?.status).toBe(TaskStatus.Done) // no rollback
   })
 
@@ -79,7 +79,7 @@ describe('useTaskSync with the real TodoistIntegration: a failing status write (
 
     expect(sdkCalls).toEqual(['close:t1'])
     expect(handleErrorMock).toHaveBeenCalledTimes(1)
-    expect(handleErrorMock).toHaveBeenCalledWith(expect.stringContaining('Todoist'), 'task_sync', { source: 'todoist' })
+    expect(handleErrorMock).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('Todoist') }), 'task_sync', { source: 'todoist' })
   })
 
   it('does not close again after a failed reopen: upstream is still done (#781)', async () => {
@@ -96,7 +96,7 @@ describe('useTaskSync with the real TodoistIntegration: a failing status write (
     expect(sdkCalls).toEqual(['reopen:t1'])
     expect(useTasksStore().task('t1')?.pendingSync).toBeUndefined()
     expect(handleErrorMock).toHaveBeenCalledTimes(1)
-    expect(handleErrorMock).toHaveBeenCalledWith(expect.stringContaining('Todoist'), 'task_sync', { source: 'todoist' })
+    expect(handleErrorMock).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('Todoist') }), 'task_sync', { source: 'todoist' })
   })
 
   it('records a successful write as synced, so a following reopen is sent', async () => {
@@ -120,7 +120,7 @@ describe('useTaskSync with the real TodoistIntegration: a failing status write (
 
     expect(sdkCalls).toEqual(['close:t1', 'close:t2', 'close:t3'])
     expect(handleErrorMock).toHaveBeenCalledTimes(1)
-    expect(handleErrorMock).toHaveBeenCalledWith(expect.stringContaining('Todoist'), 'task_sync', { source: 'todoist' })
+    expect(handleErrorMock).toHaveBeenCalledWith(expect.objectContaining({ message: expect.stringContaining('Todoist') }), 'task_sync', { source: 'todoist' })
   })
 
   describe('a field edit of a done task (#770: card menu, palette)', () => {

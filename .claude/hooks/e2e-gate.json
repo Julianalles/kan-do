@@ -728,6 +728,7 @@
       "area": "error handling: useErrorHandler, error messages, error type",
       "paths": [
         "composables/useErrorHandler.ts",
+        "composables/useUnreachableNotice.ts",
         "lib/errorMessages.ts",
         "types/error.ts"
       ],
