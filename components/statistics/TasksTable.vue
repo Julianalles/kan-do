@@ -9,7 +9,7 @@
 - Display task records in table format
 - Handle row clicks to open task detail modal
 - Show empty state when no data available
-- Keep the horizontal scroll region keyboard-focusable and named
+- Keep the horizontal scroll region keyboard-focusable and named; it passes vertical wheel scrolling on to the page (`data-scroll-chain-y`, #844: the desktop shell's `overscroll-behavior: none` trapped it)
 - Page the rows (#604): the first 25, "Mehr anzeigen" adds 25 until all are shown; no button at 25 rows or fewer. The count line is a polite live region, focus stays on the button (it goes when the last page is shown, then focus moves to the table region)
 -->
 
@@ -25,6 +25,7 @@
       :columns="tableColumns"
       role="region"
       tabindex="0"
+      data-scroll-chain-y
       :aria-label="t('statistics.table.scrollRegionLabel')"
       :ui="{ th: 'whitespace-nowrap' }"
       @select="handleRowSelect"
