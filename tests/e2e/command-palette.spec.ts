@@ -32,12 +32,12 @@ test.describe('Command palette', () => {
     await card(page, 'Dokumentation lesen').focus()
     await page.keyboard.press('ControlOrMeta+k')
     await expect(palette(page)).toBeVisible()
-    await expect(palette(page).getByText('Verschieben nach Erledigt')).toBeVisible()
+    await expect(palette(page).getByText('Verschieben in „Erledigt“')).toBeVisible()
 
     await expect(palette(page).getByRole('textbox')).toBeFocused()
     await page.keyboard.type('statis')
     await expect(palette(page).getByText('Statistik öffnen')).toBeVisible()
-    await expect(palette(page).getByText('Verschieben nach Erledigt')).toHaveCount(0)
+    await expect(palette(page).getByText('Verschieben in „Erledigt“')).toHaveCount(0)
 
     await expect(palette(page).getByRole('textbox')).toBeFocused()
     await page.keyboard.type('zzzzqq')
@@ -145,7 +145,7 @@ test.describe('Command palette', () => {
     await page.keyboard.press('ControlOrMeta+k')
     await expect(palette(page)).toBeVisible()
     await expect(palette(page).getByText('Aufgabe hinzufügen')).toBeVisible()
-    await expect(palette(page).getByText('Verschieben nach Erledigt')).toHaveCount(0)
+    await expect(palette(page).getByText('Verschieben in „Erledigt“')).toHaveCount(0)
   })
 
   test('moves the focused card to Erledigt (with undo toast) via keyboard', async ({ page }) => {
@@ -162,7 +162,7 @@ test.describe('Command palette', () => {
   test('a task from Erledigt is refused a second Jetzt with a visible reason; one from Offen swaps (#241)', async ({ page }) => {
     await card(page, 'Retrospektive nachbereiten').focus()
     await page.keyboard.press('ControlOrMeta+k')
-    const refused = palette(page).getByRole('option', { name: /Verschieben nach Jetzt/ })
+    const refused = palette(page).getByRole('option', { name: /Verschieben in „Jetzt“/ })
     await expect(refused).toContainText('Jetzt belegt')
     await expect(refused).toHaveAttribute('data-disabled')
     await page.keyboard.press('Escape')
@@ -172,7 +172,7 @@ test.describe('Command palette', () => {
     // An Offen task may take Jetzt over by swap: a normal runnable row
     await card(page, 'Dokumentation lesen').focus()
     await page.keyboard.press('ControlOrMeta+k')
-    const swap = palette(page).getByRole('option', { name: /Verschieben nach Jetzt/ })
+    const swap = palette(page).getByRole('option', { name: /Verschieben in „Jetzt“/ })
     await expect(swap).not.toContainText('Jetzt belegt')
     await expect(swap).not.toHaveAttribute('data-disabled')
     await page.keyboard.press('Escape')
@@ -219,16 +219,16 @@ test.describe('Command palette', () => {
     await page.keyboard.press('ControlOrMeta+k')
     const highlighted = palette(page).locator('[role="option"][data-highlighted]')
     // Jetzt can swap (#241), so it is a normal row in its column position and leads
-    await expect(highlighted).toHaveText(/Verschieben nach Jetzt/)
+    await expect(highlighted).toHaveText(/Verschieben in „Jetzt“/)
 
     await page.keyboard.press('ArrowDown')
-    await expect(highlighted).toHaveText(/Verschieben nach Wartet/)
+    await expect(highlighted).toHaveText(/Verschieben in „Wartet“/)
     await page.keyboard.press('ArrowDown')
-    await expect(highlighted).toHaveText(/Verschieben nach Erledigt/)
+    await expect(highlighted).toHaveText(/Verschieben in „Erledigt“/)
     await page.keyboard.press('ArrowDown')
     await expect(highlighted).toHaveText(/Aufgabe hinzufügen/)
     await page.keyboard.press('ArrowUp')
-    await expect(highlighted).toHaveText(/Verschieben nach Erledigt/)
+    await expect(highlighted).toHaveText(/Verschieben in „Erledigt“/)
 
     // The highlighted row must be distinguishable (was elevated/50 on an elevated surface: invisible)
     await expect.poll(async () => {
@@ -282,7 +282,7 @@ test.describe('Command palette off the board (kd#224)', () => {
         await expect(palette(page).getByRole('option', { name: 'Daten exportieren/importieren' })).toHaveCount(0)
         await expect(palette(page).getByRole('option', { name: 'App zurücksetzen…' })).toBeVisible()
       }
-      await expect(palette(page).getByText('Verschieben nach Erledigt')).toHaveCount(0)
+      await expect(palette(page).getByText('Verschieben in „Erledigt“')).toHaveCount(0)
       // the "focus a task with Tab" hint belongs to the board, the only place a card can have focus
       await expect(palette(page).getByText('Mit Tab eine Aufgabe fokussieren')).toHaveCount(0)
       await page.keyboard.press('Escape')
