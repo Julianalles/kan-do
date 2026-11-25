@@ -1266,8 +1266,6 @@
           "unknown": "The update check couldn't be completed."
         }
       },
-      "accessHeading": "Token",
-      "accessBody": "Updates need no token. A GitHub token (read only) is optional and only raises GitHub's request limit.",
       "openGithub": "Open GitHub access",
       "logHeading": "Log",
       "revealLog": "Show in Finder",

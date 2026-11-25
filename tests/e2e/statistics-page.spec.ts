@@ -359,6 +359,25 @@ test.describe('Statistics Page', () => {
       await expect(page.getByTestId('stats-table-shown')).toHaveText('26 von 26 angezeigt');
     });
 
+    test('the page keeps scrolling while the pointer is over the task table, also in the desktop shell (#844)', async ({ page, baseURL }) => {
+      await page.setViewportSize({ width: 700, height: 500 }); // narrow enough that the table scrolls sideways
+      await page.goto(`${baseURL}/statistics`);
+      await page.evaluate(() => { document.documentElement.dataset.shell = 'desktop'; });
+      const list = page.getByTestId('stats-all-tasks');
+      await list.getByText(/Alle erledigten Aufgaben/).click();
+      const table = list.getByRole('region');
+      expect(await table.evaluate(el => el.scrollWidth > el.clientWidth)).toBe(true);
+      // The desktop shell sets `overscroll-behavior: none` on every element; a sideways scroller with it swallows the vertical part of a
+      // trackpad swipe (headless wheel events have no gesture latching, so the style is what can be asserted)
+      await expect(table).toHaveCSS('overscroll-behavior-y', 'auto');
+      await table.scrollIntoViewIfNeeded();
+      await page.evaluate(() => window.scrollTo(0, 0));
+      const box = (await table.boundingBox())!;
+      await page.mouse.move(box.x + box.width / 2, box.y + Math.min(box.height, 400) / 2);
+      await page.mouse.wheel(4, 300); // a trackpad swipe is never purely vertical: the sideways part latches the table
+      await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+    });
+
     test('closed tiles hug their content; an open tile spans the row first and holds its detail inside itself (#604, #689)', async ({ page, baseURL }) => {
       await page.setViewportSize({ width: 1280, height: 900 });
       await page.goto(`${baseURL}/statistics`);
