@@ -84,9 +84,11 @@
     "concept": "How a move names the source the task goes to (#841): the command palette row, the toast after the move and the children of the card and sheet menu",
     "de": "zum lokalen Speicher verschieben / zu {Quelle} verschieben",
     "en": "move to local storage / move to {source}",
-    "avoidDe": ["nach {Quelle} verschieben"],
+    "avoidDe": [
+      "nach {Quelle} verschieben"
+    ],
     "avoidEn": [],
-    "status": "proposed",
+    "status": "decided",
     "note": "The user's wording of 2026-11-25 (#841); the user's `npm run terms:approve move-target` makes it decided. Keys source.moveTarget.* (palette), source.moveDone.* (toast, own sentence-initial form per source, never capitalised in code) and source.moveMenuName.* (children under \"Verschieben zu …\": \"lokalem Speicher\", \"Notion\"). Local reads \"lokaler Speicher\" only in a move; its name stays \"Lokal\" everywhere else (settings, \"Speichern in\", metadata). Moves between columns say \"in „Spalte“\" (4f513773), not this term. \"„{title}“ bleibt in {source}.\" after a failed move keeps the plain name. English: the palette and the toast say \"to local storage\", but the menu children under \"Move to …\" stay the plain source names (\"Local\", \"Notion\"), as #841 AC 4 asks: the parent already says \"Move to\", so the child is the destination's name, not a phrase."
   },
   {
