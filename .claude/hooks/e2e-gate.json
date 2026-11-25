@@ -769,7 +769,8 @@
         ".claude/hooks/e2e-gate.json",
         ".claude/hooks/e2e-*.sh",
         ".claude/hooks/e2e-*.pl",
-        "scripts/e2e-gate.mjs"
+        "scripts/e2e-gate.mjs",
+        "scripts/e2e-gate-reporter.mjs"
       ],
       "specs": [
         "drag-sync",

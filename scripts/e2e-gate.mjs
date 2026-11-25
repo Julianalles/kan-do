@@ -29,6 +29,8 @@
  * CLI (the hook calls it from the worktree that has the PR head, so the PR's own config is used):
  *   `gh pr view --json files,body,baseRefName,headRefOid | node scripts/e2e-gate.mjs`  -> decision as JSON
  *   `node scripts/e2e-gate.mjs summary <log>`                                    -> `{ failed, flaky }` of a run log
+ *   `<decision> | node scripts/e2e-gate.mjs run-args <progress> [<reporter>]`     -> `{ done, rest, args }` of a run that resumes
+ *     after an earlier run of the same head and spec list (#830, `resumeArgs`); the hook calls it from its own checkout
  */
 import { execFileSync } from 'node:child_process'
 import { readdirSync, readFileSync } from 'node:fs'
@@ -546,6 +548,56 @@ export function changedTextStrings(baseRef, head, root = ROOT) {
   }
 }
 
+/**
+ * Spec files a gate progress file records as passed (#830): every test of the file ended as expected, in this run or an
+ * earlier run of the same head and spec list (`scripts/e2e-gate-reporter.mjs` writes the lines). A line cut off by a
+ * killed run, or of another shape, is ignored; a spec without a `begin` count is never done.
+ * @param {string} text
+ * @returns {string[]} spec basenames, sorted
+ */
+export function parseProgress(text) {
+  /** @type {Map<string, number>} */
+  const totals = new Map()
+  /** @type {Map<string, Set<string>>} */
+  const passed = new Map()
+  for (const line of text.split('\n')) {
+    let entry
+    try {
+      entry = JSON.parse(line)
+    } catch {
+      continue
+    }
+    if (entry?.begin && typeof entry.begin === 'object') {
+      for (const [spec, count] of Object.entries(entry.begin)) {
+        if (Number.isInteger(count) && count > 0) totals.set(spec, count)
+      }
+    } else if (typeof entry?.ok === 'string' && typeof entry.id === 'string') {
+      passed.set(entry.ok, (passed.get(entry.ok) ?? new Set()).add(entry.id))
+    }
+  }
+  return [...totals].filter(([spec, count]) => (passed.get(spec)?.size ?? 0) >= count).map(([spec]) => spec).sort()
+}
+
+/**
+ * Playwright arguments of a gate run that resumes (#830): the decision's flags plus only the spec files that have not
+ * passed yet, and the progress reporter next to `line` when one is given. Without progress the decision's own args stay
+ * (a full tier keeps "the whole suite"); `rest` empty means nothing is left to run, and the caller must not start
+ * Playwright with `args` then (no spec file would mean the whole suite).
+ * @param {{ specs: string[], args: string[] }} decision the gate's decision
+ * @param {string[]} passed spec basenames recorded as passed (`parseProgress`)
+ * @param {string} [reporter] absolute path of `scripts/e2e-gate-reporter.mjs`
+ * @returns {{ done: string[], rest: string[], args: string[] }}
+ */
+export function resumeArgs(decision, passed, reporter = '') {
+  const kept = new Set(passed)
+  const done = decision.specs.filter(spec => kept.has(spec))
+  const rest = decision.specs.filter(spec => !kept.has(spec))
+  const withReporter = arg => (reporter && arg === '--reporter=line' ? `--reporter=line,${reporter}` : arg)
+  const flags = decision.args.filter(arg => arg.startsWith('-')).map(withReporter)
+  const args = done.length === 0 ? decision.args.map(withReporter) : [...flags, ...rest.map(name => `${SPEC_DIR}${name}${SPEC_SUFFIX}`)]
+  return { done, rest, args }
+}
+
 function readStdin() {
   return new Promise((resolve) => {
     let data = ''
@@ -559,6 +611,17 @@ async function main() {
   const [command, arg] = process.argv.slice(2)
   if (command === 'summary') {
     console.log(JSON.stringify(parseSummary(readFileSync(arg, 'utf8'))))
+    return
+  }
+  if (command === 'run-args') {
+    const decision = JSON.parse(await readStdin())
+    let progress = ''
+    try {
+      progress = readFileSync(arg, 'utf8')
+    } catch {
+      // no earlier run of this head and spec list
+    }
+    console.log(JSON.stringify(resumeArgs(decision, parseProgress(progress), process.argv[4] ?? '')))
     return
   }
   let pr

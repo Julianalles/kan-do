@@ -6,7 +6,10 @@
 # changed files (risk areas included) + specs importing a changed helper + touched specs + the `E2E-specs:` line
 # (scripts/e2e-gate.mjs, .claude/hooks/e2e-gate.json). A pass is stamped per PR head SHA and tier, so an unchanged PR is only
 # tested once. Exit 2 blocks the merge and feeds the failure back to Claude. A run that exceeds its own
-# budget (E2E_GATE_BUDGET_SECONDS, default 1500 s) also blocks, with result `timeout` in checks.tsv (#415).
+# budget (E2E_GATE_BUDGET_SECONDS, default 1500 s, never past the hook timeout) also blocks, with result `timeout` in
+# checks.tsv (#415). One gate run per machine (#830): a second merge waits for the lock up to E2E_GATE_LOCK_WAIT_SECONDS
+# (default 300 s), then blocks with result `busy` without running. Each test that passed is recorded per head and spec list,
+# so a retry after a timeout or a failure runs only the spec files that have not passed yet.
 # The gate is this repository's: a merge that names another repository (-R/--repo, a PR URL, the REST path, GH_REPO) passes
 # untouched; origin's own PRs stay gated in every spelling, and a repository that is no literal OWNER/REPO fails closed (kd#205).
 
@@ -184,9 +187,10 @@ if [ -n "$unknown" ]; then
 fi
 
 # A full stamp satisfies any tier; a targeted stamp only the same spec list.
-stamp_dir="$(git rev-parse --path-format=absolute --git-common-dir)/kando-e2e-pass"
-[ -f "$stamp_dir/$sha.full" ] && exit 0
-[ -f "$stamp_dir/$sha.$key" ] && exit 0
+common_dir=$(git rev-parse --path-format=absolute --git-common-dir)
+stamp_dir="$common_dir/kando-e2e-pass"
+stamped() { [ -f "$stamp_dir/$sha.full" ] || [ -f "$stamp_dir/$sha.$key" ]; }
+stamped && exit 0
 
 if [ -z "$wt" ]; then
   echo "e2e-before-merge: no worktree has PR head $sha checked out. Check the branch out (or fetch and 'git worktree add'), then retry." >&2
@@ -196,20 +200,138 @@ fi
 # Worktrees outside Claude's own (symlinkDirectories) may lack node_modules: reuse the main checkout's.
 [ -e "$wt/node_modules" ] || ln -s "$(pwd)/node_modules" "$wt/node_modules"
 
+# The `timeout` of this hook in .claude/settings.json (a test keeps the two equal). A PreToolUse hook that is killed by it
+# does not block, so the merge would go through unchecked: lock wait and run together stay a minute below it.
+HOOK_TIMEOUT=1800
+HOOK_MARGIN=60
+
+# One gate E2E run per machine (#830): two gate runs at once (each up to 118 spec files) slowed each other into the budget.
+# The lock is a directory in the git common dir, so every worktree shares it; its `owner` file holds PID, that process's
+# start time (a reused PID is no owner), PR, head, spec count and start epoch, tab-separated. A second merge waits up to
+# E2E_GATE_LOCK_WAIT_SECONDS (default 300, at most half the hook timeout), then blocks with result `busy` without running.
+# A lock whose owner is gone (a hook killed at its timeout) is taken over. The EXIT trap releases it and stops the run's
+# process group when the hook itself is stopped.
+lock_dir="$common_dir/kando-e2e-gate.lock"
+lock_held=0
+e2e_pid=""
+proc_start() { ps -o lstart= -p "$1" 2>/dev/null | sed 's/^ *//; s/ *$//'; } # ps pads the column on both sides
+lock_owner() { cat "$lock_dir/owner" 2>/dev/null; }
+lock_stale() { # $1: the owner line read before; empty = no owner file yet
+  local pid started now
+  if [ -z "$1" ]; then # made but not written: stale only when its owner died between mkdir and write (a minute is plenty)
+    [ -n "$(find "$lock_dir" -maxdepth 0 -mmin +1 2>/dev/null)" ]
+    return
+  fi
+  pid=$(printf '%s' "$1" | cut -f1) started=$(printf '%s' "$1" | cut -f2)
+  now=$(proc_start "$pid")
+  # a start time that ps could not tell (either side) falls back to "is the PID alive", never to "stale"
+  if [ -z "$now" ] || [ "$started" = - ]; then
+    ! kill -0 "$pid" 2>/dev/null
+    return
+  fi
+  [ "$now" != "$started" ]
+}
+take_lock() {
+  mkdir "$lock_dir" 2>/dev/null || return 1
+  lock_held=1
+  local started
+  started=$(proc_start $$)
+  printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$$" "${started:--}" "$num" "$sha" "$nspecs" "$(date +%s)" >"$lock_dir/owner"
+}
+release_lock() { # only a lock this hook still owns
+  [ "$lock_held" = 1 ] || return 0
+  lock_held=0
+  [ "$(lock_owner | cut -f1)" = "$$" ] && rm -f "$lock_dir/owner" && rmdir "$lock_dir" 2>/dev/null
+}
+cleanup() {
+  if [ -n "$e2e_pid" ] && kill -0 "$e2e_pid" 2>/dev/null; then
+    kill -TERM -- "-$e2e_pid" 2>/dev/null
+    sleep 2
+    kill -KILL -- "-$e2e_pid" 2>/dev/null
+  fi
+  release_lock
+  return 0
+}
+trap cleanup EXIT
+trap 'exit 143' TERM INT HUP
+lock_wait=${E2E_GATE_LOCK_WAIT_SECONDS:-300}
+case $lock_wait in '' | *[!0-9]*) lock_wait=300 ;; esac
+[ "$lock_wait" -gt $((HOOK_TIMEOUT / 2)) ] && lock_wait=$((HOOK_TIMEOUT / 2))
+wait_start=$SECONDS
+announced=0
+until take_lock; do
+  owner=$(lock_owner)
+  if lock_stale "$owner"; then
+    # take over only the lock that was judged stale: another waiter may have replaced it in between
+    if [ "$(lock_owner)" = "$owner" ]; then
+      rm -f "$lock_dir/owner" && rmdir "$lock_dir" 2>/dev/null && echo "e2e-before-merge: took over a stale E2E gate lock (its owner is gone: ${owner:-no owner file})." >&2 && continue
+    fi
+  fi
+  field() { printf '%s' "$owner" | cut -f"$1"; }
+  holder_epoch=$(field 6)
+  case $holder_epoch in '' | *[!0-9]*) holder_epoch=$(date +%s) ;; esac
+  holder="PR #$(field 3), head $(field 4 | cut -c1-12), $(field 5) spec files, running for $((($(date +%s) - holder_epoch) / 60)) min"
+  if [ $((SECONDS - wait_start)) -ge "$lock_wait" ]; then
+    echo "e2e-before-merge: GATE BUSY: another merge's E2E run holds the gate lock ($holder; lock $lock_dir). Waited $((SECONDS - wait_start)) s; no run started, nothing failed. Retry this merge when that run ends (a gate run is one per machine, #830)." >&2
+    log_check e2e-gate "$sha" "$tier" "$nspecs" "$((SECONDS - wait_start))" busy -
+    exit 2
+  fi
+  [ "$announced" = 1 ] || echo "e2e-before-merge: waiting up to ${lock_wait} s for the running E2E gate ($holder)." >&2
+  announced=1
+  sleep 5
+done
+# the run that held the lock may have been this head's
+stamped && exit 0
+
+# Progress (#830): the run records each test that ended as expected (scripts/e2e-gate-reporter.mjs), keyed by head and spec
+# list; a later run of the same key runs only the spec files that have not passed yet. The reporter and the `run-args`
+# step come from this hook's own checkout, since an older PR branch has neither. Old progress files go after a week.
+hook_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+progress="$stamp_dir/$sha.$key.progress"
+mkdir -p "$stamp_dir"
+find "$stamp_dir" -name '*.progress' -mtime +7 -delete 2>/dev/null
+reporter="$hook_root/scripts/e2e-gate-reporter.mjs"
+[ -f "$reporter" ] || reporter=""
+case $reporter in *[[:space:]]*) reporter="" ;; esac # the run's arguments are split on spaces
+run_plan() { printf '%s' "$decision" | node --disable-warning=ExperimentalWarning "$hook_root/scripts/e2e-gate.mjs" run-args "$progress" "$reporter" 2>/dev/null; }
+if plan=$(run_plan) && [ -n "$plan" ]; then
+  run_args=$(printf '%s' "$plan" | jq -r '.args | join(" ")') # flags and spec paths, no spaces
+  ndone=$(printf '%s' "$plan" | jq -r '.done | length')
+  nrest=$(printf '%s' "$plan" | jq -r '.rest | length')
+else # resuming is a saving: without it the run is the decision's own
+  run_args=$(printf '%s' "$decision" | jq -r '.args | join(" ")')
+  ndone=0 nrest=$nspecs reporter=""
+fi
+[ -n "$reporter" ] || progress=""
+if [ "$ndone" -gt 0 ]; then
+  if [ "$nrest" -eq 0 ]; then
+    echo "e2e-before-merge: all $ndone spec files already passed on head $sha in earlier gate runs (#830 progress); nothing left to run." >&2
+    log_check e2e-gate "$sha" "$tier" 0 0 pass -
+    touch "$stamp_dir/$sha.$key" && rm -f "$progress"
+    exit 0
+  fi
+  echo "e2e-before-merge: resuming: $ndone of $((ndone + nrest)) spec files already passed on this head in an earlier gate run; running the remaining $nrest." >&2
+fi
+nrun=$nrest
+kept() { # spec files passed so far on this head and spec list
+  local p
+  p=$(run_plan) && printf '%s' "$p" | jq -r '.done | length' 2>/dev/null || echo 0
+}
+
 # A port Chromium blocks fails the whole run at once (ERR_UNSAFE_PORT, #349), so the picker skips those and busy ports.
 port=$("$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/e2e-port.sh") || {
   echo "e2e-before-merge: found no free port for the E2E server in 3200-3899. Free some ports, then retry." >&2
   exit 2
 }
 log=$(mktemp "${TMPDIR:-/tmp}/kando-e2e.XXXXXX")
-SECONDS=0
-run_args=$(printf '%s' "$decision" | jq -r '.args | join(" ")') # flags and spec paths, no spaces
-# Own time budget (#415), below the hook timeout in .claude/settings.json (1800 s): a PreToolUse hook that is
-# killed by that timeout does not block, so the merge would go through unchecked. E2E_GATE_BUDGET_SECONDS overrides it.
+# Own time budget (#415): E2E_GATE_BUDGET_SECONDS (default 1500), never past the hook time left after the lock wait.
 budget=${E2E_GATE_BUDGET_SECONDS:-1500}
 case $budget in '' | *[!0-9]*) budget=1500 ;; esac
+left=$((HOOK_TIMEOUT - HOOK_MARGIN - SECONDS))
+[ "$budget" -gt "$left" ] && budget=$left
+SECONDS=0
 # macOS has no `timeout`: run the suite in its own process group (perl setpgrp) so the watchdog can stop the whole tree.
-perl -e 'setpgrp(0, 0); exec @ARGV' bash -c 'cd "$1" && PORT=$2 npm run test:e2e -- $3' _ "$wt" "$port" "$run_args" >"$log" 2>&1 &
+perl -e 'setpgrp(0, 0); exec @ARGV' bash -c 'cd "$1" && E2E_GATE_PROGRESS=$4 PORT=$2 npm run test:e2e -- $3' _ "$wt" "$port" "$run_args" "$progress" >"$log" 2>&1 &
 e2e_pid=$!
 timed_out=0
 while kill -0 "$e2e_pid" 2>/dev/null; do
@@ -225,22 +347,25 @@ while kill -0 "$e2e_pid" 2>/dev/null; do
 done
 { wait "$e2e_pid"; } 2>/dev/null
 e2e_status=$?
+e2e_pid=""
 if [ "$timed_out" = 1 ]; then
   {
-    echo "E2E TIMEOUT for PR head $sha (tier $tier, $nspecs spec files): the run did not finish within its ${budget} s budget (hook timeout 1800 s), so the merge is blocked and no pass stamp was written. This is not a test failure."
-    echo "Rerun the merge on a quieter machine (fewer parallel workers), or raise the budget once: E2E_GATE_BUDGET_SECONDS=<s> (stay below 1800 s). Partial log: $log"
+    echo "E2E TIMEOUT for PR head $sha (tier $tier, $nrun of $nspecs spec files run): the run did not finish within its ${budget} s budget (hook timeout ${HOOK_TIMEOUT} s), so the merge is blocked and no pass stamp was written. This is not a test failure."
+    [ -n "$progress" ] && echo "Progress is kept: $(kept) of $nspecs spec files have passed on this head; retrying the merge runs only the rest (#830)."
+    echo "Retry the merge (on a quieter machine it finishes sooner). Partial log: $log"
     tail -20 "$log"
   } >&2
-  log_check e2e-gate "$sha" "$tier" "$nspecs" "$SECONDS" timeout -
+  log_check e2e-gate "$sha" "$tier" "$nrun" "$SECONDS" timeout -
   exit 2
 fi
 if [ "$e2e_status" -ne 0 ]; then
   {
     echo "E2E failed for PR head $sha (tier $tier, worktree $wt, full log $log). Fix the failures, then retry the merge."
     echo "If the failing spec is not one this PR touches, rerun it once alone (PORT=<free> npx playwright test -c tests/e2e/playwright.config.ts <file>); a pass there is a load flake."
+    [ -n "$progress" ] && echo "Progress is kept: $(kept) of $nspecs spec files have passed on this head; a retry of the same head runs only the rest (#830)."
     tail -60 "$log"
   } >&2
-  log_check e2e-gate "$sha" "$tier" "$nspecs" "$SECONDS" fail -
+  log_check e2e-gate "$sha" "$tier" "$nrun" "$SECONDS" fail -
   exit 2
 fi
 
@@ -248,6 +373,7 @@ fi
 flaky=$(node "$gate_dir/scripts/e2e-gate.mjs" summary "$log" 2>/dev/null | jq -r '.flaky[]?' 2>/dev/null)
 [ -n "$flaky" ] && printf '%s\n' "$flaky" | sed 's/^/flaky: /' >&2
 
-log_check e2e-gate "$sha" "$tier" "$nspecs" "$SECONDS" pass "$(printf '%s' "$flaky" | paste -sd, -)"
-mkdir -p "$stamp_dir" && touch "$stamp_dir/$sha.$key"
+log_check e2e-gate "$sha" "$tier" "$nrun" "$SECONDS" pass "$(printf '%s' "$flaky" | paste -sd, -)"
+touch "$stamp_dir/$sha.$key"
+rm -f "$progress"
 exit 0
