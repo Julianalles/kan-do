@@ -661,16 +661,6 @@
     "note": "Approved by the user on 2026-11-16 (#367); the user's `npm run terms:approve` makes it decided. Proposed in the design of #334. Shown only together with the panel above it."
   },
   {
-    "id": "planned-yesterday",
-    "concept": "The panel on top of \"Alle Aufgaben\" for one day: the tasks that were on the board yesterday (Jetzt and Offen) and are still not planned (#702, replaces not-planned-yesterday of #469)",
-    "de": "Gestern geplant",
-    "en": "Planned yesterday",
-    "avoidDe": [],
-    "avoidEn": [],
-    "status": "proposed",
-    "note": "No longer in the UI since #741 (one block, term from-yesterday). User decision on #702 (design round 1, 1B: two panels). Label in the sans label role with a count; the tasks of the same fresh start that came out of Wartet are the term waiting-yesterday."
-  },
-  {
     "id": "waiting-yesterday",
     "concept": "The panel on \"Alle Aufgaben\" for one day: the tasks the fresh start of today took out of Wartet and that are still not planned (#702)",
     "de": "Gestern in Wartet",
