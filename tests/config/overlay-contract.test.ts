@@ -54,6 +54,8 @@ describe('overlay contract: the pill is system glass and shows whichever window 
     expect([num('WINDOW_WIDTH'), num('WINDOW_HEIGHT')]).toEqual([280, 42])
     const css = read('components/overlay/NowWindow.vue')
     expect(css).toMatch(/\.now-window \{[^}]*\n {2}width: 280px;\n {2}height: 42px;/)
+    // the light's way and the glint's way are computed from the width again (#812): it must not drift from the box
+    expect(css).toMatch(/\.now-window \{[^}]*--now-w: 280px;/)
   })
 
   it('keeps the glass corner radius a capsule: half the window height, as the pill\'s CSS radius says', () => {
