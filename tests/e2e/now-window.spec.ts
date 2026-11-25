@@ -188,36 +188,42 @@ test.describe('the pill window (/overlay)', () => {
     for (const id of ['now-pause', 'now-done']) expect((await page.getByTestId(id).boundingBox())!.width).toBeGreaterThanOrEqual(28)
   })
 
-  // The glint's small bright core is a highlight in both appearances: Canvas is black in dark, so a core mixed from it was a dark oval (#812 review)
+  // The glint's small bright core is a highlight in both appearances: Canvas is black in dark, so a core mixed from it was a dark oval (#812 review).
+  // In dark it is the light's own lighter step, in the warning tone too (a var() resolved on the window gave the warning glint a green core)
   for (const scheme of ['light', 'dark'] as const) {
-    test(`the glint's core is brighter than the light it crosses (never a dark spot), ${scheme} (#812)`, async ({ browser }) => {
-      const context = await browser.newContext({ colorScheme: scheme, locale: 'de-DE' })
-      try {
-        const page = await context.newPage()
-        await installTauriStub(context, {})
-        await context.addInitScript((v) => { (window as unknown as { __overlaySnapshot: unknown }).__overlaySnapshot = { ...v, at: Date.now() } }, snap({ running: true }))
-        await page.goto('/overlay')
-        await expect(pill(page)).toBeVisible()
-        // resolve the two colours the glint's gradients are built from, as the browser paints them
-        const [core, glow] = await page.getByTestId('now-glint').evaluate((el) => {
-          const lum = (value: string) => {
+    for (const [tone, extra] of [['primary', {}], ['warning', { spentSeconds: 1300 }]] as const) {
+      test(`the glint's core is brighter than the light it crosses (never a dark spot), ${scheme}, ${tone} (#812)`, async ({ browser }) => {
+        const context = await browser.newContext({ colorScheme: scheme, locale: 'de-DE' })
+        try {
+          const page = await context.newPage()
+          await installTauriStub(context, {})
+          await context.addInitScript((v) => { (window as unknown as { __overlaySnapshot: unknown }).__overlaySnapshot = { ...v, at: Date.now() } }, snap({ running: true, ...extra }))
+          await page.goto('/overlay')
+          await expect(pill(page)).toBeVisible()
+          if (tone === 'warning') await expect(pill(page)).toHaveClass(/is-warning/)
+          // resolve the colours the glint's gradients are built from, as the browser paints them
+          const [core, glow, hi] = await page.getByTestId('now-glint').evaluate((el) => {
             const probe = document.createElement('canvas').getContext('2d')!
-            probe.fillStyle = '#000'; probe.fillStyle = value; probe.fillRect(0, 0, 1, 1)
-            const [r, g, b] = probe.getImageData(0, 0, 1, 1).data as unknown as number[]
-            return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!
-          }
-          if (!getComputedStyle(el).getPropertyValue('--now-core').trim()) throw new Error('--now-core is not defined')
-          const probe = document.createElement('i'); el.appendChild(probe)
-          const read = (name: string) => { probe.style.color = `var(${name})`; return getComputedStyle(probe).color }
-          const out = [lum(read('--now-core')), lum(read('--now-light'))]
-          probe.remove()
-          return out
-        })
-        expect(core, `${scheme} core ${core} vs light ${glow}`).toBeGreaterThan(glow)
-      } finally {
-        await context.close()
-      }
-    })
+            const rgb = (value: string) => {
+              probe.fillStyle = '#000'; probe.fillStyle = value; probe.fillRect(0, 0, 1, 1)
+              return [...probe.getImageData(0, 0, 1, 1).data].slice(0, 3) as number[]
+            }
+            if (!getComputedStyle(el).getPropertyValue('--now-core').trim()) throw new Error('--now-core is not defined')
+            const i = document.createElement('i'); el.appendChild(i)
+            const read = (name: string) => { i.style.color = `var(${name})`; return rgb(getComputedStyle(i).color) }
+            const out = [read('--now-core'), read('--now-light'), read('--now-light-hi')]
+            i.remove()
+            return out
+          })
+          const lum = ([r, g, b]: number[]) => 0.2126 * r! + 0.7152 * g! + 0.0722 * b!
+          expect(lum(core!), `${scheme} ${tone} core ${core} vs light ${glow}`).toBeGreaterThan(lum(glow!))
+          // dark: the core is the tone's own lighter step, never the primary's under a warning light
+          if (scheme === 'dark') expect(core, `${tone} core is the light's lighter step`).toEqual(hi)
+        } finally {
+          await context.close()
+        }
+      })
+    }
   }
 
   // The light is under the title and the time: text 4.5:1, glyphs 3:1 in every state, on a light and a dark stand-in backdrop, with the glint at its

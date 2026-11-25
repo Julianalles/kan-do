@@ -213,7 +213,6 @@ function onOpen(): void {
     --now-bloom: 0.3;
     --now-glint: 20%;
     --now-shine: 6%;
-    --now-core: var(--now-light-hi); /* a white core would sit under white labels (3.4:1): the light's own lighter step */
     --now-rim-hi: color-mix(in srgb, CanvasText 60%, transparent);
     --now-rim-lo: color-mix(in srgb, Canvas 55%, transparent);
     --now-glow: color-mix(in srgb, CanvasText 12%, transparent);
@@ -235,6 +234,9 @@ function onOpen(): void {
 .now-pill.is-warning { --now-light: var(--ui-color-warning-500); --now-light-hi: var(--ui-color-warning-300); }
 @media (prefers-color-scheme: dark) {
   .now-pill.is-warning { --now-light: var(--ui-color-warning-400); --now-light-hi: var(--ui-color-warning-200); }
+  /* On the pill, not the window: the pill is where the warning tone re-sets --now-light-hi, and a var() resolves where it is declared.
+     A white core would sit under white labels (3.4:1): the light's own lighter step */
+  .now-pill { --now-core: var(--now-light-hi); }
 }
 /* The bevel (#565): light edge top left, dark edge bottom right, a faint inner glow. Its own layer above the light, inside the box */
 .now-pill::after {
