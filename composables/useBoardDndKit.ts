@@ -113,6 +113,8 @@ export function useBoardDndKit() {
     fromNotPlanned: boolean
     /** The drag started on a Jetzt or Wartet card listed in "Heute" on "Alle" (#797): `list` is Offen's list, `status` the card's own */
     todayExtra: boolean
+    /** The node stood below Offen's capacity line (#132) at drag start: the line's place in the DOM alone cannot tell (#833) */
+    belowLine: boolean
   }
   let dragOrigin: DragOrigin | null = null
   /** The stack picked up at drag start (#150): the members it moves are the ones it had then */
@@ -165,6 +167,17 @@ export function useBoardDndKit() {
     return stack ? { key: stack.key, label: stack.label, taskIds: [...stack.taskIds] } : null
   }
 
+  /** The capacity line of Offen's list (#132), a list item of its own */
+  const CAPACITY_LINE = ':scope > [data-testid="capacity-divider"]'
+  /** `node` stands after `other` in the document */
+  const follows = (node: Node, other: Node) => Boolean(other.compareDocumentPosition(node) & Node.DOCUMENT_POSITION_FOLLOWING)
+
+  /** The node stands below the capacity line of its list */
+  function standsBelowLine(element: Element) {
+    const line = element.parentElement?.querySelector(CAPACITY_LINE)
+    return Boolean(line && follows(element, line))
+  }
+
   /** A column's own item nodes; never the Jetzt and Wartet cards "Heute" lists behind them on "Alle" (#797) */
   const listItems = (list: Element, except: Element) =>
     [...list.children].filter(child => child !== except && child.hasAttribute('data-task-id') && !child.hasAttribute(TODAY_EXTRA_ATTR))
@@ -179,6 +192,8 @@ export function useBoardDndKit() {
    * - the column still renders the task as a draggable card or as the front of a collapsed stack: place the node before the element of
    *   the next rendered item that exists, else after the last item, else before the drop zone (the add slot sits at the
    *   start of an Offen list, #248, so a node must land after its draft, never before it). If Vue already rendered a fresh wrapper for the task, the old node is the leftover.
+   *   Offen's capacity line (#132) keeps the node on the side it stood on at drag start (#833): a node from above the line goes no
+   *   further than the line or the Jetzt and Wartet cards of "Heute" above it (#817), a node from below never above the line.
    * - otherwise: remove the node if it is still in the document.
    */
   function restoreDraggedElement(origin: DragOrigin | null) {
@@ -207,24 +222,26 @@ export function useBoardDndKit() {
     const ids = order.rendered.map(t => t.id)
     const laterIds = ids.slice(ids.indexOf(taskId) + 1)
     const next = laterIds.map(id => siblings.find(el => el.getAttribute('data-task-id') === id)).find(Boolean) ?? null
-    if (next) {
-      if (element.parentNode === list && element.nextElementSibling === next) return
-      list.insertBefore(element, next)
-      return
-    }
     const last = siblings[siblings.length - 1]
-    if (last) {
-      if (element.parentNode === list && element.previousElementSibling === last) return
-      list.insertBefore(element, last.nextSibling)
-      return
+    const line = list.querySelector(CAPACITY_LINE)
+    let anchor: Node | null
+    if (line && origin.belowLine) {
+      // Below the line: before the next card, else behind the last card or the line, whichever stands lower
+      anchor = next ?? (last && follows(last, line) ? last.nextSibling : line.nextSibling)
+    } else {
+      // Above the line (or none): before the next card while it stands above the line and the extras of "Heute" on "Alle" (#797), else before them
+      const end = list.querySelector(`:scope > [${TODAY_EXTRA_ATTR}], ${CAPACITY_LINE}`)
+      if (next && !(end && follows(next, end))) anchor = next
+      else anchor = end ?? (last ? last.nextSibling : list.querySelector(':scope > .column-drop-zone'))
     }
-    // The column renders this card only: before the Jetzt and Wartet cards of "Heute" on "Alle" (#797), else before the drop zone
-    list.insertBefore(element, list.querySelector(`:scope > [${TODAY_EXTRA_ATTR}], :scope > .column-drop-zone`))
+    // Already there (the anchor is the node itself when it stands right behind the last card or the line)
+    if (element.parentNode === list && (anchor === element || element.nextSibling === anchor || (anchor !== null && element.nextElementSibling === anchor))) return
+    list.insertBefore(element, anchor)
   }
 
   /**
    * The same for a Jetzt or Wartet card that "Heute" lists on "Alle" (#797): back before the next such card the column
-   * renders (the Jetzt card, then Wartet in its rendered order), else before the drop zone, which follows them. Removed when
+   * renders (the Jetzt card, then Wartet in its rendered order), else behind the last of them, else above the capacity line or before the drop zone. Removed when
    * the list no longer renders the task there (it left today, the place changed) or Vue already rendered a fresh node.
    */
   function restoreTodayExtraElement(origin: DragOrigin) {
@@ -239,8 +256,10 @@ export function useBoardDndKit() {
       return
     }
     const laterIds = ids.slice(ids.indexOf(taskId) + 1)
+    // Behind the last such card, else where the extras stand when there are none: above the capacity line (#817), else before the drop zone
+    const lastExtra = siblings[siblings.length - 1]
     const next = laterIds.map(id => siblings.find(el => idOf(el) === id)).find(Boolean)
-      ?? list.querySelector(':scope > .column-drop-zone')
+      ?? (lastExtra ? lastExtra.nextElementSibling : list.querySelector(':scope > [data-testid="capacity-divider"], :scope > .column-drop-zone'))
     if (element.parentNode === list && element.nextElementSibling === next) return
     list.insertBefore(element, next)
   }
@@ -385,6 +404,7 @@ export function useBoardDndKit() {
           status: fromNotPlanned ? undefined : source.group as TaskStatus | undefined,
           fromNotPlanned,
           todayExtra: element.hasAttribute(TODAY_EXTRA_ATTR),
+          belowLine: standsBelowLine(element),
         }
       : null
     dragStack = readStack(source)

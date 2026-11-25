@@ -277,7 +277,7 @@ const isWaiting = computed(() => props.status === TaskStatus.Waiting);
     display: flex;
     align-items: center;
     justify-content: flex-start;
-    /* A host with a wider card area ("Alle Aufgaben": two card columns, #380) sets --add-row-width and --add-row-max */
+    /* A host with a wider card area ("Alle Aufgaben": two card columns, #380; on a phone the whole header, so the button clears the centred headline, #816) sets --add-row-width and --add-row-max */
     width: min(var(--add-row-width, var(--task-card-width)), 100%);
     max-width: var(--add-row-max, var(--task-card-max-width));
     margin-inline: auto;

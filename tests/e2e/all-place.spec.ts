@@ -1257,6 +1257,33 @@ test.describe('"Alle Aufgaben" layout and the marker (#469)', () => {
   test.describe('390', () => {
     test.use({ hasTouch: true, isMobile: true, viewport: { width: 390, height: 844 } })
 
+    for (const width of [390, 360]) {
+      for (const lang of ['de', 'en']) {
+        test(`the round add button and the headline keep air between them at ${width} px (${lang}) (#816)`, async ({ context, page }) => {
+          await page.setViewportSize({ width, height: 844 })
+          await seedLocalBoard(context, MANY)
+          await page.goto(`/all?lang=${lang}`)
+          await expect(board(page)).toHaveAttribute('data-place', 'all')
+          await atRest(page)
+          await expect(notPlanned(page).getByRole('heading', { level: 2 })).toHaveText(lang === 'de' ? 'Alle Aufgaben' : 'All tasks')
+          const box = await page.evaluate(() => {
+            const head = document.querySelector('#column-not-planned h2')!
+            const range = document.createRange()
+            range.selectNodeContents(head.firstElementChild!)
+            const text = range.getBoundingClientRect()
+            const add = document.querySelector('[data-testid="not-planned-add"]')!.getBoundingClientRect()
+            return { air: text.left - add.right, left: add.left, width: add.width, height: add.height }
+          })
+          // 390 px: 16 px and more; 360 px (German headline, ~226 px wide): the two never touch, 6 px of air
+          expect(box.air, 'air between the button and the headline').toBeGreaterThanOrEqual(width === 390 ? 16 : 6)
+          // the 44 px phone floor stays, and the button stands at the page gutter
+          expect(box.width).toBeGreaterThanOrEqual(44)
+          expect(box.height).toBeGreaterThanOrEqual(44)
+          expect(box.left).toBeLessThanOrEqual(20)
+        })
+      }
+    }
+
     test('one column; the pick arrow is always there, in the card\'s top right corner, and nothing scrolls sideways', async ({ context, page }) => {
       await seedLocalBoard(context, MANY)
       await gotoAll(page)
@@ -1335,6 +1362,33 @@ test.describe('"Heute" on "Alle" lists everything planned for today (#797)', () 
       await atRest(page)
       await expect.poll(() => todayIds(page)).toEqual(['open-1', 'open-2', 'now-1', 'wait-1', 'wait-2'])
       await expect(page.locator('[data-task-id="wait-1"].task-wrapper')).toHaveCount(1)
+    })
+
+    test('planning a Wartet card from "Alle Aufgaben" flies it to its place in "Heute" behind the other Wartet cards, and its arrow flies it back (#815)', async ({ context, page }) => {
+      await seedLocalBoard(context, TODAY)
+      await gotoAll(page)
+      // The lookup of the card's new place must find it in Offen's list (where "Heute" lists the Wartet cards, #797): the
+      // class `plan-flying` is on the card while it travels, so record it from before the click
+      const flew = (): Promise<string | null> => page.evaluate(() => new Promise<string | null>((resolve) => {
+        const seen = (): string | null => document.querySelector('.plan-flying')?.closest('[data-task-id]')?.getAttribute('data-task-id') ?? null
+        const done = (id: string | null) => { observer.disconnect(); resolve(id) }
+        const observer = new MutationObserver(() => { const id = seen(); if (id) done(id) })
+        observer.observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'] })
+        setTimeout(() => done(null), 3000)
+      }))
+      const flying = flew()
+      await item(page, 'np-wait').hover()
+      await item(page, 'np-wait').getByTestId('not-planned-pick').click()
+      expect(await flying).toBe('np-wait')
+      await expect.poll(() => todayIds(page)).toEqual(['open-1', 'open-2', 'now-1', 'wait-1', 'wait-2', 'np-wait'])
+      await atRest(page)
+
+      // and back with the arrow beside the card: it travels to "Alle Aufgaben"
+      const flyingBack = flew()
+      await openCard(page, 'wait-1').hover()
+      await openCard(page, 'wait-1').getByTestId('not-today-arrow').click()
+      expect(await flyingBack).toBe('wait-1')
+      await expect.poll(() => stored(page, 'wait-1')).toEqual({ status: 2, notPlanned: true })
     })
 
     test('a Wartet card dropped on "Alle Aufgaben" leaves today and keeps Wartet; planned again it is back in "Heute", and in Wartet on Heute', async ({ context, page }) => {

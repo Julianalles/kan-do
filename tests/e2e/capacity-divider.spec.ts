@@ -215,3 +215,92 @@ test.describe('Capacity divider in Offen (#132)', () => {
     expect(await count(page.locator('#column-done-list'))).toBe(0)
   })
 })
+
+/**
+ * #817: "Heute" on "Alle" lists the Jetzt and Wartet cards behind Offen's own, and the line counts their time first, so
+ * on a full day they stand above it. The ids of the list top to bottom, the line as `|`, the extras by their own ids.
+ */
+test.describe('"Heute" on "Alle" and the capacity line (#817)', () => {
+  const nowCard = task({ id: 'now', title: 'Jetzt', status: 1, timeBoxSeconds: hours(2) })
+  const w1 = task({ id: 'w1', title: 'Wartet 1', status: 2, timeBoxSeconds: hours(2) })
+  const w2 = task({ id: 'w2', title: 'Wartet 2', status: 2 })
+  /** 2 h + 2 h + 0.5 h used, a 1 h and b 0.5 h fill the 6 h day */
+  const FULL: SeedTask[] = [nowCard, w1, w2, open('a', 1), open('b', null), open('c', null), open('d', 1)]
+
+  async function gotoAll(page: Page) {
+    await page.goto('/all')
+    await expect(page.locator('.board')).toHaveAttribute('data-place', 'all')
+    await expect(card(page, 'a')).toBeVisible()
+    await settleAnimations(page)
+  }
+
+  test('on a full day the Jetzt and Wartet cards stand above the line, behind the cards that fit; Offen on Heute is unchanged', async ({ context, page }) => {
+    await seedLocalBoard(context, FULL)
+    await gotoAll(page)
+    await expect.poll(() => layout(page)).toBe('a b now w1 w2 | c d')
+    // each is still the one card of its task
+    await expect(page.locator('[data-task-id="now"].task-wrapper')).toHaveCount(1)
+    await expect(card(page, 'w1').getByTestId('task-status-badge')).toHaveText('Wartet')
+    await page.getByTestId('app-nav-place-board').click()
+    await expect(page.locator('.board')).toHaveAttribute('data-place', 'today')
+    await settleAnimations(page)
+    await expect.poll(() => layout(page)).toBe('a b | c d')
+  })
+
+  test('on a day that is not full there is no line and the order stays Offen, Jetzt, Wartet', async ({ context, page }) => {
+    await seedLocalBoard(context, [nowCard, w1, open('a', 1), open('b', null)])
+    await gotoAll(page)
+    // 2 + 2 + 1 + 0.5 = 5.5 h: it fits
+    await expect.poll(() => layout(page)).toBe('a b now w1')
+    await expect(divider(page)).toHaveCount(0)
+  })
+
+  test('sorting keeps the extras above the line: a Wartet card among the Wartet cards, an Offen card across the line', async ({ context, page }) => {
+    await seedLocalBoard(context, FULL)
+    await gotoAll(page)
+    await pickUp(page, card(page, 'w2'))
+    await hover(page, card(page, 'w1'), { fromTop: 10 })
+    await page.mouse.up()
+    await dropSettled(page)
+    await expect.poll(() => layout(page)).toBe('a b now w2 w1 | c d')
+
+    // c above a: 4.5 + 0.5 + 1 = 6 h, the line moves behind a and the extras with it
+    await pickUp(page, card(page, 'c'))
+    await hover(page, card(page, 'a'), { fromTop: 10 })
+    await page.mouse.up()
+    await dropSettled(page)
+    await expect.poll(() => layout(page)).toBe('c a now w2 w1 | b d')
+  })
+
+  // #833 review: the node put back after a drag that changes nothing went behind the last Offen card above the line
+  // (the line's own card, a card that was last below it). Vue patches nothing then, so the DOM stayed wrong.
+  // Both sides of the line: the card the line follows (`a b | c d`) and the only card below it (`a b | c`, the review's probe)
+  for (const place of ['Heute', 'Alle'] as const) {
+    for (const id of ['b', 'c']) {
+      const seed = id === 'c' ? FULL.filter(t => t.id !== 'd') : FULL
+      const below = id === 'c' ? 'c' : 'c d'
+      const expected = place === 'Alle' ? `a b now w1 w2 | ${below}` : `a b | ${below}`
+      test(`${place}: ${id === 'b' ? 'the card the line follows' : 'the only card below the line'} keeps its side of the line after a cancel and a drop in place`, async ({ context, page }) => {
+        await seedLocalBoard(context, seed)
+        if (place === 'Alle') await gotoAll(page)
+        else await gotoBoard(page, 'a')
+        await expect.poll(() => layout(page)).toBe(expected)
+
+        // Escape over another card: the node comes back from Offen's own list
+        await pickUp(page, card(page, id))
+        await hover(page, card(page, 'a'), { fromTop: 10 })
+        await page.keyboard.press('Escape')
+        await page.mouse.up()
+        await dropSettled(page)
+        await expect.poll(() => layout(page)).toBe(expected)
+
+        // Picked up and released where it was. Pressed near its top: the foot echo of the line, shown while the canceled
+        // drag pushed the line below the window, stays until the next scroll and covers the card's centre on "Alle"
+        await pickUp(page, card(page, id), { at: { x: 20, y: 20 } })
+        await page.mouse.up()
+        await dropSettled(page)
+        await expect.poll(() => layout(page)).toBe(expected)
+      })
+    }
+  }
+})
