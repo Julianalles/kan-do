@@ -219,7 +219,7 @@ test.describe('Cards of an expanded stack are draggable (#139)', () => {
     await page.keyboard.press('ControlOrMeta+k')
     const palette = page.getByRole('dialog', { name: 'Befehlspalette' })
     await expect(palette).toBeVisible()
-    await palette.getByText('Verschieben nach Erledigt').click()
+    await palette.getByText('Verschieben in „Erledigt“').click()
     await expect(list(page, 'done').locator('.task-wrapper[data-task-id="a2"]')).toBeVisible()
   })
 })

@@ -160,7 +160,7 @@ test.describe('Move a task between sources (#322)', () => {
     await first.focus()
     await page.keyboard.press('ControlOrMeta+k')
     await expect(palette(page)).toBeVisible()
-    await expect(palette(page).getByText('Verschieben nach Erledigt')).toBeVisible()
+    await expect(palette(page).getByText('Verschieben in „Erledigt“')).toBeVisible()
     await expect(palette(page).getByText(/Verschieben nach (Notion|Lokal|Todoist)/)).toHaveCount(0)
   })
 

@@ -35,7 +35,7 @@ test('the welcome setup starts the hints: "Start" shows with the first card in O
   await callTasksStore(page, { action: 'addTask', args: [fullTask({ id: 'first', title: 'Erste Aufgabe', status: 0 })] })
   await expect(hint(page)).toBeVisible()
   await expect(page.getByTestId('intro-hint-host')).toHaveAttribute('role', 'status')
-  await expect(hint(page)).toContainText('Ziehe nach Jetzt, woran du jetzt arbeitest. In Jetzt liegt immer nur eine Aufgabe.')
+  await expect(hint(page)).toContainText('Ziehe in „Jetzt“, woran du gerade arbeitest. In Jetzt liegt immer nur eine Aufgabe.')
   // On screen: today is stored for the hint
   await expect.poll(async () => (await record(page))?.hints.start?.days.length).toBe(1)
 
@@ -102,7 +102,7 @@ test('390px: the phone text, centred above the app bar, clear of it; "Schließen
   await seedLocalBoard(context, OPEN_ONLY, {}, undefined, { hints: true })
   await gotoBoard(page)
   await expect(hint(page)).toBeVisible()
-  await expect(hint(page)).toContainText('Halte die Karte und ziehe sie an den rechten Rand, nach Jetzt.')
+  await expect(hint(page)).toContainText('Halte die Karte und ziehe sie an den rechten Rand, in „Jetzt“.')
 
   const box = (await hint(page).boundingBox())!
   const bar = (await page.locator('.app-nav-pill').boundingBox())!
@@ -173,7 +173,7 @@ test('"Weiter": shows with a card in Jetzt, ends when the card goes to Wartet, a
   await gotoBoard(page)
   await expect(hint(page)).toBeVisible()
   await expect(hint(page)).toHaveAttribute('data-hint', 'weiter')
-  await expect(hint(page)).toContainText('Die Zeit läuft jetzt mit. Ziehe die Karte nach Erledigt')
+  await expect(hint(page)).toContainText('Die Zeit läuft jetzt mit. Ziehe die Karte in „Erledigt“')
   await expect.poll(async () => (await record(page))?.hints.start?.answered).toBe(true)
 
   await callTasksStore(page, { action: 'updateTask', args: ['seed-progress-1', { status: 2 }] })

@@ -290,10 +290,10 @@ test.describe('the command palette and Jetzt are source-blind (#325)', () => {
 
     // 1. A Local task takes Jetzt over from the running Notion task by swap (#241); Notion is told, Jetzt holds one task
     await openPaletteOn(page, LOCAL_TITLE)
-    const jetzt = palette(page).getByRole('option', { name: /Verschieben nach Jetzt/ })
+    const jetzt = palette(page).getByRole('option', { name: /Verschieben in „Jetzt“/ })
     await expect(jetzt).not.toContainText('Jetzt belegt')
     await expect(jetzt).not.toHaveAttribute('data-disabled')
-    await runPaletteCommand(page, 'Jetzt', /Verschieben nach Jetzt/)
+    await runPaletteCommand(page, 'Jetzt', /Verschieben in „Jetzt“/)
     await expect(column(page, 'progress').getByText(LOCAL_TITLE)).toBeVisible()
     await expect(column(page, 'progress').locator('.task-wrapper')).toHaveCount(1)
     await expect(column(page, 'waiting').getByText('Review Team Updates')).toBeVisible()
@@ -301,7 +301,7 @@ test.describe('the command palette and Jetzt are source-blind (#325)', () => {
 
     // 2. The other way round: a Notion task takes it back from the Local one (Local goes to Wartet), still one task in Jetzt
     await openPaletteOn(page, NOTION_TITLE)
-    await runPaletteCommand(page, 'Jetzt', /Verschieben nach Jetzt/)
+    await runPaletteCommand(page, 'Jetzt', /Verschieben in „Jetzt“/)
     await expect(column(page, 'progress').locator('.task-wrapper')).toHaveCount(1)
     await expect(column(page, 'progress').getByText(NOTION_TITLE)).toBeVisible()
     await expect(column(page, 'waiting').getByText(LOCAL_TITLE)).toBeVisible()
@@ -309,7 +309,7 @@ test.describe('the command palette and Jetzt are source-blind (#325)', () => {
 
     // 3. Local takes it again, so step 4 reads a Local task in Jetzt
     await openPaletteOn(page, LOCAL_TITLE)
-    await runPaletteCommand(page, 'Jetzt', /Verschieben nach Jetzt/)
+    await runPaletteCommand(page, 'Jetzt', /Verschieben in „Jetzt“/)
     await expect(column(page, 'progress').getByText(LOCAL_TITLE)).toBeVisible()
     await expect(column(page, 'progress').locator('.task-wrapper')).toHaveCount(1)
 

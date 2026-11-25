@@ -27,14 +27,14 @@
       "roleDescription": "Verschiebbare Aufgabe",
       "instructions": "Enter öffnet die Details. Leertaste hebt die Aufgabe auf, Pfeiltasten verschieben, Leertaste legt ab, Escape bricht ab.",
       "pickedUp": "„{title}“ in Spalte {column}, Position {position} aufgenommen.",
-      "movedTo": "„{title}“ nach Spalte {column}, Position {position} verschoben.",
+      "movedTo": "„{title}“ in Spalte {column}, Position {position} verschoben.",
       "dropped": "„{title}“ in Spalte {column}, Position {position} abgelegt.",
       "cancelled": "Verschieben abgebrochen. „{title}“ bleibt in Spalte {column}.",
       "stackRoleDescription": "Verschiebbarer Stapel",
       "stackInstructions": "Enter öffnet den Stapel. Leertaste hebt den ganzen Stapel auf, Pfeiltasten verschieben ihn, Leertaste legt ab, Escape bricht ab.",
       "pickedUpStack": "Stapel „{title}“ in Spalte {column}, Position {position} aufgenommen. Er wird mit allen Aufgaben verschoben.",
-      "swapOver": "„{title}“ über „{running}“ in Jetzt. Beim Ablegen tauschen beide: „{running}“ geht nach Wartet.",
-      "swapped": "„{title}“ in Jetzt abgelegt. „{running}“ ist nach Wartet verschoben."
+      "swapOver": "„{title}“ über „{running}“ in Jetzt. Beim Ablegen tauschen beide: „{running}“ wandert in „Wartet“.",
+      "swapped": "„{title}“ in Jetzt abgelegt. „{running}“ wurde in „Wartet“ verschoben."
     },
     "quickAdd": {
       "label": "Neue Aufgabe",
@@ -127,7 +127,7 @@
     },
     "wip": {
       "refusedTitle": "Verschieben nicht möglich",
-      "refusedReason": "In Jetzt liegt höchstens eine Aufgabe. Verschiebe die aktuelle nach Wartet oder Erledigt."
+      "refusedReason": "In Jetzt liegt höchstens eine Aufgabe. Verschiebe die aktuelle in „Wartet“ oder „Erledigt“."
     },
     "swap": {
       "title": "Aufgabe getauscht",
@@ -182,10 +182,10 @@
     },
     "introHint": {
       "start": {
-        "desktop": "Ziehe nach Jetzt, woran du jetzt arbeitest. In Jetzt liegt immer nur eine Aufgabe.",
-        "phone": "Womit fängst du an? Halte die Karte und ziehe sie an den rechten Rand, nach Jetzt. In Jetzt liegt immer nur eine Aufgabe."
+        "desktop": "Ziehe in „Jetzt“, woran du gerade arbeitest. In Jetzt liegt immer nur eine Aufgabe.",
+        "phone": "Womit fängst du an? Halte die Karte und ziehe sie an den rechten Rand, in „Jetzt“. In Jetzt liegt immer nur eine Aufgabe."
       },
-      "weiter": "Die Zeit läuft jetzt mit. Ziehe die Karte nach Erledigt, sobald die Aufgabe erledigt ist. Wartest du auf jemanden, ziehe sie nach Wartet.",
+      "weiter": "Die Zeit läuft jetzt mit. Ziehe die Karte in „Erledigt“, sobald die Aufgabe erledigt ist. Wartest du auf jemanden, ziehe sie in „Wartet“.",
       "auswahl": "Viel offen? Gestapelt nach Thema oder Priorität wählst du leichter aus. Die Stapel findest du auch unter „{more}“.",
       "abschluss": "Genug für heute? „{dayClose}“ zeigt dir, was du geschafft hast und was offen bleibt.",
       "close": "Schließen",
@@ -1538,7 +1538,7 @@
     "groupCard": "Aufgabe",
     "groupMove": "Verschieben: {title}",
     "groupSource": "Speicherort",
-    "moveTo": "Verschieben nach {column}",
+    "moveTo": "Verschieben in „{column}“",
     "moveToSource": "Verschieben nach {source}",
     "progressFull": "Jetzt belegt",
     "setPriority": "Priorität: {priority}",
@@ -1795,7 +1795,7 @@
       "days": "Gelöscht vor {n} Tag | Gelöscht vor {n} Tagen"
     },
     "wasIn": "War in {column}",
-    "wasInProgress": "War in Jetzt, kommt zurück nach Offen",
+    "wasInProgress": "War in „Jetzt“, kommt zurück in „Offen“",
     "restore": "Wiederherstellen",
     "restoreNamed": "Wiederherstellen: {title}",
     "removeForever": "Endgültig löschen",

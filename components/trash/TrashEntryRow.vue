@@ -7,7 +7,7 @@
 @avoid Only a deleted task on the trash page; live tasks are TaskCard.
 @responsibility
 - Shows the standard TaskCard (`readonly`, `preview`: no sheet, no drag, no swipe, no task id on the DOM); a Wartet card is muted as on the board
-- "Gelöscht vor …", "War in <Spalte>" ("War in Jetzt, kommt zurück nach Offen" for a task from Jetzt) beside the card on desktop with the actions below them; on a phone below the card, the two lines left and both actions right in the same band, no wider than the card (kd#216)
+- "Gelöscht vor …", "War in <Spalte>" ("War in „Jetzt“, kommt zurück in „Offen“" for a task from Jetzt) beside the card on desktop with the actions below them; on a phone below the card, the two lines left and both actions right in the same band, no wider than the card (kd#216)
 - "Wiederherstellen: <title>" for every entry (soft neutral; icon-only on a phone, the name stays its accessible name); "Endgültig löschen: <title>" on the page only (`forever`): an icon button in the soft error tone, so the destructive action is told apart at a glance (kd#216, owner). Two soft buttons side by side are allowed in a row of two (DESIGN.md "Components")
 - The trash button asks in place (kd#21, aligned with "Papierkorb leeren"): question, "Abbrechen" (soft, focused) first, "Endgültig löschen" last (the footer order, #611); Esc or Abbrechen returns focus to it. On a phone the question takes the full width below the two lines
 - Its own stacking context (`isolation`): a card carries `--z-card` (50) for the board, which outside the board would put it above the app bar (40) while it scrolls under it (kd#225)

@@ -291,7 +291,7 @@ test.describe('delete is confirmed in the card slot (#422)', () => {
     await expectTrashRow(page, 'Papierkorb (1)')
 
     await openTrash(page)
-    await expect(trashPage(page)).toContainText('War in Jetzt, kommt zurück nach Offen')
+    await expect(trashPage(page)).toContainText('War in „Jetzt“, kommt zurück in „Offen“')
     await restoreOnPage(page, JETZT_TITLE)
     await goToPlace(page, 'Heute')
     await expect(column(page, 'open').getByText(JETZT_TITLE)).toBeVisible()
@@ -402,7 +402,7 @@ test.describe('the trash page (#422)', () => {
     await expect(page.getByTestId('trash-group-earlier')).toContainText('Früher gelöscht A')
     await expect(page.getByTestId('trash-page')).toContainText('Nach 30 Tagen endgültig weg')
     await expect(page.getByRole('button', { name: 'Zurück' })).toHaveCount(0) // no back arrow (#470): the bar is the way out
-    await expect(page.getByTestId('trash-entry').filter({ hasText: 'Früher gelöscht B' })).toContainText('War in Jetzt, kommt zurück nach Offen')
+    await expect(page.getByTestId('trash-entry').filter({ hasText: 'Früher gelöscht B' })).toContainText('War in „Jetzt“, kommt zurück in „Offen“')
   })
 
   test('restore and remove-forever from the page, then "Papierkorb leeren" asks in place', async ({ page }) => {
