@@ -394,7 +394,9 @@
         "lib/nativeShortcuts.ts",
         "lib/reminders.ts",
         "composables/useNativeMenu.ts",
-        "plugins/desktop-shell.client.ts"
+        "plugins/desktop-shell.client.ts",
+        "lib/uiScale.ts",
+        "plugins/ui-scale.client.ts"
       ],
       "specs": [
         "native-menu",
@@ -698,9 +700,12 @@
         "components/settings/LocalStorageDetails.vue",
         "components/settings/DisconnectSourceDialog.vue",
         "components/settings/IntroHintsSheet.vue",
+        "components/settings/SettingSelectRow.vue",
         "composables/useSourceList.ts",
         "utils/publicCloud.ts",
-        "middleware/notion-available.ts"
+        "middleware/notion-available.ts",
+        "lib/uiScale.ts",
+        "plugins/ui-scale.client.ts"
       ],
       "specs": [
         "sources-settings",

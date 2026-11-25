@@ -1,6 +1,7 @@
 import { defineStore, acceptHMRUpdate } from 'pinia'
 import { ref } from 'vue'
 import { sanitizeWorkingMinutes } from '~/lib/dayCapacity'
+import { DEFAULT_UI_SCALE, isUiScale, sanitizeUiScale, type UiScale } from '~/lib/uiScale'
 import { freshIntroHints, needsShownDay, sanitizeIntroHints, type IntroHintsRecord } from '~/lib/introHints'
 
 /**
@@ -28,6 +29,10 @@ import { freshIntroHints, needsShownDay, sanitizeIntroHints, type IntroHintsReco
  * hint entry is dropped in memory (`afterHydrate`, no write). It is the app's own data: never sent to a connection.
  * #804: `setIntroHintsOn(false)` turns the hints off (the record stays), `restartIntroHints()` replaces it with a fresh one
  * (also from `null`); the settings' row "Hinweise zum Einstieg" and the link on a hint use them.
+ *
+ * `uiScale` (#845): the size of the interface in percent, one of `UI_SCALE_STEPS` (`lib/uiScale.ts`), default 100;
+ * `plugins/ui-scale.client.ts` applies it. Additive: nothing stored or a value that is no step reads as 100 in memory
+ * (`afterHydrate`, no write), and the setter ignores a value that is no step.
  */
 export const useSettingsStore = defineStore('settings', () => {
   const focusEnabled = ref(true)
@@ -52,6 +57,12 @@ export const useSettingsStore = defineStore('settings', () => {
 
   function setWorkingHoursMinutes(value: number | null) {
     workingHoursMinutes.value = sanitizeWorkingMinutes(value)
+  }
+
+  const uiScale = ref<UiScale>(DEFAULT_UI_SCALE)
+
+  function setUiScale(value: number) {
+    if (isUiScale(value)) uiScale.value = value
   }
 
   const introHints = ref<IntroHintsRecord | null>(null)
@@ -113,16 +124,19 @@ export const useSettingsStore = defineStore('settings', () => {
     setAutoUpdateCheck,
     workingHoursMinutes,
     setWorkingHoursMinutes,
+    uiScale,
+    setUiScale,
   }
 }, {
   persist: {
     key: 'settings-store',
-    pick: ['focusEnabled', 'floatingNowEnabled', 'autoUpdateCheck', 'workingHoursMinutes', 'introHints'],
-    afterHydrate: (ctx: { store: { workingHoursMinutes: unknown; floatingNowEnabled: unknown; autoUpdateCheck: unknown; introHints: unknown } }) => {
+    pick: ['focusEnabled', 'floatingNowEnabled', 'autoUpdateCheck', 'workingHoursMinutes', 'introHints', 'uiScale'],
+    afterHydrate: (ctx: { store: { workingHoursMinutes: unknown; floatingNowEnabled: unknown; autoUpdateCheck: unknown; introHints: unknown; uiScale: unknown } }) => {
       ctx.store.workingHoursMinutes = sanitizeWorkingMinutes(ctx.store.workingHoursMinutes)
       if (typeof ctx.store.floatingNowEnabled !== 'boolean') ctx.store.floatingNowEnabled = true
       if (typeof ctx.store.autoUpdateCheck !== 'boolean') ctx.store.autoUpdateCheck = true
       ctx.store.introHints = sanitizeIntroHints(ctx.store.introHints)
+      ctx.store.uiScale = sanitizeUiScale(ctx.store.uiScale)
     },
   },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

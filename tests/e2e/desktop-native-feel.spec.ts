@@ -143,6 +143,49 @@ test.describe('Native feel (desktop)', () => {
     await expect(title).toHaveValue('r-p+0')
   })
 
+  test('Cmd/Ctrl with +, - and 0 step "Größe der Anzeige"; the title row keeps its height beside the traffic lights (#845)', async ({ page }) => {
+    await page.setViewportSize({ width: 800, height: 600 }) // the window's minimum size
+    await page.goto('/settings')
+    const select = page.getByRole('combobox', { name: 'Größe der Anzeige' })
+    await expect(select).toContainText('100 % (Standard)')
+    const mac = await page.evaluate(() => /mac|iphone|ipad/i.test(navigator.platform))
+    const mod = mac ? 'metaKey' : 'ctrlKey'
+    // The desktop help names the shortcuts with the platform's modifier
+    await expect(page.getByTestId('ui-scale-setting')).toContainText(`Das geht auch mit ${mac ? 'Cmd' : 'Strg'} + Plus und ${mac ? 'Cmd' : 'Strg'} + Minus.`)
+    const rootPx = () => page.evaluate(() => Number.parseFloat(getComputedStyle(document.documentElement).fontSize))
+    /** The row's height, the pills' centre line and their left edge: the traffic lights sit at x 20 to about 72, centred in the 56 px row */
+    const titleRow = () => page.evaluate(() => {
+      const row = document.querySelector('.app-nav')!.getBoundingClientRect()
+      const pills = document.querySelector('.app-nav-group')!.getBoundingClientRect()
+      const strip = document.querySelector('.titlebar')!.getBoundingClientRect()
+      return { row: row.height, strip: strip.height, centre: Math.round(pills.top + pills.height / 2), left: pills.left, fits: pills.height <= row.height }
+    })
+    const atRest = await titleRow()
+    expect(atRest).toMatchObject({ row: 56, strip: 56, centre: 28, fits: true })
+
+    for (const [chord, label, px] of [
+      [{ key: '=' }, '110 %', 17.6],
+      [{ key: '+', shiftKey: true }, '125 %', 20],
+      [{ key: '+' }, '125 %', 20], // the largest step: the chord does nothing more
+      [{ key: '-' }, '110 %', 17.6],
+      [{ key: '0' }, '100 % (Standard)', 16],
+      [{ key: '-' }, '90 %', 14.4],
+      [{ key: '-', code: 'Minus' }, '80 %', 12.8],
+      [{ key: '_' }, '80 %', 12.8], // the smallest step
+    ] as const) {
+      expect(await keydownCancelled(page, { ...chord, [mod]: true }), JSON.stringify(chord)).toBe(true)
+      await expect(select, JSON.stringify(chord)).toContainText(label)
+      await expect.poll(rootPx, JSON.stringify(chord)).toBeCloseTo(px, 3)
+      const now = await titleRow()
+      expect(now, label).toMatchObject({ row: 56, strip: 56, centre: 28, fits: true })
+      expect(now.left, `${label}: clear of the traffic lights`).toBeGreaterThan(80)
+    }
+    // The bare keys and the other modifier change nothing
+    await page.keyboard.press('Minus')
+    expect(await keydownCancelled(page, { key: '=', [mac ? 'ctrlKey' : 'metaKey']: true })).toBe(false)
+    await expect(select).toContainText('80 %')
+  })
+
   test('a link or an image cannot be dragged out of the window, anything else keeps its drag (#398)', async ({ page }) => {
     await page.goto('/settings/data')
     await expect(page.locator('html')).toHaveAttribute('data-shell', 'desktop')

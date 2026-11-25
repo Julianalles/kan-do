@@ -849,5 +849,15 @@
     "avoidEn": [],
     "status": "proposed",
     "note": "#804: the settings row label. On a hint the link is the verb phrase \"Hinweise ausschalten\" / \"Turn off hints\"; the section that lists their texts is \"Kurz erklärt\" / \"Quick guide\"."
+  },
+  {
+    "id": "display-size",
+    "concept": "The setting that makes the whole interface larger or smaller in fixed steps (#845)",
+    "de": "Größe der Anzeige",
+    "en": "display size",
+    "avoidDe": [],
+    "avoidEn": [],
+    "status": "proposed",
+    "note": "#845: the settings row label, in the sheet \"Darstellung\" / \"Appearance\". Not \"Zoom\": that word names the Window menu's item that enlarges the window (menu.zoom). The 100 % step is marked \"(Standard)\" / \"(default)\"."
   }
 ]
