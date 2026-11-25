@@ -188,6 +188,38 @@ test.describe('the pill window (/overlay)', () => {
     for (const id of ['now-pause', 'now-done']) expect((await page.getByTestId(id).boundingBox())!.width).toBeGreaterThanOrEqual(28)
   })
 
+  // The glint's small bright core is a highlight in both appearances: Canvas is black in dark, so a core mixed from it was a dark oval (#812 review)
+  for (const scheme of ['light', 'dark'] as const) {
+    test(`the glint's core is brighter than the light it crosses (never a dark spot), ${scheme} (#812)`, async ({ browser }) => {
+      const context = await browser.newContext({ colorScheme: scheme, locale: 'de-DE' })
+      try {
+        const page = await context.newPage()
+        await installTauriStub(context, {})
+        await context.addInitScript((v) => { (window as unknown as { __overlaySnapshot: unknown }).__overlaySnapshot = { ...v, at: Date.now() } }, snap({ running: true }))
+        await page.goto('/overlay')
+        await expect(pill(page)).toBeVisible()
+        // resolve the two colours the glint's gradients are built from, as the browser paints them
+        const [core, glow] = await page.getByTestId('now-glint').evaluate((el) => {
+          const lum = (value: string) => {
+            const probe = document.createElement('canvas').getContext('2d')!
+            probe.fillStyle = '#000'; probe.fillStyle = value; probe.fillRect(0, 0, 1, 1)
+            const [r, g, b] = probe.getImageData(0, 0, 1, 1).data as unknown as number[]
+            return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!
+          }
+          if (!getComputedStyle(el).getPropertyValue('--now-core').trim()) throw new Error('--now-core is not defined')
+          const probe = document.createElement('i'); el.appendChild(probe)
+          const read = (name: string) => { probe.style.color = `var(${name})`; return getComputedStyle(probe).color }
+          const out = [lum(read('--now-core')), lum(read('--now-light'))]
+          probe.remove()
+          return out
+        })
+        expect(core, `${scheme} core ${core} vs light ${glow}`).toBeGreaterThan(glow)
+      } finally {
+        await context.close()
+      }
+    })
+  }
+
   // The light is under the title and the time: text 4.5:1, glyphs 3:1 in every state, on a light and a dark stand-in backdrop, with the glint at its
   // brightest right behind what is measured. The real glass is a manual check (`desktop-verify`); the backdrop here is a mid wallpaper tone.
   for (const scheme of ['light', 'dark'] as const) {

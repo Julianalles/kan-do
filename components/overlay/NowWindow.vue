@@ -195,6 +195,7 @@ function onOpen(): void {
   --now-rim-light: 45%; /* the light gathered in the bevel's lower rim */
   --now-glint: 92%; /* the glint, and its small bright core */
   --now-shine: 45%;
+  --now-core: Canvas; /* the glint's bright core: white on light glass; never Canvas on dark, where it is black */
   /* System colours: Canvas is white on light and black on dark, CanvasText the reverse, so the bevel needs no literal */
   --now-rim-hi: color-mix(in srgb, Canvas 95%, transparent);
   --now-rim-lo: color-mix(in srgb, CanvasText 30%, transparent);
@@ -210,8 +211,9 @@ function onOpen(): void {
     --now-b2: 12%;
     --now-b3: 5%;
     --now-bloom: 0.3;
-    --now-glint: 30%;
-    --now-shine: 12%;
+    --now-glint: 20%;
+    --now-shine: 6%;
+    --now-core: var(--now-light-hi); /* a white core would sit under white labels (3.4:1): the light's own lighter step */
     --now-rim-hi: color-mix(in srgb, CanvasText 60%, transparent);
     --now-rim-lo: color-mix(in srgb, Canvas 55%, transparent);
     --now-glow: color-mix(in srgb, CanvasText 12%, transparent);
@@ -314,7 +316,7 @@ function onOpen(): void {
   width: 84px;
   opacity: 0;
   background:
-    radial-gradient(22% 30% at 50% 50%, color-mix(in srgb, Canvas var(--now-shine), transparent), transparent),
+    radial-gradient(22% 30% at 50% 50%, color-mix(in srgb, var(--now-core) var(--now-shine), transparent), transparent),
     radial-gradient(50% 46% at 50% 52%, color-mix(in srgb, var(--now-light-hi) var(--now-glint), transparent), transparent);
   animation: now-glint 9s cubic-bezier(0.45, 0, 0.3, 1) infinite;
   will-change: transform, opacity;
