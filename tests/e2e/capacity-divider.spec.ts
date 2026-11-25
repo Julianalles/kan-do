@@ -271,4 +271,36 @@ test.describe('"Heute" on "Alle" and the capacity line (#817)', () => {
     await dropSettled(page)
     await expect.poll(() => layout(page)).toBe('c a now w2 w1 | b d')
   })
+
+  // #833 review: the node put back after a drag that changes nothing went behind the last Offen card above the line
+  // (the line's own card, a card that was last below it). Vue patches nothing then, so the DOM stayed wrong.
+  // Both sides of the line: the card the line follows (`a b | c d`) and the only card below it (`a b | c`, the review's probe)
+  for (const place of ['Heute', 'Alle'] as const) {
+    for (const id of ['b', 'c']) {
+      const seed = id === 'c' ? FULL.filter(t => t.id !== 'd') : FULL
+      const below = id === 'c' ? 'c' : 'c d'
+      const expected = place === 'Alle' ? `a b now w1 w2 | ${below}` : `a b | ${below}`
+      test(`${place}: ${id === 'b' ? 'the card the line follows' : 'the only card below the line'} keeps its side of the line after a cancel and a drop in place`, async ({ context, page }) => {
+        await seedLocalBoard(context, seed)
+        if (place === 'Alle') await gotoAll(page)
+        else await gotoBoard(page, 'a')
+        await expect.poll(() => layout(page)).toBe(expected)
+
+        // Escape over another card: the node comes back from Offen's own list
+        await pickUp(page, card(page, id))
+        await hover(page, card(page, 'a'), { fromTop: 10 })
+        await page.keyboard.press('Escape')
+        await page.mouse.up()
+        await dropSettled(page)
+        await expect.poll(() => layout(page)).toBe(expected)
+
+        // Picked up and released where it was. Pressed near its top: the foot echo of the line, shown while the canceled
+        // drag pushed the line below the window, stays until the next scroll and covers the card's centre on "Alle"
+        await pickUp(page, card(page, id), { at: { x: 20, y: 20 } })
+        await page.mouse.up()
+        await dropSettled(page)
+        await expect.poll(() => layout(page)).toBe(expected)
+      })
+    }
+  }
 })
