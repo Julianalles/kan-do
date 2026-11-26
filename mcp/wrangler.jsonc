@@ -1,0 +1,16 @@
+// Worker `kando-mcp` (ADR 023): remote MCP server for Claude (OAuth) and the queue/snapshot endpoints of the desktop app.
+// A separate Worker from `kando` (ADR 021: that one stores nothing of the user's). Deploy by hand, never from Workers Builds:
+//   npx wrangler d1 create kando-mcp   # paste the database_id below, once
+//   npx wrangler d1 migrations apply kando-mcp --remote -c mcp/wrangler.jsonc
+//   npx wrangler secret put OWNER_PASSWORD -c mcp/wrangler.jsonc ; npx wrangler secret put SYNC_TOKEN -c mcp/wrangler.jsonc
+//   npx wrangler deploy -c mcp/wrangler.jsonc
+{
+  "$schema": "../node_modules/wrangler/config-schema.json",
+  "name": "kando-mcp",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-02",
+  "workers_dev": true,
+  "d1_databases": [{ "binding": "DB", "database_name": "kando-mcp", "database_id": "REPLACE_WITH_D1_ID", "migrations_dir": "migrations" }],
+  // Task titles are in the snapshot: no request logging beyond errors.
+  "observability": { "enabled": true, "logs": { "invocation_logs": false } },
+}

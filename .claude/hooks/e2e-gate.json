@@ -54,6 +54,11 @@
   },
   "map": [
     {
+      "area": "MCP bridge command logic (ADR 023): pure module, applies queued commands through the board operations; the pending-sync spec is the nearest end-to-end check of those writes",
+      "paths": ["lib/remoteCommands.ts"],
+      "specs": ["pending-sync"]
+    },
+    {
       "area": "board state: tasks/board/settings stores, useTaskSync, task shape, dates, map helpers",
       "risk": true,
       "paths": [
