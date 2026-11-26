@@ -454,7 +454,8 @@ for (const vp of VIEWPORTS) {
       await pickerTrigger(page, 'topic').click()
       await page.getByTestId('topic-edit-toggle').click()
       await expect(page.getByTestId('topic-edit-toggle')).toHaveText('Fertig')
-      await page.getByText('Priorität', { exact: true }).first().click()
+      // A label the open picker never covers: at 390px the grid's Priorität label sits under the popover (#846), Status sits above the Thema row
+      await page.getByTestId('task-property-list').getByText('Status', { exact: true }).click()
       await expect(pickerContent(page)).toHaveCount(0)
       await pickerTrigger(page, 'topic').click()
       await expect(page.getByTestId('topic-edit-toggle')).toHaveText('Bearbeiten')
