@@ -169,6 +169,8 @@
           />
           <span v-if="doneDayLocalOnly" class="text-sm text-muted" data-testid="done-day-local-only">{{ t('task.doneDay.localOnly') }}</span>
         </TaskPropertyRow>
+        <!-- A done task without a completion day: the cell stays, so no later cell changes column (#846) -->
+        <div v-else aria-hidden="true" data-testid="task-grid-spacer" />
 
         <!-- A source that owns the text (Reminders, #551) also owns the Thema and the Aktivität: the list. Shown as plain values, never as pickers -->
         <TaskPropertyRow v-if="!canEditText && task.topic" :label="t('task.field.topic')" :stacked="!twoColumn" private>
@@ -192,6 +194,7 @@
             @edit="(name) => openEditor('topic', name)"
           />
         </TaskPropertyRow>
+        <div v-else aria-hidden="true" data-testid="task-grid-spacer" />
 
         <TaskPropertyRow v-if="!canEditText && task.activity" :label="t('task.field.activity')" :stacked="!twoColumn" private>
           <InlineEditable readonly affordance="rule" :model-value="task.activity" :label="t('task.field.activity')" data-private data-testid="task-activity-readonly" />
@@ -213,6 +216,7 @@
             @edit="(name) => openEditor('activity', name)"
           />
         </TaskPropertyRow>
+        <div v-else aria-hidden="true" data-testid="task-grid-spacer" />
 
         <!-- The shared topic editor (#430): under the row of Thema and Aktivität, across both columns -->
         <div v-if="editing" class="task-detail-grid__wide">
