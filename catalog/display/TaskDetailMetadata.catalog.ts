@@ -4,10 +4,10 @@ import type { CatalogEntry } from '../types'
 export default {
   component: 'TaskDetailMetadata',
   source: 'app',
-  alternatives: ['UCollapsible'],
+  alternatives: [],
   variants: [
-    { id: 'local', props: { createdAt: '9. Nov. 2026', taskId: 'cat-1' } },
-    { id: 'notion', props: { source: 'Notion', createdAt: '9. Nov. 2026', taskId: 'cat-1' } },
+    { id: 'local', props: { icon: 'i-ph-desktop', createdAt: '09.11.2026' } },
+    { id: 'notion', props: { source: 'Notion', icon: 'i-ph-notebook', createdAt: '09.11.2026' } },
   ],
   states: [],
 } satisfies CatalogEntry

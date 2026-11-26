@@ -556,7 +556,7 @@ test.describe('task sheet: time spent row (kd#4)', () => {
     id: 'time-edit-1', title: 'Wartende Aufgabe', status: 2, priority: 1, activity: null, topic: null, topicColorCode: null,
     timeSpentSeconds: 1800, timeBoxSeconds: 3600, custom: {},
   }
-  const timeSpentRow = (page: Page) => page.getByTestId('task-property-row').filter({ hasText: 'Aufgewendete Zeit' })
+  const timeSpentRow = (page: Page) => page.getByTestId('task-property-row').filter({ hasText: 'Aufgewendet' })
 
   test('time and time left beside it (1280)', async ({ context, page }) => {
     await seedLocalBoard(context, [WAITING_WITH_TIME], {}, undefined, { once: true })

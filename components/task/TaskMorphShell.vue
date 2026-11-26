@@ -2,20 +2,21 @@
 @component TaskMorphShell
 @kind block
 @category overlay
-@description The desktop shell of the task sheet (#468, #705): a sheet of one fixed frame that grows out of the card the user opened, the card's face scaling along with it, and folds back into it on close
+@description The desktop shell of the task sheet (#468, #846): a sheet as tall as its content that grows out of the card the user opened, the card's face scaling along with it, and folds back into it on close
 @usage Rendered by TaskSheet on the detail route (/tasks/:id, /statistics/:id) at 768 px and up, with the route's task id as `originId`. The add route and the phone drawer stay on ResponsiveOverlay.
-@avoid Not a generic dialog; other overlays use ResponsiveOverlay or AppDialog. It hosts the two-column task detail only: the layout inside is TaskDetailContent's.
+@avoid Not a generic dialog; other overlays use ResponsiveOverlay or AppDialog. It hosts the task detail only: the layout inside is TaskDetailContent's.
 @responsibility
 - Dialog behaviour from reka's DialogRoot/DialogContent: focus trap and return, Escape, an outside press; the dismiss hooks come in through `contentProps` (TaskSheet owns them) and every close is requested through `update:open`
-- Placement (`utils/sheetPlacement.ts`): 720 px wide (the window minus 32 px when narrower), centred on the origin card's centre, 16 px from the left, right and bottom window edge and below the app bar (#518: its top is at least the bottom of `[data-app-nav]`, 56 px, measured at each placement, so the centred group of wordmark, pill and ⋯ stays whole above the sheet at every card; no bar on the page, 16 px); one fixed frame (#705, user, 2026-11-21): its height follows the width and the window, never the content (`sheetHeight`: 85 % of the width, 612 px at 720, at most the window height minus that top minus 16 px), so a task with eleven extra properties and one with none open the same shape; the columns scroll inside (TaskDetailContent) and expanded Metadaten or an open topic editor shrink them instead of growing the sheet. The shell keeps it inside the window when the window shrinks
-- Open (one phase of 340 ms, ease-out `cubic-bezier(0.2, 0, 0, 1)`, #705): the panel's box and corner radius run from the card's (16 px) to the sheet's (32 px, twice the card's, `--task-sheet-radius`); a copy of the card's face scales up with the card (uniformly, from the panel's top-left corner, by the sheet's width over the card's, on the panel's own easing, so it always spans the panel's width and its items travel with it) and dissolves into the content (#847: gone by 35 % on the standard curve, not linear) while the content fades in from 10 % to 50 % on the open curve; the scrim fades in over 160 ms. The grow is the Web Animations API on left/top/width/height, the content keeps its final size meanwhile so it does not reflow (`flex: none`: its `flex-1` basis of 0 would otherwise beat the set height and the last line would follow the panel's height, #659)
+- Placement (`utils/sheetPlacement.ts`): 720 px wide (the window minus 32 px when narrower), centred on the origin card's centre, 16 px from the left, right and bottom window edge and below the app bar (#518: its top is at least the bottom of `[data-app-nav]`, 56 px, measured at each placement, so the centred group of wordmark, pill and ⋯ stays whole above the sheet at every card; no bar on the page, 16 px); its height follows the content (#846, user, 2026-11-25; reverses the fixed frame of #705): the content's natural height is measured when the sheet opens, capped by the window (`sheetMaxHeight`: the window height minus that top minus 16 px), and the morph runs to that box; at the cap the note scrolls inside (TaskDetailContent). The content wrapper carries the cap and never stretches with the panel, so its own box is the content's natural height at every moment. The shell keeps the sheet inside the window when the window shrinks
+- Growth at rest (#846): a `ResizeObserver` on the content wrapper reports a new natural height; a jump (`isHeightJump`: more than 8 px in one step, e.g. the note editor opening, a saved long note, a new line while writing) runs one height-and-top transition of the panel from where it is now over `--duration-slow` on the standard curve, and a later change joins it; a frame of a block already opening in place (`UCollapsible`) is followed as is. The sheet grows downwards and moves up only as far as the bottom margin asks. Reduced motion: the new height at once
+- Open (one phase of 340 ms, ease-out `cubic-bezier(0.2, 0, 0, 1)`, #705): the panel's box and corner radius run from the card's (16 px) to the sheet's (32 px, twice the card's, `--task-sheet-radius`); a copy of the card's face scales up with the card (uniformly, from the panel's top-left corner, by the sheet's width over the card's, on the panel's own easing, so it always spans the panel's width and its items travel with it) and dissolves into the content (#847: gone by 35 % on the standard curve, not linear) while the content fades in from 10 % to 50 % on the open curve; the scrim fades in over 160 ms. The grow is the Web Animations API on left/top/width/height, the content keeps its final size meanwhile so it does not reflow (the wrapper is `flex-none` and holds the measured box, #659)
 - Close (260 ms, `cubic-bezier(0.4, 0, 0.2, 1)`): the same phase reversed: the sheet folds into the card where it sits now (a status change may have moved it), the content fades out first, the face scales back down to the card's size and fades in, the scrim fades out
 - No origin card (a statistics row, a deep link, a card scrolled out of the window or gone): centred, a 160 ms scale-in from 97 % with a fade; it leaves with a 140 ms fade
 - Direct link (#594): a sheet that is open from the first route of the session (`arrivedFromAnotherPage()` is false) stands at its place at once, no grow, no fade, no scrim fade; "never runs on page load" (DESIGN.md Motion)
 - Reduced motion (read when the sheet opens and closes): no grow, no fold and no scaling, a 1 ms fade, same place as without it
 - The panel is `bg-elevated` with the overlay shadow, as every sheet; the scrim is today's `--overlay-scrim` over the whole window (#419), the other cards fade through sheet.css as today
 - Close button: first in the tab order inside the sheet (kd#201), aria label `common.close`; the title is the next stop (TaskDetailContent)
-- Provides the desktop variant to the hosted content (`OVERLAY_DESKTOP_KEY`), so the nested topic editor and the two-column layout follow the sheet and not the live window width (#199)
+- Provides the desktop variant to the hosted content (`OVERLAY_DESKTOP_KEY`), so the nested topic editor and the detail's layout follow the sheet and not the live window width (#199)
 -->
 
 <template>
@@ -30,7 +31,8 @@
       >
         <DialogTitle class="sr-only">{{ title }}</DialogTitle>
         <div ref="faceRef" class="pointer-events-none absolute inset-s-0 top-0 z-10 overflow-hidden rounded-(--task-card-radius) opacity-0 empty:hidden" aria-hidden="true" inert />
-        <div ref="innerRef" class="relative flex min-h-0 flex-1 flex-col">
+        <!-- `flex-none`: the wrapper never takes the panel's height, so its box is the content's natural height (capped by its own max-height) while the panel morphs or grows around it (#659, #846) -->
+        <div ref="innerRef" class="relative flex min-h-0 flex-none flex-col">
           <UButton
             class="absolute inset-e-4 top-4 z-10"
             color="neutral"
@@ -54,7 +56,7 @@ import { useI18n } from 'vue-i18n';
 import { ICONS } from '~/lib/icons';
 import { OVERLAY_DESKTOP_KEY } from '~/composables/useIsDesktop';
 import { arrivedFromAnotherPage } from '~/lib/routeArrival';
-import { isUsableOrigin, keepInside, placeSheet, SHEET_MOTION, sheetHeight, sheetMaxHeight, sheetWidth, type SheetBox } from '~/utils/sheetPlacement';
+import { isHeightJump, isUsableOrigin, keepInside, placeSheet, SHEET_MOTION, sheetMaxHeight, sheetWidth, type SheetBox } from '~/utils/sheetPlacement';
 
 defineOptions({ name: 'TaskMorphShell' });
 
@@ -90,10 +92,11 @@ const scrimRef = ref<{ $el: HTMLElement } | null>(null);
 const faceRef = ref<HTMLElement | null>(null);
 const innerRef = ref<HTMLElement | null>(null);
 
-/** The content's `flex-1` has a basis of 0, which beats its `height`: the content would take the panel's height frame by frame (#659). `none` holds the size the content was given. */
-const HELD_SIZE = 'none';
-
 let running: Animation[] = [];
+/** The growth transition at rest (#846), while it runs; a later height change joins it. */
+let growth: Animation | null = null;
+/** The content's natural height the panel last took (at rest). */
+let restHeight = 0;
 /** Bumped by every open and close request, so a run that was overtaken stops touching the panel. */
 let generation = 0;
 let animating = false;
@@ -135,6 +138,8 @@ const scrimEl = (): HTMLElement | null => (scrimRef.value?.$el instanceof HTMLEl
 const cancelAll = () => {
   running.forEach((animation) => animation.cancel());
   running = [];
+  growth?.cancel();
+  growth = null;
 };
 
 /** Runs one animation and resolves when it ends or is cancelled. `fill: both` holds its end frame until `cancelAll`. */
@@ -181,12 +186,14 @@ const settle = () => {
   Object.assign(faceRef.value?.style ?? {}, { transformOrigin: '', willChange: '' });
   const el = panel();
   if (el) {
-    const vp = viewport();
-    Object.assign(el.style, { height: `${sheetHeight(sheetWidth(vp.width), sheetMaxHeight(vp.height, vp.top))}px`, visibility: 'visible' });
-    // At rest: the frame's height is the same before and after the morph, so the E2E settle helper reads this mark, not the height (#705)
+    // At rest the panel wraps its content (#846); the E2E settle helper reads this mark, not the height (#705)
+    Object.assign(el.style, { height: '', visibility: 'visible' });
     el.dataset.settled = 'true';
   }
-  if (innerRef.value) Object.assign(innerRef.value.style, { width: '', height: '', flex: '' });
+  if (innerRef.value) {
+    Object.assign(innerRef.value.style, { width: '', height: '' });
+    restHeight = innerRef.value.getBoundingClientRect().height;
+  }
 };
 
 /**
@@ -195,7 +202,11 @@ const settle = () => {
  */
 async function panelReady(mine: number): Promise<boolean> {
   for (let frame = 0; frame < 60 && mine === generation; frame++) {
-    if (panel() && innerRef.value) return true;
+    if (panel() && innerRef.value) break;
+    await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
+  }
+  // The sheet opens at its content's height (#846): give the route's page a few frames to render into the slot (its chunk may still load), then open with what is there
+  for (let frame = 0; frame < 30 && mine === generation && !innerRef.value?.querySelector('[data-testid="task-detail-header"], [data-testid="task-not-found"]'); frame++) {
     await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
   }
   return mine === generation && !!panel() && !!innerRef.value;
@@ -212,15 +223,16 @@ async function playOpen(mine: number, atRest: boolean) {
   const vp = viewport();
   const w = sheetWidth(vp.width);
   const maxH = sheetMaxHeight(vp.height, vp.top);
-  // The frame is fixed (#705): its height follows the width and the window, never the content, so nothing is measured
-  const h = sheetHeight(w, maxH);
-  Object.assign(el.style, { maxHeight: `${maxH}px`, opacity: '', transform: '' });
+  Object.assign(el.style, { width: `${w}px`, height: '', maxHeight: `${maxH}px`, opacity: '', transform: '' });
+  // The sheet is as tall as its content (#846): the wrapper's natural height at the sheet's width, capped by the window
+  Object.assign(inner.style, { width: '', height: '', maxHeight: `${maxH}px` });
+  const h = Math.min(inner.getBoundingClientRect().height, maxH);
   const card = originCard();
   const from = card ? boxOf(card) : null;
   const to = placeSheet(from, { w, h }, vp);
   Object.assign(el.style, { ...px(to), visibility: 'visible' });
   // The content keeps its final size while the panel grows: it is clipped, not re-laid-out every frame
-  Object.assign(inner.style, { width: `${to.w}px`, height: `${to.h}px`, flex: HELD_SIZE });
+  Object.assign(inner.style, { width: `${to.w}px`, height: `${to.h}px` });
 
   const reduced = reducedMotion();
   const fade: Keyframe[] = [{ opacity: 0 }, { opacity: 1 }];
@@ -278,7 +290,7 @@ async function playClose(mine: number) {
     const cardLook = lookOf(card);
     // Freeze the box and the content at their current size, then fold the panel into the card
     Object.assign(el.style, { ...px(current), height: `${current.h}px`, maxHeight: 'none' });
-    Object.assign(inner.style, { width: `${current.w}px`, height: `${current.h}px`, flex: HELD_SIZE });
+    Object.assign(inner.style, { width: `${current.w}px`, height: `${current.h}px` });
     setFace(card, to);
     void run(inner, [{ opacity: 1 }, { opacity: 0, offset: 0.4 }, { opacity: 0 }], { duration: closeMs, easing: 'linear' });
     scaleFace(current.w, to.w, 'down');
@@ -289,16 +301,48 @@ async function playClose(mine: number) {
   animating = false;
 }
 
-/** Keeps the sheet inside the window and within its limits after the content grew (Metadaten, a topic editor) or the window changed. */
+/** Keeps the sheet inside the window and within its limits after the window changed; the height stays the content's. */
 function keepPanelInside() {
   const el = panel();
-  if (!el || animating) return;
+  const inner = innerRef.value;
+  if (!el || !inner || animating) return;
+  growth?.cancel();
+  growth = null;
   const vp = viewport();
-  el.style.maxHeight = `${sheetMaxHeight(vp.height, vp.top)}px`;
+  const maxH = `${sheetMaxHeight(vp.height, vp.top)}px`;
+  el.style.maxHeight = maxH;
+  inner.style.maxHeight = maxH;
   el.style.width = `${sheetWidth(vp.width)}px`;
-  el.style.height = `${sheetHeight(sheetWidth(vp.width), sheetMaxHeight(vp.height, vp.top))}px`;
   const next = keepInside(boxOf(el), vp);
   Object.assign(el.style, { left: `${next.x}px`, top: `${next.y}px` });
+  restHeight = inner.getBoundingClientRect().height;
+}
+
+/**
+ * The content's natural height changed at rest (#846): the panel wraps it, so the new height is already laid out. A jump is
+ * guided: the panel runs from the box it shows now to the new one (height, and top when the bottom margin pushes it up).
+ */
+function followContent() {
+  const el = panel();
+  const inner = innerRef.value;
+  if (!el || !inner || animating || el.dataset.settled !== 'true') return;
+  const next = inner.getBoundingClientRect().height;
+  const jump = isHeightJump(restHeight, next, growth !== null);
+  // What the panel showed until now: mid-transition the transition's current frame, at rest the height it had (the panel wraps its content, so its box is already the new one)
+  const box = boxOf(el);
+  const shown = growth ? box : { ...box, h: restHeight };
+  restHeight = next;
+  growth?.cancel();
+  growth = null;
+  const to = keepInside({ x: Number.parseFloat(el.style.left) || shown.x, y: Number.parseFloat(el.style.top) || shown.y, w: shown.w, h: next }, viewport());
+  Object.assign(el.style, { left: `${to.x}px`, top: `${to.y}px` });
+  if (!jump || reducedMotion() || Math.abs(shown.h - next) < 1) return;
+  const animation = el.animate(
+    [{ top: `${shown.y}px`, height: `${shown.h}px` }, { top: `${to.y}px`, height: `${next}px` }],
+    { duration: SHEET_MOTION.growMs, easing: SHEET_MOTION.easeClose },
+  );
+  growth = animation;
+  void animation.finished.catch(() => undefined).then(() => { if (growth === animation) growth = null; });
 }
 
 watch(() => props.open, async (isOpen) => {
@@ -322,16 +366,15 @@ const onUpdateOpen = (value: boolean) => {
   if (!value) emit('update:open', false);
 };
 
-watch(panel, (el) => {
+watch(innerRef, (el) => {
   resizeObserver?.disconnect();
   if (el instanceof Element) resizeObserver?.observe(el);
 }, { flush: 'post' });
 
 onMounted(() => {
-  resizeObserver = new ResizeObserver(keepPanelInside);
+  resizeObserver = new ResizeObserver(followContent);
   window.addEventListener('resize', keepPanelInside);
-  const el = panel();
-  if (el instanceof Element) resizeObserver.observe(el);
+  if (innerRef.value instanceof Element) resizeObserver.observe(innerRef.value);
 });
 
 onBeforeUnmount(() => {

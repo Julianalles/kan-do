@@ -714,13 +714,13 @@
   },
   {
     "id": "ad-hoc-work",
-    "concept": "The mark of a task that was not planned but came up during the day (task.isUnplanned): the switch in the open Metadaten of the task sheet (#796; the card menu no longer sets it)",
+    "concept": "The mark of a task that was not planned but came up during the day (task.isUnplanned): a checked entry of the task sheet's menu sets and clears it, a label under the title shows it (#846; before that the switch in Metadaten, #796; the card menu no longer sets it)",
     "de": "Kam spontan dazu",
     "en": "Came up on the spot",
     "avoidDe": [],
     "avoidEn": [],
     "status": "proposed",
-    "note": "The line is from the epic #374's copy pass; Ad-hoc work is \"Ungeplant\" / \"Unplanned\" in the statistics (statistics.table.unplanned). Not \"nicht geplant\" (not-planned-state: a task off today)."
+    "note": "Short form for the label under the title, where the sentence does not fit: \"Spontan\" / \"Spontaneous\" (task.detail.adhocBadge, #846; proposed). The line is from the epic #374's copy pass; Ad-hoc work is \"Ungeplant\" / \"Unplanned\" in the statistics (statistics.table.unplanned). Not \"nicht geplant\" (not-planned-state: a task off today)."
   },
   {
     "id": "take-off-time",

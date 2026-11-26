@@ -18,7 +18,7 @@ const EXCEPTIONS: HoverException[] = [
 
 const PAGES: Array<{ name: string, run: (page: Page) => Promise<void> }> = [
   { name: 'the board', run: async (page) => { await expect(page.locator('.board .task').first()).toBeVisible() } },
-  { name: 'the task sheet', run: async (page) => { await page.goto('/tasks/seed-open-1'); await expect(page.getByRole('button', { name: /Metadaten/i })).toBeVisible() } },
+  { name: 'the task sheet', run: async (page) => { await page.goto('/tasks/seed-open-1'); await expect(page.getByTestId('task-metadata')).toBeVisible() } },
   { name: 'Statistik with finished tasks', run: async (page) => { await page.goto('/statistics'); await expect(page.getByTestId('stats-all-tasks').locator('summary')).toBeVisible() } },
   { name: 'the in-card add flow', run: async (page) => { await page.getByRole('button', { name: 'Aufgabe hinzufügen' }).first().click(); await page.getByTestId('new-card-title').fill('Hover check'); await page.keyboard.press('Enter'); await expect(page.getByTestId('new-card-step')).toBeVisible() } },
   { name: 'Themen und Aktivitäten with an editor open', run: async (page) => { await page.goto('/settings/topics'); await page.getByTestId('topics-row-button').first().click(); await expect(page.getByTestId('topic-editor')).toBeVisible() } },

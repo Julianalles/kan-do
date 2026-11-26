@@ -56,7 +56,7 @@ test.describe('Carried-over cue (#99), local tasks', () => {
   test('the sheet asks one question past 4 days; Keep turns it into a confirmation and leaves the dots (#247)', async ({ page, baseURL }) => {
     await page.goto(`${baseURL}/tasks/seed-open-1`)
     const triage = page.getByTestId('carry-over-triage')
-    await expect(triage).toContainText('Die Aufgabe ist seit 6 Tagen zur Erledigung eingeplant. Ist sie wirklich wichtig?')
+    await expect(triage).toContainText('Seit 6 Tagen eingeplant. Ist sie wirklich wichtig?')
     await expect(triage.getByRole('button')).toHaveText(['Ja, behalten', 'Nein, löschen'])
 
     await triage.getByTestId('carry-over-keep').click()

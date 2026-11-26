@@ -70,7 +70,7 @@ test.describe('card to sheet morph (desktop)', () => {
       win.__lines = []
       const tick = () => {
         const panel = document.querySelector('[role="dialog"]')
-        const line = document.querySelector('[data-testid="task-detail-footer"]')
+        const line = document.querySelector('[data-testid="task-metadata"]')
         if (panel && line) win.__lines.push(Math.round(line.getBoundingClientRect().y - panel.getBoundingClientRect().y))
         requestAnimationFrame(tick)
       }

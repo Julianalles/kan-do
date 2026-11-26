@@ -3,7 +3,7 @@
 @kind primitive
 @category display
 @description The one caret of "a block opens in place" (#610): a chevron-down at the trailing end of the block's header that turns 180 degrees over `--duration-slow` while the block opens, and back when it closes.
-@usage <DisclosureCaret :open="open" /> as the last child of the header's toggle (a button with `aria-expanded`); the Gestern erledigt note, a Statistik tile, a topic row, Metadaten, a stack's pill. Pair it with a `UCollapsible` panel so the block opens over the same 300 ms.
+@usage <DisclosureCaret :open="open" /> as the last child of the header's toggle (a button with `aria-expanded`); the Gestern erledigt note, a Statistik tile, a topic row, a stack's pill. Pair it with a `UCollapsible` panel so the block opens over the same 300 ms.
 @avoid Not a menu's or a select's chevron (those open a list that overlays, not a block that pushes its neighbours), not a button of its own (the header's toggle carries the click, `aria-expanded` and the name) and not a leading icon.
 @responsibility
 - Decorative: `aria-hidden`, never takes a pointer event; the toggle keeps the label and `aria-expanded`

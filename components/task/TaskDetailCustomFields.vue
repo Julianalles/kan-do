@@ -2,21 +2,23 @@
 @component TaskDetailCustomFields
 @kind component
 @category input
-@description Custom (Notion) properties of a task as flat label/value rows with inline editing
-@usage Used inside the "Eigenschaften" popover of TaskDetailPropertyStrip on the desktop sheet (#705) and in TaskDetailContent under the "Eigenschaften" heading on the drawer
+@description Custom (Notion) properties of a task as label/value cells of the task detail's two-column grid, with inline editing
+@usage Used in TaskDetailContent under the "Eigenschaften" label, on the sheet and in the drawer (#846: the strip and its popover of #705 are gone)
 @avoid Only the Notion custom properties in the task detail; core properties use TaskPropertyRow.
 @responsibility
 - Renders every custom property type (text, number, url, email, phone, checkbox, select, multi-select, date)
-- Every configured property is a row in a stable position; an empty one shows its empty state ("Auswählen…", "+ hinzufügen") instead of hiding behind a "+ n weitere" action (#161)
+- The cells continue the standard properties' grid (`.task-detail-grid`, task-detail.css): two columns, the label left of the value on the sheet and above it in the drawer (`TaskPropertyRow` `stacked`)
+- Every configured property is a cell in a stable position; an empty one shows its empty state ("Auswählen…", "+ hinzufügen") instead of hiding behind a "+ n weitere" action (#161)
 - Integrates with the property options store for select/multi-select
 - Emits update events for the parent to handle persistence
 -->
 <template>
-  <div class="flex flex-col">
+  <div class="task-detail-grid" :class="{ 'task-detail-grid--stacked': !isDesktop }">
     <TaskPropertyRow
       v-for="entry in customList"
       :key="entry.key"
       :label="entry.name"
+      :stacked="!isDesktop"
       private
     >
       <!-- Checkbox (direct toggle) -->
@@ -111,8 +113,12 @@ import InlineEditable from '~/components/ui/inline/InlineEditable.vue';
 import DatePickerField from '~/components/task/DatePickerField.vue';
 import TaskPropertyRow from '~/components/task/TaskPropertyRow.vue';
 import TaskPropertySelect from '~/components/task/TaskPropertySelect.vue';
+import { useOverlayIsDesktop } from '~/composables/useIsDesktop';
 
 defineOptions({ name: 'TaskDetailCustomFields' });
+
+/** The drawer stacks the label above the value (#846); follows the sheet's frozen variant */
+const isDesktop = useOverlayIsDesktop();
 
 const { t } = useI18n();
 

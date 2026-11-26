@@ -57,14 +57,12 @@ test('requirements sections 1-10 hold on one mixed board', async ({ context, pag
 
   // 9. The task sheet follows the task's own source
   await page.goto('/tasks/page-1')
-  // #705: on the desktop sheet the Notion properties are a chip strip with one "Eigenschaften" button (no heading)
-  await expect(page.getByTestId('task-properties-button')).toBeVisible()
-  await page.getByRole('button', { name: 'Metadaten' }).click()
+  // #846: the Notion properties are cells of the sheet's grid under "Eigenschaften"; the footer line names the source
+  await expect(page.getByTestId('task-custom-properties')).toBeVisible()
   await expect(page.getByTestId('task-detail-source')).toHaveText('Notion')
   await page.goto('/tasks/local-open-1')
-  await page.getByRole('button', { name: 'Metadaten' }).click()
   await expect(page.getByTestId('task-detail-source')).toHaveText('Lokal')
-  await expect(page.getByTestId('task-properties-button')).toHaveCount(0)
+  await expect(page.getByTestId('task-custom-properties')).toHaveCount(0)
   await page.goto('/tasks')
 
   // 7. Speicherorte: the default sits in the rows; make Local the default
