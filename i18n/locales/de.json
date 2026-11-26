@@ -244,14 +244,16 @@
           "title": "Das ist dein Tag",
           "text": {
             "desktop": "Unter „Offen“ steht, was heute ansteht. Alles andere wartet unter „Alle“.",
-            "phone": "Wische zur Seite für „Offen“: Dort steht, was heute ansteht. Alles andere wartet unter „Alle“."
+            "phone": "Wische zur Seite für „Offen“: Dort steht, was heute ansteht. Alles andere wartet unter „Alle“.",
+            "phoneOpen": "Du bist bei „Offen“: Dort steht, was heute ansteht. Alles andere wartet unter „Alle“."
           }
         },
         "sample": {
           "title": "Ein Beispieltag zum Ausprobieren",
           "text": {
             "desktop": "So sieht ein Tag in Kan-do aus. Verschiebe ruhig Karten, es sind Beispiele.",
-            "phone": "So sieht ein Tag in Kan-do aus. Wische zur Seite für „Offen“ und „Erledigt“. Verschiebe ruhig Karten, es sind Beispiele."
+            "phone": "So sieht ein Tag in Kan-do aus. Wische zur Seite für „Offen“ und „Erledigt“. Verschiebe ruhig Karten, es sind Beispiele.",
+            "phoneOpen": "So sieht ein Tag in Kan-do aus. Wische zur Seite für „Erledigt“. Verschiebe ruhig Karten, es sind Beispiele."
           }
         },
         "one": {

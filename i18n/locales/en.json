@@ -244,14 +244,16 @@
           "title": "This is your day",
           "text": {
             "desktop": "Open holds what's on today. Everything else waits under All.",
-            "phone": "Swipe sideways to Open: it holds what's on today. Everything else waits under All."
+            "phone": "Swipe sideways to Open: it holds what's on today. Everything else waits under All.",
+            "phoneOpen": "You're on Open: it holds what's on today. Everything else waits under All."
           }
         },
         "sample": {
           "title": "A sample day to try out",
           "text": {
             "desktop": "This is what a day in Kan-do looks like. Move cards around freely, they're examples.",
-            "phone": "This is what a day in Kan-do looks like. Swipe sideways for Open and Done. Move cards around freely, they're examples."
+            "phone": "This is what a day in Kan-do looks like. Swipe sideways for Open and Done. Move cards around freely, they're examples.",
+            "phoneOpen": "This is what a day in Kan-do looks like. Swipe sideways for Done. Move cards around freely, they're examples."
           }
         },
         "one": {

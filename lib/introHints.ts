@@ -228,9 +228,11 @@ export function resolveIntroWelcome(board: IntroWelcomeBoard): IntroWelcome {
   }
 
   if (scenario === 'today' || scenario === 'sample') {
+    // An empty Jetzt opens the phone on "Offen" (kd#191): there the note must not send the user away to it.
+    const textWidth = board.phone && !board.jetzt ? 'phoneOpen' : width
     const first: IntroNoteCopy = scenario === 'sample'
-      ? { titleKey: `${WELCOME}.tour.sample.title`, textKey: `${WELCOME}.tour.sample.text.${width}` }
-      : { titleKey: `${WELCOME}.tour.today.title`, textKey: `${WELCOME}.tour.today.text.${width}` }
+      ? { titleKey: `${WELCOME}.tour.sample.title`, textKey: `${WELCOME}.tour.sample.text.${textWidth}` }
+      : { titleKey: `${WELCOME}.tour.today.title`, textKey: `${WELCOME}.tour.today.text.${textWidth}` }
     const one: IntroNoteCopy = {
       titleKey: `${WELCOME}.tour.one.title`,
       textKey: board.jetzt ? `${WELCOME}.tour.one.filled` : `${WELCOME}.tour.one.empty.${width}`,
