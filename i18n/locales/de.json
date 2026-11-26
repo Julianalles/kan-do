@@ -225,15 +225,15 @@
           "desktop": "Hier steht nur, was heute dran ist. Unter „Offen“ sammelst du es. In „Jetzt“ liegt die eine Aufgabe, an der du gerade arbeitest. Schreib als Erstes auf, was heute ansteht.",
           "phone": "Hier steht nur, was heute dran ist. In „Jetzt“ liegt die eine Aufgabe, an der du gerade arbeitest. Schreib als Erstes auf, was heute ansteht."
         },
-        "all": "Unter „Alle“ sammelst du, was ansteht. „Heute“ zeigt nur, was du für heute einplanst. Schreib als Erstes eine Aufgabe auf."
+        "all": "Unter „Alle“ sammelst du, was ansteht. In der Navigation zeigt „Heute“ nur, was du für heute einplanst. Schreib als Erstes eine Aufgabe auf."
       },
       "connectedEmpty": {
         "text": "Aus {source} ist noch keine Aufgabe gekommen. Was dort ansteht, findest du später unter „Alle“. Du kannst auch gleich hier eine Aufgabe aufschreiben."
       },
       "underAll": {
         "title": "Deine Aufgaben sind da",
-        "today": "Sie liegen unter „Alle“. Wähle dort aus, was du dir für heute vornimmst. „Heute“ zeigt dann nur das.",
-        "all": "Hier liegt alles, was ansteht. Der Pfeil an einer Karte plant sie für heute ein. Wechsle zu „Heute“, sobald du loslegen willst.",
+        "today": "Sie liegen unter „Alle“. Wähle dort aus, was du dir für heute vornimmst. In der Navigation zeigt „Heute“ dann nur das.",
+        "all": "Hier liegt alles, was ansteht. Der Pfeil an einer Karte plant sie für heute ein. Sobald du loslegen willst, wechsle in der Navigation zu „Heute“.",
         "action": "Aufgaben auswählen"
       },
       "tour": {

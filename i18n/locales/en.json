@@ -225,15 +225,15 @@
           "desktop": "This sheet holds only what's on today. Open collects it. Now holds the one task you're working on. Start by writing down what's on today.",
           "phone": "This sheet holds only what's on today. Now holds the one task you're working on. Start by writing down what's on today."
         },
-        "all": "All collects what's on your plate. Today shows only what you plan for today. Start by writing down a task."
+        "all": "All collects what's on your plate. “Today” in the navigation shows only what you plan for today. Start by writing down a task."
       },
       "connectedEmpty": {
         "text": "No task has come from {source} yet. What comes in will be under All. You can also write down a task right here."
       },
       "underAll": {
         "title": "Your tasks are here",
-        "today": "They're under All. Pick there what you take on today. Today then shows only that.",
-        "all": "Everything on your plate is here. The arrow on a card plans it for today. Switch to Today when you're ready to start.",
+        "today": "They're under All. Pick there what you take on today. “Today” in the navigation then shows only that.",
+        "all": "Everything on your plate is here. The arrow on a card plans it for today. When you're ready to start, switch to “Today” in the navigation.",
         "action": "Pick tasks"
       },
       "tour": {
