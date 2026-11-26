@@ -6,31 +6,30 @@
 @usage Used by TaskSheetDetail, the body of the detail route in the task sheet (/tasks/:id and /statistics/:id)
 @avoid Shared body of the task detail (board and statistics open the same sheet); not for the add form, which is TaskForm.
 @responsibility
-- Display task properties as labelled rows (shared with the add form, #161), notes, and custom fields
+- Display task properties as labelled cells (the row is shared with the add form, #161), the note, and custom fields
 - Every property is a row in a stable position; unset Thema/Aktivität show the empty "Auswählen" state (#161)
-- Order: property rows (time spent last, with the time left beside it, kd#4), notes, custom properties, metadata (#386). Desktop sheet (#468, `TaskMorphShell`; one fixed frame, #705): title across the top with the task menu and the close button at its end, the custom-property strip under it (TaskDetailPropertyStrip: chips and one "Eigenschaften" button, only when properties are configured), then the six rows in the left column and the notes in the right column, each column scrolling inside the sheet (the sheet never grows with its content; Metadaten open shrinks the columns); Metadaten alone on the last line, no band, no hairline. The drawer lists the custom properties as rows after the notes
+- One grid (#846, user: layout B and footer line; reverses the fixed frame, the strip and the two scrolling columns of #705): the title row first (title, task menu, close button, at the same place in every state), the label "Spontan" when the task is ad-hoc work, the planned-days line or the carried-over question under the title, the standard properties as a two-column grid (`.task-detail-grid`: Status, Heute / Thema, Aktivität / Priorität, Timebox / time spent; the DOM order is the shown order), the board's extra properties as further cells of the same grid under the label "Eigenschaften" (TaskDetailCustomFields; no label and no cells on a board without them), the note full width, the footer line (TaskDetailMetadata). Desktop sheet (`TaskMorphShell`): as tall as its content, capped by the window; from there the note alone scrolls, and only a window too short for the rows scrolls the whole body, so a row is never cut and never scrolls on its own. Drawer: one scrolling page, two cells per row with the label above the value (`TaskPropertyRow` `stacked`), the Heute switch without its text
 - Provide formatted display of all task metadata
-- Task menu (#705, TaskSheetMenu; reverses #244's bottom row): open in source, move to source, Delete behind one ⋯ button in the title row, no copy id (the id is in Metadaten). Desktop: left of the shell's close button (`inset-e-14 top-4`); drawer: beside the title. It follows the title in the DOM, so the tab order is close, title, menu
+- Task menu (#705, TaskSheetMenu; reverses #244's bottom row): open in source, move to source, "Kam spontan dazu" (checked entry), "ID kopieren" and Delete behind one ⋯ button in the title row. Desktop: left of the shell's close button (`inset-e-14 top-4`); drawer: beside the title. It follows the title in the DOM, so the tab order is close, title, menu. The id is shown nowhere: `copyId` copies it and confirms with a toast, a failure reports through `useErrorHandler` (`copy_id`)
 - Render error state when task not found
 - Handle inline updates and synchronization
 - Topic and activity pickers (TopicPropertyPicker): the topic mark before each option, no control inside an option; an edit mode in the
   picker's footer ("Bearbeiten" / "Fertig") lists one button row per option, and a row closes the picker and opens the shared
   TopicEditorHost under the property row (#430, #431, #443); topics also get a "Themen verwalten" row
-- Host the carried-over triage block and line (#99); a status change that ends the nudge closes the block and opens the line in place over `--duration-slow`, and the done-day row opens the same way (#610)
-- Status row: four choices, Offen, Jetzt, Wartet, Erledigt (#795: "Nicht geplant" is no status, #359 is reversed). The row "Heute" under it holds the switch "Für heute eingeplant"
-  (`useTaskStatusActions.togglePlanned`, epic #374): on a Jetzt task it is on and fixed with the hint "Jetzt gehört immer zu heute.", an Erledigt task has no
-  row (the marker plays no part there). The switch "Kam spontan dazu" (ad-hoc work, #796; the card menu no longer has the entry) sits in the open Metadaten, no row of its own
-- Guard against drift (#161, kd#4): the always-visible standard rows are Status, Heute (#795, not on a done task), Priorität, Thema, Aktivität, Timebox,
-  Aufgewendete Zeit,
-  no per-row icons, no dividers; more always-visible rows must revisit the layout. Custom properties are not rows of the column on desktop (#705): the frame leaves no room for variable-height rows. There is no hairline in the sheet
-- Done day (kd#131, agent-decided): a done task gets one more row, "Erledigt am", last in the list so no other row moves
-  when a task is completed. It is the correction of a task marked done late, not part of completing: a DatePickerField
+- Host the carried-over triage block and line (#99), both under the title (#846); a status change that ends the nudge closes the block and opens the line in place over `--duration-slow` (#610)
+- Status cell: four choices, Offen, Jetzt, Wartet, Erledigt (#795: "Nicht geplant" is no status, #359 is reversed). The cell "Heute" beside it holds the switch "Für heute eingeplant"
+  (`useTaskStatusActions.togglePlanned`, epic #374): on a Jetzt task it is on and fixed with the hint "Jetzt gehört immer zu heute."; a done task has "Erledigt am" in that cell
+  (the marker plays no part there). Ad-hoc work (#796) is no row and no switch: the label under the title shows it, the task menu sets and clears it (#846)
+- Guard against drift (#161, kd#4): the always-visible standard cells are Status, Heute (#795, not on a done task), Thema, Aktivität, Priorität, Timebox,
+  time spent (visible label "Aufgewendet", the control keeps "Aufgewendete Zeit"); no per-row icons, no dividers, no hairline in the sheet. Seven cells leave the one beside the time spent empty (accepted, #846)
+- Done day (kd#131, agent-decided): a done task has "Erledigt am" in the cell of Heute, so no other cell moves
+  when a task is completed (#846; a plain swap, nothing folds). It is the correction of a task marked done late, not part of completing: a DatePickerField
   without Löschen, limited to the days from the task's creation to today; picking a day goes through
-  `useTaskSync.setCompletedDay` (statistics and the board's today / before-today split follow at once). The row is
-  conditional, so the six-row guard above still counts the always-visible rows. A task whose connection holds no
+  `useTaskSync.setCompletedDay` (statistics and the board's today / before-today split follow at once). A task whose connection holds no
   completion date says "Gilt nur in Kan-do." beside the value
-- Close clearance (kd#201, #705): on desktop the shell's close button sits at the top end corner (`top-4 end-4`, 32 px) and the task menu left of it, so the title and a triage block end 96 px (`pe-24`/`me-24`) from the sheet's edge and never run under the controls; change both together
-- Property rows (moved from DESIGN.md, kd#176): a quiet label column and the value as its own control, a soft select with a chevron when it opens a list (`TaskPropertySelect`), an editable label on a faint dotted rule when it is free input (`InlineEditable`, `PropertyValueTrigger`). Every row keeps its place whether set or not ("Auswählen…", "+ hinzufügen"); six standard rows, the last one "Aufgewendete Zeit" (a source that owns the text, Reminders #551, shows Thema and Aktivität as plain values and leaves an empty one out); no per-row icons, dividers or chips, and no separate time block or progress ring on the sheet
+- Close clearance (kd#201, #705): on desktop the shell's close button sits at the top end corner (`top-4 end-4`, 32 px) and the task menu left of it, so the title block ends 96 px (`pe-24`) from the sheet's edge and never runs under the controls; change both together. The triage block sits below them and takes the full width
+- Property cells (moved from DESIGN.md, kd#176): a quiet label and the value as its own control, a soft select with a chevron when it opens a list (`TaskPropertySelect`), an editable label on a faint dotted rule when it is free input (`InlineEditable`, `PropertyValueTrigger`). Every cell keeps its place whether set or not ("Auswählen…", "+ hinzufügen") (a source that owns the text, Reminders #551, shows Thema and Aktivität as plain values and leaves an empty one out); no per-row icons, dividers or chips, and no separate time block or progress ring on the sheet
+- The title's error line is not held open (#846; #594 held it): the label and the lines under the title follow the title directly, and the rare error (an emptied title) opens its line while the field is being edited
 -->
 
 <template>
@@ -41,25 +40,11 @@
 
   <div v-else-if="task" class="task-detail-content flex flex-col" :class="{ 'min-h-0 flex-1': twoColumn }">
 
-    <!-- Two columns in the desktop sheet (title across the top, rows | notes, one last line); plain flow, scrolled by the drawer, on mobile -->
-    <div :class="twoColumn ? 'flex min-h-0 flex-1 flex-col' : 'flex flex-col'" :data-testid="twoColumn ? 'task-detail-sheet' : 'task-detail-scroll'">
+    <!-- One page (#846). Desktop sheet: as tall as its content; at the window's limit the note alone scrolls (the whole body only in a window too short for the rows). Drawer: plain flow, scrolled by the drawer -->
+    <div :class="twoColumn ? 'flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain' : 'flex flex-col'" :data-testid="twoColumn ? 'task-detail-sheet' : 'task-detail-scroll'">
 
-    <!-- Carried-over triage (#99): only for Offen/Jetzt cards past the threshold; full width above the title, clear of the close button -->
-    <UCollapsible v-if="!isPreview" :open="triageOpen">
-      <template #content>
-        <TaskCarryOverTriage
-          :task-id="task.id"
-          :hold="!triageOpen"
-          class="mt-4 mb-2"
-          :class="twoColumn ? 'ms-6 me-24' : 'mx-6'"
-          @kept="onTriageKept"
-          @delete="emit('delete')"
-        />
-      </template>
-    </UCollapsible>
-
-    <!-- Title: the sheet's one display line; on desktop it runs clear of the close button (kd#201: `top-4 end-4`, 32 px) and the task menu left of it (#705: `inset-e-14 top-4`, 32 px) -->
-    <div class="shrink-0 pb-4" :class="twoColumn ? 'ps-6 pe-24 pt-5' : 'px-6 pt-2'" data-testid="task-detail-header">
+    <!-- Title row: always first, so the title, the task menu and the close button are at the same place in every state (#846). On desktop the title runs clear of the close button (kd#201: `top-4 end-4`, 32 px) and the task menu left of it (#705: `inset-e-14 top-4`, 32 px) -->
+    <div class="shrink-0 pb-2" :class="twoColumn ? 'ps-6 pe-24 pt-5' : 'px-6 pt-2'" data-testid="task-detail-header">
       <div class="flex items-start gap-3">
         <div class="min-w-0 flex-1">
           <InlineEditable
@@ -68,7 +53,6 @@
             :model-value="task.title"
             :label="t('task.field.title')"
             required
-            reserve-error
             :readonly="!canEditText"
             :required-message="t('task.form.titleRequired')"
             class="text-headline"
@@ -79,6 +63,10 @@
             @save="(val) => handleTitleSave(val as string)"
             @cancel="isSmallerStep = false"
           />
+          <!-- Ad-hoc work (#846): a label, set and cleared in the task menu -->
+          <p v-if="task.isUnplanned === true" class="mt-1" data-testid="task-adhoc-label">
+            <UBadge color="neutral" variant="subtle" icon="i-ph-lightning">{{ t('task.detail.adhocBadge') }}</UBadge>
+          </p>
           <p v-if="isSmallerStep" :id="smallerHintId" class="mt-1 text-body text-muted" data-testid="carry-over-smaller-hint">
             {{ t('task.carryOver.smallerHint') }}
           </p>
@@ -102,25 +90,36 @@
         <!-- Task menu (#705): beside the title on the drawer; on desktop it sits absolutely left of the shell's close button, still after the title in the tab order -->
         <TaskSheetMenu
           v-bind="actionProps"
+          :adhoc="task.isUnplanned === true"
           :class="twoColumn ? 'absolute inset-e-14 top-4 z-10' : '-me-2 shrink-0 max-md:-me-3'"
           @open="openSource"
           @move="moveToSource"
           @delete="emit('delete')"
+          @update:adhoc="(on: boolean) => updateAndSync({ isUnplanned: on })"
+          @copy-id="copyId"
         />
       </div>
     </div>
 
-    <!-- Custom properties on the desktop sheet (#705): a chip strip under the title and one button for the editable list; the drawer lists them as rows after the notes -->
-    <TaskDetailPropertyStrip v-if="twoColumn" :key="task.id" :custom-list="customList" @update="updateCustomField" />
+    <!-- Carried-over triage (#99): only for Offen/Jetzt cards past the threshold. Under the title (#846), full width: it is below the close button and the menu -->
+    <UCollapsible v-if="!isPreview" :open="triageOpen" class="shrink-0">
+      <template #content>
+        <TaskCarryOverTriage
+          :task-id="task.id"
+          :hold="!triageOpen"
+          class="mx-6 mb-3"
+          @kept="onTriageKept"
+          @delete="emit('delete')"
+        />
+      </template>
+    </UCollapsible>
 
-    <!-- Groups are separated by space only: properties, time, notes, custom properties, metadata. Desktop: rows left, notes right, each scrolling inside its column -->
-    <div :class="twoColumn ? 'grid min-h-0 flex-1 grid-cols-2 grid-rows-[minmax(0,1fr)] gap-x-8 px-6 pb-3' : 'flex flex-col gap-6 px-6 pb-6'">
+    <!-- Groups are separated by space only: the property grid, the board's extra properties, the note -->
+    <div :class="twoColumn ? 'flex min-h-0 flex-1 flex-col gap-5 px-6 pb-2' : 'flex flex-col gap-6 px-6 pb-6'">
 
-      <div :class="twoColumn ? '-mx-2 min-h-0 overflow-y-auto overscroll-contain px-2 pb-1' : 'contents'" data-testid="task-detail-rows">
-
-      <!-- 1. Property rows (#161): Status, Heute, Priorität, Timebox, Ungeplant always; Thema/Aktivität once set -->
-      <div class="flex flex-col gap-1.5" data-testid="task-property-list">
-        <TaskPropertyRow :label="t('task.field.status')">
+      <!-- 1. Standard properties (#161, #846): a two-column grid in the shown order, Status, Heute / Thema, Aktivität / Priorität, Timebox / time spent. The DOM order is the tab order -->
+      <div class="task-detail-grid shrink-0" :class="{ 'task-detail-grid--stacked': !twoColumn }" data-testid="task-property-list">
+        <TaskPropertyRow :label="t('task.field.status')" :stacked="!twoColumn">
           <TaskPropertySelect
             :label="t('task.field.status')"
             :model-value="task.status"
@@ -131,54 +130,53 @@
           />
         </TaskPropertyRow>
 
-        <!-- Heute (#795): the marker "Für heute eingeplant" beside the status. A done task has no row: the marker plays no part there. The row (and the hint under the switch of a Jetzt task) opens in place over `--duration-slow` (#610), so the rows below never jump; the row's 6 px gap sits inside, the root takes it back while closed, as with the done day -->
-        <UCollapsible :open="task.status !== TaskStatus.Done" class="-mt-1.5">
-          <template #content>
-            <div class="pt-1.5">
-              <TaskPropertyRow :label="t('task.field.today')">
-                <div class="flex min-w-0 flex-col">
-                  <!-- While the hint is open its line closes up under the switch (`-mb-1.5` here: a negative margin on the hint itself is cut by the collapsible's overflow) -->
-                  <div class="flex min-h-(--field-h) items-center" :class="{ '-mb-1.5': task.status === TaskStatus.Progress }">
-                    <USwitch
-                      :model-value="isPlannedToday"
-                      :label="t('task.field.plannedToday')"
-                      :disabled="isPreview || !canTogglePlanned"
-                      :aria-describedby="task.status === TaskStatus.Progress ? plannedHintId : undefined"
-                      data-testid="task-planned-switch"
-                      @update:model-value="(on: boolean) => togglePlanned(on)"
-                    />
-                  </div>
-                  <UCollapsible :open="task.status === TaskStatus.Progress">
-                    <template #content>
-                      <!-- Under the switch's label, not its track: `ps-11` is the track (36 px) and its gap -->
-                      <p :id="plannedHintId" class="pb-1.5 ps-11 text-xs text-muted" data-testid="task-planned-hint">
-                        {{ t('task.field.plannedTodayHint') }}
-                      </p>
-                    </template>
-                  </UCollapsible>
-                </div>
-              </TaskPropertyRow>
+        <!-- Heute (#795): the marker "Für heute eingeplant" beside the status. A done task has "Erledigt am" in this cell instead (the marker plays no part there), so a status change swaps the cell and moves no other (#846). The drawer's cell is narrow: the switch stands without its text, the cell's label names it. The hint of a Jetzt task opens in place over `--duration-slow` (#610) -->
+        <TaskPropertyRow v-if="task.status !== TaskStatus.Done" v-slot="{ labelId }" :label="t('task.field.today')" :stacked="!twoColumn" data-today-row>
+          <div class="flex min-w-0 flex-col">
+            <!-- While the hint is open its line closes up under the switch (`-mb-1.5` here: a negative margin on the hint itself is cut by the collapsible's overflow) -->
+            <div class="flex min-h-(--field-h) items-center" :class="{ '-mb-1.5': task.status === TaskStatus.Progress }">
+              <USwitch
+                :model-value="isPlannedToday"
+                :label="twoColumn ? t('task.field.plannedToday') : undefined"
+                :aria-labelledby="twoColumn ? undefined : labelId"
+                :disabled="isPreview || !canTogglePlanned"
+                :aria-describedby="task.status === TaskStatus.Progress ? plannedHintId : undefined"
+                data-testid="task-planned-switch"
+                @update:model-value="(on: boolean) => togglePlanned(on)"
+              />
             </div>
-          </template>
-        </UCollapsible>
-
-        <TaskPropertyRow :label="t('task.field.priority')">
-          <TaskPropertySelect
-            :label="t('task.field.priority')"
-            :model-value="priorityValue"
-            :items="priorityItems"
-            value-key="value"
-            :hint="t('task.form.priorityHint')"
-            data-testid="task-priority-select"
-            @update:model-value="(val) => updatePriority(Number(val))"
-          />
+            <UCollapsible :open="task.status === TaskStatus.Progress">
+              <template #content>
+                <!-- Under the switch's label, not its track: `ps-11` is the track (36 px) and its gap; the drawer's switch has no text, so the hint starts at the cell's edge -->
+                <p :id="plannedHintId" class="pb-1.5 text-xs text-muted" :class="{ 'ps-11': twoColumn }" data-testid="task-planned-hint">
+                  {{ t('task.field.plannedTodayHint') }}
+                </p>
+              </template>
+            </UCollapsible>
+          </div>
         </TaskPropertyRow>
+
+        <!-- Done day (kd#131): only on a done task, in the cell of Heute; corrects the day of a task marked done late -->
+        <TaskPropertyRow v-else-if="doneDay" :label="t('task.field.doneDay')" :stacked="!twoColumn" data-done-day-row>
+          <DatePickerField
+            :model-value="{ start: doneDay }"
+            :label="t('task.field.doneDay')"
+            :min-day="doneDayLimits.min"
+            :max-day="doneDayLimits.max"
+            :clearable="false"
+            :disabled="isPreview"
+            @update:model-value="(val) => updateDoneDay(val?.start)"
+          />
+          <span v-if="doneDayLocalOnly" class="text-sm text-muted" data-testid="done-day-local-only">{{ t('task.doneDay.localOnly') }}</span>
+        </TaskPropertyRow>
+        <!-- A done task without a completion day: the cell stays, so no later cell changes column (#846) -->
+        <div v-else aria-hidden="true" data-testid="task-grid-spacer" />
 
         <!-- A source that owns the text (Reminders, #551) also owns the Thema and the Aktivität: the list. Shown as plain values, never as pickers -->
-        <TaskPropertyRow v-if="!canEditText && task.topic" :label="t('task.field.topic')" private>
+        <TaskPropertyRow v-if="!canEditText && task.topic" :label="t('task.field.topic')" :stacked="!twoColumn" private>
           <InlineEditable readonly affordance="rule" :model-value="task.topic" :label="t('task.field.topic')" data-private data-testid="task-topic-readonly" />
         </TaskPropertyRow>
-        <TaskPropertyRow v-else-if="canEditText" :label="t('task.field.topic')" private>
+        <TaskPropertyRow v-else-if="canEditText" :label="t('task.field.topic')" :stacked="!twoColumn" private>
           <TopicPropertyPicker
             kind="topic"
             :editable="!isPreview"
@@ -196,14 +194,12 @@
             @edit="(name) => openEditor('topic', name)"
           />
         </TaskPropertyRow>
-        <div v-if="editing?.kind === 'topic'" class="ms-25 max-md:ms-0">
-          <TopicEditorHost :key="`topic:${editing.name}`" nested :topic="editing.name" kind="topic" @close="closeEditor" />
-        </div>
+        <div v-else aria-hidden="true" data-testid="task-grid-spacer" />
 
-        <TaskPropertyRow v-if="!canEditText && task.activity" :label="t('task.field.activity')" private>
+        <TaskPropertyRow v-if="!canEditText && task.activity" :label="t('task.field.activity')" :stacked="!twoColumn" private>
           <InlineEditable readonly affordance="rule" :model-value="task.activity" :label="t('task.field.activity')" data-private data-testid="task-activity-readonly" />
         </TaskPropertyRow>
-        <TaskPropertyRow v-else-if="canEditText" :label="t('task.field.activity')" private>
+        <TaskPropertyRow v-else-if="canEditText" :label="t('task.field.activity')" :stacked="!twoColumn" private>
           <TopicPropertyPicker
             kind="activity"
             :editable="!isPreview"
@@ -220,12 +216,27 @@
             @edit="(name) => openEditor('activity', name)"
           />
         </TaskPropertyRow>
-        <div v-if="editing?.kind === 'activity'" class="ms-25 max-md:ms-0">
-          <TopicEditorHost :key="`activity:${editing.name}`" nested kind="activity" :topic="editing.name" @close="closeEditor" />
+        <div v-else aria-hidden="true" data-testid="task-grid-spacer" />
+
+        <!-- The shared topic editor (#430): under the row of Thema and Aktivität, across both columns -->
+        <div v-if="editing" class="task-detail-grid__wide">
+          <TopicEditorHost :key="`${editing.kind}:${editing.name}`" nested :topic="editing.name" :kind="editing.kind" @close="closeEditor" />
         </div>
 
+        <TaskPropertyRow :label="t('task.field.priority')" :stacked="!twoColumn">
+          <TaskPropertySelect
+            :label="t('task.field.priority')"
+            :model-value="priorityValue"
+            :items="priorityItems"
+            value-key="value"
+            :hint="t('task.form.priorityHint')"
+            data-testid="task-priority-select"
+            @update:model-value="(val) => updatePriority(Number(val))"
+          />
+        </TaskPropertyRow>
+
         <!-- Timebox: the single entry point for the value; the suggestion sits next to it as text -->
-        <TaskPropertyRow :label="t('task.timebox')">
+        <TaskPropertyRow :label="t('task.timebox')" :stacked="!twoColumn">
           <InlineEditable
             :model-value="timeboxInMinutes"
             :label="t('task.timebox')"
@@ -265,8 +276,9 @@
           <span v-if="timeboxSuggestion" :id="suggestionHintId" class="sr-only">{{ timeboxSuggestion.matchDescription }}</span>
         </TaskPropertyRow>
 
-        <!-- Time spent (kd#4): the total in minutes, edited like the Timebox; what is left of the Timebox sits beside it as text -->
-        <TaskPropertyRow :label="t('task.field.timeSpent')">
+        <!-- Time spent (kd#4): the total in minutes, edited like the Timebox; what is left of the Timebox sits beside it as text. The visible label is the short form (#846: "Aufgewendet" fits the label column), the control keeps the full name -->
+        <!-- Drawer: the cell spans both columns (it has no neighbour), so the time left stays beside the value instead of wrapping under it -->
+        <TaskPropertyRow :label="t('task.field.timeSpentShort')" :stacked="!twoColumn" :class="{ 'task-detail-grid__wide': !twoColumn }">
           <InlineEditable
             :model-value="timeSpentInMinutes"
             :label="t('task.field.timeSpent')"
@@ -302,40 +314,10 @@
             data-testid="time-remaining"
           >{{ t('task.timeStats.remaining', { time: remainingTimeText }) }}</span>
         </TaskPropertyRow>
-
-        <!-- Done day (kd#131): only on a done task; corrects the day of a task marked done late -->
-        <!-- It opens in place over `--duration-slow` (#610); the row's 6 px gap sits inside, the root takes it back while closed -->
-        <UCollapsible :open="!!doneDay" class="-mt-1.5">
-          <template #content>
-            <div class="pt-1.5">
-              <TaskPropertyRow :label="t('task.field.doneDay')" data-done-day-row>
-                <DatePickerField
-                  :model-value="shownDoneDay ? { start: shownDoneDay } : null"
-                  :label="t('task.field.doneDay')"
-                  :min-day="doneDayLimits.min"
-                  :max-day="doneDayLimits.max"
-                  :clearable="false"
-                  :disabled="isPreview"
-                  @update:model-value="(val) => updateDoneDay(val?.start)"
-                />
-                <span v-if="doneDayLocalOnly" class="text-sm text-muted" data-testid="done-day-local-only">{{ t('task.doneDay.localOnly') }}</span>
-              </TaskPropertyRow>
-            </div>
-          </template>
-        </UCollapsible>
       </div>
 
-      </div>
-
-      <!-- 2. Notes: directly after the main fields on every sheet variant (#386); in the sheet their own column, scrolling inside it and never setting the sheet's height -->
-      <div :class="twoColumn ? 'relative min-h-0' : ''" data-testid="task-notes-column">
-        <div :class="twoColumn ? 'absolute inset-y-0 -inset-s-2 -inset-e-2 overflow-y-auto overscroll-contain px-2' : ''">
-          <TaskDetailNotes :notes="task.notes" :readonly="!canEditText" @save="updateNotes" />
-        </div>
-      </div>
-
-      <!-- 3. Custom (Notion) properties on the drawer: after the notes -->
-      <section v-if="hasCustom && !twoColumn" aria-labelledby="custom-heading" class="task-detail-section">
+      <!-- 2. The board's extra properties (#846): further cells of the same grid under one label; nothing at all on a board without them -->
+      <section v-if="hasCustom" aria-labelledby="custom-heading" class="flex shrink-0 flex-col" :class="twoColumn ? 'gap-0.5' : 'gap-2'" data-testid="task-custom-properties">
         <SectionHeader id="custom-heading" :text="t('task.field.properties')" tag="h3" size="label" class="mb-0" />
         <TaskDetailCustomFields
           :key="task.id"
@@ -344,27 +326,22 @@
         />
       </section>
 
+      <!-- 3. The note, full width. On the sheet it takes what is left and is the one scroll area once the sheet has reached the window's limit -->
+      <!-- `min-h-24`: the label, a two-row editor and its hint, so starting a note does not change the sheet's height (TaskDetailNotes) -->
+      <div :class="twoColumn ? '-mx-2 min-h-24 flex-auto overflow-y-auto overscroll-contain px-2' : ''" data-testid="task-notes-column">
+        <TaskDetailNotes :notes="task.notes" :readonly="!canEditText" @save="updateNotes" />
+      </div>
+
     </div>
 
-    <!-- 4. Metadata (collapsed by default): the last line of the sheet, no band; the task actions sit in the title row's menu (#705) -->
-    <div :class="twoColumn ? 'flex shrink-0 items-start justify-between gap-4 px-6 pb-6' : 'flex flex-col gap-6 px-6 pb-6'" data-testid="task-detail-footer">
-      <TaskDetailMetadata
-        v-model:open="isMetadataOpen"
-        :class="{ 'min-w-0 flex-1': twoColumn }"
-        :source="taskSource"
-        :created-at="formatDate(task.createdAt)"
-        :task-id="task.id"
-      >
-        <!-- Ad-hoc work (#796): the card menu no longer sets it. A rarely used flag, so it lives with the facts of how the task came to be and not as a row of its own: the rows fit the sheet's frame (design review of #795) -->
-        <USwitch
-          :model-value="task.isUnplanned === true"
-          :label="t('task.field.adhocSwitch')"
-          size="sm"
-          data-testid="task-adhoc-switch"
-          @update:model-value="(on: boolean) => updateAndSync({ isUnplanned: on })"
-        />
-      </TaskDetailMetadata>
-    </div>
+    <!-- 4. Footer line (#846): the source and the creation date, always there -->
+    <TaskDetailMetadata
+      class="shrink-0 px-6"
+      :class="twoColumn ? 'pt-2 pb-5' : 'pb-6'"
+      :source="taskSource"
+      :icon="sourceMetaOf(task.source).icon"
+      :created-at="formatDate(task.createdAt)"
+    />
 
     </div>
 
@@ -397,7 +374,6 @@ import TaskPropertyRow from '~/components/task/TaskPropertyRow.vue';
 import TaskDetailNotes from '~/components/task/TaskDetailNotes.vue';
 import TaskDetailMetadata from '~/components/task/TaskDetailMetadata.vue';
 import TaskSheetMenu from '~/components/task/TaskSheetMenu.vue';
-import TaskDetailPropertyStrip from '~/components/task/TaskDetailPropertyStrip.vue';
 import TaskPropertySelect from '~/components/task/TaskPropertySelect.vue';
 import DatePickerField from '~/components/task/DatePickerField.vue';
 import { doneDayBounds } from '~/lib/doneDay';
@@ -410,6 +386,9 @@ import TaskCarryOverTriage from '~/components/task/TaskCarryOverTriage.vue';
 import TaskCarryOverDots from '~/components/task/TaskCarryOverDots.vue';
 import { useTaskCarryOver } from '~/composables/useCarryOver';
 import { deleteLabelKey, sourceCan, sourceTaskUrl } from '~/lib/taskSources';
+import { sourceMetaOf } from '~/utils/sourceMeta';
+import { useErrorHandler } from '~/composables/useErrorHandler';
+import { useToast } from '#imports';
 import { normalizePriority } from '~/lib/priority';
 import { liveTimeSpent } from '~/lib/liveTime';
 import type { Task, TaskCustomValue } from '~/types/task';
@@ -453,7 +432,6 @@ const { calculateSuggestion } = useTimeboxSuggestion();
 const { editTask, syncTaskToIntegration, setCompletedDay } = useTaskSync();
 const { ensureOptionsAvailable } = usePropertyOptionsSync();
 
-const isMetadataOpen = ref(false);
 const timeboxHintId = useId();
 const suggestionHintId = useId();
 
@@ -481,7 +459,7 @@ const onStatusPicked = (value: unknown) => void changeStatus(Number(value) as Ta
 const plannedHintId = useId();
 const { targets: moveTargets, move: moveToSource } = useTaskMoveTargets(() => (props.isPreview ? null : task.value));
 
-// Desktop sheet (>=768px, #468): two columns. Below that the sheet is a drawer and everything flows in one column.
+// Desktop sheet (>=768px, #468): label beside the value, the note the one scroll area. Below that the sheet is a drawer: the label above the value, one scrolling page.
 // Follows the sheet's frozen variant, not the live query, so a resize while open cannot disagree with the layout the sheet actually shows (#199).
 const twoColumn = useOverlayIsDesktop();
 
@@ -537,9 +515,6 @@ const doneDay = computed(() => {
   const at = new Date(current.completedAt);
   return Number.isNaN(at.getTime()) ? null : dayKey(at);
 });
-/** The day the row shows while it folds away after a status change: `doneDay` is already null then, and "—" in its place would change the field's width mid-motion (#610) */
-const shownDoneDay = ref<string | null>(doneDay.value);
-watch(doneDay, (day) => { if (day) shownDoneDay.value = day; });
 const doneDayLimits = computed(() => doneDayBounds(task.value ?? {}, today.value));
 
 function updateDoneDay(day: string | undefined) {
@@ -778,7 +753,8 @@ const { formatDateTime } = useLocaleFormat();
 
 function formatDate(dateString: string | Date | null | undefined) {
   if (!dateString) return '—';
-  return formatDateTime(dateString, 'mediumDateShortTime');
+  // The date alone (#846): the time of day answers no question here and makes the footer line longer
+  return formatDateTime(dateString, 'mediumDate');
 }
 
 // Source URL (#303): derived from source + externalId, null for Local and a pending create
@@ -793,5 +769,20 @@ const actionProps = computed(() => ({
 
 function openSource() {
   if (sourceUrl.value) void openExternal(sourceUrl.value);
+}
+
+const toast = useToast();
+const { handleError } = useErrorHandler();
+
+/** Copies the stable task id (#846: it is shown nowhere in the sheet); a failure is reported, a success confirmed with a short toast, as "Titel kopieren" does */
+async function copyId() {
+  if (!task.value) return;
+  try {
+    await navigator.clipboard.writeText(task.value.id);
+  } catch (error) {
+    handleError(error instanceof Error ? error : String(error), 'copy_id');
+    return;
+  }
+  toast.add({ title: t('task.contextMenu.idCopied'), duration: 2500 });
 }
 </script>

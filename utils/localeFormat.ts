@@ -36,6 +36,7 @@ export type DateTimePreset =
   | 'dayMonthYearTime'
   | 'dayMonthYear'
   | 'dayMonth'
+  | 'mediumDate'
   | 'mediumDateShortTime'
   | 'shortDateShortTime'
   | 'longDateUtc'
@@ -44,6 +45,7 @@ const DATE_TIME_OPTIONS: Record<DateTimePreset, Intl.DateTimeFormatOptions> = {
   dayMonthYearTime: { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' },
   dayMonthYear: { day: '2-digit', month: '2-digit', year: 'numeric' },
   dayMonth: { day: '2-digit', month: '2-digit' },
+  mediumDate: { dateStyle: 'medium' },
   mediumDateShortTime: { dateStyle: 'medium', timeStyle: 'short' },
   shortDateShortTime: { dateStyle: 'short', timeStyle: 'short' },
   longDateUtc: { dateStyle: 'long', timeZone: 'UTC' },

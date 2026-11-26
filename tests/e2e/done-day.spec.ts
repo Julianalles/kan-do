@@ -11,6 +11,7 @@ const TASKS: SeedTask[] = [
     id: 'late-1', title: 'Angebot Gartenhaus verschickt', status: 3, priority: 3, timeSpentSeconds: 2400, timeBoxSeconds: 1800,
     custom: {}, createdAt: atDaysAgo(3, 9), completedAt: atDaysAgo(0, 0, 1),
   },
+  { id: 'nodate-1', title: 'Erledigt ohne Datum', status: 3, priority: 3, timeSpentSeconds: 0, timeBoxSeconds: null, custom: {}, createdAt: atDaysAgo(3, 9) },
   { id: 'open-1', title: 'Rechnung schreiben', status: 0, priority: 3, timeSpentSeconds: 0, timeBoxSeconds: null, custom: {}, createdAt: atDaysAgo(3, 9) },
 ]
 
@@ -55,6 +56,16 @@ test.describe('Done day of a task marked done late (kd#131)', () => {
     await expect(trigger(page)).toHaveText(longDate(dayKeyDaysAgo(0)))
     // A Local task holds the day itself: no "only in Kan-do" note
     await expect(page.getByTestId('done-day-local-only')).toHaveCount(0)
+  })
+
+  test('a done task without a completion day keeps every later cell in its column (#846)', async ({ page, baseURL }) => {
+    await openSheet(page, baseURL, 'nodate-1')
+    await expect(row(page)).toHaveCount(0)
+    const x = async (id: string) => (await page.getByTestId(id).boundingBox())!.x
+    const status = await x('task-status-select')
+    // Status sits in the left column, Priorität under it, Heute's cell stays empty on the right
+    expect(await x('task-priority-select')).toBeCloseTo(status, 0)
+    await expect(page.getByTestId('task-grid-spacer')).toHaveCount(1)
   })
 
   test('yesterday can be picked; the board, the statistics and a reload follow', async ({ page, baseURL }) => {

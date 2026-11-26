@@ -202,11 +202,12 @@ test('board: task detail page', async ({ page }) => {
   await expect(page.getByTestId('task-detail-header')).toBeVisible()
   // The sheet's open morph runs 280 ms: a shot mid-motion is a different render than the resting sheet, depending on load (#520)
   await settleSheet(page)
-  // The notes column is an `overscroll-contain` scroller: under load Chromium rasterises its glyphs at a different sub-pixel
+  // The notes area is an `overscroll-contain` scroller: under load Chromium rasterises its glyphs at a different sub-pixel
   // offset in about one run in four (layout identical, a few antialiasing dots; 11 of 60 runs failed, 0 of 60 with the
   // property off). Overscroll chaining is behaviour, not pixels, so this shot turns it off (#520); tolerances stay.
   // Set inline before `settle`: a stylesheet injected through the screenshot's `style` option comes too late (6 of 30 still failed).
-  await page.getByTestId('task-notes-column').locator(':scope > div').evaluate((el) => { (el as HTMLElement).style.overscrollBehavior = 'auto' })
+  // Since #846 the scrollers are the notes area and the sheet body
+  for (const id of ['task-notes-column', 'task-detail-sheet']) await page.getByTestId(id).evaluate((el) => { (el as HTMLElement).style.overscrollBehavior = 'auto' })
   await settle(page)
   await expect(page).toHaveScreenshot('task-detail.png', { animations: 'disabled' })
 })

@@ -6,20 +6,19 @@
   - text: Status
   - 'button "Status: Offen"'
   - text: Heute
-  - switch "Für heute eingeplant" [checked]
-  - text: Für heute eingeplant Priorität
-  - 'button "Priorität: Normal"'
+  - switch "Heute" [checked]
   - text: Thema
   - 'button "Thema: Design"'
   - text: Aktivität
   - 'button "Aktivität: Planung"'
+  - text: Priorität
+  - 'button "Priorität: Normal"'
   - text: Timebox
   - 'button "Timebox: + hinzufügen"'
-  - text: Geplante Dauer in Minuten Aufgewendete Zeit
+  - text: Geplante Dauer in Minuten Aufgewendet
   - 'button "Aufgewendete Zeit: + hinzufügen"'
   - region "Notiz":
     - heading "Notiz" [level=3]
     - 'button "Notiz: Entwurf bis Ende der Woche fertigstellen."'
     - paragraph: Entwurf bis Ende der Woche fertigstellen.
-  - heading "Metadaten" [level=3]:
-    - button "Metadaten"
+  - paragraph: "/Lokal Erstellt: \\d+\\.\\d+\\.\\d+/"

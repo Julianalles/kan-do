@@ -8,6 +8,9 @@ interface Recorded { target: Element; keyframes: Keyframe[]; options: KeyframeAn
 
 let recorded: Recorded[] = []
 let reduced = false
+let contentHeight = 384
+/** The shell's ResizeObserver callback on the content wrapper */
+let contentResized: () => void = () => {}
 let wrapper: VueWrapper | undefined
 
 const rect = (x: number, y: number, w: number, h: number): DOMRect => ({ x, y, left: x, top: y, width: w, height: h, right: x + w, bottom: y + h, toJSON: () => ({}) })
@@ -55,10 +58,13 @@ beforeEach(() => {
   vi.stubGlobal('innerWidth', 1280)
   vi.stubGlobal('innerHeight', 800)
   vi.stubGlobal('matchMedia', (query: string) => ({ matches: reduced && query.includes('reduced-motion'), media: query, addEventListener: vi.fn(), removeEventListener: vi.fn() }))
-  vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} unobserve() {} })
-  // jsdom has no layout: the panel is 384 px high, the content's natural height
+  contentResized = () => {}
+  vi.stubGlobal('ResizeObserver', class { constructor(callback: () => void) { contentResized = callback } observe() {} disconnect() {} unobserve() {} })
+  // jsdom has no layout: the content wrapper is `contentHeight` high (its natural height), and the panel wraps it
+  contentHeight = 384
   vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
-    return this.classList.contains('task-morph-panel') ? rect(Number.parseFloat(this.style.left) || 0, Number.parseFloat(this.style.top) || 0, Number.parseFloat(this.style.width) || 720, 384) : rect(0, 0, 0, 0)
+    if (this.parentElement?.classList.contains('task-morph-panel') && this.classList.contains('flex-none')) return rect(0, 0, 720, contentHeight)
+    return this.classList.contains('task-morph-panel') ? rect(Number.parseFloat(this.style.left) || 0, Number.parseFloat(this.style.top) || 0, Number.parseFloat(this.style.width) || 720, Number.parseFloat(this.style.height) || contentHeight) : rect(0, 0, 0, 0)
   })
   Element.prototype.animate = function (this: Element, keyframes: Keyframe[], options: KeyframeAnimationOptions) {
     recorded.push({ target: this, keyframes, options })
@@ -80,7 +86,7 @@ describe('TaskMorphShell', () => {
     expect(panel()).toBeNull()
   })
 
-  it('grows from the card to the fixed frame centred on it, in about 340 ms, the card face scaling with it (#705)', async () => {
+  it('grows from the card to a sheet as tall as its content, centred on the card, in about 340 ms, the card face scaling with it (#705, #846)', async () => {
     addCard('t1', rect(500, 300, 288, 132))
     await mountShell({ open: true, originId: 't1' })
     const grow = panelAnimation()
@@ -88,8 +94,11 @@ describe('TaskMorphShell', () => {
     expect(grow!.options.duration).toBe(340)
     const [from, to] = grow!.keyframes
     expect(from).toMatchObject({ left: '500px', top: '300px', width: '288px', height: '132px' })
-    // The frame is 720 x 612 (85 % of the width) around the card's centre (644, 366), whatever the content's natural height is
-    expect(to).toMatchObject({ left: '284px', top: '60px', width: '720px', height: '612px' })
+    // 720 wide and as tall as the content (384) around the card's centre (644, 366)
+    expect(to).toMatchObject({ left: '284px', top: '174px', width: '720px', height: '384px' })
+    // At rest the panel wraps its content: no height is held
+    expect(panel()?.style.height).toBe('')
+    expect(panel()?.dataset.settled).toBe('true')
     expect(panel()?.style.left).toBe('284px')
     // The card's face scales by the sheet's width over the card's, from the panel's corner, and dissolves
     const face = recorded.filter((entry) => entry.keyframes.some((frame) => typeof frame.transform === 'string' && String(frame.transform).startsWith('scale(')) && entry.keyframes.length === 2)
@@ -101,7 +110,7 @@ describe('TaskMorphShell', () => {
     addCard('t1', rect(980, 650, 288, 132))
     await mountShell({ open: true, originId: 't1' })
     const [, to] = panelAnimation()!.keyframes
-    expect(to).toMatchObject({ left: '544px', top: '172px' })
+    expect(to).toMatchObject({ left: '544px', top: '400px' })
   })
 
   it('stays below the app bar for a card high in the window (#518)', async () => {
@@ -109,7 +118,7 @@ describe('TaskMorphShell', () => {
     addCard('t1', rect(16, 120, 288, 132))
     await mountShell({ open: true, originId: 't1' })
     const [, to] = panelAnimation()!.keyframes
-    // centred on the card it would start at y = -10 -> 16 margin; the bar pushes it to 56
+    // centred on the card it would start at y = -6 -> 16 margin; the bar pushes it to 56
     expect(to).toMatchObject({ left: '16px', top: '56px', width: '720px' })
     expect(panel()?.style.maxHeight).toBe('728px')
   })
@@ -131,7 +140,7 @@ describe('TaskMorphShell', () => {
     addCard('t1', rect(100, 300, 288, 132))
     await mountShell({ open: true, originId: 't1' })
     const [, to] = panelAnimation()!.keyframes
-    expect(to).toMatchObject({ left: '16px', top: '82px', width: '668px', height: '568px' })
+    expect(to).toMatchObject({ left: '16px', top: '174px', width: '668px', height: '384px' })
     expect(panel()?.style.maxHeight).toBe('768px')
   })
 
@@ -149,14 +158,14 @@ describe('TaskMorphShell', () => {
     const scaleIn = recorded.find((entry) => entry.target === panel() && entry.keyframes.some((frame) => frame.transform === 'scale(0.97)'))
     expect(scaleIn?.options.duration).toBe(160)
     expect(panel()?.style.left).toBe('280px')
-    expect(panel()?.style.top).toBe('94px')
+    expect(panel()?.style.top).toBe('208px')
   })
 
   it('treats a card scrolled out of the window as no origin', async () => {
     addCard('t1', rect(500, 1200, 288, 132))
     await mountShell({ open: true, originId: 't1' })
     expect(panelAnimation()).toBeUndefined()
-    expect(panel()?.style.top).toBe('94px')
+    expect(panel()?.style.top).toBe('208px')
   })
 
   it('opens at the same place with reduced motion, with a 1 ms fade and no grow', async () => {
@@ -165,9 +174,47 @@ describe('TaskMorphShell', () => {
     await mountShell({ open: true, originId: 't1' })
     expect(panelAnimation()).toBeUndefined()
     expect(panel()?.style.left).toBe('284px')
-    expect(panel()?.style.top).toBe('60px')
+    expect(panel()?.style.top).toBe('174px')
     const fades = recorded.filter((entry) => entry.target === panel())
     expect(fades.map((entry) => entry.options.duration)).toEqual([1])
+  })
+
+  it('guides a jump of the content height at rest over 300 ms and follows a small step as it is (#846)', async () => {
+    addCard('t1', rect(500, 300, 288, 132))
+    await mountShell({ open: true, originId: 't1' })
+    const el = panel()!
+    const growths = () => recorded.filter((entry) => entry.target === el && entry.keyframes.some((frame) => 'height' in frame) && !entry.keyframes.some((frame) => 'left' in frame))
+    recorded = []
+    // the note editor opens: 100 px more
+    contentHeight = 484
+    contentResized()
+    expect(growths()).toHaveLength(1)
+    expect(growths()[0]!.options.duration).toBe(300)
+    expect(growths()[0]!.keyframes.map((frame) => frame.height)).toEqual(['384px', '484px'])
+    await flushPromises()
+    // one frame of a block that opens in place: followed, no second transition
+    contentHeight = 488
+    contentResized()
+    expect(growths()).toHaveLength(1)
+  })
+
+  it('moves the sheet up only as far as the bottom margin asks when it grows (#846)', async () => {
+    addCard('t1', rect(500, 300, 288, 132))
+    await mountShell({ open: true, originId: 't1' })
+    // top 174, the window is 800 high: 700 px of content end at 874, so the sheet goes to 800 - 16 - 700 = 84
+    contentHeight = 700
+    contentResized()
+    expect(panel()!.style.top).toBe('84px')
+  })
+
+  it('takes a new content height at once with reduced motion (#846)', async () => {
+    reduced = true
+    addCard('t1', rect(500, 300, 288, 132))
+    await mountShell({ open: true, originId: 't1' })
+    recorded = []
+    contentHeight = 484
+    contentResized()
+    expect(recorded).toEqual([])
   })
 
   it('folds back into the card in about 260 ms, the face scaling back down, then reports after-leave', async () => {

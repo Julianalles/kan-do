@@ -2,18 +2,20 @@
 @component TaskSheetMenu
 @kind component
 @category action
-@description The task menu of the task sheet (#705, reverses #244's footer row): one ⋯ button holding open in source, move to source and Delete
-@usage <TaskSheetMenu :delete-label="…" :open-label="…" :move-targets="targets" @delete="…" @open="…" @move="…" /> in the title row of the task sheet, left of the close button on desktop, beside the title in the drawer
+@description The task menu of the task sheet (#705, reverses #244's footer row): one ⋯ button holding open in source, move to source, the ad-hoc mark, copy id and Delete
+@usage <TaskSheetMenu :delete-label="…" :open-label="…" :move-targets="targets" :adhoc="task.isUnplanned === true" @delete="…" @open="…" @move="…" @update:adhoc="…" @copy-id="…" /> in the title row of the task sheet, left of the close button on desktop, beside the title in the drawer
 @avoid Only the task sheet's task-level actions; card actions are TaskCardContextMenu. Not for actions used all the time: those are rows of the sheet.
 @responsibility
-- One quiet ghost icon button (`i-ph-dots-three-bold`, aria label `task.detail.menuLabel`) that opens a dropdown, end-aligned: open in source, move to source (a sub-menu of the targets, disabled ones with their hint, as in the card menu), a separator, Delete last in the error tone
-- Open and move only exist on boards with a connected source; a Local board's menu holds Delete alone
-- No Delete for a task whose source is read-only (`deleteLabel` null); with no item left the button is not rendered
+- One quiet ghost icon button (`i-ph-dots-three-bold`, aria label `task.detail.menuLabel`) that opens a dropdown, end-aligned: open in source, move to source (a sub-menu of the targets, disabled ones with their hint, as in the card menu); the task's own entries, "Kam spontan dazu" and "ID kopieren"; Delete last in the error tone. Groups are set apart by the menu's separator
+- Open and move only exist on boards with a connected source; a Local board's menu holds the task's own entries and Delete
+- "Kam spontan dazu" (ad-hoc work, #846; reverses the switch in Metadaten of #796) is a checkbox entry: the check mark carries the state, selecting it emits `update:adhoc` and keeps the menu open, so the label under the title is seen to follow
+- "ID kopieren" (#846) only emits: the host copies and reports. The id is shown nowhere in the sheet
+- No Delete for a task whose source is read-only (`deleteLabel` null); the task's own entries always exist, so the button always renders
 - Delete only emits: the host runs the one shared, confirmed delete flow (never deletes by itself); the label keeps the source consequence ("Löschen, auch in Notion")
 - Keyboard and screen reader come from the dropdown (Enter/Space opens, arrows move, Escape closes and returns focus to the button); the sheet puts it after the title in the tab order
 -->
 <template>
-  <UDropdownMenu v-if="groups.length > 0" :items="groups" :content="{ align: 'end', sideOffset: 4 }">
+  <UDropdownMenu :items="groups" :content="{ align: 'end', sideOffset: 4 }">
     <UButton
       color="neutral"
       variant="ghost"
@@ -42,17 +44,21 @@ const props = defineProps<{
   moveTargets: MoveTarget[]
   /** "Löschen" with its source consequence; null for a task that cannot be deleted from kan-do (Reminders, #551): no item */
   deleteLabel: string | null
+  /** The task is marked as ad-hoc work (`task.isUnplanned`): the entry is checked */
+  adhoc?: boolean
 }>()
 
 const emit = defineEmits<{
   open: []
   move: [source: SourceId]
   delete: []
+  'update:adhoc': [value: boolean]
+  'copy-id': []
 }>()
 
 const { t } = useI18n()
 
-/** The groups of the menu, empty ones left out: the source actions, then Delete on its own, set apart by the group's separator. */
+/** The groups of the menu, empty ones left out: the source actions, the task's own entries, then Delete on its own, set apart by the group's separator. */
 const groups = computed<DropdownMenuItem[][]>(() => {
   const source: DropdownMenuItem[] = []
   if (props.openLabel) source.push({ label: props.openLabel, icon: ICONS.external, onSelect: () => emit('open') })
@@ -72,6 +78,18 @@ const groups = computed<DropdownMenuItem[][]>(() => {
   const destructive: DropdownMenuItem[] = props.deleteLabel
     ? [{ label: props.deleteLabel, icon: ICONS.delete, color: 'error', onSelect: () => emit('delete') }]
     : []
-  return [source, destructive].filter(group => group.length > 0)
+  const own: DropdownMenuItem[] = [
+    {
+      type: 'checkbox',
+      label: t('task.field.adhocSwitch'),
+      icon: 'i-ph-lightning',
+      checked: props.adhoc === true,
+      onUpdateChecked: (on: boolean) => emit('update:adhoc', on),
+      // The menu stays open, so the check mark and the label under the title are seen to follow
+      onSelect: (event: Event) => event.preventDefault(),
+    },
+    { label: t('task.contextMenu.copyId'), icon: 'i-ph-copy', onSelect: () => emit('copy-id') },
+  ]
+  return [source, own, destructive].filter(group => group.length > 0)
 })
 </script>

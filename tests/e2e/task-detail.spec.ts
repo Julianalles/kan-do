@@ -168,11 +168,8 @@ async function openSheet(page: Page, baseURL: string | undefined, id: string) {
   await settleAnimations(page); // the sheet slides in: a position read before it stops moving is off by a few px
 }
 
-/** Desktop (#705): the custom properties are editable rows in the popover behind the "Eigenschaften" button. */
-async function openProperties(page: Page) {
-  await page.getByTestId('task-properties-button').click();
-  await expect(page.getByTestId('task-properties-popover')).toBeVisible();
-}
+/** The board's extra properties (#846): cells of the sheet's grid under the label "Eigenschaften", edited in place. */
+const customProperties = (page: Page): Locator => page.getByTestId('task-custom-properties');
 
 test.describe('Task Detail View', () => {
   test.beforeEach(async ({ context }) => {
@@ -266,7 +263,6 @@ test.describe('Task Detail View', () => {
   test.describe('custom property rows stay while being edited', () => {
     test('clearing a text value keeps its row (no unmount under the user)', async ({ page, baseURL }) => {
       await openSheet(page, baseURL, 'test-task-6');
-      await openProperties(page);
 
       const row = page.getByTestId('task-property-row').filter({ hasText: 'Kommentar' });
       await row.getByRole('button', { name: /^Kommentar: / }).click();
@@ -281,7 +277,6 @@ test.describe('Task Detail View', () => {
 
     test('deselecting the last multi-select option keeps the row and the open picker', async ({ page, baseURL }) => {
       await openSheet(page, baseURL, 'test-task-6');
-      await openProperties(page);
 
       const row = page.getByTestId('task-property-row').filter({ hasText: 'Tags' });
       const trigger = row.getByRole('button', { name: /^Tags: / });
@@ -295,7 +290,6 @@ test.describe('Task Detail View', () => {
 
     test('unchecking a checkbox keeps its row', async ({ page, baseURL }) => {
       await openSheet(page, baseURL, 'test-task-6');
-      await openProperties(page);
 
       const row = page.getByTestId('task-property-row').filter({ hasText: 'Freigegeben' });
       const checkbox = row.getByRole('checkbox', { name: 'Freigegeben' });
@@ -358,7 +352,7 @@ test.describe('Task Detail View', () => {
     // properties render as labelled rows without chips or icons
     const list = page.getByTestId('task-property-list');
     await expect.soft(list.getByTestId('task-property-row'), 'properties render as labelled rows: seven rows (Heute, #795)').toHaveCount(7);
-    for (const label of ['Status', 'Heute', 'Priorität', 'Thema', 'Aktivität', 'Timebox', 'Aufgewendete Zeit']) {
+    for (const label of ['Status', 'Heute', 'Thema', 'Aktivität', 'Priorität', 'Timebox', 'Aufgewendet']) {
       await expect.soft(list.getByText(label, { exact: true }), `properties render as labelled rows: ${label}`).toBeVisible();
     }
     await expect.soft(page.getByTestId('task-status-select'), 'properties render as labelled rows: status name').toHaveAccessibleName('Status: Jetzt');
@@ -395,9 +389,11 @@ test.describe('Task Detail View', () => {
     // Task 1 has topic "Development"
     await expect.soft(page.getByText('Development').first(), 'shows topic badge when topic is set').toBeVisible();
 
-    // #705: the task actions sit behind one menu in the title row (it reverses #244's bottom row); the footer holds Metadaten only
+    // The cells stand in the shown order (#846): Status, Heute / Thema, Aktivität / Priorität, Timebox / time spent; the DOM order is the tab order
+    await expect.soft(list.getByTestId('task-property-row').locator('> span:first-child'), 'the grid\'s order').toHaveText(['Status', 'Heute', 'Thema', 'Aktivität', 'Priorität', 'Timebox', 'Aufgewendet']);
+    // #705: the task actions sit behind one menu in the title row (it reverses #244's bottom row); the footer line holds the facts only
     await expect.soft(page.getByTestId('task-detail-header').getByTestId('task-menu'), 'the menu is in the title row').toBeVisible();
-    await expect.soft(page.getByTestId('task-detail-footer').getByRole('button', { name: /Löschen/ }), 'no Delete in the footer').toHaveCount(0);
+    await expect.soft(page.getByTestId('task-metadata').getByRole('button'), 'no control in the footer line').toHaveCount(0);
   });
 
   // #114: a value shows at rest what it is (no hover): a list value is a soft select with a chevron, a free value an editable label with a dotted rule
@@ -434,12 +430,16 @@ test.describe('Task Detail View', () => {
     await expect.soft(timebox, 'timebox: dotted rule at rest').toHaveCSS('text-decoration-style', 'dotted');
     await expect.soft(timebox, 'timebox: the rule is visible, not transparent').not.toHaveCSS('text-decoration-color', 'rgba(0, 0, 0, 0)');
 
-    // rows keep a visible gap
+    // two cells per row (#846): a pair shares its top, the pairs keep a visible gap
     const rows = await list.getByTestId('task-property-row').evaluateAll((els) => els.map((el) => el.getBoundingClientRect()));
-    for (let i = 1; i < rows.length; i++) expect.soft(rows[i].top - rows[i - 1].bottom, `rows ${i - 1} and ${i} keep a gap`).toBeGreaterThanOrEqual(4);
+    for (let i = 1; i < rows.length; i += 2) {
+      expect.soft(Math.abs(rows[i].top - rows[i - 1].top), `cells ${i - 1} and ${i} share a row`).toBeLessThanOrEqual(1);
+      expect.soft(rows[i].left, `cell ${i} is right of cell ${i - 1}`).toBeGreaterThan(rows[i - 1].right);
+    }
+    for (let i = 2; i < rows.length; i += 2) expect.soft(rows[i].top - rows[i - 2].bottom, `rows of cells ${i - 2} and ${i} keep a gap`).toBeGreaterThanOrEqual(4);
   });
 
-  test('the sheet holds the switches "Für heute eingeplant" and "Kam spontan dazu": each writes the task, the status stays (#795, #796)', async ({ page, baseURL }) => {
+  test('the sheet holds the switch "Für heute eingeplant", the task menu the checked entry "Kam spontan dazu" with its label under the title: each writes the task, the status stays (#795, #846)', async ({ page, baseURL }) => {
     await page.goto(`${baseURL}/tasks/test-task-7`);
     const stored = () => page.evaluate(() => {
       const tasks = (JSON.parse(localStorage.getItem('tasks-store') ?? '{}') as { tasks?: Array<{ id: string; status: number; notPlanned?: boolean; isUnplanned?: boolean }> }).tasks ?? [];
@@ -447,8 +447,10 @@ test.describe('Task Detail View', () => {
       return found ? { status: found.status, notPlanned: found.notPlanned, isUnplanned: found.isUnplanned } : null;
     });
     const planned = page.getByRole('switch', { name: 'Für heute eingeplant' });
-    const adHoc = page.getByRole('switch', { name: 'Kam spontan dazu' });
-    await expect(adHoc).toHaveCount(0); // with the Metadaten, closed
+    // Ad-hoc work is no switch of the sheet any more (#846): a label under the title, set and cleared in the task menu
+    await expect(page.getByRole('switch', { name: 'Kam spontan dazu' })).toHaveCount(0);
+    const adHocLabel = page.getByTestId('task-adhoc-label');
+    await expect(adHocLabel).toHaveCount(0);
     await expect(planned).toBeChecked();
     await expect(planned).toBeEnabled();
     await expect(page.getByTestId('task-planned-hint')).toHaveCount(0);
@@ -462,14 +464,23 @@ test.describe('Task Detail View', () => {
     await expect(planned).toBeChecked();
     await expect.poll(stored).toMatchObject({ status: 2, notPlanned: undefined });
 
-    // The ad-hoc mark is set and cleared in the open Metadaten; the card menu has no entry for it any more
-    await page.getByRole('button', { name: 'Metadaten' }).click();
-    await expect(adHoc).not.toBeChecked();
+    // The ad-hoc mark is a checked entry of the task menu; the menu stays open and the label under the title follows at once
+    // measured inside the sheet (by its class: the open menu hides the sheet from the accessibility tree): a sheet that grows at the window's bottom edge moves up as a whole
+    const titleTop = async () => (await page.getByTestId('task-detail-header').locator('[data-inline-editable]').boundingBox())!.y - (await page.locator('.task-morph-panel').boundingBox())!.y;
+    const before = await titleTop();
+    await taskMenu(page).click();
+    const adHoc = page.getByRole('menuitemcheckbox', { name: 'Kam spontan dazu' });
+    await expect(adHoc).toHaveAttribute('aria-checked', 'false');
     await adHoc.click();
-    await expect(adHoc).toBeChecked();
+    await expect(adHoc).toHaveAttribute('aria-checked', 'true');
+    await expect(adHocLabel).toHaveText('Spontan');
     await expect.poll(stored).toMatchObject({ isUnplanned: true });
+    // The title row stays where it is, with or without the label
+    await settleAnimations(page);
+    expect(Math.abs(await titleTop() - before)).toBeLessThanOrEqual(1);
     await adHoc.click();
-    await expect(adHoc).not.toBeChecked();
+    await expect(adHoc).toHaveAttribute('aria-checked', 'false');
+    await expect(adHocLabel).toHaveCount(0);
     await expect.poll(stored).toMatchObject({ isUnplanned: false });
   });
 
@@ -503,7 +514,7 @@ test.describe('Task Detail View', () => {
   test('task sheet of a waiting task with a timebox and tracked time: the time spent row, time left beside it and the timebox row', async ({ page, baseURL }) => {
     // Task 7 has timebox of 3600s (1h) and timeSpent of 1800s (30min); it waits, so no timer counts on
     await page.goto(`${baseURL}/tasks/test-task-7`);
-    const row = page.getByTestId('task-property-row').filter({ hasText: 'Aufgewendete Zeit' });
+    const row = page.getByTestId('task-property-row').filter({ hasText: 'Aufgewendet' });
     await expect(row).toBeVisible();
 
     await expect.soft(row.getByTestId('time-spent-value'), 'time spent row: value').toHaveText('30 min');
@@ -516,7 +527,7 @@ test.describe('Task Detail View', () => {
   test.describe('editing the time spent (kd#4)', () => {
     const openRow = async (page: Page, baseURL: string | undefined, id: string) => {
       await page.goto(`${baseURL}/tasks/${id}`);
-      const row = page.getByTestId('task-property-row').filter({ hasText: 'Aufgewendete Zeit' });
+      const row = page.getByTestId('task-property-row').filter({ hasText: 'Aufgewendet' });
       await expect(row).toBeVisible();
       return row;
     };
@@ -614,21 +625,23 @@ test.describe('Task Detail View', () => {
     await expect(page.getByTestId('task-not-found').locator('svg')).toHaveCount(0);
   });
 
-  // #244: the three-dots menu and "ID kopieren" are gone; the id stays readable in Metadaten
-  test('has no actions menu and no copy-ID entry; the id is shown in Metadaten', async ({ page, baseURL }) => {
+  // #846: the id is shown nowhere in the sheet; the task menu copies it (reverses #244, which kept it readable in Metadaten)
+  test('the id is not shown in the sheet; "ID kopieren" in the task menu copies it and says so', async ({ page, context, baseURL }) => {
+    await context.grantPermissions(['clipboard-read', 'clipboard-write']);
     await openSheet(page, baseURL, 'test-task-1');
 
-    await expect(page.getByTestId('task-actions-menu')).toHaveCount(0);
-    await expect(page.getByRole('button', { name: /ID kopieren|Mehr Aktionen/ })).toHaveCount(0);
-    await page.getByTestId('task-metadata').getByRole('button').click();
-    await expect(page.getByTestId('task-metadata')).toContainText('test-task-1');
+    await expect(page.getByRole('dialog').getByText('test-task-1')).toHaveCount(0);
+    await (await openTaskMenu(page, 'ID kopieren')).click();
+    await expect(page.getByText('ID kopiert', { exact: true })).toBeVisible();
+    await expect.poll(() => page.evaluate(() => navigator.clipboard.readText())).toBe('test-task-1');
   });
 
-  test('Delete in the task menu opens the usual delete flow; a Local board\'s menu holds Delete alone (#705)', async ({ page, baseURL }) => {
+  test('Delete in the task menu opens the usual delete flow; a Local board\'s menu holds the task\'s own entries and Delete (#705, #846)', async ({ page, baseURL }) => {
     await openSheet(page, baseURL, 'test-task-1');
 
     await taskMenu(page).click();
-    await expect(page.getByRole('menuitem')).toHaveCount(1);
+    await expect(page.getByRole('menuitem')).toHaveText(['ID kopieren', 'Löschen']);
+    await expect(page.getByRole('menuitemcheckbox')).toHaveText(['Kam spontan dazu']);
     await page.getByRole('menuitem', { name: /^Löschen/ }).click();
     await expect(page).toHaveURL(/\/tasks$/);
     await expect(page.locator('.task-wrapper[data-task-id="test-task-1"]')).toHaveCount(0);
@@ -648,23 +661,18 @@ test.describe('Task Detail View', () => {
     }
   });
 
-  test('shows collapsible metadata section', async ({ page, baseURL }) => {
+  test('the footer line always shows the source and the creation date, with no block to open and no id (#846)', async ({ page, baseURL }) => {
     await openSheet(page, baseURL, 'test-task-1');
 
-    // Metadata button should be visible
-    const metadataButton = page.getByRole('button', { name: /Metadaten/i });
-    await expect(metadataButton).toBeVisible();
-
-    // Click to expand
-    await metadataButton.click();
-    await page.waitForTimeout(300);
-
-    // Should show task ID in metadata
-    const taskIdText = page.getByText('test-task-1');
-    await expect(taskIdText).toBeVisible();
-
+    await expect(page.getByRole('button', { name: /Metadaten/i })).toHaveCount(0);
+    const footer = page.getByTestId('task-metadata');
+    await expect(footer).toBeVisible();
     // A Local task shows the translated source label, never the raw source id (#326)
-    await expect(page.getByTestId('task-detail-source')).toHaveText('Lokal');
+    await expect(footer.getByTestId('task-detail-source')).toHaveText('Lokal');
+    await expect(footer.getByTestId('task-detail-source').locator('svg, .iconify')).toHaveCount(1);
+    // The date alone, without the time of day
+    await expect(footer.getByTestId('task-detail-created')).toHaveText(/^Erstellt: (—|\d{2}\.\d{2}\.\d{4})$/);
+    await expect(footer).not.toContainText('test-task-1');
   });
 
   // ── Redesign: always-visible action buttons ──────────────────────────────
@@ -676,7 +684,7 @@ test.describe('Task Detail View', () => {
   test('date custom field shows the formatted date, and a click on it opens the calendar', async ({ page, baseURL }) => {
     // task-5 has a date custom field with start: '2026-04-15'
     await page.goto(`${baseURL}/tasks/test-task-5`);
-    await openProperties(page);
+    await expect(customProperties(page)).toBeVisible();
 
     const trigger = page.getByTestId('date-picker-trigger').first();
     await expect.soft(trigger, 'date custom field shows formatted date').toBeVisible();
@@ -700,22 +708,20 @@ test.describe('Task Detail View', () => {
 
   test('Escape with the date picker open closes the picker only, not the sheet', async ({ page, baseURL }) => {
     await openSheet(page, baseURL, 'test-task-5');
-    await openProperties(page);
 
     await page.getByTestId('date-picker-trigger').first().click();
     const calendar = page.getByTestId('date-picker-calendar');
     await expect(calendar).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(calendar).not.toBeVisible();
-    // The sheet and the properties popover are both dialogs now: the title row tells the sheet is still open, and the popover is still there (only the topmost layer closed)
+    // Only the topmost layer closed: the sheet is still open
     await expect(page.getByTestId('task-detail-header')).toBeVisible();
-    await expect(page.getByTestId('task-properties-popover')).toBeVisible();
+    await expect(customProperties(page)).toBeVisible();
     await expect(page).toHaveURL(/\/tasks\/test-task-5/);
   });
 
   test('date picker Heute sets todays date', async ({ page, baseURL }) => {
     await openSheet(page, baseURL, 'test-task-5');
-    await openProperties(page);
 
     const trigger = page.getByTestId('date-picker-trigger').first();
     await trigger.click();
@@ -733,7 +739,6 @@ test.describe('Task Detail View', () => {
 
   test('date picker Löschen clears the date value', async ({ page, baseURL }) => {
     await openSheet(page, baseURL, 'test-task-5');
-    await openProperties(page);
 
     const trigger = page.getByTestId('date-picker-trigger').first();
     await trigger.click();
@@ -942,8 +947,8 @@ test.describe('Task Detail View', () => {
       await expect(page.getByTestId('task-notes-rendered')).toContainText('mit Cmd gespeichert');
     });
 
-    // #468: title across the top, the rows left, the notes right, Metadaten and Löschen on the last line
-    test('desktop: the title spans the top, rows left, notes right, the metadata and Löschen share the last line', async ({ page, baseURL }) => {
+    // #846: title across the top, the grid, the note full width below it, the footer line last
+    test('desktop: the title spans the top, the note sits full width under the grid, the footer line is the last line', async ({ page, baseURL }) => {
       await openSheet(page, baseURL, 'test-task-1');
       await settleAnimations(page);
 
@@ -956,14 +961,17 @@ test.describe('Task Detail View', () => {
       const menu = (await taskMenu(page).boundingBox())!;
       const dialogBox = (await dialog.boundingBox())!;
 
-      // The title is above both columns; the rows sit left of the notes, both start at the same height
       expect(props.y).toBeGreaterThanOrEqual(header.y + header.height - 1);
-      expect(notes.x).toBeGreaterThan(props.x + props.width - 1);
-      expect(Math.abs(notes.y - props.y)).toBeLessThan(24);
-      // The last line holds Metadaten alone, below the columns; no pinned footer band hugging another edge (the actions are in the title row's menu, #705)
-      expect(meta.y).toBeGreaterThanOrEqual(props.y + props.height - 1);
+      // The note is below the grid and as wide as it
+      expect(notes.y).toBeGreaterThanOrEqual(props.y + props.height - 1);
+      expect(Math.abs(notes.x - props.x)).toBeLessThanOrEqual(1);
+      expect(Math.abs(notes.width - props.width)).toBeLessThanOrEqual(1);
+      // The footer line is last, close to the sheet's bottom edge
+      expect(meta.y).toBeGreaterThanOrEqual(notes.y + notes.height - 1);
       expect(dialogBox.y + dialogBox.height - (meta.y + meta.height)).toBeLessThan(40);
       expect(menu.y).toBeLessThan(header.y + header.height);
+      // Nothing scrolls while the content fits the window
+      expect(await dialog.evaluate((el) => [el, ...el.querySelectorAll('*')].filter((node) => node.scrollHeight > node.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(node).overflowY)).length)).toBe(0);
     });
 
     test('mobile: the notes follow the properties, the metadata comes last in the flow', async ({ page, baseURL }) => {
@@ -981,16 +989,18 @@ test.describe('Task Detail View', () => {
     });
 
     // #199: the sheet freezes its variant while open, the content layout must follow it
-    test('shrinking below 768px while the sheet is open keeps the two columns and the metadata state', async ({ page, baseURL }) => {
+    test('shrinking below 768px while the sheet is open keeps the sheet\'s layout: the label beside the value, two cells per row', async ({ page, baseURL }) => {
       await openSheet(page, baseURL, 'test-task-1');
       await settleAnimations(page);
 
       await page.setViewportSize({ width: 600, height: 800 });
       await expect(page.getByRole('dialog').getByTestId('task-detail-scroll')).toHaveCount(0);
       await expect.poll(async () => (await page.getByRole('dialog').boundingBox())!.width).toBeCloseTo(568, 0);
-      const props = (await page.getByTestId('task-property-list').boundingBox())!;
-      const notes = (await page.getByTestId('task-notes').boundingBox())!;
-      expect(notes.x).toBeGreaterThan(props.x + props.width - 1);
+      const row = page.getByTestId('task-property-list').getByTestId('task-property-row').first();
+      await expect(row).not.toHaveAttribute('data-stacked', '');
+      const label = (await row.locator('> span').first().boundingBox())!;
+      const value = (await page.getByTestId('task-status-select').boundingBox())!;
+      expect(value.x).toBeGreaterThan(label.x + label.width - 1);
       await expect(page.getByTestId('task-metadata')).toBeVisible();
     });
 
@@ -1101,7 +1111,7 @@ test.describe('task sheet close button (kd#201)', () => {
       await expect(card).toBeFocused()
     })
 
-    test('the title runs clear of the close button and a short window scrolls the columns inside the sheet', async ({ page }) => {
+    test('the title runs clear of the close button and a window too short for the rows scrolls the whole sheet body, never the rows alone (#846)', async ({ page }) => {
       await page.setViewportSize({ width: 1280, height: 340 })
       await page.goto('/tasks/seed-open-1')
       const dialog = page.getByRole('dialog')
@@ -1112,14 +1122,16 @@ test.describe('task sheet close button (kd#201)', () => {
       const menuBox = (await taskMenu(page).boundingBox())!
       expect(title.x + title.width).toBeLessThanOrEqual(menuBox.x)
       expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(closeBox.x)
-      // The sheet is the window minus 16 px to every edge at most; the rows scroll inside it and nothing is clipped
+      // The sheet is the window minus 16 px to every edge at most; the body scrolls as one page and no row is cut off
       const box = (await dialog.boundingBox())!
       expect(box.height).toBeLessThanOrEqual(340 - 32 + 1)
-      const rows = dialog.getByTestId('task-detail-rows')
-      expect(await rows.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true)
-      await rows.evaluate((el) => { el.scrollTop = el.scrollHeight })
-      const lastRow = (await dialog.getByTestId('task-property-list').locator('> *').last().boundingBox())!
-      expect(lastRow.y + lastRow.height).toBeLessThanOrEqual(box.y + box.height)
+      const body = dialog.getByTestId('task-detail-sheet')
+      expect(await body.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true)
+      const list = dialog.getByTestId('task-property-list')
+      expect(await list.evaluate((el) => getComputedStyle(el).overflowY)).toBe('visible')
+      await body.evaluate((el) => { el.scrollTop = el.scrollHeight })
+      const footer = (await dialog.getByTestId('task-metadata').boundingBox())!
+      expect(footer.y + footer.height).toBeLessThanOrEqual(box.y + box.height)
     })
 
     test('the add sheet has the same close button, and Escape still closes it', async ({ page }) => {
@@ -1151,8 +1163,8 @@ test.describe('task sheet close button (kd#201)', () => {
   })
 })
 
-// #705: one fixed frame whatever the task holds; the custom properties are a chip strip plus a popover
-test.describe('task sheet frame and property strip (#705)', () => {
+// #846: the sheet is as tall as its content; the board's extra properties are cells of the same grid (reverses the fixed frame and the strip of #705)
+test.describe('task sheet height and extra properties (#846)', () => {
   test.use({ viewport: { width: 1280, height: 900 } })
 
   const customs = (count: number, filled: boolean) => Object.fromEntries(Array.from({ length: count }, (_, i) => {
@@ -1169,82 +1181,83 @@ test.describe('task sheet frame and property strip (#705)', () => {
       frameTask('frame-none', 'local', {}),
       frameTask('frame-four', 'notion', customs(4, true)),
       frameTask('frame-eleven', 'notion', customs(11, true)),
+      { ...frameTask('frame-long', 'local', {}), notes: Array.from({ length: 60 }, (_, i) => `Absatz ${i + 1} der langen Notiz.`).join('\n\n') },
       frameTask('frame-empty', 'notion', customs(2, false)),
       frameTask('frame-tags', 'notion', { tags: { key: 'tags', name: 'Stichwörter', propType: 'multi_select', value: { type: 'multi_select', value: Array.from({ length: 14 }, (_, i) => ({ name: `Stichwort Nummer ${i + 1}`, color: 'default' })) } } }),
     ], {}, undefined, { once: true })
   })
 
-  test('the sheet has the same size for a task with 0, 4 and 11 properties, with Metadaten open or closed', async ({ page }) => {
-    const sizes: { w: number, h: number }[] = []
+  const sheetBox = async (page: Page) => (await page.getByRole('dialog').boundingBox())!
+  /** Elements inside the sheet that scroll right now */
+  const scrolling = (page: Page) => page.getByRole('dialog').evaluate((el) => [...el.querySelectorAll<HTMLElement>('*')]
+    .filter((node) => node.scrollHeight > node.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(node).overflowY))
+    .map((node) => node.dataset.testid ?? node.tagName))
+
+  test('the height follows the content: no extras opens lower than four, four lower than eleven; nothing scrolls while it fits', async ({ page }) => {
+    const heights: number[] = []
     for (const id of ['frame-none', 'frame-four', 'frame-eleven']) {
       await openSheet(page, '', id)
-      const box = (await page.getByRole('dialog').boundingBox())!
-      sizes.push({ w: Math.round(box.width), h: Math.round(box.height) })
+      const box = await sheetBox(page)
+      expect(Math.round(box.width)).toBe(720)
+      heights.push(Math.round(box.height))
+      expect(await scrolling(page), `${id}: no scroll area`).toEqual([])
+      // every part is inside the sheet: the last line is the footer
+      const footer = (await page.getByTestId('task-metadata').boundingBox())!
+      expect(footer.y + footer.height).toBeLessThanOrEqual(box.y + box.height)
     }
-    expect(sizes).toEqual([{ w: 720, h: 612 }, { w: 720, h: 612 }, { w: 720, h: 612 }])
-    await page.getByRole('button', { name: 'Metadaten' }).click()
-    await settleAnimations(page)
-    const open = (await page.getByRole('dialog').boundingBox())!
-    expect([Math.round(open.width), Math.round(open.height)]).toEqual([720, 612])
+    expect(heights[0]).toBeLessThan(heights[1]! - 40)
+    expect(heights[1]).toBeLessThan(heights[2]! - 100)
   })
 
-  test('set properties are chips in at most two lines, "+n" counts the rest, and the popover lists every row', async ({ page }) => {
+  test('extra properties are cells of the same grid under their label, set and empty ones alike; no strip, button or popover', async ({ page }) => {
     await openSheet(page, '', 'frame-eleven')
-    const chips = page.getByTestId('task-property-chips')
-    await expect(chips).toBeVisible()
-    expect((await chips.boundingBox())!.height).toBeLessThanOrEqual(56)
-    await expect(page.getByTestId('task-properties-more')).toHaveText(/^\+\d+$/)
-
-    await openProperties(page)
-    await expect(page.getByTestId('task-properties-popover').getByTestId('task-property-row')).toHaveCount(11)
+    const section = page.getByTestId('task-custom-properties')
+    await expect(section.getByRole('heading', { name: 'Eigenschaften' })).toBeVisible()
+    await expect(section.getByTestId('task-property-row')).toHaveCount(11)
     await expect(page.getByText(/weitere/)).toHaveCount(0)
-  })
+    for (const gone of ['task-property-strip', 'task-properties-button', 'task-properties-popover']) await expect(page.getByTestId(gone)).toHaveCount(0)
+    // the same two tracks as the standard properties
+    const standard = await page.getByTestId('task-property-list').getByTestId('task-property-row').evaluateAll((els) => els.slice(0, 2).map((el) => Math.round(el.getBoundingClientRect().left)))
+    const extra = await section.getByTestId('task-property-row').evaluateAll((els) => els.slice(0, 2).map((el) => Math.round(el.getBoundingClientRect().left)))
+    expect(extra).toEqual(standard)
 
-  test('a multi-select with many tags stays inside the strip, says "+n" and the popover has them all', async ({ page }) => {
-    await openSheet(page, '', 'frame-tags')
-    const chips = page.getByTestId('task-property-chips')
-    const box = (await chips.boundingBox())!
-    expect(box.height).toBeLessThanOrEqual(56)
-    for (const badge of await chips.locator('[data-slot="base"], span.truncate').all()) {
-      const b = await badge.boundingBox()
-      if (b && b.y < box.y + box.height) expect(b.x + b.width).toBeLessThanOrEqual(box.x + box.width + 1)
-    }
-    await expect(page.getByTestId('task-properties-more')).toHaveText(/^\+\d+$/)
-    await openProperties(page)
-    await expect(page.getByTestId('task-properties-popover').getByRole("button", { name: /Stichwort Nummer 14/ })).toBeVisible()
-  })
-
-  test('four short chips fit: no "+n"', async ({ page }) => {
-    await openSheet(page, '', 'frame-four')
-    await expect(page.getByTestId('task-property-chips').getByText('Wert Nummer 1')).toBeVisible()
-    await expect(page.getByTestId('task-properties-more')).toHaveCount(0)
-  })
-
-  test('all empty: no chip, the button stays and the popover shows the empty rows; a Local task has neither strip nor button', async ({ page }) => {
+    // an empty one keeps its cell and is edited in place
     await openSheet(page, '', 'frame-empty')
-    await expect(page.getByTestId('task-property-chips').locator('span')).toHaveCount(0)
-    await openProperties(page)
-    await expect(page.getByTestId('task-properties-popover').getByTestId('task-property-row')).toHaveCount(2)
-    await page.keyboard.press('Escape')
-    await expect(page.getByTestId('task-properties-popover')).toHaveCount(0)
-
-    await openSheet(page, '', 'frame-none')
-    await expect(page.getByTestId('task-property-strip')).toHaveCount(0)
-    await expect(page.getByTestId('task-properties-button')).toHaveCount(0)
+    await expect(page.getByTestId('task-custom-properties').getByTestId('task-property-row')).toHaveCount(2)
+    await page.getByRole('button', { name: 'Eigenschaft 1: + hinzufügen' }).click()
+    await page.getByRole('textbox', { name: 'Eigenschaft 1' }).fill('Neuer Wert')
+    await page.keyboard.press('Enter')
+    await expect(page.getByRole('button', { name: 'Eigenschaft 1: Neuer Wert' })).toBeVisible()
   })
 
-  test('Escape closes the popover only, focus returns to the button; an outside press closes it too', async ({ page }) => {
-    await openSheet(page, '', 'frame-four')
-    await openProperties(page)
-    await page.keyboard.press('Escape')
-    await expect(page.getByTestId('task-properties-popover')).toHaveCount(0)
-    await expect(page.getByTestId('task-detail-header')).toBeVisible()
-    await expect(page.getByTestId('task-properties-button')).toBeFocused()
+  test('a task without extra properties shows no label and no empty rows', async ({ page }) => {
+    await openSheet(page, '', 'frame-none')
+    await expect(page.getByTestId('task-custom-properties')).toHaveCount(0)
+    await expect(page.getByRole('dialog').getByRole('heading', { name: 'Eigenschaften' })).toHaveCount(0)
+  })
 
-    await openProperties(page)
-    await page.getByTestId('task-detail-header').click({ position: { x: 20, y: 40 } })
-    await expect(page.getByTestId('task-properties-popover')).toHaveCount(0)
-    await expect(page.getByTestId('task-detail-header')).toBeVisible()
+  test('a long note: the sheet stops at the window\'s limit and only the note scrolls', async ({ page }) => {
+    await openSheet(page, '', 'frame-long')
+    const box = await sheetBox(page)
+    // 900 high window, the app bar above and 16 px below
+    expect(box.y + box.height).toBeLessThanOrEqual(900 - 16 + 1)
+    expect(box.height).toBeGreaterThan(700)
+    expect(await scrolling(page)).toEqual(['task-notes-column'])
+    const list = (await page.getByTestId('task-property-list').boundingBox())!
+    expect(list.y).toBeGreaterThan(box.y)
+    const footer = (await page.getByTestId('task-metadata').boundingBox())!
+    expect(footer.y + footer.height).toBeLessThanOrEqual(box.y + box.height)
+  })
+
+  test('writing a note grows the sheet with a guided height change, not a jump', async ({ page }) => {
+    await openSheet(page, '', 'frame-none')
+    const before = (await sheetBox(page)).height
+    await page.getByRole('button', { name: /^Notiz: / }).click()
+    await page.getByTestId('task-notes-input').fill(Array.from({ length: 12 }, (_, i) => `Zeile ${i + 1}`).join('\n'))
+    // the growth is a running height animation of the panel
+    await expect.poll(() => page.getByRole('dialog').evaluate((el) => el.getAnimations().some((animation) => (animation.effect as KeyframeEffect).getKeyframes().some((frame) => 'height' in frame)))).toBe(true)
+    await settleAnimations(page)
+    await expect.poll(async () => (await sheetBox(page)).height).toBeGreaterThan(before + 100)
   })
 
   test('the task menu opens by keyboard and Escape returns focus to it', async ({ page }) => {

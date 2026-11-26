@@ -44,6 +44,30 @@
 }
 
 /* ========================================
+ * TASK DETAIL GRID (#846)
+ * The property cells of the task detail: two columns, the standard properties and the board's extra ones on the
+ * same tracks (TaskDetailContent, TaskDetailCustomFields). Sheet: label left of the value, 32 px between the columns.
+ * Drawer (`--stacked`, the sheet's frozen variant and not the live width, #199): label above the value, 12 px between
+ * the columns. `__wide` spans both (the inline topic editor).
+ * ======================================== */
+.task-detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 2rem;
+  row-gap: 0.375rem;
+  align-items: start;
+}
+
+.task-detail-grid--stacked {
+  column-gap: 0.75rem;
+  row-gap: 0.5rem;
+}
+
+.task-detail-grid__wide {
+  grid-column: 1 / -1;
+}
+
+/* ========================================
  * TASK PROPERTY ROWS (#161, #114)
  * Free values of the shared label/value rows (editable labels: Timebox, Aufgewendete Zeit, text and number
  * fields, the date trigger): body text with a faint dotted rule at rest on every pointer type, so a value you

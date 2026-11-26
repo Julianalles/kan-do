@@ -119,24 +119,25 @@ const FLOWS: Flow[] = [
     url: '/tasks',
     run: async (page) => {
       await push(page, '/tasks/seed-open-1')
-      await expect(page.getByRole('button', { name: /Metadaten/i })).toBeVisible()
+      await expect(page.getByTestId('task-metadata')).toBeVisible()
       await page.waitForTimeout(600)
     },
   },
   {
-    name: 'task sheet: Metadaten open and closed (#610)',
+    name: 'task sheet: the note editor opens in place (#846)',
     url: '/tasks',
     before: async (page) => {
-      await push(page, '/tasks/seed-open-1')
-      await expect(page.getByRole('button', { name: /Metadaten/i })).toBeVisible()
-      await page.waitForTimeout(1200) // a person opens a fold after the sheet has arrived
+      await push(page, '/tasks/seed-open-2')
+      await expect(page.getByTestId('task-metadata')).toBeVisible()
+      await page.waitForTimeout(1200) // a person starts a note after the sheet has arrived
     },
     run: async (page) => {
-      const meta = page.getByRole('button', { name: /Metadaten/i })
-      await meta.click()
+      await page.getByRole('button', { name: /^Notiz: / }).click()
       await page.waitForTimeout(450)
-      await meta.click()
+      await page.keyboard.press('Escape')
     },
+    // The note's own box changes when its text turns into the editor (a swap in place, as every inline editable does); the guard is for everything around it: the sheet, the grid and the footer line stay where they are
+    jumps: [{ match: /section\[task-notes\]/, issue: '#846', why: 'the note section turns from its text into the editor in place: its own height changes, nothing around it moves' }],
   },
   {
     name: 'topic focus: open the chip row, pick a topic, end the focus (#608, #642)',

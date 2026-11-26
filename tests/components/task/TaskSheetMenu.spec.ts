@@ -8,9 +8,9 @@ const UDropdownMenu = { props: ['items'], template: '<div data-testid="menu"><sl
 
 const target: MoveTarget = { source: 'notion', name: 'Notion', menuName: 'Notion', targetPhrase: 'zu Notion', icon: 'i-ph-notion', hint: '', disabled: false }
 
-type Item = { label: string; color?: string; disabled?: boolean; description?: string; children?: Item[]; onSelect?: () => void }
+type Item = { label: string; type?: string; checked?: boolean; onUpdateChecked?: (on: boolean) => void; color?: string; disabled?: boolean; description?: string; children?: Item[]; onSelect?: (event?: Event) => void }
 
-const render = (props: { openLabel?: string | null; moveTargets?: MoveTarget[]; deleteLabel?: string | null }) =>
+const render = (props: { openLabel?: string | null; moveTargets?: MoveTarget[]; deleteLabel?: string | null; adhoc?: boolean }) =>
   mount(TaskSheetMenu, {
     props: { moveTargets: [], deleteLabel: 'Löschen', ...props },
     global: { stubs: { UButton, UDropdownMenu } },
@@ -19,19 +19,41 @@ const render = (props: { openLabel?: string | null; moveTargets?: MoveTarget[]; 
 const groupsOf = (wrapper: ReturnType<typeof render>) => wrapper.getComponent(UDropdownMenu).props('items') as Item[][]
 
 describe('TaskSheetMenu (#705)', () => {
-  it('Local board: Delete alone, in the error tone, which only emits', () => {
+  it('Local board: the task\'s own entries, then Delete in the error tone, which only emits', () => {
     const wrapper = render({})
     const groups = groupsOf(wrapper)
-    expect(groups.map(group => group.map(item => item.label))).toEqual([['Löschen']])
-    expect(groups[0]![0]!.color).toBe('error')
-    groups[0]![0]!.onSelect!()
+    expect(groups.map(group => group.map(item => item.label))).toEqual([['Kam spontan dazu', 'ID kopieren'], ['Löschen']])
+    expect(groups[1]![0]!.color).toBe('error')
+    groups[1]![0]!.onSelect!()
     expect(wrapper.emitted('delete')).toHaveLength(1)
+  })
+
+  it('ad-hoc work is a checked entry that emits the new state and keeps the menu open (#846)', () => {
+    const off = render({})
+    const entry = groupsOf(off)[0]![0]!
+    expect(entry).toMatchObject({ type: 'checkbox', checked: false })
+    entry.onUpdateChecked!(true)
+    expect(off.emitted('update:adhoc')).toEqual([[true]])
+    const event = new Event('select', { cancelable: true })
+    entry.onSelect!(event)
+    expect(event.defaultPrevented).toBe(true)
+
+    const on = render({ adhoc: true })
+    expect(groupsOf(on)[0]![0]!.checked).toBe(true)
+    groupsOf(on)[0]![0]!.onUpdateChecked!(false)
+    expect(on.emitted('update:adhoc')).toEqual([[false]])
+  })
+
+  it('copy id only emits: the host copies and reports (#846)', () => {
+    const wrapper = render({})
+    groupsOf(wrapper)[0]![1]!.onSelect!()
+    expect(wrapper.emitted('copy-id')).toHaveLength(1)
   })
 
   it('Notion board: open in source and move to source, then Delete in its own group', () => {
     const wrapper = render({ openLabel: 'In Notion öffnen', moveTargets: [target], deleteLabel: 'Löschen, auch in Notion' })
     const groups = groupsOf(wrapper)
-    expect(groups.map(group => group.map(item => item.label))).toEqual([['In Notion öffnen', 'Verschieben zu …'], ['Löschen, auch in Notion']])
+    expect(groups.map(group => group.map(item => item.label))).toEqual([['In Notion öffnen', 'Verschieben zu …'], ['Kam spontan dazu', 'ID kopieren'], ['Löschen, auch in Notion']])
     groups[0]![0]!.onSelect!()
     expect(wrapper.emitted('open')).toHaveLength(1)
   })
@@ -46,11 +68,12 @@ describe('TaskSheetMenu (#705)', () => {
     expect(wrapper.emitted('move')).toEqual([['notion']])
   })
 
-  it('a task that cannot be deleted shows no Delete; with nothing left there is no button at all', () => {
-    expect(groupsOf(render({ openLabel: 'In Reminders öffnen', deleteLabel: null }))).toEqual([[expect.objectContaining({ label: 'In Reminders öffnen' })]])
-    const empty = render({ deleteLabel: null })
-    expect(empty.find('button').exists()).toBe(false)
-    expect(empty.find('[data-testid="menu"]').exists()).toBe(false)
+  it('a task that cannot be deleted shows no Delete; the task\'s own entries keep the button (#846)', () => {
+    const labels = (wrapper: ReturnType<typeof render>) => groupsOf(wrapper).map(group => group.map(item => item.label))
+    expect(labels(render({ openLabel: 'In Reminders öffnen', deleteLabel: null }))).toEqual([['In Reminders öffnen'], ['Kam spontan dazu', 'ID kopieren']])
+    const readOnly = render({ deleteLabel: null })
+    expect(labels(readOnly)).toEqual([['Kam spontan dazu', 'ID kopieren']])
+    expect(readOnly.find('[data-testid="task-menu"]').exists()).toBe(true)
   })
 
   it('the trigger is named for screen readers', () => {
