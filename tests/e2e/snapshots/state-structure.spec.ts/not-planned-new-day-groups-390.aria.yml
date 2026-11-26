@@ -2,7 +2,7 @@
   - heading "Alle Aufgaben" [level=2]
   - button "Aufgabe hinzufügen"
   - status:
-    - paragraph: Wähle aus, was heute dran ist. Wechsle zu „Heute“, sobald du loslegen willst.
+    - paragraph: Wähle aus, was heute dran ist. Sobald du loslegen willst, wechsle in der Navigation zu „Heute“.
     - button "Schließen"
   - group /Von \S+ 4 Aufgaben/:
     - heading /Von \S+ 4 Aufgaben/ [level=3]

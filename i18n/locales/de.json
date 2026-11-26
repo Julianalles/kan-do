@@ -18,7 +18,7 @@
     "pageHeading": "Heute",
     "columns": {
       "open": "Offen",
-      "openPlanning": "Heute",
+      "openPlanning": "Für heute",
       "progress": "Jetzt",
       "waiting": "Wartet",
       "done": "Erledigt"
@@ -197,8 +197,8 @@
     },
     "planNote": {
       "title": "Wähle aus, was heute dran ist",
-      "description": "Der Pfeil an einer Karte plant sie für heute ein. Wechsle zu „Heute“, sobald du loslegen willst.",
-      "line": "Wähle aus, was heute dran ist. Wechsle zu „Heute“, sobald du loslegen willst.",
+      "description": "Der Pfeil an einer Karte plant sie für heute ein. Sobald du loslegen willst, wechsle in der Navigation zu „Heute“.",
+      "line": "Wähle aus, was heute dran ist. Sobald du loslegen willst, wechsle in der Navigation zu „Heute“.",
       "close": "Schließen"
     },
     "newDayTimeNote": {
