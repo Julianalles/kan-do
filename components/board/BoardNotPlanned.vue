@@ -273,8 +273,10 @@ const openTask = (id: string) => void navigateTo({ path: `${basePath.value}/${id
 const headerRef = ref<{ addButtonEl: () => HTMLElement | null } | null>(null)
 const addSlotRef = ref<{ open: () => void, isDrafting: boolean } | null>(null)
 const isDrafting = computed(() => addSlotRef.value?.isDrafting ?? false)
-/** Where focus goes after a cancelled draft: the header's button, or "Aufgabe erstellen" while that button is away */
-const focusFallback = () => bodyEl.value?.querySelector<HTMLElement>('[data-testid="not-planned-create"]') ?? headerRef.value?.addButtonEl() ?? null
+/** Where focus goes after a cancelled draft: the header's button, or "Aufgabe erstellen" (the note's, or the empty state's green button, #853) while that button is away */
+const focusFallback = () =>
+  bodyEl.value?.querySelector<HTMLElement>('[data-testid="not-planned-create"], [data-testid="not-planned-board-empty"] [data-testid="board-empty-add"]')
+  ?? headerRef.value?.addButtonEl() ?? null
 const addTask = () => {
   if (inCardAdding.value) return
   addSlotRef.value?.open()

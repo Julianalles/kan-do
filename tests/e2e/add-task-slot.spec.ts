@@ -566,6 +566,17 @@ test.describe('Empty board hint (#761)', () => {
     await expect(add).toBeFocused();
   });
 
+  test('"Alle" without a task: a cancelled draft from the empty state hands focus back to its green button (#853)', async ({ page, context }) => {
+    await seedLocalBoard(context, []);
+    await page.goto('/all');
+    const empty = page.getByTestId('not-planned-board-empty');
+    await empty.getByTestId('board-empty-add').click();
+    await expect(page.getByTestId('new-card-flow')).toBeVisible();
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('new-card-flow')).toHaveCount(0);
+    await expect(empty.getByTestId('board-empty-add')).toBeFocused();
+  });
+
   test('is absent once any column holds a task', async ({ page, context }) => {
     await seedLocalBoard(context, SEED_TASKS.filter((task) => task.status === 3).slice(0, 1));
     await page.goto('/tasks');

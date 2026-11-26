@@ -440,6 +440,21 @@ test('cards on "Heute": the welcome is a tour of three notes; focus stays on "We
   await expect(hint(page)).toHaveCount(0)
 })
 
+test('a started tour keeps its step across a task sheet (#853)', async ({ context, page }) => {
+  await seedLocalBoard(context, TOUR_BOARD, {}, undefined, WELCOME)
+  await gotoBoard(page)
+  const title = page.getByTestId('intro-note-title')
+  await page.getByTestId('intro-hint-next').click()
+  await expect(title).toHaveText('Eine Aufgabe zur Zeit')
+  await page.locator('.task-wrapper').first().click()
+  await expect(page).toHaveURL(/\/tasks\/.+/)
+  await expect(hint(page)).toHaveCount(0)
+  await page.keyboard.press('Escape')
+  await expect(page).toHaveURL(/\/tasks$/)
+  await expect(title).toHaveText('Eine Aufgabe zur Zeit')
+  await expect(hint(page)).toHaveAttribute('data-step', '2')
+})
+
 test('"Überspringen" ends the tour for good; "Hinweise ausschalten" on the welcome ends it too', async ({ context, page }) => {
   await seedLocalBoard(context, TOUR_BOARD, {}, undefined, WELCOME)
   await gotoBoard(page)

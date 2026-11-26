@@ -219,5 +219,5 @@ export function useIntroHints() {
     && !noticeUp.value
     && tasksStore.tasksNotPlanned.length > 0)
 
-  return { active, current, shownKey, markShown, close, planDue, welcome, markWelcomeShown, endWelcome }
+  return { active, current, shownKey, markShown, close, planDue, welcome, welcomeLive, markWelcomeShown, endWelcome }
 }

@@ -87,7 +87,7 @@ defineOptions({ name: 'IntroHintOverlay' })
 
 const { t } = useI18n()
 const appConfig = useAppConfig()
-const { active, current, shownKey, markShown, close, welcome, markWelcomeShown, endWelcome } = useIntroHints()
+const { active, current, shownKey, markShown, close, welcome, welcomeLive, markWelcomeShown, endWelcome } = useIntroHints()
 const isPhone = useIsPhone()
 const { setGroupingEnabled } = useBoardGrouping()
 const { turnOff } = useIntroHintsSwitch()
@@ -99,12 +99,13 @@ const sheet = ref<HTMLElement | null>(null)
 const step = ref(0)
 const startedTour = ref<IntroWelcome | null>(null)
 watch(welcome, (now) => {
-  if (now === null) {
-    startedTour.value = null
-    step.value = 0
-  } else if (now.shape === 'tour') {
-    startedTour.value = now
-  }
+  if (now?.shape === 'tour') startedTour.value = now
+}, { immediate: true })
+// `welcome` is null while a task sheet, a notice or the recap covers the board: the tour keeps its place then and only ends with the welcome itself
+watch(welcomeLive, (live) => {
+  if (live) return
+  startedTour.value = null
+  step.value = 0
 }, { immediate: true })
 
 /** The welcome as shown: the live one, or the tour that already began. */
