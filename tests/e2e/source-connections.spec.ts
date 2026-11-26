@@ -145,11 +145,15 @@ test.describe('disconnect Notion (#320)', () => {
 
     // The stacked footer (#611): full-width column, main on top, "Abbrechen" last, and the keyboard order follows the picture
     const stack = ['disconnect-sync-first', 'disconnect-anyway', 'disconnect-cancel']
-    const boxes = await Promise.all(stack.map(async (id) => (await page.getByTestId(id).boundingBox())!))
-    expect(boxes[0]!.y).toBeLessThan(boxes[1]!.y)
-    expect(boxes[1]!.y).toBeLessThan(boxes[2]!.y)
-    expect(boxes[0]!.width).toBeCloseTo(boxes[2]!.width, 0)
-    expect(boxes[0]!.x).toBeCloseTo(boxes[2]!.x, 0)
+    const boxes = async () => Promise.all(stack.map(async (id) => (await page.getByTestId(id).boundingBox())!))
+    const [first, second, last] = await boxes()
+    expect(first!.y).toBeLessThan(second!.y)
+    expect(second!.y).toBeLessThan(last!.y)
+    // polled: the dialog scales in, so reads taken one after the other differ by a few px until it settles (#876)
+    await expect.poll(async () => {
+      const [a, , c] = await boxes()
+      return Math.abs(a!.width - c!.width) < 1 && Math.abs(a!.x - c!.x) < 1
+    }).toBe(true)
     await page.getByTestId('disconnect-sync-first').focus()
     await page.keyboard.press('Tab')
     await expect(page.getByTestId('disconnect-anyway')).toBeFocused()
