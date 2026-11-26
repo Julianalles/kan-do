@@ -10,7 +10,7 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-11-02",
   "workers_dev": true,
-  "d1_databases": [{ "binding": "DB", "database_name": "kando-mcp", "database_id": "REPLACE_WITH_D1_ID", "migrations_dir": "migrations" }],
+  "d1_databases": [{ "binding": "DB", "database_name": "kando-mcp", "database_id": "53452d5d-4899-4d8a-92af-dd5c79a44e8c", "migrations_dir": "migrations" }],
   // Task titles are in the snapshot: no request logging beyond errors.
   "observability": { "enabled": true, "logs": { "invocation_logs": false } },
 }
