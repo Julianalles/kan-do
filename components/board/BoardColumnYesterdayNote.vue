@@ -45,9 +45,8 @@
               class="yesterday-note__tick"
               aria-hidden="true"
             />
-            <span class="min-w-0 truncate">
-              {{ headline }}<span class="text-muted ml-1.5">{{ tasks.length }}</span>
-            </span>
+            <span class="min-w-0 truncate">{{ headline }}</span>
+            <span class="shrink-0 text-muted tabular-nums" data-testid="yesterday-count">{{ tasks.length }}</span>
             <DisclosureCaret :open="open" />
           </UButton>
         </h3>
