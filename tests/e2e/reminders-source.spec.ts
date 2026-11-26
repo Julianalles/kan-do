@@ -155,8 +155,14 @@ test.describe('Apple Reminders source (#551)', () => {
     await expect(page.getByRole('button', { name: /^Aktivität/ })).toHaveCount(0)
     await expect(page.getByTestId('task-notes').getByText('Hafermilch')).toBeVisible()
     await expect(page.getByTestId('task-notes').getByRole('button')).toHaveCount(0)
-    // No link to open, nowhere to move, nothing to delete: the task menu has no item left, so no button
-    await expect(taskMenu(page)).toHaveCount(0)
+    // No link to open, nowhere to move, nothing to delete: the task menu (#846: it always renders, it holds the task's own entries) offers only the ad-hoc mark and "ID kopieren"
+    await taskMenu(page).click()
+    await expect(page.getByRole('menuitemcheckbox')).toHaveText(['Kam spontan dazu'])
+    await expect(page.getByRole('menuitem')).toHaveText(['ID kopieren'])
+    await expect(page.getByRole('menuitem', { name: /^Löschen/ })).toHaveCount(0)
+    await expect(page.getByRole('menuitem', { name: /öffnen/ })).toHaveCount(0)
+    await expect(page.getByRole('menuitem', { name: /Verschieben|Speichern in/ })).toHaveCount(0)
+    await page.keyboard.press('Escape')
 
     await page.goto('/tasks/add')
     await expect(page.getByTestId('add-target-switch')).toHaveCount(0)

@@ -893,6 +893,20 @@
       ]
     },
     {
+      "area": "task sheet content and its menu (#868: #867 reshaped the sheet's grid and menu and the gate selected neither spec): the Reminders read-only guarantees (the ⋯ menu offers no Delete, open or move) and the topic picker's outside-click reset at 390px (the open popover covers part of the stacked grid) are measured on the rendered sheet; flagged risk so the fast tier selects them",
+      "risk": true,
+      "paths": [
+        "components/task/TaskDetail*.vue",
+        "components/task/TaskSheetMenu.vue",
+        "components/task/TaskPropertyRow.vue",
+        "components/task/TaskMorphShell.vue"
+      ],
+      "specs": [
+        "reminders-source",
+        "topic-management"
+      ]
+    },
+    {
       "area": "task sheet shells (#468, #517): the add slideover moves the app bar (#290), the detail morph sheet must not, so a sheet component change, or the Board.vue mirror and the stylesheet that read `data-sheet-side`, runs the app bar spec (flagged risk so the fast tier selects it: #513 passed that tier without app-nav) and the scroll bar specs (the sheet's scroll lock and gutter must not shift the page: #317, #705 went red on main with the gate blind to it)",
       "risk": true,
       "paths": [
