@@ -192,7 +192,7 @@ test.describe('The place "Alle" (#354), desktop', () => {
     expect(await page.evaluate(() => document.querySelector('.board')!.getAnimations().length)).toBe(0)
   })
 
-  test('#375: the column beside "Alle Aufgaben" is headed "Heute" on "Alle" and "Offen" on Heute; the title fades with the move and one title is left', async ({ context, page }) => {
+  test('#375: the column beside "Alle Aufgaben" is headed "Für heute" on "Alle" and "Offen" on Heute; the title fades with the move and one title is left', async ({ context, page }) => {
     await seedLocalBoard(context, BOARD)
     await page.goto('/tasks')
     const heading = page.locator('#column-open').getByRole('heading', { level: 2 })
@@ -201,17 +201,17 @@ test.describe('The place "Alle" (#354), desktop', () => {
     let outgoing = sawOutgoingTitle(page)
     await placeLink(page, 'all').click()
     // The heading has one name from the first frame on: the title that fades out is not read
-    await expect(heading).toHaveAccessibleName('Heute')
+    await expect(heading).toHaveAccessibleName('Für heute')
     expect(await outgoing).toBe('Offen')
     await atRest(page)
     await expect(page.locator('.column-header__outgoing')).toHaveCount(0)
-    await expect(heading).toHaveText('Heute')
+    await expect(heading).toHaveText('Für heute')
     await expect(notPlanned(page).getByRole('heading', { level: 2 })).toHaveText('Alle Aufgaben')
 
     outgoing = sawOutgoingTitle(page)
     await toHeute(page).click()
     await expect(heading).toHaveAccessibleName('Offen')
-    expect(await outgoing).toBe('Heute')
+    expect(await outgoing).toBe('Für heute')
     await atRest(page)
     await expect(page.locator('.column-header__outgoing')).toHaveCount(0)
     await expect(heading).toHaveText('Offen')
@@ -222,7 +222,7 @@ test.describe('The place "Alle" (#354), desktop', () => {
     await placeLink(page, 'all').click()
     await atRest(page)
     await expect(page.locator('.column-header__outgoing')).toHaveCount(0)
-    await expect(heading).toHaveText('Heute')
+    await expect(heading).toHaveText('Für heute')
   })
 
   test('#375: with reduced motion the title changes at once, without a fade', async ({ context, page }) => {
@@ -233,7 +233,7 @@ test.describe('The place "Alle" (#354), desktop', () => {
     await expect(heading).toHaveText('Offen')
     const outgoing = sawOutgoingTitle(page, 800)
     await placeLink(page, 'all').click()
-    await expect(heading).toHaveText('Heute')
+    await expect(heading).toHaveText('Für heute')
     expect(await outgoing).toBeNull()
   })
 
@@ -1235,10 +1235,10 @@ test.describe('"Alle Aufgaben" layout and the marker (#469)', () => {
       await expect(item(page, 'np-2').getByTestId('not-planned-pick')).toHaveCSS('opacity', '1')
     })
 
-    test('the marker is under "Heute" on "Alle" and goes when the user moves to "Heute", where "Jetzt" keeps it: one marker per view', async ({ context, page }) => {
+    test('the marker is under "Für heute" on "Alle" and goes when the user moves to "Heute", where "Jetzt" keeps it: one marker per view', async ({ context, page }) => {
       await seedLocalBoard(context, MANY)
       await gotoAll(page)
-      await expect(page.locator('#column-open h2')).toHaveText('Heute')
+      await expect(page.locator('#column-open h2')).toHaveText('Für heute')
       await expect.poll(() => markerOpacity(page, 'open')).toBe(1)
       await toHeute(page).click()
       await expect(board(page)).toHaveAttribute('data-place', 'today')

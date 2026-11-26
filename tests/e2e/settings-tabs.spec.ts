@@ -55,13 +55,13 @@ test.describe('Hinweise zum Einstieg in the Board tab (#804)', () => {
     await expect(list).toContainText('Viel offen? Gestapelt nach Thema oder Priorität wählst du leichter aus. Die Stapel findest du auch unter „Mehr“.')
     await expect(list).toContainText('Genug für heute? „Tag abschließen“ zeigt dir, was du geschafft hast und was offen bleibt.')
     // the planning note of "Alle" in its own words (#741): the desktop sentence here, the phone's one line below
-    await expect(list).toContainText('Der Pfeil an einer Karte plant sie für heute ein. Wechsle zu „Heute“, sobald du loslegen willst.')
+    await expect(list).toContainText('Der Pfeil an einer Karte plant sie für heute ein. Sobald du loslegen willst, wechsle in der Navigation zu „Heute“.')
     await hintsButton(page).click()
     await expect(list.locator('li')).toHaveCount(5)
 
     await page.setViewportSize({ width: 390, height: 844 })
     await expect(list).toContainText('Halte die Karte und ziehe sie an den rechten Rand, in „Jetzt“.')
-    await expect(list).toContainText('Wähle aus, was heute dran ist. Wechsle zu „Heute“, sobald du loslegen willst.')
+    await expect(list).toContainText('Wähle aus, was heute dran ist. Sobald du loslegen willst, wechsle in der Navigation zu „Heute“.')
     const button = (await hintsButton(page).boundingBox())!
     expect(button.height).toBeGreaterThanOrEqual(44)
   })

@@ -31,17 +31,17 @@ describe('useBoardAnnouncements: the column name follows the place (#375)', () =
     expect(over(TaskStatus.Open)).toBe('„task-1“ in Spalte Offen, Position 1 verschoben.')
   })
 
-  it('names the same column "Heute" on the place "Alle", also under a sheet path', () => {
+  it('names the same column "Für heute" on the place "Alle", also under a sheet path', () => {
     setCurrentBoardPath('/all')
-    expect(over(TaskStatus.Open)).toBe('„task-1“ in Spalte Heute, Position 1 verschoben.')
+    expect(over(TaskStatus.Open)).toBe('„task-1“ in Spalte Für heute, Position 1 verschoben.')
     setCurrentBoardPath('/all/task-1')
-    expect(over(TaskStatus.Open)).toBe('„task-1“ in Spalte Heute, Position 1 verschoben.')
+    expect(over(TaskStatus.Open)).toBe('„task-1“ in Spalte Für heute, Position 1 verschoben.')
   })
 
-  it('on "Alle" the Jetzt and Wartet cards stand in "Heute" too (#797); on Heute every column keeps its name', () => {
+  it('on "Alle" the Jetzt and Wartet cards stand in "Für heute" too (#797); on Heute every column keeps its name', () => {
     setCurrentBoardPath('/all')
-    expect(over(TaskStatus.Waiting)).toBe('„task-1“ in Spalte Heute, Position 1 verschoben.')
-    expect(over(TaskStatus.Progress)).toBe('„task-1“ in Spalte Heute, Position 1 verschoben.')
+    expect(over(TaskStatus.Waiting)).toBe('„task-1“ in Spalte Für heute, Position 1 verschoben.')
+    expect(over(TaskStatus.Progress)).toBe('„task-1“ in Spalte Für heute, Position 1 verschoben.')
     setCurrentBoardPath('/tasks')
     expect(over(TaskStatus.Waiting)).toBe('„task-1“ in Spalte Wartet, Position 1 verschoben.')
     expect(over(TaskStatus.Done)).toBe('„task-1“ in Spalte Erledigt, Position 1 verschoben.')
