@@ -2,7 +2,7 @@
 @component BoardPlanNote
 @kind component
 @category feedback
-@description The one-time note of the place "Alle" (#711, #741), and the intro hint "Planen" (#803): after the user chose "Neuen Tag planen" (and, for a user of the intro hints, on the first visit to "Alle" with tasks to pick) it says what this step is for (pick what is on for today) and when to go to "Heute" (when they want to start). It stands where the picked tasks land: in the empty "Heute" column on desktop, as one line under the headline "Alle Aufgaben" on a phone. It has no button that moves on.
+@description The one-time note of the place "Alle" (#711, #741), and the intro hint "Planen" (#803): after the user chose "Neuen Tag planen" (and, for a user of the intro hints, on the first visit to "Alle" with tasks to pick) it says what this step is for (pick what is on for today) and when to go to "Heute" (when they want to start). It stands where the picked tasks land: in the empty "Für heute" column on desktop, as one line under the headline "Alle Aufgaben" on a phone. It has no button that moves on.
 @usage <BoardPlanNote face="column" /> in the Offen column's list (Board.vue fills BoardColumn's `list-start` slot, desktop), <BoardPlanNote face="line" /> first in the body of BoardNotPlanned (phone). Each face renders only at its width. Whether the note is due: without a hints record (every install from before #800) `useNewDay` (`planNoteShown`, `answerPlanNote`), with one `useIntroHints().planDue`; both end in the persisted flag `dayRecap.planNoteSeen`.
 @avoid Not a notice about the board's state (NewDayNote), not a toast, not a tour step or a tip anchored at another element: it stands where the step happens and goes once. Never for "Alle" opened any other way (pill, deep link, "Überspringen und Board anzeigen"). Not the empty state of a column (EmptyNote, the Offen column's own hints on "Heute").
 @responsibility
@@ -73,7 +73,7 @@ import { ICONS } from '~/lib/icons'
 defineOptions({ name: 'BoardPlanNote' })
 
 const props = defineProps<{
-  /** Where it stands: `column` in the empty "Heute" column (desktop), `line` under the headline "Alle Aufgaben" (phone) */
+  /** Where it stands: `column` in the empty "Für heute" column (desktop), `line` under the headline "Alle Aufgaben" (phone) */
   face: 'column' | 'line'
 }>()
 

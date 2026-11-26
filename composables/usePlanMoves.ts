@@ -1,8 +1,8 @@
 /**
  * @composable usePlanMoves
  * @description The two moves of the place "Alle" (#354, epic #334) as the user sees them: "Für heute einplanen"
- * (a "Alle Aufgaben" card lands in "Heute": at the end of Offen's own cards, or, for a waiting task (#793), behind
- * the other Wartet cards of "Heute" on "Alle", #797, #815) and "Nicht für heute planen" (a "Heute" card goes back to the top of
+ * (a "Alle Aufgaben" card lands in "Für heute": at the end of Offen's own cards, or, for a waiting task (#793), behind
+ * the other Wartet cards of "Für heute" on "Alle", #797, #815) and "Nicht für heute planen" (a "Für heute" card goes back to the top of
  * "Alle Aufgaben"). The state change is `useTaskSync.planTask` / `unplanTask`; this adds the motion and the
  * screen-reader line.
  * @responsibility
@@ -39,7 +39,7 @@ const reducedMotion = (): boolean =>
 
 const escapeId = (id: string): string => (typeof CSS !== 'undefined' && CSS.escape ? CSS.escape(id) : id)
 const notPlannedItem = (id: string) => document.querySelector<HTMLElement>(`[data-not-planned-id="${escapeId(id)}"]`)
-/** The card of a planned task in "Heute" on "Alle" or in Offen: the Jetzt and Wartet cards of "Alle" stand in `#column-open` as well (#797) */
+/** The card of a planned task in "Für heute" on "Alle" or in Offen: the Jetzt and Wartet cards of "Alle" stand in `#column-open` as well (#797) */
 const openCard = (id: string) => document.querySelector<HTMLElement>(`#column-open .task-wrapper[data-task-id="${escapeId(id)}"]`)
 
 /** Phone: the card leaves its page sideways; resolves when it is out (or at once without motion). */
@@ -119,7 +119,7 @@ export function usePlanMoves() {
 
   /**
    * "Für heute einplanen": the task lands at the end of Offen's own cards; a waiting task keeps Wartet (#793) and lands behind the
-   * Wartet cards "Heute" lists on "Alle" (#797), which are in `#column-open` too, so the same lookup finds it (#815).
+   * Wartet cards "Für heute" lists on "Alle" (#797), which are in `#column-open` too, so the same lookup finds it (#815).
    */
   const planForToday = (id: string) => move(id, 'plan')
   /** "Nicht für heute planen": the Offen task goes to the top of "Alle Aufgaben". */
