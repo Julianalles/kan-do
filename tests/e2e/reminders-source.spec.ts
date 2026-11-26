@@ -153,6 +153,8 @@ test.describe('Apple Reminders source (#551)', () => {
     await expect(page.getByTestId('task-topic-readonly').getByRole('button')).toHaveCount(0)
     await expect(page.getByTestId('task-activity-readonly')).toHaveCount(0)
     await expect(page.getByRole('button', { name: /^Aktivität/ })).toHaveCount(0)
+    // #870: the note is the tab "Notiz" (shown because there is one; nothing to edit)
+    await page.getByRole('tab', { name: /^Notiz/ }).click()
     await expect(page.getByTestId('task-notes').getByText('Hafermilch')).toBeVisible()
     await expect(page.getByTestId('task-notes').getByRole('button')).toHaveCount(0)
     // No link to open, nowhere to move, nothing to delete: the task menu (#846: it always renders, it holds the task's own entries) offers only the ad-hoc mark and "ID kopieren"

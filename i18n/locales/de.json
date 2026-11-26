@@ -410,6 +410,9 @@
       "created": "Erstellt: {date}",
       "openIn": "In {source} öffnen",
       "menuLabel": "Aufgabenmenü",
+      "tabDetails": "Details",
+      "tabsLabel": "Bereich",
+      "tabNotesFilled": "vorhanden",
       "adhocBadge": "Spontan"
     },
     "timeStats": {

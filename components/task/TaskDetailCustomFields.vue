@@ -3,22 +3,21 @@
 @kind component
 @category input
 @description Custom (Notion) properties of a task as label/value cells of the task detail's two-column grid, with inline editing
-@usage Used in TaskDetailContent under the "Eigenschaften" label, on the sheet and in the drawer (#846: the strip and its popover of #705 are gone)
+@usage Used in TaskDetailContent as the body of the tab "Eigenschaften", on the sheet and in the drawer (#870; the strip and its popover of #705 are gone since #846)
 @avoid Only the Notion custom properties in the task detail; core properties use TaskPropertyRow.
 @responsibility
 - Renders every custom property type (text, number, url, email, phone, checkbox, select, multi-select, date)
-- The cells continue the standard properties' grid (`.task-detail-grid`, task-detail.css): two columns, the label left of the value on the sheet and above it in the drawer (`TaskPropertyRow` `stacked`)
+- The cells use the standard properties' grid (`.task-detail-grid`, task-detail.css): two columns on the sheet, one in the drawer, the label left of the value in both
 - Every configured property is a cell in a stable position; an empty one shows its empty state ("Auswählen…", "+ hinzufügen") instead of hiding behind a "+ n weitere" action (#161)
 - Integrates with the property options store for select/multi-select
 - Emits update events for the parent to handle persistence
 -->
 <template>
-  <div class="task-detail-grid" :class="{ 'task-detail-grid--stacked': !isDesktop }">
+  <div class="task-detail-grid" :class="{ 'task-detail-grid--single': !isDesktop }">
     <TaskPropertyRow
       v-for="entry in customList"
       :key="entry.key"
       :label="entry.name"
-      :stacked="!isDesktop"
       private
     >
       <!-- Checkbox (direct toggle) -->
@@ -117,7 +116,7 @@ import { useOverlayIsDesktop } from '~/composables/useIsDesktop';
 
 defineOptions({ name: 'TaskDetailCustomFields' });
 
-/** The drawer stacks the label above the value (#846); follows the sheet's frozen variant */
+/** The drawer's grid is one column (#870); follows the sheet's frozen variant */
 const isDesktop = useOverlayIsDesktop();
 
 const { t } = useI18n();

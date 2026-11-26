@@ -57,12 +57,13 @@ test('requirements sections 1-10 hold on one mixed board', async ({ context, pag
 
   // 9. The task sheet follows the task's own source
   await page.goto('/tasks/page-1')
-  // #846: the Notion properties are cells of the sheet's grid under "Eigenschaften"; the footer line names the source
+  // #870: the Notion properties are the tab "Eigenschaften" of the sheet; the footer line names the source
+  await page.getByRole('tab', { name: /^Eigenschaften/ }).click()
   await expect(page.getByTestId('task-custom-properties')).toBeVisible()
   await expect(page.getByTestId('task-detail-source')).toHaveText('Notion')
   await page.goto('/tasks/local-open-1')
   await expect(page.getByTestId('task-detail-source')).toHaveText('Lokal')
-  await expect(page.getByTestId('task-custom-properties')).toHaveCount(0)
+  await expect(page.getByRole('tab', { name: /^Eigenschaften/ })).toHaveCount(0)
   await page.goto('/tasks')
 
   // 7. Speicherorte: the default sits in the rows; make Local the default

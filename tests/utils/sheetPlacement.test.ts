@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isUsableOrigin, keepInside, placeSheet, SHEET_MARGIN, SHEET_MAX_WIDTH, isHeightJump, sheetMaxHeight, sheetWidth } from '~/utils/sheetPlacement'
+import { isUsableOrigin, keepInside, placeSheet, SHEET_MARGIN, SHEET_MAX_WIDTH, sheetHeight, sheetMaxHeight, sheetWidth } from '~/utils/sheetPlacement'
 
 const viewport = { width: 1280, height: 800 }
 const card = { x: 500, y: 300, w: 288, h: 132 }
@@ -18,17 +18,12 @@ describe('sheetPlacement', () => {
     expect(sheetMaxHeight(10)).toBe(0)
   })
 
-  it('guides a jump of the content height, follows a frame of a running motion, and joins a growth that runs (#846)', () => {
-    // the note editor opening, a new line while writing
-    expect(isHeightJump(405, 505)).toBe(true)
-    expect(isHeightJump(505, 485)).toBe(true)
-    // one frame of a collapsible that is already opening in place
-    expect(isHeightJump(405, 408)).toBe(false)
-    expect(isHeightJump(405, 413)).toBe(false)
-    expect(isHeightJump(405, 405)).toBe(false)
-    // while the growth transition runs every change joins it, so the sheet never snaps mid-way
-    expect(isHeightJump(405, 408, true)).toBe(true)
-    expect(isHeightJump(405, 405.4, true)).toBe(false)
+  it('has one frame height that follows the width, or the window when that is shorter (#870)', () => {
+    expect(sheetHeight(720, 728)).toBe(403)
+    expect(sheetHeight(720, 1000)).toBe(403)
+    expect(sheetHeight(720, 300)).toBe(300)
+    expect(sheetHeight(568, 728)).toBe(318)
+    expect(sheetHeight(0, 0)).toBe(0)
   })
 
   it('centres the sheet on the card', () => {

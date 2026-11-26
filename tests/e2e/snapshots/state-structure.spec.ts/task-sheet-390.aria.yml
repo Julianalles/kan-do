@@ -3,22 +3,22 @@
   - heading "Konzept ausarbeiten" [level=2]
   - 'button "Titel: Konzept ausarbeiten"'
   - button "Aufgabenmenü"
-  - text: Status
-  - 'button "Status: Offen"'
-  - text: Heute
-  - switch "Heute" [checked]
-  - text: Thema
-  - 'button "Thema: Design"'
-  - text: Aktivität
-  - 'button "Aktivität: Planung"'
-  - text: Priorität
-  - 'button "Priorität: Normal"'
-  - text: Timebox
-  - 'button "Timebox: + hinzufügen"'
-  - text: Geplante Dauer in Minuten Aufgewendet
-  - 'button "Aufgewendete Zeit: + hinzufügen"'
-  - region "Notiz":
-    - heading "Notiz" [level=3]
-    - 'button "Notiz: Entwurf bis Ende der Woche fertigstellen."'
-    - paragraph: Entwurf bis Ende der Woche fertigstellen.
+  - tablist "Bereich":
+    - tab "Details" [selected]
+    - tab "Notiz vorhanden"
+  - tabpanel "Details":
+    - text: Status
+    - 'button "Status: Offen"'
+    - text: Heute
+    - switch "Für heute eingeplant" [checked]
+    - text: Für heute eingeplant Thema
+    - 'button "Thema: Design"'
+    - text: Aktivität
+    - 'button "Aktivität: Planung"'
+    - text: Priorität
+    - 'button "Priorität: Normal"'
+    - text: Timebox
+    - 'button "Timebox: + hinzufügen"'
+    - text: Geplante Dauer in Minuten Aufgewendet
+    - 'button "Aufgewendete Zeit: + hinzufügen"'
   - paragraph: "/Lokal Erstellt: \\d+\\.\\d+\\.\\d+/"

@@ -206,8 +206,8 @@ test('board: task detail page', async ({ page }) => {
   // offset in about one run in four (layout identical, a few antialiasing dots; 11 of 60 runs failed, 0 of 60 with the
   // property off). Overscroll chaining is behaviour, not pixels, so this shot turns it off (#520); tolerances stay.
   // Set inline before `settle`: a stylesheet injected through the screenshot's `style` option comes too late (6 of 30 still failed).
-  // Since #846 the scrollers are the notes area and the sheet body
-  for (const id of ['task-notes-column', 'task-detail-sheet']) await page.getByTestId(id).evaluate((el) => { (el as HTMLElement).style.overscrollBehavior = 'auto' })
+  // Since #870 the one scroller is the open tab's body
+  await page.getByRole('dialog').getByRole('tabpanel').evaluate((el) => { (el as HTMLElement).style.overscrollBehavior = 'auto' })
   await settle(page)
   await expect(page).toHaveScreenshot('task-detail.png', { animations: 'disabled' })
 })
