@@ -345,6 +345,15 @@ describe('selectE2e', () => {
     }
   })
 
+  it('runs the Reminders read-only and topic picker specs for a task sheet content change, also in fast mode (#868: #867 went red on main)', () => {
+    for (const file of ['components/task/TaskDetailContent.vue', 'components/task/TaskDetailNotes.vue', 'components/task/TaskSheetMenu.vue', 'components/task/TaskPropertyRow.vue', 'components/task/TaskMorphShell.vue']) {
+      for (const mode of ['quality', 'fast']) {
+        const result = select({ files: [file], env: { KANDO_TESTING_MODE: mode } })
+        expect(result.specs, `${file} ${mode}`).toEqual(expect.arrayContaining(['reminders-source', 'topic-management']))
+      }
+    }
+  })
+
   it('keeps the phone hit areas and the motion guard in fast mode for task, settings and intro hint files (#822, #823: #818 and #820 went red on main)', () => {
     for (const [file, spec] of [['components/task/TaskDetailMetadata.vue', 'phone-hit-areas'], ['components/board/IntroHintOverlay.vue', 'motion-guard'], ['components/settings/IntroHintsSheet.vue', 'motion-guard']] as const) {
       const result = select({ files: [file], env: { KANDO_TESTING_MODE: 'fast' } })
