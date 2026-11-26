@@ -672,13 +672,14 @@ export default defineAppConfig({
     // Phone: the whole row of a checkbox is the target (#592). The box is 16 px, so its row is 44 px high and an invisible layer
     // over the row (the box's `::after`, positioned against the row) takes the tap, label and gap included.
     // A ticked checkbox is the primary fill everywhere (DESIGN.md "States", #606): the colour is set here once, no call site sets one
+    // The box is a rounded square (`rounded-xs`, 4 px): the stock `rounded-sm` is the app's `--ui-radius` (8 px), which makes the 16 px box a circle that reads as a radio button when unchecked (#865)
     checkbox: {
       defaultVariants: {
         color: 'primary'
       },
       slots: {
         root: 'max-md:min-h-11 max-md:items-center',
-        base: 'max-md:after:absolute max-md:after:inset-0'
+        base: 'rounded-xs max-md:after:absolute max-md:after:inset-0'
       }
     },
     // Off state of a switch (#683): the stock soft-grey track (neutral-200) is 1.1:1 on the page wash, under the 3:1 of WCAG 1.4.11.

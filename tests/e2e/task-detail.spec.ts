@@ -976,6 +976,72 @@ test.describe('Task Detail View', () => {
       await expect(page.getByTestId('task-notes-rendered')).toContainText('mit Cmd gespeichert');
     });
 
+    test.describe('on a phone (touch, no fine pointer)', () => {
+      test.use({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true });
+
+      // #865: a phone has no Cmd or Ctrl key, so the hint names no shortcut
+      test('the note hint names no keyboard shortcut', async ({ page, baseURL }) => {
+        await openSheet(page, baseURL, 'test-task-2');
+        await openTab(page, 'Notiz');
+        await page.getByRole('button', { name: /^Notiz: / }).click();
+        await expect(page.getByTestId('task-notes-hint')).toHaveText('Markdown unterstützt');
+      });
+
+      // #871: with a long note the tabs scroll away with the page, so Details needed a scroll to the top
+      test('the tab list stays at the top of the drawer while a long note scrolls', async ({ page, baseURL }) => {
+        await openSheet(page, baseURL, 'test-task-2');
+        await openTab(page, 'Notiz');
+        await page.getByRole('button', { name: /^Notiz: / }).click();
+        await page.getByTestId('task-notes-input').fill(Array.from({ length: 60 }, (_, i) => `Absatz ${i + 1}`).join('\n\n'));
+        await page.keyboard.press('Control+Enter');
+        await expect(page.getByTestId('task-notes-rendered')).toContainText('Absatz 60');
+
+        const tabList = page.getByRole('tablist');
+        const scrolled = await page.getByTestId('task-notes').evaluate((el) => {
+          let top = 0;
+          for (let node: HTMLElement | null = el as HTMLElement; node; node = node.parentElement) {
+            if (node.scrollHeight > node.clientHeight + 5 && /auto|scroll/.test(getComputedStyle(node).overflowY)) { node.scrollTop = 99999; top = Math.max(top, node.scrollTop); }
+          }
+          return top;
+        });
+        expect(scrolled, 'the long note scrolls the drawer').toBeGreaterThan(200);
+        await expect.poll(async () => (await tabList.boundingBox())!.y, 'the tab list sticks at the top of the drawer, not scrolled out').toBeLessThan(120);
+        expect((await tabList.boundingBox())!.y).toBeGreaterThanOrEqual(0);
+      });
+    });
+
+    // #871: an empty note's body is a target, not only the line of its placeholder
+    test('an empty note is a tall target, not just the placeholder line', async ({ page, baseURL }) => {
+      await openSheet(page, baseURL, 'test-task-4');
+      await openTab(page, 'Notiz');
+      const trigger = page.getByRole('button', { name: /^Notiz/ }).filter({ hasText: 'Notiz hinzufügen' });
+      expect((await trigger.boundingBox())!.height).toBeGreaterThanOrEqual(90);
+      const box = (await trigger.boundingBox())!;
+      await page.mouse.click(box.x + box.width / 2, box.y + box.height - 8);
+      await expect(page.getByTestId('task-notes-input')).toBeVisible();
+    });
+
+    // #871: a note longer than the frame says so with a shadow at the cut edge, and none when it fits
+    test('a long note shows a scroll cue at the frame edge, a short one does not', async ({ page, baseURL }) => {
+      await openSheet(page, baseURL, 'test-task-3');
+      await openTab(page, 'Notiz');
+      await page.getByRole('button', { name: /^Notiz: / }).click();
+      await page.getByTestId('task-notes-input').fill(Array.from({ length: 40 }, (_, i) => `Absatz ${i + 1}`).join('\n\n'));
+      await page.keyboard.press('Control+Enter');
+      const body = page.getByRole('tabpanel');
+      await expect(body).toHaveClass(/task-scroll-cue/);
+      expect(await body.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true);
+    });
+
+    // #865: the unchecked box is a rounded square, a circle reads as a radio button
+    test('an unchecked checkbox property is a square box, not a circle', async ({ page, baseURL }) => {
+      await openSheet(page, baseURL, 'test-task-6');
+      await openTab(page, 'Eigenschaften');
+      const box = page.getByRole('checkbox').first();
+      const { radius, width } = await box.evaluate((el) => ({ radius: parseFloat(getComputedStyle(el).borderTopLeftRadius), width: el.getBoundingClientRect().width }));
+      expect(radius).toBeLessThan(width / 2);
+    });
+
     // #870: title across the top, the tabs, the open tab's body, the footer line last; the frame is the same on every tab
     test('desktop: the title spans the top, the tabs follow, the open tab has the body and the footer line is the last line on every tab', async ({ page, baseURL }) => {
       await openSheet(page, baseURL, 'test-task-1');

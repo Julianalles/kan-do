@@ -414,6 +414,7 @@
       "notesEmpty": "Notiz hinzufügen…",
       "notesPlaceholder": "Notiz hinzufügen…",
       "notesHint": "Markdown unterstützt • {shortcut} zum Speichern",
+      "notesHintTouch": "Markdown unterstützt",
       "sourceLocal": "Lokal",
       "created": "Erstellt: {date}",
       "openIn": "In {source} öffnen",

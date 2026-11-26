@@ -414,6 +414,7 @@
       "notesEmpty": "Add a note…",
       "notesPlaceholder": "Add a note…",
       "notesHint": "Markdown supported • {shortcut} to save",
+      "notesHintTouch": "Markdown supported",
       "sourceLocal": "Local",
       "created": "Created: {date}",
       "openIn": "Open in {source}",

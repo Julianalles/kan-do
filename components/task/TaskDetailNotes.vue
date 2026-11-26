@@ -12,7 +12,8 @@
 - Edit affordance (kd#134, agent-decided): empty notes show the at-rest signal of a free value, the muted placeholder with the faint dotted rule (every pointer type, touch too). A written note carries no at-rest mark; hover and keyboard focus show the soft fill, a click or tap anywhere on the text edits. The reason: title and notes are the sheet's content, read far more often than edited, and text you click to edit is the convention for both; the property rows are values, and those look like controls (kd#114). Rejected for a written note: a dotted rule (under every rendered line it is noise, as one line under the block it reads as a row divider), a pencil or "Bearbeiten" at the block's edge (a new glyph grammar beside select and rule on every sheet, and the title would need the same), the fill at rest on touch (a tinted box around body text). Accepted trade-off: on touch a written note and the title show nothing until tapped; revisit both together, never the notes alone
 - The edit mode is a bordered textarea, as the topic editor's Name and the add form's fields are bordered inputs: a field of an open form is always editable and looks like an input, a value edited in place looks like its text (InlineEditable `@avoid`). Two situations, not two grammars for one
 - The textarea grows with its text (`autoresize`, from six rows: the tab's body is the note's, and six rows with the hint fit it on the sheet without scrolling); a note longer than the tab's body scrolls inside it, the sheet's frame never changes (#870; the guided growth of #846 is gone)
-- Save with Cmd+Enter (macOS) or Ctrl+Enter, the hint names the key of the current platform
+- Save with Cmd+Enter (macOS) or Ctrl+Enter, the hint names the key of the current platform; a device without a fine pointer (a phone) saves by leaving the field and its hint says only that Markdown works (#865)
+- An empty note's trigger is a tall block (`min-h-24`), not just the placeholder's line, so the tab's body is a target (#871)
 -->
 <template>
   <!-- No label of its own: the tab "Notiz" names it (#870) -->
@@ -33,6 +34,7 @@
         multiline
         :readonly="readonly"
         :interactive-display="!!notes"
+        :display-class="notes ? undefined : 'min-h-24 items-start'"
         @save="(val) => emit('save', val as string)"
       >
         <template #display>
@@ -56,7 +58,7 @@
             @keydown.esc.stop="cancelEdit"
           />
           <div class="mt-1 text-right text-xs text-muted" data-testid="task-notes-hint">
-            {{ t('task.detail.notesHint', { shortcut: submitShortcut }) }}
+            {{ hasKeyboardShortcut ? t('task.detail.notesHint', { shortcut: submitShortcut }) : t('task.detail.notesHintTouch') }}
           </div>
           </div>
         </template>
@@ -67,6 +69,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useMediaQuery } from '@vueuse/core';
 import { useI18n } from 'vue-i18n';
 import InlineEditable from '~/components/ui/inline/InlineEditable.vue';
 import { renderMarkdown } from '~/utils/renderMarkdown';
@@ -90,6 +93,9 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const { submitShortcut } = usePlatformShortcut();
+
+// A phone has no Cmd or Ctrl key: the note is saved by leaving the field, so the hint drops the shortcut (#865). The pointer, not the width, tells: a narrow desktop window has a keyboard
+const hasKeyboardShortcut = useMediaQuery('(any-pointer: fine)');
 
 const html = computed(() => (props.notes ? renderMarkdown(props.notes) : ''));
 
