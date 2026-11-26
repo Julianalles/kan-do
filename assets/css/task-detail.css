@@ -251,3 +251,14 @@ button[data-slot='base'].task-property-value[aria-haspopup='listbox']:focus-visi
     min-height: 2.75rem;
   }
 }
+
+/* The tab body of the fixed sheet frame (#871): where the content continues past the frame's edge, a soft shadow says so
+   (macOS hides the scroll bar at rest). The classic local/scroll layering: the cover gradients (`local`) scroll with the content and hide the
+   shadow (`scroll`) at the end, so a shadow shows only on a side that has more. Covers are the sheet's own fill (`--ui-bg-elevated`). */
+.task-scroll-cue {
+  background:
+    linear-gradient(var(--ui-bg-elevated) 50%, transparent) top / 100% 1.5rem no-repeat local,
+    linear-gradient(transparent, var(--ui-bg-elevated) 50%) bottom / 100% 1.5rem no-repeat local,
+    radial-gradient(farthest-side at 50% 0, color-mix(in oklab, var(--ui-text) 20%, transparent), transparent) top / 100% 0.75rem no-repeat scroll,
+    radial-gradient(farthest-side at 50% 100%, color-mix(in oklab, var(--ui-text) 20%, transparent), transparent) bottom / 100% 0.75rem no-repeat scroll;
+}
