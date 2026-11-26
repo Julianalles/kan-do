@@ -267,7 +267,7 @@ fn token(entry: SecretEntry) -> String {
 
 fn full_legacy() -> Arc<Mem> {
     let mem = Arc::new(Mem::default());
-    for entry in SecretEntry::ALL {
+    for entry in SecretEntry::LEGACY {
         mem.values.lock().unwrap().insert(entry, token(entry));
     }
     mem
@@ -282,7 +282,7 @@ fn all_four_entries_are_moved_and_the_legacy_ones_deleted() {
     let (legacy, current) = (full_legacy(), Arc::new(Mem::default()));
     let results = migrate_secrets(&legacy, &current);
     assert!(results.iter().all(|(_, o)| *o == EntryOutcome::Moved { legacy_kept: false }));
-    for entry in SecretEntry::ALL {
+    for entry in SecretEntry::LEGACY {
         assert_eq!(current.values.lock().unwrap().get(&entry), Some(&token(entry)));
     }
     assert!(legacy.values.lock().unwrap().is_empty());
@@ -305,7 +305,7 @@ fn absent_entries_are_resolved_and_a_present_new_entry_wins_and_keeps_the_legacy
 #[test]
 fn the_new_service_is_checked_first_and_the_legacy_entry_is_not_touched_when_it_holds_a_value() {
     let (legacy, current) = (full_legacy(), Arc::new(Mem::default()));
-    for entry in SecretEntry::ALL {
+    for entry in SecretEntry::LEGACY {
         current.values.lock().unwrap().insert(entry, format!("new-{}", entry.account()));
         // Even a legacy entry that would be denied (a Keychain error) must not be read.
         legacy.fail_get.lock().unwrap().push(entry);
@@ -388,7 +388,7 @@ fn an_incomplete_step_writes_no_marker_and_is_retried() {
 fn a_denied_prompt_is_recorded_and_the_step_backs_off_after_a_few_starts() {
     let t = Support::new();
     let (legacy, current) = (full_legacy(), Arc::new(Mem::default()));
-    for entry in SecretEntry::ALL {
+    for entry in SecretEntry::LEGACY {
         legacy.fail_get.lock().unwrap().push(entry);
     }
     for attempt in 1..=MAX_SECRET_ATTEMPTS {
@@ -562,7 +562,16 @@ fn no_token_value_reaches_a_state_file_or_a_debug_string() {
     let (legacy, current) = (full_legacy(), Arc::new(Mem::default()));
     let results = migrate_secrets(&legacy, &current);
     let debug = format!("{results:?}");
-    for entry in SecretEntry::ALL {
+    for entry in SecretEntry::LEGACY {
         assert!(!debug.contains(&token(entry)));
     }
+}
+
+#[test]
+fn the_bridge_entry_never_existed_under_the_legacy_service_and_is_not_read_there() {
+    assert!(!SecretEntry::LEGACY.contains(&SecretEntry::McpSync));
+    let (legacy, current) = (full_legacy(), Arc::new(Mem::default()));
+    let results = migrate_secrets(&legacy, &current);
+    assert!(results.iter().all(|(entry, _)| *entry != SecretEntry::McpSync));
+    assert!(current.values.lock().unwrap().get(&SecretEntry::McpSync).is_none());
 }

@@ -36,3 +36,7 @@ The owner met many Keychain prompts: `Secrets::get` read the Keychain on every `
 - The webview can still read the Notion and Todoist tokens through `secret_get`. That is accepted: the clients need the string, and a Rust proxy for them is out of scope.
 - The `secret_*` and `github_request` commands are `async fn` but call the Keychain synchronously, so a Keychain prompt blocks one runtime worker until it is answered. Accepted: the runtime is multi-thread and at most four entries exist, so at most four workers can wait (#245 L5; `spawn_blocking` is not worth the churn).
 - Token values never appear in logs, errors, command results (other than `secret_get` for Notion/Todoist and the last four characters) or panic messages; `cargo test` covers the allow-list, the read-back refusal, missing vs error, the `rejected` lifecycle and the path pinning.
+
+## Amendment: the MCP bridge's sync token (ADR 023, 2026-11)
+
+A fifth fixed account, `mcp-sync-token`, holds the bearer token of the owner's MCP Worker. Like the GitHub entries it is write-only for JS (`secret_get` refuses it) and is sent only by a pinned Rust command, `bridge_request` (`src-tauri/src/bridge.rs`), to the one address Rust saved itself, on three fixed routes. It is not a GitHub entry (`SecretEntry::is_github` names the two GitHub entries), it is deleted by the app reset with the others, and it does not exist under the legacy service, so the identifier migration walks `SecretEntry::LEGACY` (the original four) only (ADR 019).

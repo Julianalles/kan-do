@@ -1391,6 +1391,10 @@
       "topics": {
         "label": "Topics and activities",
         "description": "Rename, color, pick a symbol"
+      },
+      "claude": {
+        "label": "Claude connection",
+        "description": "Board for Claude on your phone"
       }
     },
     "topics": {
@@ -1434,6 +1438,37 @@
       "excludeStays": "Everything in Apple Reminders stays as it is.",
       "excludeConfirm": "Stop reading",
       "excludeCancel": "Cancel"
+    },
+    "claude": {
+      "pageTitle": "Claude connection",
+      "pageDescription": "Let Claude read your board and queue changes.",
+      "title": "Connection to your Worker",
+      "purpose": "With your own Worker, Claude on your phone can read today's board and queue changes.",
+      "whileOpen": "Kan-do applies changes as soon as the app is open. The token lives in the macOS Keychain.",
+      "hostLabel": "Worker",
+      "switchLabel": "Connection on",
+      "switchHelp": "Off: Kan-do fetches nothing and uploads nothing.",
+      "statusOff": "The connection is off.",
+      "statusSynced": "The board is up to date for Claude.",
+      "urlLabel": "Worker address",
+      "urlHelp": "You find it in Wrangler's output after the deployment.",
+      "urlPlaceholder": "https://kando-mcp.your-name.workers.dev",
+      "tokenLabel": "Token for Kan-do",
+      "tokenHelp": "The value of SYNC_TOKEN. It is not shown again after saving.",
+      "tokenPlaceholder": "Paste the token",
+      "connect": "Connect",
+      "connecting": "Connecting…",
+      "disconnect": "Disconnect",
+      "problem": {
+        "invalidUrl": "Enter an address like https://kando-mcp.your-name.workers.dev.",
+        "keychain": "The token couldn't be saved to the Keychain. Try again.",
+        "generic": "The connection couldn't be saved. Try again.",
+        "blocked": "The data file is locked right now. Kan-do waits until it's free again.",
+        "rejected": "The Worker rejected the token. Disconnect and connect again with the current token.",
+        "network": "The Worker can't be reached right now. Kan-do tries again later.",
+        "timeout": "The Worker isn't answering right now. Kan-do tries again later.",
+        "unreachable": "Something is wrong with the Worker. Check the address and try again later."
+      }
     }
   },
   "sources": {

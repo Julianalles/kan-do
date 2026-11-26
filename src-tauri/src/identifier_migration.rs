@@ -306,7 +306,7 @@ impl EntryOutcome {
 
 /// Moves the four entries from `legacy` to `current`. Never returns or logs a value.
 pub fn migrate_secrets(legacy: &dyn Backend, current: &dyn Backend) -> Vec<(SecretEntry, EntryOutcome)> {
-    SecretEntry::ALL
+    SecretEntry::LEGACY
         .into_iter()
         .map(|entry| (entry, migrate_entry(legacy, current, entry)))
         .collect()

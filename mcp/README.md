@@ -32,9 +32,13 @@ openssl rand -base64 32 | npx wrangler secret put SYNC_TOKEN -c mcp/wrangler.jso
 npx wrangler deploy -c mcp/wrangler.jsonc
 ```
 
-The URL is `https://kando-mcp.<your-subdomain>.workers.dev`; the MCP endpoint is `/mcp`. Keep the `SYNC_TOKEN` value (the desktop bridge needs it, slice 2); `OWNER_PASSWORD` is only typed on the consent page.
+The URL is `https://kando-mcp.<your-subdomain>.workers.dev`; the MCP endpoint is `/mcp`. Keep the `SYNC_TOKEN` value: you paste it into Kan-do (below); `OWNER_PASSWORD` is only typed on the consent page.
 
 Local run: put both secrets in `mcp/.dev.vars` (git-ignored), then `npx wrangler d1 migrations apply kando-mcp --local -c mcp/wrangler.jsonc` and `npx wrangler dev -c mcp/wrangler.jsonc`.
+
+## Connect the desktop app
+
+In Kan-do (desktop app), Einstellungen, Verwalten, "Claude-Anbindung": paste the Worker address and the `SYNC_TOKEN`, then "Verbinden". The token goes to the macOS Keychain and is never shown again. The app polls the Worker every 30 seconds while it is open, applies what Claude queued and uploads today's board. "Anbindung aktiv" switches it off, "Trennen" forgets address and token. Commands wait in the queue while the app is closed.
 
 ## Add it as a connector
 

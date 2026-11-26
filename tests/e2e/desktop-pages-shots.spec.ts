@@ -6,7 +6,7 @@ import { settleAnimations } from './helpers/settle'
 import { installTauriStub } from './helpers/tauriStub'
 
 /**
- * Opt-in screenshots of the desktop-only routes (`/settings/data`, `/settings/github`, `/settings/reminders`) through
+ * Opt-in screenshots of the desktop-only routes (`/settings/data`, `/settings/github`, `/settings/claude`, `/settings/reminders`) through
  * `installTauriStub` at desktop and 390px (#288, #302). Skipped unless `DESKTOP_SHOTS_DIR=<dir>` is
  * set; then it renders each page and writes `<route>-<desktop|390>.png` there (reviewing a UI change,
  * attaching to a PR). `DESKTOP_SHOTS_ROUTES=/settings/data` narrows the routes.
@@ -18,6 +18,7 @@ const ROUTES: Array<{ path: string, ready: (page: Page) => ReturnType<Page['loca
   { path: '/settings?tab=sources', ready: page => page.getByTestId('data-folder-path') },
   { path: '/settings/data', ready: page => page.getByTestId('data-folder-moved') },
   { path: '/settings/github', ready: page => page.getByRole('region', { name: 'Updates' }) },
+  { path: '/settings/claude', ready: page => page.getByTestId('claude-bridge-empty') },
   // Reminders is not connected here, so the page runs the setup in place (#552)
   { path: '/settings/reminders', ready: page => page.getByTestId('reminders-setup-flow') },
 ]

@@ -259,6 +259,8 @@ export interface TauriStubState {
   keychainError: boolean
   captureError: string | null
   assetsBranch: boolean
+  /** The MCP bridge's saved Worker host (ADR 023); `null` = none saved. */
+  bridgeHost: string | null
   /** One entry per `feedback_capture`: was the dialog gone, was `html.kando-capture-mask` set. */
   captures: Array<{ dialogPresent: boolean, mask: boolean }>
   clipboard: Array<{ type: string, size: number }>
@@ -292,6 +294,7 @@ export async function installTauriStub(context: BrowserContext, options: TauriSt
           keychainError: opts.keychainError ?? false,
           captureError: opts.captureError ?? null,
           assetsBranch: opts.assetsBranch ?? true,
+          bridgeHost: null,
           captures: [],
           clipboard: [],
           clipboardFails: false,
@@ -331,7 +334,7 @@ export async function installTauriStub(context: BrowserContext, options: TauriSt
           },
         }
     const persist = () => sessionStorage.setItem(STORAGE_KEY, JSON.stringify(state))
-    const ACCOUNTS = ['notion-token', 'todoist-token', 'github-updates', 'github-feedback']
+    const ACCOUNTS = ['notion-token', 'todoist-token', 'github-updates', 'github-feedback', 'mcp-sync-token']
     const READABLE = ['notion-token', 'todoist-token']
 
     const callbacks: Record<number, (event: unknown) => void> = {}
@@ -810,9 +813,36 @@ export async function installTauriStub(context: BrowserContext, options: TauriSt
         }
         return out
       }
+      // The MCP bridge (ADR 023, `src-tauri/src/bridge.rs`): the address lives in Rust, the token is write-only. Nothing leaves the
+      // stub: `GET /sync/commands` answers `window.__bridgeCommands`, uploads and results stay in `calls`.
+      if (cmd === 'bridge_configure') {
+        const url = String(args.url ?? '').trim()
+        if (!/^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)+\/?$/i.test(url)) return fail('invalid_request')
+        state.bridgeHost = url.replace(/^https:\/\//, '').replace(/\/$/, '').toLowerCase()
+        persist()
+        return state.bridgeHost
+      }
+      if (cmd === 'bridge_host') return state.bridgeHost ?? null
+      if (cmd === 'bridge_clear') {
+        state.bridgeHost = null
+        persist()
+        return null
+      }
+      if (cmd === 'bridge_request') {
+        if (!state.bridgeHost) return fail('not_configured')
+        if (state.entries['mcp-sync-token'] === undefined) return fail('not_configured')
+        const route = `${String(args.method)} ${String(args.path)}`
+        const known = route === 'PUT /sync/snapshot' || route === 'GET /sync/commands' || /^POST \/sync\/commands\/[\w-]{1,80}\/result$/.test(route)
+        if (!known) return fail('invalid_request')
+        if (route === 'GET /sync/commands') {
+          const queued = (window as unknown as { __bridgeCommands?: unknown[] }).__bridgeCommands ?? []
+          return { status: 200, body: { commands: queued } }
+        }
+        return { status: 200, body: { ok: true } }
+      }
       if (cmd === 'github_request') {
         const entry = parse(args.entry)
-        if (!entry || READABLE.includes(entry)) return fail('invalid_entry')
+        if (!entry || READABLE.includes(entry) || entry === 'mcp-sync-token') return fail('invalid_entry')
         // A candidate token (save checks before storing) neither needs a stored token nor sets the flag.
         const candidate = typeof args.token === 'string'
         if (!candidate && state.rejected[entry]) return fail('rejected')

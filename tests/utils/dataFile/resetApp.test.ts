@@ -29,7 +29,7 @@ describe('what a reset erases', () => {
 
   it('covers every Keychain entry, derived from SECRET_ENTRIES', () => {
     expect([...RESET_SECRET_ENTRIES]).toEqual([...SECRET_ENTRIES])
-    expect(RESET_SECRET_ENTRIES).toHaveLength(4)
+    expect(RESET_SECRET_ENTRIES).toHaveLength(5)
   })
 
   it('the blobs that carry a token on web are among the erased keys', () => {
@@ -108,5 +108,6 @@ describe('desktop pieces', () => {
 
   it('names the failed Keychain entries once each', () => {
     expect(secretLabels(['notion-token', 'github-updates', 'github-feedback'])).toEqual(['Notion', 'GitHub'])
+    expect(secretLabels(['mcp-sync-token', 'todoist-token'])).toEqual(['Claude', 'Todoist'])
   })
 })

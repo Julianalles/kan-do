@@ -48,10 +48,22 @@ pub enum SecretEntry {
     TodoistToken,
     GithubUpdates,
     GithubFeedback,
+    /// Bearer token of the MCP bridge (ADR 023): write-only for JS, only `bridge::request` sends it.
+    McpSync,
 }
 
 impl SecretEntry {
-    pub const ALL: [SecretEntry; 4] = [
+    pub const ALL: [SecretEntry; 5] = [
+        SecretEntry::NotionToken,
+        SecretEntry::TodoistToken,
+        SecretEntry::GithubUpdates,
+        SecretEntry::GithubFeedback,
+        SecretEntry::McpSync,
+    ];
+
+    /// The entries that existed under the legacy service `com.julius.kan-do` (ADR 019). Later entries (`McpSync`, ADR 023)
+    /// have nothing to move, and reading them there would only cost the user another Keychain prompt.
+    pub const LEGACY: [SecretEntry; 4] = [
         SecretEntry::NotionToken,
         SecretEntry::TodoistToken,
         SecretEntry::GithubUpdates,
@@ -64,6 +76,7 @@ impl SecretEntry {
             SecretEntry::TodoistToken => "todoist-token",
             SecretEntry::GithubUpdates => "github-updates",
             SecretEntry::GithubFeedback => "github-feedback",
+            SecretEntry::McpSync => "mcp-sync-token",
         }
     }
 
@@ -81,7 +94,7 @@ impl SecretEntry {
     }
 
     pub fn is_github(self) -> bool {
-        !self.is_readable_from_js()
+        matches!(self, SecretEntry::GithubUpdates | SecretEntry::GithubFeedback)
     }
 }
 
@@ -562,8 +575,8 @@ mod tests {
     const TOKEN: &str = "ghp_secretvalue1234";
 
     #[test]
-    fn only_the_four_accounts_parse() {
-        for name in ["notion-token", "todoist-token", "github-updates", "github-feedback"] {
+    fn only_the_five_accounts_parse() {
+        for name in ["notion-token", "todoist-token", "github-updates", "github-feedback", "mcp-sync-token"] {
             assert!(SecretEntry::parse(name).is_ok(), "{name}");
         }
         for name in ["", "github", "Notion-Token", "notion-token ", "../notion-token", "other"] {
@@ -619,6 +632,16 @@ mod tests {
         assert_eq!(secrets.get_for_js(SecretEntry::GithubFeedback), Err(SecretError::ReadForbidden));
         // Rust consumers can still read them.
         assert_eq!(secrets.get(SecretEntry::GithubUpdates), Ok(Some(TOKEN.to_string())));
+    }
+
+    #[test]
+    fn the_bridge_entry_is_write_only_for_js_and_is_not_a_github_entry() {
+        let (secrets, _) = memory_secrets();
+        secrets.set(SecretEntry::McpSync, TOKEN).unwrap();
+        assert_eq!(secrets.get_for_js(SecretEntry::McpSync), Err(SecretError::ReadForbidden));
+        assert!(!SecretEntry::McpSync.is_github());
+        assert!(!SecretEntry::McpSync.is_readable_from_js());
+        assert_eq!(secrets.get(SecretEntry::McpSync), Ok(Some(TOKEN.to_string())));
     }
 
     #[test]

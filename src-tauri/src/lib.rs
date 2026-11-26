@@ -1,3 +1,4 @@
+mod bridge;
 mod capture;
 mod data_file;
 mod gh_cli;
@@ -75,6 +76,10 @@ pub fn run() {
       secrets::secret_status,
       secrets::secret_get,
       github::github_request,
+      bridge::bridge_configure,
+      bridge::bridge_host,
+      bridge::bridge_clear,
+      bridge::bridge_request,
       reminders::reminders_access_status,
       reminders::reminders_request_access,
       reminders::reminders_lists,

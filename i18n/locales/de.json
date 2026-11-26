@@ -1391,6 +1391,10 @@
       "topics": {
         "label": "Themen und Aktivitäten",
         "description": "Umbenennen, einfärben, Symbol wählen"
+      },
+      "claude": {
+        "label": "Claude-Anbindung",
+        "description": "Board für Claude auf dem Handy"
       }
     },
     "topics": {
@@ -1434,6 +1438,37 @@
       "excludeStays": "In Apple Erinnerungen bleibt alles, wie es ist.",
       "excludeConfirm": "Nicht mehr lesen",
       "excludeCancel": "Abbrechen"
+    },
+    "claude": {
+      "pageTitle": "Claude-Anbindung",
+      "pageDescription": "Lass Claude dein Board lesen und Änderungen vormerken.",
+      "title": "Verbindung zu deinem Worker",
+      "purpose": "Mit deinem eigenen Worker kann Claude auf dem Handy dein heutiges Board lesen und Änderungen vormerken.",
+      "whileOpen": "Kan-do wendet Änderungen an, sobald die App geöffnet ist. Das Token liegt im macOS-Schlüsselbund.",
+      "hostLabel": "Worker",
+      "switchLabel": "Anbindung aktiv",
+      "switchHelp": "Aus: Kan-do holt nichts ab und lädt nichts hoch.",
+      "statusOff": "Die Anbindung ist ausgeschaltet.",
+      "statusSynced": "Das Board ist für Claude aktuell.",
+      "urlLabel": "Adresse des Workers",
+      "urlHelp": "Du findest sie nach dem Deployment in der Ausgabe von Wrangler.",
+      "urlPlaceholder": "https://kando-mcp.dein-name.workers.dev",
+      "tokenLabel": "Token für Kan-do",
+      "tokenHelp": "Der Wert von SYNC_TOKEN. Er wird nach dem Speichern nicht mehr angezeigt.",
+      "tokenPlaceholder": "Token einfügen",
+      "connect": "Verbinden",
+      "connecting": "Wird verbunden…",
+      "disconnect": "Trennen",
+      "problem": {
+        "invalidUrl": "Gib eine Adresse wie https://kando-mcp.dein-name.workers.dev ein.",
+        "keychain": "Das Token konnte nicht im Schlüsselbund gespeichert werden. Versuche es erneut.",
+        "generic": "Die Anbindung konnte nicht gespeichert werden. Versuche es erneut.",
+        "blocked": "Die Datendatei ist gerade gesperrt. Kan-do wartet, bis sie wieder frei ist.",
+        "rejected": "Der Worker hat das Token abgelehnt. Trenne die Anbindung und verbinde sie mit dem aktuellen Token neu.",
+        "network": "Der Worker ist gerade nicht erreichbar. Kan-do versucht es später erneut.",
+        "timeout": "Der Worker antwortet gerade nicht. Kan-do versucht es später erneut.",
+        "unreachable": "Mit dem Worker stimmt etwas nicht. Prüfe die Adresse und versuche es später erneut."
+      }
     }
   },
   "sources": {

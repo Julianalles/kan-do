@@ -54,9 +54,16 @@
   },
   "map": [
     {
-      "area": "MCP bridge command logic (ADR 023): pure module, applies queued commands through the board operations; the pending-sync spec is the nearest end-to-end check of those writes",
-      "paths": ["lib/remoteCommands.ts"],
-      "specs": ["pending-sync"]
+      "area": "MCP bridge (ADR 023): command logic, the loop, the ledger store and /settings/claude, against the stubbed desktop IPC; pending-sync is the nearest check of the writes the commands make",
+      "paths": [
+        "lib/remoteCommands.ts",
+        "lib/remoteBridge.ts",
+        "store/remoteBridge.ts",
+        "composables/useRemoteBridge.ts",
+        "pages/settings/claude.vue",
+        "components/settings/ClaudeBridgeSection.vue"
+      ],
+      "specs": ["claude-bridge", "pending-sync"]
     },
     {
       "area": "board state: tasks/board/settings stores, useTaskSync, task shape, dates, map helpers",

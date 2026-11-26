@@ -61,6 +61,6 @@ export function emptyEnvelopeText(deviceId: string, appVersion: string, now: Dat
 
 /** Display names of the Keychain entries that failed, once each ("Notion", "Todoist", "GitHub"). */
 export function secretLabels(entries: readonly SecretEntryName[]): string[] {
-  const label = (entry: SecretEntryName) => (entry === 'notion-token' ? 'Notion' : entry === 'todoist-token' ? 'Todoist' : 'GitHub')
+  const label = (entry: SecretEntryName) => (entry === 'notion-token' ? 'Notion' : entry === 'todoist-token' ? 'Todoist' : entry === 'mcp-sync-token' ? 'Claude' : 'GitHub')
   return [...new Set(entries.map(label))]
 }

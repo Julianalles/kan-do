@@ -42,6 +42,7 @@ export const PERSISTED_KEYS = [
   'day-recap-store',
   'trash-store',
   'topic-styles',
+  'remote-bridge-store',
 ] as const
 
 const PERSISTED_KEY_SET: ReadonlySet<string> = new Set(PERSISTED_KEYS)

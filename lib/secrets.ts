@@ -5,12 +5,15 @@
  * #224 export/import): those paths hold secrets and must never be written outside the Keychain.
  */
 /** Fixed Keychain accounts under service `io.github.jaylouiz.kan-do`. Mirrors `SecretEntry` in src-tauri. */
-export const SECRET_ENTRIES = ['notion-token', 'todoist-token', 'github-updates', 'github-feedback'] as const
+export const SECRET_ENTRIES = ['notion-token', 'todoist-token', 'github-updates', 'github-feedback', 'mcp-sync-token'] as const
 export type SecretEntryName = (typeof SECRET_ENTRIES)[number]
 
 /** Entries the webview may read back. The GitHub entries are write-only for JS. */
 export const READABLE_SECRET_ENTRIES = ['notion-token', 'todoist-token'] as const
 export type ReadableSecretEntry = (typeof READABLE_SECRET_ENTRIES)[number]
+
+/** The MCP bridge's sync token (ADR 023): write-only for JS, only Rust's `bridge_request` sends it. */
+export const BRIDGE_SECRET_ENTRY = 'mcp-sync-token' as const
 
 export const GITHUB_SECRET_ENTRIES = ['github-updates', 'github-feedback'] as const
 export type GithubSecretEntry = (typeof GITHUB_SECRET_ENTRIES)[number]

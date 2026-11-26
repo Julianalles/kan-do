@@ -301,6 +301,7 @@ const manageLinks = computed(() => [
     ? [
         { to: '/settings/updates', icon: 'i-ph-arrow-circle-up', label: t('settings.subpages.updates.label'), description: t('settings.subpages.updates.description') },
         { to: '/settings/github', icon: 'i-ph-key', label: t('settings.subpages.github.label'), description: t('settings.subpages.github.description') },
+        { to: '/settings/claude', icon: 'i-ph-plugs-connected', label: t('settings.subpages.claude.label'), description: t('settings.subpages.claude.description') },
       ]
     : []),
 ])
