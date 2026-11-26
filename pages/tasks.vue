@@ -64,6 +64,7 @@ import { useUndoDeleteShortcut } from "~/composables/useUndoDeleteShortcut";
 import { useTaskMove } from "~/composables/useTaskMove";
 import { onRemindersChanged } from "~/lib/remindersEvents";
 import { dayHasBegun } from "~/lib/dayBegun";
+import { markFirstFetchEnded } from "~/lib/boardSettled";
 import { useBoardStore } from "~/store/board";
 import { useTaskSources } from "~/composables/useTaskSources";
 import { usePropertyOptionsSync } from "~/composables/usePropertyOptionsSync";
@@ -206,7 +207,11 @@ async function initializeTasksPageOnMount() {
   }
   // A token that is only unreachable (Keychain locked or denied) is not a missing setup: stay on the
   // cached board instead of sending the user through the welcome flow, and do not fetch.
-  if (!isIntegrationConfigured()) return;
+  if (!isIntegrationConfigured()) {
+    // No fetch will run: the board as cached is what there is (#853: the welcome and the empty states wait for the first load)
+    markFirstFetchEnded();
+    return;
+  }
 
   // Fetch tasks on mount (non-blocking - let it run in background)
   // Page will render with persisted data, then update when fetch completes

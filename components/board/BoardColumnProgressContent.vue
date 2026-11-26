@@ -9,7 +9,7 @@
 - Renders the task list for "In Progress" tasks
 - Displays the dedicated progress bar for the active task
 - Hosts the add-and-start slot while Jetzt is empty (#125); it morphs into the Jetzt draft card
-- Empty Jetzt shows a card-shaped placeholder (#805): a muted line where the one current task lands, the full box of a card. On a pointer device the add-and-start button covers and replaces it in the same box while the section is hovered or the button has focus; on touch the placeholder stays and the button is not offered (the other ways to add remain). It takes no pointer events, so it is no drop obstacle, and it is gone while dragging, drafting or holding a card or gap
+- Empty Jetzt shows a card-shaped placeholder (#805), only while Offen holds a card and no card was ever in Jetzt (#853: `placeholder` from BoardColumn; `settings.jetztUsed` ends it for good, also across a reload; without it the empty Jetzt is plain and stays a drop target): a muted line where the one current task lands, the full box of a card. On a pointer device the add-and-start button covers and replaces it in the same box while the section is hovered or the button has focus; on touch the placeholder stays and the button is not offered (the other ways to add remain). It takes no pointer events, so it is no drop obstacle, and it is gone while dragging, drafting or holding a card or gap
 - Manages specific layout requirements for the progress column
 -->
 <template>
@@ -109,6 +109,8 @@ const props = defineProps<{
   taskStatus: TaskStatus;
   /** Slots of cards deleted from Jetzt inside their undo window (#422) */
   gaps?: DeletedGap[];
+  /** The dashed placeholder may show (#853): Offen holds a card and Jetzt was never used */
+  placeholder?: boolean;
 }>();
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -133,7 +135,7 @@ const isDrafting = computed(() => draftTask.value?.status === TaskStatus.Progres
 const showSlot = computed(() => (isEmpty.value && !props.isDragging && !hasGaps.value) || isDrafting.value);
 
 /** The card-shaped placeholder (#805): an empty Jetzt that nothing is dragged over and no draft fills. */
-const showPlaceholder = computed(() => isEmpty.value && !props.isDragging && !hasGaps.value && !isDrafting.value);
+const showPlaceholder = computed(() => props.placeholder === true && isEmpty.value && !props.isDragging && !hasGaps.value && !isDrafting.value);
 
 /**
  * Overlay over the empty list, or in flow below the cards. Latched only while the Jetzt draft is being

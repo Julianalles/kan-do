@@ -24,6 +24,8 @@ export const ICONS = {
   forward: 'i-ph-caret-right',
   /** "Go on" affordance of a row or CTA; a different job than stepping. Also "Für heute einplanen" (#354). */
   goOn: 'i-ph-arrow-right',
+  /** The welcome note's greeting (#853), the first note a new user sees. */
+  welcome: 'i-ph-hand-waving',
   /** Close a surface, clear a value. */
   close: 'i-ph-x',
   /** Delete, including "remove forever". */

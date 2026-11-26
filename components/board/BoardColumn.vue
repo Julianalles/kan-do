@@ -16,8 +16,8 @@
 - Handles visual states for different statuses and empty states
 - Offen on "Alle" (#797), headed "Heute": lists everything planned for today. Behind its own cards come the Jetzt card and the Wartet cards (`todayExtras`; on a full day they stand above the capacity line, whose count their time is part of, #817), each with a status badge and each still a sortable of its own status; the headline counts them and the column is not empty while it holds one. The capacity line (below the extras, #817), the add slot and the sorting stay on Offen's own cards
 - `top` slot (Offen on "Alle", #573 case 2): a zero-height sticky host under the app bar for the capacity echo of a line above the window
-- Offen on Heute, empty while tasks of today's block ("Von gestern", #741) wait under "Alle" (#356): one muted sentence with a link to "Alle"; the guides below and the empty Jetzt placeholder are the only other exceptions, every other empty column stays blank
-- Offen on Heute with no task in any column (#761): one muted hint line "Was steht heute an?" that is itself a button opening the add slot (the header button's flow); with tasks waiting under "Alle" (#802) a second muted line below it links there; gone while a draft is open, a drag runs or the yesterday note shows
+- Offen on Heute, empty while tasks of today's block ("Von gestern", #741) wait under "Alle" (#356): one muted sentence with a link to "Alle"; the guides below and the Jetzt placeholder of a board that never used Jetzt (#853) are the only other exceptions, every other empty column stays blank
+- Offen on Heute with no task in any column (#761, #853): the board's empty state (BoardEmptyState: icon, "Was steht heute an?", one muted line and the green button "Aufgabe hinzufügen", which opens the add slot, the header button's flow). The line names "Alle" as a link while tasks wait there (#802), the connection when one exists without tasks, else it only invites. The header's round add button is away while it shows. Gone while a draft is open, a drag runs or the yesterday note shows, and not shown before the board's first load has ended (`lib/boardSettled.ts`)
 - `list-start` slot: content at the start of the list, above the cards (Board.vue puts BoardPlanNote `column` there for Offen: the one-time note of "Alle" as plain text where the picked tasks land, #741)
 - Erledigt drop target (#124): a light green wash under the list and a one-line hint while a card
   from another column hovers it
@@ -91,6 +91,7 @@
       :drag-state="dragState"
       :task-status="taskStatus"
       :gaps="columnGaps"
+      :placeholder="props.jetztPlaceholder"
       @open-task="openTask"
     />
     
@@ -122,29 +123,24 @@
           </template>
         </i18n-t>
       </p>
-      <!-- An empty board on Heute (#761): one hint line that is itself the add button, so a first start has a next step -->
-      <UButton
+      <!-- An empty board on Heute (#761, #853): the empty state with the one way to start. Its line names "Alle" only while
+           tasks wait there (#802), and the connection when one exists without tasks -->
+      <BoardEmptyState
         v-if="showEmptyHint"
-        color="neutral"
-        variant="link"
-        class="mx-auto flex"
+        icon="i-ph-sun-horizon-light"
+        :lead="t('board.emptyOpenHint')"
+        :action="t('board.addTask')"
         data-testid="open-empty-hint"
-        @click="addSlotRef?.open()"
+        @add="addSlotRef?.open()"
       >
-        {{ t('board.emptyOpenHint') }}
-      </UButton>
-      <!-- Tasks wait under "Alle" (#802): the other way in, the same kind of link as the yesterday note's -->
-      <p
-        v-if="showEmptyHint && props.tasksUnderAll"
-        class="text-body text-muted"
-        data-testid="open-empty-all-hint"
-      >
-        <i18n-t keypath="board.emptyOpenAll" scope="global">
+        <i18n-t v-if="props.tasksUnderAll" keypath="board.emptyBoard.today.underAll" scope="global">
           <template #all>
             <ULink :to="allLocation" data-testid="open-empty-all-link">{{ t('nav.all') }}</ULink>
           </template>
         </i18n-t>
-      </p>
+        <template v-else-if="emptySource">{{ t('board.emptyBoard.today.connected', { source: emptySource }) }}</template>
+        <template v-else>{{ t('board.emptyBoard.today.plain') }}</template>
+      </BoardEmptyState>
       <!-- The start of the list, above the cards (Offen on "Alle": the one-time planning note, #741) -->
       <slot name="list-start" />
       <!-- Add slot (Open column only, #125, #248): the draft host at the start of the list. It has no box while no draft is
@@ -157,7 +153,7 @@
         :show-button="false"
         :hidden="props.isDragging"
         :in-card="true"
-        :focus-fallback="() => headerRef?.addButtonEl() ?? null"
+        :focus-fallback="addFocusFallback"
       />
       <!-- One flat list of items: ungrouped cards, then (grouped) a collapsed stack or the cards of an
            expanded one in its place (#147), or (ungrouped mode) every task in order. "Heute" on "Alle" (#797, #817) adds the
@@ -193,6 +189,9 @@ import { useI18n } from "vue-i18n";
 import BoardColumnProgressContent from "~/components/board/BoardColumnProgressContent.vue";
 import BoardColumnYesterdayNote from "~/components/board/BoardColumnYesterdayNote.vue";
 import AddTaskSlot from "~/components/board/AddTaskSlot.vue";
+import BoardEmptyState from "~/components/board/BoardEmptyState.vue";
+import { boardSettled } from "~/lib/boardSettled";
+import { integrationLabel } from "~/lib/taskSources";
 import ColumnSortingControl from "~/components/board/ColumnSortingControl.vue";
 import BoardColumnItem from "~/components/board/BoardColumnItem.vue";
 import ColumnDropZone from "~/components/board/ColumnDropZone.vue";
@@ -253,6 +252,11 @@ const props = defineProps({
   todayExtras: {
     type: Array as PropType<Task[]>,
     default: () => [],
+  },
+  /** Jetzt only (#853): the dashed placeholder may show (Offen holds a card and no card was ever in Jetzt). */
+  jetztPlaceholder: {
+    type: Boolean,
+    default: false,
   },
   /** Offen only (#761): no task in any column of Heute; the empty Offen then asks what is on today. */
   boardEmpty: {
@@ -587,9 +591,18 @@ const headerMarker = computed<'shown' | 'hidden' | undefined>(() => {
   return undefined
 })
 
-const showAddButton = computed(() => showAddSlot.value && featureFlags.openColumnAddButton && place.value !== 'all');
+const showAddButton = computed(() => showAddSlot.value && featureFlags.openColumnAddButton && place.value !== 'all' && !showEmptyHint.value);
+
+/** The connected app's name for the empty state's line (#853); null on a board without a connection. */
+const emptySource = computed(() => {
+  const source = boardStore.connectedIntegrations[0];
+  return source ? integrationLabel(source) : null;
+});
 
 const headerRef = ref<{ addButtonEl: () => HTMLElement | null } | null>(null);
+/** Where focus goes after a cancelled draft: the header's button, or the empty state's button while that one is away (#853) */
+const addFocusFallback = () =>
+  headerRef.value?.addButtonEl() ?? columnEl.value?.querySelector<HTMLElement>('[data-testid="board-empty-add"]') ?? null;
 const addSlotRef = ref<{ open: () => void; isDrafting: boolean } | null>(null);
 
 // Hover/focus handlers kept as no-ops for template compatibility
@@ -643,9 +656,13 @@ const showYesterdayNote = computed(() =>
   isOpenColumn.value && !props.staticMode && !isAll.value && isEmpty.value && !hasGaps.value
   && !props.isDragging && !(addSlotRef.value?.isDrafting ?? false) && props.yesterdayCount > 0);
 
-/** The hint line of an empty board (#761): where the yesterday note does not show, with the same guards. */
+/**
+ * The empty state of an empty board (#761, #853): where the yesterday note does not show, with the same guards, and not before
+ * the board's first load has ended (a connection's tasks are not announced as missing while they are fetched). The header's round
+ * add button is away while it shows: its green button is the add.
+ */
 const showEmptyHint = computed(() =>
-  props.boardEmpty && isOpenColumn.value && !props.staticMode && !isAll.value && isEmpty.value && !hasGaps.value
+  props.boardEmpty && boardSettled(boardStore.connectedIntegrations.length) && isOpenColumn.value && !props.staticMode && !isAll.value && isEmpty.value && !hasGaps.value
   && !props.isDragging && !(addSlotRef.value?.isDrafting ?? false) && !showYesterdayNote.value);
 
 /**

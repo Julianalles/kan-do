@@ -807,6 +807,7 @@
         "composables/useIntroHints.ts",
         "composables/useIntroHintsSwitch.ts",
         "lib/introHints.ts",
+        "lib/boardSettled.ts",
         "composables/useBoard*",
         "composables/useCarryOver*",
         "composables/useDayClose*",

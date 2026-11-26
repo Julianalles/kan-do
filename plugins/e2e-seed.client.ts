@@ -38,7 +38,8 @@
  *
  * Every mode but `clear` also writes settings-store with the Fokus overlay (#394) OFF, so touch taps and screenshots
  * are not affected; add `&focus=1` to see the overlay (the app default) on a seeded board. `&hints=1` (#800) starts the
- * intro hints as the welcome setup does; without it a seeded board shows none.
+ * intro hints as the welcome setup does, the welcome note or tour first (#853), `&hints=steps` the step hints of a user past
+ * the welcome; without it a seeded board shows none.
  *
  * On desktop (dev), the seeded stores also go into the data file while it is still empty (the first `npm run tauri:dev`
  * launch, #413); a file with data is never touched.
@@ -218,8 +219,12 @@ export default defineNuxtPlugin(async (nuxtApp) => {
   // Seeds keep the Fokus overlay off unless asked for (`&focus=1`); the app default is on
   // (the new-day seeds too since #387: their Jetzt card stays on the board until the user starts the day fresh)
   if (['local', 'demo', 'dayclose', 'newday', 'newday-all', 'newday-back', 'newday-notice', 'notion', 'mixed', 'notion-sandbox'].includes(seed)) {
-    // `&hints=1` (#800): the intro hints as the welcome setup starts them; without it a seeded board shows none
-    const introHints = url.searchParams.get('hints') === '1' ? { introHints: freshIntroHints() } : {}
+    // `&hints=1` (#800): the intro hints as the welcome setup starts them, the welcome first (#853); `&hints=steps`: the step
+    // hints of a user past the welcome who used Jetzt before; without it a seeded board shows none
+    const hintsParam = url.searchParams.get('hints')
+    const introHints = hintsParam === '1'
+      ? { introHints: freshIntroHints() }
+      : hintsParam === 'steps' ? { introHints: { on: true, quietDay: null, hints: {}, ownJetzt: true } } : {}
     localStorage.setItem('settings-store', JSON.stringify({ focusEnabled: url.searchParams.get('focus') === '1', ...introHints }))
     url.searchParams.delete('focus')
     url.searchParams.delete('hints')

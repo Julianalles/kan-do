@@ -16,6 +16,7 @@ import { useBoardStore } from '~/store/board';
 import type { IntegrationSourceId, SourceId } from '~/types/taskSource';
 import { notifyTaskMoveRejected } from '~/lib/taskMoveEvents';
 import { useTrashStore } from '~/store/trash';
+import { useSettingsStore } from '~/store/settings';
 import type { TrashEntry } from '~/types/trash';
 import { completedAtForDay } from '~/lib/doneDay';
 import { isWritesFrozen } from '~/lib/dataStorage';
@@ -207,6 +208,8 @@ export const useTaskSync = () => {
     }
 
     const previousState = taskToUpdate.status;
+    // The user's own card in Jetzt (#853): the hint about the running timer may show from now on. A fetch never comes through here.
+    if (payload.status === TaskStatus.Progress && previousState !== TaskStatus.Progress) useSettingsStore().markOwnJetzt();
     // Every status write bumps the version, so the response of an older write of this task counts
     // as stale and cannot flip a newer status back (#150). Callers that bumped it pass theirs.
     const operationVersion = payload.operationVersion ?? tasksStore.incrementTaskOperationVersion(payload.taskId);
@@ -447,6 +450,8 @@ export const useTaskSync = () => {
       // In the same tick as the add, so the caller can act before the board first renders the task (#758: the in-card flow hides it)
       options.onAdd?.(created);
       tasksStore.addTask(created);
+      // Add-and-start (#853): a task the user made in Jetzt is their own card there
+      if (created.status === TaskStatus.Progress) useSettingsStore().markOwnJetzt();
     } finally {
       endWrite();
     }

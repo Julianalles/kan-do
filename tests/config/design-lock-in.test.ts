@@ -104,6 +104,7 @@ describe('icon sizes are 12, 16, 20 or 24 px (DESIGN.md "Icons")', () => {
       [...tag[0].matchAll(/\b(?:size|w|h)-[\w.()[\]-]+/g)].map(m => `${relative(root, p)}: ${m[0]}`)))
     const exceptions: Record<string, string> = {
       'components/ui/EmptyState.vue: size-10': 'the empty state\'s illustration, not an icon beside text',
+      'components/board/BoardEmptyState.vue: size-10': 'the board\'s empty state: the same illustration as EmptyState (#853)',
       'components/setup/SetupShell.vue: size-8': 'the success mark of the done beat, the same illustration as the setup flows\' (#648)',
     }
     expect(Object.keys(exceptions).filter(e => !sizes.includes(e)), 'exceptions that no longer occur: remove them').toEqual([])

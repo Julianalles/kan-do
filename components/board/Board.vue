@@ -101,6 +101,7 @@
         <BoardColumn
           :tasks="columnProgress"
           :task-status="TaskStatus.Progress"
+          :jetzt-placeholder="jetztPlaceholder"
           :is-dragging="isDragging"
           :mute-others="false"
           :grouping-enabled="groupingEnabled"
@@ -236,6 +237,7 @@ import FocusOverlay from "~/components/board/FocusOverlay.vue";
 import { FOCUS_LEAVE_MS, useFocusOverlay } from "~/composables/useFocusOverlay";
 import { arrivedFromAnotherPage } from "~/lib/routeArrival";
 import { inCardAdding, withoutInCardTask } from "~/composables/useInCardAdding";
+import { useIntroHints } from "~/composables/useIntroHints";
 import { useOpenLayer } from "~/composables/useOpenLayer";
 import { useNewDayRecap } from "~/composables/useNewDayRecap";
 import { useSettingsStore } from "~/store/settings";
@@ -509,10 +511,15 @@ const settingsStore = useSettingsStore();
 const { layerOpen } = useOpenLayer();
 /** The new-day recap (#385) and the day-close stage (#480) are Teleport overlays without Reka's body lock, so `layerOpen` does not see them */
 const { isOpen: recapOpen } = useNewDayRecap();
-/** Setting on, a card in Jetzt, Heute showing and the strip at rest (#354), nothing dragged, no sheet, layer, new-day recap, day-close stage or in-card new-task form open, and (phone) the Jetzt page is the visible one */
+/** Setting on, no welcome note standing (#853), a card in Jetzt, Heute showing and the strip at rest (#354), nothing dragged, no sheet, layer, new-day recap, day-close stage or in-card new-task form open, and (phone) the Jetzt page is the visible one */
+const { welcome: introWelcome } = useIntroHints();
+/** Jetzt's dashed placeholder (#853): only while Offen holds a card to move there and no card was ever in Jetzt */
+const jetztPlaceholder = computed(() => tasksStore.tasksOpen.length > 0 && !settingsStore.jetztUsed);
 const focusEnabledNow = computed(
   () =>
     settingsStore.focusEnabled &&
+    // The welcome note explains the board (#853, D1): it must not be dimmed while the note stands
+    introWelcome.value === null &&
     tasksProgress.value.length > 0 &&
     !isDragging.value &&
     !spotlightTaskId.value &&

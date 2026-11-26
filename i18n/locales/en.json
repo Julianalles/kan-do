@@ -170,7 +170,18 @@
       "plannedMany": "One task is planned for today. | {n} tasks are planned for today."
     },
     "emptyOpenHint": "What's on today?",
-    "emptyOpenAll": "Or pick what's on for today under {all}.",
+    "emptyBoard": {
+      "today": {
+        "plain": "Write down what you're taking on today.",
+        "connected": "No task has come from {source} yet. Write down what you're taking on today.",
+        "underAll": "Pick what's on today under {all}, or write down something new."
+      },
+      "all": {
+        "lead": "No tasks yet",
+        "plain": "Collect what's on your plate here, and plan for today what you take on.",
+        "connected": "No task has come from {source} yet. You can also write one down here."
+      }
+    },
     "emptyProgressHint": "What you're working on now lands here.",
     "yesterdayUnderAll": "One task from yesterday is under {all}. | {n} tasks from yesterday are under {all}.",
     "newDayNote": {
@@ -182,12 +193,24 @@
     },
     "introHint": {
       "start": {
-        "desktop": "Drag what you're working on now into Now. Now holds one task at a time.",
-        "phone": "What do you start with? Hold the card and drag it to the right edge, into Now. Now holds one task at a time."
+        "title": "What do you start with?",
+        "text": {
+          "desktop": "Drag what you're working on now into Now. Now holds one task at a time.",
+          "phone": "Hold the card and drag it to the right edge, into Now. Now holds one task at a time."
+        }
       },
-      "weiter": "The timer is running. Drag the card to Done once the task is done. Waiting on someone? Drag it to Waiting.",
-      "auswahl": "A lot open? Stacked by topic or priority, picking is easier. You'll also find stacks under “{more}”.",
-      "abschluss": "Enough for today? “{dayClose}” shows what you got done and what stays open.",
+      "weiter": {
+        "title": "The timer is running",
+        "text": "Drag the card to Done once the task is done. Waiting on someone? Drag it to Waiting."
+      },
+      "auswahl": {
+        "title": "A lot open?",
+        "text": "Stacked by topic or priority, picking is easier. You'll also find stacks under “{more}”."
+      },
+      "abschluss": {
+        "title": "Enough for today?",
+        "text": "“{dayClose}” shows what you got done and what stays open."
+      },
       "close": "Close",
       "off": "Turn off hints",
       "toast": {
@@ -195,11 +218,60 @@
         "description": "You can read them any time under Settings, Board."
       }
     },
+    "welcome": {
+      "empty": {
+        "title": "Your day on one sheet",
+        "today": {
+          "desktop": "This sheet holds only what's on today. Open collects it. Now holds the one task you're working on. Start by writing down what's on today.",
+          "phone": "This sheet holds only what's on today. Now holds the one task you're working on. Start by writing down what's on today."
+        },
+        "all": "All collects what's on your plate. Today shows only what you plan for today. Start by writing down a task."
+      },
+      "connectedEmpty": {
+        "text": "No task has come from {source} yet. What comes in will be under All. You can also write down a task right here."
+      },
+      "underAll": {
+        "title": "Your tasks are here",
+        "today": "They're under All. Pick there what you take on today. Today then shows only that.",
+        "all": "Everything on your plate is here. The arrow on a card plans it for today. Switch to Today when you're ready to start.",
+        "action": "Pick tasks"
+      },
+      "tour": {
+        "today": {
+          "title": "This is your day",
+          "text": "Open holds what's on today. Everything else waits under All."
+        },
+        "sample": {
+          "title": "A sample day to try out",
+          "text": {
+            "desktop": "This is what a day in Kan-do looks like. Move cards around freely, they're examples.",
+            "phone": "This is what a day in Kan-do looks like. Swipe sideways for Open and Done. Move cards around freely, they're examples."
+          }
+        },
+        "one": {
+          "title": "One task at a time",
+          "empty": {
+            "desktop": "Drag what you're working on into Now. Now holds one task at a time, and its timer runs along.",
+            "phone": "Hold a card and drag it to the right edge, into Now. Now holds one task at a time, and its timer runs along."
+          },
+          "filled": "Now holds one task at a time: the one you're working on. Its timer runs while it's there."
+        },
+        "done": {
+          "title": "Done or Waiting",
+          "text": "Drag the card to Done once the task is done. Waiting on someone? Drag it to Waiting and take the next one."
+        },
+        "next": "Next",
+        "skip": "Skip",
+        "start": "Get started",
+        "step": "Step {n} of {total}"
+      }
+    },
     "planNote": {
       "title": "Choose what's on today",
       "description": "The arrow on a card plans it for today. Switch to “Today” once you want to start.",
       "line": "Choose what's on today. Switch to “Today” once you want to start.",
-      "close": "Close"
+      "close": "Close",
+      "phoneText": "Switch to “Today” once you want to start."
     },
     "newDayTimeNote": {
       "title": "Timer ran on for {duration} after midnight",
@@ -989,6 +1061,7 @@
       "turnOff": "Turn off",
       "restart": "Show again",
       "entries": {
+        "welcome": "Welcome",
         "start": "Getting started",
         "weiter": "Carrying on",
         "auswahl": "Choosing",

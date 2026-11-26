@@ -543,22 +543,27 @@ test.describe('Add slot, 390px', () => {
   });
 });
 
-/** #761: an empty board asks what is on today in Offen; the line is the add button. */
+/** #761, #853: an empty board asks what is on today in Offen, with the green button that adds the first task. */
 test.describe('Empty board hint (#761)', () => {
   test('shows on an empty board, opens the draft, returns after cancel and is gone with a task', async ({ page, context }) => {
     await seedLocalBoard(context, []);
     await page.goto('/tasks');
     const hint = offen(page).getByTestId('open-empty-hint');
-    await expect(hint).toHaveText('Was steht heute an?');
+    await expect(hint.getByTestId('board-empty-lead')).toHaveText('Was steht heute an?');
+    await expect(hint.getByTestId('board-empty-line')).toHaveText('Schreib auf, was du dir für heute vornimmst.');
+    const add = hint.getByTestId('board-empty-add');
+    await expect(add).toHaveText('Aufgabe hinzufügen');
+    // The round add button is away while the empty state offers the add (#853)
+    await expect(offen(page).getByTestId('add-task-header-button')).toHaveCount(0);
 
-    await hint.click();
+    await add.click();
     await expect(newCard(offen(page))).toBeVisible();
     await expect(hint).toHaveCount(0);
 
     await page.keyboard.press('Escape');
     await expect(newCard(offen(page))).toHaveCount(0);
     await expect(hint).toBeVisible();
-    await expect(headerAdd(page)).toBeFocused();
+    await expect(add).toBeFocused();
   });
 
   test('is absent once any column holds a task', async ({ page, context }) => {
@@ -569,16 +574,16 @@ test.describe('Empty board hint (#761)', () => {
   });
 });
 
-/** #802: tasks wait under "Alle" while Heute is empty: a second line leads there. */
+/** #802, #853: tasks wait under "Alle" while Heute is empty: the empty state's line leads there. */
 test.describe('Empty board, second line to "Alle" (#802)', () => {
   const HELD: SeedTask[] = [{ id: 'held-1', title: 'Regal aussuchen', status: 0, priority: 3, timeSpentSeconds: 0, timeBoxSeconds: null, custom: {}, notPlanned: true }];
 
   test('shows beside the first line when tasks wait under "Alle" and leads there', async ({ page, context }) => {
     await seedLocalBoard(context, HELD);
     await page.goto('/tasks');
-    await expect(offen(page).getByTestId('open-empty-hint')).toHaveText('Was steht heute an?');
-    const line = offen(page).getByTestId('open-empty-all-hint');
-    await expect(line).toHaveText('Oder wähle unter Alle aus, was heute dran ist.');
+    await expect(offen(page).getByTestId('board-empty-lead')).toHaveText('Was steht heute an?');
+    const line = offen(page).getByTestId('board-empty-line');
+    await expect(line).toHaveText('Wähle unter Alle aus, was heute dran ist, oder schreib etwas Neues auf.');
     await line.getByTestId('open-empty-all-link').click();
     await expect(page).toHaveURL(/\/all/);
   });
@@ -587,6 +592,6 @@ test.describe('Empty board, second line to "Alle" (#802)', () => {
     await seedLocalBoard(context, []);
     await page.goto('/tasks');
     await expect(offen(page).getByTestId('open-empty-hint')).toBeVisible();
-    await expect(page.getByTestId('open-empty-all-hint')).toHaveCount(0);
+    await expect(page.getByTestId('open-empty-all-link')).toHaveCount(0);
   });
 });

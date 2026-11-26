@@ -18,6 +18,14 @@
  * - `planDue` (#803): the hint "Planen", the planning note of "Alle" (BoardPlanNote), is due: the hints run, today is not the quiet
  *   day, it has not ended, the old note was not answered (`dayRecap.planNoteSeen`), no board notice is up and tasks wait under "Alle".
  *   The place and an empty "Heute" are BoardPlanNote's. Its step is a card planned into Offen or Jetzt (`useIntroHintSteps`)
+ * - `welcome` (#853): the welcome note or tour, before every other hint, on "Heute" or "Alle" (never under a task sheet or a board
+ *   notice, never before the board's first load has ended on a board with a connection). While its record entry is live, `current`
+ *   and `planDue` are silent, also on the place where the welcome does not show right now: one note at a time. `endWelcome()` ends
+ *   it and answers what it already said (`says`: "Start" after the tour, "Planen" after the note on "Alle" with tasks, which also
+ *   writes the old note's flag); `markWelcomeShown()` stores its day like a hint's. "Weiter" is due only after the user's own card
+ *   in Jetzt (`record.ownJetzt`, written by `useTaskSync`)
+ * - `useIntroHintSteps()` also notes that Jetzt was used (`settings.jetztUsed`, the placeholder's end) and ends a single welcome
+ *   note that was on screen once "Heute" holds a card where it held none (the user wrote or planned the first task)
  * - Nothing here touches a task or a connection
  */
 import { computed, watch } from 'vue'
@@ -31,14 +39,24 @@ import { useNewDayRecap } from '~/composables/useNewDayRecap'
 import { useDayClose } from '~/composables/useDayClose'
 import { useBoardStore } from '~/store/board'
 import { boardBaseOfPath, boardPlaceOfPath, currentBoardPath } from '~/lib/boardPlace'
-import { currentIntroHint, INTRO_AUSWAHL_MIN_OPEN, INTRO_PLAN_HINT, isIntroHintLive, type IntroHintId } from '~/lib/introHints'
+import { currentIntroHint, INTRO_AUSWAHL_MIN_OPEN, INTRO_PLAN_HINT, INTRO_WELCOME_HINT, isIntroHintLive, isIntroWelcomeLive, resolveIntroWelcome, type IntroHintId, type IntroWelcome } from '~/lib/introHints'
+import { boardSettled as firstLoadOver } from '~/lib/boardSettled'
+import { isDemoTaskId } from '~/lib/demoIds'
+import { useIsPhone } from '~/composables/useIsDesktop'
 import { isOverlayWindow } from '~/lib/overlayWindow'
 import { dayKey } from '~/utils/recapDay'
 import { TaskStatus } from '~/types/taskStatus'
 
 type TasksStore = ReturnType<typeof useTasksStore>
 
-/** When a hint's moment has come. */
+/** Cards in today's columns: what "Heute" shows. */
+const cardsOnToday = (tasks: TasksStore): number =>
+  tasks.tasksOpen.length + tasks.tasksProgress.length + tasks.tasksWaiting.length + tasks.tasksDoneToday.length
+
+/** The board's first load is over (#853): at once without a connection, else when the session's first fetch has ended. */
+const boardSettled = (board: ReturnType<typeof useBoardStore>): boolean => firstLoadOver(board.connectedIntegrations.length)
+
+/** When a hint's moment has come. "Weiter" also needs the user's own card in Jetzt (the caller checks the record). */
 const INTRO_HINT_DUE: Record<IntroHintId, (tasks: TasksStore) => boolean> = {
   start: (tasks) => tasks.tasksOpen.length > 0 && tasks.tasksProgress.length === 0,
   weiter: (tasks) => tasks.tasksProgress.length > 0,
@@ -76,6 +94,22 @@ export function useIntroHintSteps(): void {
     )
   }
 
+  // Jetzt was used (#853): the dashed placeholder never shows again. Any card counts, also one the board starts with.
+  watch(() => tasksStore.tasksProgress.length > 0, (used) => { if (used) settings.markJetztUsed() }, { immediate: true })
+
+  // A single welcome note that was on screen ends with the first card on "Heute" (#853): the user did what it asked for, and the
+  // board no longer is the one it described. Not during the first load: a connection's cards arriving are not the user's step.
+  const today = useToday().today
+  watch(
+    () => cardsOnToday(tasksStore),
+    (now, before) => {
+      const record = settings.introHints
+      if (before !== 0 || now === 0 || !record || !boardSettled(boardStore)) return
+      const entry = record.hints[INTRO_WELCOME_HINT]
+      if (entry && entry.days.length > 0 && isIntroWelcomeLive(record, dayKey(today.value))) settings.endIntroWelcome()
+    },
+  )
+
   watch(
     () => tasksStore.tasksProgress.map((task) => task.id),
     (now, before) => {
@@ -104,6 +138,8 @@ export function useIntroHints() {
   const settings = useSettingsStore()
   const tasksStore = useTasksStore()
   const recapStore = useDayRecapStore()
+  const boardStore = useBoardStore()
+  const isPhone = useIsPhone()
   const { today } = useToday()
   const { noticeShown, timeOffer } = useNewDay()
   const { isOpen: recapOpen } = useNewDayRecap()
@@ -123,16 +159,52 @@ export function useIntroHints() {
   /** The user's hints are on (started by the welcome setup and not turned off). */
   const active = computed(() => settings.introHints?.on === true)
 
-  const current = computed<IntroHintId | null>(() => {
-    if (!onToday.value || noticeUp.value) return null
-    return currentIntroHint(settings.introHints, todayKey.value, (id) => INTRO_HINT_DUE[id](tasksStore))
+  /** The welcome (#853) has not ended: it comes before every other hint, wherever it shows. */
+  const welcomeLive = computed(() => isIntroWelcomeLive(settings.introHints, todayKey.value))
+
+  /** The board itself, "Heute" or "Alle", with no task sheet over it. */
+  const boardPlace = computed<'today' | 'all' | null>(() => {
+    const path = currentBoardPath.value
+    return boardBaseOfPath(path) === path.replace(/\/$/, '') ? boardPlaceOfPath(path) : null
   })
 
-  /** Changes whenever the hint on screen or its day changes: the overlay stores the day on each change. */
-  const shownKey = computed(() => `${current.value ?? ''}:${todayKey.value}`)
+  /** The welcome note or tour to show now, or null. */
+  const welcome = computed<IntroWelcome | null>(() => {
+    const place = boardPlace.value
+    if (!welcomeLive.value || place === null || noticeUp.value || !boardSettled(boardStore)) return null
+    return resolveIntroWelcome({
+      place,
+      onToday: cardsOnToday(tasksStore),
+      underAll: tasksStore.tasksNotPlanned.length,
+      connected: boardStore.connectedIntegrations.length > 0,
+      sample: tasksStore.tasks.some((task) => isDemoTaskId(task.id)),
+      jetzt: tasksStore.tasksProgress.length > 0,
+      phone: isPhone.value,
+    })
+  })
+
+  const current = computed<IntroHintId | null>(() => {
+    if (welcomeLive.value || !onToday.value || noticeUp.value) return null
+    const ownJetzt = settings.introHints?.ownJetzt === true
+    return currentIntroHint(settings.introHints, todayKey.value, (id) => (id !== 'weiter' || ownJetzt) && INTRO_HINT_DUE[id](tasksStore))
+  })
+
+  /** Changes whenever the note on screen or its day changes: the overlay stores the day on each change. */
+  const shownKey = computed(() => `${welcome.value ? INTRO_WELCOME_HINT : current.value ?? ''}:${todayKey.value}`)
 
   function markShown(id: IntroHintId): void {
     settings.markIntroHintShown(id, todayKey.value)
+  }
+
+  function markWelcomeShown(): void {
+    settings.markIntroHintShown(INTRO_WELCOME_HINT, todayKey.value)
+  }
+
+  /** The welcome's controls: it ends for good, and what it already said counts as answered (D3). */
+  function endWelcome(says: readonly string[] = welcome.value?.says ?? []): void {
+    settings.endIntroWelcome(says)
+    // The planning note has a second, older flag (#711): the welcome on "Alle" stood for it
+    if (says.includes(INTRO_PLAN_HINT)) recapStore.markPlanNoteSeen()
   }
 
   function close(): void {
@@ -141,10 +213,11 @@ export function useIntroHints() {
 
   /** "Planen" (#803), without its place: see the header. */
   const planDue = computed(() =>
-    isIntroHintLive(settings.introHints, INTRO_PLAN_HINT, todayKey.value)
+    !welcomeLive.value
+    && isIntroHintLive(settings.introHints, INTRO_PLAN_HINT, todayKey.value)
     && !recapStore.validPlanNoteSeen
     && !noticeUp.value
     && tasksStore.tasksNotPlanned.length > 0)
 
-  return { active, current, shownKey, markShown, close, planDue }
+  return { active, current, shownKey, markShown, close, planDue, welcome, markWelcomeShown, endWelcome }
 }

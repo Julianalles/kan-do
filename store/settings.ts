@@ -2,7 +2,7 @@ import { defineStore, acceptHMRUpdate } from 'pinia'
 import { ref } from 'vue'
 import { sanitizeWorkingMinutes } from '~/lib/dayCapacity'
 import { DEFAULT_UI_SCALE, isUiScale, sanitizeUiScale, type UiScale } from '~/lib/uiScale'
-import { freshIntroHints, needsShownDay, sanitizeIntroHints, type IntroHintsRecord } from '~/lib/introHints'
+import { freshIntroHints, INTRO_WELCOME_HINT, needsShownDay, sanitizeIntroHints, type IntroHintsRecord } from '~/lib/introHints'
 
 /**
  * App-wide preferences (#394). A store of its own, not a slice of `board-store`: settings are not board
@@ -33,6 +33,14 @@ import { freshIntroHints, needsShownDay, sanitizeIntroHints, type IntroHintsReco
  * `uiScale` (#845): the size of the interface in percent, one of `UI_SCALE_STEPS` (`lib/uiScale.ts`), default 100;
  * `plugins/ui-scale.client.ts` applies it. Additive: nothing stored or a value that is no step reads as 100 in memory
  * (`afterHydrate`, no write), and the setter ignores a value that is no step.
+ *
+ * #853: the record gains `v` (2 = it has the welcome) and `ownJetzt` (the user put a card into Jetzt themselves), both
+ * additive: a record without them loads as it is and never shows a welcome. `endIntroWelcome` ends the welcome and
+ * answers the hints it already said.
+ *
+ * `jetztUsed` (#853): a card was in Jetzt at least once, so the dashed placeholder of the empty Jetzt never shows again.
+ * Outside the hints record, because it also holds for an install without one. Additive: nothing stored or a non-boolean
+ * reads as `false` (no write); such an install sees the placeholder, as before, until its next card in Jetzt.
  */
 export const useSettingsStore = defineStore('settings', () => {
   const focusEnabled = ref(true)
@@ -108,6 +116,34 @@ export const useSettingsStore = defineStore('settings', () => {
     introHints.value = freshIntroHints()
   }
 
+  /**
+   * The welcome ends (#853: "Schließen", "Loslegen", "Überspringen", "Aufgaben auswählen", or the first card on "Heute"),
+   * and with it the hints it already said (`says`). No quiet day: the step hints follow at their own moments.
+   */
+  function endIntroWelcome(says: readonly string[] = []) {
+    const record = introHints.value
+    if (!record) return
+    const hints = { ...record.hints }
+    for (const id of [INTRO_WELCOME_HINT, ...says]) {
+      hints[id] = { ...(hints[id] ?? { answered: false, days: [] }), answered: true }
+    }
+    introHints.value = { ...record, hints }
+  }
+
+  /** The user put a card into Jetzt themselves (#853): "Die Zeit läuft jetzt mit" may show from now on. */
+  function markOwnJetzt() {
+    const record = introHints.value
+    if (!record || record.ownJetzt) return
+    introHints.value = { ...record, ownJetzt: true }
+  }
+
+  const jetztUsed = ref(false)
+
+  /** A card is in Jetzt (#853): the dashed placeholder has done its work. Written once. */
+  function markJetztUsed() {
+    if (!jetztUsed.value) jetztUsed.value = true
+  }
+
   return {
     introHints,
     startIntroHints,
@@ -116,6 +152,10 @@ export const useSettingsStore = defineStore('settings', () => {
     markIntroHintShown,
     answerIntroHint,
     closeIntroHint,
+    endIntroWelcome,
+    markOwnJetzt,
+    jetztUsed,
+    markJetztUsed,
     focusEnabled,
     setFocusEnabled,
     floatingNowEnabled,
@@ -130,13 +170,14 @@ export const useSettingsStore = defineStore('settings', () => {
 }, {
   persist: {
     key: 'settings-store',
-    pick: ['focusEnabled', 'floatingNowEnabled', 'autoUpdateCheck', 'workingHoursMinutes', 'introHints', 'uiScale'],
-    afterHydrate: (ctx: { store: { workingHoursMinutes: unknown; floatingNowEnabled: unknown; autoUpdateCheck: unknown; introHints: unknown; uiScale: unknown } }) => {
+    pick: ['focusEnabled', 'floatingNowEnabled', 'autoUpdateCheck', 'workingHoursMinutes', 'introHints', 'uiScale', 'jetztUsed'],
+    afterHydrate: (ctx: { store: { workingHoursMinutes: unknown; floatingNowEnabled: unknown; autoUpdateCheck: unknown; introHints: unknown; uiScale: unknown; jetztUsed: unknown } }) => {
       ctx.store.workingHoursMinutes = sanitizeWorkingMinutes(ctx.store.workingHoursMinutes)
       if (typeof ctx.store.floatingNowEnabled !== 'boolean') ctx.store.floatingNowEnabled = true
       if (typeof ctx.store.autoUpdateCheck !== 'boolean') ctx.store.autoUpdateCheck = true
       ctx.store.introHints = sanitizeIntroHints(ctx.store.introHints)
       ctx.store.uiScale = sanitizeUiScale(ctx.store.uiScale)
+      if (typeof ctx.store.jetztUsed !== 'boolean') ctx.store.jetztUsed = false
     },
   },
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

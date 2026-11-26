@@ -8,7 +8,7 @@
 @responsibility
 - The row: label "Hinweise zum Einstieg" and one help line on the left, the button on the right ("Ausschalten" while the hints run, "Erneut zeigen" otherwise, also for an install from before the hints, which has no record); phone: the button full width under the text, 44 px high. The button is described by the label and the help line (`aria-describedby`). Pattern: aligned with the Fokus switch row (label, help, control on the right; a button, since it has two actions)
 - "Ausschalten" confirms with the toast of `useIntroHintsSwitch` (the same path as the link on a hint); "Erneut zeigen" starts all hints again from the first, with no toast: the hint itself is the confirmation
-- The help: the five intro texts under small captions (Anfangen, Weitermachen, Auswählen, Tag abschließen, Planen), the texts read from the overlay's own keys (`introHintTextKey`) so the help cannot differ from the hints; "Start" in the phone wording at phone width, "Auswahl" and "Abschluss" with the menu names ("Mehr", "Tag abschließen") from the menus. "Planen" (#803) is the planning note of "Alle", read from its own keys through `introHintTextKey`
+- The help: the six intro notes under small captions (Willkommen, Anfangen, Weitermachen, Auswählen, Tag abschließen, Planen), each with its title (medium weight) and its text, read from the notes' own keys (`introHintTitleKey`, `introHintTextKey`) so the help cannot differ from the hints; "Willkommen" (#853) is the welcome of an empty board; "Start" in the phone wording at phone width, "Auswahl" and "Abschluss" with the menu names ("Mehr", "Tag abschließen") from the menus. "Planen" (#803) is the planning note of "Alle", read from its own keys through `introHintTextKey`
 -->
 <template>
   <PageSheet tag="section" data-testid="intro-hints-settings" aria-labelledby="intro-hints-heading">
@@ -32,6 +32,7 @@
     <ul class="space-y-5 border-t border-default pt-6" data-testid="intro-hints-help-list">
       <li v-for="entry in entries" :key="entry.id" :data-testid="`intro-hints-entry-${entry.id}`">
         <SectionHeader tag="h3" size="label">{{ t(`settings.introHints.entries.${entry.id}`) }}</SectionHeader>
+        <p class="text-body font-medium text-default">{{ entry.title }}</p>
         <p class="text-body text-default">{{ entry.text }}</p>
       </li>
     </ul>
@@ -45,7 +46,7 @@ import PageSheet from '~/components/ui/PageSheet.vue'
 import SectionHeader from '~/components/ui/SectionHeader.vue'
 import { useIntroHintsSwitch } from '~/composables/useIntroHintsSwitch'
 import { useIsPhone } from '~/composables/useIsDesktop'
-import { INTRO_HINT_ORDER, INTRO_PLAN_HINT, introHintTextKey } from '~/lib/introHints'
+import { INTRO_HINT_ORDER, INTRO_PLAN_HINT, introHintTextKey, introHintTitleKey } from '~/lib/introHints'
 
 defineOptions({ name: 'IntroHintsSheet' })
 
@@ -54,6 +55,13 @@ const { running, turnOff, restart } = useIntroHintsSwitch()
 const isPhone = useIsPhone()
 
 const HELP_IDS = [...INTRO_HINT_ORDER, INTRO_PLAN_HINT] as const
-const entries = computed(() =>
-  HELP_IDS.map((id) => ({ id, text: t(introHintTextKey(id, isPhone.value), { more: t('nav.more'), dayClose: t('nav.dayClose') }) })))
+const entries = computed(() => [
+  // The welcome (#853): what the board is, in the words a new user reads on an empty board
+  { id: 'welcome', title: t('board.welcome.empty.title'), text: t(`board.welcome.empty.today.${isPhone.value ? 'phone' : 'desktop'}`) },
+  ...HELP_IDS.map((id) => ({
+    id,
+    title: t(introHintTitleKey(id)),
+    text: t(introHintTextKey(id, isPhone.value), { more: t('nav.more'), dayClose: t('nav.dayClose') }),
+  })),
+])
 </script>

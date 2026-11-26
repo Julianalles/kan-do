@@ -99,7 +99,7 @@ Token values live in `assets/css/main.css` and `app.config.ts`; these tables nam
 | Forest green | `primary` and `success` (ramp `custom-forest`, hue 152) | action and done: the solid button, links, selected options, the focus ring, the running timebox, the done check and washes |
 | Warning orange | `warning`, `secondary` | attention: high priority, a timebox running out, a connection that needs a look |
 | Raspberry | `error` | destructive and failed, nothing else |
-| Marker yellow | `--marker` | the marker stroke (The Marker Rule) |
+| Marker yellow | `--marker` | the marker stroke; thinned into the sheet's white, the paper of intro notes (The Marker Rule) |
 | Topic hues | `--topic-<hue>`, nine | a topic's mark only (The Topic Mark Rule) |
 
 **The One Lamp Rule.** One solid green button per view. A selected option (a chip, a switch, a checkbox, the funnel while a topic focus is on) may be a green fill and does not count; marks, links and the focus ring are green without being a fill. The action of a toast is soft, so a toast never adds a second lamp (user, 2026-11-20, #606).
@@ -108,7 +108,7 @@ Token values live in `assets/css/main.css` and `app.config.ts`; these tables nam
 
 **The Topic Mark Rule.** A topic carries its hue and symbol on its mark only: a small dot or glyph before the name. Never a coloured chip, card, column or surface, never a hue on a name, and no topic hue in a chart (charts use the ink ramp).
 
-**The Marker Rule.** A stroke of yellow text marker centred on the bottom edge of a word (through the foot of its letters) is an allowed decoration in slight, intentional use (owner, 2026-11-11). It is static, carries no meaning of its own and appears once per view at most: one marker per view, on the headline of its focus column. Uses: the "Jetzt" headline on "Heute" and the "Heute" headline (Offen) on "Alle", which fades when the user moves to "Heute" (user, #469). A new use is a recorded decision.
+**The Marker Rule.** A stroke of yellow text marker centred on the bottom edge of a word (through the foot of its letters) is an allowed decoration in slight, intentional use (owner, 2026-11-11). It is static, carries no meaning of its own and appears once per view at most: one marker per view, on the headline of its focus column. Uses: the "Jetzt" headline on "Heute" and the "Heute" headline (Offen) on "Alle", which fades when the user moves to "Heute" (user, #469). A second use of the hue, not of the stroke (user, #853, 2026-11-25): the paper of intro notes (the welcome, its tour, the step hints, the planning note) is the marker yellow thinned into the sheet's white, so a note reads as a note on the desk and never as a task card or a page sheet; values in `IntroNote`'s doc block. A new use is a recorded decision.
 
 **The Frozen Primary Rule.** The primary palette (forest green, hue 152, chosen by the owner on 2026-11-11) changes only by a decision recorded here, never as a side effect of a feature.
 
