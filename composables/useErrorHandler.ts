@@ -2,7 +2,8 @@ import { hasInjectionContext } from 'vue'
 import { useNuxtApp, useToast } from '#imports'
 import { getErrorMessageKey, isNetworkError, LocalizedError, type ErrorContext, type ErrorMessageKey } from "~/lib/errorMessages"
 import { translate } from "~/lib/i18n"
-import { CreateLookupError } from "~/lib/integrationHealth"
+import { CreateLookupError, classifySyncFailure, isUnreachableFailure } from "~/lib/integrationHealth"
+import { informUnreachable } from "~/composables/useUnreachableNotice"
 import { useIntegrationHealthStore } from "~/store/integrationHealth"
 import { useBoardStore } from "~/store/board"
 import { isIntegrationSourceId, SETUP_ERROR_CONTEXTS } from "~/lib/taskSources"
@@ -76,6 +77,19 @@ export const useErrorHandler = () => {
     lastErrorTimestamp = now
     lastErrorMessage = message
     
+    // A sync that failed because its source cannot be reached (#851: no connection, status 0, a 5xx): the change is
+    // kept and sent later, so the user is told once per outage, with that reassurance, and never per failing action.
+    // Only the sync contexts: in a setup step or a create the user is waiting for an answer and nothing was kept.
+    if (source !== null && (errorContext === 'task_sync' || errorContext === 'task_operation') && isUnreachableFailure(inner)) {
+      // No connection is the source's state (the sync button shows it); a 5xx stays the task's (`pushFailureScope`)
+      if (classifySyncFailure(inner) === 'offline') health.markOffline(source, message)
+      const told = informUnreachable(source, toast)
+      if (import.meta.dev) {
+        console.log('[ErrorHandler] Source unreachable', { source, told })
+      }
+      return
+    }
+
     // Detect network errors and mark as offline
     if (isNetworkError(inner)) {
       // Only show toast if transitioning from non-offline to offline state

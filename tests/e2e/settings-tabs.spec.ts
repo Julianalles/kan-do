@@ -12,6 +12,14 @@ const tabNames = (page: Page) => page.getByRole('tab').allTextContents()
 const OPEN_ONLY = SEED_TASKS.filter(task => task.status === 0)
 /** A restarted record: cards in Offen are a planned day, so "Planen" (#803) is answered at once by its step; nothing else is touched */
 const RESTARTED = { on: true, quietDay: null, hints: { planen: { answered: true, days: [] } } }
+/** #845: what the root element carries (`inline`) and what it computes to; 100 % sets nothing */
+const rootFontSize = (page: Page) =>
+  page.evaluate(() => ({
+    inline: document.documentElement.style.fontSize,
+    px: Number.parseFloat(getComputedStyle(document.documentElement).fontSize),
+  }))
+const storedScale = (page: Page) =>
+  page.evaluate(() => (JSON.parse(localStorage.getItem('settings-store') ?? '{}') as { uiScale?: number }).uiScale ?? null)
 const hintsRow = (page: Page) => page.getByTestId('intro-hints-setting')
 const hintsButton = (page: Page) => page.getByTestId('intro-hints-toggle')
 const hintsRecord = (page: Page) =>
@@ -66,6 +74,48 @@ test.describe('Hinweise zum Einstieg in the Board tab (#804)', () => {
     await hintsButton(page).click()
     await expect.poll(() => hintsRecord(page)).toEqual(RESTARTED)
     await expect(hintsButton(page)).toHaveText('Ausschalten')
+  })
+})
+
+test.describe('Größe der Anzeige in the Board tab (#845)', () => {
+  test('the Board tab holds "Größe der Anzeige": five steps, 100 % the standard; a step scales the whole app at once and survives a reload (#845)', async ({ context, page }) => {
+    // `once`: the page loads below must keep what the test stored
+    await seedLocalBoard(context, undefined, {}, undefined, { once: true })
+    await page.goto('/settings')
+    const sheet = page.getByTestId('display-settings')
+    await expect(sheet.getByRole('heading', { name: 'Darstellung', level: 2 })).toBeVisible()
+    await expect(sheet).toContainText('Macht alles in Kan-do größer oder kleiner.')
+    // The web app has no shortcuts of its own for it: the browser keeps its zoom
+    await expect(sheet).not.toContainText('Plus')
+    const select = page.getByRole('combobox', { name: 'Größe der Anzeige' })
+    await expect(select).toContainText('100 % (Standard)')
+    // An install from before the setting stores no value: 100 %, and nothing is set on the root
+    expect(await rootFontSize(page)).toEqual({ inline: '', px: 16 })
+    expect(await storedScale(page)).toBeNull()
+
+    await select.click()
+    await expect(page.getByRole('option')).toHaveText(['80 %', '90 %', '100 % (Standard)', '110 %', '125 %'])
+    await page.getByRole('option', { name: '125 %' }).click()
+    await expect(select).toContainText('125 %')
+    await expect.poll(() => rootFontSize(page)).toEqual({ inline: '125%', px: 20 })
+    await expect.poll(() => storedScale(page)).toBe(125)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+
+    // The whole app follows, also after a reload
+    await page.goto('/tasks')
+    await expect(page.locator('#column-open')).toBeVisible()
+    expect(await rootFontSize(page)).toEqual({ inline: '125%', px: 20 })
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+
+    // Smaller, then back to the standard: the root carries nothing again (A -> B -> A)
+    await page.goto('/settings')
+    await select.click()
+    await page.getByRole('option', { name: '80 %' }).click()
+    await expect.poll(() => rootFontSize(page)).toEqual({ inline: '80%', px: 12.8 })
+    await select.click()
+    await page.getByRole('option', { name: '100 % (Standard)' }).click()
+    await expect.poll(() => rootFontSize(page)).toEqual({ inline: '', px: 16 })
+    await expect.poll(() => storedScale(page)).toBe(100)
   })
 })
 
@@ -158,8 +208,60 @@ test.describe('Einstellungen tabs (#691)', () => {
     await expect(page).toHaveURL(/tab=manage$/)
   })
 
+  test('the web app leaves Cmd/Ctrl with +, - and 0 to the browser (#845)', async ({ page }) => {
+    await page.goto('/settings')
+    await expect(page.getByTestId('ui-scale-select')).toBeVisible()
+    for (const key of ['=', '+', '-', '0']) {
+      for (const mod of ['metaKey', 'ctrlKey']) {
+        const cancelled = await page.evaluate((init) => {
+          const event = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, ...init })
+          document.body.dispatchEvent(event)
+          return event.defaultPrevented
+        }, { key, [mod]: true })
+        expect(cancelled, `${mod}+${key}`).toBe(false)
+      }
+    }
+    expect(await rootFontSize(page)).toEqual({ inline: '', px: 16 })
+  })
+
+  test('a stored value that is no step reads as 100 % (#845)', async ({ context, page }) => {
+    await context.addInitScript(() => {
+      const settings = JSON.parse(localStorage.getItem('settings-store') ?? '{}') as Record<string, unknown>
+      localStorage.setItem('settings-store', JSON.stringify({ ...settings, uiScale: 150 }))
+    })
+    await page.goto('/settings')
+    await expect(page.getByRole('combobox', { name: 'Größe der Anzeige' })).toContainText('100 % (Standard)')
+    expect(await rootFontSize(page)).toEqual({ inline: '', px: 16 })
+  })
+
   test.describe('390 px', () => {
     test.use({ viewport: { width: 390, height: 844 } })
+
+    test('at 80 % and at 125 % nothing scrolls sideways and the app bar stays inside the viewport; the select sits below its label (#845)', async ({ context, page }) => {
+      for (const scale of [80, 125]) {
+        await context.addInitScript((value) => {
+          const settings = JSON.parse(localStorage.getItem('settings-store') ?? '{}') as Record<string, unknown>
+          localStorage.setItem('settings-store', JSON.stringify({ ...settings, uiScale: value }))
+        }, scale)
+        for (const path of ['/settings', '/tasks']) {
+          await page.goto(path)
+          await expect(page.locator('.app-nav-more')).toBeVisible()
+          await expect.poll(() => rootFontSize(page)).toEqual({ inline: `${scale}%`, px: 16 * scale / 100 })
+          expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), `${path} at ${scale} %`).toBe(true)
+          // The pill and the round ⋯ beside it, not their group: the group's own box is clamped to the bar (`max-width`)
+          const pill = (await page.locator('.app-nav-pill').boundingBox())!
+          const more = (await page.locator('.app-nav-more').boundingBox())!
+          expect(pill.x, `${path} at ${scale} %: pill`).toBeGreaterThanOrEqual(0)
+          expect(more.x + more.width, `${path} at ${scale} %: ⋯`).toBeLessThanOrEqual(390)
+          // Above 100 % the phone bar keeps its 100 % size: a 52 px pill; below it scales down with everything else
+          expect(pill.height, `${path} at ${scale} %: pill height`).toBeCloseTo(scale > 100 ? 52 : 52 * scale / 100, 0)
+        }
+      }
+      await page.goto('/settings')
+      const label = (await page.locator('#ui-scale-label').boundingBox())!
+      const select = (await page.getByTestId('ui-scale-select').boundingBox())!
+      expect(select.y).toBeGreaterThan(label.y + label.height)
+    })
 
     test('all three labels are visible without horizontal scroll', async ({ page }) => {
       await page.goto('/settings')

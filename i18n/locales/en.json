@@ -667,6 +667,8 @@
     "taskUpdateFailed": "Task couldn't be updated.",
     "networkError": "Network error. Check your internet connection.",
     "networkOffline": "Offline mode. The app keeps trying to sync.",
+    "sourceUnreachableTitle": "{source} can't be reached right now",
+    "sourceUnreachable": "Your changes stay saved and sync as soon as {source} is reachable again.",
     "apiError": "API error. Try again later.",
     "default": "An unexpected error occurred. Try again.",
     "notionNotConfiguredShort": "Notion isn't set up",
@@ -970,6 +972,15 @@
       "label": "Working hours per day",
       "help": "The capacity hint for tasks planned for today is based on this. “Automatic” uses the working hours you've tracked so far.",
       "auto": "Automatic"
+    },
+    "display": {
+      "heading": "Appearance"
+    },
+    "uiScale": {
+      "label": "Display size",
+      "help": "Makes everything in Kan-do larger or smaller.",
+      "helpDesktop": "Makes everything in Kan-do larger or smaller. {key} + Plus and {key} + Minus do the same.",
+      "standard": "{percent} (default)"
     },
     "introHints": {
       "heading": "Quick guide",

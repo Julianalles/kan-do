@@ -24,8 +24,9 @@ App-Reset, and on desktop Updates and GitHub-Zugriff; below them a "Rechtliches"
   Erinnerungen with "Verbinden" in the Mac app (it opens /settings/reminders, which runs the setup there; the web build reads "nur in der Mac-App", #552),
   Todoist as "bald verfügbar"
 - "System": `ListRow` link rows (`to`, kd#179; #683 sizing), every sub-page has one; a tab click `router.replace`s the query, so back from a sub-page returns to the tab it was opened from
-- "Arbeitszeit pro Tag" (#306): a `USelect` under the Fokus row in the same sheet, hairline between the rows; "Automatisch" (the default: the day length is learned from tracked work) or 1-12 h in 30 min steps (`settingsStore.workingHoursMinutes`, minutes, null = automatic); the divider moves at once. Phone: label and help above, the select full width. Pattern: aligned with the Fokus switch row (label, help, control on the right)
+- "Arbeitszeit pro Tag" (#306): a `SettingSelectRow` (`USelect`) under the Fokus row in the same sheet, hairline between the rows; "Automatisch" (the default: the day length is learned from tracked work) or 1-12 h in 30 min steps (`settingsStore.workingHoursMinutes`, minutes, null = automatic); the divider moves at once. Phone: label and help above, the select full width. Pattern: aligned with the Fokus switch row (label, help, control on the right)
 - "Hinweise zum Einstieg" (#804): the second sheet of the Board tab, `IntroHintsSheet` ("Kurz erklärt": the row that turns the intro hints off or on again, and the help with their texts); a sheet per concern (#333)
+- "Größe der Anzeige" (#845): the Board tab's second sheet, "Darstellung", with one row: a `SettingSelectRow` with the steps of `lib/uiScale.ts` (80 to 125 %, 100 % marked as the standard; `settingsStore.uiScale`); the whole app changes size at once (`plugins/ui-scale.client.ts`). In the desktop app the help names the shortcuts (Cmd/Ctrl with + and -). Pattern: reused SettingSelectRow, which the Arbeitszeit row uses too
 - Known trade-off: the Board tab holds Fokus and Arbeitszeit in one sheet and the hints in a second, a sheet per concern (#333)
 - No visible page header (#670): the app bar's third segment reads "Einstellungen"; the layout keeps the title as an sr-only h1
 - Same sub-page pattern as /settings/updates: one flat column, no cards
@@ -83,21 +84,28 @@ App-Reset, and on desktop Updates and GitHub-Zugriff; below them a "Rechtliches"
                 @update:model-value="settingsStore.setFloatingNowEnabled"
               />
             </div>
-            <div class="flex flex-wrap items-center gap-x-4 gap-y-3 border-t border-default pt-6" data-testid="working-hours-setting">
-              <div class="min-w-0 flex-1 basis-56">
-                <label id="working-hours-label" class="block text-default" for="working-hours-select">{{ t('settings.workingHours.label') }}</label>
-                <p id="working-hours-help" class="text-body text-muted">{{ t('settings.workingHours.help') }}</p>
-              </div>
-              <USelect
-                id="working-hours-select"
-                :model-value="workingHoursValue"
-                :items="workingHoursItems"
-                aria-describedby="working-hours-help"
-                class="w-full sm:w-40"
-                data-testid="working-hours-select"
-                @update:model-value="onWorkingHoursChange"
-              />
-            </div>
+            <SettingSelectRow
+              id="working-hours"
+              class="border-t border-default pt-6"
+              :label="t('settings.workingHours.label')"
+              :help="t('settings.workingHours.help')"
+              :items="workingHoursItems"
+              :model-value="workingHoursValue"
+              @update:model-value="onWorkingHoursChange"
+            />
+          </PageSheet>
+
+          <!-- Size of the interface (#845): a sheet of its own (a sheet per concern, #333), the row like Arbeitszeit -->
+          <PageSheet tag="section" data-testid="display-settings" aria-labelledby="display-settings-heading">
+            <SectionHeader id="display-settings-heading" tag="h2" class="pb-4">{{ t('settings.display.heading') }}</SectionHeader>
+            <SettingSelectRow
+              id="ui-scale"
+              :label="t('settings.uiScale.label')"
+              :help="uiScaleHelp"
+              :items="uiScaleItems"
+              :model-value="settingsStore.uiScale"
+              @update:model-value="settingsStore.setUiScale"
+            />
           </PageSheet>
 
           <IntroHintsSheet />
@@ -201,7 +209,12 @@ import DisconnectSourceDialog from '~/components/settings/DisconnectSourceDialog
 import { useBoardStore } from '~/store/board'
 import { useSettingsStore } from '~/store/settings'
 import IntroHintsSheet from '~/components/settings/IntroHintsSheet.vue'
+import SettingSelectRow from '~/components/settings/SettingSelectRow.vue'
 import { WORKING_MINUTES } from '~/lib/dayCapacity'
+import { DEFAULT_UI_SCALE, UI_SCALE_STEPS } from '~/lib/uiScale'
+import { formatPercent } from '~/utils/localeFormat'
+import type { AppLocale } from '~/utils/localeResolution'
+import { usePlatformShortcut } from '~/composables/usePlatformShortcut'
 import { useSourceList, type MoreSourceRow } from '~/composables/useSourceList'
 import { isTauri } from '~/utils/isTauri'
 import { useDataFolder } from '~/composables/useDataFolder'
@@ -268,6 +281,18 @@ const workingHoursItems = computed(() => {
 const onWorkingHoursChange = (value: number | null | undefined) => {
   settingsStore.setWorkingHoursMinutes(value ? value : null)
 }
+
+// Size of the interface (#845): the fixed steps; the desktop app also steps them with Cmd/Ctrl + and - (plugins/desktop-shell.client.ts)
+const uiScaleItems = computed(() =>
+  UI_SCALE_STEPS.map((step) => {
+    const percent = formatPercent(step, locale.value as AppLocale)
+    return { label: step === DEFAULT_UI_SCALE ? t('settings.uiScale.standard', { percent }) : percent, value: step }
+  }),
+)
+const { modifierLabel } = usePlatformShortcut()
+const uiScaleHelp = computed(() =>
+  isDesktop ? t('settings.uiScale.helpDesktop', { key: modifierLabel }) : t('settings.uiScale.help'),
+)
 
 const manageLinks = computed(() => [
   { to: '/settings/topics', icon: 'i-ph-tag', label: t('settings.subpages.topics.label'), description: t('settings.subpages.topics.description') },

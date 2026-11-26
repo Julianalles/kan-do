@@ -6,6 +6,7 @@ import { useTasksStore } from "~/store/tasks";
 import { useIntegrationHealthStore } from "~/store/integrationHealth";
 import { useTaskStatisticsStore } from "~/store/taskStatistics";
 import { useErrorHandler } from '~/composables/useErrorHandler';
+import { informUnreachable } from '~/composables/useUnreachableNotice';
 import { isNetworkError } from '~/lib/errorMessages';
 import { mapHelpers } from '~/utils/mapHelpers';
 import type { PendingTaskDelete } from '~/store/tasks';
@@ -399,6 +400,8 @@ export const useTaskSync = () => {
     let created: Task;
     let deferredReason: string | null = null;
     let deferredError: unknown = null;
+    // Put aside without a request because the source cannot be reached (browser offline, source known offline)
+    let deferredUnreachable = false;
     let createAttemptedAt = 0;
     // Removals of the source's pages wait while its create is in flight, until the page sits on the board (#578)
     let endWrite: () => void = () => {};
@@ -409,9 +412,11 @@ export const useTaskSync = () => {
         created = await adapterFor('local').create(draft);
       } else if (health.needsAttention(source)) {
         deferredReason = health.healthOf(source).lastError ?? 'Source needs attention';
+        deferredUnreachable = health.isOffline(source);
         created = { ...(await adapterFor('local').create(draft)), source };
       } else if (typeof navigator !== 'undefined' && navigator.onLine === false) {
         deferredReason = 'Offline';
+        deferredUnreachable = true;
         created = { ...(await adapterFor('local').create(draft)), source };
       } else if (isRateLimited(source)) {
         // A 429 paused the source (#529): the create waits behind the marker like one made offline
@@ -453,11 +458,15 @@ export const useTaskSync = () => {
       if (deferredError !== null && createOutcomeUnknown(deferredError)) {
         tasksStore.markCreateUncertain(created.id, createAttemptedAt, draft.title || 'Untitled');
       }
-      if (deferredError === null || !isIntegrationSourceId(source)) tasksStore.recordPendingSyncFailure(created.id, deferredReason);
-      else if (classifySyncFailure(deferredError) === 'offline') {
-        // Plain offline stays quiet: the cloud and the sync button show it
+      if (deferredError === null || !isIntegrationSourceId(source)) {
+        tasksStore.recordPendingSyncFailure(created.id, deferredReason);
+        // No request was sent, so no failure reports it: the outage is still told once (#851)
+        if (deferredUnreachable && isIntegrationSourceId(source)) informUnreachable(source);
+      } else if (classifySyncFailure(deferredError) === 'offline') {
+        // Plain offline is no error: the cloud and the sync button show it, and the outage is told once (#851)
         tasksStore.recordPendingSyncFailure(created.id, deferredReason);
         health.recordFailure(source, deferredError);
+        informUnreachable(source);
       } else {
         // The form closes as on success, so a failure the user could not otherwise see is reported once
         // (the marker holds no failure yet, so this counts as the first); it records the marker's reason
@@ -645,7 +654,10 @@ export const useTaskSync = () => {
     // A write went through, so the limit has lifted
     rateLimitedUntil.delete(source);
     if (isDisconnected(source)) return;
-    if (isIntegrationSourceId(source) && health.needsAttention(source)) health.markHealthy(source);
+    if (!isIntegrationSourceId(source)) return;
+    // Its outage is over: the next one is told again (#851)
+    health.noteReachable(source);
+    if (health.needsAttention(source)) health.markHealthy(source);
   };
 
   /**
@@ -1419,9 +1431,10 @@ export const useTaskSync = () => {
    * Standardized error handling for sync operations
    */
   const handleSyncError = (error: unknown, syncContext: string, source?: SourceId): void => {
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    if (source && source !== 'local') handleError(errorMessage, 'task_sync', { source });
-    else handleError(errorMessage, 'task_sync');
+    // The error itself, not only its text: the handler reads its status to tell an unreachable source (#851)
+    const reported = error instanceof Error ? error : String(error);
+    if (source && source !== 'local') handleError(reported, 'task_sync', { source });
+    else handleError(reported, 'task_sync');
     // Still log to console for debugging
     console.error(`[TaskSync] ${syncContext}:`, error);
   };

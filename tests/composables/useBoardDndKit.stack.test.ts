@@ -297,7 +297,7 @@ describe('useBoardDndKit: a whole collapsed stack (#150)', () => {
       useBoardDndKit().onDragEnd(dropOf(source as ReturnType<typeof stackSource>))
 
       await vi.waitFor(() => expect(handleErrorMock).toHaveBeenCalledTimes(2))
-      expect(handleErrorMock).toHaveBeenLastCalledWith('error path failed', 'task_sync')
+      expect(handleErrorMock).toHaveBeenLastCalledWith(expect.objectContaining({ message: 'error path failed' }), 'task_sync')
       consoleError.mockRestore()
     })
   })

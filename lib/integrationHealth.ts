@@ -135,6 +135,19 @@ export function classifySyncFailure(error: unknown): 'offline' | 'broken' | 'deg
 }
 
 /**
+ * Whether a failure means the source could not be reached (#851): no connection, a timeout, a request that never got
+ * an answer (status 0) or a 5xx. In all of them a change is kept and sent again later (`createFailureKind`), so the
+ * user is told once per outage instead of with every failing action. A rejected token or a missing setup is not
+ * this (`broken`, #319), nor is a 429 (#529) or a page the source refuses (4xx).
+ */
+export function isUnreachableFailure(error: unknown): boolean {
+  if (classifySyncFailure(error) === 'offline') return true
+  const cause = unwrapCause(error) as ErrorFields | null
+  const httpStatus = cause?.statusCode ?? cause?.httpStatusCode
+  return httpStatus !== undefined && httpStatus >= 500
+}
+
+/**
  * Whether a failed write says something about the whole source or only about the task it carried (#319).
  * The source is at fault when it cannot be reached or does not accept us at all: no connection, a missing
  * setup, a rejected token (401). A page it refuses (400, 403, 404 for an archived or deleted page, a 5xx on
