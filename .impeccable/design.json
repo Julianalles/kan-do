@@ -272,7 +272,7 @@
       },
       {
         "name": "The Marker Rule",
-        "body": "A stroke of yellow text marker centred on the bottom edge of a word (through the foot of its letters) is an allowed decoration in slight, intentional use (owner, 2026-11-11). It is static, carries no meaning of its own and appears once per view at most: one marker per view, on the headline of its focus column. Uses: the \"Jetzt\" headline on \"Heute\" and the \"Heute\" headline (Offen) on \"Alle\", which fades when the user moves to \"Heute\" (user, #469). A second use of the hue, not of the stroke (user, #853, 2026-11-25): the paper of intro notes (the welcome, its tour, the step hints, the planning note) is the marker yellow thinned into the sheet's white, so a note reads as a note on the desk and never as a task card or a page sheet; values in `IntroNote`'s doc block. A new use is a recorded decision.",
+        "body": "A stroke of yellow text marker centred on the bottom edge of a word (through the foot of its letters) is an allowed decoration in slight, intentional use (owner, 2026-11-11). It is static, carries no meaning of its own and appears once per view at most: one marker per view, on the headline of its focus column. Uses: the \"Jetzt\" headline on \"Heute\" and the \"Für heute\" headline (Offen) on \"Alle\", which fades when the user moves to \"Heute\" (user, #469). A second use of the hue, not of the stroke (user, #853, 2026-11-25): the paper of intro notes (the welcome, its tour, the step hints, the planning note) is the marker yellow thinned into the sheet's white, so a note reads as a note on the desk and never as a task card or a page sheet; values in `IntroNote`'s doc block. A new use is a recorded decision.",
         "section": "colors"
       },
       {

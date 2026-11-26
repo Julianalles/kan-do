@@ -2,76 +2,40 @@
 @component TaskDetailMetadata
 @kind component
 @category display
-@description Metadata section of the task detail (source, created, id), collapsed by default
-@usage Used by TaskDetailContent; the left of the last line of the desktop sheet (#468), last in the flow on mobile (#386)
-@avoid Only the collapsed metadata section of the task detail.
+@description The footer line of the task detail: where the task lives (source icon and name) and when it was created
+@usage <TaskDetailMetadata :source="'Notion'" icon="i-ph-notebook" created-at="25.11.2026" /> as the last line of TaskDetailContent, on the sheet and in the drawer
+@avoid Only the task detail's footer line. Not a place for controls or actions (those are rows of the grid or entries of TaskSheetMenu), and never an expandable block (#846).
 @responsibility
-- Quiet collapsible with the source, the creation date and the stable task id (and what the host puts in its default slot on a line of its own: the sheet's ad-hoc switch, #796), each fact its own element, no separator character (#594); the id stays, #244 made Metadaten the one place it is readable
-- The chevron sits right beside the label, open or closed: the trigger is as wide as its label, so opening moves nothing (#594); a ghost button that answers the pointer with the neutral fill (DESIGN.md "States", Hover; #592), pulled 8 px left (`-ms-2 px-2`) so the label keeps the content edge
-- The heading is the parent of the toggle button (`h3` > button, #630), so heading navigation reaches the section; the button carries `aria-expanded` and `aria-controls`
-- The host places it: with the action row on the sheet's last line (no hairline, no band), in the flow on mobile (#244)
-- The open state is a v-model owned by the parent; an expanded one grows the sheet downwards over `--duration-slow` (`UCollapsible`, the one motion of "open a block in place", #610), the chevron (`DisclosureCaret`) turns with it
+- One quiet line (`text-xs text-muted`) that is always there (#846, user: no expandable block, which reverses the collapsible Metadaten of #244 and #594): the source with its icon, then the creation date as a date without the time of day
+- Each fact is its own element, no separator character (#594); the line wraps on a narrow drawer
+- The id is not shown: the task menu copies it (TaskSheetMenu, #846)
+- Read-only text, no heading: the facts need no name and the section is no stop for heading navigation
 -->
 <template>
-  <section class="task-detail-section" data-testid="task-metadata">
-    <!-- The section is a flex column with a row gap: one block wrapper keeps the heading and the content flush, as the button alone was -->
-    <div>
-      <!-- The heading is the parent of the toggle (WAI-ARIA disclosure, #630): a heading inside a button is presentational -->
-      <SectionHeader tag="h3" size="label" class="mb-0">
-        <UButton
-          variant="ghost"
-          color="neutral"
-          class="group/meta -ms-2 justify-start gap-1.5 px-2"
-          data-heading-toggle
-          :aria-expanded="open"
-          :aria-controls="contentId"
-          @click="open = !open"
-        >
-          {{ t('task.detail.metadata') }}
-          <template #trailing>
-            <DisclosureCaret :open="open" />
-          </template>
-        </UButton>
-      </SectionHeader>
-      <!-- On a phone the content's clip (the collapsible's overflow) bleeds 6 px to each side and its padding takes them back, so the facts keep the
-           content edge and a switch on its last line keeps its invisible hit area: the clip cut 6 px off the ad-hoc switch's left side (#822) -->
-      <UCollapsible v-model:open="open" :ui="{ content: 'max-md:-mx-1.5 max-md:px-1.5' }">
-        <template #content>
-          <div :id="contentId" class="flex flex-wrap items-center gap-x-4 gap-y-1 pt-3 text-xs text-muted">
-            <span data-testid="task-detail-source">{{ source ?? t('task.detail.sourceLocal') }}</span>
-            <span>{{ t('task.detail.created', { date: createdAt }) }}</span>
-            <span class="select-all">{{ taskId }}</span>
-            <!-- What the host adds under the facts (the ad-hoc switch of the sheet, #796) -->
-            <div v-if="$slots.default" class="basis-full pt-1">
-              <slot />
-            </div>
-          </div>
-        </template>
-      </UCollapsible>
-    </div>
-  </section>
+  <p class="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted" data-testid="task-metadata">
+    <span class="flex items-center gap-1.5" data-testid="task-detail-source">
+      <UIcon :name="icon" class="size-4 shrink-0" aria-hidden="true" />
+      {{ source ?? t('task.detail.sourceLocal') }}
+    </span>
+    <span data-testid="task-detail-created">{{ t('task.detail.created', { date: createdAt }) }}</span>
+  </p>
 </template>
 
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n';
-import DisclosureCaret from '~/components/ui/DisclosureCaret.vue';
-import SectionHeader from '~/components/ui/SectionHeader.vue';
 
 defineOptions({ name: 'TaskDetailMetadata' });
 
 const { t } = useI18n();
-const contentId = useId();
 
 withDefaults(defineProps<{
   /** Source label (e.g. "Notion"); null for a local task */
   source?: string | null;
-  /** Creation date, already formatted for display */
+  /** The source's bundled icon (`SOURCE_META`) */
+  icon: string;
+  /** Creation date, already formatted for display (date only) */
   createdAt: string;
-  /** Stable app-level task id */
-  taskId: string;
 }>(), {
   source: null,
 });
-
-const open = defineModel<boolean>('open', { default: false });
 </script>

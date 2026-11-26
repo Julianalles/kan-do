@@ -41,7 +41,7 @@
   open gesture and no pointer cursor; a card that came back from an undo plays its grow-back (`task--returning`)
 - Phone size (#274): 308 x 140 px at 390px (desktop 288 x 132), the desktop ratio scaled about 10 %; set by the phone block of `--task-card-max-width` / `--task-card-height` in board.css, type unchanged (already the larger phone step, #220)
 - Status badge (#797, `statusBadge`): a card shown outside the column of its status says which status it keeps, as a neutral
-  badge at the end of the footer ("Jetzt", "Wartet", the column names): the Jetzt and Wartet cards in "Heute" on the place
+  badge at the end of the footer ("Jetzt", "Wartet", the column names): the Jetzt and Wartet cards in "Für heute" on the place
   "Alle", and a waiting task off today under "Alle Aufgaben". Such a Jetzt card is the standard card (no Jetzt bar, no
   timebox question, not the focus overlay's card): the Jetzt column owns those. A card in its own column never has it
 - No activity badge on the card: the activity is for grouping and statistics, the task sheet shows it. Cards and stacks in a column sit `--task-list-gap` (0.75rem) apart
@@ -178,7 +178,7 @@
           <TaskCarryOverDots :day="carryOverDay" />
         </div>
         <div class="ml-auto flex shrink-0 items-center gap-1">
-          <!-- The status a card keeps outside its own column (#797): "Heute" on "Alle", a waiting task off today -->
+          <!-- The status a card keeps outside its own column (#797): "Für heute" on "Alle", a waiting task off today -->
           <UBadge
             v-if="statusBadgeLabel"
             color="neutral"

@@ -112,7 +112,7 @@ test.describe('Card click opens (kd#25): plain cards', () => {
     await page.waitForURL(/\/tasks\/p2/)
     await settleAnimations(page)
     await dwell(page, 700)
-    // Outside the sheet whatever its frame covers (it is 720 × 612 since #705): in the middle of the free strip right of it
+    // Outside the sheet whatever it covers (720 wide, as tall as its content, #846): in the middle of the free strip right of it
     const sheet = (await page.getByRole('dialog').boundingBox())!
     const freeRight = page.viewportSize()!.width - (sheet.x + sheet.width)
     await page.mouse.click(freeRight > 40 ? sheet.x + sheet.width + freeRight / 2 : sheet.x / 2, 600)

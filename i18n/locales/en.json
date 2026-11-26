@@ -18,7 +18,7 @@
     "pageHeading": "Today",
     "columns": {
       "open": "Open",
-      "openPlanning": "Today",
+      "openPlanning": "For today",
       "progress": "Now",
       "waiting": "Waiting",
       "done": "Done"
@@ -268,10 +268,10 @@
     },
     "planNote": {
       "title": "Choose what's on today",
-      "description": "The arrow on a card plans it for today. Switch to “Today” once you want to start.",
-      "line": "Choose what's on today. Switch to “Today” once you want to start.",
+      "description": "The arrow on a card plans it for today. When you're ready to start, switch to “Today” in the navigation.",
+      "line": "Choose what's on today. When you're ready to start, switch to “Today” in the navigation.",
       "close": "Close",
-      "phoneText": "Switch to “Today” once you want to start."
+      "phoneText": "When you're ready to start, switch to “Today” in the navigation."
     },
     "newDayTimeNote": {
       "title": "Timer ran on for {duration} after midnight",
@@ -392,6 +392,7 @@
       "plannedTodayHint": "Now is always part of today.",
       "adhocSwitch": "Came up on the spot",
       "timeSpent": "Time spent",
+      "timeSpentShort": "Time spent",
       "timeSpentInMinutes": "Time spent in minutes",
       "doneDay": "Done on"
     },
@@ -405,12 +406,11 @@
       "notesEmpty": "Add a note…",
       "notesPlaceholder": "Add a note…",
       "notesHint": "Markdown supported • {shortcut} to save",
-      "metadata": "Metadata",
       "sourceLocal": "Local",
       "created": "Created: {date}",
       "openIn": "Open in {source}",
       "menuLabel": "Task menu",
-      "propertiesMore": "+{n}"
+      "adhocBadge": "Spontaneous"
     },
     "timeStats": {
       "remaining": "{time} left"
@@ -432,8 +432,10 @@
       "startNow": "Start now",
       "markDone": "Mark as done",
       "copyTitle": "Copy title",
+      "copyId": "Copy ID",
       "duplicate": "Duplicate",
       "titleCopied": "Title copied",
+      "idCopied": "ID copied",
       "duplicated": "Task duplicated",
       "button": "Task actions",
       "openDetails": "Open details",
@@ -462,7 +464,7 @@
       "keep": "Keep",
       "smaller": "Make smaller",
       "smallerHint": "What's the first small step?",
-      "question": "This task has been planned for {n} day. Does it really matter? | This task has been planned for {n} days. Does it really matter?",
+      "question": "Planned for {n} day. Does it really matter? | Planned for {n} days. Does it really matter?",
       "keepYes": "Yes, keep it",
       "deleteNo": "No, delete it",
       "kept": "The task stays on your board.",
@@ -759,6 +761,7 @@
     "taskDeleteFailed": "The task couldn't be deleted and is back on the board.",
     "clipboardFailed": "The summary couldn't be copied.",
     "copyTitleFailed": "The title couldn't be copied.",
+    "copyIdFailed": "The ID couldn't be copied.",
     "secretsFailed": "The macOS Keychain didn't accept the change.",
     "secretsResetFailed": "The macOS Keychain isn't reachable, so the setup wasn't reset. Unlock the Keychain and try again.",
     "externalLinkFailed": "The link couldn't be opened.",

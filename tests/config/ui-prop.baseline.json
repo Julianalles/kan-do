@@ -35,10 +35,6 @@
     "count": 1,
     "reason": "keep: placement"
   },
-  "components/task/TaskDetailMetadata.vue": {
-    "count": 1,
-    "reason": "keep: placement"
-  },
   "components/task/TaskPropertySelect.vue": {
     "count": 1,
     "reason": "keep: placement"

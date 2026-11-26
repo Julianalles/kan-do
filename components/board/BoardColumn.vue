@@ -14,7 +14,7 @@
 - Provides header with status information
 - Enables task addition for the Open column (#248): the header's round add button asks the add slot, the draft host at the start of the list, to open; the draft card enters at the top (#125). Cancel returns focus to the header button
 - Handles visual states for different statuses and empty states
-- Offen on "Alle" (#797), headed "Heute": lists everything planned for today. Behind its own cards come the Jetzt card and the Wartet cards (`todayExtras`; on a full day they stand above the capacity line, whose count their time is part of, #817), each with a status badge and each still a sortable of its own status; the headline counts them and the column is not empty while it holds one. The capacity line (below the extras, #817), the add slot and the sorting stay on Offen's own cards
+- Offen on "Alle" (#797), headed "Für heute": lists everything planned for today. Behind its own cards come the Jetzt card and the Wartet cards (`todayExtras`; on a full day they stand above the capacity line, whose count their time is part of, #817), each with a status badge and each still a sortable of its own status; the headline counts them and the column is not empty while it holds one. The capacity line (below the extras, #817), the add slot and the sorting stay on Offen's own cards
 - `top` slot (Offen on "Alle", #573 case 2): a zero-height sticky host under the app bar for the capacity echo of a line above the window
 - Offen on Heute, empty while tasks of today's block ("Von gestern", #741) wait under "Alle" (#356): one muted sentence with a link to "Alle"; the guides below and the Jetzt placeholder of a board that never used Jetzt (#853) are the only other exceptions, every other empty column stays blank
 - Offen on Heute with no task in any column (#761, #853): the board's empty state (BoardEmptyState: icon, "Was steht heute an?", one muted line and the green button "Aufgabe hinzufügen", which opens the add slot, the header button's flow). The line names "Alle" as a link while tasks wait there (#802), the connection when one exists without tasks, else it only invites. The header's round add button is away while it shows. Gone while a draft is open, a drag runs or the yesterday note shows, and not shown before the board's first load has ended (`lib/boardSettled.ts`)
@@ -156,7 +156,7 @@
         :focus-fallback="addFocusFallback"
       />
       <!-- One flat list of items: ungrouped cards, then (grouped) a collapsed stack or the cards of an
-           expanded one in its place (#147), or (ungrouped mode) every task in order. "Heute" on "Alle" (#797, #817) adds the
+           expanded one in its place (#147), or (ungrouped mode) every task in order. "Für heute" on "Alle" (#797, #817) adds the
            Jetzt card and the Wartet cards, each a sortable of its own status with a status badge: behind Offen's own cards,
            above the capacity line when the day is full (their time is counted first). One list, one key per item, so a card
            that the line moves across keeps its node; one root node per item, like every list item -->
@@ -438,14 +438,14 @@ const baseItems = computed<ColumnItem[]>(() =>
 const { lineAfterKey } = useDayCapacity(baseItems, () => isOpenColumn.value && !props.staticMode);
 const columnItems = computed<ColumnItem[]>(() => withCapacityItem(baseItems.value, lineAfterKey.value));
 
-/** Where "Heute" on "Alle" stands them (#817): behind Offen's own cards, and above the capacity line when the day is full */
+/** Where "Für heute" on "Alle" stands them (#817): behind Offen's own cards, and above the capacity line when the day is full */
 const extrasAt = computed(() => {
   const at = columnItems.value.findIndex((item) => item.kind === "capacity");
   return at === -1 ? columnItems.value.length : at;
 });
 
 /**
- * "Heute" on "Alle" (#797): the Jetzt card, then the Wartet cards in the order the Wartet column renders them (grouped: its
+ * "Für heute" on "Alle" (#797): the Jetzt card, then the Wartet cards in the order the Wartet column renders them (grouped: its
  * groups kept together), as single cards. Each is a sortable of its own status, indexed among the cards of that status, so a
  * Wartet card can be sorted among the Wartet cards and nowhere else (`useBoardDndKit`).
  */
@@ -584,7 +584,7 @@ const showAddSlot = computed(() => isOpenColumn.value && !props.staticMode);
  * The header's round add button: the flag gates it, not a draft opened another way. Not on the place "Alle" (#380):
  * a task made there is not planned and lands under "Alle Aufgaben", so that side's header has the button.
  */
-/** The marker stroke (#469, one per view): Jetzt on "Heute", and Offen, headed "Heute", on "Alle" (hidden on "Heute", where it fades with the move) */
+/** The marker stroke (#469, one per view): Jetzt on "Heute", and Offen, headed "Für heute", on "Alle" (hidden on "Heute", where it fades with the move) */
 const headerMarker = computed<'shown' | 'hidden' | undefined>(() => {
   if (props.taskStatus === TaskStatus.Progress) return 'shown'
   if (props.taskStatus === TaskStatus.Open) return place.value === 'all' ? 'shown' : 'hidden'
@@ -628,7 +628,7 @@ const headlineSuffix = computed(() =>
  */
 const defaultHeadline = (): string => {
   switch (props.taskStatus) {
-    // "Heute" on "Alle", "Offen" on "Heute" (#375); the header fades between the two with the place move
+    // "Für heute" on "Alle", "Offen" on "Heute" (#375); the header fades between the two with the place move
     case TaskStatus.Open: return t(openColumnTitleKey(place.value));
     case TaskStatus.Progress: return t("board.columns.progress");
     case TaskStatus.Waiting: return t("board.columns.waiting");

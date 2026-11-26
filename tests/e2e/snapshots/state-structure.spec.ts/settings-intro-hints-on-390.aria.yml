@@ -27,4 +27,4 @@
     - listitem:
       - heading "Planen" [level=3]
       - paragraph: Wähle aus, was heute dran ist
-      - paragraph: Wechsle zu „Heute“, sobald du loslegen willst.
+      - paragraph: Sobald du loslegen willst, wechsle in der Navigation zu „Heute“.

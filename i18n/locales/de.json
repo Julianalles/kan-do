@@ -18,7 +18,7 @@
     "pageHeading": "Heute",
     "columns": {
       "open": "Offen",
-      "openPlanning": "Heute",
+      "openPlanning": "Für heute",
       "progress": "Jetzt",
       "waiting": "Wartet",
       "done": "Erledigt"
@@ -268,10 +268,10 @@
     },
     "planNote": {
       "title": "Wähle aus, was heute dran ist",
-      "description": "Der Pfeil an einer Karte plant sie für heute ein. Wechsle zu „Heute“, sobald du loslegen willst.",
-      "line": "Wähle aus, was heute dran ist. Wechsle zu „Heute“, sobald du loslegen willst.",
+      "description": "Der Pfeil an einer Karte plant sie für heute ein. Sobald du loslegen willst, wechsle in der Navigation zu „Heute“.",
+      "line": "Wähle aus, was heute dran ist. Sobald du loslegen willst, wechsle in der Navigation zu „Heute“.",
       "close": "Schließen",
-      "phoneText": "Wechsle zu „Heute“, sobald du loslegen willst."
+      "phoneText": "Sobald du loslegen willst, wechsle in der Navigation zu „Heute“."
     },
     "newDayTimeNote": {
       "title": "Timer lief nach Mitternacht {duration} weiter",
@@ -392,6 +392,7 @@
       "plannedTodayHint": "Jetzt gehört immer zu heute.",
       "adhocSwitch": "Kam spontan dazu",
       "timeSpent": "Aufgewendete Zeit",
+      "timeSpentShort": "Aufgewendet",
       "timeSpentInMinutes": "Aufgewendete Zeit in Minuten",
       "doneDay": "Erledigt am"
     },
@@ -405,12 +406,11 @@
       "notesEmpty": "Notiz hinzufügen…",
       "notesPlaceholder": "Notiz hinzufügen…",
       "notesHint": "Markdown unterstützt • {shortcut} zum Speichern",
-      "metadata": "Metadaten",
       "sourceLocal": "Lokal",
       "created": "Erstellt: {date}",
       "openIn": "In {source} öffnen",
       "menuLabel": "Aufgabenmenü",
-      "propertiesMore": "+{n}"
+      "adhocBadge": "Spontan"
     },
     "timeStats": {
       "remaining": "{time} übrig"
@@ -432,8 +432,10 @@
       "startNow": "Jetzt starten",
       "markDone": "Als erledigt markieren",
       "copyTitle": "Titel kopieren",
+      "copyId": "ID kopieren",
       "duplicate": "Duplizieren",
       "titleCopied": "Titel kopiert",
+      "idCopied": "ID kopiert",
       "duplicated": "Aufgabe dupliziert",
       "button": "Aktionen für diese Aufgabe",
       "openDetails": "Details öffnen",
@@ -462,7 +464,7 @@
       "keep": "Behalten",
       "smaller": "Kleiner machen",
       "smallerHint": "Was ist der erste kleine Schritt?",
-      "question": "Die Aufgabe ist seit {n} Tag zur Erledigung eingeplant. Ist sie wirklich wichtig? | Die Aufgabe ist seit {n} Tagen zur Erledigung eingeplant. Ist sie wirklich wichtig?",
+      "question": "Seit {n} Tag eingeplant. Ist sie wirklich wichtig? | Seit {n} Tagen eingeplant. Ist sie wirklich wichtig?",
       "keepYes": "Ja, behalten",
       "deleteNo": "Nein, löschen",
       "kept": "Die Aufgabe bleibt auf deinem Board.",
@@ -759,6 +761,7 @@
     "taskDeleteFailed": "Die Aufgabe konnte nicht gelöscht werden und ist wieder auf dem Board.",
     "clipboardFailed": "Die Zusammenfassung konnte nicht kopiert werden.",
     "copyTitleFailed": "Der Titel konnte nicht kopiert werden.",
+    "copyIdFailed": "Die ID konnte nicht kopiert werden.",
     "secretsFailed": "Der macOS-Schlüsselbund hat die Änderung nicht angenommen.",
     "secretsResetFailed": "Der macOS-Schlüsselbund ist nicht erreichbar, die Einrichtung wurde nicht zurückgesetzt. Entsperre den Schlüsselbund und versuche es erneut.",
     "externalLinkFailed": "Der Link konnte nicht geöffnet werden.",

@@ -38,7 +38,7 @@ describe('TaskCarryOverTriage (#99)', () => {
   it('sheet block: one sentence with the day count and exactly two buttons (#247)', () => {
     const block = render({ taskId: 'a' }).get('[data-testid="carry-over-triage"]')
     expect(block.classes()).toContain('bg-muted/50')
-    expect(block.text()).toContain('Die Aufgabe ist seit 6 Tagen zur Erledigung eingeplant. Ist sie wirklich wichtig?')
+    expect(block.text()).toContain('Seit 6 Tagen eingeplant. Ist sie wirklich wichtig?')
     expect(block.findAll('button').map(b => b.text())).toEqual(['Ja, behalten', 'Nein, löschen'])
     expect(block.find('[data-testid="carry-over-smaller"]').exists()).toBe(false)
   })

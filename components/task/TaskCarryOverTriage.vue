@@ -2,8 +2,8 @@
 @component TaskCarryOverTriage
 @kind component
 @category action
-@description Triage block for a card carried over CARRY_OVER_NUDGE_DAYS or more board days (#99). Task sheet (#247): one sentence
-with the day count and two soft buttons ("Ja, behalten" / "Nein, löschen"); after Keep it becomes a confirmation (check icon, status
+@description Triage block for a card carried over CARRY_OVER_NUDGE_DAYS or more board days (#99). Task sheet (#247; under the title, #846): one line, the sentence
+with the day count and beside it two soft buttons ("Ja, behalten" / "Nein, löschen"); after Keep it becomes a confirmation (check icon, status
 role, tip). `compact` (day-close rows): Keep, Make smaller and Delete as quiet ghost buttons.
 @usage <TaskCarryOverTriage :task-id="id" @smaller="focusTitle" @delete="deleteTask" />
 `compact` for list rows that already show the dots (#98): actions only, no wash, no heading, and a quiet look (all three
@@ -21,7 +21,7 @@ Standalone so the closing step (#98) can list it under "still open". Renders not
   <section
     v-if="isNudgeDue || kept || hold"
     class="carry-over-triage"
-    :class="compact ? undefined : 'rounded-lg bg-muted/50 px-4 py-3'"
+    :class="compact ? undefined : 'flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-lg bg-muted/50 py-1.5 ps-4 pe-1.5'"
     :aria-labelledby="compact || kept ? undefined : headingId"
     :aria-label="compact ? title : undefined"
     :data-compact="compact ? '' : undefined"
@@ -29,7 +29,8 @@ Standalone so the closing step (#98) can list it under "still open". Renders not
   >
     <!-- Task sheet: one question, two answers (#247); the status region stays in the DOM so the confirmation is announced -->
     <template v-if="!compact">
-      <div role="status" data-testid="carry-over-kept-status">
+      <!-- Empty until Keep: out of the flow then, so the question and its answers share the line (#846) -->
+      <div role="status" :class="kept ? 'w-full py-1.5 pe-2' : 'absolute'" data-testid="carry-over-kept-status">
         <div v-if="kept" class="flex items-start gap-3" data-testid="carry-over-kept">
           <UIcon name="i-ph-check-circle" class="mt-0.5 size-5 shrink-0 text-primary" aria-hidden="true" />
           <div>
@@ -40,7 +41,7 @@ Standalone so the closing step (#98) can list it under "still open". Renders not
       </div>
       <template v-if="!kept">
         <p :id="headingId" class="text-body text-highlighted">{{ t('task.carryOver.question', { n: displayDay }, displayDay) }}</p>
-        <div class="mt-3 flex flex-wrap items-center gap-2">
+        <div class="flex flex-wrap items-center gap-2">
           <UButton
             color="neutral"
             variant="soft"

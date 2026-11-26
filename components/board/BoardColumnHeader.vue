@@ -9,8 +9,8 @@
 - Displays column title with appropriate styling
 - Shows the title as plain text in every column, Erledigt included (#273: its check icon is gone; the done cards keep their corner check)
 - Handles visual states for different statuses (waiting, empty)
-- The marker (#469): the stroke under the title of the one focus column per view, "Jetzt" on "Heute" and Offen's "Heute" on "Alle" (`marker`). It fades on the clock of the place move (`--place-move`, none under reduced motion) and keeps its padding while hidden, so the title does not shift when the stroke fades
-- Offen's title fade (#375, `titleFadeKey`): the column is headed "Heute" on the place "Alle" and "Offen" on "Heute". When the place changes, the old title fades out over the new
+- The marker (#469): the stroke under the title of the one focus column per view, "Jetzt" on "Heute" and Offen's "Für heute" on "Alle" (`marker`). It fades on the clock of the place move (`--place-move`, none under reduced motion) and keeps its padding while hidden, so the title does not shift when the stroke fades
+- Offen's title fade (#375, `titleFadeKey`): the column is headed "Für heute" on the place "Alle" and "Offen" on "Heute". When the place changes, the old title fades out over the new
   one, which fades in, for the length and on the curve of the board's sideways move (`--place-move` 400 ms, `--place-ease`, board.css): one clock for strip, app-bar chip and title. A second
   change mid-fade continues from the opacity the titles stand at. The outgoing title is `aria-hidden` and in the DOM only meanwhile. Reduced motion (`--place-move: 0ms`): no fade, the title just changes
 - Offen (`showAdd`, #248, moved left #264; on the place "Alle" "Alle Aufgaben" has it instead, #380: the task it makes lands there): a round soft icon-only add button at the start of the card-width track (the
@@ -198,7 +198,7 @@ const isWaiting = computed(() => props.status === TaskStatus.Waiting);
 
 <style scoped>
   /* The marker (DESIGN.md "The Marker Rule"): a stroke of yellow text marker centred on the bottom edge (the baseline) of
-     the Jetzt headline on "Heute" and Offen's "Heute" on "Alle" (#239, #469): one stroke per view. Static, a decoration without a meaning of its own; the ink on it keeps body contrast.
+     the Jetzt headline on "Heute" and Offen's "Für heute" on "Alle" (#239, #469): one stroke per view. Static, a decoration without a meaning of its own; the ink on it keeps body contrast.
      Drawn by hand (kd#207): a layer of its own behind the word, tilted a little and with softly rounded, uneven
      ends, so it sits with the round serif instead of ruling a straight bar under it. The inset is a percentage of the
      h2 so it keeps scaling with the display step: 61% to 98% is a 37% tall stroke whose centre (79.5%) is the baseline
