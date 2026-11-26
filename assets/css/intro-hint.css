@@ -132,6 +132,15 @@
     bottom: var(--intro-hint-room, 0px);
     transition: bottom var(--duration-slow) var(--ease-standard);
   }
+  /* Erledigt's "Tag abschließen" (#863): lifted above the sheet it floated over the column's last card (the button rests at the
+     sheet's edge whatever lies under it). In a window wide enough (75rem) that the centred sheet does not reach the Erledigt
+     column nothing is in the button's way: it rests at the window's edge as without a note, and follows the last card when the
+     column is short. Narrower, the lift stays. A width step written as a clamp, not a new breakpoint: the offset is the room
+     below 75rem (the factor makes the step abrupt) and 0 above it. */
+  .board #column-done > .column-footer {
+    bottom: clamp(0px, calc((75rem - 100vw) * 1000), var(--intro-hint-room, 0px));
+  }
+
   /* "Alle" (#853: the welcome shows there too): "Alle Aufgaben" is taller than the board's columns and ends with its own
      padding, so the room is added to that; its last row of cards scrolls clear of the sheet */
   .board .not-planned .not-planned__body {

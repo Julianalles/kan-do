@@ -233,13 +233,19 @@
       "underAll": {
         "title": "Deine Aufgaben sind da",
         "today": "Sie liegen unter „Alle“. Wähle dort aus, was du dir für heute vornimmst. In der Navigation zeigt „Heute“ dann nur das.",
-        "all": "Hier liegt alles, was ansteht. Der Pfeil an einer Karte plant sie für heute ein. Sobald du loslegen willst, wechsle in der Navigation zu „Heute“.",
+        "all": {
+          "desktop": "Hier liegt alles, was ansteht. Fahre über eine Karte: Der Pfeil plant sie für heute ein. Sobald du loslegen willst, wechsle in der Navigation zu „Heute“.",
+          "phone": "Hier liegt alles, was ansteht. Der Pfeil an einer Karte plant sie für heute ein. Sobald du loslegen willst, wechsle in der Navigation zu „Heute“."
+        },
         "action": "Aufgaben auswählen"
       },
       "tour": {
         "today": {
           "title": "Das ist dein Tag",
-          "text": "Unter „Offen“ steht, was heute ansteht. Alles andere wartet unter „Alle“."
+          "text": {
+            "desktop": "Unter „Offen“ steht, was heute ansteht. Alles andere wartet unter „Alle“.",
+            "phone": "Wische zur Seite für „Offen“: Dort steht, was heute ansteht. Alles andere wartet unter „Alle“."
+          }
         },
         "sample": {
           "title": "Ein Beispieltag zum Ausprobieren",
@@ -268,7 +274,7 @@
     },
     "planNote": {
       "title": "Wähle aus, was heute dran ist",
-      "description": "Der Pfeil an einer Karte plant sie für heute ein. Sobald du loslegen willst, wechsle in der Navigation zu „Heute“.",
+      "description": "Fahre über eine Karte: Der Pfeil plant sie für heute ein. Sobald du loslegen willst, wechsle in der Navigation zu „Heute“.",
       "line": "Wähle aus, was heute dran ist. Sobald du loslegen willst, wechsle in der Navigation zu „Heute“.",
       "close": "Schließen",
       "phoneText": "Sobald du loslegen willst, wechsle in der Navigation zu „Heute“."

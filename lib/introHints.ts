@@ -222,7 +222,7 @@ export function resolveIntroWelcome(board: IntroWelcomeBoard): IntroWelcome {
   if (board.place === 'all') {
     // Any task on the board: what lies here and how a card is planned. It stands for the planning note.
     if (scenario === 'underAll' || scenario === 'today' || scenario === 'sample') {
-      return note(`${WELCOME}.underAll.title`, `${WELCOME}.underAll.all`, { says: [INTRO_PLAN_HINT] })
+      return note(`${WELCOME}.underAll.title`, `${WELCOME}.underAll.all.${width}`, { says: [INTRO_PLAN_HINT] })
     }
     return note(`${WELCOME}.empty.title`, scenario === 'connectedEmpty' ? `${WELCOME}.connectedEmpty.text` : `${WELCOME}.empty.all`)
   }
@@ -230,7 +230,7 @@ export function resolveIntroWelcome(board: IntroWelcomeBoard): IntroWelcome {
   if (scenario === 'today' || scenario === 'sample') {
     const first: IntroNoteCopy = scenario === 'sample'
       ? { titleKey: `${WELCOME}.tour.sample.title`, textKey: `${WELCOME}.tour.sample.text.${width}` }
-      : { titleKey: `${WELCOME}.tour.today.title`, textKey: `${WELCOME}.tour.today.text` }
+      : { titleKey: `${WELCOME}.tour.today.title`, textKey: `${WELCOME}.tour.today.text.${width}` }
     const one: IntroNoteCopy = {
       titleKey: `${WELCOME}.tour.one.title`,
       textKey: board.jetzt ? `${WELCOME}.tour.one.filled` : `${WELCOME}.tour.one.empty.${width}`,

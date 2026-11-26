@@ -233,13 +233,19 @@
       "underAll": {
         "title": "Your tasks are here",
         "today": "They're under All. Pick there what you take on today. “Today” in the navigation then shows only that.",
-        "all": "Everything on your plate is here. The arrow on a card plans it for today. When you're ready to start, switch to “Today” in the navigation.",
+        "all": {
+          "desktop": "Everything on your plate is here. Hover over a card: the arrow plans it for today. When you're ready to start, switch to “Today” in the navigation.",
+          "phone": "Everything on your plate is here. The arrow on a card plans it for today. When you're ready to start, switch to “Today” in the navigation."
+        },
         "action": "Pick tasks"
       },
       "tour": {
         "today": {
           "title": "This is your day",
-          "text": "Open holds what's on today. Everything else waits under All."
+          "text": {
+            "desktop": "Open holds what's on today. Everything else waits under All.",
+            "phone": "Swipe sideways to Open: it holds what's on today. Everything else waits under All."
+          }
         },
         "sample": {
           "title": "A sample day to try out",
@@ -268,7 +274,7 @@
     },
     "planNote": {
       "title": "Choose what's on today",
-      "description": "The arrow on a card plans it for today. When you're ready to start, switch to “Today” in the navigation.",
+      "description": "Hover over a card: the arrow plans it for today. When you're ready to start, switch to “Today” in the navigation.",
       "line": "Choose what's on today. When you're ready to start, switch to “Today” in the navigation.",
       "close": "Close",
       "phoneText": "When you're ready to start, switch to “Today” in the navigation."

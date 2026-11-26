@@ -235,7 +235,7 @@ describe('the welcome (#853): what it says per scenario and place', () => {
     const welcome = resolveIntroWelcome(board({ onToday: 2, underAll: 1, connected: true }))
     expect(welcome).toMatchObject({ scenario: 'today', shape: 'tour', toAll: false, says: ['start'] })
     expect(keys(welcome)).toEqual([
-      ['board.welcome.tour.today.title', 'board.welcome.tour.today.text'],
+      ['board.welcome.tour.today.title', 'board.welcome.tour.today.text.desktop'],
       ['board.welcome.tour.one.title', 'board.welcome.tour.one.empty.desktop'],
       ['board.welcome.tour.done.title', 'board.welcome.tour.done.text'],
     ])
@@ -260,7 +260,7 @@ describe('the welcome (#853): what it says per scenario and place', () => {
     for (const over of [{ underAll: 2 }, { onToday: 2 }, { onToday: 6, sample: true, jetzt: true }]) {
       const welcome = resolveIntroWelcome(board({ place: 'all', ...over }))
       expect(welcome).toMatchObject({ shape: 'note', toAll: false, says: [INTRO_PLAN_HINT] })
-      expect(keys(welcome)).toEqual([['board.welcome.underAll.title', 'board.welcome.underAll.all']])
+      expect(keys(welcome)).toEqual([['board.welcome.underAll.title', 'board.welcome.underAll.all.desktop']])
     }
   })
 
