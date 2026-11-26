@@ -27,8 +27,6 @@ export const SHEET_MOTION = {
   centredOutMs: 140,
   /** The scrim fading in; it fades out over `closeMs`. */
   scrimInMs: 160,
-  /** The sheet following its content at rest (#846): `--duration-slow`, the motion of "a block opens in place". */
-  growMs: MOTION.slowMs,
   /** Reduced motion: no grow and no fold, only this fade. */
   reducedMs: 1,
   easeOpen: MOTION.emphasized,
@@ -57,23 +55,17 @@ const clamp = (value: number, low: number, high: number): number => Math.max(low
 /** The sheet's width in a window of this width: 720 px, or the window minus the margins. */
 export const sheetWidth = (viewportWidth: number): number => Math.max(0, Math.min(SHEET_MAX_WIDTH, viewportWidth - 2 * SHEET_MARGIN));
 
-/**
- * A change of the content's height the shell guides (#846): more than this many pixels in one step is a jump (the note
- * editor opening, a saved long note, a new line in the note) and gets the growth transition; less is one frame of a block
- * that is already opening in place (`UCollapsible`) and is followed as it is.
- */
-export const SHEET_GROW_STEP = 8;
+/** The sheet's frame height as a share of its width (#870): 403 px at 720, close to the card's shape, whatever the task holds. */
+export const SHEET_FRAME_RATIO = 0.56;
 
 /**
- * Whether the sheet's height change from `from` to `to` gets the growth transition: a jump does, a frame of a motion that is
- * already running does not; while a growth transition runs every change joins it, so the sheet never snaps mid-way.
+ * The fixed frame of the desktop task sheet (#870, user, 2026-11-26; the frame of #705 came back after the content height of
+ * #846): its height follows the width and the window, never the content, so every task opens the same shape. A window too
+ * short for it gives the sheet `maxHeight`; the open tab scrolls inside.
  */
-export const isHeightJump = (from: number, to: number, growing = false): boolean => {
-  const delta = Math.abs(to - from);
-  return growing ? delta >= 1 : delta > SHEET_GROW_STEP;
-};
+export const sheetHeight = (width: number, maxHeight: number): number => Math.max(0, Math.min(Math.round(width * SHEET_FRAME_RATIO), maxHeight));
 
-/** The tallest the sheet may be in a window of this height with this top inset (default: the margin); above that its note scrolls. */
+/** The tallest the sheet may be in a window of this height with this top inset (default: the margin); above that its columns scroll. */
 export const sheetMaxHeight = (viewportHeight: number, top: number = SHEET_MARGIN): number => Math.max(0, viewportHeight - Math.max(SHEET_MARGIN, top) - SHEET_MARGIN);
 
 /** A card is a usable origin when it has a size and shows at least partly inside the window (a scrolled-out card does not). */
@@ -93,8 +85,9 @@ export const placeSheet = (origin: SheetBox | null, size: { w: number; h: number
   const centreY = origin ? origin.y + origin.h / 2 : viewport.height / 2;
   const top = topOf(viewport);
   return {
-    x: clamp(centreX - w / 2, SHEET_MARGIN, Math.max(SHEET_MARGIN, viewport.width - w - SHEET_MARGIN)),
-    y: clamp(centreY - h / 2, top, Math.max(top, viewport.height - h - SHEET_MARGIN)),
+    // Whole pixels: the frame's height is odd (403 px), and a sheet on a half pixel renders its text soft
+    x: Math.round(clamp(centreX - w / 2, SHEET_MARGIN, Math.max(SHEET_MARGIN, viewport.width - w - SHEET_MARGIN))),
+    y: Math.round(clamp(centreY - h / 2, top, Math.max(top, viewport.height - h - SHEET_MARGIN))),
     w,
     h,
   };

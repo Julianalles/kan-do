@@ -2,22 +2,20 @@
 @component TaskPropertyRow
 @kind primitive
 @category input
-@description One labelled property row of the task sheet: quiet label left, value right; `stacked` puts the label above the value for a narrow grid cell
+@description One labelled property row of the task sheet: quiet label left, value right
 @usage Detail (TaskDetailContent, TaskDetailCustomFields) and add (TaskForm) share this row, so each property is learned once
 @avoid Only labelled property rows of the task sheet; a section title is SectionHeader.
 @responsibility
 - Fixed label column (Label role, text-muted) so values line up across rows
 - Value slot receives `labelId`, so the value control can be named by its label
 - One field height (`--field-h`: 36 px, 44 px on a phone) for the label and the value column; no icon, divider or box (space separates groups)
-- `stacked` (#846, the task detail's grid on a phone, two cells per row): the label sits above the value on a 24 px line of its own and takes the cell's width; the value keeps the field height, so every control keeps its 44 px target. The add form never stacks
 - `private` marks the value (not the label) `data-private`: hidden during a feedback screenshot (#247)
 -->
 <template>
-  <div class="flex" :class="stacked ? 'flex-col items-stretch' : 'items-start gap-3'" data-testid="task-property-row" :data-stacked="stacked ? '' : undefined">
+  <div class="flex items-start gap-3" data-testid="task-property-row">
     <span
       :id="labelId"
-      class="flex shrink-0 items-center text-xs font-medium text-muted"
-      :class="stacked ? 'min-h-6' : 'min-h-(--field-h) w-22'"
+      class="flex min-h-(--field-h) w-22 shrink-0 items-center text-xs font-medium text-muted"
     >
       {{ label }}
     </span>
@@ -37,8 +35,6 @@ const props = defineProps<{
   label: string;
   /** The value is task content (topic, activity, custom property): masked in a feedback screenshot */
   private?: boolean;
-  /** Label above the value: a cell of the task detail's two-column grid on a phone (#846) */
-  stacked?: boolean;
 }>();
 
 const isPrivate = computed(() => props.private === true);

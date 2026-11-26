@@ -44,11 +44,11 @@
 }
 
 /* ========================================
- * TASK DETAIL GRID (#846)
- * The property cells of the task detail: two columns, the standard properties and the board's extra ones on the
- * same tracks (TaskDetailContent, TaskDetailCustomFields). Sheet: label left of the value, 32 px between the columns.
- * Drawer (`--stacked`, the sheet's frozen variant and not the live width, #199): label above the value, 12 px between
- * the columns. `__wide` spans both (the inline topic editor).
+ * TASK DETAIL GRID (#846, #870)
+ * The property cells of the task detail, label left of the value: the standard properties (tab Details) and the board's
+ * extra ones (tab Eigenschaften) on the same tracks (TaskDetailContent, TaskDetailCustomFields). Sheet: two columns,
+ * 32 px between them. Drawer (`--single`, the sheet's frozen variant and not the live width, #199): one column.
+ * `__wide` spans both columns (the inline topic editor).
  * ======================================== */
 .task-detail-grid {
   display: grid;
@@ -58,9 +58,8 @@
   align-items: start;
 }
 
-.task-detail-grid--stacked {
-  column-gap: 0.75rem;
-  row-gap: 0.5rem;
+.task-detail-grid--single {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .task-detail-grid__wide {

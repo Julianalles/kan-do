@@ -35,6 +35,10 @@
     "count": 1,
     "reason": "keep: placement"
   },
+  "components/task/TaskDetailContent.vue": {
+    "count": 1,
+    "reason": "keep: placement (the tab list's inset and the open tab's body: padding, the rest of the frame, its scroll)"
+  },
   "components/task/TaskPropertySelect.vue": {
     "count": 1,
     "reason": "keep: placement"

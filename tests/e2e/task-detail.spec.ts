@@ -168,7 +168,14 @@ async function openSheet(page: Page, baseURL: string | undefined, id: string) {
   await settleAnimations(page); // the sheet slides in: a position read before it stops moving is off by a few px
 }
 
-/** The board's extra properties (#846): cells of the sheet's grid under the label "Eigenschaften", edited in place. */
+/** Opens a tab of the sheet (#870): "Details" is the one a sheet opens on, the note and the extra properties are one click away. */
+async function openTab(page: Page, name: 'Details' | 'Notiz' | 'Eigenschaften') {
+  const tab = page.getByRole('tab', { name: new RegExp(`^${name}`) });
+  await tab.click();
+  await expect(tab).toHaveAttribute('aria-selected', 'true');
+}
+
+/** The board's extra properties (#846, #870): the cells of the tab "Eigenschaften", edited in place. */
 const customProperties = (page: Page): Locator => page.getByTestId('task-custom-properties');
 
 test.describe('Task Detail View', () => {
@@ -263,6 +270,7 @@ test.describe('Task Detail View', () => {
   test.describe('custom property rows stay while being edited', () => {
     test('clearing a text value keeps its row (no unmount under the user)', async ({ page, baseURL }) => {
       await openSheet(page, baseURL, 'test-task-6');
+      await openTab(page, 'Eigenschaften');
 
       const row = page.getByTestId('task-property-row').filter({ hasText: 'Kommentar' });
       await row.getByRole('button', { name: /^Kommentar: / }).click();
@@ -277,6 +285,7 @@ test.describe('Task Detail View', () => {
 
     test('deselecting the last multi-select option keeps the row and the open picker', async ({ page, baseURL }) => {
       await openSheet(page, baseURL, 'test-task-6');
+      await openTab(page, 'Eigenschaften');
 
       const row = page.getByTestId('task-property-row').filter({ hasText: 'Tags' });
       const trigger = row.getByRole('button', { name: /^Tags: / });
@@ -290,6 +299,7 @@ test.describe('Task Detail View', () => {
 
     test('unchecking a checkbox keeps its row', async ({ page, baseURL }) => {
       await openSheet(page, baseURL, 'test-task-6');
+      await openTab(page, 'Eigenschaften');
 
       const row = page.getByTestId('task-property-row').filter({ hasText: 'Freigegeben' });
       const checkbox = row.getByRole('checkbox', { name: 'Freigegeben' });
@@ -302,6 +312,7 @@ test.describe('Task Detail View', () => {
     test('the whole 44px row is the checkbox target at 390px', async ({ page, baseURL }) => {
       await page.setViewportSize({ width: 390, height: 844 });
       await openSheet(page, baseURL, 'test-task-6');
+      await openTab(page, 'Eigenschaften');
       await page.waitForTimeout(500);
 
       const row = page.getByTestId('task-property-row').filter({ hasText: 'Freigegeben' });
@@ -370,18 +381,15 @@ test.describe('Task Detail View', () => {
     await expect.soft(page.getByTestId('task-status-select').locator('[data-slot="trailingIcon"]'), 'a list value shows its chevron at rest').toBeVisible();
 
     // navigates to task detail page via direct URL: key elements of TaskDetailContent
-    const hasNotes = await page.getByRole('heading', { name: 'Notiz' }).isVisible().catch(() => false);
-    const hasTime = await page.getByRole('heading', { name: 'Zeiterfassung' }).isVisible().catch(() => false);
-    expect.soft(hasNotes || hasTime, 'navigates to task detail page via direct URL').toBe(true);
+    await expect.soft(page.getByRole('tab').first(), 'navigates to task detail page via direct URL: opens on Details').toHaveAttribute('aria-selected', 'true');
+    await expect.soft(page.getByRole('tab'), 'the tabs: Details and Notiz with its mark, no Eigenschaften on a board without them').toHaveText([/^Details$/, /^Notiz/]);
+    await expect.soft(page.getByTestId('task-notes-mark'), 'a task with a note marks its tab').toBeVisible();
 
     // Task 1 has status 1 (Progress) = "Jetzt"
     await expect.soft(page.getByText('Jetzt').first(), 'shows status badge with correct German label').toBeVisible();
     // priority 3 = "Hoch"
     await expect.soft(page.getByText('Hoch').first(), 'shows priority information').toBeVisible();
 
-    // shows notes section with content
-    await expect.soft(page.getByRole('heading', { name: 'Notiz' }), 'shows notes section with content: heading').toBeVisible();
-    await expect.soft(page.getByText('Dies sind Testnotizen'), 'shows notes section with content: text').toBeVisible();
 
     // Task 1 is planned (isUnplanned: false)
     // In the sheet: the board page also holds the headline "Alle Aufgaben" of the place "Alle" (#354), not shown on Heute
@@ -394,6 +402,13 @@ test.describe('Task Detail View', () => {
     // #705: the task actions sit behind one menu in the title row (it reverses #244's bottom row); the footer line holds the facts only
     await expect.soft(page.getByTestId('task-detail-header').getByTestId('task-menu'), 'the menu is in the title row').toBeVisible();
     await expect.soft(page.getByTestId('task-metadata').getByRole('button'), 'no control in the footer line').toHaveCount(0);
+
+    // Last on purpose (it switches the tab): the note is the body of its tab, without a heading of its own; the footer line stays
+    await openTab(page, 'Notiz');
+    await expect.soft(page.getByRole('tabpanel', { name: /^Notiz/ }).getByText('Dies sind Testnotizen'), 'shows the note in its tab').toBeVisible();
+    await expect.soft(page.getByRole('dialog').getByRole('heading', { name: 'Notiz' }), 'the tab names the note: no heading').toHaveCount(0);
+    await expect.soft(list, 'the properties left with their tab').toHaveCount(0);
+    await expect.soft(page.getByTestId('task-metadata'), 'the footer line is on every tab').toBeVisible();
   });
 
   // #114: a value shows at rest what it is (no hover): a list value is a soft select with a chevron, a free value an editable label with a dotted rule
@@ -485,13 +500,17 @@ test.describe('Task Detail View', () => {
   });
 
   test('task sheet of an unplanned task without notes, timebox or time: empty notes, unplanned, no time block, the timebox row is the one way in', async ({ page, baseURL }) => {
-    await page.goto(`${baseURL}/tasks/test-task-2`);
+    await openSheet(page, baseURL, 'test-task-2');
+    // no note: the tab carries no mark, and its body is the placeholder
+    await expect.soft(page.getByTestId('task-notes-mark'), 'no note, no mark on the tab').toHaveCount(0);
+    await openTab(page, 'Notiz');
     const notesTrigger = page.getByRole('button', { name: /^Notiz: / });
     await expect(notesTrigger).toBeVisible();
 
     // shows empty notes state: plain muted placeholder trigger, no tinted box
     await expect.soft(notesTrigger, 'shows empty notes state: name').toHaveAccessibleName(/^Notiz: Notiz hinzufügen/);
     await expect.soft(notesTrigger, 'shows empty notes state: text').toContainText('Notiz hinzufügen');
+    await openTab(page, 'Details');
     // Task 2 is unplanned (isUnplanned: true)
     await expect.soft(page.getByText('Ungeplant').first(), 'shows unplanned status for ad-hoc task').toBeVisible();
 
@@ -683,7 +702,8 @@ test.describe('Task Detail View', () => {
 
   test('date custom field shows the formatted date, and a click on it opens the calendar', async ({ page, baseURL }) => {
     // task-5 has a date custom field with start: '2026-04-15'
-    await page.goto(`${baseURL}/tasks/test-task-5`);
+    await openSheet(page, baseURL, 'test-task-5');
+    await openTab(page, 'Eigenschaften');
     await expect(customProperties(page)).toBeVisible();
 
     const trigger = page.getByTestId('date-picker-trigger').first();
@@ -708,6 +728,7 @@ test.describe('Task Detail View', () => {
 
   test('Escape with the date picker open closes the picker only, not the sheet', async ({ page, baseURL }) => {
     await openSheet(page, baseURL, 'test-task-5');
+    await openTab(page, 'Eigenschaften');
 
     await page.getByTestId('date-picker-trigger').first().click();
     const calendar = page.getByTestId('date-picker-calendar');
@@ -722,6 +743,7 @@ test.describe('Task Detail View', () => {
 
   test('date picker Heute sets todays date', async ({ page, baseURL }) => {
     await openSheet(page, baseURL, 'test-task-5');
+    await openTab(page, 'Eigenschaften');
 
     const trigger = page.getByTestId('date-picker-trigger').first();
     await trigger.click();
@@ -739,6 +761,7 @@ test.describe('Task Detail View', () => {
 
   test('date picker Löschen clears the date value', async ({ page, baseURL }) => {
     await openSheet(page, baseURL, 'test-task-5');
+    await openTab(page, 'Eigenschaften');
 
     const trigger = page.getByTestId('date-picker-trigger').first();
     await trigger.click();
@@ -796,6 +819,7 @@ test.describe('Task Detail View', () => {
 
     test('Tab order reaches the notes trigger', async ({ page, baseURL }) => {
       await openSheet(page, baseURL, 'test-task-1');
+      await openTab(page, 'Notiz');
 
       const notes = page.getByRole('button', { name: /^Notiz: / });
       await notes.focus();
@@ -850,6 +874,7 @@ test.describe('Task Detail View', () => {
 
     test('saved notes show rendered Markdown, editing shows the markup', async ({ page, baseURL }) => {
       await openSheet(page, baseURL, 'test-task-2');
+      await openTab(page, 'Notiz');
 
       await page.getByRole('button', { name: /^Notiz: / }).click();
       await page.keyboard.type('# Plan\n\n- **fett** eins\n- zwei\n\n<script>window.__xss = 1</script>\n\n[Link](https://example.com)');
@@ -873,6 +898,7 @@ test.describe('Task Detail View', () => {
 
     test('a click on a link in the notes follows the link and does not start editing', async ({ page, context, baseURL }) => {
       await openSheet(page, baseURL, 'test-task-2');
+      await openTab(page, 'Notiz');
       await page.getByRole('button', { name: /^Notiz: / }).click();
       await page.keyboard.type('[Link](https://example.com/)');
       await page.keyboard.press('Control+Enter');
@@ -887,6 +913,7 @@ test.describe('Task Detail View', () => {
 
     test('notes links are real links outside the edit trigger (#208)', async ({ page, baseURL }) => {
       await openSheet(page, baseURL, 'test-task-2');
+      await openTab(page, 'Notiz');
       await page.getByRole('button', { name: /^Notiz: / }).click();
       await page.keyboard.type('Text davor [Link](https://example.com/) danach');
       await page.keyboard.press('Control+Enter');
@@ -925,6 +952,7 @@ test.describe('Task Detail View', () => {
         Object.defineProperty(Navigator.prototype, 'platform', { get: () => 'Win32' });
       });
       await openSheet(page, baseURL, 'test-task-2');
+      await openTab(page, 'Notiz');
 
       await page.getByRole('button', { name: /^Notiz: / }).click();
       await expect(page.getByTestId('task-notes-hint')).toHaveText('Markdown unterstützt • Strg + Enter zum Speichern');
@@ -939,6 +967,7 @@ test.describe('Task Detail View', () => {
         Object.defineProperty(Navigator.prototype, 'platform', { get: () => 'MacIntel' });
       });
       await openSheet(page, baseURL, 'test-task-2');
+      await openTab(page, 'Notiz');
 
       await page.getByRole('button', { name: /^Notiz: / }).click();
       await expect(page.getByTestId('task-notes-hint')).toHaveText('Markdown unterstützt • Cmd + Enter zum Speichern');
@@ -947,65 +976,89 @@ test.describe('Task Detail View', () => {
       await expect(page.getByTestId('task-notes-rendered')).toContainText('mit Cmd gespeichert');
     });
 
-    // #846: title across the top, the grid, the note full width below it, the footer line last
-    test('desktop: the title spans the top, the note sits full width under the grid, the footer line is the last line', async ({ page, baseURL }) => {
+    // #870: title across the top, the tabs, the open tab's body, the footer line last; the frame is the same on every tab
+    test('desktop: the title spans the top, the tabs follow, the open tab has the body and the footer line is the last line on every tab', async ({ page, baseURL }) => {
       await openSheet(page, baseURL, 'test-task-1');
       await settleAnimations(page);
 
       const dialog = page.getByRole('dialog');
       await expect(dialog.getByTestId('task-detail-scroll')).toHaveCount(0);
       const header = (await page.getByTestId('task-detail-header').boundingBox())!;
+      const tabs = (await page.getByRole('tablist').boundingBox())!;
       const props = (await page.getByTestId('task-property-list').boundingBox())!;
-      const notes = (await page.getByTestId('task-notes').boundingBox())!;
       const meta = (await page.getByTestId('task-metadata').boundingBox())!;
       const menu = (await taskMenu(page).boundingBox())!;
       const dialogBox = (await dialog.boundingBox())!;
 
-      expect(props.y).toBeGreaterThanOrEqual(header.y + header.height - 1);
-      // The note is below the grid and as wide as it
-      expect(notes.y).toBeGreaterThanOrEqual(props.y + props.height - 1);
-      expect(Math.abs(notes.x - props.x)).toBeLessThanOrEqual(1);
-      expect(Math.abs(notes.width - props.width)).toBeLessThanOrEqual(1);
+      expect(tabs.y).toBeGreaterThanOrEqual(header.y + header.height - 1);
+      expect(props.y).toBeGreaterThanOrEqual(tabs.y + tabs.height - 1);
       // The footer line is last, close to the sheet's bottom edge
-      expect(meta.y).toBeGreaterThanOrEqual(notes.y + notes.height - 1);
+      expect(meta.y).toBeGreaterThanOrEqual(props.y + props.height - 1);
       expect(dialogBox.y + dialogBox.height - (meta.y + meta.height)).toBeLessThan(40);
       expect(menu.y).toBeLessThan(header.y + header.height);
-      // Nothing scrolls while the content fits the window
-      expect(await dialog.evaluate((el) => [el, ...el.querySelectorAll('*')].filter((node) => node.scrollHeight > node.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(node).overflowY)).length)).toBe(0);
+      // Nothing scrolls while the tab's content fits its body
+      const scrollAreas = () => dialog.evaluate((el) => [el, ...el.querySelectorAll('*')].filter((node) => node.scrollHeight > node.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(node).overflowY)).length);
+      expect(await scrollAreas()).toBe(0);
+
+      // The note has the body of its tab, as wide as the grid was; frame, tabs and footer line do not move
+      await openTab(page, 'Notiz');
+      const notes = (await page.getByTestId('task-notes').boundingBox())!;
+      expect(Math.abs(notes.x - props.x)).toBeLessThanOrEqual(1);
+      expect(Math.abs(notes.width - props.width)).toBeLessThanOrEqual(1);
+      expect(notes.y).toBeGreaterThanOrEqual(tabs.y + tabs.height - 1);
+      expect(await dialog.boundingBox()).toEqual(dialogBox);
+      expect(await page.getByRole('tablist').boundingBox()).toEqual(tabs);
+      expect(await page.getByTestId('task-metadata').boundingBox()).toEqual(meta);
+      expect(await scrollAreas()).toBe(0);
     });
 
-    test('mobile: the notes follow the properties, the metadata comes last in the flow', async ({ page, baseURL }) => {
+    test('mobile: the drawer has the same tabs; one column of rows with the label beside the value, the footer line last, and a shorter tab keeps the drawer\'s height', async ({ page, baseURL }) => {
       await page.setViewportSize({ width: 390, height: 844 });
       await openSheet(page, baseURL, 'test-task-1');
 
       const scroll = page.getByTestId('task-detail-scroll');
-      await expect(scroll.getByTestId('task-notes')).toBeVisible();
       await expect(scroll.getByTestId('task-metadata')).toBeVisible();
+      const rows = await page.getByTestId('task-property-list').getByTestId('task-property-row').evaluateAll((els) => els.map((el) => Math.round(el.getBoundingClientRect().left)));
+      expect(new Set(rows).size, 'one column').toBe(1);
+      const row = page.getByTestId('task-property-list').getByTestId('task-property-row').first();
+      const label = (await row.locator('> span').first().boundingBox())!;
+      const value = (await page.getByTestId('task-status-select').boundingBox())!;
+      expect(value.x).toBeGreaterThan(label.x + label.width - 1);
+      for (const tab of await page.getByRole('tab').all()) expect((await tab.boundingBox())!.height, 'a tab is a 44 px target').toBeGreaterThanOrEqual(44);
       const props = (await page.getByTestId('task-property-list').boundingBox())!;
+      expect((await page.getByTestId('task-metadata').boundingBox())!.y).toBeGreaterThan(props.y + props.height);
+      // A task outside Jetzt (no hint line under the switch): Details is the body's minimum
+      await openSheet(page, baseURL, 'test-task-2');
+      const drawerOnDetails = (await page.getByRole('dialog').boundingBox())!;
+
+      // The note's tab is shorter than Details: the body keeps its minimum, the footer line does not move up past it
+      await openTab(page, 'Notiz');
+      await expect(scroll.getByTestId('task-notes')).toBeVisible();
       const notes = (await page.getByTestId('task-notes').boundingBox())!;
       const meta = (await page.getByTestId('task-metadata').boundingBox())!;
-      expect(notes.y).toBeGreaterThan(props.y + props.height);
       expect(meta.y).toBeGreaterThan(notes.y + notes.height);
+      // The drawer is anchored at the bottom: its top edge and height tell whether it got lower
+      const drawerOnNotes = (await page.getByRole('dialog').boundingBox())!;
+      expect(Math.abs(drawerOnNotes.y - drawerOnDetails.y)).toBeLessThanOrEqual(1);
+      expect(Math.abs(drawerOnNotes.height - drawerOnDetails.height)).toBeLessThanOrEqual(1);
     });
 
     // #199: the sheet freezes its variant while open, the content layout must follow it
-    test('shrinking below 768px while the sheet is open keeps the sheet\'s layout: the label beside the value, two cells per row', async ({ page, baseURL }) => {
+    test('shrinking below 768px while the sheet is open keeps the sheet\'s layout: the frame, two cells per row', async ({ page, baseURL }) => {
       await openSheet(page, baseURL, 'test-task-1');
       await settleAnimations(page);
 
       await page.setViewportSize({ width: 600, height: 800 });
       await expect(page.getByRole('dialog').getByTestId('task-detail-scroll')).toHaveCount(0);
       await expect.poll(async () => (await page.getByRole('dialog').boundingBox())!.width).toBeCloseTo(568, 0);
-      const row = page.getByTestId('task-property-list').getByTestId('task-property-row').first();
-      await expect(row).not.toHaveAttribute('data-stacked', '');
-      const label = (await row.locator('> span').first().boundingBox())!;
-      const value = (await page.getByTestId('task-status-select').boundingBox())!;
-      expect(value.x).toBeGreaterThan(label.x + label.width - 1);
+      const lefts = await page.getByTestId('task-property-list').getByTestId('task-property-row').evaluateAll((els) => els.slice(0, 2).map((el) => Math.round(el.getBoundingClientRect().left)));
+      expect(lefts[1]).toBeGreaterThan(lefts[0]! + 100);
       await expect(page.getByTestId('task-metadata')).toBeVisible();
     });
 
     test('a link in the notes is reachable with Tab and Enter follows it without editing (#199)', async ({ page, context, baseURL }) => {
       await openSheet(page, baseURL, 'test-task-2');
+      await openTab(page, 'Notiz');
       await page.getByRole('button', { name: /^Notiz: / }).click();
       await page.keyboard.type('[Link](https://example.com/) und <tag> bleibt');
       await page.keyboard.press('Control+Enter');
@@ -1111,7 +1164,7 @@ test.describe('task sheet close button (kd#201)', () => {
       await expect(card).toBeFocused()
     })
 
-    test('the title runs clear of the close button and a window too short for the rows scrolls the whole sheet body, never the rows alone (#846)', async ({ page }) => {
+    test('the title runs clear of the close button and in a window too short for the frame the open tab scrolls, never the sheet (#870)', async ({ page }) => {
       await page.setViewportSize({ width: 1280, height: 340 })
       await page.goto('/tasks/seed-open-1')
       const dialog = page.getByRole('dialog')
@@ -1122,14 +1175,12 @@ test.describe('task sheet close button (kd#201)', () => {
       const menuBox = (await taskMenu(page).boundingBox())!
       expect(title.x + title.width).toBeLessThanOrEqual(menuBox.x)
       expect(menuBox.x + menuBox.width).toBeLessThanOrEqual(closeBox.x)
-      // The sheet is the window minus 16 px to every edge at most; the body scrolls as one page and no row is cut off
+      // The sheet is the window minus 16 px to every edge at most; the open tab's body scrolls, the footer line stays in the frame
       const box = (await dialog.boundingBox())!
       expect(box.height).toBeLessThanOrEqual(340 - 32 + 1)
-      const body = dialog.getByTestId('task-detail-sheet')
+      const body = dialog.getByRole('tabpanel')
       expect(await body.evaluate((el) => el.scrollHeight > el.clientHeight)).toBe(true)
-      const list = dialog.getByTestId('task-property-list')
-      expect(await list.evaluate((el) => getComputedStyle(el).overflowY)).toBe('visible')
-      await body.evaluate((el) => { el.scrollTop = el.scrollHeight })
+      expect(await dialog.getByTestId('task-detail-sheet').evaluate((el) => getComputedStyle(el).overflowY)).toBe('visible')
       const footer = (await dialog.getByTestId('task-metadata').boundingBox())!
       expect(footer.y + footer.height).toBeLessThanOrEqual(box.y + box.height)
     })
@@ -1163,8 +1214,8 @@ test.describe('task sheet close button (kd#201)', () => {
   })
 })
 
-// #846: the sheet is as tall as its content; the board's extra properties are cells of the same grid (reverses the fixed frame and the strip of #705)
-test.describe('task sheet height and extra properties (#846)', () => {
+// #870: one fixed frame for every task; the board's extra properties are a tab of their own (reverses the content height of #846)
+test.describe('task sheet frame and extra properties (#870)', () => {
   test.use({ viewport: { width: 1280, height: 900 } })
 
   const customs = (count: number, filled: boolean) => Object.fromEntries(Array.from({ length: count }, (_, i) => {
@@ -1191,38 +1242,46 @@ test.describe('task sheet height and extra properties (#846)', () => {
   /** Elements inside the sheet that scroll right now */
   const scrolling = (page: Page) => page.getByRole('dialog').evaluate((el) => [...el.querySelectorAll<HTMLElement>('*')]
     .filter((node) => node.scrollHeight > node.clientHeight + 1 && /auto|scroll/.test(getComputedStyle(node).overflowY))
-    .map((node) => node.dataset.testid ?? node.tagName))
+    .map((node) => node.dataset.testid ?? (node.getAttribute('role') === 'tabpanel' ? 'tab-panel' : node.tagName)))
 
-  test('the height follows the content: no extras opens lower than four, four lower than eleven; nothing scrolls while it fits', async ({ page }) => {
-    const heights: number[] = []
-    for (const id of ['frame-none', 'frame-four', 'frame-eleven']) {
+  test('one frame for every task and every tab: 720 x 403, whatever the task holds; nothing scrolls while a tab fits', async ({ page }) => {
+    for (const id of ['frame-none', 'frame-four', 'frame-eleven', 'frame-long']) {
       await openSheet(page, '', id)
       const box = await sheetBox(page)
-      expect(Math.round(box.width)).toBe(720)
-      heights.push(Math.round(box.height))
-      expect(await scrolling(page), `${id}: no scroll area`).toEqual([])
-      // every part is inside the sheet: the last line is the footer
-      const footer = (await page.getByTestId('task-metadata').boundingBox())!
-      expect(footer.y + footer.height).toBeLessThanOrEqual(box.y + box.height)
+      expect(Math.round(box.width), `${id}: width`).toBe(720)
+      expect(Math.round(box.height), `${id}: height`).toBe(403)
+      expect(await scrolling(page), `${id}: Details fits`).toEqual([])
+      for (const tab of await page.getByRole('tab').all()) {
+        await tab.click()
+        expect(await sheetBox(page), `${id}: the frame does not move with a tab`).toEqual(box)
+        // every part is inside the sheet: the last line is the footer
+        const footer = (await page.getByTestId('task-metadata').boundingBox())!
+        expect(footer.y + footer.height).toBeLessThanOrEqual(box.y + box.height)
+      }
     }
-    expect(heights[0]).toBeLessThan(heights[1]! - 40)
-    expect(heights[1]).toBeLessThan(heights[2]! - 100)
   })
 
-  test('extra properties are cells of the same grid under their label, set and empty ones alike; no strip, button or popover', async ({ page }) => {
+  test('extra properties are the cells of their own tab with a count, set and empty ones alike; no strip, button or popover', async ({ page }) => {
     await openSheet(page, '', 'frame-eleven')
-    const section = page.getByTestId('task-custom-properties')
-    await expect(section.getByRole('heading', { name: 'Eigenschaften' })).toBeVisible()
-    await expect(section.getByTestId('task-property-row')).toHaveCount(11)
-    await expect(page.getByText(/weitere/)).toHaveCount(0)
-    for (const gone of ['task-property-strip', 'task-properties-button', 'task-properties-popover']) await expect(page.getByTestId(gone)).toHaveCount(0)
+    const tab = page.getByRole('tab', { name: /^Eigenschaften/ })
+    await expect(tab).toHaveText(/Eigenschaften\s*11/)
+    await expect(page.getByTestId('task-custom-properties')).toHaveCount(0)
     // the same two tracks as the standard properties
     const standard = await page.getByTestId('task-property-list').getByTestId('task-property-row').evaluateAll((els) => els.slice(0, 2).map((el) => Math.round(el.getBoundingClientRect().left)))
+    await tab.click()
+    const section = page.getByTestId('task-custom-properties')
+    await expect(section.getByTestId('task-property-row')).toHaveCount(11)
+    await expect(page.getByRole('dialog').getByRole('heading', { name: 'Eigenschaften' })).toHaveCount(0)
+    await expect(page.getByText(/weitere/)).toHaveCount(0)
+    for (const gone of ['task-property-strip', 'task-properties-button', 'task-properties-popover']) await expect(page.getByTestId(gone)).toHaveCount(0)
     const extra = await section.getByTestId('task-property-row').evaluateAll((els) => els.slice(0, 2).map((el) => Math.round(el.getBoundingClientRect().left)))
     expect(extra).toEqual(standard)
+    // eleven do not fit the body: the tab scrolls inside, the frame stays
+    expect(await scrolling(page)).toEqual(['tab-panel'])
 
     // an empty one keeps its cell and is edited in place
     await openSheet(page, '', 'frame-empty')
+    await page.getByRole('tab', { name: /^Eigenschaften/ }).click()
     await expect(page.getByTestId('task-custom-properties').getByTestId('task-property-row')).toHaveCount(2)
     await page.getByRole('button', { name: 'Eigenschaft 1: + hinzufügen' }).click()
     await page.getByRole('textbox', { name: 'Eigenschaft 1' }).fill('Neuer Wert')
@@ -1230,34 +1289,38 @@ test.describe('task sheet height and extra properties (#846)', () => {
     await expect(page.getByRole('button', { name: 'Eigenschaft 1: Neuer Wert' })).toBeVisible()
   })
 
-  test('a task without extra properties shows no label and no empty rows', async ({ page }) => {
+  test('a task without extra properties has two tabs, Details and Notiz', async ({ page }) => {
     await openSheet(page, '', 'frame-none')
+    await expect(page.getByRole('tab')).toHaveText([/^Details$/, /^Notiz$/])
     await expect(page.getByTestId('task-custom-properties')).toHaveCount(0)
-    await expect(page.getByRole('dialog').getByRole('heading', { name: 'Eigenschaften' })).toHaveCount(0)
   })
 
-  test('a long note: the sheet stops at the window\'s limit and only the note scrolls', async ({ page }) => {
+  test('a long note scrolls inside its tab: the frame, the tabs and the footer line stay', async ({ page }) => {
     await openSheet(page, '', 'frame-long')
     const box = await sheetBox(page)
-    // 900 high window, the app bar above and 16 px below
-    expect(box.y + box.height).toBeLessThanOrEqual(900 - 16 + 1)
-    expect(box.height).toBeGreaterThan(700)
-    expect(await scrolling(page)).toEqual(['task-notes-column'])
-    const list = (await page.getByTestId('task-property-list').boundingBox())!
-    expect(list.y).toBeGreaterThan(box.y)
+    await page.getByRole('tab', { name: /^Notiz/ }).click()
+    expect(await sheetBox(page)).toEqual(box)
+    expect(await scrolling(page)).toEqual(['tab-panel'])
+    const tabs = (await page.getByRole('tablist').boundingBox())!
+    await page.getByRole('tabpanel').evaluate((el) => { el.scrollTop = el.scrollHeight })
+    expect(await page.getByRole('tablist').boundingBox()).toEqual(tabs)
     const footer = (await page.getByTestId('task-metadata').boundingBox())!
     expect(footer.y + footer.height).toBeLessThanOrEqual(box.y + box.height)
   })
 
-  test('writing a note grows the sheet with a guided height change, not a jump', async ({ page }) => {
+  test('writing a note never changes the frame, and the mark on the tab follows the saved note', async ({ page }) => {
     await openSheet(page, '', 'frame-none')
-    const before = (await sheetBox(page)).height
+    const before = await sheetBox(page)
+    await expect(page.getByTestId('task-notes-mark')).toHaveCount(0)
+    await page.getByRole('tab', { name: /^Notiz/ }).click()
     await page.getByRole('button', { name: /^Notiz: / }).click()
-    await page.getByTestId('task-notes-input').fill(Array.from({ length: 12 }, (_, i) => `Zeile ${i + 1}`).join('\n'))
-    // the growth is a running height animation of the panel
-    await expect.poll(() => page.getByRole('dialog').evaluate((el) => el.getAnimations().some((animation) => (animation.effect as KeyframeEffect).getKeyframes().some((frame) => 'height' in frame)))).toBe(true)
-    await settleAnimations(page)
-    await expect.poll(async () => (await sheetBox(page)).height).toBeGreaterThan(before + 100)
+    await page.getByTestId('task-notes-input').fill(Array.from({ length: 30 }, (_, i) => `Zeile ${i + 1}`).join('\n'))
+    expect(await sheetBox(page)).toEqual(before)
+    expect(await page.getByRole('dialog').evaluate((el) => el.getAnimations().length)).toBe(0)
+    await page.keyboard.press('Control+Enter')
+    await expect(page.getByTestId('task-notes-mark')).toBeVisible()
+    await expect(page.getByRole('tab', { name: 'Notiz vorhanden' })).toHaveAttribute('aria-selected', 'true')
+    expect(await sheetBox(page)).toEqual(before)
   })
 
   test('the task menu opens by keyboard and Escape returns focus to it', async ({ page }) => {

@@ -165,7 +165,8 @@ test.describe('card to sheet morph (desktop)', () => {
     await expect(page.getByTestId('task-not-found')).toBeVisible()
     const box = (await dialog.boundingBox())!
     expect(box.x + box.width / 2).toBeCloseTo(640, 0)
-    expect(box.y + box.height / 2).toBeCloseTo(400, 0)
+    // The frame's height is odd (403 px) and it stands on a whole pixel: the centre is within half a pixel
+    expect(Math.abs(box.y + box.height / 2 - 400)).toBeLessThanOrEqual(0.5)
     await page.keyboard.press('Escape')
     await expect(dialog).toHaveCount(0)
   })

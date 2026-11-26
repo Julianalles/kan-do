@@ -8,7 +8,7 @@
 @responsibility
 - Display task properties as labelled cells (the row is shared with the add form, #161), the note, and custom fields
 - Every property is a row in a stable position; unset Thema/Aktivität show the empty "Auswählen" state (#161)
-- One grid (#846, user: layout B and footer line; reverses the fixed frame, the strip and the two scrolling columns of #705): the title row first (title, task menu, close button, at the same place in every state), the label "Spontan" when the task is ad-hoc work, the planned-days line or the carried-over question under the title, the standard properties as a two-column grid (`.task-detail-grid`: Status, Heute / Thema, Aktivität / Priorität, Timebox / time spent; the DOM order is the shown order), the board's extra properties as further cells of the same grid under the label "Eigenschaften" (TaskDetailCustomFields; no label and no cells on a board without them), the note full width, the footer line (TaskDetailMetadata). Desktop sheet (`TaskMorphShell`): as tall as its content, capped by the window; from there the note alone scrolls, and only a window too short for the rows scrolls the whole body, so a row is never cut and never scrolls on its own. Drawer: one scrolling page, two cells per row with the label above the value (`TaskPropertyRow` `stacked`), the Heute switch without its text
+- One fixed frame with tabs (#870, user, 2026-11-26: layout C replaces the one grid as tall as its content of #846, because only a fixed frame gives a controlled height; the footer line of #846 stays): the title row first (title, task menu, close button, at the same place in every state), the label "Spontan" when the task is ad-hoc work, the planned-days line or the carried-over question under the title, then the tabs (`UTabs` link, "Switch a view in a page" inside the sheet) and the footer line (TaskDetailMetadata) under every tab. "Details": the standard properties as a two-column grid (`.task-detail-grid`: Status, Heute / Thema, Aktivität / Priorität, Timebox / time spent; the DOM order is the shown order). "Notiz": the note alone (TaskDetailNotes, no label of its own); its tab carries a small mark when the task has a note (a note is not counted), with "vorhanden" for assistive tech; a source that owns the text shows the tab only when there is a note. "Eigenschaften": the board's extra properties in the same grid (TaskDetailCustomFields), the tab shows their count; no tab on a board without them. The sheet opens on Details every time (the tab is local state, reset with the task); a tab that goes away while open hands over to Details. Desktop sheet (`TaskMorphShell`): the frame is fixed, the open tab's body takes what the title block, the tabs and the footer line leave and is the one scroll area. Drawer: one scrolling page, the grid in one column, and the body keeps a minimum height (`min-h-96`: the seven rows of Details with the body's padding) so a shorter tab does not lower the drawer. The inactive tabs are not mounted: an open editor ends by its blur when the tab is left, as it does for any click outside
 - Provide formatted display of all task metadata
 - Task menu (#705, TaskSheetMenu; reverses #244's bottom row): open in source, move to source, "Kam spontan dazu" (checked entry), "ID kopieren" and Delete behind one ⋯ button in the title row. Desktop: left of the shell's close button (`inset-e-14 top-4`); drawer: beside the title. It follows the title in the DOM, so the tab order is close, title, menu. The id is shown nowhere: `copyId` copies it and confirms with a toast, a failure reports through `useErrorHandler` (`copy_id`)
 - Render error state when task not found
@@ -21,7 +21,7 @@
   (`useTaskStatusActions.togglePlanned`, epic #374): on a Jetzt task it is on and fixed with the hint "Jetzt gehört immer zu heute."; a done task has "Erledigt am" in that cell
   (the marker plays no part there). Ad-hoc work (#796) is no row and no switch: the label under the title shows it, the task menu sets and clears it (#846)
 - Guard against drift (#161, kd#4): the always-visible standard cells are Status, Heute (#795, not on a done task), Thema, Aktivität, Priorität, Timebox,
-  time spent (visible label "Aufgewendet", the control keeps "Aufgewendete Zeit"); no per-row icons, no dividers, no hairline in the sheet. Seven cells leave the one beside the time spent empty (accepted, #846)
+  time spent (visible label "Aufgewendet", the control keeps "Aufgewendete Zeit"); no per-row icons, no dividers, and no hairline but the tabs' underline in the sheet. Seven cells leave the one beside the time spent empty (accepted, #846)
 - Done day (kd#131, agent-decided): a done task has "Erledigt am" in the cell of Heute, so no other cell moves
   when a task is completed (#846; a plain swap, nothing folds). It is the correction of a task marked done late, not part of completing: a DatePickerField
   without Löschen, limited to the days from the task's creation to today; picking a day goes through
@@ -40,8 +40,8 @@
 
   <div v-else-if="task" class="task-detail-content flex flex-col" :class="{ 'min-h-0 flex-1': twoColumn }">
 
-    <!-- One page (#846). Desktop sheet: as tall as its content; at the window's limit the note alone scrolls (the whole body only in a window too short for the rows). Drawer: plain flow, scrolled by the drawer -->
-    <div :class="twoColumn ? 'flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain' : 'flex flex-col'" :data-testid="twoColumn ? 'task-detail-sheet' : 'task-detail-scroll'">
+    <!-- One fixed frame with tabs (#870). Desktop sheet: title block, tabs and footer keep their height, the open tab's body takes the rest and is the one scroll area. Drawer: plain flow, scrolled by the drawer -->
+    <div :class="twoColumn ? 'flex min-h-0 flex-1 flex-col' : 'flex flex-col'" :data-testid="twoColumn ? 'task-detail-sheet' : 'task-detail-scroll'">
 
     <!-- Title row: always first, so the title, the task menu and the close button are at the same place in every state (#846). On desktop the title runs clear of the close button (kd#201: `top-4 end-4`, 32 px) and the task menu left of it (#705: `inset-e-14 top-4`, 32 px) -->
     <div class="shrink-0 pb-2" :class="twoColumn ? 'ps-6 pe-24 pt-5' : 'px-6 pt-2'" data-testid="task-detail-header">
@@ -114,12 +114,33 @@
       </template>
     </UCollapsible>
 
-    <!-- Groups are separated by space only: the property grid, the board's extra properties, the note -->
-    <div :class="twoColumn ? 'flex min-h-0 flex-1 flex-col gap-5 px-6 pb-2' : 'flex flex-col gap-6 px-6 pb-6'">
+    <!-- The parts of the task as tabs (#870, "Switch a view in a page"): Details, Notiz, and Eigenschaften on a board with extra properties. The open tab has the whole body; on the sheet it scrolls inside, in the drawer it keeps a minimum height so a shorter tab does not lower the drawer -->
+    <UTabs
+      ref="tabsRoot"
+      v-model="tab"
+      :items="tabs"
+      variant="link"
+      class="gap-0"
+      :class="{ 'min-h-0 flex-1': twoColumn }"
+      :ui="{
+        list: 'mx-6 w-auto shrink-0 self-stretch px-0',
+        content: twoColumn ? 'min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 pt-4 pb-2' : 'min-h-96 px-6 pt-4 pb-6',
+      }"
+      data-testid="task-detail-tabs"
+    >
+      <template #trailing="{ item }">
+        <!-- A note is not counted: a mark says there is one (#870) -->
+        <span v-if="item.value === 'notes' && task.notes" class="flex items-center" data-testid="task-notes-mark">
+          <span class="size-1.5 rounded-full bg-primary" aria-hidden="true" />
+          <span class="sr-only">{{ t('task.detail.tabNotesFilled') }}</span>
+        </span>
+        <UBadge v-else-if="item.value === 'props'" color="neutral" variant="outline" :label="customList.length" />
+      </template>
 
-      <!-- 1. Standard properties (#161, #846): a two-column grid in the shown order, Status, Heute / Thema, Aktivität / Priorität, Timebox / time spent. The DOM order is the tab order -->
-      <div class="task-detail-grid shrink-0" :class="{ 'task-detail-grid--stacked': !twoColumn }" data-testid="task-property-list">
-        <TaskPropertyRow :label="t('task.field.status')" :stacked="!twoColumn">
+      <template #details>
+      <!-- 1. Standard properties (#161, #846): on the sheet a two-column grid in the shown order, Status, Heute / Thema, Aktivität / Priorität, Timebox / time spent; in the drawer one column. The DOM order is the tab order -->
+      <div class="task-detail-grid" :class="{ 'task-detail-grid--single': !twoColumn }" data-testid="task-property-list">
+        <TaskPropertyRow :label="t('task.field.status')">
           <TaskPropertySelect
             :label="t('task.field.status')"
             :model-value="task.status"
@@ -130,15 +151,14 @@
           />
         </TaskPropertyRow>
 
-        <!-- Heute (#795): the marker "Für heute eingeplant" beside the status. A done task has "Erledigt am" in this cell instead (the marker plays no part there), so a status change swaps the cell and moves no other (#846). The drawer's cell is narrow: the switch stands without its text, the cell's label names it. The hint of a Jetzt task opens in place over `--duration-slow` (#610) -->
-        <TaskPropertyRow v-if="task.status !== TaskStatus.Done" v-slot="{ labelId }" :label="t('task.field.today')" :stacked="!twoColumn" data-today-row>
+        <!-- Heute (#795): the marker "Für heute eingeplant" beside the status. A done task has "Erledigt am" in this cell instead (the marker plays no part there), so a status change swaps the cell and moves no other (#846). The hint of a Jetzt task opens in place over `--duration-slow` (#610) -->
+        <TaskPropertyRow v-if="task.status !== TaskStatus.Done" :label="t('task.field.today')" data-today-row>
           <div class="flex min-w-0 flex-col">
             <!-- While the hint is open its line closes up under the switch (`-mb-1.5` here: a negative margin on the hint itself is cut by the collapsible's overflow) -->
             <div class="flex min-h-(--field-h) items-center" :class="{ '-mb-1.5': task.status === TaskStatus.Progress }">
               <USwitch
                 :model-value="isPlannedToday"
-                :label="twoColumn ? t('task.field.plannedToday') : undefined"
-                :aria-labelledby="twoColumn ? undefined : labelId"
+                :label="t('task.field.plannedToday')"
                 :disabled="isPreview || !canTogglePlanned"
                 :aria-describedby="task.status === TaskStatus.Progress ? plannedHintId : undefined"
                 data-testid="task-planned-switch"
@@ -147,8 +167,8 @@
             </div>
             <UCollapsible :open="task.status === TaskStatus.Progress">
               <template #content>
-                <!-- Under the switch's label, not its track: `ps-11` is the track (36 px) and its gap; the drawer's switch has no text, so the hint starts at the cell's edge -->
-                <p :id="plannedHintId" class="pb-1.5 text-xs text-muted" :class="{ 'ps-11': twoColumn }" data-testid="task-planned-hint">
+                <!-- Under the switch's label, not its track: `ps-11` is the track (36 px) and its gap -->
+                <p :id="plannedHintId" class="ps-11 pb-1.5 text-xs text-muted" data-testid="task-planned-hint">
                   {{ t('task.field.plannedTodayHint') }}
                 </p>
               </template>
@@ -157,7 +177,7 @@
         </TaskPropertyRow>
 
         <!-- Done day (kd#131): only on a done task, in the cell of Heute; corrects the day of a task marked done late -->
-        <TaskPropertyRow v-else-if="doneDay" :label="t('task.field.doneDay')" :stacked="!twoColumn" data-done-day-row>
+        <TaskPropertyRow v-else-if="doneDay" :label="t('task.field.doneDay')" data-done-day-row>
           <DatePickerField
             :model-value="{ start: doneDay }"
             :label="t('task.field.doneDay')"
@@ -170,13 +190,13 @@
           <span v-if="doneDayLocalOnly" class="text-sm text-muted" data-testid="done-day-local-only">{{ t('task.doneDay.localOnly') }}</span>
         </TaskPropertyRow>
         <!-- A done task without a completion day: the cell stays, so no later cell changes column (#846) -->
-        <div v-else aria-hidden="true" data-testid="task-grid-spacer" />
+        <div v-else-if="twoColumn" aria-hidden="true" data-testid="task-grid-spacer" />
 
         <!-- A source that owns the text (Reminders, #551) also owns the Thema and the Aktivität: the list. Shown as plain values, never as pickers -->
-        <TaskPropertyRow v-if="!canEditText && task.topic" :label="t('task.field.topic')" :stacked="!twoColumn" private>
+        <TaskPropertyRow v-if="!canEditText && task.topic" :label="t('task.field.topic')" private>
           <InlineEditable readonly affordance="rule" :model-value="task.topic" :label="t('task.field.topic')" data-private data-testid="task-topic-readonly" />
         </TaskPropertyRow>
-        <TaskPropertyRow v-else-if="canEditText" :label="t('task.field.topic')" :stacked="!twoColumn" private>
+        <TaskPropertyRow v-else-if="canEditText" :label="t('task.field.topic')" private>
           <TopicPropertyPicker
             kind="topic"
             :editable="!isPreview"
@@ -194,12 +214,12 @@
             @edit="(name) => openEditor('topic', name)"
           />
         </TaskPropertyRow>
-        <div v-else aria-hidden="true" data-testid="task-grid-spacer" />
+        <div v-else-if="twoColumn" aria-hidden="true" data-testid="task-grid-spacer" />
 
-        <TaskPropertyRow v-if="!canEditText && task.activity" :label="t('task.field.activity')" :stacked="!twoColumn" private>
+        <TaskPropertyRow v-if="!canEditText && task.activity" :label="t('task.field.activity')" private>
           <InlineEditable readonly affordance="rule" :model-value="task.activity" :label="t('task.field.activity')" data-private data-testid="task-activity-readonly" />
         </TaskPropertyRow>
-        <TaskPropertyRow v-else-if="canEditText" :label="t('task.field.activity')" :stacked="!twoColumn" private>
+        <TaskPropertyRow v-else-if="canEditText" :label="t('task.field.activity')" private>
           <TopicPropertyPicker
             kind="activity"
             :editable="!isPreview"
@@ -216,14 +236,14 @@
             @edit="(name) => openEditor('activity', name)"
           />
         </TaskPropertyRow>
-        <div v-else aria-hidden="true" data-testid="task-grid-spacer" />
+        <div v-else-if="twoColumn" aria-hidden="true" data-testid="task-grid-spacer" />
 
         <!-- The shared topic editor (#430): under the row of Thema and Aktivität, across both columns -->
         <div v-if="editing" class="task-detail-grid__wide">
           <TopicEditorHost :key="`${editing.kind}:${editing.name}`" nested :topic="editing.name" :kind="editing.kind" @close="closeEditor" />
         </div>
 
-        <TaskPropertyRow :label="t('task.field.priority')" :stacked="!twoColumn">
+        <TaskPropertyRow :label="t('task.field.priority')">
           <TaskPropertySelect
             :label="t('task.field.priority')"
             :model-value="priorityValue"
@@ -236,7 +256,7 @@
         </TaskPropertyRow>
 
         <!-- Timebox: the single entry point for the value; the suggestion sits next to it as text -->
-        <TaskPropertyRow :label="t('task.timebox')" :stacked="!twoColumn">
+        <TaskPropertyRow :label="t('task.timebox')">
           <InlineEditable
             :model-value="timeboxInMinutes"
             :label="t('task.timebox')"
@@ -277,8 +297,7 @@
         </TaskPropertyRow>
 
         <!-- Time spent (kd#4): the total in minutes, edited like the Timebox; what is left of the Timebox sits beside it as text. The visible label is the short form (#846: "Aufgewendet" fits the label column), the control keeps the full name -->
-        <!-- Drawer: the cell spans both columns (it has no neighbour), so the time left stays beside the value instead of wrapping under it -->
-        <TaskPropertyRow :label="t('task.field.timeSpentShort')" :stacked="!twoColumn" :class="{ 'task-detail-grid__wide': !twoColumn }">
+        <TaskPropertyRow :label="t('task.field.timeSpentShort')">
           <InlineEditable
             :model-value="timeSpentInMinutes"
             :label="t('task.field.timeSpent')"
@@ -315,24 +334,25 @@
           >{{ t('task.timeStats.remaining', { time: remainingTimeText }) }}</span>
         </TaskPropertyRow>
       </div>
+      </template>
 
-      <!-- 2. The board's extra properties (#846): further cells of the same grid under one label; nothing at all on a board without them -->
-      <section v-if="hasCustom" aria-labelledby="custom-heading" class="flex shrink-0 flex-col" :class="twoColumn ? 'gap-0.5' : 'gap-2'" data-testid="task-custom-properties">
-        <SectionHeader id="custom-heading" :text="t('task.field.properties')" tag="h3" size="label" class="mb-0" />
+      <!-- 2. The note: the tab names it, so it has no label of its own -->
+      <template #notes>
+        <div data-testid="task-notes-column">
+          <TaskDetailNotes :notes="task.notes" :readonly="!canEditText" @save="updateNotes" />
+        </div>
+      </template>
+
+      <!-- 3. The board's extra properties: the same grid, in a tab of their own; no tab on a board without them -->
+      <template #props>
         <TaskDetailCustomFields
           :key="task.id"
           :custom-list="customList"
+          data-testid="task-custom-properties"
           @update="updateCustomField"
         />
-      </section>
-
-      <!-- 3. The note, full width. On the sheet it takes what is left and is the one scroll area once the sheet has reached the window's limit -->
-      <!-- `min-h-24`: the label, a two-row editor and its hint, so starting a note does not change the sheet's height (TaskDetailNotes) -->
-      <div :class="twoColumn ? '-mx-2 min-h-24 flex-auto overflow-y-auto overscroll-contain px-2' : ''" data-testid="task-notes-column">
-        <TaskDetailNotes :notes="task.notes" :readonly="!canEditText" @save="updateNotes" />
-      </div>
-
-    </div>
+      </template>
+    </UTabs>
 
     <!-- 4. Footer line (#846): the source and the creation date, always there -->
     <TaskDetailMetadata
@@ -459,7 +479,7 @@ const onStatusPicked = (value: unknown) => void changeStatus(Number(value) as Ta
 const plannedHintId = useId();
 const { targets: moveTargets, move: moveToSource } = useTaskMoveTargets(() => (props.isPreview ? null : task.value));
 
-// Desktop sheet (>=768px, #468): label beside the value, the note the one scroll area. Below that the sheet is a drawer: the label above the value, one scrolling page.
+// Desktop sheet (>=768px, #468): the fixed frame, two columns of cells, the open tab the one scroll area. Below that the sheet is a drawer: one column, one scrolling page.
 // Follows the sheet's frozen variant, not the live query, so a resize while open cannot disagree with the layout the sheet actually shows (#199).
 const twoColumn = useOverlayIsDesktop();
 
@@ -576,6 +596,23 @@ function handleTitleSave(newTitle: string) {
 
 /** Title, notes, Thema and Aktivität belong to the task's source for Reminders (#551; the list is the Thema or the Aktivität): shown, never edited here */
 const canEditText = computed(() => sourceCan(task.value?.source ?? 'local', 'editText'));
+
+// Tabs (#870): the sheet opens on Details every time. A tab exists only when it has something to show or to add:
+// Eigenschaften on a board with extra properties, Notiz unless the source owns the text and the task has no note (Reminders, #551).
+type DetailTab = 'details' | 'notes' | 'props';
+const tab = ref<DetailTab>('details');
+const hasNotesTab = computed(() => canEditText.value || !!task.value?.notes);
+const tabs = computed<{ label: string; value: DetailTab; slot: DetailTab }[]>(() => [
+  { label: t('task.detail.tabDetails'), value: 'details', slot: 'details' },
+  ...(hasNotesTab.value ? [{ label: t('task.field.notes'), value: 'notes' as const, slot: 'notes' as const }] : []),
+  ...(hasCustom.value ? [{ label: t('task.field.properties'), value: 'props' as const, slot: 'props' as const }] : []),
+]);
+watch(() => task.value?.id, () => { tab.value = 'details'; });
+// A tab that goes away while it is open (the board's extra properties were removed) hands over to Details
+watch(tabs, (list) => { if (!list.some((item) => item.value === tab.value)) tab.value = 'details'; });
+// UTabs has no label prop for its list: name the tab list for assistive tech (as /settings/topics does)
+const tabsRoot = ref<{ $el: HTMLElement } | null>(null);
+watch(tabsRoot, (root) => root?.$el?.querySelector?.('[data-slot="list"]')?.setAttribute('aria-label', t('task.detail.tabsLabel')), { flush: 'post' });
 
 // Updates
 function updateTitle(newTitle: string) {

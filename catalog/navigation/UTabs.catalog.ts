@@ -13,7 +13,7 @@ export default {
   kind: 'compound',
   category: 'navigation',
   description: 'A row of tabs that switches between views of one place; the active tab is marked by an indicator. In the theme: neutral, pill and link variants, in sm to xl.',
-  usage: 'Switching between a few views of the same page (settings groups, the statistics tiles, the phone recap decks), always `:content="false"` with the page rendering the view. `pill` is the white chip on a grey track; `link` in `xl` (16 px labels, 44 px, a 2 px underline) is the navigation of a page, Einstellungen (#333); a switcher that must reach 44 px at 390 sets `touch-target` through `:ui` (placement only). Keyboard: arrow keys move, Home/End jump.',
+  usage: 'Switching between a few views of the same page (settings groups, the statistics tiles, the phone recap decks), `:content="false"` with the page rendering the view, or the item slots where the view is the panel of its tab (Details, Notiz and Eigenschaften of the task sheet, #870; `/settings/topics`). `pill` is the white chip on a grey track; `link` in `xl` (16 px labels, 44 px, a 2 px underline) is the navigation of a page, Einstellungen (#333); a switcher that must reach 44 px at 390 sets `touch-target` through `:ui` (placement only). Keyboard: arrow keys move, Home/End jump.',
   avoid: 'Not for moving between places of the app (AppNav, whose selected rules are DESIGN.md "Components"), not a step indicator (SetupRail), not a page indicator (BoardPageDots) and not a toggle for one setting (USwitch).',
   alternatives: ['AppNav', 'SetupRail', 'BoardPageDots'],
   theme: 'tabs',

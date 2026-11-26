@@ -893,7 +893,7 @@
       ]
     },
     {
-      "area": "task sheet content and its menu (#868: #867 reshaped the sheet's grid and menu and the gate selected neither spec): the Reminders read-only guarantees (the ⋯ menu offers no Delete, open or move) and the topic picker's outside-click reset at 390px (the open popover covers part of the stacked grid) are measured on the rendered sheet; flagged risk so the fast tier selects them",
+      "area": "task sheet content and its menu (#868: #867 reshaped the sheet's grid and menu and the gate selected neither spec): the Reminders read-only guarantees (the ⋯ menu offers no Delete, open or move) and the topic picker's outside-click reset at 390px (the open popover covers part of the rows of the tab Details, #870) are measured on the rendered sheet; flagged risk so the fast tier selects them",
       "risk": true,
       "paths": [
         "components/task/TaskDetail*.vue",

@@ -74,7 +74,7 @@ test.describe('Task stack: opening cards', () => {
     await members(page).first().locator('.task').click()
 
     await page.waitForURL(/\/tasks\/task-1/)
-    await expect(page.locator('[aria-labelledby="notes-heading"]')).toBeVisible()
+    await expect(page.getByRole('dialog').getByTestId('task-property-list')).toBeVisible()
   })
 
   test('Enter on a focused member opens its sheet', async ({ page }) => {

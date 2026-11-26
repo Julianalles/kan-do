@@ -124,7 +124,7 @@ const FLOWS: Flow[] = [
     },
   },
   {
-    name: 'task sheet: the note editor opens in place (#846)',
+    name: 'task sheet: the tab "Notiz" and its editor open inside the fixed frame (#870)',
     url: '/tasks',
     before: async (page) => {
       await push(page, '/tasks/seed-open-2')
@@ -132,12 +132,14 @@ const FLOWS: Flow[] = [
       await page.waitForTimeout(1200) // a person starts a note after the sheet has arrived
     },
     run: async (page) => {
+      await page.getByRole('tab', { name: /^Notiz/ }).click()
+      await page.waitForTimeout(300)
       await page.getByRole('button', { name: /^Notiz: / }).click()
       await page.waitForTimeout(450)
       await page.keyboard.press('Escape')
     },
     // The note's own box changes when its text turns into the editor (a swap in place, as every inline editable does); the guard is for everything around it: the sheet, the grid and the footer line stay where they are
-    jumps: [{ match: /section\[task-notes\]/, issue: '#846', why: 'the note section turns from its text into the editor in place: its own height changes, nothing around it moves' }],
+    jumps: [{ match: /div\[task-notes(-column)?\]/, issue: '#870', why: 'the note turns from its text into the editor in place: its own height changes, nothing around it moves' }],
   },
   {
     name: 'topic focus: open the chip row, pick a topic, end the focus (#608, #642)',
