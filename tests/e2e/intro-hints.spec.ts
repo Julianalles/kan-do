@@ -148,13 +148,32 @@ test('desktop: the column button and the end of the board rest a gap above the s
     await page.setViewportSize(size)
     await gotoBoard(page)
     await expect(hint(page)).toBeVisible()
+    // The end of the board: Erledigt's button follows its last card (#863), so it is the end of the page that clears the sheet
     // The fade and the guided move of the buttons have settled
     await expect.poll(async () => {
-      const sheetTop = (await hint(page).boundingBox())!.y
-      const footer = (await page.locator('#column-done .column-footer').first().boundingBox())
-      return footer ? Math.round(sheetTop - (footer.y + footer.height)) : null
+      const sheet = (await hint(page).boundingBox())!
+      const footer = (await page.locator('#column-done .column-footer button').first().boundingBox())
+      if (!footer) return null
+      // Beside the sheet (a wide window) nothing is in its way
+      if (footer.x >= sheet.x + sheet.width || footer.x + footer.width <= sheet.x) return 15
+      return Math.round(sheet.y - (footer.y + footer.height))
     }).toBeGreaterThanOrEqual(15)
   }
+})
+
+test('desktop: while a note stands, Erledigt\'s "Tag abschließen" follows its last card instead of covering it (#863)', async ({ context, page }) => {
+  await seedLocalBoard(context, SEED_TASKS, {}, undefined, { hints: true })
+  await page.setViewportSize({ width: 1280, height: 800 })
+  await gotoBoard(page)
+  await expect(hint(page)).toBeVisible()
+  const cards = page.locator('#column-done [data-task-id]')
+  await expect(cards.first()).toBeVisible()
+  const footer = page.locator('#column-done .column-footer')
+  await expect.poll(async () => {
+    const last = (await cards.last().boundingBox())!
+    const box = (await footer.boundingBox())!
+    return Math.round(box.y - (last.y + last.height))
+  }).toBeGreaterThanOrEqual(0)
 })
 
 // --- #801: "Weiter", "Auswahl", "Abschluss" ----------------------------------------------------------------------
@@ -498,7 +517,7 @@ test('the first open on "Alle": one note there, the planning note does not follo
   await page.goto('/all')
   await expect(hint(page)).toHaveAttribute('data-hint', 'welcome')
   await expect(page.getByTestId('intro-note-title')).toHaveText('Deine Aufgaben sind da')
-  await expect(hint(page)).toContainText('Der Pfeil an einer Karte plant sie für heute ein.')
+  await expect(hint(page)).toContainText('Fahre über eine Karte: Der Pfeil plant sie für heute ein.')
   await expect(page.getByTestId('intro-hint-steps')).toHaveCount(0)
   await page.getByTestId('intro-hint-close').click()
   await expect(hint(page)).toHaveCount(0)

@@ -56,6 +56,18 @@ async function expectNoArchiveToast(page: Page) {
 }
 
 test.describe('Yesterday note', () => {
+  test('the count stays visible when the column is too narrow for the label (#861)', async ({ page, context }) => {
+    await seedLocalBoard(context, board(5))
+    await page.setViewportSize({ width: 1024, height: 768 })
+    await page.goto('/tasks')
+    const toggle = note(page).getByTestId('yesterday-toggle')
+    const count = note(page).getByTestId('yesterday-count')
+    await expect(count).toHaveText('5')
+    await expect(count).toBeInViewport()
+    const [t, c] = [await toggle.boundingBox(), await count.boundingBox()]
+    expect(c!.x + c!.width).toBeLessThanOrEqual(t!.x + t!.width)
+  })
+
   test('renders as one collapsed line on a Done-Teal surface: label, count, one action, no titles', async ({ page, context }) => {
     await seedLocalBoard(context, board(5))
     await page.goto('/tasks')

@@ -235,10 +235,17 @@ describe('the welcome (#853): what it says per scenario and place', () => {
     const welcome = resolveIntroWelcome(board({ onToday: 2, underAll: 1, connected: true }))
     expect(welcome).toMatchObject({ scenario: 'today', shape: 'tour', toAll: false, says: ['start'] })
     expect(keys(welcome)).toEqual([
-      ['board.welcome.tour.today.title', 'board.welcome.tour.today.text'],
+      ['board.welcome.tour.today.title', 'board.welcome.tour.today.text.desktop'],
       ['board.welcome.tour.one.title', 'board.welcome.tour.one.empty.desktop'],
       ['board.welcome.tour.done.title', 'board.welcome.tour.done.text'],
     ])
+  })
+
+  it('S4 on a phone: note 1 names the swipe to "Offen" only when Jetzt is filled (the phone opens on Offen otherwise)', () => {
+    const empty = resolveIntroWelcome(board({ onToday: 2, phone: true }))
+    expect(keys(empty)[0]).toEqual(['board.welcome.tour.today.title', 'board.welcome.tour.today.text.phoneOpen'])
+    const filled = resolveIntroWelcome(board({ onToday: 2, phone: true, jetzt: true }))
+    expect(keys(filled)[0]).toEqual(['board.welcome.tour.today.title', 'board.welcome.tour.today.text.phone'])
   })
 
   it('S5, the sample board: the tour starts with the sample note; note 2 explains the card that lies in Jetzt', () => {
@@ -250,9 +257,11 @@ describe('the welcome (#853): what it says per scenario and place', () => {
     ])
     const phone = resolveIntroWelcome(board({ onToday: 6, sample: true, phone: true }))
     expect(keys(phone).slice(0, 2)).toEqual([
-      ['board.welcome.tour.sample.title', 'board.welcome.tour.sample.text.phone'],
+      ['board.welcome.tour.sample.title', 'board.welcome.tour.sample.text.phoneOpen'],
       ['board.welcome.tour.one.title', 'board.welcome.tour.one.empty.phone'],
     ])
+    const phoneFilled = resolveIntroWelcome(board({ onToday: 6, sample: true, phone: true, jetzt: true }))
+    expect(keys(phoneFilled)[0]).toEqual(['board.welcome.tour.sample.title', 'board.welcome.tour.sample.text.phone'])
   })
 
   it('S6, on "Alle" it is always one note: the empty board\'s, or with any task the one that stands for the planning note', () => {
@@ -260,7 +269,7 @@ describe('the welcome (#853): what it says per scenario and place', () => {
     for (const over of [{ underAll: 2 }, { onToday: 2 }, { onToday: 6, sample: true, jetzt: true }]) {
       const welcome = resolveIntroWelcome(board({ place: 'all', ...over }))
       expect(welcome).toMatchObject({ shape: 'note', toAll: false, says: [INTRO_PLAN_HINT] })
-      expect(keys(welcome)).toEqual([['board.welcome.underAll.title', 'board.welcome.underAll.all']])
+      expect(keys(welcome)).toEqual([['board.welcome.underAll.title', 'board.welcome.underAll.all.desktop']])
     }
   })
 
