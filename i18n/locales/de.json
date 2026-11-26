@@ -170,7 +170,18 @@
       "plannedMany": "Eine Aufgabe ist für heute geplant. | {n} Aufgaben sind für heute geplant."
     },
     "emptyOpenHint": "Was steht heute an?",
-    "emptyOpenAll": "Oder wähle unter {all} aus, was heute dran ist.",
+    "emptyBoard": {
+      "today": {
+        "plain": "Schreib auf, was du dir für heute vornimmst.",
+        "connected": "Aus {source} ist noch keine Aufgabe gekommen. Schreib auf, was du dir für heute vornimmst.",
+        "underAll": "Wähle unter {all} aus, was heute dran ist, oder schreib etwas Neues auf."
+      },
+      "all": {
+        "lead": "Noch keine Aufgaben",
+        "plain": "Hier sammelst du, was ansteht, und planst für heute ein, was dran ist.",
+        "connected": "Aus {source} ist noch keine Aufgabe gekommen. Du kannst auch hier eine aufschreiben."
+      }
+    },
     "emptyProgressHint": "Verschiebe hierhin, woran du jetzt arbeitest.",
     "yesterdayUnderAll": "Eine Aufgabe von gestern liegt unter {all}. | {n} Aufgaben von gestern liegen unter {all}.",
     "newDayNote": {
@@ -182,12 +193,24 @@
     },
     "introHint": {
       "start": {
-        "desktop": "Ziehe in „Jetzt“, woran du gerade arbeitest. In Jetzt liegt immer nur eine Aufgabe.",
-        "phone": "Womit fängst du an? Halte die Karte und ziehe sie an den rechten Rand, in „Jetzt“. In Jetzt liegt immer nur eine Aufgabe."
+        "title": "Womit fängst du an?",
+        "text": {
+          "desktop": "Ziehe in „Jetzt“, woran du gerade arbeitest. In Jetzt liegt immer nur eine Aufgabe.",
+          "phone": "Halte die Karte und ziehe sie an den rechten Rand, in „Jetzt“. In Jetzt liegt immer nur eine Aufgabe."
+        }
       },
-      "weiter": "Die Zeit läuft jetzt mit. Ziehe die Karte in „Erledigt“, sobald die Aufgabe erledigt ist. Wartest du auf jemanden, ziehe sie in „Wartet“.",
-      "auswahl": "Viel offen? Gestapelt nach Thema oder Priorität wählst du leichter aus. Die Stapel findest du auch unter „{more}“.",
-      "abschluss": "Genug für heute? „{dayClose}“ zeigt dir, was du geschafft hast und was offen bleibt.",
+      "weiter": {
+        "title": "Die Zeit läuft jetzt mit",
+        "text": "Ziehe die Karte in „Erledigt“, sobald die Aufgabe erledigt ist. Wartest du auf jemanden, ziehe sie in „Wartet“."
+      },
+      "auswahl": {
+        "title": "Viel offen?",
+        "text": "Gestapelt nach Thema oder Priorität wählst du leichter aus. Die Stapel findest du auch unter „{more}“."
+      },
+      "abschluss": {
+        "title": "Genug für heute?",
+        "text": "„{dayClose}“ zeigt dir, was du geschafft hast und was offen bleibt."
+      },
       "close": "Schließen",
       "off": "Hinweise ausschalten",
       "toast": {
@@ -195,11 +218,60 @@
         "description": "Du kannst sie jederzeit unter Einstellungen, Board nachlesen."
       }
     },
+    "welcome": {
+      "empty": {
+        "title": "Dein Tag auf einem Blatt",
+        "today": {
+          "desktop": "Hier steht nur, was heute dran ist. Unter „Offen“ sammelst du es. In „Jetzt“ liegt die eine Aufgabe, an der du gerade arbeitest. Schreib als Erstes auf, was heute ansteht.",
+          "phone": "Hier steht nur, was heute dran ist. In „Jetzt“ liegt die eine Aufgabe, an der du gerade arbeitest. Schreib als Erstes auf, was heute ansteht."
+        },
+        "all": "Unter „Alle“ sammelst du, was ansteht. In der Navigation zeigt „Heute“ nur, was du für heute einplanst. Schreib als Erstes eine Aufgabe auf."
+      },
+      "connectedEmpty": {
+        "text": "Aus {source} ist noch keine Aufgabe gekommen. Was dort ansteht, findest du später unter „Alle“. Du kannst auch gleich hier eine Aufgabe aufschreiben."
+      },
+      "underAll": {
+        "title": "Deine Aufgaben sind da",
+        "today": "Sie liegen unter „Alle“. Wähle dort aus, was du dir für heute vornimmst. In der Navigation zeigt „Heute“ dann nur das.",
+        "all": "Hier liegt alles, was ansteht. Der Pfeil an einer Karte plant sie für heute ein. Sobald du loslegen willst, wechsle in der Navigation zu „Heute“.",
+        "action": "Aufgaben auswählen"
+      },
+      "tour": {
+        "today": {
+          "title": "Das ist dein Tag",
+          "text": "Unter „Offen“ steht, was heute ansteht. Alles andere wartet unter „Alle“."
+        },
+        "sample": {
+          "title": "Ein Beispieltag zum Ausprobieren",
+          "text": {
+            "desktop": "So sieht ein Tag in Kan-do aus. Verschiebe ruhig Karten, es sind Beispiele.",
+            "phone": "So sieht ein Tag in Kan-do aus. Wische zur Seite für „Offen“ und „Erledigt“. Verschiebe ruhig Karten, es sind Beispiele."
+          }
+        },
+        "one": {
+          "title": "Eine Aufgabe zur Zeit",
+          "empty": {
+            "desktop": "Ziehe in „Jetzt“, woran du gerade arbeitest. Dort liegt immer nur eine Aufgabe, und ihre Zeit läuft mit.",
+            "phone": "Halte eine Karte und ziehe sie an den rechten Rand, in „Jetzt“. Dort liegt immer nur eine Aufgabe, und ihre Zeit läuft mit."
+          },
+          "filled": "In „Jetzt“ liegt immer nur eine Aufgabe: die, an der du gerade arbeitest. Solange sie dort liegt, läuft ihre Zeit mit."
+        },
+        "done": {
+          "title": "Erledigt oder Wartet",
+          "text": "Ziehe die Karte in „Erledigt“, sobald die Aufgabe erledigt ist. Wartest du auf jemanden, ziehe sie in „Wartet“ und nimm die nächste."
+        },
+        "next": "Weiter",
+        "skip": "Überspringen",
+        "start": "Loslegen",
+        "step": "Schritt {n} von {total}"
+      }
+    },
     "planNote": {
       "title": "Wähle aus, was heute dran ist",
       "description": "Der Pfeil an einer Karte plant sie für heute ein. Sobald du loslegen willst, wechsle in der Navigation zu „Heute“.",
       "line": "Wähle aus, was heute dran ist. Sobald du loslegen willst, wechsle in der Navigation zu „Heute“.",
-      "close": "Schließen"
+      "close": "Schließen",
+      "phoneText": "Sobald du loslegen willst, wechsle in der Navigation zu „Heute“."
     },
     "newDayTimeNote": {
       "title": "Timer lief nach Mitternacht {duration} weiter",
@@ -992,6 +1064,7 @@
       "turnOff": "Ausschalten",
       "restart": "Erneut zeigen",
       "entries": {
+        "welcome": "Willkommen",
         "start": "Anfangen",
         "weiter": "Weitermachen",
         "auswahl": "Auswählen",

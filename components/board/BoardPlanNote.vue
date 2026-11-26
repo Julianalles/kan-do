@@ -10,28 +10,40 @@
 - `column` (desktop): plain text on the canvas, no box and no button (#741: one highlighted area on the page, the block): the arrow the sentence speaks of (the glyph of a card's "Für heute einplanen"), the title and one muted sentence, centred in a reading measure of 18 rem
 - `line` (phone): one muted line with a close control (a ghost icon button named "Schließen", 44 px target), in the `lead` slot of a BoardNotPlannedGroup, so its text starts on the cards' left edge and the control ends on their right one (two lines at 390 px)
 - Answered by its close control or when the place changes from "Alle" to "Heute" while the note is due (the user went on; a page off the board such as Statistik is no answer, the note returns with "Alle"): both write the persisted flag, so it never returns, also after a restart. Opening a task sheet under `/all/:id` does not leave "Alle". Nothing is written to a connection and no task changes
-- A user of the intro hints (a record exists, #803) gets the hint's rules: shown on any visit to "Alle" with tasks to pick (not only after "Neuen Tag planen"), silent while the hints are off, on the quiet day and while a board notice is up, a day counted once it was on screen (page visible and window focused), ended on the third unanswered day or by a card planned into Offen or Jetzt. It carries the two quiet links of the overlay, "Hinweise ausschalten" and "Schließen" (the latter also keeps the rest of the day quiet), below the text on both faces; the phone's icon control gives way to them. A user without a record keeps the faces above unchanged (desktop without a button)
+- A user of the intro hints (a record exists, #803) gets the hint's rules: shown on any visit to "Alle" with tasks to pick (not only after "Neuen Tag planen"), silent while the hints are off, on the quiet day and while a board notice is up, a day counted once it was on screen (page visible and window focused), ended on the third unanswered day or by a card planned into Offen or Jetzt. For such a user both faces are a sheet of note paper (IntroNote, #853: the look every intro note shares) with the title in the display face, the text (a phone: only the sentence about "Heute") and the overlay's controls, the quiet link "Hinweise ausschalten" and the button "Schließen" (which also keeps the rest of the day quiet); it waits behind the welcome note, and a welcome on "Alle" that already said it answers it. A user without a record keeps the plain faces above unchanged (desktop without a button, the phone's icon control)
 - `role="status"` on both faces; keyboard focus goes to the board region when the close control removes the focused button, never to `<body>`
 -->
 <template>
+  <!-- A user of the hints (#853): the note paper every intro note shares, where the picked tasks land -->
+  <div v-if="shown && hintMode && face === 'column'" class="mt-2 text-left" role="status" data-testid="plan-note">
+    <IntroNote :icon="ICONS.goOn" :title="t('board.planNote.title')" :text="t('board.planNote.description')">
+      <UButton color="neutral" variant="link" data-testid="plan-note-off" @click="turnOffHints">{{ t('board.introHint.off') }}</UButton>
+      <UButton color="neutral" variant="soft" data-testid="plan-note-close" @click="close">{{ t('board.introHint.close') }}</UButton>
+    </IntroNote>
+  </div>
+  <BoardNotPlannedGroup v-else-if="shown && hintMode" class="mt-2 mb-4" data-testid="plan-note-host">
+    <template #lead>
+      <div role="status" data-testid="plan-note">
+        <IntroNote :icon="ICONS.goOn" :title="t('board.planNote.title')" :text="t('board.planNote.phoneText')">
+          <UButton color="neutral" variant="link" data-testid="plan-note-off" @click="turnOffHints">{{ t('board.introHint.off') }}</UButton>
+          <UButton color="neutral" variant="soft" data-testid="plan-note-close" @click="close">{{ t('board.introHint.close') }}</UButton>
+        </IntroNote>
+      </div>
+    </template>
+  </BoardNotPlannedGroup>
   <!-- Plain text on the canvas where the picked tasks land: no box, a reading measure of 18 rem, centred in the column -->
-  <div v-if="shown && face === 'column'" class="mx-auto mt-6 flex max-w-72 flex-col items-center gap-1.5 text-center text-balance" role="status" data-testid="plan-note">
+  <div v-else-if="shown && face === 'column'" class="mx-auto mt-6 flex max-w-72 flex-col items-center gap-1.5 text-center text-balance" role="status" data-testid="plan-note">
     <UIcon :name="ICONS.goOn" class="size-5 text-dimmed" />
     <p class="text-body font-medium text-default">{{ t('board.planNote.title') }}</p>
     <p class="text-body text-muted">{{ t('board.planNote.description') }}</p>
-    <div v-if="hintMode" class="mt-1 flex flex-wrap items-center justify-center gap-x-2">
-      <UButton color="neutral" variant="link" data-testid="plan-note-off" @click="turnOffHints">{{ t('board.introHint.off') }}</UButton>
-      <UButton color="neutral" variant="link" data-testid="plan-note-close" @click="close">{{ t('board.introHint.close') }}</UButton>
-    </div>
   </div>
   <!-- The group gives the line the measure of the cards below; a phone keeps the cards' inset -->
   <BoardNotPlannedGroup v-else-if="shown" class="mt-2 mb-4" data-testid="plan-note-host">
     <template #lead>
       <div class="flex items-start gap-2" role="status" data-testid="plan-note">
         <!-- pt-1: the line's first row is centred on the 2 rem close control -->
-        <p class="min-w-0 flex-1 text-body text-muted" :class="{ 'pt-1': !hintMode }">{{ t('board.planNote.line') }}</p>
+        <p class="min-w-0 flex-1 pt-1 text-body text-muted">{{ t('board.planNote.line') }}</p>
         <UButton
-          v-if="!hintMode"
           color="neutral"
           variant="ghost"
           square
@@ -42,11 +54,6 @@
           @click="close"
         />
       </div>
-      <!-- A user of the hints: the overlay's two quiet links below the line, at its end (#803); pulled up to the line and out to the cards' edge by the button's own padding (design review) -->
-      <div v-if="hintMode" class="-mt-1.5 -mr-2 flex flex-wrap items-center justify-end gap-x-2">
-        <UButton color="neutral" variant="link" data-testid="plan-note-off" @click="turnOffHints">{{ t('board.introHint.off') }}</UButton>
-        <UButton color="neutral" variant="link" data-testid="plan-note-close" @click="close">{{ t('board.introHint.close') }}</UButton>
-      </div>
     </template>
   </BoardNotPlannedGroup>
 </template>
@@ -55,6 +62,7 @@
 import { computed, nextTick, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import BoardNotPlannedGroup from '~/components/board/BoardNotPlannedGroup.vue'
+import IntroNote from '~/components/board/IntroNote.vue'
 import { useNewDay } from '~/composables/useNewDay'
 import { useHintOnScreen, useIntroHints } from '~/composables/useIntroHints'
 import { useIntroHintsSwitch } from '~/composables/useIntroHintsSwitch'

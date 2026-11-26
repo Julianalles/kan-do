@@ -11,7 +11,7 @@ const tabNames = (page: Page) => page.getByRole('tab').allTextContents()
 /** No card in Jetzt: a restarted "Start" is not answered at once by a step that is already done */
 const OPEN_ONLY = SEED_TASKS.filter(task => task.status === 0)
 /** A restarted record: cards in Offen are a planned day, so "Planen" (#803) is answered at once by its step; nothing else is touched */
-const RESTARTED = { on: true, quietDay: null, hints: { planen: { answered: true, days: [] } } }
+const RESTARTED = { on: true, quietDay: null, v: 2, hints: { planen: { answered: true, days: [] } } }
 /** #845: what the root element carries (`inline`) and what it computes to; 100 % sets nothing */
 const rootFontSize = (page: Page) =>
   page.evaluate(() => ({
@@ -49,19 +49,21 @@ test.describe('Hinweise zum Einstieg in the Board tab (#804)', () => {
     await seedLocalBoard(context, undefined, {}, undefined, { hints: true, once: true })
     await page.goto('/settings')
     const list = page.getByTestId('intro-hints-help-list')
-    await expect(list.locator('li')).toHaveCount(5)
+    await expect(list.locator('li')).toHaveCount(6)
+    // the welcome of an empty board first (#853), each entry with its title and its text
+    await expect(list.locator('li').first()).toContainText('Dein Tag auf einem Blatt')
     await expect(list).toContainText('Ziehe in „Jetzt“, woran du gerade arbeitest.')
-    await expect(list).toContainText('Die Zeit läuft jetzt mit.')
-    await expect(list).toContainText('Viel offen? Gestapelt nach Thema oder Priorität wählst du leichter aus. Die Stapel findest du auch unter „Mehr“.')
-    await expect(list).toContainText('Genug für heute? „Tag abschließen“ zeigt dir, was du geschafft hast und was offen bleibt.')
+    await expect(list).toContainText('Die Zeit läuft jetzt mit')
+    await expect(list).toContainText('Viel offen?Gestapelt nach Thema oder Priorität wählst du leichter aus. Die Stapel findest du auch unter „Mehr“.')
+    await expect(list).toContainText('Genug für heute?„Tag abschließen“ zeigt dir, was du geschafft hast und was offen bleibt.')
     // the planning note of "Alle" in its own words (#741): the desktop sentence here, the phone's one line below
     await expect(list).toContainText('Der Pfeil an einer Karte plant sie für heute ein. Sobald du loslegen willst, wechsle in der Navigation zu „Heute“.')
     await hintsButton(page).click()
-    await expect(list.locator('li')).toHaveCount(5)
+    await expect(list.locator('li')).toHaveCount(6)
 
     await page.setViewportSize({ width: 390, height: 844 })
     await expect(list).toContainText('Halte die Karte und ziehe sie an den rechten Rand, in „Jetzt“.')
-    await expect(list).toContainText('Wähle aus, was heute dran ist. Sobald du loslegen willst, wechsle in der Navigation zu „Heute“.')
+    await expect(list).toContainText('Wähle aus, was heute dran istSobald du loslegen willst, wechsle in der Navigation zu „Heute“.')
     const button = (await hintsButton(page).boundingBox())!
     expect(button.height).toBeGreaterThanOrEqual(44)
   })
@@ -79,8 +81,9 @@ test.describe('Hinweise zum Einstieg in the Board tab (#804)', () => {
 
 test.describe('Größe der Anzeige in the Board tab (#845)', () => {
   test('the Board tab holds "Größe der Anzeige": five steps, 100 % the standard; a step scales the whole app at once and survives a reload (#845)', async ({ context, page }) => {
-    // `once`: the page loads below must keep what the test stored
-    await seedLocalBoard(context, undefined, {}, undefined, { once: true })
+    // `once`: the page loads below must keep what the test stored. No card in Jetzt: a card there notes "Jetzt was used"
+    // (#853), a write of the settings blob, and this test reads an install that stored nothing yet
+    await seedLocalBoard(context, OPEN_ONLY, {}, undefined, { once: true })
     await page.goto('/settings')
     const sheet = page.getByTestId('display-settings')
     await expect(sheet.getByRole('heading', { name: 'Darstellung', level: 2 })).toBeVisible()

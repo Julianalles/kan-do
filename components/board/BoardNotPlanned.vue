@@ -38,7 +38,7 @@
       :task-count="shown.length"
       :show-add="true"
       :add-disabled="draftTask !== null || isDrafting || inCardAdding"
-      :add-away="nothingHeld"
+      :add-away="nothingHeld || boardEmpty"
       add-test-id="not-planned-add"
       @add="addTask"
     />
@@ -66,6 +66,18 @@
       <EmptyNote v-if="held.length > 0 && shown.length === 0" class="not-planned__note" data-testid="not-planned-no-match">
         {{ t('board.notPlanned.noMatch') }}
       </EmptyNote>
+      <!-- A board without any task (#853): the board's empty state, with the add of this side -->
+      <BoardEmptyState
+        v-else-if="boardEmpty && !isDrafting"
+        class="not-planned__note"
+        icon="i-ph-tray-light"
+        :lead="t('board.emptyBoard.all.lead')"
+        :action="t('board.notPlanned.create')"
+        data-testid="not-planned-board-empty"
+        @add="addTask"
+      >
+        {{ emptySource ? t('board.emptyBoard.all.connected', { source: emptySource }) : t('board.emptyBoard.all.plain') }}
+      </BoardEmptyState>
       <!-- Nothing held here (#367): the sentence and the one way to fill the side from here. The new task is not planned -->
       <div v-else-if="nothingHeld && !isDrafting" class="not-planned__note flex flex-col items-center gap-3">
         <EmptyNote data-testid="not-planned-empty">
@@ -149,6 +161,9 @@ import { navigateTo } from 'nuxt/app'
 import AddTaskSlot from '~/components/board/AddTaskSlot.vue'
 import BoardColumnHeader from '~/components/board/BoardColumnHeader.vue'
 import EmptyNote from '~/components/ui/EmptyNote.vue'
+import BoardEmptyState from '~/components/board/BoardEmptyState.vue'
+import { boardSettled } from '~/lib/boardSettled'
+import { integrationLabel } from '~/lib/taskSources'
 import BoardNotPlannedGroup from '~/components/board/BoardNotPlannedGroup.vue'
 import BoardNotPlannedItem from '~/components/board/BoardNotPlannedItem.vue'
 import BoardPlanNote from '~/components/board/BoardPlanNote.vue'
@@ -181,6 +196,7 @@ defineProps<{
 
 const { t } = useI18n()
 const tasksStore = useTasksStore()
+const boardStore = useBoardStore()
 const { applyFocus } = useBoardFocus()
 const { basePath } = useBoardPlace()
 const { planForToday } = usePlanMoves()
@@ -244,14 +260,23 @@ const blockTitle = computed(() => {
 const hasTasks = computed(() => tasksStore.tasks.length > 0)
 /** Nothing is held here and the board has tasks: the note and "Aufgabe erstellen" offer the add, so the round button steps aside (#609, #581) */
 const nothingHeld = computed(() => held.value.length === 0 && hasTasks.value)
+/** The board holds no task at all (#853): the empty state offers the add, and not before the board's first load has ended */
+const boardEmpty = computed(() => !hasTasks.value && !inCardAdding.value && boardSettled(boardStore.connectedIntegrations.length))
+/** The connected app's name for the empty state's line; null on a board without a connection */
+const emptySource = computed(() => {
+  const source = boardStore.connectedIntegrations[0]
+  return source ? integrationLabel(source) : null
+})
 
 const openTask = (id: string) => void navigateTo({ path: `${basePath.value}/${id}` })
 /** The add button and "Aufgabe erstellen" (#367, #567): the Heute flow in a card at the top of this list; the task is made not planned (NewCardFlow) */
 const headerRef = ref<{ addButtonEl: () => HTMLElement | null } | null>(null)
 const addSlotRef = ref<{ open: () => void, isDrafting: boolean } | null>(null)
 const isDrafting = computed(() => addSlotRef.value?.isDrafting ?? false)
-/** Where focus goes after a cancelled draft: the header's button, or "Aufgabe erstellen" while that button is away */
-const focusFallback = () => bodyEl.value?.querySelector<HTMLElement>('[data-testid="not-planned-create"]') ?? headerRef.value?.addButtonEl() ?? null
+/** Where focus goes after a cancelled draft: the header's button, or "Aufgabe erstellen" (the note's, or the empty state's green button, #853) while that button is away */
+const focusFallback = () =>
+  bodyEl.value?.querySelector<HTMLElement>('[data-testid="not-planned-create"], [data-testid="not-planned-board-empty"] [data-testid="board-empty-add"]')
+  ?? headerRef.value?.addButtonEl() ?? null
 const addTask = () => {
   if (inCardAdding.value) return
   addSlotRef.value?.open()

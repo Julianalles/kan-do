@@ -639,7 +639,7 @@ test.describe('guided new card (#649)', () => {
     await page.setViewportSize(MOBILE)
     await seedLocalBoard(context, [])
     await gotoBoard(page)
-    await page.locator('#column-open [data-testid="add-task-header-button"]').click()
+    await page.getByTestId('board-empty-add').click()
     await page.getByTestId('new-card-title').fill('Erste Aufgabe')
     await page.keyboard.press('Enter')
     // an empty board has no topics or activities: Timebox comes first, with the full list behind the third pill

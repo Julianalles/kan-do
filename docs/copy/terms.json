@@ -869,5 +869,25 @@
     "avoidEn": [],
     "status": "proposed",
     "note": "#845: the settings row label, in the sheet \"Darstellung\" / \"Appearance\". Not \"Zoom\": that word names the Window menu's item that enlarges the window (menu.zoom). The 100 % step is marked \"(Standard)\" / \"(default)\"."
+  },
+  {
+    "id": "welcome-note",
+    "concept": "The note or short tour that tells a new user once what the board is, before the getting-started hints (#853)",
+    "de": "Willkommen",
+    "en": "Welcome",
+    "avoidDe": [],
+    "avoidEn": [],
+    "status": "proposed",
+    "note": "#853: the caption of its entry under \"Kurz erklärt\". The notes themselves carry their own titles (\"Dein Tag auf einem Blatt\", \"Das ist dein Tag\"); the tour's buttons are \"Weiter\", \"Überspringen\", \"Loslegen\"."
+  },
+  {
+    "id": "sample-day",
+    "concept": "What the sample board shows a new user: one day of example tasks to try the app with (#853)",
+    "de": "Beispieltag",
+    "en": "sample day",
+    "avoidDe": [],
+    "avoidEn": [],
+    "status": "proposed",
+    "note": "#853: the tour's first note on the sample board. The tasks on it are \"Beispiele\" / \"examples\"; the welcome page's button stays \"Beispiel anzeigen\"."
   }
 ]

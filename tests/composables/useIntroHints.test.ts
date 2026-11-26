@@ -26,15 +26,23 @@ import { useTasksStore } from '~/store/tasks'
 import { useBoardStore } from '~/store/board'
 import { setCurrentBoardPath } from '~/lib/boardPlace'
 import { dayKey } from '~/utils/recapDay'
+import { markFirstFetchEnded, resetFirstFetchEnded } from '~/lib/boardSettled'
 /* eslint-enable import/first */
 
 const task = (id: string, status: TaskStatus): Task => ({ id, title: id, status, source: 'local', externalId: null } as Task)
 
-function setup(tasks: Task[], started = true) {
+function setup(tasks: Task[], started = true, welcomeAhead = false) {
   const settings = useSettingsStore()
   const tasksStore = useTasksStore()
   tasksStore.setTasks(tasks)
-  if (started) settings.startIntroHints()
+  if (started) {
+    settings.startIntroHints()
+    // Past the welcome (#853), with a card of their own in Jetzt before: the step hints are what these tests are about
+    if (!welcomeAhead) {
+      settings.endIntroWelcome()
+      settings.markOwnJetzt()
+    }
+  }
   return { settings, tasksStore, hints: useIntroHints() }
 }
 
@@ -93,7 +101,7 @@ describe('useIntroHints: the hint "Start"', () => {
     const { hints, settings } = setup([task('a', TaskStatus.Open)])
     hints.close()
     expect(hints.current.value).toBeNull()
-    expect(settings.introHints).toEqual({ on: true, quietDay: dayKey(new Date()), hints: { start: { answered: true, days: [] } } })
+    expect(settings.introHints).toMatchObject({ on: true, quietDay: dayKey(new Date()), hints: { start: { answered: true, days: [] } } })
   })
 
   it('markShown stores today once', () => {
@@ -388,6 +396,128 @@ describe('the hint "Planen" (#803): the planning note of "Alle"', () => {
     tasksStore.setTasks([task('a', TaskStatus.Open), task('w', TaskStatus.Waiting)])
     await nextTick()
     expect(settings.introHints?.hints.planen?.answered).toBe(true)
+    scope.stop()
+  })
+})
+
+describe('the welcome (#853)', () => {
+  const notPlanned = (id: string): Task => ({ ...task(id, TaskStatus.Open), notPlanned: true } as Task)
+  const fresh = (tasks: Task[]) => setup(tasks, true, true)
+
+  it('comes before every step hint and before the planning note, on "Heute" and on "Alle"', () => {
+    const { hints } = fresh([task('a', TaskStatus.Open), notPlanned('n')])
+    expect(hints.welcome.value).toMatchObject({ shape: 'tour', scenario: 'today' })
+    expect(hints.current.value).toBeNull()
+    expect(hints.planDue.value).toBe(false)
+    setCurrentBoardPath('/all')
+    expect(hints.welcome.value).toMatchObject({ shape: 'note' })
+    expect(hints.planDue.value).toBe(false)
+  })
+
+  it('never shows for an install from before it, with or without a hints record', () => {
+    expect(setup([task('a', TaskStatus.Open)], false).hints.welcome.value).toBeNull()
+    setActivePinia(createPinia())
+    const settings = useSettingsStore()
+    settings.introHints = { on: true, quietDay: null, hints: {} }
+    useTasksStore().setTasks([task('a', TaskStatus.Open)])
+    const hints = useIntroHints()
+    expect(hints.welcome.value).toBeNull()
+    expect(hints.current.value).toBe('start')
+  })
+
+  it('does not show under a task sheet or while a board notice is up, and keeps the step hints waiting meanwhile', () => {
+    const { hints } = fresh([task('a', TaskStatus.Open)])
+    setCurrentBoardPath('/tasks/a')
+    expect(hints.welcome.value).toBeNull()
+    expect(hints.current.value).toBeNull()
+    setCurrentBoardPath('/tasks')
+    noticeShown.value = true
+    expect(hints.welcome.value).toBeNull()
+    noticeShown.value = false
+    expect(hints.welcome.value).not.toBeNull()
+  })
+
+  it('waits for the first load of a board with a connection, and reads the board once it has ended', () => {
+    resetFirstFetchEnded()
+    const { hints, tasksStore } = fresh([])
+    useBoardStore().boardConfig.sources = { connected: ['notion'], default: 'notion' }
+    expect(hints.welcome.value).toBeNull()
+    tasksStore.setTasks([task('a', TaskStatus.Open)])
+    markFirstFetchEnded()
+    expect(hints.welcome.value).toMatchObject({ shape: 'tour', scenario: 'today' })
+    resetFirstFetchEnded()
+  })
+
+  it('after the tour "Start" counts as said: no step hint repeats it', () => {
+    const { hints, settings } = fresh([task('a', TaskStatus.Open)])
+    hints.endWelcome()
+    expect(hints.welcome.value).toBeNull()
+    expect(answered(settings, 'start')).toBe(true)
+    expect(hints.current.value).toBeNull()
+    expect(settings.introHints?.quietDay).toBeNull()
+  })
+
+  it('after the welcome on "Alle" with tasks the planning note counts as said, also by its older flag', () => {
+    const { hints, settings } = fresh([notPlanned('n')])
+    setCurrentBoardPath('/all')
+    hints.endWelcome()
+    expect(answered(settings, 'planen')).toBe(true)
+    expect(useDayRecapStore().validPlanNoteSeen).toBe(true)
+    expect(hints.planDue.value).toBe(false)
+  })
+
+  it('after the note on an empty "Heute" the step hints follow on the same day', () => {
+    const { hints, settings, tasksStore } = fresh([])
+    expect(hints.welcome.value).toMatchObject({ shape: 'note', scenario: 'empty' })
+    hints.endWelcome()
+    expect(answered(settings, 'start')).not.toBe(true)
+    tasksStore.setTasks([task('a', TaskStatus.Open)])
+    expect(hints.current.value).toBe('start')
+  })
+
+  it('a single note that was on screen ends with the first card on "Heute"; a note not yet seen, and a tour, do not', async () => {
+    const { hints, settings, tasksStore } = fresh([])
+    const scope = effectScope()
+    scope.run(() => useIntroHintSteps())
+    // Not seen yet (the sample board loads before the first render): the cards arriving end nothing
+    tasksStore.setTasks([task('a', TaskStatus.Open)])
+    await nextTick()
+    expect(hints.welcome.value).toMatchObject({ shape: 'tour' })
+    // A tour on screen stays when another card comes
+    hints.markWelcomeShown()
+    tasksStore.setTasks([task('a', TaskStatus.Open), task('b', TaskStatus.Open)])
+    await nextTick()
+    expect(hints.welcome.value).not.toBeNull()
+    // The note of an empty board, seen: the first card ends it
+    tasksStore.setTasks([])
+    await nextTick()
+    expect(hints.welcome.value).toMatchObject({ shape: 'note' })
+    tasksStore.setTasks([task('c', TaskStatus.Open)])
+    await nextTick()
+    expect(answered(settings, 'welcome')).toBe(true)
+    expect(hints.current.value).toBe('start')
+    scope.stop()
+  })
+
+  it('"Weiter" waits for the user\'s own card in Jetzt: a card the board starts with shows no hint', () => {
+    const { hints, settings } = fresh([task('j', TaskStatus.Progress)])
+    hints.endWelcome()
+    expect(hints.current.value).toBeNull()
+    settings.markOwnJetzt()
+    expect(hints.current.value).toBe('weiter')
+  })
+
+  it('a card in Jetzt, on any page, notes that Jetzt was used', async () => {
+    const { settings, tasksStore } = setup([task('a', TaskStatus.Open)], false)
+    const scope = effectScope()
+    scope.run(() => useIntroHintSteps())
+    expect(settings.jetztUsed).toBe(false)
+    tasksStore.setTasks([task('a', TaskStatus.Progress)])
+    await nextTick()
+    expect(settings.jetztUsed).toBe(true)
+    tasksStore.setTasks([])
+    await nextTick()
+    expect(settings.jetztUsed).toBe(true)
     scope.stop()
   })
 })

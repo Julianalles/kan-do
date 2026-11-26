@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest'
 import de from '~/i18n/locales/de.json'
 import en from '~/i18n/locales/en.json'
-import { currentIntroHint, freshIntroHints, INTRO_HINT_ORDER, INTRO_PLAN_HINT, introHintTextKey, isIntroHintEnded, isIntroHintLive, needsShownDay, sanitizeIntroHints, type IntroHintId, type IntroHintsRecord } from '~/lib/introHints'
+import { currentIntroHint, freshIntroHints, INTRO_HINT_ORDER, INTRO_PLAN_HINT, introHintTextKey, introHintTitleKey, isIntroHintEnded, isIntroWelcomeLive, resolveIntroWelcome, type IntroWelcome, type IntroWelcomeBoard, isIntroHintLive, needsShownDay, sanitizeIntroHints, type IntroHintId, type IntroHintsRecord } from '~/lib/introHints'
 
 const due = () => true
 /** Only "Start" has its moment: the rules of one hint, whatever follows it in the order */
@@ -176,6 +176,111 @@ describe('the hint "Planen" (#803): a hint of "Alle" outside the overlay\'s orde
       const key = introHintTextKey(INTRO_PLAN_HINT, phone)
       expect(typeof key.split('.').reduce<unknown>((node, part) => (node as Record<string, unknown> | undefined)?.[part], de), `de ${key}`).toBe('string')
       expect(typeof key.split('.').reduce<unknown>((node, part) => (node as Record<string, unknown> | undefined)?.[part], en), `en ${key}`).toBe('string')
+    }
+  })
+})
+
+const TODAY = '2026-11-25'
+
+describe('the welcome (#853): the record', () => {
+  it('a fresh record has the welcome ahead; a record from before it never does', () => {
+    expect(isIntroWelcomeLive(freshIntroHints(), TODAY)).toBe(true)
+    expect(isIntroWelcomeLive({ on: true, quietDay: null, hints: {} }, TODAY)).toBe(false)
+    expect(isIntroWelcomeLive(null, TODAY)).toBe(false)
+  })
+
+  it('is over once answered, while the hints are off, and after three days on screen', () => {
+    expect(isIntroWelcomeLive(record({ hints: { welcome: { answered: true, days: [] } } }), TODAY)).toBe(false)
+    expect(isIntroWelcomeLive(record({ on: false }), TODAY)).toBe(false)
+    expect(isIntroWelcomeLive(record({ hints: { welcome: { answered: false, days: ['2026-11-20', '2026-11-21', '2026-11-22'] } } }), TODAY)).toBe(false)
+    expect(isIntroWelcomeLive(record({ hints: { welcome: { answered: false, days: ['2026-11-20', TODAY] } } }), TODAY)).toBe(true)
+  })
+
+  it('reads the version and the own-Jetzt flag tolerantly: only the known values survive, older data has neither', () => {
+    expect(sanitizeIntroHints({ on: true, quietDay: null, hints: {}, v: 2, ownJetzt: true })).toEqual({ on: true, quietDay: null, hints: {}, v: 2, ownJetzt: true })
+    expect(sanitizeIntroHints({ on: true, quietDay: null, hints: {} })).toEqual({ on: true, quietDay: null, hints: {} })
+    expect(sanitizeIntroHints({ on: true, quietDay: null, hints: {}, v: '2', ownJetzt: 'yes' })).toEqual({ on: true, quietDay: null, hints: {} })
+    expect(sanitizeIntroHints({ on: true, quietDay: null, hints: {}, v: 3 })).toEqual({ on: true, quietDay: null, hints: {} })
+  })
+})
+
+describe('the welcome (#853): what it says per scenario and place', () => {
+  const board = (over: Partial<IntroWelcomeBoard> = {}): IntroWelcomeBoard =>
+    ({ place: 'today', onToday: 0, underAll: 0, connected: false, sample: false, jetzt: false, phone: false, ...over })
+  const keys = (welcome: IntroWelcome) => welcome.steps.map((step) => [step.titleKey, step.textKey])
+  const read = (locale: object, key: string) => key.split('.').reduce<unknown>((node, part) => (node as Record<string, unknown> | undefined)?.[part], locale)
+
+  it('S1, an empty board on "Heute": one note, in the wording of the width', () => {
+    const welcome = resolveIntroWelcome(board())
+    expect(welcome).toMatchObject({ scenario: 'empty', shape: 'note', toAll: false, says: [] })
+    expect(keys(welcome)).toEqual([['board.welcome.empty.title', 'board.welcome.empty.today.desktop']])
+    expect(keys(resolveIntroWelcome(board({ phone: true })))).toEqual([['board.welcome.empty.title', 'board.welcome.empty.today.phone']])
+  })
+
+  it('S2, a connection without tasks: one note that names the connection, on both places', () => {
+    for (const place of ['today', 'all'] as const) {
+      const welcome = resolveIntroWelcome(board({ connected: true, place }))
+      expect(welcome).toMatchObject({ scenario: 'connectedEmpty', shape: 'note', toAll: false, says: [] })
+      expect(keys(welcome)).toEqual([['board.welcome.empty.title', 'board.welcome.connectedEmpty.text']])
+    }
+  })
+
+  it('S3, tasks only under "Alle": on "Heute" one note whose button leads to "Alle"', () => {
+    const welcome = resolveIntroWelcome(board({ underAll: 3, connected: true }))
+    expect(welcome).toMatchObject({ scenario: 'underAll', shape: 'note', toAll: true, says: [] })
+    expect(keys(welcome)).toEqual([['board.welcome.underAll.title', 'board.welcome.underAll.today']])
+  })
+
+  it('S4, cards already on "Heute": the tour of three, which stands for "Start"', () => {
+    const welcome = resolveIntroWelcome(board({ onToday: 2, underAll: 1, connected: true }))
+    expect(welcome).toMatchObject({ scenario: 'today', shape: 'tour', toAll: false, says: ['start'] })
+    expect(keys(welcome)).toEqual([
+      ['board.welcome.tour.today.title', 'board.welcome.tour.today.text'],
+      ['board.welcome.tour.one.title', 'board.welcome.tour.one.empty.desktop'],
+      ['board.welcome.tour.done.title', 'board.welcome.tour.done.text'],
+    ])
+  })
+
+  it('S5, the sample board: the tour starts with the sample note; note 2 explains the card that lies in Jetzt', () => {
+    const welcome = resolveIntroWelcome(board({ onToday: 6, sample: true, jetzt: true }))
+    expect(welcome).toMatchObject({ scenario: 'sample', shape: 'tour', says: ['start'] })
+    expect(keys(welcome).slice(0, 2)).toEqual([
+      ['board.welcome.tour.sample.title', 'board.welcome.tour.sample.text.desktop'],
+      ['board.welcome.tour.one.title', 'board.welcome.tour.one.filled'],
+    ])
+    const phone = resolveIntroWelcome(board({ onToday: 6, sample: true, phone: true }))
+    expect(keys(phone).slice(0, 2)).toEqual([
+      ['board.welcome.tour.sample.title', 'board.welcome.tour.sample.text.phone'],
+      ['board.welcome.tour.one.title', 'board.welcome.tour.one.empty.phone'],
+    ])
+  })
+
+  it('S6, on "Alle" it is always one note: the empty board\'s, or with any task the one that stands for the planning note', () => {
+    expect(keys(resolveIntroWelcome(board({ place: 'all' })))).toEqual([['board.welcome.empty.title', 'board.welcome.empty.all']])
+    for (const over of [{ underAll: 2 }, { onToday: 2 }, { onToday: 6, sample: true, jetzt: true }]) {
+      const welcome = resolveIntroWelcome(board({ place: 'all', ...over }))
+      expect(welcome).toMatchObject({ shape: 'note', toAll: false, says: [INTRO_PLAN_HINT] })
+      expect(keys(welcome)).toEqual([['board.welcome.underAll.title', 'board.welcome.underAll.all']])
+    }
+  })
+
+  it('every key it can return exists in both locales', () => {
+    const boards = [true, false].flatMap((phone) => (['today', 'all'] as const).flatMap((place) => [
+      board({ phone, place }), board({ phone, place, connected: true }), board({ phone, place, underAll: 1 }),
+      board({ phone, place, onToday: 1 }), board({ phone, place, onToday: 1, jetzt: true }), board({ phone, place, onToday: 1, sample: true }),
+    ]))
+    for (const key of new Set(boards.flatMap((b) => keys(resolveIntroWelcome(b)).flat()))) {
+      expect(typeof read(de, key), `de ${key}`).toBe('string')
+      expect(typeof read(en, key), `en ${key}`).toBe('string')
+    }
+  })
+
+  it('every hint and the planning note have a title in both locales', () => {
+    for (const id of [...INTRO_HINT_ORDER, INTRO_PLAN_HINT] as const) {
+      for (const key of [introHintTitleKey(id), introHintTextKey(id, true), introHintTextKey(id, false)]) {
+        expect(typeof read(de, key), `de ${key}`).toBe('string')
+        expect(typeof read(en, key), `en ${key}`).toBe('string')
+      }
     }
   })
 })

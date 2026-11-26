@@ -15,8 +15,15 @@
  *
  * An ended hint never returns by itself: `answered` is never taken back, and `days` only grows.
  *
- * "Planen" (#803) is the one hint outside `INTRO_HINT_ORDER`: it belongs to "Alle", where the overlay never shows, so it has
+ * "Planen" (#803) is a hint outside `INTRO_HINT_ORDER`: it belongs to "Alle" and BoardPlanNote shows it, so it has
  * its own id in the same record (`hints.planen`) and the same rules (`isIntroHintLive`).
+ *
+ * The welcome (#853) is the other one: `hints.welcome`, shown once before every other hint, on "Heute" or "Alle". It exists
+ * only in a record of version 2 (`v`, written by `freshIntroHints`): a record made before #853 has no `v` and reads as
+ * "welcome over", so an install that was already set up never gets a welcome by itself ("Erneut zeigen" writes a fresh
+ * record and brings it back). What the welcome says is `resolveIntroWelcome`, a pure rule over the board.
+ * - `ownJetzt` (#853): the user put a card into Jetzt themselves. "Weiter" ("Die Zeit läuft jetzt mit") is due only then,
+ *   never for a Jetzt card the board starts with (a connection's task, the sample board). Missing reads as false.
  */
 import { isValidDayKey } from '~/utils/recapDay'
 
@@ -41,8 +48,13 @@ export const INTRO_PLAN_HINT = 'planen'
  * one line on a phone). The menu names in "Auswahl" and "Abschluss" are params (`{more}`, `{dayClose}`).
  */
 export function introHintTextKey(id: IntroHintId | typeof INTRO_PLAN_HINT, phone: boolean): string {
-  if (id === INTRO_PLAN_HINT) return phone ? 'board.planNote.line' : 'board.planNote.description'
-  return id === 'start' ? `board.introHint.start.${phone ? 'phone' : 'desktop'}` : `board.introHint.${id}`
+  if (id === INTRO_PLAN_HINT) return phone ? 'board.planNote.phoneText' : 'board.planNote.description'
+  return id === 'start' ? `board.introHint.start.text.${phone ? 'phone' : 'desktop'}` : `board.introHint.${id}.text`
+}
+
+/** The i18n key of a hint's title (#853: every note has one, the sentence its text used to start with). */
+export function introHintTitleKey(id: IntroHintId | typeof INTRO_PLAN_HINT): string {
+  return id === INTRO_PLAN_HINT ? 'board.planNote.title' : `board.introHint.${id}.title`
 }
 
 /** A hint left unanswered on this many days ends (D3 1A). */
@@ -53,16 +65,23 @@ export interface IntroHintEntry {
   days: string[]
 }
 
+/** The record version that has the welcome (#853). A record without it was made before and never shows one. */
+export const INTRO_RECORD_VERSION = 2
+
 export interface IntroHintsRecord {
   on: boolean
   quietDay: string | null
   /** Keyed by hint id. A stored id this build does not know is kept and ignored. */
   hints: Record<string, IntroHintEntry>
+  /** `INTRO_RECORD_VERSION` on a record made since #853; absent on an older one (no welcome). */
+  v?: number
+  /** The user put a card into Jetzt themselves (#853); absent reads as false. */
+  ownJetzt?: boolean
 }
 
-/** The record the welcome setup writes: on, nothing shown, nothing answered. */
+/** The record the welcome setup writes: on, nothing shown, nothing answered, the welcome ahead. */
 export function freshIntroHints(): IntroHintsRecord {
-  return { on: true, quietDay: null, hints: {} }
+  return { on: true, quietDay: null, hints: {}, v: INTRO_RECORD_VERSION }
 }
 
 const isPlainObject = (value: unknown): value is Record<string, unknown> =>
@@ -87,7 +106,13 @@ export function sanitizeIntroHints(value: unknown): IntroHintsRecord | null {
       if (entry) hints[id] = entry
     }
   }
-  return { on: value.on, quietDay: isValidDayKey(value.quietDay) ? value.quietDay : null, hints }
+  return {
+    on: value.on,
+    quietDay: isValidDayKey(value.quietDay) ? value.quietDay : null,
+    hints,
+    ...(value.v === INTRO_RECORD_VERSION ? { v: INTRO_RECORD_VERSION } : {}),
+    ...(value.ownJetzt === true ? { ownJetzt: true } : {}),
+  }
 }
 
 /** Answered, or shown on three days and today is not one of them. */
@@ -127,4 +152,93 @@ export function needsShownDay(record: IntroHintsRecord | null, id: string, today
   const entry = record.hints[id]
   if (!entry) return true
   return !entry.answered && !entry.days.includes(today) && entry.days.length < INTRO_HINT_MAX_DAYS
+}
+
+// ── The welcome (#853) ────────────────────────────────────────────────────────
+
+/** The welcome's id in the record: one entry, whatever shape it took. */
+export const INTRO_WELCOME_HINT = 'welcome'
+
+/** The welcome can show: a record that has one (version 2), running, not on a quiet day, and not ended. */
+export function isIntroWelcomeLive(record: IntroHintsRecord | null, today: string): boolean {
+  return record?.v === INTRO_RECORD_VERSION && isIntroHintLive(record, INTRO_WELCOME_HINT, today)
+}
+
+/** What the welcome reads of the board. Counts, not tasks: the rule stays pure. */
+export interface IntroWelcomeBoard {
+  /** The place that shows. */
+  place: 'today' | 'all'
+  /** Cards in today's columns (Offen, Jetzt, Wartet, Erledigt of today). */
+  onToday: number
+  /** Tasks that wait under "Alle". */
+  underAll: number
+  /** A connected app, whether or not it sent tasks. */
+  connected: boolean
+  /** The board holds the sample tasks. */
+  sample: boolean
+  /** A card lies in Jetzt. */
+  jetzt: boolean
+  phone: boolean
+}
+
+/** The first-experience scenarios of #853 (S1 to S5; S6 is each of them seen from "Alle"). */
+export type IntroWelcomeScenario = 'empty' | 'connectedEmpty' | 'underAll' | 'today' | 'sample'
+
+export interface IntroNoteCopy {
+  titleKey: string
+  textKey: string
+}
+
+export interface IntroWelcome {
+  scenario: IntroWelcomeScenario
+  /** `tour`: three notes with "Weiter". `note`: one note with "Schließen". */
+  shape: 'note' | 'tour'
+  /** One entry for a note, three for the tour. */
+  steps: IntroNoteCopy[]
+  /** The note's main button leads to "Alle" ("Aufgaben auswählen") instead of closing. */
+  toAll: boolean
+  /** The hints this welcome already said: they count as answered when it ends (D3). */
+  says: string[]
+}
+
+export function introWelcomeScenario(board: Pick<IntroWelcomeBoard, 'onToday' | 'underAll' | 'connected' | 'sample'>): IntroWelcomeScenario {
+  if (board.onToday > 0) return board.sample ? 'sample' : 'today'
+  if (board.underAll > 0) return 'underAll'
+  return board.connected ? 'connectedEmpty' : 'empty'
+}
+
+const WELCOME = 'board.welcome'
+
+/**
+ * What the welcome says for this board (#853, the scenario table of the issue). The tour runs where cards already lie on
+ * "Heute" and "Heute" shows; everywhere else, and always on "Alle", it is one note with the text of its scenario and place.
+ */
+export function resolveIntroWelcome(board: IntroWelcomeBoard): IntroWelcome {
+  const scenario = introWelcomeScenario(board)
+  const width = board.phone ? 'phone' : 'desktop'
+  const note = (titleKey: string, textKey: string, more: Partial<IntroWelcome> = {}): IntroWelcome =>
+    ({ scenario, shape: 'note', steps: [{ titleKey, textKey }], toAll: false, says: [], ...more })
+
+  if (board.place === 'all') {
+    // Any task on the board: what lies here and how a card is planned. It stands for the planning note.
+    if (scenario === 'underAll' || scenario === 'today' || scenario === 'sample') {
+      return note(`${WELCOME}.underAll.title`, `${WELCOME}.underAll.all`, { says: [INTRO_PLAN_HINT] })
+    }
+    return note(`${WELCOME}.empty.title`, scenario === 'connectedEmpty' ? `${WELCOME}.connectedEmpty.text` : `${WELCOME}.empty.all`)
+  }
+
+  if (scenario === 'today' || scenario === 'sample') {
+    const first: IntroNoteCopy = scenario === 'sample'
+      ? { titleKey: `${WELCOME}.tour.sample.title`, textKey: `${WELCOME}.tour.sample.text.${width}` }
+      : { titleKey: `${WELCOME}.tour.today.title`, textKey: `${WELCOME}.tour.today.text` }
+    const one: IntroNoteCopy = {
+      titleKey: `${WELCOME}.tour.one.title`,
+      textKey: board.jetzt ? `${WELCOME}.tour.one.filled` : `${WELCOME}.tour.one.empty.${width}`,
+    }
+    const done: IntroNoteCopy = { titleKey: `${WELCOME}.tour.done.title`, textKey: `${WELCOME}.tour.done.text` }
+    return { scenario, shape: 'tour', steps: [first, one, done], toAll: false, says: ['start'] }
+  }
+  if (scenario === 'underAll') return note(`${WELCOME}.underAll.title`, `${WELCOME}.underAll.today`, { toAll: true })
+  if (scenario === 'connectedEmpty') return note(`${WELCOME}.empty.title`, `${WELCOME}.connectedEmpty.text`)
+  return note(`${WELCOME}.empty.title`, `${WELCOME}.empty.today.${width}`)
 }

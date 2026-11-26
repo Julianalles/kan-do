@@ -331,9 +331,12 @@ function boardStoreOf(sources: { connected: string[]; default: string }, tasks: 
  * unless the spec opts in with `focus: true`: with a task in Jetzt it would swallow the first tap of every touch
  * spec and dim the board in screenshots and contrast checks.
  */
-export function buildSettingsStore(focus = false, hints = false) {
-  // `hints` (#800): the intro hints as the welcome setup starts them; a seed without it shows none, like an existing install
-  return { focusEnabled: focus, ...(hints ? { introHints: { on: true, quietDay: null, hints: {} } } : {}) }
+export function buildSettingsStore(focus = false, hints: boolean | 'welcome' = false) {
+  // `hints` (#800): the step hints on; a seed without it shows none, like an install from before them. `true` is a record
+  // from before the welcome (#853: no `v`, so no welcome) whose user already put a card into Jetzt (`ownJetzt`, so "Weiter"
+  // can show); `'welcome'` is the record the welcome setup writes today, with the welcome ahead
+  if (hints === 'welcome') return { focusEnabled: focus, introHints: { on: true, quietDay: null, hints: {}, v: 2 } }
+  return { focusEnabled: focus, ...(hints ? { introHints: { on: true, quietDay: null, hints: {}, ownJetzt: true } } : {}) }
 }
 
 /** Carried-over counter entry (#99), as persisted in tasks-store. */
@@ -414,8 +417,8 @@ export function notionStubSessionToken(): string {
 export interface SeedLocalOptions {
   /** Fokus overlay on (the app default); off in seeds unless set, see `buildSettingsStore` (#394). */
   focus?: boolean
-  /** The intro hints on, as after the welcome setup (#800); off in seeds unless set. */
-  hints?: boolean
+  /** The intro hints (#800); off in seeds unless set. `true`: the step hints, welcome over. `'welcome'`: as after the welcome setup, the welcome ahead (#853). */
+  hints?: boolean | 'welcome'
   /**
    * Seed only on the first load of this tab. `addInitScript` runs on every navigation, so without it
    * a `page.reload()` overwrites the changes the test made. The guard is a sessionStorage flag keyed

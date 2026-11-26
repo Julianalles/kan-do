@@ -1,4 +1,5 @@
 import type { Task } from "@/types/task";
+import { markFirstFetchEnded } from '~/lib/boardSettled';
 import { useTasksStore } from "~/store/tasks";
 
 import { useBoardStore } from "~/store/board";
@@ -197,6 +198,8 @@ export const useIntegrationManager = () => {
       return [];
     } finally {
       tasksStore.setLoading(false);
+      // The board's first load is over, whatever came of it (#853: the welcome and the empty states wait for it)
+      markFirstFetchEnded();
     }
   };
 

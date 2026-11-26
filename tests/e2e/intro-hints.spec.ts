@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { fillerTasks, seedLocalBoard, SEED_TASKS } from './helpers/seed'
+import { fillerTasks, seedLocalBoard, seedNotionBoard, SEED_TASKS } from './helpers/seed'
 import { callTasksStore, fullTask } from './helpers/store'
 import { goToPlace, openDayClose } from './helpers/appNav'
 
@@ -28,9 +28,16 @@ test('the welcome setup starts the hints: "Start" shows with the first card in O
   await page.getByRole('button', { name: 'Jetzt starten' }).click()
   await page.getByRole('button', { name: 'Zum Board' }).click()
   await expect(page).toHaveURL(/\/tasks$/)
-  await expect.poll(() => record(page)).toEqual({ on: true, quietDay: null, hints: {} })
-  // The empty board keeps its own empty state: no hint yet
+  await expect.poll(async () => (await record(page)) as unknown).toMatchObject({ on: true, quietDay: null, v: 2 })
+  // The empty board (#853): its empty state with the add button, and the welcome note that says what the board is
+  await expect(page.getByTestId('open-empty-hint')).toBeVisible()
+  await expect(hint(page)).toHaveAttribute('data-hint', 'welcome')
+  await expect(page.getByTestId('intro-note-title')).toHaveText('Dein Tag auf einem Blatt')
+  await page.getByTestId('intro-hint-close').click()
   await expect(hint(page)).toHaveCount(0)
+  await expect.poll(async () => (await record(page))?.hints.welcome?.answered).toBe(true)
+  // "Schließen" of the welcome keeps no quiet day: the step hints follow at their moments
+  expect((await record(page))?.quietDay).toBeNull()
 
   await callTasksStore(page, { action: 'addTask', args: [fullTask({ id: 'first', title: 'Erste Aufgabe', status: 0 })] })
   await expect(hint(page)).toBeVisible()
@@ -40,9 +47,10 @@ test('the welcome setup starts the hints: "Start" shows with the first card in O
   await expect.poll(async () => (await record(page))?.hints.start?.days.length).toBe(1)
 
   await callTasksStore(page, { action: 'updateTask', args: ['first', { status: 1 }] })
-  // "Start" is answered; the card in Jetzt is the moment of "Weiter" (#801)
+  // "Start" is answered. The card did not get into Jetzt by the user's own move (a store write, like a card a connection
+  // brings), so "Die Zeit läuft jetzt mit" does not show (#853)
   await expect.poll(async () => (await record(page))?.hints.start?.answered).toBe(true)
-  await expect(hint(page)).toHaveAttribute('data-hint', 'weiter')
+  await expect(hint(page)).toHaveCount(0)
   await callTasksStore(page, { action: 'updateTask', args: ['first', { status: 0 }] })
   await expect(hint(page)).toHaveCount(0)
 
@@ -173,7 +181,7 @@ test('"Weiter": shows with a card in Jetzt, ends when the card goes to Wartet, a
   await gotoBoard(page)
   await expect(hint(page)).toBeVisible()
   await expect(hint(page)).toHaveAttribute('data-hint', 'weiter')
-  await expect(hint(page)).toContainText('Die Zeit läuft jetzt mit. Ziehe die Karte in „Erledigt“')
+  await expect(hint(page)).toContainText('Die Zeit läuft jetzt mitZiehe die Karte in „Erledigt“')
   await expect.poll(async () => (await record(page))?.hints.start?.answered).toBe(true)
 
   await callTasksStore(page, { action: 'updateTask', args: ['seed-progress-1', { status: 2 }] })
@@ -202,7 +210,7 @@ test('"Auswahl": shows with four cards in Offen and Jetzt empty; "Karten stapeln
   await expect(hint(page)).toHaveAttribute('data-hint', 'start')
   await answerHints(page, 'start')
   await expect(hint(page)).toHaveAttribute('data-hint', 'auswahl')
-  await expect(hint(page)).toContainText('Viel offen? Gestapelt nach Thema oder Priorität wählst du leichter aus. Die Stapel findest du auch unter „Mehr“.')
+  await expect(hint(page)).toContainText('Viel offen?Gestapelt nach Thema oder Priorität wählst du leichter aus. Die Stapel findest du auch unter „Mehr“.')
   expect(await groupingEnabled(page)).toBe(false)
 
   await page.getByTestId('intro-hint-stack').click()
@@ -225,7 +233,7 @@ test('"Abschluss": shows with something done today and Jetzt empty, and ends whe
   await gotoBoard(page)
   await answerHints(page, 'start')
   await expect(hint(page)).toHaveAttribute('data-hint', 'abschluss')
-  await expect(hint(page)).toContainText('Genug für heute? „Tag abschließen“ zeigt dir, was du geschafft hast und was offen bleibt.')
+  await expect(hint(page)).toContainText('Genug für heute?„Tag abschließen“ zeigt dir, was du geschafft hast und was offen bleibt.')
 
   await openDayClose(page)
   await expect(page.getByTestId('day-close-stage')).toBeVisible()
@@ -290,7 +298,7 @@ test('"Hinweise ausschalten" on a hint turns all hints off: a toast says where t
   await expect(hint(page)).toHaveCount(0)
 })
 
-test('"Erneut zeigen" in the settings brings the hints back: "Start" shows again on the board', async ({ context, page }) => {
+test('"Erneut zeigen" in the settings brings the hints back: the welcome shows again on the board', async ({ context, page }) => {
   await seedLocalBoard(context, OPEN_ONLY, {}, undefined, { hints: true, once: true })
   await gotoBoard(page)
   await page.getByTestId('intro-hint-off').click()
@@ -298,7 +306,8 @@ test('"Erneut zeigen" in the settings brings the hints back: "Start" shows again
   await page.goto('/settings')
   await page.getByTestId('intro-hints-toggle').click()
   await goToPlace(page, 'Heute')
-  await expect(hint(page)).toHaveAttribute('data-hint', 'start')
+  // All notes start again from the first: the welcome (#853), then "Start"
+  await expect(hint(page)).toHaveAttribute('data-hint', 'welcome')
 })
 
 test('390px: the link "Hinweise ausschalten" is a 44 px target and the sheet stays clear of the app bar', async ({ context, page }) => {
@@ -368,7 +377,7 @@ test('"Planen" at 390: one line with the two links, "Hinweise ausschalten" takes
   await seedLocalBoard(context, PICK_ONLY, {}, undefined, { hints: true, once: true })
   await page.goto('/tasks')
   await goToPlace(page, 'Alle')
-  await expect(planNote(page)).toHaveText('Wähle aus, was heute dran ist. Sobald du loslegen willst, wechsle in der Navigation zu „Heute“.')
+  await expect(planNote(page)).toContainText('Wähle aus, was heute dran istSobald du loslegen willst, wechsle in der Navigation zu „Heute“.')
   for (const id of ['plan-note-off', 'plan-note-close']) {
     const box = (await page.getByTestId(id).boundingBox())!
     expect(box.height).toBeGreaterThanOrEqual(44)
@@ -387,4 +396,181 @@ test('"Planen" stays silent with a card already planned for today or with nothin
   await expect(planNote(page)).toHaveCount(0)
   // the card in Offen answered the hint: it does not come back when the card leaves
   await expect.poll(async () => (await planRecord(page)).record?.hints.planen?.answered).toBe(true)
+})
+
+// --- #853: the welcome ------------------------------------------------------
+
+/** Two cards in Offen and nothing else: after the tour no step hint is due ("Start" was said, "Auswahl" needs four, nothing is done). */
+const TOUR_BOARD = SEED_TASKS.filter((task) => task.status === 0).slice(0, 2)
+/** As after the welcome setup today: the welcome ahead. */
+const WELCOME = { hints: 'welcome' as const, once: true }
+
+test('cards on "Heute": the welcome is a tour of three notes; focus stays on "Weiter", "Loslegen" ends it for good and "Start" is not said again', async ({ context, page }) => {
+  await seedLocalBoard(context, TOUR_BOARD, {}, undefined, WELCOME)
+  await gotoBoard(page)
+  await expect(hint(page)).toHaveAttribute('data-hint', 'welcome')
+  await expect(hint(page)).toHaveAttribute('data-step', '1')
+  const title = page.getByTestId('intro-note-title')
+  await expect(title).toHaveText('Das ist dein Tag')
+  await expect(page.getByTestId('intro-hint-host')).toContainText('Schritt 1 von 3')
+  await expect(page.getByTestId('intro-hint-skip')).toHaveText('Überspringen')
+
+  const next = page.getByTestId('intro-hint-next')
+  await expect(next).toHaveText('Weiter')
+  await next.focus()
+  await page.keyboard.press('Enter')
+  await expect(title).toHaveText('Eine Aufgabe zur Zeit')
+  await expect(hint(page)).toContainText('Ziehe in „Jetzt“, woran du gerade arbeitest.')
+  await expect(next).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(title).toHaveText('Erledigt oder Wartet')
+  await expect(next).toHaveText('Loslegen')
+  await expect(next).toBeFocused()
+  await expect(page.getByTestId('intro-hint-skip')).toHaveCount(0)
+  await page.keyboard.press('Enter')
+
+  // Ended: focus on the board, and the cards in Offen do not bring "Womit fängst du an?" (the tour said it)
+  await expect(hint(page)).toHaveCount(0)
+  await expect(page.locator('[data-task-sheet-return]')).toBeFocused()
+  await expect.poll(async () => (await record(page))?.hints.welcome?.answered).toBe(true)
+  expect((await record(page))?.hints.start?.answered).toBe(true)
+
+  await page.reload()
+  await expect(page.locator('.task-wrapper').first()).toBeVisible()
+  await expect(hint(page)).toHaveCount(0)
+})
+
+test('a started tour keeps its step across a task sheet (#853)', async ({ context, page }) => {
+  await seedLocalBoard(context, TOUR_BOARD, {}, undefined, WELCOME)
+  await gotoBoard(page)
+  const title = page.getByTestId('intro-note-title')
+  await page.getByTestId('intro-hint-next').click()
+  await expect(title).toHaveText('Eine Aufgabe zur Zeit')
+  await page.locator('.task-wrapper').first().click()
+  await expect(page).toHaveURL(/\/tasks\/.+/)
+  await expect(hint(page)).toHaveCount(0)
+  await page.keyboard.press('Escape')
+  await expect(page).toHaveURL(/\/tasks$/)
+  await expect(title).toHaveText('Eine Aufgabe zur Zeit')
+  await expect(hint(page)).toHaveAttribute('data-step', '2')
+})
+
+test('"Überspringen" ends the tour for good; "Hinweise ausschalten" on the welcome ends it too', async ({ context, page }) => {
+  await seedLocalBoard(context, TOUR_BOARD, {}, undefined, WELCOME)
+  await gotoBoard(page)
+  await page.getByTestId('intro-hint-skip').click()
+  await expect(hint(page)).toHaveCount(0)
+  await expect.poll(async () => (await record(page))?.hints.welcome?.answered).toBe(true)
+  await page.reload()
+  await expect(page.locator('.task-wrapper').first()).toBeVisible()
+  await expect(hint(page)).toHaveCount(0)
+
+  // "Erneut zeigen" brings the welcome back, in the shape that fits the board now; turning the hints off ends it
+  await page.goto('/settings')
+  const toggle = page.getByTestId('intro-hints-toggle')
+  await toggle.click()
+  await expect(toggle).toHaveText('Erneut zeigen')
+  await toggle.click()
+  await expect(toggle).toHaveText('Ausschalten')
+  await gotoBoard(page)
+  await expect(hint(page)).toHaveAttribute('data-hint', 'welcome')
+  await page.getByTestId('intro-hint-off').click()
+  await expect(page.getByTestId('intro-hint-host')).toHaveCount(0)
+  await expect.poll(async () => (await record(page))?.hints.welcome?.answered).toBe(true)
+})
+
+test('tasks only under "Alle": one note whose button "Aufgaben auswählen" opens "Alle", where the planning note follows', async ({ context, page }) => {
+  await seedLocalBoard(context, PICK_ONLY, {}, undefined, WELCOME)
+  await gotoBoard(page)
+  await expect(page.getByTestId('intro-note-title')).toHaveText('Deine Aufgaben sind da')
+  // The empty state names "Alle" while tasks wait there
+  await expect(page.getByTestId('open-empty-all-link')).toBeVisible()
+  const toAll = page.getByTestId('intro-hint-all')
+  await expect(toAll).toHaveText('Aufgaben auswählen')
+  await toAll.click()
+  await expect(page).toHaveURL(/\/all$/)
+  await expect(hint(page)).toHaveCount(0)
+  await expect(page.locator('#column-open').getByTestId('plan-note')).toBeVisible()
+})
+
+test('the first open on "Alle": one note there, the planning note does not follow it, and "Heute" shows no welcome afterwards', async ({ context, page }) => {
+  await seedLocalBoard(context, [...PICK_ONLY, { ...SEED_TASKS[2]!, status: 0 }], {}, undefined, WELCOME)
+  await page.goto('/all')
+  await expect(hint(page)).toHaveAttribute('data-hint', 'welcome')
+  await expect(page.getByTestId('intro-note-title')).toHaveText('Deine Aufgaben sind da')
+  await expect(hint(page)).toContainText('Der Pfeil an einer Karte plant sie für heute ein.')
+  await expect(page.getByTestId('intro-hint-steps')).toHaveCount(0)
+  await page.getByTestId('intro-hint-close').click()
+  await expect(hint(page)).toHaveCount(0)
+  await expect.poll(async () => (await record(page))?.hints.planen?.answered).toBe(true)
+  await goToPlace(page, 'Heute')
+  await expect(page.locator('.task-wrapper').first()).toBeVisible()
+  // No tour after the note on "Alle" (one welcome); the step hint of the board follows
+  await expect(hint(page)).toHaveAttribute('data-hint', 'start')
+})
+
+test('a card the board starts with in Jetzt: the tour explains it, the board is not dimmed while it stands, and no timer hint follows', async ({ context, page }) => {
+  await seedLocalBoard(context, WITH_JETZT, {}, undefined, { ...WELCOME, focus: true })
+  await gotoBoard(page)
+  await expect(hint(page)).toHaveAttribute('data-hint', 'welcome')
+  // The Jetzt focus overlay waits for the welcome (D1)
+  await expect(page.locator('.board')).not.toHaveAttribute('data-focus')
+  await page.getByTestId('intro-hint-next').click()
+  await expect(hint(page)).toContainText('In „Jetzt“ liegt immer nur eine Aufgabe: die, an der du gerade arbeitest.')
+  await page.getByTestId('intro-hint-next').click()
+  await page.getByTestId('intro-hint-next').click()
+  // "Die Zeit läuft jetzt mit" only after the user's own card in Jetzt
+  await expect(hint(page)).toHaveCount(0)
+  await expect(page.locator('.board')).toHaveAttribute('data-focus', '')
+})
+
+test('the dashed Jetzt placeholder shows only beside a card in Offen and never again once a card was in Jetzt, also after a reload', async ({ context, page }) => {
+  await seedLocalBoard(context, OPEN_ONLY, {}, undefined, { once: true })
+  await gotoBoard(page)
+  const placeholder = page.getByTestId('jetzt-placeholder')
+  await expect(placeholder).toBeVisible()
+  await callTasksStore(page, { action: 'updateTask', args: [OPEN_ONLY[0]!.id, { status: 1 }] })
+  await expect(placeholder).toHaveCount(0)
+  await callTasksStore(page, { action: 'updateTask', args: [OPEN_ONLY[0]!.id, { status: 0 }] })
+  await expect(page.locator('#column-progress .task-wrapper')).toHaveCount(0)
+  await expect(placeholder).toHaveCount(0)
+  // Jetzt stays a drop target without it
+  await expect(page.locator('#column-progress .column-drop-zone')).toHaveCount(1)
+  await page.reload()
+  await expect(page.locator('.task-wrapper').first()).toBeVisible()
+  await expect(placeholder).toHaveCount(0)
+})
+
+test('an empty board: no dashed placeholder beside the empty Offen, the green button adds the first task and the round add button returns with it', async ({ context, page }) => {
+  await seedLocalBoard(context, [])
+  await gotoBoard(page)
+  await expect(page.getByTestId('open-empty-hint')).toBeVisible()
+  await expect(page.getByTestId('jetzt-placeholder')).toHaveCount(0)
+  await expect(page.locator('#column-open [data-testid="add-task-header-button"]')).toHaveCount(0)
+  await page.getByTestId('board-empty-add').click()
+  await expect(page.getByTestId('open-empty-hint')).toHaveCount(0)
+  await expect(page.locator('#column-open').getByRole('textbox').first()).toBeFocused()
+})
+
+test('a board with a connection: no welcome and no empty state while its first fetch still runs; both read the board once it has ended', async ({ context, page }) => {
+  await seedNotionBoard(context, [])
+  // The record the welcome setup writes (the Notion seed has no hints option)
+  await context.addInitScript(() => {
+    const settings = JSON.parse(localStorage.getItem('settings-store') ?? '{}') as { introHints?: unknown }
+    if (!settings.introHints) localStorage.setItem('settings-store', JSON.stringify({ ...settings, introHints: { on: true, quietDay: null, hints: {}, v: 2 } }))
+  })
+  let release = () => {}
+  const held = new Promise<void>((resolve) => { release = resolve })
+  await page.route('**/api/notion/query-data-source', async (route) => {
+    await held
+    await route.continue()
+  })
+  await gotoBoard(page)
+  // Give a note or an empty state that wrongly shows time to appear
+  await page.waitForTimeout(500)
+  await expect(hint(page)).toHaveCount(0)
+  await expect(page.getByTestId('open-empty-hint')).toHaveCount(0)
+
+  release()
+  await expect(hint(page)).toHaveAttribute('data-hint', 'welcome')
 })

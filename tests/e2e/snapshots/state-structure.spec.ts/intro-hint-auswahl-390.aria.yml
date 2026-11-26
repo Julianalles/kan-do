@@ -1,5 +1,6 @@
 - status:
-  - paragraph: Viel offen? Gestapelt nach Thema oder Priorität wählst du leichter aus. Die Stapel findest du auch unter „Mehr“.
-  - button "Karten stapeln"
+  - paragraph: Viel offen?
+  - paragraph: Gestapelt nach Thema oder Priorität wählst du leichter aus. Die Stapel findest du auch unter „Mehr“.
   - button "Hinweise ausschalten"
   - button "Schließen"
+  - button "Karten stapeln"
