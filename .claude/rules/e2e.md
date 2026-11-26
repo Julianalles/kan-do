@@ -39,6 +39,8 @@ npm run dev:e2e
 
 `tests/scripts/e2e-gate.test.ts` treats every spec that names a 390 viewport as a phone spec: it must be listed in the app-shell rule of `.claude/hooks/e2e-gate.json`, and a new or deleted spec file needs its `map` entry. Prefer extending a mapped spec over a new spec file.
 
+A throwaway screenshot spec never lives under `tests/e2e/` (the guard demands a map entry and vitest fails): keep it outside the repo or delete it before the Stop hook runs. After a layout change that hides elements, run the dependent spec once with `--timeout=8000` to list every break (30 s per failing test made one run 10 min, #870); restarting the E2E server right after killing it can fail the build while the old cleanup still removes `.e2e-build/<port>`: wait for the port to be free first.
+
 ## CI-only (Linux) failures
 
 Reproduce in Linux Chromium before guessing (kd#100): `colima start`, then run the spec in `mcr.microsoft.com/playwright:v<the repo's @playwright/test version>-noble` against a server on the host (`BASE_URL=http://host.docker.internal:<port>`); mount the worktree from under `$HOME` (colima does not share `/private/tmp`). `--cpus 1` exposes focus and timing races CI hits.
